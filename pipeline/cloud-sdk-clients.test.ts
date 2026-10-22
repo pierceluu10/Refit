@@ -1,13 +1,18 @@
+import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AGENT_CATALOG, detectProviders } from './agent-catalog.ts';
 import { scanCloudSdkClients, type CloudSdkClient } from './cloud-sdk-clients.ts';
 import { scanDeadlines } from './deadline-exposure.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 
+const execute = promisify(execFile);
+const CLI = fileURLToPath(new URL('../bin/refit.mjs', import.meta.url));
 const NOW = new Date('2026-10-22T00:00:00Z');
 const roots: string[] = [];
 afterEach(async () => {
@@ -302,5 +307,25 @@ describe('registry and catalog', () => {
       detections.find((item) => item.agent.id === 'azure')!.packages.map((item) => item.name),
     ).toEqual(['azure-sb']);
     expect(AGENT_CATALOG.find((agent) => agent.id === 'aws')!.adapter).toBeNull();
+  });
+});
+
+describe('refit cloud-sdk', () => {
+  it('prints the services and each live client, and the same scan as JSON', async () => {
+    const root = await repository({
+      'src/a.js': "const AWS = require('aws-sdk');\nconst s3 = new AWS.S3();\n",
+      'src/b.ts': "import { SQSClient } from '@aws-sdk/client-sqs';\nnew SQSClient({});\n",
+    });
+    const { stdout } = await execute(process.execPath, [CLI, 'cloud-sdk', '--repository', root]);
+    expect(stdout).toContain('AWS SDK v2    S3: 1 live, 0 in tests  -> @aws-sdk/client-s3');
+    expect(stdout).toContain('src/a.js:2  AWS SDK v2 S3  (support ended 2025-09-08)');
+    expect(stdout).toContain('src/b.ts:2  AWS SDK v3 SQSClient');
+    const json = JSON.parse(
+      (await execute(process.execPath, [CLI, 'cloud-sdk', '--repository', root, '--json'])).stdout,
+    );
+    expect(json.clients.map((item: CloudSdkClient) => `${item.file}:${item.line}`)).toEqual([
+      'src/a.js:2',
+      'src/b.ts:2',
+    ]);
   });
 });
