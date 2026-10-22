@@ -36,7 +36,6 @@ It does not count when the literal is:
 ```json
 {
   "repo": "owner/name",
-  "set": "openai",
   "file": "src/lib/ai.ts",
   "line": 12,
   "model": "gpt-4o-mini",
@@ -47,7 +46,7 @@ It does not count when the literal is:
 }
 ```
 
-- `set` is the frozen list the repository comes from.
+- A site belongs to its repository, not to a set. Two repositories (`vual/lobe-chat-pro`, `utter-one/bonsai`) are in both frozen lists and both samples, so their sites count in both sets.
 - `provider` is the provider whose API receives the request: `openai`, `anthropic`, `gemini`, or `compatible` for another host.
 - `via` is `sdk`, `wrapper`, `raw-http` or `indirect` (a constant, default or config one hop or more away from the call).
 - `registry` is filled in after labelling, by rule: `true` when the model is listed in `data/deadlines.json` at the scored commit. Model-retirement detection only reports registry models, so recall is scored over registry sites and reported separately for all sites.
