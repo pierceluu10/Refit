@@ -71,7 +71,7 @@ const lambda = new AWS.Lambda();
     expect(s3.deadline).toEqual({ id: 'aws-sdk-js-v2-2025-09-08', date: '2025-09-08' });
     expect(s3.text).toBe("const s3 = new AWS.S3({ apiVersion: '2006-03-01' });");
     expect(found.find((item) => item.service === 'DynamoDB')!.replacement).toEqual([
-      '@aws-sdk/client-dynamodb',
+      '@aws-sdk/lib-dynamodb',
     ]);
   });
 
@@ -155,7 +155,7 @@ const s3 = new AWS.S3();
       {
         sdk: 'aws-sdk-v2',
         service: 'S3',
-        replacement: ['@aws-sdk/client-s3'],
+        replacement: ['@aws-sdk/lib-storage', '@aws-sdk/client-s3'],
         live: 1,
         test: 1,
         files: ['src/upload.js', 'test/upload.test.js'],
@@ -302,7 +302,8 @@ describe('registry and catalog', () => {
     const detections = await detectProviders(root);
     const aws = detections.find((item) => item.agent.id === 'aws')!;
     expect(aws.packages.map((item) => item.name)).toEqual(['aws-sdk']);
-    expect(aws.hostnames).toEqual([{ file: 'src/index.js', line: 1, hostname: 'amazonaws.com' }]);
+    // An S3 asset URL is not SDK use, so it is not hostname evidence.
+    expect(aws.hostnames).toEqual([]);
     expect(
       detections.find((item) => item.agent.id === 'azure')!.packages.map((item) => item.name),
     ).toEqual(['azure-sb']);

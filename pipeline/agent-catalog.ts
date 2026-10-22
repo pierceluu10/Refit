@@ -111,14 +111,15 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
-  // AWS SDK for JavaScript v2, whose support ended on 2025-09-08 (data/deadlines.json). Regional
-  // service hosts all end in amazonaws.com. v3's per-service @aws-sdk/client-* packages are listed
-  // by scanCloudSdkClients (pipeline/cloud-sdk-clients.ts) rather than named here one by one.
+  // AWS SDK for JavaScript v2, whose support ended on 2025-09-08 (data/deadlines.json). No hostname:
+  // amazonaws.com also appears in S3 asset URLs and CSP lists that use no SDK. v3's per-service
+  // @aws-sdk/client-* packages are listed by scanCloudSdkClients (pipeline/cloud-sdk-clients.ts)
+  // rather than named here one by one.
   {
     id: 'aws',
     name: 'AWS SDK for JavaScript',
     packages: ['aws-sdk'],
-    hostnames: ['amazonaws.com'],
+    hostnames: [],
     adapter: null,
     guide: null,
   },

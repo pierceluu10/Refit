@@ -22,7 +22,7 @@ Neither provider says that requests through the old packages stop working; suppo
 ## Where it shows up
 
 - **`refit deadlines`** and the hosted inventory: the registry entries (`aws-sdk-js-v2-2025-09-08`, `azure-sdk-legacy-2023-03-31`, `azure-sdk-legacy-2023-12-31`, `azure-sdk-legacy-2024-02-02`, all `kind: "sdk"`) match every `package.json` that declares one of the packages, as for `@google/generative-ai`. Manifests in test and example paths are listed but not counted.
-- **`refit agents`** (`detectProviders`): catalog entries `aws` (`aws-sdk`, hostnames ending in `amazonaws.com`) and `azure` (the 113 legacy packages). Both have `adapter: null`, so they are detected but never suggested or added.
+- **`refit agents`** (`detectProviders`): catalog entries `aws` (`aws-sdk`; no hostname, since `amazonaws.com` also appears in asset URLs and CSP lists) and `azure` (the 113 legacy packages). Both have `adapter: null`, so they are detected but never suggested or added.
 - **`refit cloud-sdk`** (`scanCloudSdkClients` in `pipeline/cloud-sdk-clients.ts`): the service clients a migration would touch.
 
 ```sh
@@ -84,7 +84,7 @@ Of the 54 scanned repositories (`docs/benchmarks/2026-10-22-cloud-sdk-results.js
 | Legacy Azure |             11 |       11 |             11 |      100% |     100% |
 | **All**      |        **106** |  **106** |        **106** |  **100%** | **100%** |
 
-Every reported service matched its label. Per service, every row is at 100% precision and recall: v2 DynamoDB 5 sites, S3 4, IAM 3, and ACM, CloudFormation, CloudFront, CostExplorer, Lambda, SSO and STS 1 each; v3 21 client packages from 1 site (several) to 16 (`@aws-sdk/client-cloudformation`); Azure `azure-storage` 8 and three other packages 1 each; per-service rows are in the `score.byService` field of the results file. These are small counts: a 100% on 19 v2 sites says the forms in this sample are covered, not that every form is.
+Every reported service matched its label. Per service, every row is at 100% precision and recall: v2 DynamoDB 5 sites, S3 4, IAM 3, and ACM, CloudFormation, CloudFront, CostExplorer, Lambda, SSO and STS 1 each; v3 21 client packages from 1 site (several) to 16 (`@aws-sdk/client-cloudformation`); Azure `azure-storage` 8 and three other packages 1 each; per-service rows are in the `score.byService` field of the results file. The scorer compares the service only; the v3 replacement packages are not scored. These are small counts: a 100% on 19 v2 sites says the forms in this sample are covered, not that every form is.
 
 Recall is measured inside the candidate net. A client built in a file that names neither `aws-sdk` nor `AWS.` is outside both the net and the detector. The sample has one such repository outside the labelled set: `motdotla/node-lambda` exports the SDK from `lib/aws.js` (`sdk: aws`) and passes it to constructors that call `new aws.Lambda()` and `new aws.S3()` on the parameter. Following an SDK object across modules and through parameters is not implemented; the manifest entry still reports the repository.
 

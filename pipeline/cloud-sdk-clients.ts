@@ -26,6 +26,12 @@ const V2_CLIENT_PATH = /^aws-sdk\/clients\/([a-z0-9]+)(?:\.js)?$/;
 const V3_CLIENT_PACKAGE = /^@aws-sdk\/client-[a-z0-9-]+$/;
 // v3 client packages also export commands, errors and helpers; only these are not clients.
 const V3_NOT_CLIENT = /(?:Command|Exception|Error)$/;
+// v2 helpers that v3 moved out of the service client into their own packages.
+const V2_HELPER_PACKAGES = new Map([
+  ['DynamoDB.DocumentClient', '@aws-sdk/lib-dynamodb'],
+  ['S3.ManagedUpload', '@aws-sdk/lib-storage'],
+  ['CloudFront.Signer', '@aws-sdk/cloudfront-signer'],
+]);
 
 export type CloudSdk = 'aws-sdk-v2' | 'aws-sdk-v3' | 'azure-legacy';
 
@@ -322,11 +328,13 @@ function fileClients(path: string, content: string, data: CloudSdkData): CloudSd
     if (ts.isNewExpression(node)) {
       const value = v2?.loads.length ? v2.resolveExpression(node.expression) : undefined;
       if (value?.kind === 'client') {
-        const v3Package = data.v2.get(value.client)?.v3Package ?? null;
+        const name = [value.client, ...value.path].join('.');
+        const v3Package =
+          V2_HELPER_PACKAGES.get(name) ?? data.v2.get(value.client)?.v3Package ?? null;
         record(node, {
           sdk: 'aws-sdk-v2',
           service: value.client,
-          name: [value.client, ...value.path].join('.'),
+          name,
           form: 'constructor',
           replacement: v3Package ? [v3Package] : null,
           deadline: v2Deadline,
@@ -388,12 +396,15 @@ export async function scanCloudSdkClients(
     const row = services.get(key) ?? {
       sdk: client.sdk,
       service: client.service,
-      replacement: client.replacement,
+      replacement: null,
       live: 0,
       test: 0,
       files: [],
     };
     services.set(key, row);
+    // A service's helpers can move to other v3 packages, so the row lists every one.
+    if (client.replacement)
+      row.replacement = [...new Set([...(row.replacement ?? []), ...client.replacement])];
     row[client.use] += 1;
     if (!row.files.includes(client.file)) row.files.push(client.file);
   }
