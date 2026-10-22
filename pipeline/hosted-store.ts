@@ -226,7 +226,8 @@ export async function openHostedStore(pool: Pool) {
         };
       }
       if (change.kind !== 'installation' && change.kind !== 'repositories')
-        return { status: change.kind === 'ignored' ? ('ignored' as const) : 'accepted', ...none };
+        // Hosted mode acts on no pull request; the local service suggests agents from them.
+        return { status: change.kind === 'ping' ? ('accepted' as const) : 'ignored', ...none };
       const { rows: prior } = await client.query<{
         owner: string;
         status: string;

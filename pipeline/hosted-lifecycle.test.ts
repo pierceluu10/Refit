@@ -5,6 +5,17 @@ import { join } from 'node:path';
 import pg from 'pg';
 import { afterEach, expect, it, vi } from 'vitest';
 import { approvedRepository } from './fixtures/approved-repository.ts';
+import {
+  accountRename,
+  installation,
+  installationRepositories,
+  malformedWebhooks,
+  repositoryEvent,
+  repositoryRecord,
+  WEBHOOK_APP_ID as APP_ID,
+  WEBHOOK_INSTALLATION as INSTALLATION,
+  WEBHOOK_REPOSITORY_ID as APPLICATION_ID,
+} from './fixtures/webhook-payloads.ts';
 import { parseWebhook } from './github-webhooks.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
@@ -32,10 +43,7 @@ vi.mock('./github.ts', async (original) => ({
 }));
 
 const DATABASE = process.env.REFIT_POSTGRES_URL;
-const APP_ID = 123;
-const INSTALLATION = 456;
 const OTHER_INSTALLATION = 457;
-const APPLICATION_ID = 789;
 const WEBHOOK_SECRET = 'webhook-secret-for-lifecycle-tests-123';
 const CONTROL_TOKEN = 'control-secret-for-lifecycle-tests-456';
 const TARGET = hostedTargetId('example/application', 'main');
@@ -65,81 +73,6 @@ async function approved() {
   const root = await mkdtemp(join(tmpdir(), 'refit-lifecycle-'));
   cleanups.push(() => rm(root, { recursive: true, force: true }));
   return { root, ...(await approvedRepository(root)) };
-}
-
-// Payloads follow GitHub's published schemas (octokit/webhooks, payload-schemas/api.github.com).
-function repositoryRecord(fullName: string, id: number) {
-  return {
-    id,
-    node_id: `R_${id}`,
-    name: fullName.split('/')[1],
-    full_name: fullName,
-    private: true,
-  };
-}
-
-function installation(
-  action: string,
-  repositories: [string, number][],
-  options: { login?: string; id?: number; updatedAt?: string | number } = {},
-) {
-  return {
-    action,
-    installation: {
-      id: options.id ?? INSTALLATION,
-      app_id: APP_ID,
-      account: { login: options.login ?? 'example', id: 1001, type: 'Organization' },
-      repository_selection: 'selected',
-      updated_at: options.updatedAt ?? '2026-10-22T08:00:00Z',
-      suspended_at: action === 'suspend' ? '2026-10-22T08:00:00Z' : null,
-    },
-    repositories: repositories.map(([name, id]) => repositoryRecord(name, id)),
-    sender: { login: 'octocat', id: 1 },
-  };
-}
-
-function installationRepositories(
-  action: 'added' | 'removed',
-  repositories: [string, number][],
-  options: { login?: string; id?: number } = {},
-) {
-  const { installation: record } = installation('created', [], options);
-  const listed = repositories.map(([name, id]) => repositoryRecord(name, id));
-  return {
-    action,
-    installation: record,
-    repository_selection: 'selected',
-    repositories_added: action === 'added' ? listed : [],
-    repositories_removed: action === 'removed' ? listed : [],
-    requester: null,
-    sender: { login: 'octocat', id: 1 },
-  };
-}
-
-function repositoryEvent(
-  action: string,
-  fullName: string,
-  changes: unknown,
-  options: { id?: number; installation?: number } = {},
-) {
-  return {
-    action,
-    ...(changes === undefined ? {} : { changes }),
-    repository: repositoryRecord(fullName, options.id ?? APPLICATION_ID),
-    installation: { id: options.installation ?? INSTALLATION, node_id: 'MDIz' },
-    sender: { login: 'octocat', id: 1 },
-  };
-}
-
-function accountRename(from: string, to: string) {
-  return {
-    action: 'renamed',
-    target_type: 'Organization',
-    account: { login: to, id: 1001, node_id: 'O_1001', avatar_url: '', html_url: '' },
-    changes: { login: { from } },
-    installation: { id: INSTALLATION, node_id: 'MDIz' },
-    sender: { login: 'octocat', id: 1 },
-  };
 }
 
 // Sends the exact bytes GitHub would through the same parser the service uses.
@@ -204,7 +137,7 @@ async function service(pool: pg.Pool, root: string) {
     event: string,
     payload: unknown,
     headers: Record<string, string> = {},
-    body = JSON.stringify(payload),
+    body: string | Uint8Array<ArrayBuffer> = JSON.stringify(payload),
   ) => {
     const response = await fetch(`${url}/github/webhook`, {
       method: 'POST',
@@ -219,19 +152,54 @@ async function service(pool: pg.Pool, root: string) {
     });
     return { status: response.status, body: await response.json() };
   };
+  // Waits until every claimed job has its receipt. /status reads its tables in separate queries, so
+  // the final read starts only after a read that saw every receipt: everything a job changed
+  // before its receipt is then visible in all three tables.
   const settled = async () => {
-    let registry = await status();
-    for (
-      const deadline = Date.now() + 20_000;
-      registry.jobs.some((job: { status: string }) => ['queued', 'running'].includes(job.status)) &&
-      Date.now() < deadline;
-      registry = await status()
-    )
+    const open = (job: { status: string; attempts: number; receipt: unknown }) =>
+      ['queued', 'running'].includes(job.status) || (job.attempts > 0 && job.receipt === null);
+    for (const deadline = Date.now() + 20_000; Date.now() < deadline;) {
+      if (!(await status()).jobs.some(open)) break;
       await new Promise((resolve) => setTimeout(resolve, 100));
-    return registry;
+    }
+    return status();
   };
   return { url, progress, status, send, settled };
 }
+
+it.skipIf(!DATABASE)(
+  'enrolls the approved repositories an installation lists when it is created and records the rest',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(pool);
+    await store.approve((await approved()).approval, 'octo-reviewer');
+    const created = await deliver(
+      store,
+      'installation',
+      installation('created', [
+        ['example/application', APPLICATION_ID],
+        ['example/unapproved', 790],
+      ]),
+    );
+    expect(created).toEqual({ status: 'accepted', enrolled: [TARGET], cancelled: [], running: [] });
+    const registry = await store.read();
+    expect(registry.installations).toEqual([
+      {
+        id: String(INSTALLATION),
+        owner: 'example',
+        status: 'active',
+        repositories: ['example/application', 'example/unapproved'],
+      },
+    ]);
+    expect(registry.targets).toEqual([
+      expect.objectContaining({ id: TARGET, installationId: String(INSTALLATION) }),
+    ]);
+    expect(await membership(pool)).toEqual([
+      [INSTALLATION, 'example/application', APPLICATION_ID],
+      [INSTALLATION, 'example/unapproved', 790],
+    ]);
+  },
+);
 
 it.skipIf(!DATABASE)(
   'enrolls an approved repository added to an installation and records an unapproved one without enrolling it',
@@ -846,6 +814,20 @@ it.skipIf(!DATABASE)(
     const unknown: [string, unknown][] = [
       ['issues', { action: 'opened', issue: { number: 1 } }],
       [
+        'pull_request',
+        {
+          action: 'opened',
+          number: 7,
+          installation: { id: INSTALLATION },
+          repository: repositoryRecord('example/application', APPLICATION_ID),
+          pull_request: {
+            number: 7,
+            base: { sha: 'a'.repeat(40) },
+            head: { sha: 'b'.repeat(40) },
+          },
+        },
+      ],
+      [
         'push',
         { ref: 'refs/heads/main', repository: repositoryRecord('example/application', 789) },
       ],
@@ -872,4 +854,114 @@ it.skipIf(!DATABASE)(
     expect(rows).toHaveLength(unknown.length);
   },
   30_000,
+);
+
+it.skipIf(!DATABASE)(
+  'refuses malformed and oversized webhooks with a 4xx and changes nothing',
+  async () => {
+    const pool = await database();
+    const sample = await approved();
+    const hosted = await service(pool, sample.root);
+    // An installed repository and a stored delivery give a malformed delivery state to disturb.
+    await hosted.send(
+      'installation',
+      installation('created', [['example/application', APPLICATION_ID]]),
+    );
+    const snapshot = async () => ({
+      registry: await hosted.status(),
+      membership: await membership(pool),
+      deliveries: (await pool.query('SELECT id, hash, event FROM refit_deliveries ORDER BY id'))
+        .rows,
+    });
+    const before = await snapshot();
+
+    const valid = JSON.stringify(
+      installation('deleted', [['example/application', APPLICATION_ID]]),
+    );
+    const raw: {
+      name: string;
+      event: string;
+      body: string | Uint8Array<ArrayBuffer>;
+      headers?: Record<string, string>;
+    }[] = [
+      {
+        name: 'wrong signature',
+        event: 'installation',
+        body: valid,
+        headers: { 'X-Hub-Signature-256': `sha256=${'0'.repeat(64)}` },
+      },
+      {
+        name: 'missing signature',
+        event: 'installation',
+        body: valid,
+        headers: { 'X-Hub-Signature-256': '' },
+      },
+      {
+        name: 'SHA-1 signature',
+        event: 'installation',
+        body: valid,
+        headers: { 'X-Hub-Signature-256': `sha1=${'0'.repeat(40)}` },
+      },
+      {
+        name: 'invalid delivery GUID',
+        event: 'installation',
+        body: valid,
+        headers: { 'X-GitHub-Delivery': 'not-a-guid' },
+      },
+      { name: 'invalid event name', event: 'Installation', body: valid },
+      { name: 'empty event name', event: '', body: valid },
+      {
+        name: 'text body',
+        event: 'installation',
+        body: valid,
+        headers: { 'Content-Type': 'text/plain' },
+      },
+      {
+        name: 'compressed body',
+        event: 'installation',
+        body: valid,
+        headers: { 'Content-Encoding': 'gzip' },
+      },
+      { name: 'JSON array', event: 'installation', body: '[]' },
+      { name: 'JSON string', event: 'installation', body: '"installation"' },
+      { name: 'empty body', event: 'installation', body: '' },
+      {
+        name: 'invalid UTF-8',
+        event: 'installation',
+        body: Buffer.concat([
+          Buffer.from(valid.slice(0, -1)),
+          Buffer.from([0xff, 0xfe]),
+          Buffer.from('}'),
+        ]),
+      },
+      {
+        name: 'deeply nested',
+        event: 'installation',
+        body: `{"action":"deleted","nested":${'['.repeat(100_000)}${']'.repeat(100_000)}}`,
+      },
+      {
+        name: 'over 1 MiB',
+        event: 'installation',
+        body: JSON.stringify({ ...JSON.parse(valid), padding: 'x'.repeat(1024 * 1024) }),
+      },
+      ...[1, 10, 100, valid.length / 2, valid.length - 1].map((length) => ({
+        name: `truncated to ${Math.floor(length)} bytes`,
+        event: 'installation',
+        body: valid.slice(0, Math.floor(length)),
+      })),
+    ];
+    const malformed = malformedWebhooks();
+    const outcomes: string[] = [];
+    for (const item of [
+      ...raw,
+      ...malformed.map((item) => ({ ...item, body: JSON.stringify(item.payload), headers: {} })),
+    ]) {
+      const { status } = await hosted.send(item.event, undefined, item.headers, item.body);
+      if (status < 400 || status >= 500) outcomes.push(`${item.name}: HTTP ${status}`);
+    }
+    console.log(`${raw.length + malformed.length} malformed deliveries refused`);
+    expect(outcomes).toEqual([]);
+    expect(await snapshot()).toEqual(before);
+  },
+  60_000,
 );

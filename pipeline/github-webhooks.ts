@@ -4,9 +4,10 @@ import { PipelineInputError } from './types.ts';
 
 const DELIVERY_ID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const SIGNATURE = /^sha256=([a-f0-9]{64})$/;
-const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
-const LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
-const REPOSITORY_NAME = /^[A-Za-z0-9_.-]+$/;
+// GitHub limits logins to 39 characters and repository names to 100.
+const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9_.-]{1,100}$/;
+const LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+const REPOSITORY_NAME = /^[A-Za-z0-9_.-]{1,100}$/;
 const INSTALLATION_ACTIONS = new Set([
   'created',
   'deleted',
