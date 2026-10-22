@@ -8,7 +8,8 @@ import {
   configuredIntegrations,
   scanDeadlines,
   TEST_PATH,
-  type DeadlineScan,
+  type DeadlineEvidence,
+  type DeadlineExposure,
 } from './deadline-exposure.ts';
 import {
   DEADLINE_IGNORE_FILE,
@@ -76,6 +77,13 @@ export interface InventoryModelCall {
   test: boolean;
 }
 
+// Stored inventories keep where a deadline matched, never the matched source line.
+export type InventoryEvidence = Omit<DeadlineEvidence, 'text'>;
+export type InventoryExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive'> & {
+  evidence: InventoryEvidence[];
+  nonLive: InventoryEvidence[];
+};
+
 export interface Inventory {
   formatVersion: typeof INVENTORY_FORMAT_VERSION;
   providers: {
@@ -97,7 +105,7 @@ export interface Inventory {
     value: string | null;
     status: 'literal' | 'unknown';
   }[];
-  deadlines: DeadlineScan;
+  deadlines: { exposures: InventoryExposure[]; mentions: InventoryExposure[] };
   // The committed .refit-deadlines-ignore.json. An invalid file accepts nothing and keeps its error.
   ignores: DeadlineIgnores & { error: string | null };
   models: InventoryModelCall[];
@@ -157,6 +165,17 @@ function literalModel(source: ts.SourceFile, line: number, column: number, metho
   };
   visit(source);
   return model;
+}
+
+const withoutSource = (evidence: DeadlineEvidence[]) =>
+  evidence.map(({ text: _text, ...location }) => location);
+
+function inventoryExposure(exposure: DeadlineExposure): InventoryExposure {
+  return {
+    ...exposure,
+    evidence: withoutSource(exposure.evidence),
+    nonLive: withoutSource(exposure.nonLive),
+  };
 }
 
 async function modelCalls(directory: string, detected: Set<string>) {
@@ -231,7 +250,10 @@ export async function scanInventory(
         ? []
         : [{ provider: 'stripe' as const, file, line, kind, value, status }],
     ),
-    deadlines,
+    deadlines: {
+      exposures: deadlines.exposures.map(inventoryExposure),
+      mentions: deadlines.mentions.map(inventoryExposure),
+    },
     ignores,
     models,
   };

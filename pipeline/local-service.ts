@@ -30,7 +30,8 @@ import { publicationConfiguration } from './publication.ts';
 import { RepositoryApprovalError } from './repository-enrollment.ts';
 
 const HOST = '127.0.0.1';
-const MAX_BODY_BYTES = 1024 * 1024;
+const BYTES_PER_MIB = 1024 * 1024;
+const MAX_BODY_BYTES = BYTES_PER_MIB;
 const REQUEST_TIMEOUT_MS = 10_000;
 const HEADERS_TIMEOUT_MS = 5_000;
 const MIN_SECRET_LENGTH = 32;
@@ -64,23 +65,23 @@ export function authorized(request: IncomingMessage, token: string) {
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 }
 
-export async function requestBody(request: IncomingMessage) {
+export async function requestBody(request: IncomingMessage, maximumBytes = MAX_BODY_BYTES) {
   if (
     request.headers['content-type']?.split(';')[0].toLowerCase() !== 'application/json' ||
     (request.headers['content-encoding'] && request.headers['content-encoding'] !== 'identity')
   )
-    throw new WebhookInputError(415, 'Webhook requests require uncompressed application/json.');
-  const oversized = Number(request.headers['content-length']) > MAX_BODY_BYTES;
+    throw new WebhookInputError(415, 'Requests require uncompressed application/json.');
+  const oversized = Number(request.headers['content-length']) > maximumBytes;
   const chunks: Buffer[] = [];
   let length = 0;
   for await (const chunk of request.iterator({ destroyOnReturn: false })) {
     const bytes = Buffer.from(chunk);
     length += bytes.length;
     // Drain oversized requests within the server timeout so clients receive HTTP 413 rather than a socket reset.
-    if (!oversized && length <= MAX_BODY_BYTES) chunks.push(bytes);
+    if (!oversized && length <= maximumBytes) chunks.push(bytes);
   }
-  if (oversized || length > MAX_BODY_BYTES)
-    throw new WebhookInputError(413, 'Webhook payload exceeds 1 MiB.');
+  if (oversized || length > maximumBytes)
+    throw new WebhookInputError(413, `Request body exceeds ${maximumBytes / BYTES_PER_MIB} MiB.`);
   return Buffer.concat(chunks);
 }
 

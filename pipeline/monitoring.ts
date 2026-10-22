@@ -6,7 +6,7 @@ import {
   syncDeadlineIssue,
   timing,
 } from './deadline-alerts.ts';
-import type { DeadlineExposure } from './deadline-exposure.ts';
+import type { ReportedExposure } from './deadline-exposure.ts';
 import { applyDeadlineIgnores } from './deadline-ignores.ts';
 import { daysUntil, type DeadlineRegistry } from './deadline-registry.ts';
 import { authenticateGitHubIssues, type GitHubAppConfiguration } from './github-app.ts';
@@ -73,7 +73,7 @@ const cell = (value: string) => value.replaceAll('|', '\\|').replaceAll('`', "'"
 // Every exposed deadline, soonest first, with its ignore or the alert issue opened for it.
 function digestBody(options: {
   repository: MonitoredRepository;
-  exposures: DeadlineExposure[];
+  exposures: ReportedExposure[];
   issues: (deadline: string) => number | null | undefined;
   now: Date;
   leadDays: readonly number[];
@@ -124,7 +124,7 @@ function digestBody(options: {
   ].join('\n');
 }
 
-function digestComment(exposures: DeadlineExposure[]) {
+function digestComment(exposures: ReportedExposure[]) {
   const [soonest] = [...exposures].sort((a, b) => a.days - b.days);
   return soonest
     ? `Weekly digest: ${exposures.length} exposed ${exposures.length === 1 ? 'deadline' : 'deadlines'}, the soonest on ${soonest.deadline.date} (${timing(soonest.days)}).`

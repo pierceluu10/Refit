@@ -23,6 +23,7 @@ import {
   preparationProfile,
   validationProfile,
   removeDockerContainer,
+  removeExpiredSandboxContainers,
   resolveDockerImage,
 } from './docker-sandbox.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
@@ -425,6 +426,7 @@ export async function prepareDependencies(options: {
       options.onProgress?.(
         `Installing locked public ${inputs.manager} dependencies in restricted Docker; lifecycle scripts are disabled...`,
       );
+      await removeExpiredSandboxContainers();
       const result = await installDependencies(
         dockerSandboxArguments({
           name,
@@ -447,6 +449,7 @@ export async function prepareDependencies(options: {
             ...workspaceContents.keys(),
           ],
           network: 'bridge',
+          timeoutMs: timeoutSeconds * 1000,
           preparation,
         }),
         join(staging, ARCHIVE),

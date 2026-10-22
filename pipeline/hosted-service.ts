@@ -1,16 +1,31 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, realpath } from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { hostname } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { Pool } from 'pg';
 import type { AiOptions } from './ai-budget.ts';
+import { FlyMachinesError, type FlyMachines } from './fly-machines.ts';
 import { validateRepairAttempts } from './validation-options.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import { isDatabaseUnavailable } from './hosted-database.ts';
+import { purgeUninstalled } from './hosted-retention.ts';
+import { processApprovalIssues } from './hosted-approval.ts';
+import { openApprovalStore } from './hosted-approval-store.ts';
+import {
+  failedOutcome,
+  JOB_POLL_SECONDS,
+  JOB_TIMEOUT_SECONDS,
+  jobChannel,
+  reapJobMachines,
+  runHostedTarget,
+  runJobMachine,
+} from './hosted-runner.ts';
+import { failedJobNotifier, filterHostedStatus, type HostedLogContext } from './hosted-ops.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
@@ -34,12 +49,16 @@ import {
   respond,
   validateServiceSecret,
 } from './local-service.ts';
-import { RepositoryApprovalError } from './repository-enrollment.ts';
-import { confirmRepositoryAccess, pollServiceTarget, summarizePoll } from './service-worker.ts';
+import { confirmRepositoryAccess } from './service-worker.ts';
+import type { SlackSend } from './slack.ts';
 import { PipelineInputError } from './types.ts';
 
 const HOSTED_HOST = '0.0.0.0';
 const REQUEST_TIMEOUT_MS = 10_000;
+// Job machines upload up to 64 MiB of evidence over the private network.
+const JOB_REQUEST_TIMEOUT_MS = 120_000;
+const JOB_CHANNEL_HOST = 'fly-local-6pn';
+const JOB_CHANNEL_PORT = 8081;
 const HEADERS_TIMEOUT_MS = 5_000;
 const MAX_CONNECTIONS = 64;
 const MILLISECONDS_PER_SECOND = 1000;
@@ -52,6 +71,9 @@ const MIN_LEASE_SECONDS = 3;
 const RENEWALS_PER_LEASE = 3;
 // An inventory holds its lease for its whole time cap, plus this margin, without renewing it.
 const INVENTORY_LEASE_MARGIN_SECONDS = 60;
+// While PostgreSQL is unreachable the worker waits, doubling the wait up to the maximum.
+const OUTAGE_RETRY_MS = 5_000;
+const MAX_OUTAGE_RETRY_MS = 60_000;
 
 export async function runHostedService(options: {
   database: Pool;
@@ -72,6 +94,27 @@ export async function runHostedService(options: {
   // The deadline registry file, by default the bundled one.
   registry?: string | URL;
   now?: () => Date;
+  // Runs each job on its own short-lived Fly Machine in a separate app that holds no secrets,
+  // instead of on this VM's Docker daemon. The job channel listens on the private network only.
+  jobMachines?: {
+    machines: FlyMachines;
+    image: string;
+    region: string;
+    images: string[];
+    host?: string;
+    port?: number;
+    timeoutSeconds?: number;
+    pollSeconds?: number;
+  };
+  // Owner decision (2026-10-22): deleting uninstalled installations' data is opt-in.
+  purgeUninstalled?: boolean;
+  // Opens an approval issue on installed repositories without an approval and handles
+  // `/refit approve` and `/refit revoke` comments (REFIT_HOSTED_APPROVAL_ISSUES).
+  approvalIssues?: boolean;
+  // The workflow's own notices, plus failed jobs at most once per target per hour.
+  notify?: SlackSend;
+  // Applied to job fields before a failure notice cuts them to length.
+  redact?: (text: string) => string;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -79,7 +122,7 @@ export async function runHostedService(options: {
   worker?: string;
   signal: AbortSignal;
   onReady?: (url: string) => void;
-  onProgress?: (message: string) => void;
+  onProgress?: (message: string, context?: HostedLogContext) => void;
 }) {
   const repairAttempts = validateRepairAttempts(
     options.repairAttempts ?? 0,
@@ -89,6 +132,10 @@ export async function runHostedService(options: {
   validateServiceSecret(options.controlToken, 'REFIT_SERVICE_TOKEN');
   if (options.webhookSecret === options.controlToken)
     throw new PipelineInputError('Webhook and service-control secrets must be different.');
+  if (options.jobMachines && (options.aiPatch || options.publishDraft))
+    throw new PipelineInputError(
+      '--job-machines does not support --ai-patch or --publish-draft: a job machine never holds the per-installation AI ledger or a GitHub token that can write.',
+    );
   const interval = options.intervalSeconds ?? DEFAULT_INTERVAL_SECONDS;
   const lease = options.leaseSeconds ?? DEFAULT_LEASE_SECONDS;
   if (
@@ -105,15 +152,6 @@ export async function runHostedService(options: {
   await standaloneStateDirectory(root);
   await mkdir(root, { recursive: true, mode: 0o700 });
   const directory = await realpath(root);
-  const store = await openHostedStore(options.database, options.tenancy);
-  const allowed = await store.allow();
-  if (allowed.enrolled.length || allowed.cancelled.length)
-    options.onProgress?.(
-      `Allowed accounts ${options.tenancy.accounts.join(', ')}: enrolled ${allowed.enrolled.length}, cancelled ${allowed.cancelled.length} targets.`,
-    );
-  const inventories = await openInventoryStore(options.database, options.tenancy.limits);
-  const monitoring = await openMonitoringStore(options.database);
-  const now = () => options.now?.() ?? new Date();
   const running = new Map<number, AbortController>();
   let waiting: AbortController | undefined;
   let requested = false;
@@ -125,85 +163,169 @@ export async function runHostedService(options: {
     for (const controller of running.values()) controller.abort();
     waiting?.abort();
   };
+  // Waits until the time passes, a webhook wakes the worker or the service stops.
+  const pause = async (milliseconds: number) => {
+    waiting = new AbortController();
+    try {
+      await delay(milliseconds, undefined, { signal: waiting.signal });
+    } catch (error) {
+      if (!(error instanceof Error && error.name === 'AbortError')) throw error;
+    } finally {
+      waiting = undefined;
+    }
+  };
+  let outage = OUTAGE_RETRY_MS;
+  const unavailable = async (error: Error) => {
+    options.onProgress?.(
+      `PostgreSQL is unavailable (${error.message}); retrying in ${outage / MILLISECONDS_PER_SECOND} s.`,
+    );
+    await pause(outage);
+    outage = Math.min(outage * 2, MAX_OUTAGE_RETRY_MS);
+  };
   options.signal.addEventListener('abort', stop, { once: true });
+  const openStore = async () => {
+    for (;;)
+      try {
+        const store = await openHostedStore(options.database, options.tenancy);
+        const allowed = await store.allow();
+        if (allowed.enrolled.length || allowed.cancelled.length)
+          options.onProgress?.(
+            `Allowed accounts ${options.tenancy.accounts.join(', ')}: enrolled ${allowed.enrolled.length}, cancelled ${allowed.cancelled.length} targets.`,
+          );
+        return store;
+      } catch (error) {
+        if (!isDatabaseUnavailable(error)) throw error;
+        await unavailable(error);
+        options.signal.throwIfAborted();
+      }
+  };
+  const store = await openStore();
+  outage = OUTAGE_RETRY_MS;
+  const inventories = openInventoryStore(options.database, options.tenancy.limits);
+  const monitoring = openMonitoringStore(options.database);
+  const now = () => options.now?.() ?? new Date();
+  const approvals = openApprovalStore(options.database);
+  const notifyFailures =
+    options.notify && failedJobNotifier(options.database, options.notify, options.redact);
+  await notifyFailures?.();
+
+  let jobs:
+    | Omit<
+        Parameters<typeof runJobMachine>[0],
+        'job' | 'target' | 'retry' | 'directory' | 'github' | 'signal' | 'onProgress'
+      >
+    | undefined;
+  // A job machine whose job no live worker holds was left by a crash; destroy it before claiming.
+  const reap = async ({ machines, channel }: NonNullable<typeof jobs>) => {
+    try {
+      const leases = await store.leases();
+      for (const id of await reapJobMachines(
+        machines,
+        (job) => channel.has(job) || (leases.has(job) && leases.get(job) !== worker),
+      ))
+        options.onProgress?.(`Destroyed orphaned job machine ${id}.`);
+    } catch (error) {
+      if (!(error instanceof FlyMachinesError)) throw error;
+      options.onProgress?.(`Job machine reaper failed: ${error.message}`);
+    }
+  };
 
   const runJob = async (job: number, target: HostedTarget, retry: boolean) => {
     const controller = new AbortController();
     const abort = () => controller.abort();
     options.signal.addEventListener('abort', abort, { once: true });
     running.set(job, controller);
-    const progress = (message: string) => options.onProgress?.(`[${target.id}] ${message}`);
-    const renewal = setInterval(
-      () =>
-        void store.renew(job, worker, lease).then(
-          (active) => {
-            if (!active) {
-              progress('Lease lost or job cancelled; stopping.');
-              controller.abort();
-            }
-          },
-          (error: unknown) => {
-            progress(`Lease renewal failed: ${error instanceof Error ? error.message : error}`);
+    const progress = (message: string, level?: 'error') =>
+      options.onProgress?.(message, {
+        job,
+        target: target.id,
+        installation: target.installationId,
+        ...(level && { level }),
+      });
+    const leaseMilliseconds = lease * MILLISECONDS_PER_SECOND;
+    const renewEvery = leaseMilliseconds / RENEWALS_PER_LEASE;
+    // The claim set the lease just before this job started.
+    let leased = Date.now();
+    const renewal = setInterval(() => {
+      const sent = Date.now();
+      void store.renew(job, worker, lease).then(
+        (active) => {
+          if (active) leased = Math.max(leased, sent);
+          else {
+            progress('Lease lost or job cancelled; stopping.');
             controller.abort();
-          },
-        ),
-      (lease * MILLISECONDS_PER_SECOND) / RENEWALS_PER_LEASE,
-    );
+          }
+        },
+        (error: unknown) => {
+          const failure = `Lease renewal failed: ${error instanceof Error ? error.message : error}`;
+          // The lease still holds while PostgreSQL is down. The job stops only once the next
+          // renewal could land after it expires, so no other worker can claim it while it runs.
+          if (isDatabaseUnavailable(error) && Date.now() - leased + renewEvery < leaseMilliseconds)
+            progress(`${failure}; retrying.`);
+          else {
+            progress(`${failure}; stopping.`, 'error');
+            controller.abort();
+          }
+        },
+      );
+    }, renewEvery);
     try {
       const access = await confirmRepositoryAccess(options.app, target.repository);
       if (access.installationId !== target.installationId)
         throw new PipelineInputError('Repository now belongs to another App installation.');
-      const result = await pollServiceTarget({
-        target: {
-          id: target.id,
-          ...(target.integration ? { integration: target.integration } : {}),
-          repository: target.repository,
-          base: target.base,
-          documentationSources: [],
-          approval: target.approval,
-        },
-        app: options.app,
-        stateDirectory: join(directory, 'targets', target.id),
-        signal: controller.signal,
-        retry,
-        aiPatch: options.aiPatch && {
-          ...options.aiPatch,
-          ...(options.aiPatch.budget && {
-            budget: {
-              ...options.aiPatch.budget,
-              // Earlier workers kept a file ledger per installation under the budget directory.
-              ledger: store.aiLedger(
-                target.installationId,
-                join(
-                  options.aiPatch.budget.directory,
-                  `installation-${target.installationId}`,
-                  'budget.json',
-                ),
-              ),
+      const outcome = jobs
+        ? await runJobMachine({
+            ...jobs,
+            job,
+            target,
+            retry,
+            directory,
+            github: {
+              appId: options.app.appId,
+              installationId: access.installationId,
+              token: access.token,
             },
-          }),
-        },
-        repairAttempts,
-        publishDraft: options.publishDraft,
-        inspectReadiness: true,
-        onProgress: progress,
-      });
-      const receipt = {
-        ...summarizePoll(result),
-        revision: 'checkout' in result ? result.checkout.revision : null,
-        readiness: 'readiness' in result && result.readiness ? result.readiness.status : null,
-      };
-      await store.finish(job, worker, 'finished', receipt);
-      progress(`${receipt.status}: ${receipt.message}`);
+            signal: controller.signal,
+            onProgress: progress,
+          })
+        : await runHostedTarget({
+            target,
+            app: options.app,
+            directory,
+            retry,
+            signal: controller.signal,
+            aiPatch: options.aiPatch && {
+              ...options.aiPatch,
+              ...(options.aiPatch.budget && {
+                budget: {
+                  ...options.aiPatch.budget,
+                  // Earlier workers kept a file ledger per installation under the budget directory.
+                  ledger: store.aiLedger(
+                    target.installationId,
+                    join(
+                      options.aiPatch.budget.directory,
+                      `installation-${target.installationId}`,
+                      'budget.json',
+                    ),
+                  ),
+                },
+              }),
+            },
+            repairAttempts,
+            publishDraft: options.publishDraft,
+            notify: options.notify,
+            onProgress: progress,
+          });
+      await store.finish(job, worker, outcome.status, outcome.receipt);
+      // The receipt carries the error name from both runners, so a job machine's refusal counts too.
+      if (options.approvalIssues && outcome.receipt.message?.startsWith('RepositoryApprovalError:'))
+        await approvals.changed(target.repository);
+      progress(`${outcome.receipt.status}: ${outcome.receipt.message}`);
     } catch (error) {
       if (!(error instanceof Error)) throw error;
-      const approval = error instanceof RepositoryApprovalError;
-      await store.finish(job, worker, approval ? 'finished' : 'failed', {
-        status: controller.signal.aborted ? 'interrupted' : approval ? 'needs-review' : 'error',
-        output: null,
-        message: `${error.name}: ${error.message}`,
-      });
-      progress(`${error.name}: ${error.message}`);
+      const outcome = failedOutcome(error, controller.signal.aborted);
+      await store.finish(job, worker, outcome.status, outcome.receipt);
+      progress(`${error.name}: ${error.message}`, 'error');
     } finally {
       clearInterval(renewal);
       running.delete(job);
@@ -262,27 +384,86 @@ export async function runHostedService(options: {
   };
 
   const handlers = new Set<Promise<void>>();
-  const server = createServer(
-    { requestTimeout: REQUEST_TIMEOUT_MS, headersTimeout: HEADERS_TIMEOUT_MS },
-    (request, response) => {
-      const handler = (async () => {
+  const servers: Server[] = [];
+  // Serves one router with the worker's limits; open handlers settle before the service returns.
+  const listen = async (
+    router: (
+      request: IncomingMessage,
+      response: ServerResponse,
+      context: HostedLogContext,
+    ) => Promise<void>,
+    address: { host: string; port: number; requestTimeout: number; label: string },
+  ) => {
+    const server = createServer(
+      { requestTimeout: address.requestTimeout, headersTimeout: HEADERS_TIMEOUT_MS },
+      (request, response) => {
+        const context: HostedLogContext = { level: 'error' };
+        const handler = router(request, response, context).catch((error: unknown) => {
+          if (error instanceof WebhookInputError)
+            respond(response, error.status, { error: error.message });
+          else {
+            options.onProgress?.(
+              `${address.label} processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
+              context,
+            );
+            respond(response, 500, {
+              error: `${address.label} was not accepted. Inspect service logs before redelivery.`,
+            });
+          }
+          request.resume();
+        });
+        handlers.add(handler);
+        void handler.then(
+          () => handlers.delete(handler),
+          () => handlers.delete(handler),
+        );
+      },
+    );
+    server.maxConnections = MAX_CONNECTIONS;
+    servers.push(server);
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(address.port, address.host, () => {
+        server.removeListener('error', reject);
+        resolve();
+      });
+    });
+    const bound = server.address();
+    if (!bound || typeof bound === 'string')
+      throw new PipelineInputError('Hosted service did not acquire a network address.');
+    return bound;
+  };
+  try {
+    const host = options.host ?? HOSTED_HOST;
+    const address = await listen(
+      async (request, response, context) => {
         if (request.method === 'GET' && request.url === '/health') {
           respond(response, 200, { status: 'listening' });
           return;
         }
-        if (request.method === 'GET' && request.url === '/status') {
+        const url = new URL(request.url ?? '/', 'http://refit.invalid');
+        if (request.method === 'GET' && url.pathname === '/status') {
           if (!authorized(request, options.controlToken))
             throw new WebhookInputError(401, 'Service authorization is required.');
+          const status = filterHostedStatus(await store.read(), url.searchParams);
+          // A target's view shows only its repository's inventory, and no installation-wide
+          // monitoring.
+          const repository = url.searchParams.has('target')
+            ? status.targets[0].repository
+            : undefined;
           respond(response, 200, {
-            ...(await store.read()),
-            inventories: (await inventories.read()).map(({ inventory, ...row }) => ({
+            ...status,
+            ...(options.approvalIssues && { approvals: await approvals.read() }),
+            inventories: (await inventories.read(repository)).map(({ inventory, ...row }) => ({
               ...row,
               summary: inventory && inventorySummary(inventory),
             })),
-            monitoring: {
-              alerts: Boolean(options.alerts),
-              installations: await upcomingDeadlines(monitoring, now()),
-            },
+            ...(repository === undefined && {
+              monitoring: {
+                alerts: Boolean(options.alerts),
+                installations: await upcomingDeadlines(monitoring, now()),
+              },
+            }),
           });
           return;
         }
@@ -297,8 +478,14 @@ export async function runHostedService(options: {
           request.headers['x-github-delivery'],
           options.webhookSecret,
         );
+        context.delivery = id;
         const event = request.headers['x-github-event'];
-        const change = parseWebhook(body, event, Number(options.app.appId));
+        const parsed = parseWebhook(body, event, Number(options.app.appId));
+        if ('installationId' in parsed) context.installation = parsed.installationId;
+        const change =
+          parsed.kind === 'issue_comment' && !options.approvalIssues
+            ? { kind: 'ignored' as const }
+            : parsed;
         const receipt = await store.accept(id, String(event), body, change);
         for (const job of receipt.running) running.get(job)?.abort();
         const inventoried =
@@ -312,105 +499,138 @@ export async function runHostedService(options: {
           options.alerts && receipt.status === 'accepted' && change.kind === 'push'
             ? await monitoring.pushed(change.installation, change.repository, now())
             : false;
-        if (receipt.enrolled.length || inventoried || pushed) wake();
+        // With approval issues on, new installations and comments are handled without waiting.
+        if (
+          receipt.enrolled.length ||
+          inventoried ||
+          pushed ||
+          (options.approvalIssues && ['accepted', 'queued'].includes(receipt.status))
+        )
+          wake();
         respond(response, 202, {
           delivery: id,
           status: receipt.status,
           enrolled: receipt.enrolled,
           cancelled: receipt.cancelled,
         });
-      })().catch((error: unknown) => {
-        if (error instanceof WebhookInputError)
-          respond(response, error.status, { error: error.message });
-        else {
-          options.onProgress?.(
-            `Webhook processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
-          );
-          respond(response, 500, {
-            error: 'Webhook was not accepted. Inspect service logs before redelivery.',
-          });
-        }
-        request.resume();
+      },
+      {
+        host,
+        port: options.port ?? DEFAULT_SERVICE_PORT,
+        requestTimeout: REQUEST_TIMEOUT_MS,
+        label: 'Webhook',
+      },
+    );
+    if (options.jobMachines) {
+      const channel = jobChannel();
+      const bound = await listen(channel.handle, {
+        host: options.jobMachines.host ?? JOB_CHANNEL_HOST,
+        port: options.jobMachines.port ?? JOB_CHANNEL_PORT,
+        requestTimeout: JOB_REQUEST_TIMEOUT_MS,
+        label: 'Job channel request',
       });
-      handlers.add(handler);
-      void handler.then(
-        () => handlers.delete(handler),
-        () => handlers.delete(handler),
-      );
-    },
-  );
-  server.maxConnections = MAX_CONNECTIONS;
-  try {
-    const host = options.host ?? HOSTED_HOST;
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(options.port ?? DEFAULT_SERVICE_PORT, host, () => {
-        server.removeListener('error', reject);
-        resolve();
-      });
-    });
-    const address = server.address();
-    if (!address || typeof address === 'string')
-      throw new PipelineInputError('Hosted service did not acquire a network address.');
+      jobs = {
+        machines: options.jobMachines.machines,
+        channel,
+        callback: `http://${bound.family === 'IPv6' ? `[${bound.address}]` : bound.address}:${bound.port}`,
+        image: options.jobMachines.image,
+        region: options.jobMachines.region,
+        images: options.jobMachines.images,
+        timeoutSeconds: options.jobMachines.timeoutSeconds ?? JOB_TIMEOUT_SECONDS,
+        pollSeconds: options.jobMachines.pollSeconds ?? JOB_POLL_SECONDS,
+      };
+      options.onProgress?.(`Job channel listening at ${jobs.callback}; jobs run on Fly Machines.`);
+    }
     options.onReady?.(`http://${host}:${address.port}`);
     while (!options.signal.aborted) {
       requested = false;
-      await store.enqueueDue(interval);
-      await inventories.requestMissing();
-      const registry = options.alerts && (await monitoringRegistry());
-      if (registry) {
-        const due = await requestRescans({ monitoring, inventories, registry, now: now() });
-        for (const item of due)
-          options.onProgress?.(
-            `[monitoring ${item.repository}] Inventory requested (${item.reason}).`,
-          );
-      }
-      // Inventories are short and read-only, so a queued one goes before the next validation job.
-      while (!options.signal.aborted) {
-        const inventory = await inventories.claim(
-          worker,
-          Math.max(lease, INVENTORY_LIMITS.seconds + INVENTORY_LEASE_MARGIN_SECONDS),
-        );
-        if (inventory) {
-          await runInventory(inventory);
-          continue;
-        }
-        const claimed = await store.claim(worker, lease);
-        if (!claimed) break;
-        await runJob(claimed.job, claimed.target, claimed.retry);
-      }
-      if (registry && options.alerts && !options.signal.aborted)
-        await sendDeadlineAlerts({
-          app: options.app,
-          monitoring,
-          registry,
-          now: now(),
-          leadDays: options.alerts.leadDays,
-          digest: options.alerts.digest,
-          signal: options.signal,
-          onProgress: options.onProgress,
-        });
-      if (options.signal.aborted || requested) continue;
-      waiting = new AbortController();
       try {
-        await delay(interval * MILLISECONDS_PER_SECOND, undefined, { signal: waiting.signal });
+        if (jobs) await reap(jobs);
+        if (options.approvalIssues)
+          await processApprovalIssues({
+            app: options.app,
+            directory: join(directory, 'approvals'),
+            store,
+            approvals,
+            signal: options.signal,
+            onCancelled: (jobs) => {
+              for (const job of jobs) running.get(job)?.abort();
+            },
+            onProgress: options.onProgress,
+          });
+        await store.enqueueDue(interval);
+        if (options.purgeUninstalled) {
+          const purged = await purgeUninstalled(options.database, directory);
+          if (purged.targets.length)
+            options.onProgress?.(
+              `Deleted ${purged.targets.length} target(s) and ${purged.jobs} job(s) of installation(s) ${purged.installations.join(', ')}, uninstalled more than the grace period ago.`,
+            );
+          for (const { target, reason } of purged.kept)
+            options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
+        }
+        await inventories.requestMissing();
+        const registry = options.alerts && (await monitoringRegistry());
+        if (registry) {
+          const due = await requestRescans({ monitoring, inventories, registry, now: now() });
+          for (const item of due)
+            options.onProgress?.(
+              `[monitoring ${item.repository}] Inventory requested (${item.reason}).`,
+            );
+        }
+        // Inventories are short and read-only, so a queued one goes before the next validation job.
+        while (!options.signal.aborted) {
+          const inventory = await inventories.claim(
+            worker,
+            Math.max(lease, INVENTORY_LIMITS.seconds + INVENTORY_LEASE_MARGIN_SECONDS),
+          );
+          if (inventory) {
+            await runInventory(inventory);
+            continue;
+          }
+          const claimed = await store.claim(worker, lease);
+          if (!claimed) break;
+          await runJob(claimed.job, claimed.target, claimed.retry);
+          await notifyFailures?.();
+        }
+        // A claim can also fail a job whose lease expired too often.
+        await notifyFailures?.();
+        if (registry && options.alerts && !options.signal.aborted)
+          await sendDeadlineAlerts({
+            app: options.app,
+            monitoring,
+            registry,
+            now: now(),
+            leadDays: options.alerts.leadDays,
+            digest: options.alerts.digest,
+            signal: options.signal,
+            onProgress: options.onProgress,
+          });
+        outage = OUTAGE_RETRY_MS;
       } catch (error) {
-        if (!(error instanceof Error && error.name === 'AbortError')) throw error;
-      } finally {
-        waiting = undefined;
+        // A job whose receipt could not be stored keeps its lease until it expires and is reclaimed.
+        if (!isDatabaseUnavailable(error)) throw error;
+        await unavailable(error);
+        continue;
       }
+      if (options.signal.aborted || requested) continue;
+      await pause(interval * MILLISECONDS_PER_SECOND);
     }
     return { directory, registry: await store.read() };
   } finally {
     options.signal.removeEventListener('abort', stop);
     stop();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (!error || ('code' in error && error.code === 'ERR_SERVER_NOT_RUNNING')) resolve();
-        else reject(error);
-      });
-      server.closeAllConnections();
-    });
+    await Promise.all(
+      servers.map(
+        (server) =>
+          new Promise<void>((resolve, reject) => {
+            server.close((error) => {
+              if (!error || ('code' in error && error.code === 'ERR_SERVER_NOT_RUNNING')) resolve();
+              else reject(error);
+            });
+            server.closeAllConnections();
+          }),
+      ),
+    );
     await Promise.all(handlers);
   }
 }

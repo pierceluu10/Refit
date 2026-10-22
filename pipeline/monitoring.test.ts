@@ -173,12 +173,27 @@ async function stores(pool: pg.Pool) {
     accounts: ['example'],
     limits: DEFAULT_TENANCY_LIMITS,
   });
-  const inventories = await openInventoryStore(pool);
-  return { hosted, inventories, monitoring: await openMonitoringStore(pool) };
+  const inventories = openInventoryStore(pool);
+  return { hosted, inventories, monitoring: openMonitoringStore(pool) };
 }
 
-// Installs `repositories` and stores an inventory of each, scanned from its files.
-async function inventoried(pool: pg.Pool, repositories: Record<string, Record<string, string>>) {
+// Stores an approval as `refit hosted approve` would, without enrolling a target, since alerts
+// reach approved repositories only.
+async function approve(pool: pg.Pool, repository: string) {
+  await pool.query(
+    `INSERT INTO refit_approvals (repository, base, fingerprint, approval, approved_by)
+     VALUES ($1, 'main', 'fingerprint', '{}', 'octo-reviewer')`,
+    [repository],
+  );
+}
+
+// Installs `repositories` and stores an inventory of each, scanned from its files. All but
+// `unapproved` get a stored approval.
+async function inventoried(
+  pool: pg.Pool,
+  repositories: Record<string, Record<string, string>>,
+  unapproved: string[] = [],
+) {
   const { hosted, inventories, monitoring } = await stores(pool);
   await hosted.accept(
     randomUUID(),
@@ -186,6 +201,8 @@ async function inventoried(pool: pg.Pool, repositories: Record<string, Record<st
     new TextEncoder().encode(randomUUID()),
     installation(1, 'created', Object.keys(repositories)),
   );
+  for (const repository of Object.keys(repositories))
+    if (!unapproved.includes(repository)) await approve(pool, repository);
   await inventories.requestMissing();
   for (let claimed; (claimed = await inventories.claim('scanner', 60));) {
     const inventory = await scanInventory(
@@ -375,28 +392,33 @@ it.skipIf(!DATABASE)(
   'honours a committed ignore and sends nothing for an uninstalled repository',
   async () => {
     const pool = await database();
-    const { hosted, monitoring } = await inventoried(pool, {
-      'example/accepted': {
-        'package.json': PACKAGE,
-        'src/chat.ts': MODEL_CALL,
-        '.refit-deadlines-ignore.json': JSON.stringify({
-          formatVersion: 1,
-          ignore: [
-            {
-              deadline: 'openai-test-gpt-4',
-              reason: 'Replaced before launch.',
-              until: '2027-02-01',
-            },
-          ],
-        }),
+    const { hosted, monitoring } = await inventoried(
+      pool,
+      {
+        'example/accepted': {
+          'package.json': PACKAGE,
+          'src/chat.ts': MODEL_CALL,
+          '.refit-deadlines-ignore.json': JSON.stringify({
+            formatVersion: 1,
+            ignore: [
+              {
+                deadline: 'openai-test-gpt-4',
+                reason: 'Replaced before launch.',
+                until: '2027-02-01',
+              },
+            ],
+          }),
+        },
+        'example/broken-ignore': {
+          'package.json': PACKAGE,
+          'src/chat.ts': MODEL_CALL,
+          '.refit-deadlines-ignore.json': '{"formatVersion": 1, "ignore": "everything"}',
+        },
+        'example/removed': { 'package.json': PACKAGE, 'src/chat.ts': MODEL_CALL },
+        'example/unapproved': { 'package.json': PACKAGE, 'src/chat.ts': MODEL_CALL },
       },
-      'example/broken-ignore': {
-        'package.json': PACKAGE,
-        'src/chat.ts': MODEL_CALL,
-        '.refit-deadlines-ignore.json': '{"formatVersion": 1, "ignore": "everything"}',
-      },
-      'example/removed': { 'package.json': PACKAGE, 'src/chat.ts': MODEL_CALL },
-    });
+      ['example/unapproved'],
+    );
     await hosted.accept(
       randomUUID(),
       'installation_repositories',
@@ -408,7 +430,8 @@ it.skipIf(!DATABASE)(
       },
     );
     expect(await pass(monitoring, before(30))).toBe(1);
-    // Only the repository whose ignore file is invalid, which accepts nothing, is alerted.
+    // Only the repository whose ignore file is invalid, which accepts nothing, is alerted; the
+    // unapproved repository is inventoried but never alerted.
     expect(issueWrites().map((write) => write.path)).toEqual([
       '/repos/example/broken-ignore/issues',
     ]);
@@ -418,7 +441,8 @@ it.skipIf(!DATABASE)(
       ['example/broken-ignore', false],
     ]);
 
-    // Uninstalling deletes the alert state with the repositories, and nothing is sent afterwards.
+    // Uninstalling deletes the inventories, so nothing is sent afterwards. The alert state stays for
+    // the uninstall grace period, so a reinstall does not open the issue again.
     await hosted.accept(
       randomUUID(),
       'installation',
@@ -429,7 +453,7 @@ it.skipIf(!DATABASE)(
     expect(issueWrites()).toHaveLength(1);
     expect(
       (await pool.query('SELECT count(*)::int AS rows FROM refit_deadline_alerts')).rows,
-    ).toEqual([{ rows: 0 }]);
+    ).toEqual([{ rows: 1 }]);
     expect(await upcomingDeadlines(monitoring, before(7))).toEqual([]);
   },
 );
@@ -587,6 +611,7 @@ it.skipIf(!DATABASE)(
       installation: { id: 456, app_id: 123, account: { login: 'example' } },
       repositories: [{ id: 789, full_name: 'example/app' }],
     });
+    await approve(pool, 'example/app');
     let registry = await until(status, (value) =>
       value.inventories.some((row: { revision: string }) => row.revision === first),
     );
