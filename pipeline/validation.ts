@@ -124,6 +124,28 @@ export function reviewTypeError(error: { message: string }) {
   return REVIEW_TYPE_ERROR.test(error.message);
 }
 
+const REJECTED_PROPERTY =
+  /Object literal may only specify known properties, (?:and|but) '([^']+)' does not exist in type '[^']*'/;
+
+// Object-literal properties the upgraded types reject that the original code's check accepted,
+// such as Checkout's `subscription_data.trial_from_plan`, which stripe-node 12 typed and later
+// versions drop. tsc reports them on the error line or the indented line after it.
+export function rejectedProperties(baseline: CheckResult, patched: CheckResult) {
+  const reports = (check: CheckResult) =>
+    `${check.stdout}\n${check.stderr}`
+      .split('\n')
+      .map((line) => REJECTED_PROPERTY.exec(line))
+      .filter((match): match is RegExpExecArray => Boolean(match));
+  const before = new Set(reports(baseline).map((match) => match[0]));
+  return [
+    ...new Set(
+      reports(patched)
+        .filter((match) => !before.has(match[0]))
+        .map((match) => match[1]),
+    ),
+  ];
+}
+
 const formatTypeError = (error: ReturnType<typeof typeErrors>[number]) =>
   `${error.file}(${error.line},${error.column}): error ${error.code}: ${error.message}`;
 
@@ -816,6 +838,14 @@ export async function validateMigration(options: {
       // Only review items remain: another round would have nothing it may fix.
       if (introduced.length && introduced.every(reviewTypeError)) {
         repair.stopReason = 'review-required';
+        break;
+      }
+      // No contract documents a property the upgraded types reject, and no repair passes without
+      // dropping or replacing it, which changes what the code sends: a person decides.
+      const rejected = options.compareTypeErrors ? rejectedProperties(baselineRun, patched) : [];
+      if (rejected.length) {
+        repair.stopReason = 'review-required';
+        repair.error = `The upgraded types reject ${rejected.map((name) => `'${name}'`).join(', ')}; removing or replacing ${rejected.length === 1 ? 'it' : 'them'} changes what the code sends, so it stops for review.`;
         break;
       }
       repair.requested++;
