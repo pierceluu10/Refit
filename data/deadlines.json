@@ -857,6 +857,247 @@
       "replacement": "files.getUploadURLExternal and files.completeUploadExternal (filesUploadV2 in @slack/web-api)",
       "source": "https://github.com/slackapi/node-slack-sdk/blob/8730b5e3a7cee08a0ccfa44b7f792814f939a9cf/docs/english/web-api.md",
       "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-radar-top-browsers",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /radar/http/top/browser",
+        "GET /radar/http/top/browser_family",
+        "GET /radar/netflows/summary"
+      ],
+      "date": "2027-04-02",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Cloudflare Radar: Top browsers and NetFlows summary endpoints\", deprecated 2026-10-02, end of life 2027-04-02.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-zone-settings-batch",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/settings",
+        "PATCH /zones/{zone_id}/settings"
+      ],
+      "date": "2027-03-31",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Zone Settings Batch API\", deprecated 2025-04-23, end of life 2027-03-31.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-kv-legacy-namespace-routes",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /accounts/{account_id}/workers/namespaces",
+        "POST /accounts/{account_id}/workers/namespaces",
+        "GET /accounts/{account_id}/workers/namespaces/{namespace_id}",
+        "PUT /accounts/{account_id}/workers/namespaces/{namespace_id}",
+        "DELETE /accounts/{account_id}/workers/namespaces/{namespace_id}",
+        "GET /accounts/{account_id}/workers/namespaces/{namespace_id}/keys",
+        "GET /accounts/{account_id}/workers/namespaces/{namespace_id}/metadata/{key_name}",
+        "GET /accounts/{account_id}/workers/namespaces/{namespace_id}/values/{key_name}",
+        "PUT /accounts/{account_id}/workers/namespaces/{namespace_id}/values/{key_name}",
+        "DELETE /accounts/{account_id}/workers/namespaces/{namespace_id}/values/{key_name}"
+      ],
+      "date": "2026-10-15",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Workers KV: Legacy Namespace Routes\", deprecated 2026-07-15, end of life 2026-10-15.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-teamnet-cidr-routes",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "POST /accounts/{account_id}/teamnet/routes/network/{ip_network_encoded}",
+        "PATCH /accounts/{account_id}/teamnet/routes/network/{ip_network_encoded}",
+        "DELETE /accounts/{account_id}/teamnet/routes/network/{ip_network_encoded}"
+      ],
+      "date": "2026-10-05",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Zero Trust Networks Route Endpoints and Cloudflare Tunnel Connections Field\", deprecated 2026-07-09, end of life 2026-10-05.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-amp-sxg",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/amp/sxg",
+        "PUT /zones/{zone_id}/amp/sxg"
+      ],
+      "date": "2026-06-23",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"AMP/SXG API and Rules\", deprecated 2025-09-18, end of life 2026-06-23.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-legacy-registrar-domains",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /accounts/{account_id}/registrar/domains",
+        "GET /accounts/{account_id}/registrar/domains/{domain_name}",
+        "PUT /accounts/{account_id}/registrar/domains/{domain_name}"
+      ],
+      "date": "2026-09-27",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Legacy Registrar Domain Management API\", deprecated 2026-04-10, end of life 2026-09-27.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-dns-legacy-analytics",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/dns_analytics",
+        "GET /accounts/{account_id}/dns_firewall/{dns_firewall_id}/dns_analytics/report"
+      ],
+      "date": "2026-12-01",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Authoritative DNS and DNS Firewall Legacy Analytics\", deprecated 2025-12-09, end of life 2026-12-01.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-radar-summary-timeseries-groups",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /radar/http/summary/device_type",
+        "GET /radar/http/summary/bot_class",
+        "GET /radar/http/timeseries_groups/device_type",
+        "GET /radar/http/timeseries_groups/bot_class"
+      ],
+      "date": "2026-04-15",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Cloudflare Radar: Summary and Timeseries Groups Endpoints\", deprecated 2025-10-15, end of life 2026-04-15.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-radar-verified-bots",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /radar/verified_bots/top/bots",
+        "GET /radar/verified_bots/top/categories"
+      ],
+      "date": "2026-01-01",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Cloudflare Radar: Verified Bots APIs\", deprecated 2025-07-01, end of life 2026-01-01.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-zero-trust-devices",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /accounts/{account_id}/devices",
+        "GET /accounts/{account_id}/devices/{device_id}",
+        "GET /accounts/{account_id}/devices/{device_id}/override_codes",
+        "POST /accounts/{account_id}/devices/revoke",
+        "POST /accounts/{account_id}/devices/unrevoke"
+      ],
+      "date": "2025-11-11",
+      "summary": "Cloudflare's API deprecations page lists these endpoints under \"Zero Trust Devices\", deprecated, end of life 2025-11-11.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/cloudflare-docs/blob/ea89e14e0b75bab7f0dfca82ae14f35ba3550cdf/src/content/release-notes/api-deprecations.yaml",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "cloudflare-access-bookmarks",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /accounts/{account_id}/access/bookmarks",
+        "DELETE /accounts/{account_id}/access/bookmarks/{bookmark_id}",
+        "GET /accounts/{account_id}/access/bookmarks/{bookmark_id}",
+        "POST /accounts/{account_id}/access/bookmarks/{bookmark_id}",
+        "PUT /accounts/{account_id}/access/bookmarks/{bookmark_id}"
+      ],
+      "date": "2023-03-19",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2023-03-19 (x-cfDeprecation bookmarks_deprecation): This endpoint is deprecated in favor of using a specialized Access Application App Type.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "cloudflare-user-organizations",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /user/organizations",
+        "DELETE /user/organizations/{organization_id}",
+        "GET /user/organizations/{organization_id}"
+      ],
+      "date": "2020-02-04",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2020-02-04 (x-cfDeprecation org_deprecation): This endpoint and its related APIs are deprecated in favor of the `/accounts` equivalent APIs, which have a broader range of features and are backwards compatible with these API.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "cloudflare-zone-analytics",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_identifier}/analytics/colos",
+        "GET /zones/{zone_identifier}/analytics/dashboard"
+      ],
+      "date": "2021-03-01",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2021-03-01 (x-cfDeprecation zone_analytics_deprecation): Please use the new GraphQL Analytics API instead: https://developers.cloudflare.com/analytics/graphql-api/. It provides equivalent data and more features, including the ability to select only the metrics you need. Migration guide: https://developers.cloudflare.com/analytics/migration-guides/zone-analytics/.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "cloudflare-origin-cloud-regions-v1",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/cache/origin_cloud_regions",
+        "PATCH /zones/{zone_id}/cache/origin_cloud_regions",
+        "POST /zones/{zone_id}/cache/origin_cloud_regions",
+        "DELETE /zones/{zone_id}/cache/origin_cloud_regions/batch",
+        "PATCH /zones/{zone_id}/cache/origin_cloud_regions/batch",
+        "GET /zones/{zone_id}/cache/origin_cloud_regions/supported_regions",
+        "DELETE /zones/{zone_id}/cache/origin_cloud_regions/{origin_ip}",
+        "GET /zones/{zone_id}/cache/origin_cloud_regions/{origin_ip}"
+      ],
+      "date": "2026-10-01",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2026-10-01 (x-cfDeprecation opcr_v1_deprecation): Use the v2 endpoints under `/zones/{zone_id}/origin/cloud_regions` instead. The v2 API uses idempotent PUT semantics for create+update, provides a flat response shape, and is the supported path for Terraform and SDK clients. The v1 endpoints under `/zones/{zone_id}/cache/origin_cloud_regions` will be removed on 2026-10-01.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
+    },
+    {
+      "id": "cloudflare-origin-post-quantum-encryption",
+      "provider": "cloudflare",
+      "kind": "endpoint",
+      "versions": [
+        "GET /zones/{zone_id}/cache/origin_post_quantum_encryption",
+        "PUT /zones/{zone_id}/cache/origin_post_quantum_encryption"
+      ],
+      "date": "2026-07-19",
+      "summary": "Cloudflare's OpenAPI document marks these operations deprecated, end of life 2026-07-19 (x-cfDeprecation origin_pqe_deprecation): Origin post-quantum encryption selection is now handled automatically by Auto-Origin TLS KEX (`/zones/{zone_id}/settings/auto_origin_tls_kex`) combined with Origin TLS Compliance Modes (`/zones/{zone_id}/settings/origin_tls_compliance_modes`). As that rollout proceeds, the manual `origin_post_quantum_encryption` setting becomes ineffective and the endpoint will be removed on 2026-07-19.",
+      "replacement": null,
+      "source": "https://github.com/cloudflare/api-schemas/blob/d3e86eec17211653ca9bc18c0d4bfcace2904148/openapi.json",
+      "checkedAt": "2026-10-22",
+      "derivedDate": true
     }
   ]
 }

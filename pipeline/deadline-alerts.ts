@@ -68,6 +68,8 @@ function subject(exposure: DeadlineExposure) {
     return `${versions.length === 1 ? 'package' : 'packages'} ${listed}${extra}`;
   if (deadline.kind === 'method')
     return `${versions.length === 1 ? 'method' : 'methods'} ${listed}${extra}`;
+  if (deadline.kind === 'endpoint')
+    return `${versions.length === 1 ? 'endpoint' : 'endpoints'} ${listed}${extra}`;
   if (deadline.provider === 'meta-graph') return `Graph API ${listed}`;
   return `API version ${listed}`;
 }
