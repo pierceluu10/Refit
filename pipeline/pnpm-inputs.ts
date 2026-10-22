@@ -292,7 +292,7 @@ export function validatePnpmInputs(
             !isRegistrySource(source))
         )
           throw new PipelineInputError(
-            'pnpm declarations must use public registry, configured catalogs or explicit local workspaces.',
+            `pnpm declarations must use public registry, configured catalogs or explicit local workspaces; ${directory === '.' ? '' : `${directory}/`}package.json declares ${name} as ${JSON.stringify(source)}.`,
           );
       if (section === 'peerDependencies') continue;
       const recorded: unknown = importer[section] ?? {};
@@ -417,7 +417,7 @@ function registryGraph(document: Record<string, unknown>) {
       Object.keys(value.resolution).some((key) => !['integrity', 'tarball'].includes(key))
     )
       throw new PipelineInputError(
-        'Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image.',
+        `Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image. pnpm-lock.yaml records ${key} without them.`,
       );
     if (value.resolution.tarball !== undefined) {
       if (typeof value.resolution.tarball !== 'string')

@@ -35,6 +35,7 @@ import {
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
 import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
+import { preparationStop } from './preparation-stops.ts';
 import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
 
@@ -151,6 +152,18 @@ export function installTimeoutSeconds(value = process.env.REFIT_DEPENDENCY_TIMEO
 
 export class DependencyPreparationError extends PipelineInputError {
   override name = 'DependencyPreparationError';
+  // A named stop from preparation-stops.ts, when the cause is one the repository owner fixes.
+  stop?: string;
+}
+
+// Adds the named stop's next step to a preparation refusal, keeping the original message first.
+function withPreparationStop(error: unknown) {
+  if (!(error instanceof PipelineInputError)) return error;
+  const stop = preparationStop(error.message);
+  if (!stop) return error;
+  const named = new DependencyPreparationError(`${error.message} ${stop.action}`, { cause: error });
+  named.stop = stop.reason;
+  return named;
 }
 
 // Preparation failures the repository owner fixes in the repository. Each pattern matches a
@@ -273,9 +286,13 @@ async function installDependencies(
     if (result.code !== 0 && /\bENOSPC\b/.test(stderr))
       throw new DependencyPreparationError(
         `${inputs.manager} dependency preparation ran out of space in its ${workspace} workspace (ENOSPC).${
+          inputs.manager === 'yarn' && inputs.managerVersion?.startsWith('1.')
+            ? " Yarn 1 also downloads other platforms' optional binaries."
+            : ''
+        }${
           workspace === '4g'
             ? ''
-            : " Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+            : ' An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare.'
         }`,
       );
     if (result.code !== 0)
@@ -328,6 +345,14 @@ export async function prepareDependencies(options: {
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
 }) {
+  try {
+    return await prepare(options);
+  } catch (error) {
+    throw withPreparationStop(error);
+  }
+}
+
+async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
   const snapshot = await readCommittedRepository(options.repository);

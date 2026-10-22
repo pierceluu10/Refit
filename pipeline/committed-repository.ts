@@ -82,8 +82,11 @@ export async function readCommittedRepository(path: string) {
   const linkEntries = entries
     .map((entry) => LINK_ENTRY.exec(entry))
     .filter((match): match is RegExpExecArray => Boolean(match));
-  if (entries.some((entry) => !REGULAR_ENTRY.test(entry) && !LINK_ENTRY.test(entry)))
-    throw new PipelineInputError('Validation does not accept submodules.');
+  const submodule = entries.find((entry) => !REGULAR_ENTRY.test(entry) && !LINK_ENTRY.test(entry));
+  if (submodule)
+    throw new PipelineInputError(
+      `Validation does not accept submodules; ${submodule.slice(submodule.indexOf('\t') + 1)} is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.`,
+    );
   if (linkEntries.length > MAX_SYMBOLIC_LINKS)
     throw new PipelineInputError(
       `Validation accepts at most ${MAX_SYMBOLIC_LINKS} tracked symbolic links.`,

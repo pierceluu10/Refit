@@ -271,7 +271,7 @@ export async function runWorkflow(options: {
     if (report.validation.status !== 'passed' && waiver?.gate !== 'dependency-preparation')
       return await finish(
         'validation-failed',
-        `Validation returned ${report.validation.status}; publication was not attempted.`,
+        `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}`,
         runId,
       );
     if (waiver && !publication)

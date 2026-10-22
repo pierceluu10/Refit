@@ -49,15 +49,15 @@ export function isRegistrySource(source: unknown): source is string {
   );
 }
 
-function dependencySources(value: Record<string, unknown>) {
+function dependencySources(value: Record<string, unknown>, file: string) {
   for (const section of DEPENDENCY_SECTIONS) {
     const dependencies = value[section];
     if (dependencies === undefined) continue;
     if (!isObject(dependencies)) throw new PipelineInputError(`npm ${section} must be an object.`);
-    for (const source of Object.values(dependencies))
+    for (const [name, source] of Object.entries(dependencies))
       if (!isRegistrySource(source))
         throw new PipelineInputError(
-          'Automatic preparation supports public npm registry dependencies only; local, Git and URL dependencies require a custom image.',
+          `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${JSON.stringify(source)}. Local, Git and URL dependencies require a custom image.`,
         );
   }
 }
@@ -128,7 +128,7 @@ export function validateNpmLock(
   const lock = parseObject(lockContent, 'package-lock.json');
   if (manifest.bundledDependencies !== undefined || manifest.bundleDependencies !== undefined)
     throw new PipelineInputError('Root bundled dependencies require a custom validation image.');
-  dependencySources(manifest);
+  dependencySources(manifest, 'package.json');
   if (manifest.overrides !== undefined) {
     if (!isObject(manifest.overrides))
       throw new PipelineInputError('npm overrides must be an object.');
@@ -178,7 +178,7 @@ export function validateNpmLock(
         throw new PipelineInputError(
           'Each workspace requires an explicit npm name; workspace bins, nested workspace declarations and bundled dependencies require a custom image.',
         );
-      dependencySources(value);
+      dependencySources(value, `${directory}/package.json`);
       return [directory, value] as const;
     }),
   );
@@ -226,7 +226,7 @@ export function validateNpmLock(
   for (const [path, record] of Object.entries(lock.packages)) {
     if (!isObject(record))
       throw new PipelineInputError('npm lockfile package records must be objects.');
-    dependencySources(record);
+    dependencySources(record, path ? `package-lock.json record ${path}` : 'package-lock.json');
     if (!path) continue;
     if (workspaces.has(path)) continue;
     const dependencyPath =
@@ -296,7 +296,7 @@ export function validateNpmLock(
         `package-lock.json records ${path}${others ? ` and ${others} more packages` : ''} without a version, registry "resolved" URL and SHA-256-or-stronger "integrity", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile.`,
       );
     }
-    assertRegistryTarball(record.resolved as string);
+    assertRegistryTarball(record.resolved as string, path);
   }
   return {
     packageHash: digest(packageContent),
@@ -313,7 +313,7 @@ export function validateNpmLock(
   };
 }
 
-export function assertRegistryTarball(source: string) {
+export function assertRegistryTarball(source: string, path?: string) {
   let url;
   try {
     url = new URL(source);
@@ -331,6 +331,6 @@ export function assertRegistryTarball(source: string) {
     !url.pathname.endsWith('.tgz')
   )
     throw new PipelineInputError(
-      'Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters.',
+      `Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters${path ? `; package-lock.json resolves ${path} from ${url.host}` : ''}.`,
     );
 }

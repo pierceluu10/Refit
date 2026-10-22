@@ -53,15 +53,25 @@ export async function readPreparationInputs(
     throw new PipelineInputError(
       'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown. Run npm install, pnpm install or yarn install and commit the package-lock.json, pnpm-lock.yaml or yarn.lock it writes.',
     );
-  if (
-    paths.includes('npm-shrinkwrap.json') ||
-    (pnpm && yarn) ||
-    ((pnpm || yarn) && paths.includes('package-lock.json')) ||
-    (pnpm && paths.some((path) => /^\.pnpmfile\.[cm]?js$/.test(path.split('/').at(-1)!))) ||
-    paths.some((path) => path.split('/').includes('node_modules'))
-  )
+  const lockfiles = ['package-lock.json', PNPM_LOCKFILE, YARN_LOCKFILE].filter((file) =>
+    paths.includes(file),
+  );
+  const pnpmHook = pnpm
+    ? paths.find((path) => /^\.pnpmfile\.[cm]?js$/.test(path.split('/').at(-1)!))
+    : undefined;
+  const trackedModules = paths.find((path) => path.split('/').includes('node_modules'));
+  const conflict = paths.includes('npm-shrinkwrap.json')
+    ? 'commits npm-shrinkwrap.json'
+    : lockfiles.length > 1
+      ? `commits ${lockfiles.join(' and ')}; keep only the lockfile of the package manager you use`
+      : pnpmHook
+        ? `commits the pnpm hook ${pnpmHook}`
+        : trackedModules
+          ? `tracks ${trackedModules.slice(0, trackedModules.indexOf('node_modules') + 'node_modules'.length)}; remove it from Git and add it to .gitignore`
+          : undefined;
+  if (conflict)
     throw new PipelineInputError(
-      'Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image.',
+      `Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository ${conflict}.`,
     );
   const packageContent = await readCommittedFile(snapshot, 'package.json', MAX_PACKAGE_BYTES);
   const manifest = parseObject(packageContent, 'package.json');
