@@ -53,6 +53,8 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Owner decision (2026-10-22): deleting uninstalled installations' data is opt-in.
+  purgeUninstalled?: boolean;
   host?: string;
   port?: number;
   intervalSeconds?: number;
@@ -302,13 +304,15 @@ export async function runHostedService(options: {
       requested = false;
       try {
         await store.enqueueDue(interval);
-        const purged = await purgeUninstalled(options.database, directory);
-        if (purged.targets.length)
-          options.onProgress?.(
-            `Deleted ${purged.targets.length} target(s) and ${purged.jobs} job(s) of installation(s) ${purged.installations.join(', ')}, uninstalled more than the grace period ago.`,
-          );
-        for (const { target, reason } of purged.kept)
-          options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
+        if (options.purgeUninstalled) {
+          const purged = await purgeUninstalled(options.database, directory);
+          if (purged.targets.length)
+            options.onProgress?.(
+              `Deleted ${purged.targets.length} target(s) and ${purged.jobs} job(s) of installation(s) ${purged.installations.join(', ')}, uninstalled more than the grace period ago.`,
+            );
+          for (const { target, reason } of purged.kept)
+            options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
+        }
         for (
           let claimed = await store.claim(worker, lease);
           claimed && !options.signal.aborted;

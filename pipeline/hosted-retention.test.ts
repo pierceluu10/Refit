@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import pg from 'pg';
 import { afterEach, expect, it } from 'vitest';
 import { purgeUninstalled, UNINSTALL_GRACE_DAYS } from './hosted-retention.ts';
+import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
 import type { RepositoryApproval } from './repository-enrollment.ts';
 
@@ -236,3 +237,68 @@ it.skipIf(!DATABASE || process.getuid?.() === 0)(
     expect(await exists(join(targets, target))).toBe(false);
   },
 );
+
+// The loop purges between enqueueing due targets and claiming jobs, so once the due job is claimed
+// the pass has reached the purge.
+async function servePass(pool: pg.Pool, state: string, purge: boolean | undefined) {
+  await pool.query(
+    `UPDATE refit_jobs SET created_at = now() - interval '1 day'
+     WHERE target_id = $1`,
+    [hostedTargetId('example/application', 'main')],
+  );
+  const controller = new AbortController();
+  const service = runHostedService({
+    database: pool,
+    app: { appId: '123', privateKeyFile: join(state, 'missing-test-key') },
+    directory: state,
+    webhookSecret: 'webhook-secret-for-hosted-retention-tests-123',
+    controlToken: 'control-secret-for-hosted-retention-tests-456',
+    owner: OWNER,
+    host: '127.0.0.1',
+    port: 0,
+    intervalSeconds: 30,
+    leaseSeconds: 30,
+    worker: 'retention-worker',
+    signal: controller.signal,
+    ...(purge !== undefined && { purgeUninstalled: purge }),
+  });
+  try {
+    for (let attempt = 0; attempt < 300; attempt++) {
+      const { rows } = await pool.query(
+        `SELECT count(*)::int AS claimed FROM refit_jobs
+         WHERE target_id = $1 AND attempts > 0 AND created_at > now() - interval '1 hour'`,
+        [hostedTargetId('example/application', 'main')],
+      );
+      if (rows[0].claimed) return;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error('The worker never claimed the due job.');
+  } finally {
+    controller.abort();
+    await service.catch(() => undefined);
+  }
+}
+
+it.skipIf(!DATABASE)('deletes nothing unless the worker runs with purgeUninstalled', async () => {
+  const pool = await database();
+  const state = await stateDirectory();
+  const store = await installed(pool, state, {
+    456: 'example/application',
+    900: 'example/billing',
+  });
+  await install(store, 900, 'example/billing', 'deleted');
+  await uninstalledDaysAgo(pool, 900, UNINSTALL_GRACE_DAYS + 1);
+  const removed = join(state, 'targets', hostedTargetId('example/billing', 'main'));
+
+  await servePass(pool, state, undefined);
+  const after = await counts(pool);
+  console.log('After a default pass:', after);
+  expect(after.targets).toBe(2);
+  expect(await exists(removed)).toBe(true);
+
+  await servePass(pool, state, true);
+  const purged = await counts(pool);
+  console.log('After a purging pass:', purged);
+  expect(purged.targets).toBe(1);
+  expect(await exists(removed)).toBe(false);
+});
