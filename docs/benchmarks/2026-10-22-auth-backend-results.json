@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "list": "docs/benchmarks/2026-10-22-auth-backend-repos.json",
-  "scannedAt": "2026-10-22T08:59:55.555Z",
+  "scannedAt": "2026-10-22T09:14:08.674Z",
   "repos": [
     {
       "provider": "auth0",
@@ -12,7 +12,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 5.3
+      "seconds": 5
     },
     {
       "provider": "auth0",
@@ -31,7 +31,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.4
+      "seconds": 2.2
     },
     {
       "provider": "auth0",
@@ -42,7 +42,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.6
+      "seconds": 2.5
     },
     {
       "provider": "auth0",
@@ -74,7 +74,7 @@
           "package.json:16 @clerk/nextjs 5.1.4 (locked in package-lock.json) is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 2.5
+      "seconds": 2.3
     },
     {
       "provider": "clerk",
@@ -92,7 +92,7 @@
           "package.json:12 @clerk/nextjs 4.23.2 (locked in package-lock.json) is declared in dependencies, inside <5"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.3
     },
     {
       "provider": "clerk",
@@ -109,7 +109,7 @@
           "package.json:12 @clerk/nextjs 6.12.4 (locked in package-lock.json) is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.2
     },
     {
       "provider": "clerk",
@@ -126,7 +126,7 @@
           "package.json:15 @clerk/nextjs 5.3.7 (locked in package-lock.json) is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.3
     },
     {
       "provider": "clerk",
@@ -150,7 +150,8 @@
       "repo": "vual/lobe-chat-pro",
       "commit": "2a400facaee734beedeb9c93d9977728d626bec2",
       "providers": [
-        "clerk"
+        "clerk",
+        "nextauth"
       ],
       "exposures": [
         "clerk-2027-01-01-core-2-lts-ends"
@@ -160,7 +161,7 @@
           "package.json:140 @clerk/nextjs ^6.33.3 is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 13.3
+      "seconds": 16.3
     },
     {
       "provider": "clerk",
@@ -181,7 +182,7 @@
           "package.json:17 @clerk/nextjs 4.30.1 (locked in package-lock.json) is declared in dependencies, inside <5"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.7
     },
     {
       "provider": "clerk",
@@ -192,7 +193,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 3.5
+      "seconds": 3.4
     },
     {
       "provider": "clerk",
@@ -256,7 +257,7 @@
           "package.json:12 @clerk/clerk-react 4.30.7 (locked in package-lock.json) is declared in dependencies, inside <5"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.2
     },
     {
       "provider": "clerk",
@@ -273,7 +274,7 @@
           "package.json:12 @clerk/nextjs 6.9.6 (locked in package-lock.json) is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.1
     },
     {
       "provider": "clerk",
@@ -290,7 +291,7 @@
           "package.json:12 @clerk/nextjs ^6.9.6 is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 3.1
+      "seconds": 2.7
     },
     {
       "provider": "clerk",
@@ -307,7 +308,7 @@
           "package.json:17 @clerk/nextjs 4.29.11 (locked in package-lock.json) is declared in dependencies, inside <5"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.3
     },
     {
       "provider": "clerk",
@@ -324,7 +325,7 @@
           "package.json:16 @clerk/nextjs 4.29.11 (locked in package-lock.json) is declared in dependencies, inside <5"
         ]
       },
-      "seconds": 2.6
+      "seconds": 2.2
     },
     {
       "provider": "clerk",
@@ -341,7 +342,7 @@
           "package.json:12 @clerk/nextjs ^5.1.5 is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 3.2
+      "seconds": 2.7
     },
     {
       "provider": "clerk",
@@ -352,7 +353,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 4.3
+      "seconds": 4.4
     },
     {
       "provider": "clerk",
@@ -369,7 +370,7 @@
           "package.json:15 @clerk/nextjs 5.5.2 (locked in package-lock.json) is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 2.5
+      "seconds": 2.7
     },
     {
       "provider": "clerk",
@@ -401,7 +402,8 @@
       "repo": "grepsoft/thelibrary",
       "commit": "801ce84fbd2559e6c1522a8555126929530c893e",
       "providers": [
-        "firebase"
+        "firebase",
+        "nextauth"
       ],
       "exposures": [],
       "evidence": {},
@@ -413,6 +415,7 @@
       "commit": "6b2a3b7703851ebe45019944f46f0f88dfdb55ca",
       "providers": [
         "firebase",
+        "nextauth",
         "supabase"
       ],
       "exposures": [
@@ -446,7 +449,7 @@
           "scripts/supabase-oauth-update.js:14 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;"
         ]
       },
-      "seconds": 4.1
+      "seconds": 3.8
     },
     {
       "provider": "firebase",
@@ -468,7 +471,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.6
+      "seconds": 2.4
     },
     {
       "provider": "firebase",
@@ -486,11 +489,12 @@
       "repo": "grepsoft/ezrental",
       "commit": "935e79a08dfd59d9cbc01e363971d13fd22fe7b4",
       "providers": [
-        "firebase"
+        "firebase",
+        "nextauth"
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.2
+      "seconds": 2.3
     },
     {
       "provider": "firebase",
@@ -511,7 +515,7 @@
           "src/supabaseClient.js:4 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;"
         ]
       },
-      "seconds": 2.7
+      "seconds": 2.8
     },
     {
       "provider": "firebase",
@@ -530,7 +534,7 @@
           "package.json:12 @clerk/backend 0.38.3 (locked in pnpm-lock.yaml) is declared in dependencies, inside <1"
         ]
       },
-      "seconds": 4.4
+      "seconds": 4.3
     },
     {
       "provider": "firebase",
@@ -559,7 +563,7 @@
           "package.json:12 @clerk/nextjs 6.6.0 (locked in package-lock.json) is declared in dependencies, inside >=5 <7"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.3
     },
     {
       "provider": "firebase",
@@ -579,7 +583,7 @@
           "package.json:20 @clerk/express 1.3.11 is declared in dependencies, inside <2"
         ]
       },
-      "seconds": 2.9
+      "seconds": 2.7
     },
     {
       "provider": "firebase",
@@ -590,7 +594,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.3
+      "seconds": 2
     },
     {
       "provider": "firebase",
@@ -601,7 +605,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.9
+      "seconds": 2.5
     },
     {
       "provider": "firebase",
@@ -641,22 +645,24 @@
       "repo": "marketstandard/onix",
       "commit": "10099b4bc216002f176f8523c25fd9de00b1da0e",
       "providers": [
-        "firebase"
+        "firebase",
+        "nextauth"
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 3
+      "seconds": 3.7
     },
     {
       "provider": "firebase",
       "repo": "Abdul-Rafay-2002/SparkSprint",
       "commit": "7f4168ee3215bbf035a4fcbc357dcef03b24279f",
       "providers": [
-        "firebase"
+        "firebase",
+        "nextauth"
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.3
+      "seconds": 2.4
     },
     {
       "provider": "firebase",
@@ -667,18 +673,19 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.6
+      "seconds": 2.7
     },
     {
       "provider": "firebase",
       "repo": "BTheCoderr/jackerboxV2",
       "commit": "c09ca7c66ef99061cf5e187877956fa9cc3d24b2",
       "providers": [
-        "firebase"
+        "firebase",
+        "nextauth"
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 3.6
+      "seconds": 3.9
     },
     {
       "provider": "supabase",
@@ -750,7 +757,7 @@
           "create-test-reservation-with-hold.js:6 process.env.SUPABASE_SERVICE_ROLE_KEY"
         ]
       },
-      "seconds": 4.7
+      "seconds": 5.2
     },
     {
       "provider": "supabase",
@@ -769,7 +776,7 @@
           "server/auth.ts:106 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,"
         ]
       },
-      "seconds": 6
+      "seconds": 5.9
     },
     {
       "provider": "supabase",
@@ -789,13 +796,14 @@
           "lib/supabase.ts:19 return process.env.SUPABASE_SERVICE_ROLE_KEY || null;"
         ]
       },
-      "seconds": 2.8
+      "seconds": 2.4
     },
     {
       "provider": "supabase",
       "repo": "Chivo1530/CHIVITO-AI-DEV",
       "commit": "f492e7183d889ad259781f57b6defc6d31fa906e",
       "providers": [
+        "nextauth",
         "supabase"
       ],
       "exposures": [
@@ -810,7 +818,7 @@
           "lib/supabase.js:4 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '[redacted]…"
         ]
       },
-      "seconds": 2.5
+      "seconds": 2.2
     },
     {
       "provider": "supabase",
@@ -831,7 +839,7 @@
           "scripts/sweep-orphaned-storage.mjs:33 const supabase = createClient(requireEnv('NEXT_PUBLIC_SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'))"
         ]
       },
-      "seconds": 2.6
+      "seconds": 2.3
     },
     {
       "provider": "supabase",
@@ -893,7 +901,7 @@
           "utils/validation/schemas.ts:215 NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),"
         ]
       },
-      "seconds": 4.7
+      "seconds": 4.9
     },
     {
       "provider": "supabase",
@@ -927,7 +935,7 @@
           "src/services/order.service.ts:8 process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!"
         ]
       },
-      "seconds": 2.8
+      "seconds": 3.1
     },
     {
       "provider": "supabase",
@@ -963,7 +971,7 @@
           "app/api/favorites/route.ts:208 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,"
         ]
       },
-      "seconds": 3.2
+      "seconds": 3.6
     },
     {
       "provider": "supabase",
@@ -1002,7 +1010,7 @@
           "lib/supabaseAdmin.ts:7 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.3
     },
     {
       "provider": "supabase",
@@ -1055,7 +1063,7 @@
           "supabase/functions/welcome-email/index.ts:28 const SERVICE_ROLE   = Deno.env.get(\"SUPABASE_SERVICE_ROLE_KEY\") ?? \"\";"
         ]
       },
-      "seconds": 3.3
+      "seconds": 2.9
     },
     {
       "provider": "supabase",
@@ -1077,7 +1085,7 @@
           "libs/supabaseAdmin.ts:12 process.env.SUPABASE_SERVICE_ROLE_KEY || ''"
         ]
       },
-      "seconds": 2.3
+      "seconds": 2.5
     },
     {
       "provider": "supabase",
@@ -1099,7 +1107,7 @@
           "src/lib/supabase/server.ts:37 process.env.SUPABASE_SERVICE_ROLE_KEY!,"
         ]
       },
-      "seconds": 2.3
+      "seconds": 2.6
     },
     {
       "provider": "supabase",
@@ -1117,7 +1125,7 @@
           "package.json:17 @supabase/auth-helpers-react 0.4.2 (locked in package-lock.json) is declared in dependencies"
         ]
       },
-      "seconds": 2.4
+      "seconds": 2.3
     },
     {
       "provider": "supabase",
@@ -1153,7 +1161,7 @@
           "controllers/webhook/stripeController.js:12 return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);"
         ]
       },
-      "seconds": 2.3
+      "seconds": 2.2
     },
     {
       "provider": "supabase",
@@ -1183,7 +1191,228 @@
       ],
       "exposures": [],
       "evidence": {},
+      "seconds": 2.5
+    },
+    {
+      "provider": "nextauth",
+      "repo": "naveennaidu/OpenformStack",
+      "commit": "6eec1c882ee327efd4095ac8279543d2bcbe4b68",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3.2
+    },
+    {
+      "provider": "nextauth",
+      "repo": "LarytheLord/Adventurers-Guild",
+      "commit": "21ec323ea2347e266b037e7818b9bb1030760e9f",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.9
+    },
+    {
+      "provider": "nextauth",
+      "repo": "thereactfoundation/react.foundation",
+      "commit": "5a51afb76c2a54e6aa967221b76f03e4f92da5fd",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3.3
+    },
+    {
+      "provider": "nextauth",
+      "repo": "sudeepmahato16/airbnb-clone",
+      "commit": "fe8a793e7f7e296e8f52a050b1536fb756323f5d",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.2
+    },
+    {
+      "provider": "nextauth",
+      "repo": "sa902/ship-fast-ts-main",
+      "commit": "e6ef4f2a99e0aaa330c25b1fa08f439a3152b1cb",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.2
+    },
+    {
+      "provider": "nextauth",
+      "repo": "Shivamrai15/lms",
+      "commit": "161b3edab4eb1179cce56ed956423ff388097287",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.4
+    },
+    {
+      "provider": "nextauth",
+      "repo": "Will-404-debug/Katana-Forge",
+      "commit": "e1b9e5f954630fe3f0c8cccfbdf9b76b9a6047cd",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
       "seconds": 2.3
+    },
+    {
+      "provider": "nextauth",
+      "repo": "zebbern/repolens",
+      "commit": "9d0a2ff046600ea633b40837a03d5895173ef8d0",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 4.6
+    },
+    {
+      "provider": "nextauth",
+      "repo": "el-noir/Tempify",
+      "commit": "6ac52870a972bb9c47efc76708d1bf8cac34acd7",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.4
+    },
+    {
+      "provider": "nextauth",
+      "repo": "hex22a/techwear-shop-nextjs",
+      "commit": "900582b17a9f5d82f84128d53f190b318593eefd",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3.6
+    },
+    {
+      "provider": "nextauth",
+      "repo": "dsound-zz/DDIA-RAG",
+      "commit": "51f1aa65dc0be6d3bbc77ba3923fa28bfb9db965",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.1
+    },
+    {
+      "provider": "nextauth",
+      "repo": "LakshAgrawal28/CreatorOS",
+      "commit": "6eee911bd9aaf90e6d670dc0ff736a8a1678b394",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.4
+    },
+    {
+      "provider": "nextauth",
+      "repo": "membranehq/ai-agent-example",
+      "commit": "ad9989e8554d0c2d51282a23406649d5c5ca8555",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3.6
+    },
+    {
+      "provider": "nextauth",
+      "repo": "nishantharkut/Uproot.AI",
+      "commit": "2c9ab42949c6bf2a9e80239ca9693afd34338094",
+      "providers": [
+        "nextauth",
+        "supabase"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3.7
+    },
+    {
+      "provider": "nextauth",
+      "repo": "QizarBilal/GreenNode",
+      "commit": "c87911372df41efa8cbade32840682dee8eee4dc",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.6
+    },
+    {
+      "provider": "nextauth",
+      "repo": "Yousuf-Basir/sso-server",
+      "commit": "e2b522e62db369498a78adfed09b5d042ab55b31",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 2.1
+    },
+    {
+      "provider": "nextauth",
+      "repo": "gr8monk3ys/link-flame",
+      "commit": "742dfb7dd3a6ffe14a89b93bd17497a674a09ce6",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3.3
+    },
+    {
+      "provider": "nextauth",
+      "repo": "ElricLiu/AutoGPT-Next-Web",
+      "commit": "93c325afd54a255e60762b27f77763fc5631b23d",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3.1
+    },
+    {
+      "provider": "nextauth",
+      "repo": "Panda2Chan/ai-asmr",
+      "commit": "cbaf6a28512730839a9a0d72a852416e97f0f0dc",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3
+    },
+    {
+      "provider": "nextauth",
+      "repo": "ItusiAI/Open-Magiviz",
+      "commit": "38ea70ec218d4d17caad30888779b1bb2935c0e2",
+      "providers": [
+        "nextauth"
+      ],
+      "exposures": [],
+      "evidence": {},
+      "seconds": 3.1
     },
     {
       "provider": "auth0",
@@ -1194,7 +1423,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.3
+      "seconds": 2.2
     },
     {
       "provider": "auth0",
@@ -1238,7 +1467,7 @@
           "package.json:7 auth0 ^6.0.0 is declared in dependencies, inside >=6 <7"
         ]
       },
-      "seconds": 2.2
+      "seconds": 2.1
     },
     {
       "provider": "auth0",
@@ -1258,7 +1487,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 4.9
+      "seconds": 4.8
     },
     {
       "provider": "auth0",
@@ -1310,7 +1539,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.3
+      "seconds": 2.1
     },
     {
       "provider": "auth0",
@@ -1321,7 +1550,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.3
+      "seconds": 2.2
     },
     {
       "provider": "auth0",
@@ -1332,7 +1561,7 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.7
+      "seconds": 2.6
     },
     {
       "provider": "auth0",
@@ -1343,17 +1572,17 @@
       ],
       "exposures": [],
       "evidence": {},
-      "seconds": 2.7
+      "seconds": 2.6
     }
   ],
   "score": {
-    "labelled": 30,
-    "scored": 29,
+    "labelled": 38,
+    "scored": 37,
     "failed": [
       "getcord/cord"
     ],
     "providers": {
-      "truePositive": 32,
+      "truePositive": 45,
       "falsePositive": 0,
       "falseNegative": 0,
       "precision": 1,
