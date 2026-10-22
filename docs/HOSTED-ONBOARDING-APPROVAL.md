@@ -22,14 +22,14 @@ Without a `.refit.json`, `/refit approve` (with or without a prefix) only checks
 
 Every refused command gets a reply that names the reason. Nothing is stored.
 
-| Situation                                                                           | Outcome                     | Reply                                                               |
-| ----------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------- |
-| Commenter's role is not admin or maintain, or they are not a collaborator           | `no-permission`             | Names the commenter's role, or that they have none                  |
-| Prefix shorter than 12 hex characters, or not part of the fingerprint shown         | `wrong-prefix`              | The value does not match the fingerprint this issue shows           |
-| Prefix of a fingerprint an earlier version of the issue showed                      | `stale-prefix`              | The configuration changed since; approve what the issue shows now   |
-| Prefix matches, but the committed configuration changed after the issue was written | `configuration-changed`     | Refit did not approve and updated the issue with the current review |
-| The issue showed no reviewed configuration (proposal or invalid)                    | `no-reviewed-configuration` | Refit checked again and updated the issue                           |
-| The command comment was edited                                                      | `edited-comment`            | Refit never acts on edited comments; post a new one                 |
+| Situation | Outcome | Reply |
+|---|---|---|
+| Commenter's role is not admin or maintain, or they are not a collaborator | `no-permission` | Names the commenter's role, or that they have none |
+| Prefix shorter than 12 hex characters, or not part of the fingerprint shown | `wrong-prefix` | The value does not match the fingerprint this issue shows |
+| Prefix of a fingerprint an earlier version of the issue showed | `stale-prefix` | The configuration changed since; approve what the issue shows now |
+| Prefix matches, but the committed configuration changed after the issue was written | `configuration-changed` | Refit did not approve and updated the issue with the current review |
+| The issue showed no reviewed configuration (proposal or invalid) | `no-reviewed-configuration` | Refit checked again and updated the issue |
+| The command comment was edited | `edited-comment` | Refit never acts on edited comments; post a new one |
 
 Deliveries are refused before any command exists, so they are answered in the HTTP response, never with an issue comment:
 
@@ -50,6 +50,7 @@ A job always verifies the approved fingerprint on its fresh checkout (`loadAppro
 
 - Commands are handled in the worker loop, before jobs are claimed, and a comment delivery wakes the loop. A job already running delays the reply until it finishes.
 - `/status` adds `approvals` (each issue's state, shown fingerprints and last error, and each command with its outcome) when the flag is on.
+- Each issue inspection (opening or refreshing an issue) counts as one inventory against the installation's [daily inventory cap](HOSTED-TENANCY.md#guardrails-per-installation). Once the cap is reached, further issues wait for the next UTC day. Inspections that a `/refit approve` from an admin or maintainer triggers are not counted.
 - If GitHub refuses to open an issue, for example because the App lacks Issues permission, the error is recorded on the issue row and retried hourly.
 - Inspection reads committed files and package manifests only. It never runs repository code, installs dependencies or calls AI. Checkouts for inspection live under the state directory in `approvals/`, separately from job checkouts.
 - Tables: `refit_approval_issues` (one row per repository) and `refit_approval_commands` (one row per command comment), with row-level security and no policies, like the other `refit_*` tables.

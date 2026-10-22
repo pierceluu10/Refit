@@ -260,8 +260,14 @@ async function issuesRequest(context: ApprovalContext, repository: string): Prom
   return (method, path, body) => requestGitHub(token, method, path, body);
 }
 
-// Opens or refreshes the issue for a repository that needs approval.
+// Opens or refreshes the issue for a repository that needs approval. Each inspection is a checkout
+// and scan, so it counts against the installation's daily inventory cap; a refused one waits.
 async function refresh(context: ApprovalContext, repository: string, installationId: number) {
+  const refusal = await context.store.reserveInventory(installationId);
+  if (refusal) {
+    context.onProgress?.(`[${repository}] Approval issue waits: ${refusal}.`);
+    return;
+  }
   const previous = await context.approvals.issue(repository);
   try {
     const request = await issuesRequest(context, repository);

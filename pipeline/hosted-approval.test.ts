@@ -13,7 +13,7 @@ import { APPROVAL_OUTCOMES, processApprovalIssues } from './hosted-approval.ts';
 import { openApprovalStore } from './hosted-approval-store.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
-import { hostedTenancy } from './hosted-tenancy.ts';
+import { hostedTenancy, TENANCY_REFUSALS } from './hosted-tenancy.ts';
 import {
   inspectRepositoryEnrollment,
   readRepositoryApproval,
@@ -194,9 +194,12 @@ async function repository(options: { bare?: boolean; files?: Record<string, stri
 const enrollment = () =>
   inspectRepositoryEnrollment({ repository: transport.source, github: REPOSITORY, base: 'main' });
 
-async function setup(root: string) {
+async function setup(root: string, environment: NodeJS.ProcessEnv = {}) {
   const pool = await database();
-  const store = await openHostedStore(pool, hostedTenancy({ REFIT_HOSTED_OWNER: 'example' }));
+  const store = await openHostedStore(
+    pool,
+    hostedTenancy({ REFIT_HOSTED_OWNER: 'example', ...environment }),
+  );
   const approvals = openApprovalStore(pool);
   await store.accept(randomUUID(), 'installation', encode({}), {
     kind: 'installation',
@@ -217,9 +220,11 @@ async function setup(root: string) {
     onCancelled: (jobs: number[]) => cancelled.push(...jobs),
     onProgress: (message: string) => progress.push(message),
   };
+  let printed = 0;
   const process = async () => {
     await processApprovalIssues(context);
-    console.log(progress.splice(0).join('\n'));
+    console.log(progress.slice(printed).join('\n'));
+    printed = progress.length;
   };
   // Delivers a signed-equivalent comment through the same parser and transaction as the service.
   let commentId = 1000;
@@ -250,7 +255,18 @@ async function setup(root: string) {
     ).rows;
   const outcomes = async () =>
     (await approvals.read()).commands.map((command: { outcome: string }) => command.outcome);
-  return { pool, store, approvals, context, process, comment, stored, outcomes, cancelled };
+  return {
+    pool,
+    store,
+    approvals,
+    context,
+    process,
+    comment,
+    stored,
+    outcomes,
+    cancelled,
+    progress,
+  };
 }
 
 const lastReply = () => github.comments.at(-1)?.body ?? '';
@@ -479,6 +495,23 @@ it.skipIf(!DATABASE)(
     ]);
     await sample.process();
     expect(github.issues.size).toBe(0);
+  },
+  60_000,
+);
+
+it.skipIf(!DATABASE)(
+  'counts each issue inspection against the installation’s daily inventory cap',
+  async () => {
+    const root = await repository();
+    const sample = await setup(root, { REFIT_HOSTED_DAILY_INVENTORIES: '1' });
+    expect(await sample.store.reserveInventory(INSTALLATION)).toBeNull();
+    await sample.process();
+    expect(github.issues.size).toBe(0);
+    expect(sample.progress).toContain(
+      `[${REPOSITORY}] Approval issue waits: ${TENANCY_REFUSALS.dailyInventories}.`,
+    );
+    expect((await sample.approvals.read()).issues).toEqual([]);
+    expect((await sample.store.read()).installations[0]).toMatchObject({ inventoriesToday: 1 });
   },
   60_000,
 );
