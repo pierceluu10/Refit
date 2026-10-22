@@ -49,7 +49,7 @@ Stripe API 2026-09-30.endive removes request fields this code sends. A determini
      "tailwind-merge": "^3.5.0",
 ```
 
-`package-lock.json` changes only the package entries above; see Files changed.
+Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 

@@ -40,7 +40,7 @@ Stripe API 2026-09-30.endive removes fields this code reads and removes request 
    },
 ```
 
-`package-lock.json` changes only the package entries above; see Files changed.
+Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 

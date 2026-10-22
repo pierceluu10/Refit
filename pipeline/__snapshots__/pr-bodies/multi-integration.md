@@ -81,7 +81,7 @@ New file `convex/stripe-subscription-period.ts`; see Files changed.
      "tailwind-merge": "^2.4.0",
 ```
 
-`package-lock.json` changes only the package entries above; see Files changed.
+Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 

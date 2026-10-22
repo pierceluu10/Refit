@@ -1,4 +1,4 @@
-fix(stripe): migrate removed invoice.payment_intent reads
+fix(stripe): migrate removed API fields
 
 Stripe API 2026-09-30.endive removes fields this code reads and removes
 request fields this code sends. A deterministic Refit rule migrates 1
@@ -11,6 +11,8 @@ confirmed usage in 1 file so the code keeps working after the upgrade.
 
 Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
 original and migrated code in offline Docker.
+
+Needs review: the pull request lists what to check before merging.
 
 Source: https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions
 

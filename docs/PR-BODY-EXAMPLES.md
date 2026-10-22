@@ -1,6 +1,6 @@
 # PR body examples
 
-**Every body below is regenerated from stored results. None was published, and no PR was republished.** Each one is the snapshot `pipeline/pr-body-snapshots.test.ts` checks, written by `createReviewArtifacts()` (or `modelFixBody()` for the model fix) from a stored `report.json`, rendered the way publication renders it: with the waiver `--allow-unresolved` earns, if any. The fixtures under `pipeline/fixtures/pr-bodies/` keep only what the body reads. Check logs and repair attempts are dropped, lockfile hunks are cut to their first lines (the body only names lockfiles), and `patchHash` is recomputed for the cut diff.
+**Every body below is regenerated from stored results. None was published, and no PR was republished.** Each one is the snapshot `pipeline/pr-body-snapshots.test.ts` checks, written by `createReviewArtifacts()` (or `modelFixBody()` for the model fix) from a stored `report.json`, rendered the way publication renders it: with the waiver `--publish-unresolved` earns, if any. The fixtures under `pipeline/fixtures/pr-bodies/` keep only what the body reads. Check logs and repair attempts are dropped, lockfile hunks are cut to their first lines (the body only names lockfiles), and `patchHash` is recomputed for the cut diff.
 
 ## What a reviewer needed and did not get
 
@@ -16,7 +16,7 @@ I read the 13 draft PRs Refit published under refit-dev (Signl, pci-update, podv
 | How to roll back | Not stated. | A Rollback section: revert, plus the pinned version, the SDK version and the generated helper the revert restores or removes, and confirmation that Refit changed nothing outside the repository. |
 | What to do before merging | Spread across Review lines and waiver sections. | A Reviewer Checklist with one unchecked box per action. |
 | A commit that explains itself | Every migration commit reads `fix: migrate affected stripe API usage` and every model fix `fix: replace retiring AI models`, with no body, so `git log` says nothing about the change. | The commit subject is the PR title without `[Needs review]`. The body has the overview, one line per file, the checks, each source URL and the run, wrapped at 72 columns. |
-| A body that fits | No budget. The longest draft is 8,468 characters, but nothing bounds a large patch: publication refused a body over 60,000 characters (GitHub's limit is 65,536), so that patch was never published, not shortened. | A hard budget of 16,000 characters. Code Changes shortens first (80 → 40 → 20 → 0 lines), then site lists (25 → 10 → 3 → 0), and the body says what it shortened. |
+| A body that fits | No budget. The longest draft is 8,468 characters, but nothing bounds a large patch: publication refused a body over 60,000 characters (GitHub's limit is 65,536), so that patch was never published, not shortened. | A target of 16,000 characters. Code Changes shortens first (80 → 40 → 20 → 0 lines), then site lists (25 → 10 → 3 → 0), and the body says what it shortened. Key Changes, Breaking Changes and the review lines never shorten, so a patch with very many of them can still exceed the target; publication refuses a body over 60,000 characters. |
 
 Still missing:
 
@@ -29,7 +29,7 @@ Still missing:
 | Shape | Stored result | Characters | What it shows |
 |---|---|---|---|
 | [Validated deterministic patch](#validated-deterministic-patch) | refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit | 3,865 | The `['card']` rule, the API version pin and the stripe-node upgrade; checks passed. |
-| [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 6,208 | Published only with `--allow-unresolved`: the `webhook-api-version` waiver, with 2 webhook reads still unmigrated. |
+| [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 6,208 | Published only with `--publish-unresolved`: the `webhook-api-version` waiver, with 2 webhook reads still unmigrated. |
 | [Untraced reads](#untraced-reads) | refit-stripe-active/run-6d4f38a, amahmood-pci/pci-update | 4,035 | One `.payment_intent` read Refit could not trace, left unchanged and listed with file and line. |
 | [AI patch](#ai-patch) | refit-stripe-benchmark/run-prs-all, webdevcody/thumbnail-critique | 4,707 | Lines written by `gpt-5.4-mini-2026-03-17` and checked by Refit, with the webhook waiver. |
 | [Model fix](#model-fix) | docs/benchmarks/2026-10-21-model-replacement-results.json, RiP3rQ/AI-Butler | 2,018 | **Simulated checks.** The stored validation for this repository is baseline-failed, so Refit never wrote this body. The four replacements are the stored ones; the checks are marked passed to show the body Refit publishes. |
@@ -94,7 +94,7 @@ Stripe API 2026-09-30.endive removes request fields this code sends. A determini
      "tailwind-merge": "^3.5.0",
 ```
 
-`package-lock.json` changes only the package entries above; see Files changed.
+Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 
@@ -132,7 +132,7 @@ Stripe API 2026-09-30.endive removes request fields this code sends. A determini
 
 ## Needs-review waiver
 
-Regenerated from refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI. Published only with `--allow-unresolved`: the `webhook-api-version` waiver, with 2 webhook reads still unmigrated.
+Regenerated from refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI. Published only with `--publish-unresolved`: the `webhook-api-version` waiver, with 2 webhook reads still unmigrated.
 
 `````markdown
 ## Webhook API version not verified
@@ -299,7 +299,7 @@ Stripe API 2026-09-30.endive removes fields this code reads and removes request 
    },
 ```
 
-`package-lock.json` changes only the package entries above; see Files changed.
+Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 
@@ -655,7 +655,7 @@ New file `convex/stripe-subscription-period.ts`; see Files changed.
      "tailwind-merge": "^2.4.0",
 ```
 
-`package-lock.json` changes only the package entries above; see Files changed.
+Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 
@@ -752,7 +752,7 @@ Refit-Run: f87feb0a19dc
 ### Untraced reads
 
 ```text
-fix(stripe): migrate removed invoice.payment_intent reads
+fix(stripe): migrate removed API fields
 
 Stripe API 2026-09-30.endive removes fields this code reads and removes
 request fields this code sends. A deterministic Refit rule migrates 1
@@ -765,6 +765,8 @@ confirmed usage in 1 file so the code keeps working after the upgrade.
 
 Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
 original and migrated code in offline Docker.
+
+Needs review: the pull request lists what to check before merging.
 
 Source: https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions
 

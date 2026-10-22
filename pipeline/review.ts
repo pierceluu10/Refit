@@ -153,7 +153,7 @@ function changeSections(diff: string, limit = MAX_VISIBLE_DIFF_LINES) {
   }
   if (lockfiles.length)
     sections.push(
-      `${summaryList(lockfiles.map(code))} ${lockfiles.length === 1 ? 'changes' : 'change'} only the package entries above; see Files changed.`,
+      `Changes to ${summaryList(lockfiles.map(code))} are not shown here; see Files changed.`,
     );
   if (hidden)
     sections.push(

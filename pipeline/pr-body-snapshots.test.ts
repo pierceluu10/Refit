@@ -20,7 +20,11 @@ const published = (name: string, integration?: string) => {
     integration,
     publicationWaiver(report, true),
   );
-  return { body: artifacts.files['pull-request.md'], message: artifacts.commitMessage };
+  return {
+    body: artifacts.files['pull-request.md'],
+    message: artifacts.commitMessage,
+    title: artifacts.manifest.title,
+  };
 };
 
 const shapes: Record<string, () => { body: string; message: string }> = {
@@ -50,6 +54,13 @@ it.each(Object.keys(shapes))('writes the %s pull request body within budget', as
   expect(body).toMatch(/^## Not Verified$/m);
   await expect(body).toMatchFileSnapshot(`__snapshots__/pr-bodies/${name}.md`);
 });
+
+it.each(['needs-review-waiver', 'untraced-reads', 'ai-patch'])(
+  'titles the %s draft for review',
+  (name) => {
+    expect(published(name).title).toMatch(/^\[Needs review\] /);
+  },
+);
 
 it.each(Object.keys(shapes))('writes the %s commit message', async (name) => {
   const { message } = shapes[name]();
