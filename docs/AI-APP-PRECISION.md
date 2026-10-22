@@ -92,6 +92,16 @@ Cases the guide did not foresee, each decided once and applied to every reposito
 - Model fields in an API response body (`meta.model` in a search response) and in a scripted fake response are not sites: nothing is sent to a provider.
 - After all repositories were labelled and before the labels were committed, a second pass listed every model-shaped literal on a line with a default (`||`, `??`, `default`, `.get(`) that had no label, excluding comparisons. It found two OpenAI sites (`AnyVM-Tech/AnyGPT` semanticMemoryStore embeddings, `utter-one/bonsai` OpenAI TTS) and eight compatible sites; all are labelled.
 
+### Rulings added while labelling the remaining repositories
+
+These cases first appeared outside the sample, and none of them changes a sample label. The Claude Code fork ruling above also covers the six forks in the remainder: `DdogezD/claudium`, `Doriandarko/kimi-2-6-code`, `JrCx7scC/claude-code-source`, `txl16095/MiniClaude`, `TaGoat/claude_code_cli` and `andforce/Openclaude`. `DdogezD/claudium` removed the built-in default, so it has no such site, and `txl16095/MiniClaude`'s getters return three entries, not four.
+
+- In a model catalog whose selection defaults to the first model with a configured key (`getAvailableModels().at(0)`), the first entry of each provider is a site: it is sent without a choice when that is the only key set.
+- A plain string model ID passed to the Vercel AI SDK (`model: 'openai/gpt-5-mini'`) is resolved by the Vercel AI Gateway, a third-party host, so it is recorded as `compatible`. A model passed through a provider package (`openai('gpt-4o-mini')` from `@ai-sdk/openai`) goes to the provider and is a `wrapper` site.
+- Azure OpenAI deployments are recorded as `compatible`: Microsoft, not OpenAI, retires them, and the value is a deployment name. Folders whose name ends in `examples` (`other-examples/`) and evaluation harness files (`server/eval-framework.ts`) are non-production. Model IDs inside a commented example config are documentation.
+- An alias resolver that maps a family name to a current model ID (`ShinChven/remix-studio` `google.ts`, `if (id.includes('3.5-flash')) return 'gemini-3.5-flash'`) is a remap table, so a catalog; its default parameter is a site.
+- A provider-prefixed ID that the application's own gateway splits before the request (`'anthropic:claude-haiku-4-5'`, `'anthropic/claude-sonnet-4-6'` in `inbrainfun/inbrain`) is recorded with its bare model ID. The candidate search does not list the colon form; it was found with a separate search for `provider:model` literals, and only `inbrainfun/inbrain` uses it. Evaluation harnesses under `src/core/*-eval/` and `src/commands/eval-*.ts`, and recipe folders of sample code, are non-production.
+
 ## Labels
 
 The labels were made by the AI agent (Claude) running this lane, not by a human, following the guide above. They were committed before detection ran on any sampled repository.
