@@ -1,0 +1,1395 @@
+{
+  "formatVersion": 1,
+  "refitCommit": "d7026fee1cb825c13bd7636d0764a5538c3c1b16",
+  "pipelineDirty": false,
+  "now": "2026-10-22T00:00:00.000Z",
+  "score": {
+    "findings": 119,
+    "unlabelled": 18,
+    "attributed": {
+      "correct": 101,
+      "total": 101,
+      "accuracy": 1
+    },
+    "live": {
+      "product": 94,
+      "total": 99,
+      "precision": 0.9494949494949495
+    },
+    "productLive": 94
+  },
+  "results": [
+    {
+      "repository": "ndrishinski/popular-products",
+      "commit": "d10f32741cb04121505b8506237d9b621e438a2c",
+      "score": {
+        "findings": 1,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 1,
+          "total": 1,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 1,
+          "total": 1,
+          "precision": 1
+        },
+        "productLive": 1
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "ntwrk1/test-checkout-app",
+      "commit": "977a12fe902a49b42f091963551c68dabc02a676",
+      "score": {
+        "findings": 1,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 1,
+          "total": 1,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 1,
+          "total": 1,
+          "precision": 1
+        },
+        "productLive": 1
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "smwilk/cart-transform-update",
+      "commit": "ff330a9714414dd2875a566f377b4a686e382f38",
+      "score": {
+        "findings": 2,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 2,
+          "total": 2,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 2,
+          "total": 2,
+          "precision": 1
+        },
+        "productLive": 2
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "hasan-araav/shopify-order-sync",
+      "commit": "09006dd369772f5b7942bb2cd6351809faa66097",
+      "score": {
+        "findings": 1,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 1,
+          "total": 1,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 1,
+          "total": 1,
+          "precision": 1
+        },
+        "productLive": 1
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "linkcraftstudio/feedlog",
+      "commit": "33a081a8273125f7305c19330e44fe1cceadd114",
+      "score": {
+        "findings": 7,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 7,
+          "total": 7,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 7,
+          "total": 7,
+          "precision": 1
+        },
+        "productLive": 7
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "openai",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "openai",
+          "file": "scripts/backfill-search.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "openai",
+          "file": "server/api/admin/changelogs/ai/generate.post.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "openai",
+          "file": "server/lib/agent/agent.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "openai",
+          "file": "server/lib/agent/citation-evidence.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "openai",
+          "file": "server/lib/help-search/embedding.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "resend",
+          "file": "server/plugins/email.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "dalenguyen/shopify-remix-qr-app",
+      "commit": "4ead2fcf0c413f5939d25fdbe075af86f97d2c6a",
+      "score": {
+        "findings": 2,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 2,
+          "total": 2,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 2,
+          "total": 2,
+          "precision": 1
+        },
+        "productLive": 2
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "ColoradaGreis/alfajordemaicena",
+      "commit": "0eb5f48f245828648e9a868186b1c23704e77c64",
+      "score": {
+        "findings": 2,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 2,
+          "total": 2,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 2,
+          "total": 2,
+          "precision": 1
+        },
+        "productLive": 2
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "wevm/curl.md",
+      "commit": "72bab6a77fc0911caef36a86b52ca3d61b5580a8",
+      "score": {
+        "findings": 6,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 6,
+          "total": 6,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 1,
+          "total": 6,
+          "precision": 0.16666666666666666
+        },
+        "productLive": 1
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "stripe",
+          "file": "src/api.workers.test.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "stripe",
+          "file": "src/api.workers.test.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "stripe",
+          "file": "src/api.workers.test.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "stripe",
+          "file": "src/api.workers.test.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "stripe",
+          "file": "src/api.workers.test.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "Stephnn0/remix-youtube-tutorial",
+      "commit": "05e0423e28b7b48b561cd9a80554238092ae8504",
+      "score": {
+        "findings": 2,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 2,
+          "total": 2,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 2,
+          "total": 2,
+          "precision": 1
+        },
+        "productLive": 2
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "kaorii-ako/Shiori-v1",
+      "commit": "ccf7f3b7a1bfaec1c0102d24ac7174c762224283",
+      "score": {
+        "findings": 4,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 4,
+          "total": 4,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 4,
+          "total": 4,
+          "precision": 1
+        },
+        "productLive": 4
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "gemini",
+          "file": "server/package.json",
+          "live": true,
+          "workspace": "server",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "gemini",
+          "file": "client/src/utils/gemini.js",
+          "live": true,
+          "workspace": "client",
+          "excluded": null
+        },
+        {
+          "kind": "deadline",
+          "provider": "gemini",
+          "file": "server/package.json",
+          "live": true,
+          "workspace": "server",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "benlamiro/ShipGenAI",
+      "commit": "10037d3d3fcf47b5c637bc37ab9bb05872f6e6ab",
+      "score": {
+        "findings": 44,
+        "unlabelled": 3,
+        "attributed": {
+          "correct": 41,
+          "total": 41,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 39,
+          "total": 39,
+          "precision": 1
+        },
+        "productLive": 39
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "ai_agents/ai-knowledge-base/package.json",
+          "live": true,
+          "workspace": "ai_agents/ai-knowledge-base",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "ai_agents/ai-travel-studio/package.json",
+          "live": true,
+          "workspace": "ai_agents/ai-travel-studio",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "ai_agents/my-podcast/package.json",
+          "live": true,
+          "workspace": "ai_agents/my-podcast",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "beauty_fashion/ai-hair-style-simulator/package.json",
+          "live": true,
+          "workspace": "beauty_fashion/ai-hair-style-simulator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "beauty_fashion/ai-professional-makeup-generator/package.json",
+          "live": true,
+          "workspace": "beauty_fashion/ai-professional-makeup-generator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "beauty_fashion/ai-tattoo-try-on/package.json",
+          "live": true,
+          "workspace": "beauty_fashion/ai-tattoo-try-on",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "beauty_fashion/ai-tryon/package.json",
+          "live": true,
+          "workspace": "beauty_fashion/ai-tryon",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "ecommerce/amazon-product-studio/package.json",
+          "live": true,
+          "workspace": "ecommerce/amazon-product-studio",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "ecommerce/pet-product-studio/package.json",
+          "live": true,
+          "workspace": "ecommerce/pet-product-studio",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "ecommerce/resale-photo-enhancer/package.json",
+          "live": true,
+          "workspace": "ecommerce/resale-photo-enhancer",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "home_real_estate/ai-real-estate-stager/package.json",
+          "live": true,
+          "workspace": "home_real_estate/ai-real-estate-stager",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "home_real_estate/ai-room-declutter/package.json",
+          "live": true,
+          "workspace": "home_real_estate/ai-room-declutter",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "image_generation/ai-headshot-generator/package.json",
+          "live": true,
+          "workspace": "image_generation/ai-headshot-generator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "image_generation/ai-logo-studio/package.json",
+          "live": true,
+          "workspace": "image_generation/ai-logo-studio",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "image_generation/ai-meme-generator/package.json",
+          "live": true,
+          "workspace": "image_generation/ai-meme-generator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "image_generation/clearmark-ai/package.json",
+          "live": true,
+          "workspace": "image_generation/clearmark-ai",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "image_generation/nano-banana-generator/package.json",
+          "live": true,
+          "workspace": "image_generation/nano-banana-generator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "image_generation/old-photo-restore/package.json",
+          "live": true,
+          "workspace": "image_generation/old-photo-restore",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "platforms/Free-AI-Social-Media-Scheduler/package.json",
+          "live": true,
+          "workspace": "platforms/Free-AI-Social-Media-Scheduler",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/ai-business-card/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/ai-business-card",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/ai-character-studio/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/ai-character-studio",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/ai-fitness-body-simulator/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/ai-fitness-body-simulator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/ai-kid-to-adult-prediction/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/ai-kid-to-adult-prediction",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/ai-pet-portrait/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/ai-pet-portrait",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/ai-royal-portrait/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/ai-royal-portrait",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/ai-wedding-photo/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/ai-wedding-photo",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/magicself-ai/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/magicself-ai",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "portrait_avatar/open-character-ai/package.json",
+          "live": true,
+          "workspace": "portrait_avatar/open-character-ai",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "video_generation/ai-clipping-generator/package.json",
+          "live": true,
+          "workspace": "video_generation/ai-clipping-generator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "video_generation/ai-kissing-video-generator/package.json",
+          "live": true,
+          "workspace": "video_generation/ai-kissing-video-generator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "video_generation/Open-AI-UGC/package.json",
+          "live": true,
+          "workspace": "video_generation/Open-AI-UGC",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "video_generation/seedance-2-generator/package.json",
+          "live": true,
+          "workspace": "video_generation/seedance-2-generator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "video_generation/veo4-video-generator/package.json",
+          "live": true,
+          "workspace": "video_generation/veo4-video-generator",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "writing_content/ai-resume-builder/package.json",
+          "live": true,
+          "workspace": "writing_content/ai-resume-builder",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "writing_content/blogger-cms/package.json",
+          "live": true,
+          "workspace": "writing_content/blogger-cms",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "writing_content/geo-checker/package.json",
+          "live": true,
+          "workspace": "writing_content/geo-checker",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "writing_content/mail-wise/package.json",
+          "live": true,
+          "workspace": "writing_content/mail-wise",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "writing_content/prompt-architect/package.json",
+          "live": true,
+          "workspace": "writing_content/prompt-architect",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "writing_content/social-post/package.json",
+          "live": true,
+          "workspace": "writing_content/social-post",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "openai",
+          "file": "ai_agents/AI-Voice-Agent/requirements.txt",
+          "live": true,
+          "workspace": null,
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "openai",
+          "file": "video_generation/AI-Youtube-Shorts-Generator/requirements-local.txt",
+          "live": true,
+          "workspace": null,
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "gemini",
+          "file": "video_generation/AI-Youtube-Shorts-Generator/requirements-local.txt",
+          "live": true,
+          "workspace": null,
+          "excluded": null
+        },
+        {
+          "kind": "deadline",
+          "provider": "openai",
+          "file": "portrait_avatar/open-character-ai/src/app/[character_name]/[id]/page.js",
+          "live": false,
+          "workspace": "portrait_avatar/open-character-ai",
+          "excluded": null
+        },
+        {
+          "kind": "deadline",
+          "provider": "openai",
+          "file": "platforms/Open-Generative-AI/packages/studio/src/models.js",
+          "live": false,
+          "workspace": "platforms/Open-Generative-AI/packages/studio",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "bolg55/fastify_starter",
+      "commit": "f438f4ec376930bdbf9cab023e258a818c8cfce8",
+      "score": {
+        "findings": 1,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 1,
+          "total": 1,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 1,
+          "total": 1,
+          "precision": 1
+        },
+        "productLive": 1
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "fastify/package.json",
+          "live": true,
+          "workspace": "fastify",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "antho8101/RefSpring",
+      "commit": "8a214f0c453ffacda6e286b1bd5a902563e92e7c",
+      "score": {
+        "findings": 11,
+        "unlabelled": 1,
+        "attributed": {
+          "correct": 10,
+          "total": 10,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 10,
+          "total": 10,
+          "precision": 1
+        },
+        "productLive": 10
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "functions/package.json",
+          "live": true,
+          "workspace": "functions",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "stripe",
+          "file": "src/pages/CommissionInfoPage.tsx",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "stripe",
+          "file": "src/utils/enhancedCSP.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "stripe",
+          "file": "src/utils/securityHardening.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "shopify",
+          "file": "functions/src/shopifyOAuth.ts",
+          "live": true,
+          "workspace": "functions",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "shopify",
+          "file": "functions/src/shopifyOAuth.ts",
+          "live": true,
+          "workspace": "functions",
+          "excluded": null
+        },
+        {
+          "kind": "hostname",
+          "provider": "shopify",
+          "file": "functions/src/shopifySetup.ts",
+          "live": true,
+          "workspace": "functions",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "resend",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "edvedafi/cardlister",
+      "commit": "e29385997538aa17d1d89e916bdec9fed8e56139",
+      "score": {
+        "findings": 1,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 1,
+          "total": 1,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 1,
+          "total": 1,
+          "precision": 1
+        },
+        "productLive": 1
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "R44VC0RP/agenda.dev",
+      "commit": "17132506fc8905e85482d62f5674d0d796470bfc",
+      "score": {
+        "findings": 3,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 3,
+          "total": 3,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 3,
+          "total": 3,
+          "precision": 1
+        },
+        "productLive": 3
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "openai",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "resend",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "joschan21/contentport",
+      "commit": "3d86f3a13fac1eb8ddf88217b21c9bc0b1e74f44",
+      "score": {
+        "findings": 5,
+        "unlabelled": 1,
+        "attributed": {
+          "correct": 4,
+          "total": 4,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 4,
+          "total": 4,
+          "precision": 1
+        },
+        "productLive": 4
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "openai",
+          "file": "jobs/transcription/package.json",
+          "live": true,
+          "workspace": "jobs/transcription",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "openai",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "resend",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "deadline",
+          "provider": "openai",
+          "file": "jobs/transcription/index.ts",
+          "live": true,
+          "workspace": "jobs/transcription",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "stripe-samples/identity",
+      "commit": "ce7b9debea6ce9068b3c1f249579d7ec2b143600",
+      "score": {
+        "findings": 19,
+        "unlabelled": 13,
+        "attributed": {
+          "correct": 6,
+          "total": 6,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 6,
+          "total": 6,
+          "precision": 1
+        },
+        "productLive": 6
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/nextjs/package.json",
+          "live": true,
+          "workspace": "modal/server/nextjs",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/node/package.json",
+          "live": true,
+          "workspace": "modal/server/node",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/node-typescript/package.json",
+          "live": true,
+          "workspace": "modal/server/node-typescript",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/nextjs/package.json",
+          "live": true,
+          "workspace": "redirect/server/nextjs",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/node/package.json",
+          "live": true,
+          "workspace": "redirect/server/node",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/node-typescript/package.json",
+          "live": true,
+          "workspace": "redirect/server/node-typescript",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "Gemfile",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/dotnet/server.csproj",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/go/go.mod",
+          "live": true,
+          "workspace": "modal/server/go",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/java/pom.xml",
+          "live": true,
+          "workspace": "modal/server/java",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/php/composer.json",
+          "live": true,
+          "workspace": "modal/server/php",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/python/requirements.txt",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "modal/server/ruby/Gemfile",
+          "live": true,
+          "workspace": "modal/server/ruby",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/dotnet/server.csproj",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/go/go.mod",
+          "live": true,
+          "workspace": "redirect/server/go",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/java/pom.xml",
+          "live": true,
+          "workspace": "redirect/server/java",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/php/composer.json",
+          "live": true,
+          "workspace": "redirect/server/php",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/python/requirements.txt",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "redirect/server/ruby/Gemfile",
+          "live": true,
+          "workspace": "redirect/server/ruby",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "aman-gupta21/Hungry-Harvest",
+      "commit": "14a64839ea70d47f891511b3c7d31bdae88e5add",
+      "score": {
+        "findings": 2,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 2,
+          "total": 2,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 2,
+          "total": 2,
+          "precision": 1
+        },
+        "productLive": 2
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "backend/package.json",
+          "live": true,
+          "workspace": "backend",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "ersinkoc/CouponEngine",
+      "commit": "a2f4d5a0f1dbb7fad776d30e32eb4a44143cdb71",
+      "score": {
+        "findings": 1,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 1,
+          "total": 1,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 1,
+          "total": 1,
+          "precision": 1
+        },
+        "productLive": 1
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "shopify",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    },
+    {
+      "repository": "phukon/clack",
+      "commit": "8d507a3bb8551efab4f4d2e3259d76ff1a38e551",
+      "score": {
+        "findings": 4,
+        "unlabelled": 0,
+        "attributed": {
+          "correct": 4,
+          "total": 4,
+          "accuracy": 1
+        },
+        "live": {
+          "product": 4,
+          "total": 4,
+          "precision": 1
+        },
+        "productLive": 4
+      },
+      "findings": [
+        {
+          "kind": "package",
+          "provider": "stripe",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "openai",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "package",
+          "provider": "resend",
+          "file": "package.json",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        },
+        {
+          "kind": "deadline",
+          "provider": "openai",
+          "file": "src/app/api/generate/route.ts",
+          "live": true,
+          "workspace": ".",
+          "excluded": null
+        }
+      ]
+    }
+  ]
+}

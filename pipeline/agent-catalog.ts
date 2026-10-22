@@ -10,6 +10,12 @@ import {
 } from './package-manifests.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
 import { parseObject } from './specifications.ts';
+import {
+  nestedLock,
+  placeFinding,
+  readWorkspaceLayout,
+  type FindingPlace,
+} from './workspace-attribution.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 import { contractCommand } from './contract-commands.ts';
 
@@ -683,15 +689,17 @@ const MAX_HOSTNAME_EVIDENCE = 5;
 export interface AgentDetection {
   agent: ProviderAgent;
   // `ecosystem` is absent for npm packages, which keep their original shape.
-  packages: {
+  packages: ({
     file: string;
     name: string;
     version: string;
     locked: string | null;
     ecosystem?: Ecosystem;
     line?: number;
-  }[];
-  hostnames: { file: string; line: number; hostname: string }[];
+  } & Partial<FindingPlace>)[];
+  // `workspace` and `excluded` (pipeline/workspace-attribution.ts) say which package of a monorepo
+  // the evidence is in and whether its path is outside the product, such as an example.
+  hostnames: ({ file: string; line: number; hostname: string } & Partial<FindingPlace>)[];
   // API versions the code pins for providers that version their API by header, option or path.
   apiVersions?: ApiVersionPin[];
   // Requests the code sends to the provider's hosts through an HTTP client (fetch, axios, got, ky,
@@ -746,6 +754,7 @@ export function ecosystemPackages(
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
   const detections: AgentDetection[] = [];
   const inventory = await readPackageManifests(directory);
+  const layout = await readWorkspaceLayout(directory);
   // Source files are the same whichever package a read resolves, so one read serves every
   // hostname check, and a package is read again only when some manifest declares it.
   const repository: Repository = await readRepository(directory);
@@ -765,7 +774,8 @@ export async function detectProviders(directory: string): Promise<AgentDetection
           file: dependency.file,
           name,
           version: dependency.version,
-          locked: dependency.lock.version,
+          // A nested package's own lockfile when the root's does not cover it.
+          locked: (await nestedLock(repository.root, dependency, name)).version,
         });
     }
     packages.push(...ecosystemPackages(agent, inventory));
@@ -779,8 +789,8 @@ export async function detectProviders(directory: string): Promise<AgentDetection
     if (packages.length || hostnames.length || apiVersions.length || requests.length)
       detections.push({
         agent,
-        packages,
-        hostnames,
+        packages: packages.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
+        hostnames: hostnames.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
         requests,
         ...(apiVersions.length ? { apiVersions } : {}),
       });
