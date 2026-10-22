@@ -28,10 +28,10 @@ const fake = vi.hoisted(() => ({
 }));
 vi.mock('./hosted-store.ts', () => ({ openHostedStore: vi.fn(async () => fake.store) }));
 vi.mock('./inventory-store.ts', () => ({
-  openInventoryStore: vi.fn(async () => ({
-    claim: vi.fn(async () => null),
+  openInventoryStore: vi.fn(() => ({
     request: vi.fn(async () => 0),
     requestMissing: vi.fn(async () => 0),
+    claim: vi.fn(async () => null),
     read: vi.fn(async (repository?: string) => {
       fake.inventoryReads.push(repository);
       return [];
@@ -81,7 +81,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
       installations: [{ id: '456' }, { id: '900' }],
       targets: [
         { id: TARGET.id, installationId: '456', repository: TARGET.repository },
-        { id: 'target-b', installationId: '900' },
+        { id: 'target-b', installationId: '900', repository: 'example/other' },
       ],
       jobs: [{ targetId: TARGET.id }, { targetId: 'target-b' }],
     })),
@@ -91,9 +91,9 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     .mockResolvedValueOnce({
       installationId: 456,
       id: 789,
+      token: 'test-token',
       defaultBranch: 'main',
       size: 1,
-      token: 'test-token',
     });
   vi.mocked(worker.pollServiceTarget).mockImplementationOnce(async (options) => {
     options.onProgress?.(`Fetching with x-access-token:${TOKEN}@github.com`);

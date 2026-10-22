@@ -134,6 +134,38 @@ ALTER TABLE refit_approval_issues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refit_approval_commands ENABLE ROW LEVEL SECURITY;
 `;
 
+// One row per installed repository: its request state, and the last inventory with the revision
+// and registry it was taken at. Rows go with the installed repository (removal or uninstall).
+const INVENTORIES = `
+CREATE TABLE IF NOT EXISTS refit_inventories (
+  installation_id bigint NOT NULL,
+  repository text NOT NULL,
+  state text NOT NULL CHECK (state IN ('queued', 'running', 'idle')),
+  requeue boolean NOT NULL DEFAULT false,
+  requested_at timestamptz NOT NULL DEFAULT now(),
+  lease_owner text,
+  lease_expires_at timestamptz,
+  attempts integer NOT NULL DEFAULT 0,
+  checked_at timestamptz,
+  error text,
+  base text,
+  revision text,
+  registry text,
+  status text CHECK (status IN ('complete', 'stopped')),
+  stop text,
+  message text,
+  scanned_at timestamptz,
+  duration_ms integer,
+  -- The last complete inventory and its commit, kept when a later scan stops.
+  inventory jsonb,
+  inventory_revision text,
+  PRIMARY KEY (installation_id, repository),
+  FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
+);
+ALTER TABLE refit_inventories ENABLE ROW LEVEL SECURITY;
+`;
+
 export interface HostedMigration {
   version: number;
   name: string;
@@ -161,6 +193,11 @@ export const MIGRATIONS: HostedMigration[] = [
     version: 4,
     name: 'Approval issues and commands',
     up: (client) => client.query(APPROVALS),
+  },
+  {
+    version: 5,
+    name: 'Repository inventories',
+    up: (client) => client.query(INVENTORIES),
   },
 ];
 

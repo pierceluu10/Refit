@@ -227,7 +227,7 @@ it.skipIf(!DATABASE)(
     const dryRun = await refit(['hosted', 'migrate', '--dry-run'], url);
     console.log(dryRun);
     expect(dryRun).toBe(
-      'Applied: none\nPending: 1 Initial hosted tables\nPending: 2 Operator retry flag on jobs\nPending: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nPending: 4 Approval issues and commands\n',
+      'Applied: none\nPending: 1 Initial hosted tables\nPending: 2 Operator retry flag on jobs\nPending: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nPending: 4 Approval issues and commands\nPending: 5 Repository inventories\n',
     );
     const created = await pool.query(
       `SELECT count(*)::int AS count FROM pg_class
@@ -236,18 +236,18 @@ it.skipIf(!DATABASE)(
     expect(created.rows[0].count).toBe(0);
 
     expect(await refit(['hosted', 'migrate'], url)).toBe(
-      'Applied: 1 Initial hosted tables\nApplied: 2 Operator retry flag on jobs\nApplied: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nApplied: 4 Approval issues and commands\n',
+      'Applied: 1 Initial hosted tables\nApplied: 2 Operator retry flag on jobs\nApplied: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nApplied: 4 Approval issues and commands\nApplied: 5 Repository inventories\n',
     );
     expect(await refit(['hosted', 'migrate'], url)).toBe('No pending migrations.\n');
     await pool.query(
-      `INSERT INTO refit_schema_migrations (version, name) VALUES (5, 'From a newer worker')`,
+      `INSERT INTO refit_schema_migrations (version, name) VALUES (6, 'From a newer worker')`,
     );
     expect(await refit(['hosted', 'migrate', '--dry-run'], url)).toBe(
-      'Applied: 1, 2, 3, 4, 5\nApplied by a newer worker: 5 From a newer worker\nNo pending migrations.\n',
+      'Applied: 1, 2, 3, 4, 5, 6\nApplied by a newer worker: 6 From a newer worker\nNo pending migrations.\n',
     );
     const { unknown, pending } = await hostedSchemaStatus(pool);
     expect({ unknown: unknown.map((migration) => migration.version), pending }).toEqual({
-      unknown: [5],
+      unknown: [6],
       pending: [],
     });
   },

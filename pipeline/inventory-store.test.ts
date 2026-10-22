@@ -4,6 +4,7 @@ import { afterEach, expect, it } from 'vitest';
 import { openHostedStore } from './hosted-store.ts';
 import { DEFAULT_TENANCY_LIMITS, TENANCY_REFUSALS } from './hosted-tenancy.ts';
 import { openInventoryStore } from './inventory-store.ts';
+import type { Inventory } from './inventory.ts';
 
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const cleanups: (() => Promise<unknown>)[] = [];
@@ -50,7 +51,7 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const store = await openHostedStore(pool, tenancy(['example']));
-    const inventories = await openInventoryStore(pool, LIMITS);
+    const inventories = openInventoryStore(pool, LIMITS);
     await install(store, 1, 'example', ['example/one', 'example/two', 'example/three']);
     expect(await install(store, 2, 'customer', ['customer/app'])).toMatchObject({
       status: 'not-allowed',
@@ -103,3 +104,43 @@ it.skipIf(!DATABASE)(
     expect(await inventories.requestRepository('customer/app')).toBe(2);
   },
 );
+
+it.skipIf(!DATABASE)('keeps the last complete inventory when a later scan stops', async () => {
+  const pool = await database();
+  const store = await openHostedStore(pool, tenancy(['example']));
+  const inventories = openInventoryStore(pool, LIMITS);
+  await install(store, 1, 'example', ['example/one']);
+  await inventories.requestMissing();
+  const inventory = { formatVersion: 1, providers: [] } as unknown as Inventory;
+  const complete = await inventories.claim('worker-a', 60);
+  expect(
+    await inventories.finish(complete!, 'worker-a', {
+      result: { outcome: 'complete', base: 'main', revision: 'a'.repeat(40), inventory },
+      registry: 'registry',
+      durationMs: 1,
+    }),
+  ).toBe(true);
+
+  await inventories.request(1, ['example/one']);
+  const stopped = await inventories.claim('worker-a', 60);
+  await inventories.finish(stopped!, 'worker-a', {
+    result: {
+      outcome: 'stopped',
+      base: 'main',
+      revision: 'b'.repeat(40),
+      stop: 'checkout-too-large',
+      message: 'Checkout is over the inventory limit.',
+    },
+    registry: 'registry',
+    durationMs: 1,
+  });
+  const [row] = await inventories.read('example/one');
+  console.log(row);
+  expect(row).toMatchObject({
+    status: 'stopped',
+    stop: 'checkout-too-large',
+    revision: 'b'.repeat(40),
+    inventory,
+    inventoryRevision: 'a'.repeat(40),
+  });
+});

@@ -188,8 +188,8 @@ export async function runHostedService(options: {
   };
   const store = await openStore();
   outage = OUTAGE_RETRY_MS;
+  const inventories = openInventoryStore(options.database, options.tenancy.limits);
   const approvals = openApprovalStore(options.database);
-  const inventories = await openInventoryStore(options.database, options.tenancy.limits);
   const notifyFailures =
     options.notify && failedJobNotifier(options.database, options.notify, options.redact);
   await notifyFailures?.();
@@ -418,19 +418,18 @@ export async function runHostedService(options: {
         if (request.method === 'GET' && url.pathname === '/status') {
           if (!authorized(request, options.controlToken))
             throw new WebhookInputError(401, 'Service authorization is required.');
-          const registry = filterHostedStatus(await store.read(), url.searchParams);
+          const status = filterHostedStatus(await store.read(), url.searchParams);
+          // A target's view shows only its repository's inventory.
+          const repository = url.searchParams.has('target')
+            ? status.targets[0].repository
+            : undefined;
           respond(response, 200, {
-            ...registry,
-            // A target's view shows only its repository's inventory.
-            inventories: (
-              await inventories.read(
-                url.searchParams.has('target') ? registry.targets[0]?.repository : undefined,
-              )
-            ).map(({ inventory, ...row }) => ({
+            ...status,
+            ...(options.approvalIssues && { approvals: await approvals.read() }),
+            inventories: (await inventories.read(repository)).map(({ inventory, ...row }) => ({
               ...row,
               summary: inventory && inventorySummary(inventory),
             })),
-            ...(options.approvalIssues && { approvals: await approvals.read() }),
           });
           return;
         }
@@ -521,7 +520,6 @@ export async function runHostedService(options: {
             onProgress: options.onProgress,
           });
         await store.enqueueDue(interval);
-        await inventories.requestMissing();
         if (options.purgeUninstalled) {
           const purged = await purgeUninstalled(options.database, directory);
           if (purged.targets.length)
@@ -531,6 +529,7 @@ export async function runHostedService(options: {
           for (const { target, reason } of purged.kept)
             options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
         }
+        await inventories.requestMissing();
         // Inventories are short and read-only, so a queued one goes before the next validation job.
         while (!options.signal.aborted) {
           const inventory = await inventories.claim(

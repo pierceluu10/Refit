@@ -1,16 +1,18 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
 import { readRepository } from './repository.ts';
 import { slackMethodUses } from './slack-calls.ts';
 import { isObject, parseObject } from './specifications.ts';
+import { PipelineInputError } from './types.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
 export const META_SDK = 'facebook-nodejs-business-sdk';
 const MAX_EVIDENCE = 20;
+const MAX_CONFIGURATION_BYTES = 128 * 1024;
 const MAX_EVIDENCE_TEXT = 160;
 const QUARTER_MONTHS: Record<string, string> = {
   January: '01',
@@ -621,13 +623,31 @@ interface ConfiguredIntegration {
   apiVersion: string | null;
 }
 
+// Reads a regular file of the repository, refusing a link anywhere on its path, a path outside the
+// repository and a file over the size cap, so a checkout cannot make Refit read the worker's files.
+async function readRepositoryFile(directory: string, name: string) {
+  const root = await realpath(directory);
+  const path = resolve(root, name);
+  const inside = relative(root, path);
+  if (!inside || inside.startsWith('..') || isAbsolute(inside) || (await realpath(path)) !== path)
+    throw new PipelineInputError(`${name} must be a file inside the repository, not a link.`);
+  const stats = await stat(path);
+  if (!stats.isFile() || stats.size > MAX_CONFIGURATION_BYTES)
+    throw new PipelineInputError(
+      `${name} must be a regular file of at most ${MAX_CONFIGURATION_BYTES / 1024} KiB.`,
+    );
+  return readFile(path, 'utf8');
+}
+
 // Integrations in a committed .refit.json and the catalog agent each adapter covers. A v1 file
 // without providerConfig uses the built-in Stripe adapter. Unreadable adapters are skipped rather
 // than failing the deadline check.
 export async function configuredIntegrations(directory: string): Promise<ConfiguredIntegration[]> {
-  const path = join(directory, REPOSITORY_CONFIGURATION);
-  if (!existsSync(path)) return [];
-  const configuration = parseObject(await readFile(path, 'utf8'), REPOSITORY_CONFIGURATION);
+  if (!existsSync(join(directory, REPOSITORY_CONFIGURATION))) return [];
+  const configuration = parseObject(
+    await readRepositoryFile(directory, REPOSITORY_CONFIGURATION),
+    REPOSITORY_CONFIGURATION,
+  );
   const integrations = (
     configuration.formatVersion === 2 && Array.isArray(configuration.integrations)
       ? configuration.integrations
@@ -639,7 +659,7 @@ export async function configuredIntegrations(directory: string): Promise<Configu
     if (typeof integration.providerConfig === 'string')
       try {
         const adapter = parseObject(
-          await readFile(resolve(directory, integration.providerConfig), 'utf8'),
+          await readRepositoryFile(directory, integration.providerConfig),
           'Provider adapter',
         );
         if (typeof adapter.packageName !== 'string') continue;

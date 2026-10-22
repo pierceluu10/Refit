@@ -11,37 +11,6 @@ import { PipelineInputError } from './types.ts';
 
 // A crashed worker's inventory lease is reclaimed this many times before the request is dropped.
 const MAX_INVENTORY_ATTEMPTS = 3;
-const SCHEMA_LOCK = 4_206_100_003;
-
-// One row per installed repository: its request state, and the last inventory with the revision
-// and registry it was taken at. Rows go with the installed repository (removal or uninstall).
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS refit_inventories (
-  installation_id bigint NOT NULL,
-  repository text NOT NULL,
-  state text NOT NULL CHECK (state IN ('queued', 'running', 'idle')),
-  requeue boolean NOT NULL DEFAULT false,
-  requested_at timestamptz NOT NULL DEFAULT now(),
-  lease_owner text,
-  lease_expires_at timestamptz,
-  attempts integer NOT NULL DEFAULT 0,
-  checked_at timestamptz,
-  error text,
-  base text,
-  revision text,
-  registry text,
-  status text CHECK (status IN ('complete', 'stopped')),
-  stop text,
-  message text,
-  scanned_at timestamptz,
-  duration_ms integer,
-  inventory jsonb,
-  PRIMARY KEY (installation_id, repository),
-  FOREIGN KEY (installation_id, repository)
-    REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
-);
-ALTER TABLE refit_inventories ENABLE ROW LEVEL SECURITY;
-`;
 
 export interface InventoryClaim {
   installationId: number;
@@ -49,18 +18,10 @@ export interface InventoryClaim {
   previous: { revision: string | null; registry: string | null };
 }
 
-// Opens the inventory tables. The hosted store must be opened first: inventories reference its
-// installed repositories. Only allowed, active installations are inventoried, each at most
+// Reads and writes the inventory table, which hosted migration 5 creates when the hosted store
+// opens. Only allowed, active installations are inventoried, each at most
 // `limits.dailyInventories` times per UTC day.
-export async function openInventoryStore(
-  pool: Pool,
-  limits: TenancyLimits = DEFAULT_TENANCY_LIMITS,
-) {
-  await transaction(pool, async (client) => {
-    await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEMA_LOCK]);
-    await client.query(SCHEMA);
-  });
-
+export function openInventoryStore(pool: Pool, limits: TenancyLimits = DEFAULT_TENANCY_LIMITS) {
   // Queues an inventory for repositories installed by an allowed, active installation. A running
   // one is queued again when it ends, so a push during a scan is not lost.
   const request = async (installationId: number, repositories: string[]) =>
@@ -159,8 +120,9 @@ export async function openInventoryStore(
       };
     });
 
-  // Records a refresh. An unchanged revision only updates when it was checked. Returns false when
-  // the lease was lost or the repository was removed meanwhile, so the result is dropped.
+  // Records a refresh. An unchanged revision only updates when it was checked, and a stop keeps the
+  // last complete inventory. Returns false when the lease was lost or the repository was removed
+  // meanwhile, so the result is dropped.
   const finish = async (
     claimed: InventoryClaim,
     worker: string,
@@ -190,7 +152,9 @@ export async function openInventoryStore(
       (
         await pool.query(
           `UPDATE refit_inventories SET ${release}, error = NULL, base = $4, revision = $5,
-             registry = $6, status = $7, stop = $8, message = $9, inventory = $10,
+             registry = $6, status = $7, stop = $8, message = $9,
+             inventory = CASE WHEN $7 = 'complete' THEN $10 ELSE inventory END,
+             inventory_revision = CASE WHEN $7 = 'complete' THEN $5 ELSE inventory_revision END,
              scanned_at = now(), duration_ms = $11
            ${where}`,
           [
@@ -214,7 +178,8 @@ export async function openInventoryStore(
       await pool.query(
         `SELECT installation_id::text AS "installationId", repository, state, base, revision,
            status, stop, message, error, requested_at AS "requestedAt", checked_at AS "checkedAt",
-           scanned_at AS "scannedAt", duration_ms AS "durationMs", inventory
+           scanned_at AS "scannedAt", duration_ms AS "durationMs", inventory,
+           inventory_revision AS "inventoryRevision"
          FROM refit_inventories WHERE $1::text IS NULL OR repository = $1
          ORDER BY installation_id, repository`,
         [repository?.toLowerCase() ?? null],

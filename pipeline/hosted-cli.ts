@@ -32,9 +32,9 @@ const JOB_ID = /^[1-9]\d{0,15}$/;
 const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--job-machines] [--purge-uninstalled]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
+       refit hosted inventory --repository <owner/name>
        refit hosted migrate [--dry-run]
        refit hosted accounts
-       refit hosted inventory --repository <owner/name>
        refit hosted job
        refit hosted jobs [--target <id>] [--status ${JOB_STATUSES.join('|')}] [--since <iso>]
        refit hosted receipt <job>
@@ -206,6 +206,21 @@ try {
     } finally {
       await pool.end();
     }
+  } else if (command === 'inventory') {
+    const repository = values.repository;
+    if (!repository) throw new PipelineInputError(USAGE);
+    if (!REPOSITORY.test(repository))
+      throw new PipelineInputError('--repository requires owner/name.');
+    const pool = database();
+    try {
+      await openHostedStore(pool);
+      const inventories = openInventoryStore(pool);
+      const installation = await inventories.requestRepository(repository);
+      console.error(`Queued an inventory of ${repository} (installation ${installation}).`);
+      console.log(JSON.stringify((await inventories.read(repository))[0], null, 2));
+    } finally {
+      await pool.end();
+    }
   } else if (command === 'job') {
     const url = process.env.REFIT_JOB_URL;
     const job = process.env.REFIT_JOB_ID;
@@ -254,21 +269,6 @@ try {
         for (const migration of applied)
           console.log(`Applied: ${migration.version} ${migration.name}`);
       }
-    } finally {
-      await pool.end();
-    }
-  } else if (command === 'inventory') {
-    const repository = values.repository;
-    if (!repository) throw new PipelineInputError(USAGE);
-    if (!REPOSITORY.test(repository))
-      throw new PipelineInputError('--repository requires owner/name.');
-    const pool = database();
-    try {
-      await openHostedStore(pool);
-      const inventories = await openInventoryStore(pool);
-      const installation = await inventories.requestRepository(repository);
-      console.error(`Queued an inventory of ${repository} (installation ${installation}).`);
-      console.log(JSON.stringify((await inventories.read(repository))[0], null, 2));
     } finally {
       await pool.end();
     }

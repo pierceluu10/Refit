@@ -1,10 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Read-only inventory sample",
-  "description": "`node scripts/inventory-sample.mjs`: a read-only inventory of the first repositories of frozen lists, each at its recorded commit. The committed file adds `description`, `refitCommit` and `command`.",
+  "title": "Repository inventory sample results",
+  "description": "Written by scripts/inventory-sample.mjs: the read-only inventory summary (pipeline/inventory.ts inventorySummary) of each repository of the sampled frozen lists, with its checkout size and scan time. Summaries hold identifiers and counts only, never source lines.",
   "type": "object",
   "required": ["takenAt", "limits", "results"],
-  "additionalProperties": false,
   "properties": {
     "description": {
       "type": "string"
@@ -19,14 +18,13 @@
       "$ref": "common.schema.json#/$defs/time"
     },
     "limits": {
-      "$ref": "common.schema.json#/$defs/counts"
+      "type": "object"
     },
     "results": {
       "type": "array",
       "items": {
         "type": "object",
         "required": ["list", "repo", "commit", "status"],
-        "additionalProperties": false,
         "properties": {
           "list": {
             "type": "string"
@@ -41,97 +39,22 @@
             "$ref": "common.schema.json#/$defs/count"
           },
           "checkout": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "type": "object",
-                "required": ["files", "bytes"],
-                "properties": {
-                  "files": {
-                    "$ref": "common.schema.json#/$defs/count"
-                  },
-                  "bytes": {
-                    "$ref": "common.schema.json#/$defs/count"
-                  }
-                }
-              }
-            ]
+            "type": "object"
           },
           "scanMs": {
             "$ref": "common.schema.json#/$defs/count"
           },
           "status": {
-            "enum": ["complete", "stopped", "error"]
-          },
-          "stop": {
-            "type": "string"
-          },
-          "message": {
             "type": "string"
           },
           "summary": {
-            "description": "`inventorySummary` in pipeline/inventory.ts.",
-            "type": "object",
-            "required": [
-              "providers",
-              "deadlines",
-              "mentions",
-              "apiVersions",
-              "models",
-              "modelCalls"
-            ],
-            "properties": {
-              "providers": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "deadlines": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "required": ["id", "date", "live"],
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "date": {
-                      "$ref": "common.schema.json#/$defs/date"
-                    },
-                    "live": {
-                      "$ref": "common.schema.json#/$defs/count"
-                    }
-                  }
-                }
-              },
-              "mentions": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "apiVersions": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "models": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "modelCalls": {
-                "$ref": "common.schema.json#/$defs/count"
-              }
-            }
+            "type": "object"
           },
           "nonLiveModels": {
             "$ref": "common.schema.json#/$defs/count"
+          },
+          "error": {
+            "type": "string"
           }
         }
       }
