@@ -97,16 +97,16 @@ What isolation does not cover: a compromised job machine can still write a wrong
 
 ## Added latency per job
 
-Measured in the simulated flow on an Apple M5 laptop shared with other benchmark sessions, 20 runs per row, commit `c677bcc` plus the measurement script, with `npx tsx pipeline/hosted-runner-latency.ts --runs 20`. The simulated machine reports at once, so the time is all overhead: reading carried state, the create and destroy calls to a local Machines API, the input download, the evidence upload and storing it.
+Measured in the simulated flow on an Apple M5 laptop shared with other benchmark sessions, 20 runs per row, from a clean checkout of commit `15784e6`, with `npx tsx pipeline/hosted-runner-latency.ts --runs 20`. The simulated machine reports at once, so the time is all overhead: reading carried state, the create and destroy calls to a local Machines API, the input download, the evidence upload and storing it.
 
 | Scenario | Carried state | Evidence returned | Median | p95 |
 |---|---|---|---|---|
-| first job, nothing carried | 0 KiB | 256 KiB | 9 ms | 51 ms |
-| cached poll | 64 KiB | 16 KiB | 7 ms | 209 ms |
-| Stripe-sized snapshot carried | 8 MiB | 1 MiB | 56 ms | 91 ms |
-| new Stripe snapshot returned | 16 MiB | 16 MiB | 230 ms | 490 ms |
+| first job, nothing carried | 0 KiB | 256 KiB | 7 ms | 36 ms |
+| cached poll | 64 KiB | 16 KiB | 4 ms | 7 ms |
+| Stripe-sized snapshot carried | 8 MiB | 1 MiB | 58 ms | 69 ms |
+| new Stripe snapshot returned | 16 MiB | 16 MiB | 246 ms | 348 ms |
 
-The p95 column is noisy because other sessions shared the laptop.
+An earlier run of the then-uncommitted script gave medians of 9, 7, 56 and 230 ms and p95 values up to 490 ms; the laptop was shared, so treat the p95 column as noisy.
 
 Not measured, and larger: creating a Fly Machine fetches the image and builds its root filesystem, which Fly describes as "maybe low double digit seconds", while booting an assembled machine usually takes well under a second ([Machines overview](https://docs.fly.io/machines/overview)). Each new machine then starts `dockerd` and pulls the validation images, which the control VM has cached today. Expect each job to add tens of seconds, mostly before the job starts. Today every scheduled poll (every 300 seconds by default) is a job, so every poll would pay it, including polls that reuse a saved result. Fly documents that starting a stopped machine is faster than creating one and that starting clears filesystem changes, so a pool of stopped job machines is the likely next step if this cost matters.
 
