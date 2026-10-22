@@ -1,5 +1,12 @@
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { declaredPackageNames, readRepository } from './repository.ts';
+import { parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+
+const PLACEHOLDER_TEST = /no test specified/;
+const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
 
 // A provider agent is a reviewed adapter for one API provider. `adapter` is the built-in adapter
 // ID or a shipped adapter file; null means Refit can detect the provider but has no agent yet.
@@ -72,6 +79,25 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // The Octokit packages and @actions/github, each checked on npm on 2026-10-22, and the REST and
+  // GraphQL host. Review-only detection lives in `refit github-api`.
+  {
+    id: 'github',
+    name: 'GitHub API',
+    packages: [
+      'octokit',
+      '@octokit/rest',
+      '@octokit/core',
+      '@octokit/request',
+      '@octokit/graphql',
+      '@octokit/app',
+      '@octokit/action',
+      '@actions/github',
+    ],
+    hostnames: ['api.github.com'],
+    adapter: null,
+    guide: 'docs/GITHUB-API-DETECTION.md',
+  },
   {
     id: 'twilio',
     name: 'Twilio',
@@ -103,6 +129,34 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     hostnames: ['api-m.paypal.com', 'api-m.sandbox.paypal.com'],
     adapter: null,
     guide: null,
+  },
+  // npm packages checked on the registry on 2026-10-22 (@slack/client is deprecated there in favour
+  // of the other four). Hosts from @slack/web-api's default `slackApiUrl` and @slack/webhook's
+  // incoming-webhook URLs. `refit slack` lists the methods called (docs/SLACK-DETECTION.md).
+  {
+    id: 'slack',
+    name: 'Slack',
+    packages: [
+      '@slack/web-api',
+      '@slack/bolt',
+      '@slack/rtm-api',
+      '@slack/webhook',
+      '@slack/client',
+    ],
+    hostnames: ['slack.com/api', 'hooks.slack.com/services'],
+    adapter: null,
+    guide: 'docs/SLACK-DETECTION.md',
+  },
+  // The `cloudflare` npm package (checked on the registry on 2026-10-22) and the server of
+  // Cloudflare's published OpenAPI document. `refit cloudflare` lists the endpoints called
+  // (docs/CLOUDFLARE.md).
+  {
+    id: 'cloudflare',
+    name: 'Cloudflare',
+    packages: ['cloudflare'],
+    hostnames: ['api.cloudflare.com'],
+    adapter: null,
+    guide: 'docs/CLOUDFLARE.md',
   },
   // Auth and backend SDKs (docs/AUTH-BACKEND-SDKS.md). Every package was read on the npm registry
   // on 2026-10-22, with its repository in the provider's GitHub organization. The hostnames come
@@ -259,6 +313,19 @@ export async function detectProviders(directory: string): Promise<AgentDetection
     if (packages.length || hostnames.length) detections.push({ agent, packages, hostnames });
   }
   return detections;
+}
+
+// Chooses a scaffold's check: npm test when package.json has a real test script, and dependency
+// preparation when a lockfile is committed.
+export async function scaffoldChecks(root: string) {
+  const manifest = existsSync(join(root, 'package.json'))
+    ? parseObject(await readFile(join(root, 'package.json'), 'utf8'), 'package.json')
+    : {};
+  const scripts = (manifest.scripts ?? {}) as Record<string, unknown>;
+  return {
+    testScript: typeof scripts.test === 'string' && !PLACEHOLDER_TEST.test(scripts.test),
+    lockfile: LOCKFILES.some((name) => existsSync(join(root, name))),
+  };
 }
 
 export interface AgentScaffold {
