@@ -4,18 +4,22 @@ import { assessmentConfiguration } from './assessment.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { runHostedService } from './hosted-service.ts';
 import { openHostedStore } from './hosted-store.ts';
+import { openInventoryStore } from './inventory-store.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const GITHUB_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
+       refit hosted inventory --repository <owner/name>
 Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_OWNER, the only GitHub account whose installations enroll until jobs run in per-job microVMs. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation under REFIT_AI_BUDGET_DIRECTORY.
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
-retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.`;
+retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
+inventory queues a read-only inventory of an installed repository, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.`;
 
 function database() {
   const connectionString = process.env.REFIT_DATABASE_URL;
@@ -37,6 +41,7 @@ try {
       approval: { type: 'string' },
       'approved-by': { type: 'string' },
       target: { type: 'string' },
+      repository: { type: 'string' },
       help: { type: 'boolean' },
     },
   });
@@ -69,6 +74,21 @@ try {
     try {
       const job = await (await openHostedStore(pool)).retry(values.target);
       console.log(`Queued retry job ${job} for ${values.target}.`);
+    } finally {
+      await pool.end();
+    }
+  } else if (command === 'inventory') {
+    const repository = values.repository;
+    if (!repository) throw new PipelineInputError(USAGE);
+    if (!REPOSITORY.test(repository))
+      throw new PipelineInputError('--repository requires owner/name.');
+    const pool = database();
+    try {
+      await openHostedStore(pool);
+      const inventories = await openInventoryStore(pool);
+      const installation = await inventories.requestRepository(repository);
+      console.error(`Queued an inventory of ${repository} (installation ${installation}).`);
+      console.log(JSON.stringify((await inventories.read(repository))[0], null, 2));
     } finally {
       await pool.end();
     }

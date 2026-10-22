@@ -216,6 +216,12 @@ export async function openHostedStore(pool: Pool) {
           [change.installationId, removed],
         );
       if (status !== 'active') {
+        // An uninstalled App keeps no repositories, so nothing derived from them (inventories) stays.
+        if (status === 'deleted')
+          await client.query(
+            'DELETE FROM refit_installation_repositories WHERE installation_id = $1',
+            [change.installationId],
+          );
         const cancelled = await cancel(
           client,
           'installation_id = $1',
