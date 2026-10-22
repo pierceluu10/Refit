@@ -18,6 +18,9 @@ const { values } = parseArgs({
     'sample-only': { type: 'boolean' },
     // At most this many candidate lines per repository, drawn with the same seed.
     lines: { type: 'string', default: '12' },
+    // Repositories per host, and labels already made whose repositories are left out (held out).
+    'per-host': { type: 'string' },
+    exclude: { type: 'string' },
   },
 });
 const PER_HOST = { bedrock: 7, 'azure-openai': 7, openrouter: 6 };
@@ -49,9 +52,15 @@ async function sources(root, directory = root, found = []) {
 }
 
 const frozen = JSON.parse(await readFile(values.list, 'utf8'));
+const excluded = new Set(
+  values.exclude
+    ? JSON.parse(await readFile(values.exclude, 'utf8')).repositories.map((item) => item.repository)
+    : [],
+);
 const next = random(Number(values.seed));
-for (const [host, count] of Object.entries(PER_HOST)) {
-  const pool = frozen.repos.filter((item) => item.host === host);
+for (const [host, perHost] of Object.entries(PER_HOST)) {
+  const count = values['per-host'] ? Number(values['per-host']) : perHost;
+  const pool = frozen.repos.filter((item) => item.host === host && !excluded.has(item.repo));
   for (let index = pool.length - 1; index > 0; index -= 1) {
     const swap = Math.floor(next() * (index + 1));
     [pool[index], pool[swap]] = [pool[swap], pool[index]];
