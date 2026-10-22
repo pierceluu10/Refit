@@ -1,5 +1,5 @@
 # Single-tenant hosted worker. Secrets (never in this file): GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
-# REFIT_WEBHOOK_SECRET, REFIT_SERVICE_TOKEN, REFIT_DATABASE_URL (Supabase, sslmode=require),
+# REFIT_WEBHOOK_SECRET, REFIT_SERVICE_TOKEN, REFIT_DATABASE_URL (Supabase, uselibpqcompat=true&sslmode=require),
 # REFIT_HOSTED_OWNER, OPENAI_API_KEY and OPENAI_MODEL.
 app = "refit-hosted"
 primary_region = "iad"
