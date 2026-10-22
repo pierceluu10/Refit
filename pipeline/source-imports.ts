@@ -166,17 +166,34 @@ export function createSourceImportResolver(
   }
   return {
     resolve: resolveImport,
+    // TypeScript tries each `paths` target and the `baseUrl` lookup, then falls back to
+    // node_modules. So a bare name is the installed package when none of those can be a source
+    // module: every target is inside the scanned repository, not excluded, and matches no file.
+    // A catch-all such as `"*": ["*"]` then still resolves `@anthropic-ai/sdk` to the package.
     external: (name: string, file: string) => {
       const options = configuration.options.get(file);
-      if (options === null || matchingPath(name, options?.paths)) return false;
+      if (options === null) return false;
       if (rootedAsset(name)) return true;
-      if (!options?.baseUrl) return true;
-      const target = resolve(options.baseUrl, name);
-      return inside(target) && !excluded(target) && sourceMatches(target, sources).length === 0;
+      const match = matchingPath(name, options?.paths);
+      const base = options?.baseUrl ?? options?.pathsBasePath;
+      if (match && !base) return false;
+      const targets = match
+        ? match.targets.map((target) =>
+            resolve(String(base), match.captured ? target.replace('*', match.captured) : target),
+          )
+        : [];
+      if (options?.baseUrl) targets.push(resolve(options.baseUrl, name));
+      return targets.every(
+        (target) =>
+          inside(target) && !excluded(target) && sourceMatches(target, sources).length === 0,
+      );
     },
     get unverified() {
       return unsafe;
     },
+    // Whether this file's own tsconfig or jsconfig could not be read, so a bare import such as
+    // the SDK package may be an alias to something else.
+    unverifiedFile: (file: string) => configuration.options.get(file) === null,
     get warnings() {
       return [...warnings];
     },

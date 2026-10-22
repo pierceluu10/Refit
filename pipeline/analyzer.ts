@@ -231,6 +231,10 @@ export function analyzeRepository(
   requestPropertyRenames: RequestPropertyRename[] = [],
   propertyMoves: PropertyMove[] = [],
   requestParameterRemovals: RequestParameterRemoval[] = [],
+  // For review-only callers: also trace the SDK package where the importing file's tsconfig or
+  // jsconfig is unverified, so a caller can report those calls for review instead of missing
+  // them. Analyses that can lead to edits keep the default, which treats them as unknown imports.
+  options: { traceUnverifiedPackageImports?: boolean } = {},
 ) {
   const { sources, resolution, program, checker } = analysisProgram(repository);
   const findings: Finding[] = [];
@@ -314,7 +318,19 @@ export function analyzeRepository(
     const found = symbol(node);
     if (found) set.add(found);
   };
-  const sdk = sdkConstructors({ nodes, checker, provider, symbol, external: resolution.external });
+  const sdk = sdkConstructors({
+    nodes,
+    checker,
+    provider,
+    symbol,
+    external: (name, file) =>
+      resolution.external(name, file) ||
+      Boolean(
+        options.traceUnverifiedPackageImports &&
+        name === provider.packageName &&
+        resolution.unverifiedFile(file),
+      ),
+  });
   let classBindings: ReturnType<typeof classClients> | undefined;
   let factoryBindings: ReturnType<typeof factoryClients> | undefined;
   const clientBinding = (node: ts.Expression) =>
