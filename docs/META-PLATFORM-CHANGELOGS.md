@@ -28,20 +28,20 @@ The web fetch tool fails as well (`getaddrinfo ENOTFOUND developers.facebook.com
 
 ## Which stopped requests resolve, and which still stop
 
-**Deadline benchmark.** The rule was rerun on its 33 Meta repositories with target v25.0 at this branch, with `node scripts/meta-platform-benchmark.mjs --root <clones> --list docs/benchmarks/2026-10-16-deadline-repos.json`. The numbers match `main` and the committed run ([META-GRAPH.md](META-GRAPH.md#measured-on-the-deadline-benchmark)): 35 pins move, 120 stop, and 26 of the stopped pins (12 repositories) carry the WhatsApp and Messenger reason.
+**Deadline benchmark.** The rule was rerun on its 33 Meta repositories with target v25.0 at this branch, with `node scripts/meta-platform-benchmark.mjs --root <clones> --list docs/benchmarks/2026-10-16-deadline-repos.json`. It reported 35 pins moving, 120 stopping, and 26 of the stopped pins (12 repositories) carrying the WhatsApp and Messenger reason. **These numbers and the reason table below are not backed by a committed results file or a pinned commit**; the committed run in [META-GRAPH.md](META-GRAPH.md#measured-on-the-deadline-benchmark) reports 35 moved, 113 stopped and 7 unpinned.
 
 **Previously stopped requests that now resolve: none,** because no changelog was read.
 
 **Would reading the changelogs help today? Not for this set.** Every one of the 26 pins also stops for a reason the WhatsApp and Messenger changelogs could not remove:
 
-| Other reason on a WhatsApp or Messenger pin | Pins |
-| --- | ---: |
-| v20.0 `edge-changed` `messages` ("The Booking button is no longer supported in Messenger API calls") | 19 |
-| v24.0 `parameter-changed` `type` on `/search` (detailed targeting) | 14 |
-| A request with an unknown part (fields, metrics, parameters) | 5 |
-| Only tests and examples use the version | 5 |
-| Ads insights metrics, ad creative and other field changes from v19.0 to v25.0 | 2 each |
-| v17.0 ThreatExchange `/malware_analyses` endpoint removed | 1 |
+| Other reason on a WhatsApp or Messenger pin                                                          |   Pins |
+| ---------------------------------------------------------------------------------------------------- | -----: |
+| v20.0 `edge-changed` `messages` ("The Booking button is no longer supported in Messenger API calls") |     19 |
+| v24.0 `parameter-changed` `type` on `/search` (detailed targeting)                                   |     14 |
+| A request with an unknown part (fields, metrics, parameters)                                         |      5 |
+| Only tests and examples use the version                                                              |      5 |
+| Ads insights metrics, ad creative and other field changes from v19.0 to v25.0                        | 2 each |
+| v17.0 ThreatExchange `/malware_analyses` endpoint removed                                            |      1 |
 
 Both of the first two reasons over-stop WhatsApp requests:
 
@@ -68,16 +68,18 @@ Two runs of the selector picked the same 20, apart from one renamed duplicate no
 - Each label is a request to graph.facebook.com that belongs to the WhatsApp Business Platform or the Messenger Platform, with the line its HTTP or helper call starts on and, where the URL is written on another line, that line too.
 - Media downloads from returned URLs, generic Graph calls (`/me`, Page reads, OAuth, `debug_token`, app subscriptions, resumable uploads, catalogs) and graph.instagram.com are left out.
 
-**Run.** `node scripts/meta-platform-benchmark.mjs --root <clones>` on clean commit `e42be8b` wrote `docs/benchmarks/2026-10-22-meta-platform-results.json`. `CopilotKit/CopilotKit` (4 labels) exceeds Refit's scan limits and is counted as a failed scan, leaving 111 labelled requests in 9 repositories.
+**Run.** `node scripts/meta-platform-benchmark.mjs --root <clones>` on clean commit `e42be8b` wrote `docs/benchmarks/2026-10-22-meta-platform-results.json`. `CopilotKit/CopilotKit` (4 labels) exceeds Refit's scan limits and is counted as a failed scan. Its 4 labels stay in the denominator as requests not found, so the table counts all 115. The committed results file's `score` excludes them (111).
 
-| Measure | Result |
-| --- | ---: |
-| Requests the scan reports (found) | 27 / 111 (24%) |
-| Found requests that stop | 26 / 27 |
-| Requests the WhatsApp and Messenger guard names | 5 / 111 |
-| Guard precision (guarded live requests that are labelled) | 5 / 5 (100%) |
-| Labelled requests inside a proposed move | **0** |
-| Moves proposed in all 20 repositories | **0** |
+| Measure                                                              |         Result |
+| -------------------------------------------------------------------- | -------------: |
+| Requests the scan reports (found)                                    | 27 / 115 (23%) |
+| Found requests that stop                                             |        26 / 27 |
+| Requests the WhatsApp and Messenger guard names                      |        5 / 115 |
+| Guard precision (guarded live requests that are labelled), in sample |   5 / 5 (100%) |
+| Labelled requests inside a proposed move                             |          **0** |
+| Moves proposed in all 20 repositories                                |          **0** |
+
+The guard edges were chosen from these same 10 labelled repositories (e42be8b after d051e55), so the guard precision is in-sample. The scan's own request precision is not measured.
 
 **What this shows.**
 

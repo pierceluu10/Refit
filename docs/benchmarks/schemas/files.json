@@ -137,6 +137,10 @@
       "format": "inventory-sample-results",
       "predates": []
     },
+    "2026-10-22-meta-platform-results.json": {
+      "format": "meta-platform-results",
+      "predates": []
+    },
     "2026-10-22-openai-app-results.json": {
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
