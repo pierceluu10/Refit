@@ -177,7 +177,7 @@ describe('clients reached across files', () => {
   it('follows exported aliases, client functions and inherited client methods', async () => {
     const { calls } = await scan({
       'src/client.ts': `import Cloudflare from 'cloudflare';
-export type { Cloudflare } from 'cloudflare';
+export type { Cloudflare };
 export type CloudflareApiClient = Cloudflare;
 export const createClient = (apiToken: string): CloudflareApiClient => new Cloudflare({ apiToken });
 export class Manager {
@@ -258,7 +258,8 @@ export async function run(zone, account, path) {
     url: \`https://api.cloudflare.com/client/v4/zones/\${zoneId}/dns_records/import\`,
   };
   await this.helpers.httpRequestWithAuthentication.call(this, 'cloudflareApi', options);
-  const list = new URL(\`https://api.cloudflare.com/client/v4/accounts/\${accountId}/r2/buckets\`);
+  const buckets = \`https://api.cloudflare.com/client/v4/accounts/\${accountId}/r2/buckets\`;
+  const list = new URL(\`\${buckets}\`);
   await fetch(list);
   await request({ method, url: \`https://api.cloudflare.com/client/v4\${endpoint}\` });
 }
@@ -274,9 +275,9 @@ export async function run(zone, account, path) {
         '/zones/{zoneId}/dns_records/import',
         [],
       ],
-      [8, 'fetch', 'GET', '/accounts/{accountId}/r2/buckets', []],
+      [9, 'fetch', 'GET', '/accounts/{accountId}/r2/buckets', []],
       [
-        9,
+        10,
         'request',
         null,
         null,

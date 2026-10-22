@@ -8,6 +8,7 @@ import {
   constantString,
   excerpt,
   expressionName,
+  extendedElsewhere,
   findDeclaration,
   httpMethod,
   importedNames,
@@ -484,7 +485,7 @@ function resolver(source: ts.SourceFile, context: ResolverContext = EMPTY_CONTEX
     }
     return false;
   };
-  return { holds, returns, typed, functionOf };
+  return { holds, returns, typed, functionOf, isClass };
 }
 
 // The path a URL's parts spell after the API base, with runtime pieces named in braces.
@@ -638,8 +639,10 @@ function urlRecords(
   const options = optionsObject(wrapped);
   const found = options ? options.calls : consumers(wrapped);
   // A base URL is reported only where it is passed to a call; URLs built from it are reported on
-  // their own.
+  // their own, as is a URL held in a variable that only builds longer ones.
   if (base && !found.length) return [];
+  const declaration = ts.isVariableDeclaration(node.parent) ? node.parent : undefined;
+  if (declaration && !found.length && extendedElsewhere(declaration)) return [];
   return (found.length ? found : [undefined]).map((consumer) => {
     const unknown = [...pathUnknown];
     let client: string | null = null;
@@ -931,7 +934,14 @@ export async function workersCompatibility(
 // (`export type CloudflareApiClient = Cloudflare`, `export { Cloudflare } from 'cloudflare'`),
 // functions that return a client, and the names of methods that return one.
 function exportsOf(source: ts.SourceFile) {
-  const { typed, functionOf, returns } = resolver(source);
+  const { typed, functionOf, returns, isClass } = resolver(source);
+  const typedName = (name: string) =>
+    source.statements.some(
+      (statement) =>
+        ts.isTypeAliasDeclaration(statement) &&
+        statement.name.text === name &&
+        typed(statement.type),
+    );
   const names = new Set<string>();
   const functions = new Set<string>();
   const methods = new Set<string>();
@@ -944,15 +954,25 @@ function exportsOf(source: ts.SourceFile) {
       names.add(statement.name.text);
     if (
       ts.isExportDeclaration(statement) &&
-      statement.moduleSpecifier &&
-      ts.isStringLiteral(statement.moduleSpecifier) &&
-      statement.moduleSpecifier.text === CLOUDFLARE_PACKAGE &&
       statement.exportClause &&
       ts.isNamedExports(statement.exportClause)
-    )
-      for (const element of statement.exportClause.elements)
-        if (['Cloudflare', 'default'].includes((element.propertyName ?? element.name).text))
+    ) {
+      const fromPackage =
+        statement.moduleSpecifier &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        statement.moduleSpecifier.text === CLOUDFLARE_PACKAGE;
+      for (const element of statement.exportClause.elements) {
+        const local = element.propertyName ?? element.name;
+        // `export { Cloudflare } from 'cloudflare'`, or `export type { Cloudflare }` of a local
+        // binding of the class.
+        if (
+          fromPackage
+            ? ['Cloudflare', 'default'].includes(local.text)
+            : !statement.moduleSpecifier && (isClass(local) || typedName(local.text))
+        )
           names.add(element.name.text);
+      }
+    }
     if (ts.isFunctionDeclaration(statement) && statement.name && exporting(statement))
       if (returns(statement, 0)) functions.add(statement.name.text);
     if (ts.isVariableStatement(statement) && exporting(statement))
