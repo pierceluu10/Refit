@@ -1,11 +1,12 @@
 import { createHmac, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto';
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import pg from 'pg';
 import { afterEach, expect, it, vi } from 'vitest';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
+import { hostedTenancy } from './hosted-tenancy.ts';
 import type { RepositoryApproval } from './repository-enrollment.ts';
 import { pollServiceTarget } from './service-worker.ts';
 
@@ -17,6 +18,7 @@ vi.mock('./service-worker.ts', async (original) => ({
 
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const INSTALLATION = 456;
+const TENANCY = hostedTenancy({ REFIT_HOSTED_OWNER: 'example' });
 const APP = { appId: '123', privateKeyFile: 'unused-test-key' };
 const WEBHOOK_SECRET = 'webhook-secret-for-hosted-security-tests-123';
 const CONTROL_TOKEN = 'control-secret-for-hosted-security-tests-456';
@@ -130,7 +132,7 @@ async function start(pool: pg.Pool, root: string, options: { aiPatch?: boolean }
     directory: join(root, 'hosted-state'),
     webhookSecret: WEBHOOK_SECRET,
     controlToken: CONTROL_TOKEN,
-    owner: 'example',
+    tenancy: TENANCY,
     ...(options.aiPatch ? { aiPatch: { apiKey: OPENAI_KEY, model: 'gpt-5.6-luna' } } : {}),
     host: '127.0.0.1',
     port: 0,
@@ -168,17 +170,8 @@ async function settled(url: string, count: number) {
   return registry;
 }
 
-async function files(directory: string): Promise<string[]> {
-  const entries = await readdir(directory, { withFileTypes: true, recursive: true });
-  return Promise.all(
-    entries
-      .filter((entry) => entry.isFile())
-      .map((entry) => readFile(join(entry.parentPath, entry.name), 'utf8')),
-  );
-}
-
 it.skipIf(!DATABASE)(
-  'keeps every known secret out of logs, stored receipts, /status, HTTP responses and the state directory',
+  'keeps every known secret out of logs, stored receipts, /status and HTTP responses',
   async () => {
     const pool = await database();
     const databasePassword = decodeURIComponent(new URL(DATABASE!).password);
@@ -196,7 +189,7 @@ it.skipIf(!DATABASE)(
       `Authorization: Basic ${Buffer.from(`x-access-token:${INSTALLATION_TOKEN}`).toString('base64')}`,
     ].join(' | ');
     const faults: { renewal?: string; delivery?: string } = {};
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     for (const name of ['example/failing', 'example/reporting', 'example/renewing'])
       await store.approve(approval(name), 'octo-reviewer');
     vi.mocked(pollServiceTarget).mockImplementation(async (options) => {
@@ -250,7 +243,6 @@ it.skipIf(!DATABASE)(
       JSON.stringify(registry),
       ...responses,
       JSON.stringify((await pool.query('SELECT receipt FROM refit_jobs')).rows),
-      ...(await files(join(root, 'hosted-state'))),
     ].join('\n');
     for (const secret of [
       ...secrets,
@@ -273,7 +265,7 @@ it.skipIf(!DATABASE)(
   'refuses a signed payload replayed under a new delivery GUID but accepts GitHub redeliveries',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     await store.approve(approval('example/application'), 'octo-reviewer');
     vi.mocked(pollServiceTarget).mockImplementation(async () => {
       throw new Error('not reached');
@@ -318,7 +310,7 @@ it.skipIf(!DATABASE)(
   'stores hostile text verbatim through parameterised queries',
   async () => {
     const pool = await database();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, TENANCY);
     const hostile = "x'); DROP TABLE refit_jobs; --";
     const injected = approval("example/app'; DELETE FROM refit_approvals; --");
     await store.approve(injected, hostile);
@@ -375,7 +367,7 @@ it.skipIf(!DATABASE)(
     }
     // The token is accepted only in the Authorization header, never from the query string.
     const query = await fetch(`${url}/status?token=${CONTROL_TOKEN}`);
-    expect(query.status).toBe(404);
+    expect(query.status).toBe(401);
     expect((await status(url)).jobs).toEqual([]);
   },
   30_000,

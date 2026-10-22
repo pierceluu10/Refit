@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import type { DeadlineRegistry } from './deadline-registry.ts';
+import { EMPTY_MODEL_PARAMETERS } from './model-parameters.ts';
 import { runModelFixes } from './model-fixes.ts';
 
 const execute = promisify(execFile);
@@ -79,6 +80,7 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
     const result = await runModelFixes({
       repository: passing,
       registry,
+      parameters: EMPTY_MODEL_PARAMETERS,
       now: new Date('2026-10-20T12:00:00Z'),
       checks: { image, command: ['node', 'check.mjs'] },
     });
@@ -91,6 +93,7 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
       await runModelFixes({
         repository: pinned,
         registry,
+        parameters: EMPTY_MODEL_PARAMETERS,
         now: new Date('2026-10-20T12:00:00Z'),
         checks: { image, command: ['node', 'check.mjs'] },
       }),

@@ -12,6 +12,8 @@ import {
   MAX_PACKAGE_BYTES,
   MAX_PACKAGES,
   NPM_PACKAGE_NAME,
+  REGISTRY_PACKAGE_NAME,
+  quotedSource,
   npmWorkspaceDirectories,
 } from './npm-lock.ts';
 
@@ -81,7 +83,7 @@ function configuration(value: Record<string, unknown>) {
       value[key] !== undefined &&
       (!Array.isArray(value[key]) ||
         !(value[key] as unknown[]).every(
-          (name) => typeof name === 'string' && NPM_PACKAGE_NAME.test(name),
+          (name) => typeof name === 'string' && REGISTRY_PACKAGE_NAME.test(name),
         ))
     )
       throw new PipelineInputError(`pnpm ${key} must contain package names.`);
@@ -113,7 +115,7 @@ function configuration(value: Record<string, unknown>) {
       !isObject(entries) ||
       Object.entries(entries).some(
         ([name, source]) =>
-          !NPM_PACKAGE_NAME.test(name) ||
+          !REGISTRY_PACKAGE_NAME.test(name) ||
           !isRegistrySource(source) ||
           source.startsWith('catalog:'),
       )
@@ -284,23 +286,28 @@ export function validatePnpmInputs(
         throw new PipelineInputError(`pnpm ${section} must be an object.`);
       for (const [name, source] of Object.entries(declarations))
         if (
-          !NPM_PACKAGE_NAME.test(name) ||
+          !REGISTRY_PACKAGE_NAME.test(name) ||
           typeof source !== 'string' ||
           (!source.startsWith('workspace:') &&
             !source.startsWith('catalog:') &&
             !isRegistrySource(source))
         )
           throw new PipelineInputError(
-            'pnpm declarations must use public registry, configured catalogs or explicit local workspaces.',
+            `pnpm declarations must use public registry, configured catalogs or explicit local workspaces; ${directory === '.' ? '' : `${directory}/`}package.json declares ${name} as ${quotedSource(source)}.`,
           );
       if (section === 'peerDependencies') continue;
       const recorded: unknown = importer[section] ?? {};
-      if (
-        !isObject(recorded) ||
-        JSON.stringify(Object.keys(recorded).sort()) !==
-          JSON.stringify(Object.keys(declarations).sort())
-      )
+      const manifestFile = `${directory === '.' ? '' : `${directory}/`}package.json`;
+      const update = 'Run pnpm install and commit the updated pnpm-lock.yaml.';
+      if (!isObject(recorded))
         throw new PipelineInputError('pnpm importer declarations differ from committed manifests.');
+      const unmatched = [...new Set([...Object.keys(recorded), ...Object.keys(declarations)])].find(
+        (name) => !Object.hasOwn(recorded, name) || !Object.hasOwn(declarations, name),
+      );
+      if (unmatched)
+        throw new PipelineInputError(
+          `pnpm importer declarations differ from committed manifests: ${unmatched} is ${Object.hasOwn(declarations, unmatched) ? '' : 'not '}in ${manifestFile} ${section} but ${Object.hasOwn(recorded, unmatched) ? '' : 'not '}in pnpm-lock.yaml. ${update}`,
+        );
       for (const [name, source] of Object.entries(declarations)) {
         const specifier = source as string;
         const record: unknown = recorded[name];
@@ -309,7 +316,9 @@ export function validatePnpmInputs(
           record.specifier !== specifier ||
           typeof record.version !== 'string'
         )
-          throw new PipelineInputError('pnpm importer specifiers differ from committed manifests.');
+          throw new PipelineInputError(
+            `pnpm importer specifiers differ from committed manifests: ${name} is ${quotedSource(specifier)} in ${manifestFile} but ${quotedSource(isObject(record) ? record.specifier : undefined) ?? 'missing'} in pnpm-lock.yaml. ${update}`,
+          );
         if (specifier.startsWith('workspace:')) {
           const target = names.get(name);
           if (
@@ -396,7 +405,7 @@ function registryGraph(document: Record<string, unknown>) {
     const key = EXACT_PACKAGE_VERSION.test(base) ? `${name}@${base}` : base;
     const split = key.lastIndexOf('@');
     if (
-      !NPM_PACKAGE_NAME.test(key.slice(0, split)) ||
+      !REGISTRY_PACKAGE_NAME.test(key.slice(0, split)) ||
       !EXACT_PACKAGE_VERSION.test(key.slice(split + 1)) ||
       !Object.hasOwn(packages, key) ||
       !Object.hasOwn(snapshots, `${key}${version.slice(base.length)}`)
@@ -408,7 +417,7 @@ function registryGraph(document: Record<string, unknown>) {
   for (const [key, value] of Object.entries(packages)) {
     const split = key.lastIndexOf('@');
     if (
-      !NPM_PACKAGE_NAME.test(key.slice(0, split)) ||
+      !REGISTRY_PACKAGE_NAME.test(key.slice(0, split)) ||
       !EXACT_PACKAGE_VERSION.test(key.slice(split + 1)) ||
       !isObject(value) ||
       !isObject(value.resolution) ||
@@ -416,7 +425,7 @@ function registryGraph(document: Record<string, unknown>) {
       Object.keys(value.resolution).some((key) => !['integrity', 'tarball'].includes(key))
     )
       throw new PipelineInputError(
-        'Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image.',
+        `Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image. pnpm-lock.yaml records ${key} without them.`,
       );
     if (value.resolution.tarball !== undefined) {
       if (typeof value.resolution.tarball !== 'string')

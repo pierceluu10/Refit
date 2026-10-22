@@ -79,6 +79,24 @@ export function applySourceEdits(content: string, edits: SourceEdit[]) {
   return updated;
 }
 
+// A patch replacing whole files, such as package.json and its lockfile in an SDK upgrade.
+export function renderFileReplacements(
+  repository: Repository,
+  files: { path: string; before: string; after: string }[],
+  changeId: string,
+) {
+  return renderPatch(
+    { ...repository, files: files.map((file) => ({ path: file.path, content: file.before })) },
+    files.map((file) => ({
+      file: file.path,
+      start: 0,
+      end: file.before.length,
+      replacement: file.after,
+      changeId,
+    })),
+  );
+}
+
 export function renderPatch(repository: Repository, edits: SourceEdit[]) {
   const patches: string[] = [];
   for (const file of repository.files) {

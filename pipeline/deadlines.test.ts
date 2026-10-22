@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
@@ -956,6 +956,34 @@ it('matches API versions pinned in .refit.json and reports how a migration can f
   expect(agentStatus('openai', [])).toEqual({ state: 'available' });
 });
 
+it('reads .refit.json and adapters only as regular files inside the repository', async () => {
+  const outside = await repository({ 'secret.provider.json': { packageName: 'openai' } });
+  const root = await repository({
+    '.refit.json': {
+      formatVersion: 2,
+      integrations: [
+        { id: 'escape', providerConfig: `../${basename(outside)}/secret.provider.json` },
+        { id: 'absolute', providerConfig: join(outside, 'secret.provider.json') },
+        { id: 'linked', providerConfig: './refit/linked.provider.json' },
+        { id: 'large', providerConfig: './refit/large.provider.json' },
+        { id: 'ai', providerConfig: './refit/ai.provider.json' },
+      ],
+    },
+    'refit/ai.provider.json': { packageName: 'openai' },
+    'refit/large.provider.json': { packageName: 'openai', padding: 'x'.repeat(200 * 1024) },
+  });
+  await symlink(join(outside, 'secret.provider.json'), join(root, 'refit/linked.provider.json'));
+  const integrations = await configuredIntegrations(root);
+  console.log(integrations);
+  expect(integrations).toEqual([{ agent: 'openai', integration: 'ai', apiVersion: null }]);
+
+  const linked = await repository({});
+  await symlink(join(root, '.refit.json'), join(linked, '.refit.json'));
+  await expect(configuredIntegrations(linked)).rejects.toThrow(
+    '.refit.json must be a file inside the repository, not a link.',
+  );
+});
+
 it('checks the registry shape and flags past-due entries and entries without a source', async () => {
   const report = checkDeadlineRegistry(
     {
@@ -980,17 +1008,38 @@ it('checks the registry shape and flags past-due entries and entries without a s
           }),
           extra: true,
         },
+        // Read exactly 30 days before NOW, then 31.
+        entry({
+          id: 'checked-30',
+          provider: 'shopify',
+          versions: ['2026-04'],
+          date: '2027-04-01',
+          checkedAt: '2026-09-15',
+        }),
+        entry({
+          id: 'checked-31',
+          provider: 'shopify',
+          versions: ['2026-07'],
+          date: '2027-07-01',
+          checkedAt: '2026-09-14',
+        }),
+        {
+          ...entry({ id: 'derived', provider: 'openai', versions: ['d'], date: '2027-01-01' }),
+          derivedDate: false,
+        },
       ],
     },
     NOW,
   );
   expect(report.pastDue).toEqual([{ id: 'past', date: '2026-01-01', days: 287 }]);
   expect(report.missingSource).toEqual(['unsourced']);
+  expect(report.stale).toEqual([{ id: 'checked-31', checkedAt: '2026-09-14', days: 31 }]);
   expect(report.errors).toEqual([
     'Bad.Id: unknown fields extra.',
     'Bad.Id: id must be lowercase letters, digits and hyphens.',
     'Bad.Id: old-model already has another deadline.',
     'Bad.Id: date must be a real YYYY-MM-DD date.',
+    'derived: derivedDate must be true or left out.',
   ]);
   const path = join(await repository({}), 'registry.json');
   await writeFile(
@@ -1011,6 +1060,43 @@ it('checks the registry shape and flags past-due entries and entries without a s
   ]);
 });
 
+it('warns on stale entries from --check-registry without failing it', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const root = await repository({
+    'registry.json': {
+      formatVersion: 1,
+      deadlines: [
+        entry({
+          id: 'read-today',
+          provider: 'shopify',
+          versions: ['2030-01'],
+          date: '2030-04-01',
+          checkedAt: today,
+        }),
+        entry({
+          id: 'read-long-ago',
+          provider: 'shopify',
+          versions: ['2030-04'],
+          date: '2030-07-01',
+          checkedAt: '2026-01-02',
+        }),
+      ],
+    },
+  });
+  const { stdout } = await promisify(execFile)(process.execPath, [
+    resolve('bin/refit.mjs'),
+    'deadlines',
+    '--check-registry',
+    '--registry',
+    join(root, 'registry.json'),
+  ]);
+  expect(stdout).toMatch(/^Deadline registry is valid$/m);
+  expect(stdout).toMatch(
+    /^ {2}stale {5}read-long-ago \(checked 2026-01-02, \d+ days ago; read its source again\)$/m,
+  );
+  expect(stdout).not.toMatch(/read-today/);
+});
+
 it('keeps the shipped registry valid and sourced', async () => {
   const shipped = await loadDeadlineRegistry(undefined, NOW);
   const { readFile } = await import('node:fs/promises');
@@ -1021,7 +1107,25 @@ it('keeps the shipped registry valid and sourced', async () => {
   expect(report.errors).toEqual([]);
   expect(report.missingSource).toEqual([]);
   expect(new Set(shipped.deadlines.map((item) => item.provider))).toEqual(
-    new Set(['shopify', 'meta-graph', 'openai', 'anthropic', 'gemini']),
+    new Set([
+      'shopify',
+      'meta-graph',
+      'openai',
+      'anthropic',
+      'gemini',
+      'slack',
+      'cloudflare',
+      'github',
+      'auth0',
+      'clerk',
+      'firebase',
+      'supabase',
+      'nextauth',
+      'adyen',
+      'braintree',
+      'coinbase-commerce',
+      'easypost',
+    ]),
   );
 });
 
@@ -1299,6 +1403,21 @@ it('lets a committed ignore file accept an alert, and never lets an invalid one 
       message.startsWith('[example/app] Deadline ignores not applied: PipelineInputError'),
     ),
   ).toBe(true);
+
+  // A derived date never opens an issue, even with no ignore file.
+  requests.length = 0;
+  notices.length = 0;
+  await rm(join(checkout.directory, '.refit-deadlines-ignore.json'));
+  await writeFile(
+    registryPath,
+    JSON.stringify({
+      ...registry,
+      deadlines: registry.deadlines.map((item) => ({ ...item, derivedDate: true })),
+    }),
+  );
+  await run();
+  expect(requests).toEqual([]);
+  expect(notices).toEqual([]);
 }, 30_000);
 
 it('renders the deadline issue with evidence, the replacement and the migration path', () => {

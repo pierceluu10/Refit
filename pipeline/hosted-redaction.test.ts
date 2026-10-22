@@ -1,13 +1,17 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { expect, it } from 'vitest';
-import { secretRedactor } from './secret-redaction.ts';
+import { hostedRedactor } from './hosted-ops.ts';
 
 const WEBHOOK_SECRET = 'webhook-secret-for-redaction-tests-0123456789';
 const INSTALLATION_TOKEN = `ghs_${'A1b2C3d4E5'.repeat(4)}`;
 const OPENAI_KEY = `sk-proj-${'q'.repeat(40)}`;
 
 it('removes known secret values and their base64 forms, longest first', () => {
-  const redact = secretRedactor([WEBHOOK_SECRET, `${WEBHOOK_SECRET}-longer`, undefined, 'short']);
+  const redact = hostedRedactor({
+    REFIT_WEBHOOK_SECRET: WEBHOOK_SECRET,
+    REFIT_SERVICE_TOKEN: `${WEBHOOK_SECRET}-longer`,
+    OPENAI_API_KEY: 'short',
+  });
   const encoded = Buffer.from(WEBHOOK_SECRET).toString('base64');
   expect(redact(`a ${WEBHOOK_SECRET}-longer b ${WEBHOOK_SECRET} c ${encoded} d`)).toBe(
     'a [redacted] b [redacted] c [redacted] d',
@@ -17,7 +21,7 @@ it('removes known secret values and their base64 forms, longest first', () => {
 });
 
 it('removes credential shapes it was never told about', () => {
-  const redact = secretRedactor([]);
+  const redact = hostedRedactor({});
   const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 1024 });
   const pem = privateKey.export({ type: 'pkcs1', format: 'pem' }).toString();
   const samples = [
@@ -51,7 +55,7 @@ it('removes credential shapes it was never told about', () => {
 });
 
 it('leaves ordinary diagnostics readable', () => {
-  const redact = secretRedactor([WEBHOOK_SECRET]);
+  const redact = hostedRedactor({ REFIT_WEBHOOK_SECRET: WEBHOOK_SECRET });
   for (const text of [
     'GitHub GET /repos/example/application failed with HTTP 404.',
     'OpenAI token counting failed with HTTP 401; generation was not attempted.',
