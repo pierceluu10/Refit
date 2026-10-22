@@ -114,6 +114,36 @@ refit watch --config /absolute/path/stripe.refit.json \
 
 Stripe discovery polls the latest Git commit touching its published specification and downloads at the immutable SHA. Starting at today's baseline detects future changes only. Published contract changes do not establish which API version your account or SDK uses. Refit does not advance the baseline after a PR; choose a new baseline and state directory after reviewing the migration.
 
+### A live Stripe change caught by the worker (October 21)
+
+The worker caught a real Stripe change from the live specification and published the fix as Refit Agent: [refit-dev/Clario-ai#1](https://github.com/refit-dev/Clario-ai/pull/1).
+
+- **Change.** `--latest-stripe` fetched Stripe's newest specification commit, [`bcfd59f`](https://github.com/stripe/openapi/commit/bcfd59f49dcac84a84d63d304c62793dff6e5916) (`2026-09-30.endive`, published 2026-09-29). Endive removed the `payment_method_types` request field from Checkout Sessions, PaymentIntents and SetupIntents.
+- **Repository.** `refit-dev/Clario-ai`, a fork of the MIT-licensed `MuhammadTanveerAbbas/Clario-ai` at `a97c0de`; upstream was not touched. It pins `2026-02-25.clover` in two clients, and its Checkout Session creation sends `payment_method_types: ["card"]`. The baseline is the clover specification at `stripe/openapi` tag `v2186`.
+- **Fix.** The deterministic [card rule](STRIPE-PAYMENT-METHOD-TYPES.md) renamed the field to `allowed_payment_method_types`, moved both pins to `2026-09-30.endive` and upgraded stripe-node 20.4.1 to 23.0.0: 4 files, 11 lines. It was reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)), and the lockfile's integrity hash matches npm's.
+- **Checks.** `pnpm test && pnpm run typecheck` passed before and after the patch, in offline Docker with dependencies prepared from the pnpm lockfile. No AI request was made; the shared $2 ledger stayed at $0.0036.
+
+From Refit `5fdff08` (0.39.0):
+
+```sh
+REFIT_AI_BUDGET_USD=2 \
+REFIT_AI_BUDGET_DIRECTORY=/Users/pierceluu/.refit/evaluations/2026-10-12 \
+refit watch --env .env \
+  --config /Users/pierceluu/.refit/evaluations/live-endive-clario-2026-10-21/inputs/clario.refit.json \
+  --state /Users/pierceluu/.refit/evaluations/live-endive-clario-2026-10-21/state \
+  --sync-github --github refit-dev/Clario-ai --base main --github-app \
+  --latest-stripe --prepare-dependencies --once --publish-draft
+```
+
+Evidence is in `/Users/pierceluu/.refit/evaluations/live-endive-clario-2026-10-21/state/runs/79e2486b446cd471fafadfac64b25a1f14ea6db0127159bcd294e30e7ef8f4fa-1`. Repeating the command reuses the job and the open draft.
+
+What this does not show:
+
+- **The change arrived before the worker started.** Stripe published endive on September 29. The worker compared a pinned clover baseline with that day's latest specification; it did not watch the change arrive.
+- **Full contract comparison was off** (`fullDiff: false`), as in the benchmark and the Stripe lab. With the worker's default full diff, the same run stops on 9 unmapped breaking changes to `POST /v1/checkout/sessions`, such as the `ui_mode` values dahlia renamed. The call does not send `ui_mode`, but no rule covers those changes, so the gate correctly stops. That run's evidence is in `state-full-diff/` beside `state/`. How Stripe's full diff should gate is still an open owner decision.
+- **Checks are narrow.** The repository's 24 tests cover its AI fallback, not Stripe. Only `tsc` against stripe-node 23's types checks the changed call. No Stripe request was made, so Checkout behavior and whether the account keeps cards enabled are unverified; the draft asks the reviewer to confirm the second.
+- **One repository.** The first candidate, `Shefaul-22/AgriFlow` (pinned to `2026-04-22.dahlia`), produced the same fix but was refused before validation: its committed source exceeds the 50 MiB archive limit.
+
 For another provider with a public HTTPS OpenAPI document:
 
 ```sh
