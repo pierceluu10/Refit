@@ -198,6 +198,24 @@ ALTER TABLE refit_monitoring ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refit_deadline_alerts ENABLE ROW LEVEL SECURITY;
 `;
 
+// The report issue Refit keeps for each inventoried repository, with the digest of what it last
+// wrote. It goes with the installed repository, so removal or uninstall deletes it.
+const REPORTS = `
+CREATE TABLE IF NOT EXISTS refit_reports (
+  installation_id bigint NOT NULL,
+  repository text NOT NULL,
+  issue integer,
+  digest text NOT NULL,
+  status text NOT NULL CHECK (status IN ('sending', 'opened', 'updated', 'failed')),
+  message text,
+  updated_at timestamptz NOT NULL,
+  PRIMARY KEY (installation_id, repository),
+  FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository) ON DELETE CASCADE
+);
+ALTER TABLE refit_reports ENABLE ROW LEVEL SECURITY;
+`;
+
 export interface HostedMigration {
   version: number;
   name: string;
@@ -238,9 +256,14 @@ export const MIGRATIONS: HostedMigration[] = [
   },
   {
     version: 7,
+    name: 'Report issues',
+    up: (client) => client.query(REPORTS),
+  },
+  {
+    version: 8,
     name: 'Installation event order and rename cascades',
     // installation.updated_at of the newest installation event applied; older redeliveries are
-    // stale. Inventories, monitoring state and deadline alerts follow a repository or account
+    // stale. Inventories, monitoring state, deadline alerts and report rows follow a repository or account
     // rename. Deliveries are never pruned.
     up: (client) =>
       client.query(`
@@ -257,6 +280,11 @@ ALTER TABLE refit_monitoring
     ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE refit_deadline_alerts
   DROP CONSTRAINT refit_deadline_alerts_installation_id_repository_fkey,
+  ADD FOREIGN KEY (installation_id, repository)
+    REFERENCES refit_installation_repositories (installation_id, repository)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE refit_reports
+  DROP CONSTRAINT refit_reports_installation_id_repository_fkey,
   ADD FOREIGN KEY (installation_id, repository)
     REFERENCES refit_installation_repositories (installation_id, repository)
     ON DELETE CASCADE ON UPDATE CASCADE;

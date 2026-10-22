@@ -1,0 +1,745 @@
+{
+ "run": {
+  "refit": "7b2c86a",
+  "command": "npm run benchmark:stripe -- --root <labelling root> --output <dir> (no --ai, no --validate)",
+  "labels": "docs/benchmarks/2026-10-22-stripe-fresh-labels.json"
+ },
+ "causes": {
+  "params-variable": {
+   "description": "Request parameters built in a variable or helper, changed or passed by name before the call",
+   "repositories": 5,
+   "misses": 9
+  },
+  "loop-callback": {
+   "description": "List item read in a for-of loop or an array callback",
+   "repositories": 4,
+   "misses": 10
+  },
+  "js-payload": {
+   "description": "Plain-JavaScript webhook payload (event.data.object, no types), read inline or in a handler it is passed to",
+   "repositories": 3,
+   "misses": 19
+  },
+  "typed-param": {
+   "description": "Typed function parameter, or a variable assigned in branches (Stripe type declared, not traced)",
+   "repositories": 3,
+   "misses": 8
+  },
+  "helper-return": {
+   "description": "Stripe object returned from a helper in another module",
+   "repositories": 3,
+   "misses": 8
+  },
+  "untyped-request": {
+   "description": "Request on an untyped client (plain JavaScript): reported for review, not confirmed",
+   "repositories": 3,
+   "misses": 4
+  },
+  "js-response": {
+   "description": "Plain-JavaScript SDK response (no types) read in the function that requested it",
+   "repositories": 2,
+   "misses": 11
+  },
+  "hand-cast": {
+   "description": "Stripe object cast to a hand-written type (as unknown as {...})",
+   "repositories": 1,
+   "misses": 3
+  },
+  "before-narrowing": {
+   "description": "Typed webhook payload cast and read before the event type is checked",
+   "repositories": 1,
+   "misses": 3
+  },
+  "expanded": {
+   "description": "Field of an expanded nested object (latest_invoice.payment_intent)",
+   "repositories": 1,
+   "misses": 1
+  }
+ },
+ "misses": [
+  {
+   "repo": "zainulabedeen123/Best-Saas-Kit--V2",
+   "kind": "read",
+   "file": "src/app/api/stripe/webhook/route.ts",
+   "line": 110,
+   "field": "discount.coupon",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "zainulabedeen123/Best-Saas-Kit--V2",
+   "kind": "read",
+   "file": "src/app/api/stripe/webhook/route.ts",
+   "line": 112,
+   "field": "discount.coupon",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "zainulabedeen123/Best-Saas-Kit--V2",
+   "kind": "request",
+   "file": "src/lib/stripe.ts",
+   "line": 113,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "none",
+   "cause": "params-variable"
+  },
+  {
+   "repo": "habibjutt/nextjs_boilerplate",
+   "kind": "read",
+   "file": "scripts/auto-sync-subscriptions.ts",
+   "line": 85,
+   "field": "subscription.current_period_start",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "habibjutt/nextjs_boilerplate",
+   "kind": "read",
+   "file": "scripts/auto-sync-subscriptions.ts",
+   "line": 86,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "habibjutt/nextjs_boilerplate",
+   "kind": "read",
+   "file": "scripts/auto-sync-subscriptions.ts",
+   "line": 92,
+   "field": "subscription.current_period_start",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "habibjutt/nextjs_boilerplate",
+   "kind": "read",
+   "file": "scripts/auto-sync-subscriptions.ts",
+   "line": 92,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "habibjutt/nextjs_boilerplate",
+   "kind": "read",
+   "file": "scripts/sync-subscriptions.ts",
+   "line": 110,
+   "field": "subscription.current_period_start",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "habibjutt/nextjs_boilerplate",
+   "kind": "read",
+   "file": "scripts/sync-subscriptions.ts",
+   "line": 111,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "Librum-Reader/Librum-Website",
+   "kind": "read",
+   "file": "app/api/subscribe/route.js",
+   "line": 45,
+   "field": "invoice.payment_intent",
+   "reported": "review",
+   "cause": "expanded"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 185,
+   "field": "subscription.current_period_start",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 186,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 250,
+   "field": "subscription.current_period_start",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 251,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 399,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 403,
+   "field": "invoice.paid",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 417,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 421,
+   "field": "invoice.paid",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 436,
+   "field": "subscription.current_period_start",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 437,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 453,
+   "field": "subscription.current_period_start",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "public/js/modules/payment-gateway/src/providers/stripe.js",
+   "line": 454,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "profullstack/vibe-stack",
+   "kind": "read",
+   "file": "src/services/stripe-payment-service.js",
+   "line": 289,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "helloworld9912/Stripe-Account-Migration",
+   "kind": "read",
+   "file": "src/scripts/prices.ts",
+   "line": 48,
+   "field": "recurring.aggregate_usage",
+   "reported": "review",
+   "cause": "typed-param"
+  },
+  {
+   "repo": "helloworld9912/Stripe-Account-Migration",
+   "kind": "read",
+   "file": "src/scripts/prices.ts",
+   "line": 49,
+   "field": "recurring.aggregate_usage",
+   "reported": "review",
+   "cause": "typed-param"
+  },
+  {
+   "repo": "helloworld9912/Stripe-Account-Migration",
+   "kind": "read",
+   "file": "src/scripts/subscriptions.ts",
+   "line": 177,
+   "field": "discount.coupon",
+   "reported": "review",
+   "cause": "typed-param"
+  },
+  {
+   "repo": "helloworld9912/Stripe-Account-Migration",
+   "kind": "request",
+   "file": "src/scripts/promotion_codes.ts",
+   "line": 25,
+   "field": "POST /v1/promotion_codes coupon",
+   "reported": "none",
+   "cause": "params-variable"
+  },
+  {
+   "repo": "helloworld9912/Stripe-Account-Migration",
+   "kind": "request",
+   "file": "src/scripts/prices.ts",
+   "line": 49,
+   "field": "POST /v1/prices recurring.aggregate_usage",
+   "reported": "none",
+   "cause": "params-variable"
+  },
+  {
+   "repo": "helloworld9912/Stripe-Account-Migration",
+   "kind": "request",
+   "file": "src/scripts/products.ts",
+   "line": 47,
+   "field": "POST /v1/products features",
+   "reported": "none",
+   "cause": "params-variable"
+  },
+  {
+   "repo": "helloworld9912/Stripe-Account-Migration",
+   "kind": "request",
+   "file": "src/scripts/subscriptions.ts",
+   "line": 177,
+   "field": "POST /v1/subscriptions coupon",
+   "reported": "none",
+   "cause": "params-variable"
+  },
+  {
+   "repo": "shagunmistry/FlowCraft",
+   "kind": "read",
+   "file": "src/app/api/subscription/route.ts",
+   "line": 72,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "SeaMossBros/sea-moss-api",
+   "kind": "read",
+   "file": "src/api/order/controllers/payment.js",
+   "line": 136,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "SeaMossBros/sea-moss-api",
+   "kind": "read",
+   "file": "src/api/order/controllers/payment.js",
+   "line": 137,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "SeaMossBros/sea-moss-api",
+   "kind": "read",
+   "file": "src/api/order/controllers/payment.js",
+   "line": 138,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "SeaMossBros/sea-moss-api",
+   "kind": "read",
+   "file": "src/api/order/controllers/payment.js",
+   "line": 139,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "SeaMossBros/sea-moss-api",
+   "kind": "read",
+   "file": "src/api/order/controllers/payment.js",
+   "line": 140,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "SeaMossBros/sea-moss-api",
+   "kind": "read",
+   "file": "src/api/order/controllers/payment.js",
+   "line": 141,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "SeaMossBros/sea-moss-api",
+   "kind": "read",
+   "file": "src/api/order/controllers/payment.js",
+   "line": 143,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "js-response"
+  },
+  {
+   "repo": "cavidaga/lnk",
+   "kind": "read",
+   "file": "api/billing/subscription.js",
+   "line": 37,
+   "field": "subscription.current_period_start",
+   "reported": "none",
+   "cause": "helper-return"
+  },
+  {
+   "repo": "cavidaga/lnk",
+   "kind": "read",
+   "file": "api/billing/subscription.js",
+   "line": 38,
+   "field": "subscription.current_period_end",
+   "reported": "none",
+   "cause": "helper-return"
+  },
+  {
+   "repo": "cavidaga/lnk",
+   "kind": "read",
+   "file": "api/billing/webhook.js",
+   "line": 166,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "cavidaga/lnk",
+   "kind": "read",
+   "file": "api/billing/webhook.js",
+   "line": 195,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "cavidaga/lnk",
+   "kind": "request",
+   "file": "lib/stripe.js",
+   "line": 149,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "review",
+   "cause": "untyped-request"
+  },
+  {
+   "repo": "CapChris20/Retronix-Wallpapers-Startup",
+   "kind": "request",
+   "file": "retronix/netlify/functions/create-checkout-session.js",
+   "line": 48,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "review",
+   "cause": "untyped-request"
+  },
+  {
+   "repo": "CapChris20/Retronix-Wallpapers-Startup",
+   "kind": "request",
+   "file": "extras/functions/index.js",
+   "line": 279,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "review",
+   "cause": "untyped-request"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 128,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "helper-return"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 177,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 208,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 239,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 245,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "helper-return"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 255,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 1745,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "helper-return"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 1771,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 1786,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 1817,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 1823,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "helper-return"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "read",
+   "file": "src/instances/server.js",
+   "line": 1833,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "js-payload"
+  },
+  {
+   "repo": "wyvern800/tldkp",
+   "kind": "request",
+   "file": "utils/stripe.js",
+   "line": 42,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "none",
+   "cause": "params-variable"
+  },
+  {
+   "repo": "techblitzdev/TechBlitz",
+   "kind": "read",
+   "file": "src/app/(app)/settings/billing/page.tsx",
+   "line": 20,
+   "field": "subscription.current_period_end",
+   "reported": "none",
+   "cause": "helper-return"
+  },
+  {
+   "repo": "techblitzdev/TechBlitz",
+   "kind": "read",
+   "file": "src/app/(app)/settings/billing/page.tsx",
+   "line": 21,
+   "field": "subscription.current_period_end",
+   "reported": "none",
+   "cause": "helper-return"
+  },
+  {
+   "repo": "billychen0894/florist-ecommerce-app",
+   "kind": "read",
+   "file": "app/api/webhook/route.ts",
+   "line": 24,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "before-narrowing"
+  },
+  {
+   "repo": "billychen0894/florist-ecommerce-app",
+   "kind": "read",
+   "file": "app/api/webhook/route.ts",
+   "line": 27,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "before-narrowing"
+  },
+  {
+   "repo": "billychen0894/florist-ecommerce-app",
+   "kind": "read",
+   "file": "app/api/webhook/route.ts",
+   "line": 29,
+   "field": "checkout.session.shipping_details",
+   "reported": "review",
+   "cause": "before-narrowing"
+  },
+  {
+   "repo": "billychen0894/florist-ecommerce-app",
+   "kind": "request",
+   "file": "actions/checkout.ts",
+   "line": 54,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "none",
+   "cause": "params-variable"
+  },
+  {
+   "repo": "doganarif/build-it",
+   "kind": "request",
+   "file": "lib/stripe.js",
+   "line": 15,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "review",
+   "cause": "untyped-request"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "kind": "read",
+   "file": "app/api/checkout-details/route.ts",
+   "line": 82,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "typed-param"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "kind": "read",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 229,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "typed-param"
+  },
+  {
+   "repo": "Drago-03/Neural-Nexus",
+   "kind": "read",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 287,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "typed-param"
+  },
+  {
+   "repo": "thematters/matters-server",
+   "kind": "read",
+   "file": "src/routes/pay/stripe/circle.ts",
+   "line": 293,
+   "field": "invoice.payment_intent",
+   "reported": "review",
+   "cause": "typed-param"
+  },
+  {
+   "repo": "thematters/matters-server",
+   "kind": "read",
+   "file": "src/routes/pay/stripe/circle.ts",
+   "line": 336,
+   "field": "invoice.subscription",
+   "reported": "review",
+   "cause": "typed-param"
+  },
+  {
+   "repo": "thematters/matters-server",
+   "kind": "read",
+   "file": "src/routes/pay/stripe/circle.ts",
+   "line": 348,
+   "field": "line_item.price",
+   "reported": "review",
+   "cause": "loop-callback"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "kind": "read",
+   "file": "app/api/stripe/webhook/route.ts",
+   "line": 232,
+   "field": "subscription.current_period_start",
+   "reported": "review",
+   "cause": "hand-cast"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "kind": "read",
+   "file": "app/api/stripe/webhook/route.ts",
+   "line": 235,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "hand-cast"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "kind": "read",
+   "file": "app/api/stripe/webhook/route.ts",
+   "line": 263,
+   "field": "subscription.current_period_end",
+   "reported": "review",
+   "cause": "hand-cast"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "kind": "request",
+   "file": "lib/stripe/checkout-session.ts",
+   "line": 169,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "none",
+   "cause": "params-variable"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "kind": "request",
+   "file": "lib/stripe/report-unlock-params.ts",
+   "line": 56,
+   "field": "POST /v1/checkout/sessions payment_method_types",
+   "reported": "none",
+   "cause": "params-variable"
+  }
+ ]
+}

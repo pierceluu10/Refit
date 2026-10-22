@@ -1,0 +1,35 @@
+{
+  "formatVersion": 1,
+  "repository": "odota/core",
+  "revision": "b877fd1c169c84e4dfc2651a3f2fcdd68b5fef08",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "stripe",
+      "name": "Stripe",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "stripe",
+          "declared": "^12.18.0",
+          "locked": "12.18.0"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": [
+        {
+          "file": "svc/store/stripe.ts",
+          "line": 4,
+          "value": "2022-11-15"
+        }
+      ]
+    }
+  ],
+  "deadlines": [],
+  "mentions": [],
+  "models": [],
+  "untracked": [],
+  "next": "Add the Stripe agent with `refit agents --add stripe` and approve the repository, so Refit can propose migrations for its breaking changes."
+}

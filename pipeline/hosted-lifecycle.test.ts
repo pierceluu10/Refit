@@ -97,7 +97,8 @@ async function approvals(pool: pg.Pool) {
   ).rows;
 }
 
-// An installed repository's inventory, monitoring state and deadline alerts are keyed by its name.
+// An installed repository's inventory, monitoring state, deadline alerts and report are keyed by
+// its name.
 async function derive(pool: pg.Pool, repository: string) {
   await pool.query(
     `INSERT INTO refit_inventories (installation_id, repository, state) VALUES ($1, $2, 'idle')`,
@@ -112,12 +113,17 @@ async function derive(pool: pg.Pool, repository: string) {
      VALUES ($1, $2, 'example-deadline', 1, 'opened', now())`,
     [INSTALLATION, repository],
   );
+  await pool.query(
+    `INSERT INTO refit_reports (installation_id, repository, digest, status, updated_at)
+     VALUES ($1, $2, 'digest', 'opened', now())`,
+    [INSTALLATION, repository],
+  );
 }
 
 async function derived(pool: pg.Pool) {
   const { rows } = await pool.query<{ repository: string }>(
     `SELECT repository FROM refit_inventories UNION ALL SELECT repository FROM refit_monitoring
-     UNION ALL SELECT repository FROM refit_deadline_alerts`,
+     UNION ALL SELECT repository FROM refit_deadline_alerts UNION ALL SELECT repository FROM refit_reports`,
   );
   return rows.map((row) => row.repository);
 }
@@ -395,7 +401,7 @@ it.skipIf(!DATABASE)(
       enrolled: [],
     });
     expect(await membership(pool)).toEqual([[INSTALLATION, 'example/billing', APPLICATION_ID]]);
-    expect(await derived(pool)).toEqual(['example/billing', 'example/billing', 'example/billing']);
+    expect(await derived(pool)).toEqual(Array(4).fill('example/billing'));
     expect(await approvals(pool)).toEqual([
       {
         repository: 'example/application',
@@ -649,11 +655,7 @@ it.skipIf(!DATABASE)(
       }),
     ]);
     expect((await approvals(pool)).map((row) => row.repository)).toEqual(['example/application']);
-    expect(await derived(pool)).toEqual([
-      'example-labs/application',
-      'example-labs/application',
-      'example-labs/application',
-    ]);
+    expect(await derived(pool)).toEqual(Array(4).fill('example-labs/application'));
     // Later installation events carry the new login and are no longer refused as a changed owner.
     expect(
       (

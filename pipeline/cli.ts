@@ -5,6 +5,7 @@ import { assessmentConfiguration } from './assessment.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
 import { PipelineInputError } from './types.ts';
 import { renderScanResult } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit scan --repository <directory> --before <openapi.json-or-yaml> --after <openapi.json-or-yaml> [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--output <new-report.json>] [--propose-patch] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)]';
@@ -60,6 +61,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'scan'));
   process.exitCode = 1;
 }

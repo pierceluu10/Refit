@@ -74,9 +74,13 @@ export async function readCommittedRepository(path: string) {
   if (directory !== topLevel)
     throw new PipelineInputError('Validation requires the Git repository root directory.');
   const revision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
-  if ((await git(['status', '--porcelain', '--untracked-files=all'])).stdout)
+  const changed = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => line.slice(3));
+  if (changed.length)
     throw new PipelineInputError(
-      'Validation requires a clean committed repository, including untracked files.',
+      `Validation requires a clean committed repository, including untracked files; not committed: ${changed.slice(0, 5).join(', ')}${changed.length > 5 ? `, and ${changed.length - 5} more` : ''}.`,
     );
   const entries = (await git(['ls-tree', '-rz', revision])).stdout.split('\0').filter(Boolean);
   const linkEntries = entries

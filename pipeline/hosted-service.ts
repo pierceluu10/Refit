@@ -43,6 +43,8 @@ import {
   type HostedAlerts,
 } from './monitoring.ts';
 import { openMonitoringStore } from './monitoring-store.ts';
+import { syncReportIssues } from './report-issues.ts';
+import { openReportStore } from './report-store.ts';
 import {
   authorized,
   DEFAULT_SERVICE_PORT,
@@ -93,6 +95,9 @@ export async function runHostedService(options: {
   // Off by default: re-scans inventories on push, registry change and age, and opens or updates
   // deadline issues at the lead times. Needs the App's Issues write permission.
   alerts?: HostedAlerts;
+  // Off by default: keeps one report issue per inventoried repository, re-scanned like alerts.
+  // Needs the App's Issues write permission.
+  reports?: boolean;
   // The deadline registry file, by default the bundled one.
   registry?: string | URL;
   now?: () => Date;
@@ -208,6 +213,7 @@ export async function runHostedService(options: {
   outage = OUTAGE_RETRY_MS;
   const inventories = openInventoryStore(options.database, options.tenancy.limits);
   const monitoring = openMonitoringStore(options.database);
+  const reports = openReportStore(options.database);
   const now = () => options.now?.() ?? new Date();
   const approvals = openApprovalStore(options.database);
   const notifyFailures =
@@ -482,6 +488,7 @@ export async function runHostedService(options: {
                 alerts: Boolean(options.alerts),
                 installations: await upcomingDeadlines(monitoring, now()),
               },
+              reports: { enabled: Boolean(options.reports), issues: await reports.read() },
             }),
           });
           return;
@@ -524,7 +531,9 @@ export async function runHostedService(options: {
               )
             : 0;
         const pushed =
-          options.alerts && receipt.status === 'accepted' && change.kind === 'push'
+          (options.alerts || options.reports) &&
+          receipt.status === 'accepted' &&
+          change.kind === 'push'
             ? await monitoring.pushed(change.installation, change.repository, now())
             : false;
         // With approval issues on, new installations and comments are handled without waiting.
@@ -597,7 +606,7 @@ export async function runHostedService(options: {
             options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
         }
         await inventories.requestMissing();
-        const registry = options.alerts && (await monitoringRegistry());
+        const registry = (options.alerts || options.reports) && (await monitoringRegistry());
         if (registry) {
           const due = await requestRescans({ monitoring, inventories, registry, now: now() });
           for (const item of due)
@@ -630,6 +639,15 @@ export async function runHostedService(options: {
             now: now(),
             leadDays: options.alerts.leadDays,
             digest: options.alerts.digest,
+            signal: options.signal,
+            onProgress: options.onProgress,
+          });
+        if (registry && options.reports && !options.signal.aborted)
+          await syncReportIssues({
+            app: options.app,
+            reports,
+            registry,
+            now: now(),
             signal: options.signal,
             onProgress: options.onProgress,
           });
