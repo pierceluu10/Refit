@@ -253,6 +253,20 @@
         "upgradeComplete": "yes: stripe-node 22.2.1 to 23.0.0.",
         "wouldMerge": "yes, after confirming cards stay enabled and running checkout once in test mode."
       }
+    },
+    {
+      "repo": "MeiyuTech/AET-App",
+      "pullRequest": "https://github.com/refit-dev/AET-App/pull/1",
+      "reviewedAt": "2026-10-21",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes, under the keep-listed opt-in (owner decision 2026-10-21): both Checkout Session creations send ['card', 'alipay'], which move to allowed_payment_method_types with the same methods.",
+        "bothVersions": "not needed: every client is new Stripe(key) with no apiVersion, so stripe-node 23 sends its own endive version, and the upgrade ships in the same patch.",
+        "nothingUnrelated": "yes: two parameters, the stripe dependency and its lockfile entry.",
+        "pleaseCheck": "Stripe now filters card and alipay by each buyer's eligibility, so alipay may not be offered to some customers; confirm it still appears where needed. The 4 untraced reads left unchanged are error.type on StripeError. The repository's npm test fails 9 tests on the original code, so the operator ran tsc with the 4g workspace profile; it passed on both. No Stripe request was exercised.",
+        "upgradeComplete": "yes: stripe-node 17.x to 23.0.0.",
+        "wouldMerge": "yes, after confirming alipay still appears where the business relies on it and running checkout once in test mode."
+      }
     }
   ]
 }
