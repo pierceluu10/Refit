@@ -109,6 +109,16 @@ it('separates guard rejections from the input checks on the model output', () =>
     ).outcome;
   expect(repairError('PipelineInputError: AI replacements overlap.')).toBe('input-rejected');
   expect(
+    repairError(
+      'PipelineInputError: AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
+    ),
+  ).toBe('review-stop');
+  expect(
+    repairError(
+      "PipelineInputError: AI patch changes webhook event type 'customer.subscription-created'; event names stop for review.",
+    ),
+  ).toBe('review-stop');
+  expect(
     repairError('PipelineInputError: AI replacement must match exactly one source occurrence.'),
   ).toBe('input-rejected');
   expect(

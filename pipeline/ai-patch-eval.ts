@@ -65,8 +65,11 @@ interface Report {
 const GUARD =
   /AI replacement (substitutes pre-existing field|reads added field|still reads removed)/;
 const EVIDENCE_LIMIT = /exceeds the 64 KiB input limit|exceeds the token limit/;
-// proposeAiPatch's checks on the model's edits before any guard: scope, matching, overlap, syntax,
-// event names and subscription item choice.
+// proposeAiPatch's policy stops on what the model's edits do (event names, subscription item
+// choice); they end in a review, not a rejected answer.
+const POLICY_STOP = /^(PipelineInputError: )?AI patch .* stops? for review\.$/;
+// proposeAiPatch's checks on the model's edits before any guard: schema, scope, matching,
+// coverage, overlap and syntax.
 const INPUT_CHECK = /^(PipelineInputError: )?AI (patch|replacement|replacements) /;
 const NO_PROPOSAL = /No supported patch proposal is available/;
 // The eval's runs are offline apart from OpenAI, so a failed fetch or an aborted request is the
@@ -76,6 +79,7 @@ const AI_ERROR = /OpenAI|\bAI\b|fetch failed|operation was aborted|aborted due t
 function rejection(message: string): AiPatchOutcome {
   if (GUARD.test(message)) return 'guard-rejected';
   if (EVIDENCE_LIMIT.test(message)) return 'evidence-limit';
+  if (POLICY_STOP.test(message)) return 'review-stop';
   if (INPUT_CHECK.test(message)) return 'input-rejected';
   if (NO_PROPOSAL.test(message)) return 'declined';
   return 'error';
