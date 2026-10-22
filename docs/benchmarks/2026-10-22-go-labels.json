@@ -9,6 +9,14 @@
     "sent": "a line where a model the call can send is written: a string literal, or an SDK model constant (the line of `openai.ChatModelGPT4o` or `anthropic.ModelClaude...`); defaults and config defaults that reach the call count; catalogs, pricing tables and the repository's own constant tables do not",
     "ambiguous": "paths that could not be settled by reading; not scored"
   },
+  "adjudications": [
+    {
+      "repo": "mynaparrot/plugNmeet-server",
+      "after": "318bbc7",
+      "change": "added sent pkg/insights/providers/openai/summarization.go:78 gpt-5.4-mini, pkg/insights/providers/openai/llm.go:80 gpt-5.4-mini, pkg/insights/providers/openai/translate.go:26 gpt-5.4-mini, pkg/insights/providers/openai/tts.go:21 gpt-4o-mini-tts",
+      "reason": "Labelling misses: SDK model constants used as fallbacks (if summarizeModel == \"\" { \u2026 } and as the default argument of the application's own option getter) reach the calls. The first was found because the first scored run reported it; the other three were found reading the same files."
+    }
+  ],
   "repos": [
     {
       "repo": "baby-llm/baby-agent",
@@ -138,7 +146,28 @@
           "provider": "openai"
         }
       ],
-      "sent": [],
+      "sent": [
+        {
+          "file": "pkg/insights/providers/openai/summarization.go",
+          "line": 78,
+          "model": "gpt-5.4-mini"
+        },
+        {
+          "file": "pkg/insights/providers/openai/llm.go",
+          "line": 80,
+          "model": "gpt-5.4-mini"
+        },
+        {
+          "file": "pkg/insights/providers/openai/translate.go",
+          "line": 26,
+          "model": "gpt-5.4-mini"
+        },
+        {
+          "file": "pkg/insights/providers/openai/tts.go",
+          "line": 21,
+          "model": "gpt-4o-mini-tts"
+        }
+      ],
       "ambiguous": [
         {
           "file": "pkg/insights/providers/openai/realtime.go",
