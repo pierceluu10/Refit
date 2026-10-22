@@ -1,0 +1,3289 @@
+{
+ "run": "2026-10-22",
+ "refit": "7b2c86a",
+ "command": "refit deadlines --repository <clone> --json",
+ "note": "The 2026-10-16 fresh sets rescanned with the 2026-10-22 registry, in the format of 2026-10-16-deadline-fresh-results.json. Repositories over the scan limits are absent: Crunchyman-ralph/shopify-app-node-monorepo-express-vite and strapi-community/shopify (Shopify); getcord/cord, samepage-network/samepage.network, ciaran-finnegan/secret-sharer-server and litmajor/mtaa-dao (Stripe), as on 2026-10-16.",
+ "sets": {
+  "shopify-fresh": {
+   "Shopify/shopify-app-template-remix": {
+    "repo": "Shopify/shopify-app-template-remix",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "kinngh/shopify-nextjs-prisma-app": {
+    "repo": "kinngh/shopify-nextjs-prisma-app",
+    "exposures": []
+   },
+   "Aident-AI/open-cuak": {
+    "repo": "Aident-AI/open-cuak",
+    "exposures": [
+     {
+      "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+      "days": -359
+     },
+     {
+      "id": "openai-2027-01-14-gpt-4o-2024-08-06",
+      "days": 84
+     }
+    ]
+   },
+   "kinngh/shopify-node-express-mongodb-app": {
+    "repo": "kinngh/shopify-node-express-mongodb-app",
+    "exposures": []
+   },
+   "GeLi2001/shopify-mcp": {
+    "repo": "GeLi2001/shopify-mcp",
+    "exposures": []
+   },
+   "nestjs-shopify/nestjs-shopify": {
+    "repo": "nestjs-shopify/nestjs-shopify",
+    "exposures": []
+   },
+   "Shopify/shop-chat-agent": {
+    "repo": "Shopify/shop-chat-agent",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     },
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "drizzle-team/tento": {
+    "repo": "drizzle-team/tento",
+    "exposures": []
+   },
+   "djordje-st/tanstack-start-shopify-app-boilerplate": {
+    "repo": "djordje-st/tanstack-start-shopify-app-boilerplate",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-07",
+      "days": 267
+     }
+    ]
+   },
+   "nestjs-shopify/example-nx-app": {
+    "repo": "nestjs-shopify/example-nx-app",
+    "exposures": []
+   },
+   "maestrooo/metaobject-repository": {
+    "repo": "maestrooo/metaobject-repository",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "The-Rapid-Apps/Rapid-CRM": {
+    "repo": "The-Rapid-Apps/Rapid-CRM",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-07",
+      "days": 267
+     }
+    ]
+   },
+   "Shopify/fulfillment-order-sample-app": {
+    "repo": "Shopify/fulfillment-order-sample-app",
+    "exposures": []
+   },
+   "callobuzz/cob-shopify-mcp": {
+    "repo": "callobuzz/cob-shopify-mcp",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-01",
+      "days": 86
+     }
+    ]
+   },
+   "mwakidenis/fullstack-ecommerce-nextjs-shopify": {
+    "repo": "mwakidenis/fullstack-ecommerce-nextjs-shopify",
+    "exposures": []
+   },
+   "paweljedrzejczyk/shopify-multistore-app-middleware": {
+    "repo": "paweljedrzejczyk/shopify-multistore-app-middleware",
+    "exposures": []
+   },
+   "Santho-sh/shopify-product-bundler-app": {
+    "repo": "Santho-sh/shopify-product-bundler-app",
+    "exposures": []
+   },
+   "madoublet/sections-pro-remix-oss": {
+    "repo": "madoublet/sections-pro-remix-oss",
+    "exposures": []
+   },
+   "pranav-kural/products-vectro": {
+    "repo": "pranav-kural/products-vectro",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "Shopify/example-admin--action-and-block--react": {
+    "repo": "Shopify/example-admin--action-and-block--react",
+    "exposures": []
+   },
+   "mw10013/tanstack-cloudflare-effect-shopify-app": {
+    "repo": "mw10013/tanstack-cloudflare-effect-shopify-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-01",
+      "days": 86
+     }
+    ]
+   },
+   "Stephnn0/shipping-discounts-shopify-app": {
+    "repo": "Stephnn0/shipping-discounts-shopify-app",
+    "exposures": []
+   },
+   "evigauge-org/helix": {
+    "repo": "evigauge-org/helix",
+    "exposures": [
+     {
+      "id": "openai-2026-05-12-dall-e-2",
+      "days": -163
+     }
+    ]
+   },
+   "sabbir-noyon/wishkit-app-shopify": {
+    "repo": "sabbir-noyon/wishkit-app-shopify",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "Shopify/editions-dev-2024-workshop-extensibility": {
+    "repo": "Shopify/editions-dev-2024-workshop-extensibility",
+    "exposures": []
+   },
+   "yan-ad/shopify-app-nuxt": {
+    "repo": "yan-ad/shopify-app-nuxt",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-01",
+      "days": 86
+     }
+    ]
+   },
+   "chr33s/shopify-cloudflare-hono-preact-iso-starter": {
+    "repo": "chr33s/shopify-cloudflare-hono-preact-iso-starter",
+    "exposures": []
+   },
+   "german-zarate/shopify-node-express-mongodb-app": {
+    "repo": "german-zarate/shopify-node-express-mongodb-app",
+    "exposures": []
+   },
+   "grocco/flarify": {
+    "repo": "grocco/flarify",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-04",
+      "days": -189
+     }
+    ]
+   },
+   "hasan-araav/shopify-order-sync": {
+    "repo": "hasan-araav/shopify-order-sync",
+    "exposures": []
+   },
+   "ShopyOs/metaobjects-orm": {
+    "repo": "ShopyOs/metaobjects-orm",
+    "exposures": []
+   },
+   "Stephnn0/shopify-bulk-operations-example": {
+    "repo": "Stephnn0/shopify-bulk-operations-example",
+    "exposures": []
+   },
+   "Nuraveda/shopify-agentic-seo-app": {
+    "repo": "Nuraveda/shopify-agentic-seo-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "psydao/psydao-io": {
+    "repo": "psydao/psydao-io",
+    "exposures": []
+   },
+   "Rockstar100/web-pixel-tracker": {
+    "repo": "Rockstar100/web-pixel-tracker",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "samikaran/fullstack-ecommerce-nextjs-shopify": {
+    "repo": "samikaran/fullstack-ecommerce-nextjs-shopify",
+    "exposures": []
+   },
+   "SankaiAI/iHeard.ai": {
+    "repo": "SankaiAI/iHeard.ai",
+    "exposures": []
+   },
+   "Tanaka0127939/Shopify-NodeApp-Starter": {
+    "repo": "Tanaka0127939/Shopify-NodeApp-Starter",
+    "exposures": []
+   },
+   "AB-Insightful/ab-insightful": {
+    "repo": "AB-Insightful/ab-insightful",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "codeyogi911/shopify-mcp": {
+    "repo": "codeyogi911/shopify-mcp",
+    "exposures": []
+   },
+   "Hujjat/functions-basic": {
+    "repo": "Hujjat/functions-basic",
+    "exposures": []
+   },
+   "leaderfrank/Shopify-Custom-Floating-Bar": {
+    "repo": "leaderfrank/Shopify-Custom-Floating-Bar",
+    "exposures": []
+   },
+   "META-DREAMER/framepay": {
+    "repo": "META-DREAMER/framepay",
+    "exposures": []
+   },
+   "ozzyonfire/shopify-app-next-external": {
+    "repo": "ozzyonfire/shopify-app-next-external",
+    "exposures": []
+   },
+   "Shopify/editions-dev-2025-workshop-customer-account": {
+    "repo": "Shopify/editions-dev-2025-workshop-customer-account",
+    "exposures": []
+   },
+   "Shopify/example-admin-action-and-block-preact": {
+    "repo": "Shopify/example-admin-action-and-block-preact",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "Shopify/loyalty-extension-example": {
+    "repo": "Shopify/loyalty-extension-example",
+    "exposures": []
+   },
+   "Shopify/shopify-react-conf-22-app": {
+    "repo": "Shopify/shopify-react-conf-22-app",
+    "exposures": []
+   },
+   "asap-xt/shopify-ai-seo-app": {
+    "repo": "asap-xt/shopify-ai-seo-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "dalenguyen/shopify-remix-qr-app": {
+    "repo": "dalenguyen/shopify-remix-qr-app",
+    "exposures": []
+   },
+   "dan-gamble/shopify-remix-cloudflare-pages-app": {
+    "repo": "dan-gamble/shopify-remix-cloudflare-pages-app",
+    "exposures": []
+   },
+   "diegolarraz/shopify-next-supabase-starter": {
+    "repo": "diegolarraz/shopify-next-supabase-starter",
+    "exposures": []
+   },
+   "guqun/reviewmate-public": {
+    "repo": "guqun/reviewmate-public",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-04",
+      "days": -189
+     }
+    ]
+   },
+   "kevinjmosley93/the-best-shopify-theme-toolkit": {
+    "repo": "kevinjmosley93/the-best-shopify-theme-toolkit",
+    "exposures": []
+   },
+   "render-examples/render-shopify-example": {
+    "repo": "render-examples/render-shopify-example",
+    "exposures": []
+   },
+   "SGFGOV/medusa-plugin-shopify-ts": {
+    "repo": "SGFGOV/medusa-plugin-shopify-ts",
+    "exposures": []
+   },
+   "shopsavvy/shopify-shopsavvy": {
+    "repo": "shopsavvy/shopify-shopsavvy",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "SnithfferxDS/sioma-backend": {
+    "repo": "SnithfferxDS/sioma-backend",
+    "exposures": []
+   },
+   "speedcubing-ireland/speedcubingireland.com": {
+    "repo": "speedcubing-ireland/speedcubingireland.com",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-04",
+      "days": -189
+     }
+    ]
+   },
+   "vyuba/BunnyBite": {
+    "repo": "vyuba/BunnyBite",
+    "exposures": []
+   },
+   "brunaszarin/spotlight-manager": {
+    "repo": "brunaszarin/spotlight-manager",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "CloudContactAI/ccai-shopify-abandoned-cart": {
+    "repo": "CloudContactAI/ccai-shopify-abandoned-cart",
+    "exposures": []
+   },
+   "DimitarZlatev10/Shopify_App": {
+    "repo": "DimitarZlatev10/Shopify_App",
+    "exposures": []
+   },
+   "edvedafi/cardlister": {
+    "repo": "edvedafi/cardlister",
+    "exposures": []
+   },
+   "Greenstand/POS-Shopify-Extension": {
+    "repo": "Greenstand/POS-Shopify-Extension",
+    "exposures": []
+   },
+   "Harshthakur24/Shopify_Tenant_Dashboard": {
+    "repo": "Harshthakur24/Shopify_Tenant_Dashboard",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "izuchukwu-eric/email-marketing": {
+    "repo": "izuchukwu-eric/email-marketing",
+    "exposures": []
+   },
+   "ksyp-7/shopify-theme-app-extension-vite-react": {
+    "repo": "ksyp-7/shopify-theme-app-extension-vite-react",
+    "exposures": []
+   },
+   "mathiusj/hot-tricks-from-dev-docs": {
+    "repo": "mathiusj/hot-tricks-from-dev-docs",
+    "exposures": []
+   },
+   "mdrahbar21/shopifyApp": {
+    "repo": "mdrahbar21/shopifyApp",
+    "exposures": []
+   },
+   "msolorio/shopify-auth-express-middleware": {
+    "repo": "msolorio/shopify-auth-express-middleware",
+    "exposures": []
+   },
+   "narayanan13/new-app": {
+    "repo": "narayanan13/new-app",
+    "exposures": []
+   },
+   "ndrishinski/bulk-update-tags": {
+    "repo": "ndrishinski/bulk-update-tags",
+    "exposures": []
+   },
+   "rahulitme/Final_Year_Project": {
+    "repo": "rahulitme/Final_Year_Project",
+    "exposures": []
+   },
+   "rcisneros138/shopify-sync-app": {
+    "repo": "rcisneros138/shopify-sync-app",
+    "exposures": []
+   },
+   "saidMounaim/shopify-next": {
+    "repo": "saidMounaim/shopify-next",
+    "exposures": []
+   },
+   "Shopify/dotdev-workshop-events": {
+    "repo": "Shopify/dotdev-workshop-events",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "shoptether/shoptether": {
+    "repo": "shoptether/shoptether",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "t-jindai/shopify-app-session-storage-firestore": {
+    "repo": "t-jindai/shopify-app-session-storage-firestore",
+    "exposures": []
+   },
+   "t-maypat/xsight": {
+    "repo": "t-maypat/xsight",
+    "exposures": []
+   },
+   "Timdev0x/Shopify-QR-app": {
+    "repo": "Timdev0x/Shopify-QR-app",
+    "exposures": []
+   },
+   "trigga6006/shopify-mcp-server": {
+    "repo": "trigga6006/shopify-mcp-server",
+    "exposures": []
+   },
+   "umxr/shopify-product-reviews": {
+    "repo": "umxr/shopify-product-reviews",
+    "exposures": []
+   },
+   "1234-ad/shopify-order-dashboard": {
+    "repo": "1234-ad/shopify-order-dashboard",
+    "exposures": []
+   },
+   "adearriba/shopify-app-session-storage-cosmosdb": {
+    "repo": "adearriba/shopify-app-session-storage-cosmosdb",
+    "exposures": []
+   },
+   "Ahsan-Ah-med/CashOnDeliveryFee": {
+    "repo": "Ahsan-Ah-med/CashOnDeliveryFee",
+    "exposures": []
+   },
+   "akashrajeshnair/ecommerce-next": {
+    "repo": "akashrajeshnair/ecommerce-next",
+    "exposures": []
+   },
+   "alirafat2024/25_oct-shopify_functions": {
+    "repo": "alirafat2024/25_oct-shopify_functions",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "alucardislit-coder/shopify-stripe-backend": {
+    "repo": "alucardislit-coder/shopify-stripe-backend",
+    "exposures": []
+   },
+   "amm10090/Shopify-API-Project": {
+    "repo": "amm10090/Shopify-API-Project",
+    "exposures": []
+   },
+   "andresantos303/FlowShip": {
+    "repo": "andresantos303/FlowShip",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     },
+     {
+      "id": "shopify-admin-2026-04",
+      "days": 176
+     }
+    ]
+   },
+   "antho8101/RefSpring": {
+    "repo": "antho8101/RefSpring",
+    "exposures": []
+   },
+   "AntonVasylchenko/shopify-node-app": {
+    "repo": "AntonVasylchenko/shopify-node-app",
+    "exposures": []
+   },
+   "apo11oCreed/shopify": {
+    "repo": "apo11oCreed/shopify",
+    "exposures": []
+   },
+   "aqzhen/Revu-co2": {
+    "repo": "aqzhen/Revu-co2",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "ArseniyX/taskly": {
+    "repo": "ArseniyX/taskly",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     },
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "arslanramay/shopify-custom-app-boilerplate": {
+    "repo": "arslanramay/shopify-custom-app-boilerplate",
+    "exposures": []
+   },
+   "Ascensyo/addlee-now": {
+    "repo": "Ascensyo/addlee-now",
+    "exposures": []
+   },
+   "ashishSoni1234/wishlist-app": {
+    "repo": "ashishSoni1234/wishlist-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "askphill/bulk-update-customer-locale": {
+    "repo": "askphill/bulk-update-customer-locale",
+    "exposures": []
+   },
+   "atsuki-sakai/shopify-point-app": {
+    "repo": "atsuki-sakai/shopify-point-app",
+    "exposures": []
+   },
+   "avocadomayo/cart-checkout-validation-app": {
+    "repo": "avocadomayo/cart-checkout-validation-app",
+    "exposures": []
+   },
+   "bangtbtb/shopify-discount": {
+    "repo": "bangtbtb/shopify-discount",
+    "exposures": []
+   },
+   "benzookapi/shopify-gcp-demo": {
+    "repo": "benzookapi/shopify-gcp-demo",
+    "exposures": []
+   },
+   "benzookapi/shopify-remix-app-custom": {
+    "repo": "benzookapi/shopify-remix-app-custom",
+    "exposures": []
+   },
+   "BillyND/shopify-uploads": {
+    "repo": "BillyND/shopify-uploads",
+    "exposures": []
+   },
+   "bosidev/nerd-bundles-app": {
+    "repo": "bosidev/nerd-bundles-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "Bushra-KB/subscriptions-ref-app": {
+    "repo": "Bushra-KB/subscriptions-ref-app",
+    "exposures": []
+   },
+   "CABlank/referrd-react-app-shopify": {
+    "repo": "CABlank/referrd-react-app-shopify",
+    "exposures": []
+   },
+   "carlosrebelo14-ai/alterpop-importer2": {
+    "repo": "carlosrebelo14-ai/alterpop-importer2",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "chiragramjibhaipatel/sda-project-member-profiles-app": {
+    "repo": "chiragramjibhaipatel/sda-project-member-profiles-app",
+    "exposures": []
+   },
+   "CJBiohacker/Carlos-Junior-Minirutter": {
+    "repo": "CJBiohacker/Carlos-Junior-Minirutter",
+    "exposures": []
+   },
+   "ColoradaGreis/alfajordemaicena": {
+    "repo": "ColoradaGreis/alfajordemaicena",
+    "exposures": []
+   },
+   "cornerstone-report/x-money-shopify": {
+    "repo": "cornerstone-report/x-money-shopify",
+    "exposures": []
+   },
+   "danyn/shopify-app-rr": {
+    "repo": "danyn/shopify-app-rr",
+    "exposures": []
+   },
+   "darongmean/shopify-on-cloudflare": {
+    "repo": "darongmean/shopify-on-cloudflare",
+    "exposures": []
+   },
+   "dave1725/xeno-shopify-app": {
+    "repo": "dave1725/xeno-shopify-app",
+    "exposures": []
+   },
+   "dcam9586/scout-source2": {
+    "repo": "dcam9586/scout-source2",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "devtruongson/misen_app": {
+    "repo": "devtruongson/misen_app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "dza59/remix-chat-tutorial": {
+    "repo": "dza59/remix-chat-tutorial",
+    "exposures": []
+   },
+   "flwrdev/delivery-scheduler": {
+    "repo": "flwrdev/delivery-scheduler",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     },
+     {
+      "id": "shopify-admin-2026-04",
+      "days": 176
+     }
+    ]
+   },
+   "hak193/i-devr-code": {
+    "repo": "hak193/i-devr-code",
+    "exposures": []
+   },
+   "hungds99/sf-remix-app-aws-template": {
+    "repo": "hungds99/sf-remix-app-aws-template",
+    "exposures": []
+   },
+   "iamgenesistech-hub/IAGT_AI_VIRAL_ENGINE": {
+    "repo": "iamgenesistech-hub/IAGT_AI_VIRAL_ENGINE",
+    "exposures": []
+   },
+   "ibabalola89/Unoir_Render": {
+    "repo": "ibabalola89/Unoir_Render",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "iqbal-web/event-tracker-webhook-triggers": {
+    "repo": "iqbal-web/event-tracker-webhook-triggers",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-07",
+      "days": 267
+     }
+    ]
+   },
+   "iqbaldp/shopify-promotion-agent": {
+    "repo": "iqbaldp/shopify-promotion-agent",
+    "exposures": []
+   },
+   "jadenScali/Aeo-Optimizer": {
+    "repo": "jadenScali/Aeo-Optimizer",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "jahmedabeer/Shopify-Storefront-AI-agent": {
+    "repo": "jahmedabeer/Shopify-Storefront-AI-agent",
+    "exposures": []
+   },
+   "jahnavi2105m/DiaBites": {
+    "repo": "jahnavi2105m/DiaBites",
+    "exposures": []
+   },
+   "jamalsoueidan/booking-api": {
+    "repo": "jamalsoueidan/booking-api",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "jaysontolentino/Shopify-QRCodeGeneratorApp": {
+    "repo": "jaysontolentino/Shopify-QRCodeGeneratorApp",
+    "exposures": []
+   },
+   "JehielL/uchatbot-pluggin-shopify": {
+    "repo": "JehielL/uchatbot-pluggin-shopify",
+    "exposures": []
+   },
+   "Jessdanie94/fabulous-gems-dashboard": {
+    "repo": "Jessdanie94/fabulous-gems-dashboard",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "jgasimli04/marketoracle": {
+    "repo": "jgasimli04/marketoracle",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "johnshields/northstar": {
+    "repo": "johnshields/northstar",
+    "exposures": []
+   },
+   "kampfire-dev/bulkify": {
+    "repo": "kampfire-dev/bulkify",
+    "exposures": []
+   },
+   "kellyannclark/subscription-sync": {
+    "repo": "kellyannclark/subscription-sync",
+    "exposures": []
+   },
+   "kwngo/shopify-remix-extensions-with-react": {
+    "repo": "kwngo/shopify-remix-extensions-with-react",
+    "exposures": []
+   },
+   "kyledickey/hansumfella-website": {
+    "repo": "kyledickey/hansumfella-website",
+    "exposures": []
+   },
+   "LazerTechnologies/shopify-app-development-course": {
+    "repo": "LazerTechnologies/shopify-app-development-course",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "Leano-Jordan/ZIA-Inventory_Assist_Plugin": {
+    "repo": "Leano-Jordan/ZIA-Inventory_Assist_Plugin",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-10",
+      "days": 359
+     }
+    ]
+   },
+   "Liroo/emilievizcano.com": {
+    "repo": "Liroo/emilievizcano.com",
+    "exposures": []
+   },
+   "lisandrophan/designify": {
+    "repo": "lisandrophan/designify",
+    "exposures": []
+   },
+   "lnmjkessel-code/v13": {
+    "repo": "lnmjkessel-code/v13",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "luffytaroZ/Tracker": {
+    "repo": "luffytaroZ/Tracker",
+    "exposures": []
+   },
+   "lukeclifton/shopify-app-template-remix-cloudflare": {
+    "repo": "lukeclifton/shopify-app-template-remix-cloudflare",
+    "exposures": []
+   },
+   "Manuel1996-coder/shoppulseai": {
+    "repo": "Manuel1996-coder/shoppulseai",
+    "exposures": []
+   },
+   "MarlonPerez-01/price-tracker": {
+    "repo": "MarlonPerez-01/price-tracker",
+    "exposures": []
+   },
+   "mas-iota/shopify-non-embedded": {
+    "repo": "mas-iota/shopify-non-embedded",
+    "exposures": []
+   },
+   "matheuscpatricio/omafit": {
+    "repo": "matheuscpatricio/omafit",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     },
+     {
+      "id": "openai-2026-10-23-gpt-image-1",
+      "days": 1
+     },
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     }
+    ]
+   },
+   "meisbobzheng/pinpoint-archive": {
+    "repo": "meisbobzheng/pinpoint-archive",
+    "exposures": []
+   },
+   "miahcodes/mm-savecart": {
+    "repo": "miahcodes/mm-savecart",
+    "exposures": []
+   },
+   "michaelwang11394/sales-associate": {
+    "repo": "michaelwang11394/sales-associate",
+    "exposures": [
+     {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "days": -210
+     },
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "mikelaurenzo7-collab/MANUSshopabot": {
+    "repo": "mikelaurenzo7-collab/MANUSshopabot",
+    "exposures": [
+     {
+      "id": "meta-graph-v18-0",
+      "days": -269
+     },
+     {
+      "id": "meta-graph-v19-0",
+      "days": -154
+     },
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     },
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     },
+     {
+      "id": "meta-graph-v24-0",
+      "days": 484
+     }
+    ]
+   },
+   "Mitakshar15/RemixShopifyApp": {
+    "repo": "Mitakshar15/RemixShopifyApp",
+    "exposures": []
+   },
+   "Mohanatheeba/deepa-test-app": {
+    "repo": "Mohanatheeba/deepa-test-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "mohdfaizanahmed/Shopify_Task": {
+    "repo": "mohdfaizanahmed/Shopify_Task",
+    "exposures": []
+   },
+   "mssalemi/b-is-for-bundles": {
+    "repo": "mssalemi/b-is-for-bundles",
+    "exposures": []
+   },
+   "Naqi-Haider/Hype-Counter": {
+    "repo": "Naqi-Haider/Hype-Counter",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "ndrishinski/popular-products": {
+    "repo": "ndrishinski/popular-products",
+    "exposures": []
+   },
+   "neoapollo18/glimpse-app": {
+    "repo": "neoapollo18/glimpse-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     },
+     {
+      "id": "openai-2026-12-01-gpt-image-1-mini",
+      "days": 40
+     }
+    ]
+   },
+   "newideasacct-lab/ai-peacemaker": {
+    "repo": "newideasacct-lab/ai-peacemaker",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "NguyenThoNgocIT/nest-admin": {
+    "repo": "NguyenThoNgocIT/nest-admin",
+    "exposures": []
+   },
+   "NINE15Team/Finally-Back-In-Stock": {
+    "repo": "NINE15Team/Finally-Back-In-Stock",
+    "exposures": []
+   },
+   "ntwrk1/test-checkout-app": {
+    "repo": "ntwrk1/test-checkout-app",
+    "exposures": []
+   },
+   "Nuraveda/ai-seo-agent": {
+    "repo": "Nuraveda/ai-seo-agent",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "omakatse-dev/omakatse": {
+    "repo": "omakatse-dev/omakatse",
+    "exposures": []
+   },
+   "omniapex-pro/omni-apex-v1": {
+    "repo": "omniapex-pro/omni-apex-v1",
+    "exposures": []
+   },
+   "othman4dev/SEOMASTER": {
+    "repo": "othman4dev/SEOMASTER",
+    "exposures": []
+   },
+   "peterwalker-svg/pos-ui": {
+    "repo": "peterwalker-svg/pos-ui",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "polidario/weeklyhow-remix-app": {
+    "repo": "polidario/weeklyhow-remix-app",
+    "exposures": []
+   },
+   "Priyadharshini29-M/Combo-page-app": {
+    "repo": "Priyadharshini29-M/Combo-page-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "prowebcoder/shopify-learning-app": {
+    "repo": "prowebcoder/shopify-learning-app",
+    "exposures": []
+   },
+   "R-A-Print-And-Seasonal-Market-LLC/ra-cj-importer": {
+    "repo": "R-A-Print-And-Seasonal-Market-LLC/ra-cj-importer",
+    "exposures": []
+   },
+   "ra-shopify/product-recommendations": {
+    "repo": "ra-shopify/product-recommendations",
+    "exposures": []
+   },
+   "raj84908/Quantus-Warehouse-javascript": {
+    "repo": "raj84908/Quantus-Warehouse-javascript",
+    "exposures": []
+   },
+   "Rakesh161rausahn/promo-banner-app": {
+    "repo": "Rakesh161rausahn/promo-banner-app",
+    "exposures": []
+   },
+   "ratul-pointerflow/wishlist": {
+    "repo": "ratul-pointerflow/wishlist",
+    "exposures": []
+   },
+   "rrichie551/Quantity-Breaks": {
+    "repo": "rrichie551/Quantity-Breaks",
+    "exposures": []
+   },
+   "rrichie551/social-media-feed-app": {
+    "repo": "rrichie551/social-media-feed-app",
+    "exposures": []
+   },
+   "safwanadnan/shopiflare": {
+    "repo": "safwanadnan/shopiflare",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "sahmsec/conversion-app": {
+    "repo": "sahmsec/conversion-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "sanjeev744/smart-bundle": {
+    "repo": "sanjeev744/smart-bundle",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   "sanjeev744/smart-slidecart": {
+    "repo": "sanjeev744/smart-slidecart",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     },
+     {
+      "id": "shopify-admin-2026-07",
+      "days": 267
+     }
+    ]
+   },
+   "sanjeev744/smart-variants-display": {
+    "repo": "sanjeev744/smart-variants-display",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-04",
+      "days": -189
+     }
+    ]
+   },
+   "sarim-alis/redemption-solutionsss": {
+    "repo": "sarim-alis/redemption-solutionsss",
+    "exposures": []
+   },
+   "Shabir300/QRCode-generator-react-router-app-v7-shopify": {
+    "repo": "Shabir300/QRCode-generator-react-router-app-v7-shopify",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "shanyewestyall/checkout-offers-shopify-app": {
+    "repo": "shanyewestyall/checkout-offers-shopify-app",
+    "exposures": []
+   },
+   "Shopify/example-app--embedded-auth--js": {
+    "repo": "Shopify/example-app--embedded-auth--js",
+    "exposures": []
+   },
+   "Shopify/example-app--optional-scopes--remix": {
+    "repo": "Shopify/example-app--optional-scopes--remix",
+    "exposures": []
+   },
+   "Shopify/example-storefronts--customer-account-api-authentication--javascript": {
+    "repo": "Shopify/example-storefronts--customer-account-api-authentication--javascript",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "Shubham13th/chatbot-app": {
+    "repo": "Shubham13th/chatbot-app",
+    "exposures": []
+   },
+   "shxhid-dev/shxhid-chat-agent": {
+    "repo": "shxhid-dev/shxhid-chat-agent",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     },
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   "smwilk/cart-transform-update": {
+    "repo": "smwilk/cart-transform-update",
+    "exposures": []
+   },
+   "snoryder8019/rw_socket": {
+    "repo": "snoryder8019/rw_socket",
+    "exposures": []
+   },
+   "sourav-backend-dev/crypto-shopify-app": {
+    "repo": "sourav-backend-dev/crypto-shopify-app",
+    "exposures": []
+   },
+   "tahmidbintaslim/shopify-ucp": {
+    "repo": "tahmidbintaslim/shopify-ucp",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   }
+  },
+  "stripe-fresh": {
+   "ElricLiu/AutoGPT-Next-Web": {
+    "repo": "ElricLiu/AutoGPT-Next-Web",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "hackerai-tech/hackerai": {
+    "repo": "hackerai-tech/hackerai",
+    "exposures": []
+   },
+   "agnaistic/agnai": {
+    "repo": "agnaistic/agnai",
+    "exposures": [
+     {
+      "id": "anthropic-2025-07-21-claude-2",
+      "days": -458
+     },
+     {
+      "id": "anthropic-2025-07-21-claude-3-sonnet",
+      "days": -458
+     },
+     {
+      "id": "openai-2025-07-28-o1-preview",
+      "days": -451
+     },
+     {
+      "id": "openai-2025-10-27-o1-mini",
+      "days": -360
+     },
+     {
+      "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+      "days": -359
+     },
+     {
+      "id": "anthropic-2026-01-05-claude-3-opus",
+      "days": -290
+     },
+     {
+      "id": "openai-2026-02-17-chatgpt-4o-latest",
+      "days": -247
+     },
+     {
+      "id": "anthropic-2026-02-19-claude-3-5-haiku",
+      "days": -245
+     },
+     {
+      "id": "anthropic-2026-02-19-claude-3-7-sonnet",
+      "days": -245
+     },
+     {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "days": -210
+     },
+     {
+      "id": "anthropic-2026-04-20-claude-3-haiku",
+      "days": -185
+     },
+     {
+      "id": "anthropic-2026-06-15-claude-opus-4",
+      "days": -129
+     },
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     },
+     {
+      "id": "openai-2026-09-28-gpt-3-5-turbo-instruct",
+      "days": -24
+     },
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     },
+     {
+      "id": "openai-2027-01-14-gpt-4o-2024-08-06",
+      "days": 84
+     }
+    ]
+   },
+   "LubomirGeorgiev/cloudflare-workers-nextjs-saas-template": {
+    "repo": "LubomirGeorgiev/cloudflare-workers-nextjs-saas-template",
+    "exposures": []
+   },
+   "joschan21/contentport": {
+    "repo": "joschan21/contentport",
+    "exposures": [
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   "techblitzdev/TechBlitz": {
+    "repo": "techblitzdev/TechBlitz",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     },
+     {
+      "id": "openai-2027-01-14-gpt-4o-2024-08-06",
+      "days": 84
+     }
+    ]
+   },
+   "LuqP2/Image-MetaHub": {
+    "repo": "LuqP2/Image-MetaHub",
+    "exposures": []
+   },
+   "ski043/ShoeMarshal": {
+    "repo": "ski043/ShoeMarshal",
+    "exposures": []
+   },
+   "BastidaNicolas/nextauth-prisma-stripe": {
+    "repo": "BastidaNicolas/nextauth-prisma-stripe",
+    "exposures": []
+   },
+   "zainulabedeen123/Best-Saas-Kit--V2": {
+    "repo": "zainulabedeen123/Best-Saas-Kit--V2",
+    "exposures": []
+   },
+   "samarbadriddin0v/notion-clone": {
+    "repo": "samarbadriddin0v/notion-clone",
+    "exposures": []
+   },
+   "workos/next-b2b-starter-kit": {
+    "repo": "workos/next-b2b-starter-kit",
+    "exposures": []
+   },
+   "RicardoGEsteves/next-digital-marketplace": {
+    "repo": "RicardoGEsteves/next-digital-marketplace",
+    "exposures": []
+   },
+   "krishna-praveen/shipfast-template-1": {
+    "repo": "krishna-praveen/shipfast-template-1",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "Oustro/ziggy": {
+    "repo": "Oustro/ziggy",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "convex/stripe": {
+    "repo": "convex/stripe",
+    "exposures": []
+   },
+   "thematters/matters-server": {
+    "repo": "thematters/matters-server",
+    "exposures": [
+     {
+      "id": "meta-graph-v18-0",
+      "days": -269
+     }
+    ]
+   },
+   "StretchShop/StretchShop": {
+    "repo": "StretchShop/StretchShop",
+    "exposures": []
+   },
+   "jakops88-hub/Long-Term-Memory-API": {
+    "repo": "jakops88-hub/Long-Term-Memory-API",
+    "exposures": []
+   },
+   "PansaLegrand/sushi-saas-template": {
+    "repo": "PansaLegrand/sushi-saas-template",
+    "exposures": []
+   },
+   "tarkovtracker-org/TarkovTracker": {
+    "repo": "tarkovtracker-org/TarkovTracker",
+    "exposures": []
+   },
+   "megoxv/visionGPT": {
+    "repo": "megoxv/visionGPT",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "sa902/ship-fast-ts-main": {
+    "repo": "sa902/ship-fast-ts-main",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "joshnuss/sveltekit-saas": {
+    "repo": "joshnuss/sveltekit-saas",
+    "exposures": []
+   },
+   "dubbl-org/dubbl": {
+    "repo": "dubbl-org/dubbl",
+    "exposures": []
+   },
+   "kulkarniankita/speakeasyai": {
+    "repo": "kulkarniankita/speakeasyai",
+    "exposures": [
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   "vignesh-gupta/digibee-marketplace": {
+    "repo": "vignesh-gupta/digibee-marketplace",
+    "exposures": []
+   },
+   "kaorii-ako/Shiori-v1": {
+    "repo": "kaorii-ako/Shiori-v1",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "NeuralInverse/nmx-infra": {
+    "repo": "NeuralInverse/nmx-infra",
+    "exposures": []
+   },
+   "adityayaduvanshi/Full-Stack-Music-Web-App": {
+    "repo": "adityayaduvanshi/Full-Stack-Music-Web-App",
+    "exposures": []
+   },
+   "airwaylab-app/airwaylab": {
+    "repo": "airwaylab-app/airwaylab",
+    "exposures": []
+   },
+   "daffy0208/ai-dev-standards": {
+    "repo": "daffy0208/ai-dev-standards",
+    "exposures": [
+     {
+      "id": "anthropic-2025-07-21-claude-3-sonnet",
+      "days": -458
+     },
+     {
+      "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+      "days": -359
+     },
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "days": -210
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "nabarvn/documon": {
+    "repo": "nabarvn/documon",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4-1-nano",
+      "days": 1
+     }
+    ]
+   },
+   "THE-KIPDEV/ultimate-express-starter": {
+    "repo": "THE-KIPDEV/ultimate-express-starter",
+    "exposures": []
+   },
+   "nirholas/crypto-data-aggregator": {
+    "repo": "nirholas/crypto-data-aggregator",
+    "exposures": [
+     {
+      "id": "anthropic-2026-04-20-claude-3-haiku",
+      "days": -185
+     }
+    ]
+   },
+   "noorjsdivs/tulos_updated": {
+    "repo": "noorjsdivs/tulos_updated",
+    "exposures": []
+   },
+   "vukrosic/next14-skool": {
+    "repo": "vukrosic/next14-skool",
+    "exposures": []
+   },
+   "HamedBahram/next-ai-chatbot": {
+    "repo": "HamedBahram/next-ai-chatbot",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "mergn-app/MergN": {
+    "repo": "mergn-app/MergN",
+    "exposures": []
+   },
+   "Shivamrai15/Spotify-Clone": {
+    "repo": "Shivamrai15/Spotify-Clone",
+    "exposures": []
+   },
+   "noorjsdivs/tulos_yt": {
+    "repo": "noorjsdivs/tulos_yt",
+    "exposures": []
+   },
+   "thunderavi/Easy.js_v.3.0.0": {
+    "repo": "thunderavi/Easy.js_v.3.0.0",
+    "exposures": [
+     {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "days": 39
+     },
+     {
+      "id": "openai-2027-04-01-gpt-5-1",
+      "days": 161
+     }
+    ]
+   },
+   "ANURAG-PATHAK/DigitalMali": {
+    "repo": "ANURAG-PATHAK/DigitalMali",
+    "exposures": []
+   },
+   "helloworld9912/Stripe-Account-Migration": {
+    "repo": "helloworld9912/Stripe-Account-Migration",
+    "exposures": []
+   },
+   "holy-unblocker/website2": {
+    "repo": "holy-unblocker/website2",
+    "exposures": []
+   },
+   "Molinar-AI/openclaw-business": {
+    "repo": "Molinar-AI/openclaw-business",
+    "exposures": [
+     {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "days": 39
+     }
+    ]
+   },
+   "mwakidenis/TicketHub": {
+    "repo": "mwakidenis/TicketHub",
+    "exposures": []
+   },
+   "mhaowork/warranty-watcher": {
+    "repo": "mhaowork/warranty-watcher",
+    "exposures": []
+   },
+   "tweneboah/nodejs-e-commerce-API-Course": {
+    "repo": "tweneboah/nodejs-e-commerce-API-Course",
+    "exposures": []
+   },
+   "Hombre2014/Genius": {
+    "repo": "Hombre2014/Genius",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "TechWithEmmaYT/Social-X-Clone-Course": {
+    "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+    "exposures": []
+   },
+   "nicuk/docsflow": {
+    "repo": "nicuk/docsflow",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "baifan1366/project-management-system": {
+    "repo": "baifan1366/project-management-system",
+    "exposures": []
+   },
+   "BensonRaro/CanvaClone": {
+    "repo": "BensonRaro/CanvaClone",
+    "exposures": []
+   },
+   "devczero/saas-pdf-analyzer-with-AI-codinzero": {
+    "repo": "devczero/saas-pdf-analyzer-with-AI-codinzero",
+    "exposures": []
+   },
+   "Kevin-Liu-01/Loop": {
+    "repo": "Kevin-Liu-01/Loop",
+    "exposures": []
+   },
+   "matheusmartinsviana/sumaristaai": {
+    "repo": "matheusmartinsviana/sumaristaai",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "Amansingh0807/GenForm": {
+    "repo": "Amansingh0807/GenForm",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "DarkInventor/QuotesAI": {
+    "repo": "DarkInventor/QuotesAI",
+    "exposures": []
+   },
+   "KiranRevanna1/taxonomy": {
+    "repo": "KiranRevanna1/taxonomy",
+    "exposures": []
+   },
+   "wyvern800/tldkp": {
+    "repo": "wyvern800/tldkp",
+    "exposures": []
+   },
+   "Drago-03/Neural-Nexus": {
+    "repo": "Drago-03/Neural-Nexus",
+    "exposures": []
+   },
+   "duggal1/flux-io": {
+    "repo": "duggal1/flux-io",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "frogermcs/stripe-ksef": {
+    "repo": "frogermcs/stripe-ksef",
+    "exposures": []
+   },
+   "Gahroot/the-forge": {
+    "repo": "Gahroot/the-forge",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     }
+    ]
+   },
+   "HamzaKhan-HK/Nuro-AI": {
+    "repo": "HamzaKhan-HK/Nuro-AI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "Librum-Reader/Librum-Website": {
+    "repo": "Librum-Reader/Librum-Website",
+    "exposures": []
+   },
+   "mckaywrigley/takeoff-perplexity-clone-final": {
+    "repo": "mckaywrigley/takeoff-perplexity-clone-final",
+    "exposures": []
+   },
+   "michaelshimeles/guru-catcher": {
+    "repo": "michaelshimeles/guru-catcher",
+    "exposures": []
+   },
+   "OwnTube-tv/peertube-plugin-premium-users": {
+    "repo": "OwnTube-tv/peertube-plugin-premium-users",
+    "exposures": []
+   },
+   "Strata-Labs/BitScript": {
+    "repo": "Strata-Labs/BitScript",
+    "exposures": []
+   },
+   "abhiya492/ticket-saas-app": {
+    "repo": "abhiya492/ticket-saas-app",
+    "exposures": []
+   },
+   "mckaywrigley/takeoff-perplexity-clone-mckay": {
+    "repo": "mckaywrigley/takeoff-perplexity-clone-mckay",
+    "exposures": []
+   },
+   "MuhammadTanveerAbbas/Clario-ai": {
+    "repo": "MuhammadTanveerAbbas/Clario-ai",
+    "exposures": []
+   },
+   "sagar2535/e-commerce-admin": {
+    "repo": "sagar2535/e-commerce-admin",
+    "exposures": []
+   },
+   "michaelshimeles/goshenpay-backend": {
+    "repo": "michaelshimeles/goshenpay-backend",
+    "exposures": []
+   },
+   "nirholas/memescope-monday": {
+    "repo": "nirholas/memescope-monday",
+    "exposures": []
+   },
+   "SergeySharipov/ai-companion-saas": {
+    "repo": "SergeySharipov/ai-companion-saas",
+    "exposures": []
+   },
+   "SimplerDevelopment/SimplerDevelopment": {
+    "repo": "SimplerDevelopment/SimplerDevelopment",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     },
+     {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "days": 39
+     },
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   "Small-Web-Co/tinypivot": {
+    "repo": "Small-Web-Co/tinypivot",
+    "exposures": [
+     {
+      "id": "anthropic-2026-04-20-claude-3-haiku",
+      "days": -185
+     }
+    ]
+   },
+   "SudoKMaar/leaf": {
+    "repo": "SudoKMaar/leaf",
+    "exposures": []
+   },
+   "CiphersLab/SaaSPilot": {
+    "repo": "CiphersLab/SaaSPilot",
+    "exposures": []
+   },
+   "habibjutt/nextjs_boilerplate": {
+    "repo": "habibjutt/nextjs_boilerplate",
+    "exposures": []
+   },
+   "profullstack/vibe-stack": {
+    "repo": "profullstack/vibe-stack",
+    "exposures": []
+   },
+   "danthareja/splitwise_for_ynab": {
+    "repo": "danthareja/splitwise_for_ynab",
+    "exposures": []
+   },
+   "DhavalDudheliya/DuoLingo_Clone": {
+    "repo": "DhavalDudheliya/DuoLingo_Clone",
+    "exposures": []
+   },
+   "HouseOfBetterAuth/nuxt-better-auth-saas": {
+    "repo": "HouseOfBetterAuth/nuxt-better-auth-saas",
+    "exposures": []
+   },
+   "rohitt-gupta/readifyai": {
+    "repo": "rohitt-gupta/readifyai",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "deniaiapp/deni-ai": {
+    "repo": "deniaiapp/deni-ai",
+    "exposures": []
+   },
+   "guillermolg00/nextjs-stripe-store": {
+    "repo": "guillermolg00/nextjs-stripe-store",
+    "exposures": []
+   },
+   "Harries/startfast-free": {
+    "repo": "Harries/startfast-free",
+    "exposures": []
+   },
+   "hideokamoto/stripe-testing-mcp-tools": {
+    "repo": "hideokamoto/stripe-testing-mcp-tools",
+    "exposures": []
+   },
+   "mickelsamuel/migrationpilot": {
+    "repo": "mickelsamuel/migrationpilot",
+    "exposures": []
+   },
+   "anand-mukul/PDFNinja": {
+    "repo": "anand-mukul/PDFNinja",
+    "exposures": []
+   },
+   "DeepRahangdale/Concierge-AI": {
+    "repo": "DeepRahangdale/Concierge-AI",
+    "exposures": []
+   },
+   "gr8monk3ys/link-flame": {
+    "repo": "gr8monk3ys/link-flame",
+    "exposures": []
+   },
+   "miljan-code/gpt-writer": {
+    "repo": "miljan-code/gpt-writer",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "palashb01/DocuChat": {
+    "repo": "palashb01/DocuChat",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "The-SaaS-Factory/Next-14-SaaS-Boilerplate-Pro": {
+    "repo": "The-SaaS-Factory/Next-14-SaaS-Boilerplate-Pro",
+    "exposures": []
+   },
+   "tomsoderlund/login-as-a-service": {
+    "repo": "tomsoderlund/login-as-a-service",
+    "exposures": []
+   },
+   "zero19124/next-ai-platform": {
+    "repo": "zero19124/next-ai-platform",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "hex22a/techwear-shop-nextjs": {
+    "repo": "hex22a/techwear-shop-nextjs",
+    "exposures": []
+   },
+   "mckaywrigley/takeoff-notes-app": {
+    "repo": "mckaywrigley/takeoff-notes-app",
+    "exposures": []
+   },
+   "MikPoik/next13-ai-companion": {
+    "repo": "MikPoik/next13-ai-companion",
+    "exposures": []
+   },
+   "nathanmcmullendev/ecommerce-react": {
+    "repo": "nathanmcmullendev/ecommerce-react",
+    "exposures": []
+   },
+   "thangtran3112/next-marketplace": {
+    "repo": "thangtran3112/next-marketplace",
+    "exposures": []
+   },
+   "ayaadev/peertube-plugin-sell-storage": {
+    "repo": "ayaadev/peertube-plugin-sell-storage",
+    "exposures": []
+   },
+   "createdbymax/Loopletter-Open-source-email-marketing-platform": {
+    "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+    "exposures": []
+   },
+   "enviodev/rescript-stripe": {
+    "repo": "enviodev/rescript-stripe",
+    "exposures": []
+   },
+   "JensenMPillay/pdfai": {
+    "repo": "JensenMPillay/pdfai",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "KyngKai909/nova-editor": {
+    "repo": "KyngKai909/nova-editor",
+    "exposures": []
+   },
+   "Mangoz1x/GptRewrite": {
+    "repo": "Mangoz1x/GptRewrite",
+    "exposures": []
+   },
+   "Run37927/starterKit": {
+    "repo": "Run37927/starterKit",
+    "exposures": []
+   },
+   "szymontex/donata": {
+    "repo": "szymontex/donata",
+    "exposures": []
+   },
+   "chipsxp/AI-SaaS-Assistant": {
+    "repo": "chipsxp/AI-SaaS-Assistant",
+    "exposures": []
+   },
+   "devczero/microsaas-thumbnail-previewer": {
+    "repo": "devczero/microsaas-thumbnail-previewer",
+    "exposures": []
+   },
+   "H-Dodamani/AetherAI": {
+    "repo": "H-Dodamani/AetherAI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "Honey-Bagel/Milanote-Clone": {
+    "repo": "Honey-Bagel/Milanote-Clone",
+    "exposures": []
+   },
+   "miazme/digitalhippo": {
+    "repo": "miazme/digitalhippo",
+    "exposures": []
+   },
+   "Mshandev/Shopnest": {
+    "repo": "Mshandev/Shopnest",
+    "exposures": []
+   },
+   "omar99elnemr/Docubot": {
+    "repo": "omar99elnemr/Docubot",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "PedroPini/ScaleNext": {
+    "repo": "PedroPini/ScaleNext",
+    "exposures": []
+   },
+   "Rohit19060/stripe_hono": {
+    "repo": "Rohit19060/stripe_hono",
+    "exposures": []
+   },
+   "SwarnenduG07/ImageMagic": {
+    "repo": "SwarnenduG07/ImageMagic",
+    "exposures": []
+   },
+   "Topman-14/topmart-admin": {
+    "repo": "Topman-14/topmart-admin",
+    "exposures": []
+   },
+   "Traviseric/arxmint": {
+    "repo": "Traviseric/arxmint",
+    "exposures": []
+   },
+   "vitalii-honchar/ai-business-founder": {
+    "repo": "vitalii-honchar/ai-business-founder",
+    "exposures": []
+   },
+   "vtempest/API2AI": {
+    "repo": "vtempest/API2AI",
+    "exposures": []
+   },
+   "YunmeiYe/nextjs-ai-platform": {
+    "repo": "YunmeiYe/nextjs-ai-platform",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "AboloreDev/cartella-E-commerce": {
+    "repo": "AboloreDev/cartella-E-commerce",
+    "exposures": []
+   },
+   "Anuradha-Herath/Pinnacle": {
+    "repo": "Anuradha-Herath/Pinnacle",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "axelker/next-js-dashboard-better-auth-stripe": {
+    "repo": "axelker/next-js-dashboard-better-auth-stripe",
+    "exposures": []
+   },
+   "ayush00dhyani-star/leadscout-saas": {
+    "repo": "ayush00dhyani-star/leadscout-saas",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "brunobola-portfolio/GitHub-Repo-Manager": {
+    "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "openai-2026-10-23-gpt-image-1",
+      "days": 1
+     },
+     {
+      "id": "openai-2026-12-01-gpt-image-1-mini",
+      "days": 40
+     }
+    ]
+   },
+   "cdinnison/goal-reminder": {
+    "repo": "cdinnison/goal-reminder",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "cyberdreadx/cyberpunk-grok-api": {
+    "repo": "cyberdreadx/cyberpunk-grok-api",
+    "exposures": []
+   },
+   "devczero/saas-pdf-analysis-dev": {
+    "repo": "devczero/saas-pdf-analysis-dev",
+    "exposures": []
+   },
+   "doganarif/build-it": {
+    "repo": "doganarif/build-it",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "drewsephski/get2cracked": {
+    "repo": "drewsephski/get2cracked",
+    "exposures": []
+   },
+   "enz0rd/quickurl": {
+    "repo": "enz0rd/quickurl",
+    "exposures": []
+   },
+   "gaurangkhera/Kinect": {
+    "repo": "gaurangkhera/Kinect",
+    "exposures": []
+   },
+   "gitroomhq/postiz-new-support-bot": {
+    "repo": "gitroomhq/postiz-new-support-bot",
+    "exposures": []
+   },
+   "internxt/payments-server": {
+    "repo": "internxt/payments-server",
+    "exposures": []
+   },
+   "jassibacha/AskPDF": {
+    "repo": "jassibacha/AskPDF",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "jeanchrinot/shipaisaas-starter": {
+    "repo": "jeanchrinot/shipaisaas-starter",
+    "exposures": []
+   },
+   "kevinknielsen/superfan-core": {
+    "repo": "kevinknielsen/superfan-core",
+    "exposures": []
+   },
+   "krishvsoni/Scrimble": {
+    "repo": "krishvsoni/Scrimble",
+    "exposures": []
+   },
+   "mckaywrigley/takeoff-perplexity-clone-starter": {
+    "repo": "mckaywrigley/takeoff-perplexity-clone-starter",
+    "exposures": []
+   },
+   "mouhamedanflosse/digitalHome": {
+    "repo": "mouhamedanflosse/digitalHome",
+    "exposures": []
+   },
+   "nhemnt/slackify": {
+    "repo": "nhemnt/slackify",
+    "exposures": []
+   },
+   "Openpod/impractical-video": {
+    "repo": "Openpod/impractical-video",
+    "exposures": []
+   },
+   "passion-27/QuotesAI": {
+    "repo": "passion-27/QuotesAI",
+    "exposures": []
+   },
+   "ReeceHarding/firebase-next.js-boilerplate": {
+    "repo": "ReeceHarding/firebase-next.js-boilerplate",
+    "exposures": []
+   },
+   "ruhulamin-programming/E-Learning-Platform": {
+    "repo": "ruhulamin-programming/E-Learning-Platform",
+    "exposures": []
+   },
+   "samiamjidkhan/dota2-helper": {
+    "repo": "samiamjidkhan/dota2-helper",
+    "exposures": []
+   },
+   "shaoxuan0916/life-slice": {
+    "repo": "shaoxuan0916/life-slice",
+    "exposures": []
+   },
+   "Suhaib3100/online-compiler": {
+    "repo": "Suhaib3100/online-compiler",
+    "exposures": []
+   },
+   "SWE-S26/Backend-Team5": {
+    "repo": "SWE-S26/Backend-Team5",
+    "exposures": []
+   },
+   "tatwan/MarkdownMash": {
+    "repo": "tatwan/MarkdownMash",
+    "exposures": []
+   },
+   "vishalbodkhe531/mern-ecommerce-backend": {
+    "repo": "vishalbodkhe531/mern-ecommerce-backend",
+    "exposures": []
+   },
+   "xhumaliosmani/ecomWatchUdemy1": {
+    "repo": "xhumaliosmani/ecomWatchUdemy1",
+    "exposures": []
+   },
+   "Alfredoeb9/ele": {
+    "repo": "Alfredoeb9/ele",
+    "exposures": []
+   },
+   "Anassarwar14/Chat-Nest-AI": {
+    "repo": "Anassarwar14/Chat-Nest-AI",
+    "exposures": []
+   },
+   "Ankit-Sharma1011/Quill": {
+    "repo": "Ankit-Sharma1011/Quill",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "avikalp987/lingo": {
+    "repo": "avikalp987/lingo",
+    "exposures": []
+   },
+   "avikalp987/quill": {
+    "repo": "avikalp987/quill",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "carlosrobertodevops/lms-platform-v3-fullstack-codewithantonio": {
+    "repo": "carlosrobertodevops/lms-platform-v3-fullstack-codewithantonio",
+    "exposures": []
+   },
+   "DataRohit/Quill-Document-Chat": {
+    "repo": "DataRohit/Quill-Document-Chat",
+    "exposures": []
+   },
+   "Deepanshu0211/Rocart": {
+    "repo": "Deepanshu0211/Rocart",
+    "exposures": []
+   },
+   "devczero/vid-analyzer-saas": {
+    "repo": "devczero/vid-analyzer-saas",
+    "exposures": []
+   },
+   "efegorkemumit/ecommerce-nextjs14": {
+    "repo": "efegorkemumit/ecommerce-nextjs14",
+    "exposures": []
+   },
+   "felmonon/jungian-typology-assessment": {
+    "repo": "felmonon/jungian-typology-assessment",
+    "exposures": []
+   },
+   "Fivlas/hackhaton-boilerplate": {
+    "repo": "Fivlas/hackhaton-boilerplate",
+    "exposures": []
+   },
+   "janwilmake/promptrank1": {
+    "repo": "janwilmake/promptrank1",
+    "exposures": []
+   },
+   "Jose-Wernerson/Turbo-Gestor": {
+    "repo": "Jose-Wernerson/Turbo-Gestor",
+    "exposures": []
+   },
+   "Joseyosei/Share-The-Link": {
+    "repo": "Joseyosei/Share-The-Link",
+    "exposures": [
+     {
+      "id": "meta-graph-v18-0",
+      "days": -269
+     },
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     }
+    ]
+   },
+   "justmahmoud31/Noon-Clone": {
+    "repo": "justmahmoud31/Noon-Clone",
+    "exposures": []
+   },
+   "karanchhina/playground0": {
+    "repo": "karanchhina/playground0",
+    "exposures": []
+   },
+   "kindaiau/kindai-estimating-suite": {
+    "repo": "kindaiau/kindai-estimating-suite",
+    "exposures": [
+     {
+      "id": "meta-graph-v19-0",
+      "days": -154
+     },
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     },
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   "laxmanclo/multi-agent-kit": {
+    "repo": "laxmanclo/multi-agent-kit",
+    "exposures": []
+   },
+   "LeonardoBMar/workly": {
+    "repo": "LeonardoBMar/workly",
+    "exposures": []
+   },
+   "mageshyt/Nextjs-saas-starter": {
+    "repo": "mageshyt/Nextjs-saas-starter",
+    "exposures": []
+   },
+   "Md-RonyAhmed/eduTech": {
+    "repo": "Md-RonyAhmed/eduTech",
+    "exposures": []
+   },
+   "mykha1129/AI-Agent": {
+    "repo": "mykha1129/AI-Agent",
+    "exposures": [
+     {
+      "id": "openai-2026-05-12-dall-e-2",
+      "days": -163
+     }
+    ]
+   },
+   "nicolas1102/dxter-shark": {
+    "repo": "nicolas1102/dxter-shark",
+    "exposures": []
+   },
+   "notcaliper/Feliactyl": {
+    "repo": "notcaliper/Feliactyl",
+    "exposures": []
+   },
+   "oMiguelwnl/Borcelle_admin": {
+    "repo": "oMiguelwnl/Borcelle_admin",
+    "exposures": []
+   },
+   "peppapig13132/stripemetrics-backend": {
+    "repo": "peppapig13132/stripemetrics-backend",
+    "exposures": []
+   },
+   "pra9711/lexinote": {
+    "repo": "pra9711/lexinote",
+    "exposures": []
+   },
+   "PramodLakmal/mern-vsms": {
+    "repo": "PramodLakmal/mern-vsms",
+    "exposures": []
+   },
+   "proSamik/saas-nextjs-template": {
+    "repo": "proSamik/saas-nextjs-template",
+    "exposures": []
+   },
+   "psykat1116/Planit": {
+    "repo": "psykat1116/Planit",
+    "exposures": []
+   },
+   "psykat1116/Spotify": {
+    "repo": "psykat1116/Spotify",
+    "exposures": []
+   },
+   "puneethkotha/Zapd": {
+    "repo": "puneethkotha/Zapd",
+    "exposures": []
+   },
+   "QizarBilal/GreenNode": {
+    "repo": "QizarBilal/GreenNode",
+    "exposures": []
+   },
+   "QwertyFusion/bookworm": {
+    "repo": "QwertyFusion/bookworm",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "R4heem-Orekoya/folio": {
+    "repo": "R4heem-Orekoya/folio",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "RafaelAquinodev/concurso-fsc-nft": {
+    "repo": "RafaelAquinodev/concurso-fsc-nft",
+    "exposures": []
+   },
+   "raumildhandhukia/inboxradarai": {
+    "repo": "raumildhandhukia/inboxradarai",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "richardhunghhw/hungrytapirldn.com": {
+    "repo": "richardhunghhw/hungrytapirldn.com",
+    "exposures": []
+   },
+   "rishabhthakur11/levelup": {
+    "repo": "rishabhthakur11/levelup",
+    "exposures": []
+   },
+   "ryangustav/lunna-backend": {
+    "repo": "ryangustav/lunna-backend",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "Sammindinventory/Saas-Gen-AI": {
+    "repo": "Sammindinventory/Saas-Gen-AI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "savka777/TiteL": {
+    "repo": "savka777/TiteL",
+    "exposures": []
+   },
+   "shivamm-55/HippoSphere": {
+    "repo": "shivamm-55/HippoSphere",
+    "exposures": []
+   },
+   "spheceo/stoic-platform": {
+    "repo": "spheceo/stoic-platform",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "suzushi-tw/celestialpdf": {
+    "repo": "suzushi-tw/celestialpdf",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "TanZhengYang0912/MyWisata-Malaysia-Tourism-Portal": {
+    "repo": "TanZhengYang0912/MyWisata-Malaysia-Tourism-Portal",
+    "exposures": []
+   },
+   "vinroger/onellm-frontend": {
+    "repo": "vinroger/onellm-frontend",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "VishalRaut2106/HackMate_AI": {
+    "repo": "VishalRaut2106/HackMate_AI",
+    "exposures": []
+   },
+   "Will-404-debug/Katana-Forge": {
+    "repo": "Will-404-debug/Katana-Forge",
+    "exposures": []
+   },
+   "Yosef-Ali/compasstio-ai": {
+    "repo": "Yosef-Ali/compasstio-ai",
+    "exposures": []
+   },
+   "AAGAM17/Mind": {
+    "repo": "AAGAM17/Mind",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "abhirupkumar/docwhisperer": {
+    "repo": "abhirupkumar/docwhisperer",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "Addisu87/digital-marketplace": {
+    "repo": "Addisu87/digital-marketplace",
+    "exposures": []
+   },
+   "afdon/music-app": {
+    "repo": "afdon/music-app",
+    "exposures": []
+   },
+   "Ahtasham-ul-haq/Imaginify": {
+    "repo": "Ahtasham-ul-haq/Imaginify",
+    "exposures": []
+   },
+   "AlefeSk8/Spotify-Clone-Next.js": {
+    "repo": "AlefeSk8/Spotify-Clone-Next.js",
+    "exposures": []
+   },
+   "Alex-Unnippillil/share-house-portal": {
+    "repo": "Alex-Unnippillil/share-house-portal",
+    "exposures": []
+   },
+   "AmanSalman/Ecommerce-Nodejs-Backend": {
+    "repo": "AmanSalman/Ecommerce-Nodejs-Backend",
+    "exposures": []
+   },
+   "artschur/classifik": {
+    "repo": "artschur/classifik",
+    "exposures": []
+   },
+   "bhaveshchhimwal/PopIn": {
+    "repo": "bhaveshchhimwal/PopIn",
+    "exposures": []
+   },
+   "bichsonnhat/cognito": {
+    "repo": "bichsonnhat/cognito",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "BrutalOverkill/AnvitStore": {
+    "repo": "BrutalOverkill/AnvitStore",
+    "exposures": []
+   },
+   "cavidaga/lnk": {
+    "repo": "cavidaga/lnk",
+    "exposures": []
+   },
+   "ClinkedIn/Backend": {
+    "repo": "ClinkedIn/Backend",
+    "exposures": []
+   },
+   "communisaas/commons": {
+    "repo": "communisaas/commons",
+    "exposures": [
+     {
+      "id": "meta-graph-v18-0",
+      "days": -269
+     },
+     {
+      "id": "meta-graph-v19-0",
+      "days": -154
+     }
+    ]
+   },
+   "cookieMonsterDev/e-commerce-saas": {
+    "repo": "cookieMonsterDev/e-commerce-saas",
+    "exposures": []
+   },
+   "dheerajcl/Jynx2.0": {
+    "repo": "dheerajcl/Jynx2.0",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "Divith123/Ninja-Drive": {
+    "repo": "Divith123/Ninja-Drive",
+    "exposures": []
+   },
+   "dlackner/charlie_chat": {
+    "repo": "dlackner/charlie_chat",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "draytht/nocarry": {
+    "repo": "draytht/nocarry",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     }
+    ]
+   },
+   "Edjemoknine/CV-Builder": {
+    "repo": "Edjemoknine/CV-Builder",
+    "exposures": []
+   },
+   "eka0789/evofuture": {
+    "repo": "eka0789/evofuture",
+    "exposures": []
+   },
+   "Emmah-oo/spotify-clone": {
+    "repo": "Emmah-oo/spotify-clone",
+    "exposures": []
+   },
+   "emman-tt/tilios-backend": {
+    "repo": "emman-tt/tilios-backend",
+    "exposures": []
+   },
+   "ensarokumus/tldr-app": {
+    "repo": "ensarokumus/tldr-app",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "ericz99/useauro": {
+    "repo": "ericz99/useauro",
+    "exposures": []
+   },
+   "Eziox-Development/eziox-web": {
+    "repo": "Eziox-Development/eziox-web",
+    "exposures": []
+   },
+   "fahadguldev/stripe-payment-test-": {
+    "repo": "fahadguldev/stripe-payment-test-",
+    "exposures": []
+   },
+   "felipevega-dev/next13-spotifyclone": {
+    "repo": "felipevega-dev/next13-spotifyclone",
+    "exposures": []
+   },
+   "Fx64b/learn": {
+    "repo": "Fx64b/learn",
+    "exposures": []
+   },
+   "gazamba/nextjs-saas-ecommerce-admin": {
+    "repo": "gazamba/nextjs-saas-ecommerce-admin",
+    "exposures": []
+   },
+   "ggallon/type-last": {
+    "repo": "ggallon/type-last",
+    "exposures": []
+   },
+   "gjlander/backend-lazypress": {
+    "repo": "gjlander/backend-lazypress",
+    "exposures": []
+   },
+   "haimatrix99/quiz-me": {
+    "repo": "haimatrix99/quiz-me",
+    "exposures": []
+   },
+   "HarshKumarraghav/Infinidocs": {
+    "repo": "HarshKumarraghav/Infinidocs",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "heyitsadityaa/ticketr": {
+    "repo": "heyitsadityaa/ticketr",
+    "exposures": []
+   },
+   "heyzbh/scrapmatic-saas-app": {
+    "repo": "heyzbh/scrapmatic-saas-app",
+    "exposures": []
+   },
+   "HUYNHDUCHUNG/course-lms-tutorial": {
+    "repo": "HUYNHDUCHUNG/course-lms-tutorial",
+    "exposures": []
+   },
+   "IncomeStreamSurfer/free-site-example": {
+    "repo": "IncomeStreamSurfer/free-site-example",
+    "exposures": []
+   },
+   "InovexSolutions/Kratos": {
+    "repo": "InovexSolutions/Kratos",
+    "exposures": []
+   },
+   "IramMcFly/kitchen-soft-platform": {
+    "repo": "IramMcFly/kitchen-soft-platform",
+    "exposures": []
+   },
+   "its-pratyushpandey/Lumina-Backend": {
+    "repo": "its-pratyushpandey/Lumina-Backend",
+    "exposures": []
+   },
+   "itw-creative-works/backend-manager": {
+    "repo": "itw-creative-works/backend-manager",
+    "exposures": [
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     },
+     {
+      "id": "openai-2027-04-01-gpt-5-1",
+      "days": 161
+     }
+    ]
+   },
+   "Jackinatox/lake": {
+    "repo": "Jackinatox/lake",
+    "exposures": []
+   },
+   "JashAgrawal/supreme-toolkit": {
+    "repo": "JashAgrawal/supreme-toolkit",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "jaykeraliya0/doc-query": {
+    "repo": "jaykeraliya0/doc-query",
+    "exposures": []
+   },
+   "jenish1559/mediaspotV2": {
+    "repo": "jenish1559/mediaspotV2",
+    "exposures": []
+   },
+   "karljuhl/Club_Connect": {
+    "repo": "karljuhl/Club_Connect",
+    "exposures": []
+   },
+   "kianush00/joyassol-ecommerce": {
+    "repo": "kianush00/joyassol-ecommerce",
+    "exposures": []
+   },
+   "KovD3v/anthon-2.0": {
+    "repo": "KovD3v/anthon-2.0",
+    "exposures": [
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     }
+    ]
+   },
+   "KPZ231/what-now-chaos": {
+    "repo": "KPZ231/what-now-chaos",
+    "exposures": []
+   },
+   "kronos-999/nuxt-saas-stripe-starter": {
+    "repo": "kronos-999/nuxt-saas-stripe-starter",
+    "exposures": []
+   },
+   "ktp-usc/sc-economics": {
+    "repo": "ktp-usc/sc-economics",
+    "exposures": []
+   },
+   "kubirthan/onlineCart": {
+    "repo": "kubirthan/onlineCart",
+    "exposures": []
+   },
+   "kyyril/saas-noteapp": {
+    "repo": "kyyril/saas-noteapp",
+    "exposures": []
+   },
+   "liamstamper/lamp-bot": {
+    "repo": "liamstamper/lamp-bot",
+    "exposures": []
+   },
+   "LouisMbc/twitter-like": {
+    "repo": "LouisMbc/twitter-like",
+    "exposures": []
+   },
+   "mahin67580/FoodieFrog": {
+    "repo": "mahin67580/FoodieFrog",
+    "exposures": []
+   },
+   "manuelduenascortes/menuAI": {
+    "repo": "manuelduenascortes/menuAI",
+    "exposures": []
+   },
+   "marketstandard/onix": {
+    "repo": "marketstandard/onix",
+    "exposures": []
+   },
+   "MayorEmpror/CARZ": {
+    "repo": "MayorEmpror/CARZ",
+    "exposures": []
+   },
+   "MeldinRadoncic/TriboAI": {
+    "repo": "MeldinRadoncic/TriboAI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "mezaaf/ecommerce": {
+    "repo": "mezaaf/ecommerce",
+    "exposures": []
+   },
+   "miroshar-success/SaaS-CV-Creation": {
+    "repo": "miroshar-success/SaaS-CV-Creation",
+    "exposures": [
+     {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "days": -210
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "molly/citation-needed-backend": {
+    "repo": "molly/citation-needed-backend",
+    "exposures": []
+   },
+   "monsterooo/nextjs-starter": {
+    "repo": "monsterooo/nextjs-starter",
+    "exposures": []
+   },
+   "necrydark/gcdb": {
+    "repo": "necrydark/gcdb",
+    "exposures": []
+   },
+   "Neddie28/Spotify-Clone": {
+    "repo": "Neddie28/Spotify-Clone",
+    "exposures": []
+   },
+   "neondatabase/neon-auth-stripe-demo": {
+    "repo": "neondatabase/neon-auth-stripe-demo",
+    "exposures": []
+   },
+   "nishantharkut/Uproot.AI": {
+    "repo": "nishantharkut/Uproot.AI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "nishchay-veer/tunehub-next": {
+    "repo": "nishchay-veer/tunehub-next",
+    "exposures": []
+   },
+   "Nitish0777/buildInnovation": {
+    "repo": "Nitish0777/buildInnovation",
+    "exposures": []
+   },
+   "nymlCodes/FitnessCafe": {
+    "repo": "nymlCodes/FitnessCafe",
+    "exposures": []
+   },
+   "papay0/Ideate.build": {
+    "repo": "papay0/Ideate.build",
+    "exposures": []
+   },
+   "paulchrisluke/quill-nuxsaas": {
+    "repo": "paulchrisluke/quill-nuxsaas",
+    "exposures": []
+   },
+   "pjleb90/e-comm-admin": {
+    "repo": "pjleb90/e-comm-admin",
+    "exposures": []
+   },
+   "Prg-Yash/Imaginix": {
+    "repo": "Prg-Yash/Imaginix",
+    "exposures": []
+   },
+   "Princegupta101/SwiftScribe": {
+    "repo": "Princegupta101/SwiftScribe",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "r0ld3x/DocTalk": {
+    "repo": "r0ld3x/DocTalk",
+    "exposures": [
+     {
+      "id": "anthropic-2025-07-21-claude-2",
+      "days": -458
+     }
+    ]
+   },
+   "RemiMinderAI/RemiMinderAI": {
+    "repo": "RemiMinderAI/RemiMinderAI",
+    "exposures": []
+   },
+   "removisionscodefindersplatform-art/RemoVisions-Code-Finders-Platform": {
+    "repo": "removisionscodefindersplatform-art/RemoVisions-Code-Finders-Platform",
+    "exposures": []
+   },
+   "RescuePC/Donation-Link": {
+    "repo": "RescuePC/Donation-Link",
+    "exposures": []
+   },
+   "RicSala/logo-maker": {
+    "repo": "RicSala/logo-maker",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "rishabhsingroha/MusicListeningPlatform": {
+    "repo": "rishabhsingroha/MusicListeningPlatform",
+    "exposures": []
+   },
+   "robharding/Quill": {
+    "repo": "robharding/Quill",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "Sarcovora/quill": {
+    "repo": "Sarcovora/quill",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "SeaMossBros/sea-moss-api": {
+    "repo": "SeaMossBros/sea-moss-api",
+    "exposures": []
+   },
+   "seangray-dev/formail-app": {
+    "repo": "seangray-dev/formail-app",
+    "exposures": []
+   },
+   "Seann-Michael/Local-GMB-Booster": {
+    "repo": "Seann-Michael/Local-GMB-Booster",
+    "exposures": []
+   },
+   "shagunmistry/FlowCraft": {
+    "repo": "shagunmistry/FlowCraft",
+    "exposures": []
+   },
+   "Shefaul-22/AgriFlow": {
+    "repo": "Shefaul-22/AgriFlow",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "skrodrigo/genesis": {
+    "repo": "skrodrigo/genesis",
+    "exposures": []
+   },
+   "Techit-Comma/Comma_Frontend": {
+    "repo": "Techit-Comma/Comma_Frontend",
+    "exposures": []
+   },
+   "tmachnacki/podvex": {
+    "repo": "tmachnacki/podvex",
+    "exposures": []
+   },
+   "TN0123/Schematic": {
+    "repo": "TN0123/Schematic",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "days": 39
+     }
+    ]
+   },
+   "toidiputS/Club-Youniverse-live": {
+    "repo": "toidiputS/Club-Youniverse-live",
+    "exposures": []
+   },
+   "Ulisses22/stripe-payment-in-nodejs": {
+    "repo": "Ulisses22/stripe-payment-in-nodejs",
+    "exposures": []
+   },
+   "UmerGitNinja/Mart-X": {
+    "repo": "UmerGitNinja/Mart-X",
+    "exposures": []
+   },
+   "ummarikar/boilerplate-club": {
+    "repo": "ummarikar/boilerplate-club",
+    "exposures": []
+   },
+   "UNC-GDSC/Micro-SaaS-Starter-Kit": {
+    "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+    "exposures": []
+   },
+   "vukrosic/next14-stripe-ecommerce": {
+    "repo": "vukrosic/next14-stripe-ecommerce",
+    "exposures": []
+   },
+   "vukrosic/nextjs14-simple-ecom": {
+    "repo": "vukrosic/nextjs14-simple-ecom",
+    "exposures": []
+   },
+   "WalterIt/Better-Auth-Template": {
+    "repo": "WalterIt/Better-Auth-Template",
+    "exposures": []
+   },
+   "yassine-ahmed/MyBusinessWebsite": {
+    "repo": "yassine-ahmed/MyBusinessWebsite",
+    "exposures": []
+   },
+   "Yudhishthirr/askmypdf": {
+    "repo": "Yudhishthirr/askmypdf",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "yuens1002/artisan-roast": {
+    "repo": "yuens1002/artisan-roast",
+    "exposures": []
+   },
+   "yuga-hashimoto/ai-tool-navigator": {
+    "repo": "yuga-hashimoto/ai-tool-navigator",
+    "exposures": []
+   },
+   "zaidmukaddam/auth-turbo-repo": {
+    "repo": "zaidmukaddam/auth-turbo-repo",
+    "exposures": []
+   },
+   "1jmdev/StripeGate": {
+    "repo": "1jmdev/StripeGate",
+    "exposures": []
+   },
+   "4lbatr0s/jiro": {
+    "repo": "4lbatr0s/jiro",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "4NDR3S-01/StyleHub": {
+    "repo": "4NDR3S-01/StyleHub",
+    "exposures": []
+   },
+   "4NDR3S-01/TuSuerteEC": {
+    "repo": "4NDR3S-01/TuSuerteEC",
+    "exposures": []
+   },
+   "aabhiyann/talkifydocs": {
+    "repo": "aabhiyann/talkifydocs",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "AadityaShukla01/Simplex": {
+    "repo": "AadityaShukla01/Simplex",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "Abdul-Rafay-2002/SparkSprint": {
+    "repo": "Abdul-Rafay-2002/SparkSprint",
+    "exposures": []
+   },
+   "ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform": {
+    "repo": "ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform",
+    "exposures": []
+   },
+   "adamhitzger/financehb": {
+    "repo": "adamhitzger/financehb",
+    "exposures": []
+   },
+   "Adarshagupta/cheatbit-desktop": {
+    "repo": "Adarshagupta/cheatbit-desktop",
+    "exposures": [
+     {
+      "id": "anthropic-2026-02-19-claude-3-7-sonnet",
+      "days": -245
+     },
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   "adhamdr1/mazadak-backend": {
+    "repo": "adhamdr1/mazadak-backend",
+    "exposures": []
+   },
+   "AdityaMethe03/Natours-app": {
+    "repo": "AdityaMethe03/Natours-app",
+    "exposures": []
+   },
+   "ADML003/pix_pro": {
+    "repo": "ADML003/pix_pro",
+    "exposures": []
+   },
+   "adobetoby-maker/app.languagethreshold.com": {
+    "repo": "adobetoby-maker/app.languagethreshold.com",
+    "exposures": []
+   },
+   "ahm0xc/apolloscan": {
+    "repo": "ahm0xc/apolloscan",
+    "exposures": []
+   },
+   "aiaspiringdeveloper/fastblog": {
+    "repo": "aiaspiringdeveloper/fastblog",
+    "exposures": [
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   "aionarae/amazon-beta": {
+    "repo": "aionarae/amazon-beta",
+    "exposures": []
+   },
+   "AjitAdhikari/simple-Hotel-website": {
+    "repo": "AjitAdhikari/simple-Hotel-website",
+    "exposures": []
+   },
+   "akn3107/whatsapp-store-creator": {
+    "repo": "akn3107/whatsapp-store-creator",
+    "exposures": [
+     {
+      "id": "meta-graph-v17-0",
+      "days": -405
+     }
+    ]
+   },
+   "AlbanAndrieu/nabla-site-apache": {
+    "repo": "AlbanAndrieu/nabla-site-apache",
+    "exposures": []
+   },
+   "Alpha-Stark/Evently": {
+    "repo": "Alpha-Stark/Evently",
+    "exposures": []
+   },
+   "AlphaAnimica/Backend-AlphaAnimica": {
+    "repo": "AlphaAnimica/Backend-AlphaAnimica",
+    "exposures": []
+   },
+   "aman-gupta21/Hungry-Harvest": {
+    "repo": "aman-gupta21/Hungry-Harvest",
+    "exposures": []
+   },
+   "Amarnath0077/industrialstore-main": {
+    "repo": "Amarnath0077/industrialstore-main",
+    "exposures": []
+   },
+   "Amudhavalli2004/courseacrafter-ai": {
+    "repo": "Amudhavalli2004/courseacrafter-ai",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "App-4-Dat-LLC/LandLORDER-rp": {
+    "repo": "App-4-Dat-LLC/LandLORDER-rp",
+    "exposures": []
+   },
+   "ARCPrivus2026/ARCPrivus-AI-Madre": {
+    "repo": "ARCPrivus2026/ARCPrivus-AI-Madre",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-image-1",
+      "days": 1
+     }
+    ]
+   },
+   "Ardione321/prep-ai": {
+    "repo": "Ardione321/prep-ai",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   "arebrinkemil/mp3streamer": {
+    "repo": "arebrinkemil/mp3streamer",
+    "exposures": []
+   },
+   "aresjinwoo94-cpu/EliteVault": {
+    "repo": "aresjinwoo94-cpu/EliteVault",
+    "exposures": [
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     }
+    ]
+   },
+   "ArkanaDeck/arcana-marketplace": {
+    "repo": "ArkanaDeck/arcana-marketplace",
+    "exposures": []
+   },
+   "Arnoldlarry15/Operant": {
+    "repo": "Arnoldlarry15/Operant",
+    "exposures": []
+   },
+   "arthurwhitlock/twisell-app": {
+    "repo": "arthurwhitlock/twisell-app",
+    "exposures": []
+   },
+   "arturoa925/knowitforward": {
+    "repo": "arturoa925/knowitforward",
+    "exposures": []
+   },
+   "AshimaSingh0610/SwiftScribe": {
+    "repo": "AshimaSingh0610/SwiftScribe",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "ASQUAREEE/intellico": {
+    "repo": "ASQUAREEE/intellico",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   "Auriti-Labs/geo-score": {
+    "repo": "Auriti-Labs/geo-score",
+    "exposures": []
+   },
+   "awalwema/clippilot-shipt": {
+    "repo": "awalwema/clippilot-shipt",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   "ax958777/Ecommerce": {
+    "repo": "ax958777/Ecommerce",
+    "exposures": []
+   },
+   "AzharAli-web/Heaventech-store": {
+    "repo": "AzharAli-web/Heaventech-store",
+    "exposures": []
+   },
+   "basanta1-github/accessPro_RBAC_App": {
+    "repo": "basanta1-github/accessPro_RBAC_App",
+    "exposures": []
+   },
+   "batyrkhan9/stripe-ops-agent": {
+    "repo": "batyrkhan9/stripe-ops-agent",
+    "exposures": []
+   },
+   "bhuvanbhoge/imaginify": {
+    "repo": "bhuvanbhoge/imaginify",
+    "exposures": []
+   },
+   "billychen0894/florist-ecommerce-app": {
+    "repo": "billychen0894/florist-ecommerce-app",
+    "exposures": []
+   },
+   "Blimp-Bot/Rebirth": {
+    "repo": "Blimp-Bot/Rebirth",
+    "exposures": []
+   },
+   "brehanderson-cloud/launchpadpoint-website": {
+    "repo": "brehanderson-cloud/launchpadpoint-website",
+    "exposures": [
+     {
+      "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+      "days": -359
+     }
+    ]
+   },
+   "Bridgette013/vvv-dIgitals-done": {
+    "repo": "Bridgette013/vvv-dIgitals-done",
+    "exposures": []
+   },
+   "BTheCoderr/jackerboxV2": {
+    "repo": "BTheCoderr/jackerboxV2",
+    "exposures": []
+   },
+   "bxdr-glitch/saas-starter-nextjs": {
+    "repo": "bxdr-glitch/saas-starter-nextjs",
+    "exposures": []
+   },
+   "bytewizard42i/selectConnect_app_pro": {
+    "repo": "bytewizard42i/selectConnect_app_pro",
+    "exposures": []
+   },
+   "CampusStoresCanada/shipping-label": {
+    "repo": "CampusStoresCanada/shipping-label",
+    "exposures": []
+   },
+   "CapChris20/Retronix-Wallpapers-Startup": {
+    "repo": "CapChris20/Retronix-Wallpapers-Startup",
+    "exposures": []
+   },
+   "carlonicora/nestjs-neo4jsonapi": {
+    "repo": "carlonicora/nestjs-neo4jsonapi",
+    "exposures": []
+   },
+   "chaweroty/habittaBackend": {
+    "repo": "chaweroty/habittaBackend",
+    "exposures": []
+   },
+   "Chivo1530/CHIVITO-AI-DEV": {
+    "repo": "Chivo1530/CHIVITO-AI-DEV",
+    "exposures": []
+   },
+   "Chris-26-dev/ecommerce": {
+    "repo": "Chris-26-dev/ecommerce",
+    "exposures": []
+   },
+   "chrisgilbert722/vendor-insurance-tracker-v2": {
+    "repo": "chrisgilbert722/vendor-insurance-tracker-v2",
+    "exposures": []
+   }
+  }
+ }
+}

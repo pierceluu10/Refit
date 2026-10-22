@@ -61,12 +61,20 @@ export function reportedLines(result) {
   return { lines, cappedLive, cappedNonLive };
 }
 
+// Whether a line names the version as a whole string literal, which Refit's matcher reads; the
+// loose search also finds names in prose (a test title, a sentence), which Refit never matches.
+export function namesLiteral(text, version) {
+  return ['"', "'", '`'].some((q) => text.includes(`${q}${version}${q}`));
+}
+
 // Scores one group of repositories. `labels` are line labels from the loose search; `results`
 // maps a repository to its `refit deadlines --json` result (or `{ error }`); `deadlineOf` maps
 // `provider:version` to a registry entry. Live exposure is scored per repository, per (repository,
 // deadline) pair and per line; the use of every labelled line Refit lists is compared with its
-// label, so test and comment classification get their own precision and recall.
-export function scoreFresh(repos, labels, results, deadlineOf) {
+// label, so test and comment classification get their own precision and recall. `literal(label)`
+// says whether a line names its version as a string literal: a line Refit does not list and that
+// is not a literal is counted as prose, outside Refit's matcher, and left out of recall.
+export function scoreFresh(repos, labels, results, deadlineOf, literal = () => true) {
   const inScope = new Set(repos);
   const scoped = labels.filter(
     (l) => inScope.has(l.repo) && deadlineOf.has(`${l.provider}:${l.version}`),
@@ -92,6 +100,7 @@ export function scoreFresh(repos, labels, results, deadlineOf) {
   const lineFalseNegatives = [];
   const unlabelledReported = [];
   const misclassified = [];
+  const prose = Object.fromEntries(LABELS.map((u) => [u, 0]));
   let beyondLimit = 0;
   for (const repo of scanned) {
     const { lines, cappedLive, cappedNonLive } = reportedLines(results[repo]);
@@ -117,6 +126,10 @@ export function scoreFresh(repos, labels, results, deadlineOf) {
         const capped = label.label === 'live' ? cappedLive : cappedNonLive;
         if (capped.has(deadline)) {
           beyondLimit += 1;
+          continue;
+        }
+        if (!literal(label)) {
+          prose[label.label] += 1;
           continue;
         }
         if (label.label === 'live')
@@ -147,6 +160,7 @@ export function scoreFresh(repos, labels, results, deadlineOf) {
     test: per('test'),
     comment: per('comment'),
     beyondLimit,
+    prose,
     falsePositivePairs: [...reportedPairs]
       .filter((p) => !pairs.has(p))
       .map((p) => p.split('\u0000')),

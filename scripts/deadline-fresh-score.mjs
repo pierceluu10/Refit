@@ -4,7 +4,7 @@
 // 2026-10-23 shutdown. See docs/DEADLINE-BENCHMARK-2026-10-22.md.
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import { scoreFresh, wilson } from './deadline-fresh-helpers.mjs';
+import { namesLiteral, scoreFresh, wilson } from './deadline-fresh-helpers.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -13,6 +13,8 @@ const { values } = parseArgs({
     list: { type: 'string', default: 'docs/benchmarks/2026-10-22-deadline-fresh-repos.json' },
     registry: { type: 'string', default: 'data/deadlines.json' },
     providers: { type: 'string' },
+    // The loose search output (grep.json), to tell literals from prose among unlisted lines.
+    grep: { type: 'string' },
     help: { type: 'boolean' },
   },
 });
@@ -33,6 +35,16 @@ const deadlineOf = new Map(
 );
 const providers = values.providers?.split(',') ?? [...new Set(deadlines.map((d) => d.provider))];
 const results = Object.fromEntries(run.map((r) => [r.repo, r]));
+const textOf = new Map();
+for (const r of values.grep ? await read(values.grep) : [])
+  for (const h of r.hits) textOf.set(`${r.repo}\u0000${h.file}\u0000${h.line}`, h.text);
+// Without the search output every line counts as a literal, so nothing is left out. API versions
+// sit inside URLs and version settings, so only model and package names can be prose.
+const literal = (l) => {
+  if (l.provider === 'meta-graph' || l.provider === 'shopify') return true;
+  const text = textOf.get(`${l.repo}\u0000${l.file}\u0000${l.line}`);
+  return text === undefined || namesLiteral(text, l.version);
+};
 
 // One provider's view of a result: its deadlines only.
 function only(provider) {
@@ -67,7 +79,7 @@ console.log(
   JSON.stringify(
     {
       repositories: repos.length,
-      all: scoreFresh(repos, labels, results, deadlineOf),
+      all: scoreFresh(repos, labels, results, deadlineOf, literal),
       providers: Object.fromEntries(
         providers.map((p) => [
           p,
@@ -76,6 +88,7 @@ console.log(
             labels.filter((l) => l.provider === p),
             only(p),
             deadlineOf,
+            literal,
           ),
         ]),
       ),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applicationReason,
+  namesLiteral,
   reportedLines,
   scoreFresh,
   wilson,
@@ -115,6 +116,25 @@ describe('scoring', () => {
       'o/b src/ai.ts catalog',
     ]);
     expect(score.unlabelledReported.map((l) => l.file)).toEqual(['src/extra.ts']);
+  });
+
+  it('tells a quoted model ID from a mention in prose', () => {
+    expect(namesLiteral("model: 'gpt-4',", 'gpt-4')).toBe(true);
+    expect(namesLiteral('"@google/generative-ai": "^0.24.1"', '@google/generative-ai')).toBe(true);
+    expect(namesLiteral("it('parses o1 output', () => {", 'o1')).toBe(false);
+  });
+
+  it('leaves unlisted prose out of recall', () => {
+    const deadlineOf = new Map([['openai:o1', { id: 'o1' }]]);
+    const labels = [
+      label('o/a', 'test/a.test.ts', 2, 'o1', 'test'),
+      label('o/a', 'src/b.ts', 3, 'o1', 'test'),
+    ];
+    const results = { 'o/a': { exposures: [], mentions: [] } };
+    const prose = (l: { file: string }) => l.file !== 'test/a.test.ts';
+    const score = scoreFresh(['o/a'], labels, results, deadlineOf, prose);
+    expect(score.prose.test).toBe(1);
+    expect(score.test.recall).toMatchObject({ k: 0, n: 1 });
   });
 
   it('computes Wilson intervals', () => {

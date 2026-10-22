@@ -67,6 +67,7 @@ export interface FreshScore {
   test: UseScore;
   comment: UseScore;
   beyondLimit: number;
+  prose: Record<string, number>;
   falsePositivePairs: string[][];
   falseNegativePairs: string[][];
   lineFalsePositives: (ReportedLine & { repo: string; label: string; note?: string })[];
@@ -83,9 +84,11 @@ export function reportedLines(result: DeadlinesResult | undefined): {
   cappedLive: Set<string>;
   cappedNonLive: Set<string>;
 };
+export function namesLiteral(text: string, version: string): boolean;
 export function scoreFresh(
   repos: string[],
   labels: LineLabel[],
   results: Record<string, DeadlinesResult>,
   deadlineOf: Map<string, { id: string }>,
+  literal?: (label: LineLabel) => boolean,
 ): FreshScore;
