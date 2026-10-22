@@ -4,12 +4,12 @@ Refit monitors two cloud SDK retirements: the AWS SDK for JavaScript v2 (`aws-sd
 
 ## What the providers say
 
-| Package | End of support | Replacement | Source (read 2026-10-22) |
-| --- | --- | --- | --- |
-| `aws-sdk` (v2) | 2025-09-08 | AWS SDK for JavaScript v3 (`@aws-sdk/client-*`) | [aws/aws-sdk-js README](https://github.com/aws/aws-sdk-js/blob/master/README.md): "reached end-of-support on September 8, 2025. It will no longer receive updates or releases." npm's notice on `aws-sdk` 2.1693.0 says the same. |
-| 108 legacy Azure packages, including `azure-storage` | 2023-03-31 | The `@azure/*` package Microsoft names for each | Microsoft's release data, [`_data/releases/latest/js-packages.csv`](https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv), which renders azure.github.io/azure-sdk/releases/deprecated/js.html |
-| `azure-sb`, `azure-asm-sb`, `azure-arm-sb`, `azure-arm-eventhub` | 2023-12-31 | `@azure/service-bus`, `@azure/arm-servicebus`, `@azure/arm-eventhub` | same |
-| `azure-arm-machinelearning` | 2024-02-02 | `@azure/arm-machinelearningcompute` | same |
+| Package                                                          | End of support | Replacement                                                          | Source (read 2026-10-22)                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------- | -------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aws-sdk` (v2)                                                   | 2025-09-08     | AWS SDK for JavaScript v3 (`@aws-sdk/client-*`)                      | [aws/aws-sdk-js README](https://github.com/aws/aws-sdk-js/blob/master/README.md): "reached end-of-support on September 8, 2025. It will no longer receive updates or releases." npm's notice on `aws-sdk` 2.1693.0 says the same.                                |
+| 108 legacy Azure packages, including `azure-storage`             | 2023-03-31     | The `@azure/*` package Microsoft names for each                      | Microsoft's release data, [`_data/releases/latest/js-packages.csv`](https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv), which renders azure.github.io/azure-sdk/releases/deprecated/js.html |
+| `azure-sb`, `azure-asm-sb`, `azure-arm-sb`, `azure-arm-eventhub` | 2023-12-31     | `@azure/service-bus`, `@azure/arm-servicebus`, `@azure/arm-eventhub` | same                                                                                                                                                                                                                                                             |
+| `azure-arm-machinelearning`                                      | 2024-02-02     | `@azure/arm-machinelearningcompute`                                  | same                                                                                                                                                                                                                                                             |
 
 Neither provider says that requests through the old packages stop working; support, fixes and security patches end. Every date has passed, so `refit deadlines` lists each matching manifest as past due.
 
@@ -60,12 +60,12 @@ node scripts/cloud-sdk-benchmark.mjs --root <dir> --labels docs/benchmarks/2026-
 
 Of the 54 scanned repositories (`docs/benchmarks/2026-10-22-cloud-sdk-results.json`):
 
-| Group | Scanned | Construct v2 clients in live code | Construct v3 clients | Load a legacy Azure package |
-| --- | ---: | ---: | ---: | ---: |
-| Declares `aws-sdk` | 29 | 21 | 1 | 0 |
-| Declares only v3 | 15 | 0 | 13 | 0 |
-| Declares a legacy Azure package | 10 | 1 | 1 | 10 |
-| **All** | **54** | **22** | **15** | **10** |
+| Group                           | Scanned | Construct v2 clients in live code | Construct v3 clients | Load a legacy Azure package |
+| ------------------------------- | ------: | --------------------------------: | -------------------: | --------------------------: |
+| Declares `aws-sdk`              |      29 |                                21 |                    1 |                           0 |
+| Declares only v3                |      15 |                                 0 |                   13 |                           0 |
+| Declares a legacy Azure package |      10 |                                 1 |                    1 |                          10 |
+| **All**                         |  **54** |                            **22** |               **15** |                      **10** |
 
 22 repositories still construct v2 clients: 91 live sites. By repositories using each service: S3 11, Lambda 5, CloudFront 4, DynamoDB 3, IAM 3, APIGateway 2, CloudFormation 2, CognitoIdentityServiceProvider 2, KMS 2, SQS 2, SSO 2, STS 2, and ACM, CloudWatchEvents, CostExplorer, ECR, EventBridge, Iot, Kinesis, SNS and StepFunctions 1 each. No scanned repository constructs both v2 and v3 clients in live code. Legacy Azure loads: `azure-storage` in 9 repositories, `azure-sb`, `azure-keyvault` and `azure-arm-containerinstance` in 1 each.
 
@@ -77,12 +77,12 @@ Of the 54 scanned repositories (`docs/benchmarks/2026-10-22-cloud-sdk-results.js
 
 113 candidates are client or load sites. Two labelled repositories exceeded the scan limits (`payloadcms/payload`, `DataDog/serverless-plugin-datadog`; 7 labelled v3 sites), so 106 sites in 23 repositories are scored:
 
-| SDK | Labelled sites | Reported | True positives | Precision | Recall |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| AWS SDK v2 | 19 | 19 | 19 | 100% | 100% |
-| AWS SDK v3 | 76 | 76 | 76 | 100% | 100% |
-| Legacy Azure | 11 | 11 | 11 | 100% | 100% |
-| **All** | **106** | **106** | **106** | **100%** | **100%** |
+| SDK          | Labelled sites | Reported | True positives | Precision |   Recall |
+| ------------ | -------------: | -------: | -------------: | --------: | -------: |
+| AWS SDK v2   |             19 |       19 |             19 |      100% |     100% |
+| AWS SDK v3   |             76 |       76 |             76 |      100% |     100% |
+| Legacy Azure |             11 |       11 |             11 |      100% |     100% |
+| **All**      |        **106** |  **106** |        **106** |  **100%** | **100%** |
 
 Every reported service matched its label. Per service, every row is at 100% precision and recall: v2 DynamoDB 5 sites, S3 4, IAM 3, and ACM, CloudFormation, CloudFront, CostExplorer, Lambda, SSO and STS 1 each; v3 21 client packages from 1 site (several) to 16 (`@aws-sdk/client-cloudformation`); Azure `azure-storage` 8 and three other packages 1 each; per-service rows are in the `score.byService` field of the results file. These are small counts: a 100% on 19 v2 sites says the forms in this sample are covered, not that every form is.
 
