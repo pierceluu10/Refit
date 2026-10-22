@@ -103,6 +103,8 @@ export const PYTHON_TEST_PATH =
 type Context = {
   files: Map<string, PythonFile>;
   tree: (path: string) => Tree | undefined;
+  // The module client's endpoint, per SDK, found once.
+  endpoints?: Map<PythonSdk, string | null>;
 };
 
 type Binding =
@@ -189,10 +191,21 @@ function dotted(node: Node): string | undefined {
 }
 
 const SCOPES = new Set(['function_definition', 'class_definition', 'lambda']);
+// Bindings found per scope and name, per tree: lookups repeat for every use of a name.
+const BINDINGS = new WeakMap<Tree, Map<string, Binding[]>>();
 
 // Where a name is bound in one scope: a function's parameters and body, a class body or the
 // module. Nested functions and classes are their own scopes and are not entered.
 function bindingsIn(scope: Node, name: string): Binding[] {
+  let cache = BINDINGS.get(scope.tree);
+  if (!cache) BINDINGS.set(scope.tree, (cache = new Map()));
+  const key = `${scope.id}\t${name}`;
+  let found = cache.get(key);
+  if (!found) cache.set(key, (found = scanBindings(scope, name)));
+  return found;
+}
+
+function scanBindings(scope: Node, name: string): Binding[] {
   const found: Binding[] = [];
   if (scope.type === 'function_definition')
     for (const parameter of field(scope, 'parameters')?.namedChildren ?? []) {
@@ -439,6 +452,7 @@ function clientFromBindings(
   bindings: Binding[],
   depth: number,
 ): Client | undefined {
+  if (depth > MAX_DEPTH) return undefined;
   let client: Client | undefined;
   for (const binding of bindings) {
     let found: Client | undefined;
@@ -488,6 +502,12 @@ function annotatedClient(context: Context, file: string, type: Node, at: Node): 
 // openai's module client points elsewhere when any file sets `openai.base_url`, `openai.api_base`
 // or `openai.api_type`.
 function moduleEndpoint(context: Context, sdk: PythonSdk) {
+  context.endpoints ??= new Map();
+  if (!context.endpoints.has(sdk)) context.endpoints.set(sdk, findModuleEndpoint(context, sdk));
+  return context.endpoints.get(sdk)!;
+}
+
+function findModuleEndpoint(context: Context, sdk: PythonSdk) {
   for (const [path, file] of context.files) {
     if (!/\b(?:base_url|api_base|api_type)\s*=/.test(file.content)) continue;
     const tree = context.tree(path);
@@ -709,6 +729,8 @@ function traceBindings(
   seen: Set<string>,
   kind = 'constant',
 ): TracedValue {
+  if (depth > MAX_DEPTH)
+    return { literals: [], stop: `Tracing this model stopped at the depth limit of ${MAX_DEPTH}.` };
   if (!bindings.length)
     return { literals: [], stop: `The model comes from \`${name}\`, which Refit cannot trace.` };
   return merge(
