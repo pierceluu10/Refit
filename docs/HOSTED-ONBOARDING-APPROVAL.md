@@ -22,14 +22,14 @@ Without a `.refit.json`, `/refit approve` (with or without a prefix) only checks
 
 Every refused command gets a reply that names the reason. Nothing is stored.
 
-| Situation | Outcome | Reply |
-|---|---|---|
-| Commenter's role is not admin or maintain, or they are not a collaborator | `no-permission` | Names the commenter's role, or that they have none |
-| Prefix shorter than 12 hex characters, or not part of the fingerprint shown | `wrong-prefix` | The value does not match the fingerprint this issue shows |
-| Prefix of a fingerprint an earlier version of the issue showed | `stale-prefix` | The configuration changed since; approve what the issue shows now |
-| Prefix matches, but the committed configuration changed after the issue was written | `configuration-changed` | Refit did not approve and updated the issue with the current review |
-| The issue showed no reviewed configuration (proposal or invalid) | `no-reviewed-configuration` | Refit checked again and updated the issue |
-| The command comment was edited | `edited-comment` | Refit never acts on edited comments; post a new one |
+| Situation                                                                           | Outcome                     | Reply                                                               |
+| ----------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------- |
+| Commenter's role is not admin or maintain, or they are not a collaborator           | `no-permission`             | Names the commenter's role, or that they have none                  |
+| Prefix shorter than 12 hex characters, or not part of the fingerprint shown         | `wrong-prefix`              | The value does not match the fingerprint this issue shows           |
+| Prefix of a fingerprint an earlier version of the issue showed                      | `stale-prefix`              | The configuration changed since; approve what the issue shows now   |
+| Prefix matches, but the committed configuration changed after the issue was written | `configuration-changed`     | Refit did not approve and updated the issue with the current review |
+| The issue showed no reviewed configuration (proposal or invalid)                    | `no-reviewed-configuration` | Refit checked again and updated the issue                           |
+| The command comment was edited                                                      | `edited-comment`            | Refit never acts on edited comments; post a new one                 |
 
 Deliveries are refused before any command exists, so they are answered in the HTTP response, never with an issue comment:
 
@@ -44,7 +44,7 @@ A job always verifies the approved fingerprint on its fresh checkout (`loadAppro
 
 ## Revoke
 
-`/refit revoke` on the approval issue, from an admin or maintainer, deletes the repository's stored approval and cancels its targets and open jobs with "Approval revoked by `<login>`." A running job in the same worker is aborted at once; jobs in other workers stop at their next lease renewal. The issue reopens with the current review, so the repository can be approved again. A repository with no stored approval answers `not-approved`. An approval stored with `refit hosted approve` before any issue was opened has no approval issue; removing it needs database access.
+`/refit revoke` on the approval issue, from an admin or maintainer, deletes the repository's stored approval and cancels its targets and open jobs with "Approval revoked by `<login>`." Commands are handled between jobs, so a job already running finishes first; its cancelled target gets no further jobs. The issue reopens with the current review, so the repository can be approved again. A repository with no stored approval answers `not-approved`. An approval stored with `refit hosted approve` before any issue was opened has no approval issue; removing it needs database access.
 
 ## Operation
 

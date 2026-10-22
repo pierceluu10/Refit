@@ -154,11 +154,13 @@ function issueComment(payload: Record<string, unknown>): GitHubWebhook {
     typeof comment.body !== 'string' ||
     !isObject(comment.user) ||
     typeof comment.user.login !== 'string' ||
-    !LOGIN.test(comment.user.login) ||
     typeof comment.user.type !== 'string'
   )
     throw new WebhookInputError(422, 'Issue comment webhook is incomplete.');
+  // Bot logins end in `[bot]`, which LOGIN rejects, so bots are ignored before it is checked.
   if (issue.pull_request !== undefined || comment.user.type === 'Bot') return { kind: 'ignored' };
+  if (!LOGIN.test(comment.user.login))
+    throw new WebhookInputError(422, 'Issue comment webhook is incomplete.');
   return {
     kind: 'issue_comment',
     installation: positiveIdentifier(installation.id),

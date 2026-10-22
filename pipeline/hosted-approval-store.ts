@@ -118,9 +118,11 @@ export function openApprovalStore(pool: Pool) {
   };
 
   // A job found that the approved inputs changed: the issue shows the current configuration again.
+  // Only an approved issue is flagged, so a failing repository does not reopen its issue every job.
   const changed = async (repository: string) => {
     await pool.query(
-      `UPDATE refit_approval_issues SET refresh = true, updated_at = now() WHERE repository = $1`,
+      `UPDATE refit_approval_issues SET refresh = true, updated_at = now()
+       WHERE repository = $1 AND state = 'approved'`,
       [repository],
     );
   };

@@ -642,12 +642,12 @@ const installation = {
   installation: { id: INSTALLATION, app_id: 123, account: { login: 'example' } },
   repositories: [{ id: 789, full_name: REPOSITORY }],
 };
-const approveComment = (body: string, id: number, type = 'User') => ({
+const approveComment = (body: string, id: number, type = 'User', login = 'octo-admin') => ({
   action: 'created',
   installation: { id: INSTALLATION },
   repository: { full_name: REPOSITORY },
   issue: { number: 1 },
-  comment: { id, body, user: { login: 'octo-admin', type } },
+  comment: { id, body, user: { login, type } },
 });
 
 it.skipIf(!DATABASE)(
@@ -670,7 +670,13 @@ it.skipIf(!DATABASE)(
     });
     expect(forged).toEqual({ status: 401, body: { error: 'Webhook signature did not match.' } });
     expect(
-      (await deliver(url, 'issue_comment', approveComment('/refit approve', 8, 'Bot'))).body,
+      (
+        await deliver(
+          url,
+          'issue_comment',
+          approveComment('/refit approve', 8, 'Bot', 'refit-agent[bot]'),
+        )
+      ).body,
     ).toMatchObject({ status: 'accepted' });
     // Approval enrolls the repository; a commit lands while Refit replies, before the job runs, so
     // the job stops for review and the issue shows the new configuration.
