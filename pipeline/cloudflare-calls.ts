@@ -92,6 +92,8 @@ export interface CloudflareCall {
 export interface WorkersCompatibility {
   file: string;
   line: number;
+  // `test` for configuration under test, spec, fixture and example paths.
+  use: 'live' | 'test';
   // The `[env.<name>]` or `env.<name>` block, or null for the top level.
   environment: string | null;
   compatibilityDate: string | null;
@@ -918,6 +920,7 @@ export async function workersCompatibility(
       found.push({
         file,
         line: item.line,
+        use: TEST_PATH.test(file) ? 'test' : 'live',
         environment: item.environment,
         compatibilityDate: item.date,
         flags: item.flags,

@@ -87,7 +87,7 @@ function print(root: string, scan: CloudflareScan) {
   if (scan.workers.length) console.log('\nWorkers compatibility (inventory facts, no deadline):');
   for (const worker of scan.workers) {
     console.log(
-      `  ${terminalText(`${worker.file}:${worker.line}`)}${worker.environment ? ` [env.${terminalText(worker.environment)}]` : ''}  ${worker.compatibilityDate ?? 'no compatibility_date'}${worker.flags.length ? `, flags ${terminalText(worker.flags.join(', '))}` : ''}`,
+      `  ${terminalText(`${worker.file}:${worker.line}`)}${worker.use === 'test' ? ' (test)' : ''}${worker.environment ? ` [env.${terminalText(worker.environment)}]` : ''}  ${worker.compatibilityDate ?? 'no compatibility_date'}${worker.flags.length ? `, flags ${terminalText(worker.flags.join(', '))}` : ''}`,
     );
     if (worker.laterDefaults.length)
       console.log(

@@ -93,6 +93,72 @@ Fifteen `kind: "endpoint"` entries in [`data/deadlines.json`](../data/deadlines.
 
 Entries without an exact date get no registry entry, though `refit cloudflare` still reports their endpoints. These include Firewall Rules, the previous WAF managed rules and Rate Limiting APIs, Organizations and Mirage.
 
+## Measured on a frozen set
+
+[`benchmarks/2026-10-22-cloudflare-repos.json`](benchmarks/2026-10-22-cloudflare-repos.json) was frozen before any scan by [`scripts/cloudflare-select.mjs`](../scripts/cloudflare-select.mjs), with npm search as for PayPal and Slack:
+
+- **Search.** 40 queries returned 14,411 packages.
+- **Qualifying.** A package qualified when its latest manifest declares `cloudflare` in `dependencies`, `devDependencies` or `peerDependencies`, links a github.com repository and was published since 2020-01, excluding `@cloudflare/` packages.
+- **41 repositories qualified**, frozen at `HEAD`. Requiring `dependencies` alone gave only 32, so the selection was widened before anything was scanned.
+- **The set is mostly libraries, CLIs and DNS or tunnel tools.**
+
+[`scripts/cloudflare-benchmark.mjs`](../scripts/cloudflare-benchmark.mjs) fetches each repository at its pinned commit and runs `refit cloudflare --json`, with nothing installed, run or sent to Cloudflare. [`scripts/cloudflare-score.mjs`](../scripts/cloudflare-score.mjs) scores the results against hand labels.
+
+### Labels
+
+- **Development set: 15 repositories, 245 requests** ([labels](benchmarks/2026-10-22-cloudflare-labels.json)). These are the first 15 of the list that fit the scan limits and hold JavaScript or TypeScript, labelled blind from source before the first scan. A label is one request to the Cloudflare API at the line where the call starts: an SDK method call, `client.get('/path')`, or a request to `https://api.cloudflare.com/client/v4`. Each label records the method and path it sends. The file records the full procedure.
+- **Held-out set: 10 repositories, 109 requests** ([labels](benchmarks/2026-10-22-cloudflare-heldout-labels.json)). These are the next 10 that fit. They were labelled after the detection changes the development scores led to, and before those changes scanned them.
+
+**The development labels miss real requests.** Their candidate grep only read files that import `cloudflare` itself, and its pattern skipped generic calls (`post<T>(…)`) and receivers such as `this.client.d1…`. The held-out grep fixed both. At `1945a41`, 36 of the 37 development "extras" are real requests the labels miss; I checked each by hand:
+
+- 21 `browserRendering` calls in `rejot-dev/fragno`;
+- 10 calls in `davebream/tila` files that import the client type from a local module;
+- 5 in `pithy-sh/pithy`.
+
+The remaining one is a URL template in a helper arrow function, which Refit reports at the URL, not at its request. The labels are left as frozen, so the development precision below understates precision.
+
+### Results
+
+| Set | Commit | Precision | Recall | Endpoint agreement |
+| --- | --- | ---: | ---: | ---: |
+| Development, first scan (blind) | `28e6626` | 0.625 (55/88) | 0.238 (55/231) | 0.84 |
+| Development, after the changes below | `1945a41` | 0.848 (207/244) | 0.896 (207/231) | 0.95 |
+| Held-out, first scan (blind) | `28e6626` | 1.000 (35/35) | 0.321 (35/109) | 1.0 |
+| Held-out, after the changes (blind) | `1945a41` | 1.000 (40/40) | 0.367 (40/109) | 1.0 |
+
+Only 14 of the 15 development repositories scanned: `cloudflare/workers-sdk` exceeds the 128 source-configuration file limit. Endpoint agreement compares method and path on matched requests whose label knows both. Its development misses are the five 2.x calls in `nodecraft/acme-dns-01-cloudflare`, which Refit reports without an endpoint by design, and runtime-method helpers.
+
+The first scan's two big precision problems were:
+
+- **A non-Cloudflare server.** `elliothux/open-compute` points SDK clients at its own Cloudflare-compatible server (19 reports).
+- **Requests reported at the URL.** `n8n-nodes-cloudflare` builds `{ method, url }` objects for a request helper, so 9 requests were reported at the URL rather than at the request.
+
+The changes (`c44ba49`, `31b634a`) addressed those and the main recall gaps:
+
+- clients whose `baseURL` names another host are skipped;
+- `{ method, url }` options objects and `new URL(…)` are followed to the request;
+- local `type X = Cloudflare` aliases, `export type { Cloudflare }` re-exports, exported client functions, and `this.getClient()` methods declared in a base class in another file all count as clients.
+
+Recall rose on the development set, but only to 0.367 on the held-out set. Its misses are clients reached through each repository's own types:
+
+- **A namespace-qualified type** (`commonHelpers.CloudflareApi`, 24 in `baoduy/drunk-pulumi-cloudflare-components`);
+- **A field of a context interface** (`context.cloudflare.client`, 21 in `ehmpathy/declastruct-cloudflare`);
+- **A dynamically imported class** (`await import('cloudflare/client')`, 14 in `pedrogmbh/cmdflare`);
+- **A dynamically loaded SDK module** (9 in `Gaubee/dweb`).
+
+So recall on code written in another style is closer to the held-out figure than the development one.
+
+### What the whole set calls
+
+At `1945a41` ([results](benchmarks/2026-10-22-cloudflare-results.json)), 36 of the 41 repositories scanned. 5 exceed the scan limits: `cloudflare/workers-sdk`, `mastra-ai/mastra`, `webview-bundle/webview-bundle`, `aphrody-labs/bun` and `upascal/mcp-deploy`. 24 make at least one live request; there are 327 live requests (291 SDK, 36 raw HTTP).
+
+- **Deprecated endpoints.** No live request reaches an endpoint the deprecations page or the OpenAPI document deprecates, so no registry deadline matched.
+- **Affected endpoints.** 17 requests reach endpoints whose behaviour changes:
+  - 9 DNS record listings ("DNS Records API: Changes to Filter Parameters");
+  - 6 account-settings calls (`default_nameservers`);
+  - 2 tunnel listings (the `connections` field).
+- **Workers.** 7 repositories have 40 Wrangler configurations. 4 of them, in 4 repositories, have a compatibility date more than a year old; between 53 and 74 flags have turned on by default since each of those dates. 2 configurations set no date.
+
 ## Blocked sources
 
 `developers.cloudflare.com` does not resolve from this environment (DNS failure through the network proxy, for `curl` and a page fetcher). The facts above come from the Markdown and YAML Cloudflare's docs site is built from, in Cloudflare's own repository at a pinned commit, not from the rendered pages.

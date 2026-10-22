@@ -319,6 +319,7 @@ compatibility_date = "2026-09-01"
       'bare/wrangler.json':
         '{ "name": "bare", "main": "index.js", "compatibility_flags": ["nodejs_compat"] }\n',
       'node_modules/pkg/wrangler.toml': 'compatibility_date = "2020-01-01"\n',
+      'test/fixture/wrangler.toml': 'compatibility_date = "2024-02-01"\n',
     });
     expect(
       workers.map((item) => [
@@ -333,20 +334,29 @@ compatibility_date = "2026-09-01"
       ['bare/wrangler.json', 1, null, null, ['nodejs_compat'], null],
       ['site/wrangler.jsonc', 4, null, '2026-10-01', [], 21],
       ['site/wrangler.jsonc', 5, 'preview', '2025-01-01', ['nodejs_als'], 659],
+      ['test/fixture/wrangler.toml', 1, null, '2024-02-01', [], 994],
       ['worker/wrangler.toml', 3, null, '2024-01-15', ['nodejs_compat', 'not_a_real_flag'], 1011],
       ['worker/wrangler.toml', 11, 'staging', '2026-09-01', [], 51],
+    ]);
+    expect(workers.map((item) => item.use)).toEqual([
+      'live',
+      'live',
+      'live',
+      'test',
+      'live',
+      'live',
     ]);
     expect(workers[0].notes).toEqual([
       'no compatibility_date; Cloudflare uses the oldest date (2021-11-02) when an upload sets none',
     ]);
-    expect(workers[3].notes).toEqual([
+    expect(workers[4].notes).toEqual([
       'the compatibility date is 1011 days old (more than a year)',
       "`not_a_real_flag` is not on Cloudflare's compatibility flags page",
     ]);
     expect(workers[1].notes).toEqual([]);
     // Flags on by default only for dates after each Worker's date.
-    expect(workers[3].laterDefaults).toContain('allow_custom_ports');
-    expect(workers[4].laterDefaults).not.toContain('allow_custom_ports');
+    expect(workers[4].laterDefaults).toContain('allow_custom_ports');
+    expect(workers[5].laterDefaults).not.toContain('allow_custom_ports');
   });
 });
 
