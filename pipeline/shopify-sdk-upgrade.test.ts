@@ -238,8 +238,8 @@ it('keeps a declaration that already admits the release and flags dev-only packa
     'April26',
   );
   if (!('upgrade' in result)) throw new Error(result.reason);
-  const [manifest, lock] = result.upgrade.files;
-  expect(manifest.after).toBe(manifest.before);
+  const [lock, ...others] = result.upgrade.files;
+  expect([lock.path, others]).toEqual(['package-lock.json', []]);
   const packages = JSON.parse(lock.after).packages;
   expect(packages[''].devDependencies).toEqual({ [API]: '>=11.0.0' });
   expect(Object.keys(packages['node_modules/compare-versions'])).toEqual([

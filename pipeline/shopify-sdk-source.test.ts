@@ -130,16 +130,21 @@ it('checks future flags against the upgraded package and stops on billing and ch
     'app/flags.ts': `import { shopifyApp } from '${REMIX}/server';
 const extra = { v3_lineItemBilling: true };
 export const shopify = shopifyApp({
+  apiVersion: ApiVersion.April26,
   future: { removeRest: false, v3_webhookAdminContext: true, ...extra, ['dynamic']: true },
 });
 `,
     'app/opaque.ts': `import { shopifyApp } from '${REMIX}/server';
 const future = { unstable_newEmbeddedAuthStrategy: true, removeRest: true };
-export const shopify = shopifyApp({ future });
-export const other = shopifyApp({ future: future });
+export const shopify = shopifyApp({ apiVersion: ApiVersion.April26, future });
+export const other = shopifyApp({ apiVersion: ApiVersion.April26, future: future });
 `,
     'app/billing.ts': `import { shopifyApi } from '${API}';
-export const shopify = shopifyApi({ billing: { plan: { amount: 5 } }, future: { lineItemBilling: true } });
+export const shopify = shopifyApi({
+  apiVersion: ApiVersion.April26,
+  billing: { plan: { amount: 5 } },
+  future: { lineItemBilling: true },
+});
 export async function check(request) {
   const { billing } = await authenticate.admin(request);
   return shopify.billing.check({ session: request.session });
@@ -169,14 +174,14 @@ export const rc = RELEASE_CANDIDATE_API_VERSION;
     changes({
       'app/shorthand.ts': `import { shopifyApp } from '${REMIX}/server';
 const future = { v3_webhookAdminContext: true };
-export const shopify = shopifyApp({ future });
+export const shopify = shopifyApp({ apiVersion: ApiVersion.April26, future });
 `,
     }).stops,
   ).toEqual([
     {
       file: 'app/shorthand.ts',
       line: 3,
-      column: 37,
+      column: 69,
       reason: 'The future flags are not an object literal Refit can check.',
     },
   ]);
@@ -193,13 +198,35 @@ export const shopify = shopifyApp({ future });
   ]);
 });
 
+it('stops where a config does not visibly set the apiVersion 12.0.0 requires', () => {
+  const reason =
+    'apiVersion is required from @shopify/shopify-api 12.0.0 (48d3631), and this shopifyApp or shopifyApi config sets none Refit can see; choose a dated ApiVersion member.';
+  const result = changes({
+    'app/missing.ts': `import { shopifyApi } from '${API}';
+export const shopify = shopifyApi({ apiKey: 'key' });
+`,
+    'app/variable.ts': `import { shopifyApp } from '${REMIX}/server';
+const config = { apiVersion: '2025-07' };
+export const shopify = shopifyApp(config);
+`,
+  });
+  expect(result.edits).toEqual([]);
+  expect(result.stops).toEqual([
+    { file: 'app/missing.ts', line: 2, column: 24, reason },
+    { file: 'app/variable.ts', line: 3, column: 24, reason },
+  ]);
+});
+
 it('leaves files without a Shopify import and names that only match Object.prototype alone', () => {
   const result = changes({
     'app/plain.ts': 'export const token = (session) => session.getJwt();\n',
     // jgasimli04/marketoracle and peterwalker-svg/pos-ui stopped on `toLocaleString` before.
     'app/format.ts': `import { shopifyApp } from '${REMIX}/server';
 export const label = (value) => value.toLocaleString() + value.toString() + value.constructor.name;
-export const shopify = shopifyApp({ future: { expiringOfflineAccessTokens: true } });
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.April26,
+  future: { expiringOfflineAccessTokens: true },
+});
 `,
   });
   expect(result.stops).toEqual([]);

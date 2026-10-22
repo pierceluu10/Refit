@@ -41,6 +41,8 @@ const CHANGED_APIS = new Map([
     '@shopify/shopify-api 12.0.0 (dc41d09) uses globalThis.crypto and says to remove setCrypto calls.',
   ],
 ]);
+const API_VERSION_REQUIRED =
+  'apiVersion is required from @shopify/shopify-api 12.0.0 (48d3631), and this shopifyApp or shopifyApi config sets none Refit can see; choose a dated ApiVersion member.';
 const REMOVED_FLAGS = new Map([
   ['lineItemBilling', BILLING_CHANGE],
   ['v10_lineItemBilling', BILLING_CHANGE],
@@ -166,6 +168,17 @@ export function shopifySdkSourceChanges(
         inConfig(node)
       )
         future(node);
+      if (ts.isCallExpression(node) && CONFIG_CALL.test(node.expression.getText())) {
+        const [config] = node.arguments;
+        if (
+          !config ||
+          !ts.isObjectLiteralExpression(config) ||
+          !config.properties.some(
+            (property) => property.name?.getText().replace(/['"]/g, '') === 'apiVersion',
+          )
+        )
+          stop(node, API_VERSION_REQUIRED);
+      }
       if (ts.isIdentifier(node) && !handled.has(node)) {
         if (node.text === 'LATEST_API_VERSION') latestUses.push(node);
         else if (CHANGED_APIS.has(node.text)) stop(node, CHANGED_APIS.get(node.text)!);

@@ -632,6 +632,7 @@ async function applyPlan(
       apiRelease: plan.get(SHOPIFY_API)?.version ?? rootVersion(packages, SHOPIFY_API)!,
       packages: changes,
       removed: removed.map((key) => key.replace(/^node_modules\//, '')),
+      // package.json is unchanged when every declaration already admits the new releases.
       files: [
         { path: 'package.json', before: files.manifestText, after: manifestText },
         {
@@ -639,7 +640,7 @@ async function applyPlan(
           before: files.lockText,
           after: render({ ...lock, packages: ordered }),
         },
-      ],
+      ].filter((file) => file.after !== file.before),
     },
   };
 }
