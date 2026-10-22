@@ -104,6 +104,13 @@ On 2026-10-22 all 24 committed results files are valid. The 16 files from the St
 - Add the file to `benchmarks/schemas/files.json` with its format and an empty `predates`, then run `node scripts/benchmark-results.mjs --committed`.
 - A new results format needs its own schema.
 
+## Checked on real benchmark roots
+
+From a clean worktree pinned at `a6ff813` (so `allowDirty: false`), without `--validate`, on roots built earlier by the setup scripts:
+
+- **Shopify**, 50 repositories of `2026-10-16-shopify-repos.json`. The harness record has the full commit and the list digest, and the output directory validates. Rows at `--concurrency 1` and `--concurrency 4` are identical except `seconds`. Every checkout was at its pinned commit, so no row is an infrastructure error.
+- **Stripe**, the 50 held-out repositories. The run was killed after 15 finished rows, which left the 16th repository's partial evidence behind. `--resume` kept the 15 (`finished before resuming`), replaced the 16th's evidence and ran the other 35. It recorded one entry in `resumes`. Its 50 rows are identical, except `seconds`, to an uninterrupted run at the same commit.
+
 ## Not covered
 
 - The Stripe record hashes `selected.json` only. `split.json` (for `--split`) and the contract specs are built from the same frozen list by the setup script, and are not hashed separately.
