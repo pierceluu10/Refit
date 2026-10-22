@@ -70,7 +70,7 @@ export function reportOnly(entry: DeadlineEntry) {
   return entry.derivedDate === true || REPORT_ONLY_KINDS.has(entry.kind);
 }
 
-function validDate(value: unknown): value is string {
+export function validDate(value: unknown): value is string {
   if (typeof value !== 'string' || !ISO_DATE.test(value)) return false;
   return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
 }
