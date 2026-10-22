@@ -23,11 +23,13 @@
     "format": "prettier --write src pipeline bin scripts index.html vite.config.ts tsconfig.json package.json",
     "format:check": "prettier --check src pipeline bin scripts index.html vite.config.ts tsconfig.json package.json",
     "eval:ai": "tsx pipeline/ai-eval-cli.ts",
+    "eval:ai-patch": "tsx pipeline/ai-patch-eval-cli.ts",
     "benchmark:coverage": "tsx pipeline/sdk-coverage-cli.ts",
     "benchmark:stripe": "tsx pipeline/stripe-benchmark-cli.ts",
     "benchmark:stripe-labels": "tsx pipeline/stripe-ground-truth-cli.ts",
     "benchmark:stripe-score": "tsx pipeline/stripe-benchmark-score.ts",
     "deadlines:check": "node bin/refit.mjs deadlines --check-registry",
+    "model-parameters:check": "node bin/refit.mjs deadlines --check-parameters",
     "meta-graph:check": "node bin/refit.mjs meta-graph --check-changes",
     "benchmark:shopify": "tsx pipeline/shopify-benchmark-cli.ts"
   },

@@ -1,0 +1,275 @@
+{
+  "formatVersion": 1,
+  "refitCommit": "1706f255266ff5e9f751a0b521ae8102785ae45f",
+  "pipelineDirty": false,
+  "byHost": {
+    "bedrock": {
+      "repositories": 15,
+      "withSite": 14,
+      "sites": 5031,
+      "scanLimit": 5
+    },
+    "azure-openai": {
+      "repositories": 15,
+      "withSite": 15,
+      "sites": 305,
+      "scanLimit": 1
+    },
+    "openrouter": {
+      "repositories": 15,
+      "withSite": 14,
+      "sites": 1689,
+      "scanLimit": 1
+    }
+  },
+  "routes": {
+    "sites": 178,
+    "repositories": 13,
+    "byModel": {
+      "openai:gpt-5-codex": 5,
+      "openai:gpt-5.1": 8,
+      "openai:gpt-5.1-codex-mini": 3,
+      "openai:o4-mini": 3,
+      "openai:gpt-5.1-codex": 3,
+      "openai:gpt-3.5-turbo": 6,
+      "openai:gpt-3.5-turbo-instruct": 3,
+      "openai:gpt-4": 27,
+      "openai:gpt-4-turbo": 3,
+      "openai:gpt-4.1-nano": 2,
+      "openai:gpt-4o-2024-05-13": 4,
+      "openai:gpt-4o-2024-08-06": 3,
+      "openai:gpt-4o-2024-11-20": 3,
+      "openai:gpt-4o-mini-2024-07-18": 3,
+      "openai:gpt-5.3-codex": 4,
+      "openai:gpt-5.4-nano": 2,
+      "openai:o1": 2,
+      "openai:o1-pro": 3,
+      "openai:o3-mini": 2,
+      "openai:o1-preview": 12,
+      "anthropic:claude-sonnet-4-5": 10,
+      "openai:gpt-image-1.5": 5,
+      "openai:gpt-image-1": 31,
+      "openai:whisper-1": 6,
+      "openai:gpt-4-turbo-preview": 3,
+      "openai:gpt-4o-transcribe": 7,
+      "openai:gpt-4o-mini-transcribe": 1,
+      "openai:dall-e-3": 1,
+      "openai:gpt-4o-mini-audio-preview": 2,
+      "openai:gpt-4.1-2025-04-14": 1,
+      "openai:gpt-4.1-mini-2025-04-14": 1,
+      "openai:gpt-4.1-nano-2025-04-14": 1,
+      "openai:gpt-5-2025-08-07": 1,
+      "openai:gpt-5-mini-2025-08-07": 1,
+      "openai:gpt-5-nano-2025-08-07": 1,
+      "openai:o1-2024-12-17": 1,
+      "openai:o3-2025-04-16": 1,
+      "openai:o3-deep-research": 1,
+      "openai:o3-pro-2025-06-10": 1,
+      "openai:o4-mini-deep-research": 1
+    }
+  },
+  "score": {
+    "overall": {
+      "truePositives": 41,
+      "falsePositives": 9,
+      "falseNegatives": 9,
+      "precision": 0.82,
+      "recall": 0.82
+    },
+    "byHost": {
+      "azure-openai": {
+        "truePositives": 7,
+        "falsePositives": 6,
+        "falseNegatives": 6,
+        "precision": 0.5384615384615384,
+        "recall": 0.5384615384615384
+      },
+      "bedrock": {
+        "truePositives": 12,
+        "falsePositives": 0,
+        "falseNegatives": 0,
+        "precision": 1,
+        "recall": 1
+      },
+      "openrouter": {
+        "truePositives": 22,
+        "falsePositives": 3,
+        "falseNegatives": 3,
+        "precision": 0.88,
+        "recall": 0.88
+      }
+    },
+    "truePositivesByUse": {
+      "test": 25,
+      "call": 4,
+      "catalog": 12
+    },
+    "falsePositives": [
+      {
+        "file": "openclaw/openclaw/src/commands/doctor/shared/codex-route-warnings.test.ts",
+        "line": 260,
+        "column": 31,
+        "host": "openrouter",
+        "kind": "model-id",
+        "value": "anthropic/claude-sonnet-4-6",
+        "upstream": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6"
+        },
+        "stop": "openrouter-alias"
+      },
+      {
+        "file": "openclaw/openclaw/src/tui/tui-event-handlers.test.ts",
+        "line": 242,
+        "column": 78,
+        "host": "openrouter",
+        "kind": "model-id",
+        "value": "qwen/qwen3.5-9b",
+        "upstream": {
+          "provider": "qwen",
+          "model": "qwen3.5-9b"
+        },
+        "stop": "openrouter-alias"
+      },
+      {
+        "file": "openclaw/openclaw/ui/src/e2e/model-providers.e2e.test.ts",
+        "line": 842,
+        "column": 52,
+        "host": "openrouter",
+        "kind": "model-id",
+        "value": "openai/saved-model",
+        "upstream": {
+          "provider": "openai",
+          "model": "saved-model"
+        },
+        "stop": "openrouter-alias"
+      },
+      {
+        "file": "polymind-inc/agent-framework-js/packages/foundry/src/hosting/response-store.test.ts",
+        "line": 163,
+        "column": 58,
+        "host": "azure-openai",
+        "kind": "api-version",
+        "value": "v1",
+        "upstream": null,
+        "stop": "azure-api-version-lifecycle-unknown"
+      },
+      {
+        "file": "polymind-inc/agent-framework-js/packages/foundry/src/hosting/response-store.test.ts",
+        "line": 181,
+        "column": 49,
+        "host": "azure-openai",
+        "kind": "api-version",
+        "value": "v1",
+        "upstream": null,
+        "stop": "azure-api-version-lifecycle-unknown"
+      },
+      {
+        "file": "polymind-inc/agent-framework-js/packages/foundry/src/hosting/toolbox.test.ts",
+        "line": 199,
+        "column": 79,
+        "host": "azure-openai",
+        "kind": "api-version",
+        "value": "v1",
+        "upstream": null,
+        "stop": "azure-api-version-lifecycle-unknown"
+      },
+      {
+        "file": "polymind-inc/agent-framework-js/packages/foundry/src/memory/client.test.ts",
+        "line": 111,
+        "column": 95,
+        "host": "azure-openai",
+        "kind": "api-version",
+        "value": "v1",
+        "upstream": null,
+        "stop": "azure-api-version-lifecycle-unknown"
+      },
+      {
+        "file": "polymind-inc/agent-framework-js/packages/foundry/src/memory/client.test.ts",
+        "line": 137,
+        "column": 92,
+        "host": "azure-openai",
+        "kind": "api-version",
+        "value": "v1",
+        "upstream": null,
+        "stop": "azure-api-version-lifecycle-unknown"
+      },
+      {
+        "file": "polymind-inc/agent-framework-js/packages/foundry/src/memory/client.test.ts",
+        "line": 80,
+        "column": 104,
+        "host": "azure-openai",
+        "kind": "api-version",
+        "value": "v1",
+        "upstream": null,
+        "stop": "azure-api-version-lifecycle-unknown"
+      }
+    ],
+    "falseNegatives": [
+      {
+        "at": "anvia-hq/anvia/packages/provider-azure/test/client.test.ts:196",
+        "host": "azure-openai",
+        "kind": "deployment",
+        "value": "image-deployment",
+        "use": "test"
+      },
+      {
+        "at": "anvia-hq/anvia/packages/provider-azure/test/client.test.ts:197",
+        "host": "azure-openai",
+        "kind": "deployment",
+        "value": "speech-deployment",
+        "use": "test"
+      },
+      {
+        "at": "anvia-hq/anvia/packages/provider-azure/test/client.test.ts:207",
+        "host": "azure-openai",
+        "kind": "deployment",
+        "value": "deployment",
+        "use": "test"
+      },
+      {
+        "at": "anvia-hq/anvia/packages/provider-azure/test/responses.integration.test.ts:33",
+        "host": "azure-openai",
+        "kind": "deployment",
+        "value": "azureDeployment!",
+        "use": "test"
+      },
+      {
+        "at": "OrenGrinker/jstextfromimage/tests/azure_openai.test.ts:56",
+        "host": "azure-openai",
+        "kind": "deployment",
+        "value": "mockConfig.deploymentName",
+        "use": "test"
+      },
+      {
+        "at": "polymind-inc/agent-framework-js/packages/foundry/src/integration.test.ts:40",
+        "host": "azure-openai",
+        "kind": "deployment",
+        "value": "modelDeployment",
+        "use": "test"
+      },
+      {
+        "at": "vincemakes/kiso/scripts/registry-or-rows.mjs:43",
+        "host": "openrouter",
+        "kind": "model-id",
+        "value": "xiaomi/mimo-v2.6-flash",
+        "use": "catalog"
+      },
+      {
+        "at": "ClickerMonkey/aeye/packages/models/src/models/openrouter.ts:376",
+        "host": "openrouter",
+        "kind": "model-id",
+        "value": "aion-labs/aion-rp-llama-3.1-8b",
+        "use": "catalog"
+      },
+      {
+        "at": "ClickerMonkey/aeye/packages/models/src/models/openrouter.ts:4042",
+        "host": "openrouter",
+        "kind": "model-id",
+        "value": "morph/morph-v3-large",
+        "use": "catalog"
+      }
+    ]
+  },
+  "sites": "Per-repository sites are the same run as 2026-10-22-model-hosts-results-after-labels.json (same commit and list); only the labels scored differ."
+}

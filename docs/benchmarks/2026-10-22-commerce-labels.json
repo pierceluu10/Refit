@@ -1,0 +1,317 @@
+{
+  "formatVersion": 1,
+  "labelledAt": "2026-10-22",
+  "sample": "docs/benchmarks/2026-10-22-commerce-repos.json",
+  "method": "Labelled blind, before Refit's detectProviders, scanDeadlines or detectApiVersionPins ran on these repositories: every package.json outside node_modules, dist, build and .next, the root lockfile's resolved versions, and source lines naming a list-A version header, SDK version option, versioned API path or API host were read at the pinned commit. providers: list-A providers whose packages a manifest declares or whose API hosts live code calls. exposures: registry entries (data/deadlines.json, this branch) that apply, using the locked version or the declared range's major. pins: `provider version` for each API version live (non-test) code pins with a literal or a same-file const.",
+  "labels": [
+    {
+      "repo": "CRONANANI/EzanaFinance3",
+      "commit": "4666e5a91486d99956fd81a8728b1c9f1c7ccdd4",
+      "providers": [
+        "plaid"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "plaid 41.4.0 and react-plaid-link 4.1.1 locked; the only apiVersion is Stripe's."
+    },
+    {
+      "repo": "openaccountant/wilson",
+      "commit": "71816de1a1fd5824b40418cfc31ba5cc0b5140dc",
+      "providers": [
+        "plaid"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "plaid ^47.0.0."
+    },
+    {
+      "repo": "cmpsr/composer",
+      "commit": "f51f02e153f83416703e6d2be67709af49355529",
+      "providers": [
+        "plaid"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "react-plaid-link in packages/plaid-link; Contentful apiVersion is not a list-A pin."
+    },
+    {
+      "repo": "fire-la/firela-bot",
+      "commit": "60f17190273c71aad7bbb6a88e6290eea8c5dd81",
+      "providers": [
+        "plaid"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "plaid ^32.0.0 in packages/billclaw/core."
+    },
+    {
+      "repo": "weareseeed/react-square-web-payments-sdk",
+      "commit": "533078320a31664afa3932812e54118141275cc2",
+      "providers": [
+        "square"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@square/web-sdk 2.1.0."
+    },
+    {
+      "repo": "TheJethFX/payloadcms-plugin-square",
+      "commit": "5b37a8c282914dc72bf95931ec1fffc35df251c0",
+      "providers": [
+        "square"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "square in devDependencies and peerDependencies; no version pin."
+    },
+    {
+      "repo": "goparrot/square-connect-plus",
+      "commit": "ccc812c71d9b507433a7859f1312d0f57279019a",
+      "providers": [
+        "square"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "square peer and dev dependency; Square-Version literals only in test files."
+    },
+    {
+      "repo": "karthikdilliraj/square-sdk-cli",
+      "commit": "64e46482ad619dc1b5247b50a47abc5f4255bc26",
+      "providers": [
+        "square"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "square ^44.2.1; no version option."
+    },
+    {
+      "repo": "YevhenMykhailenko/webhook-sentinelx",
+      "commit": "1074d640fc2b07901f3acee14b9cf9e1c3520827",
+      "providers": [
+        "braintree"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "braintree peer dependency '*': installed major unknown."
+    },
+    {
+      "repo": "nathanstitt/react-braintree-fields",
+      "commit": "bd36d503a00ab1356a4c4eb535d12ed75d754ce7",
+      "providers": [
+        "braintree"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "braintree-web 3.90.0 locked; Braintree-Version only in a bundled docs/demo.js built from the SDK, not a literal."
+    },
+    {
+      "repo": "vendurehq/vendure",
+      "commit": "f8d62024733ec84a8d94e56510050d75a74cd24a",
+      "providers": [],
+      "exposures": [],
+      "pins": [],
+      "note": "At this commit no manifest declares a list-A package and no source calls a list-A host; the Braintree plugin npm search matched is no longer in the repository."
+    },
+    {
+      "repo": "commercelayer/commercelayer-react-components",
+      "commit": "0b3dd1c3ed8f9e09e5871438bf3f5392164c1c4c",
+      "providers": [
+        "adyen",
+        "braintree"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@adyen/adyen-web ^6.41.0 and braintree-web ^3.143.0 in packages/react-components."
+    },
+    {
+      "repo": "kiva/kv-ui-elements",
+      "commit": "795762a85048afb388dfa6a5382024be90d53f54",
+      "providers": [
+        "braintree"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "braintree-web-drop-in 1.x in @kiva/kv-shop."
+    },
+    {
+      "repo": "ovh/manager",
+      "commit": "765551bd503422a861aa399e5a520afb8a2888ee",
+      "providers": [
+        "adyen"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@adyen/adyen-web 5.61.0 in two packages: v5, not a deadline."
+    },
+    {
+      "repo": "Cleeng/mediastore-sdk",
+      "commit": "b9a2e07c86af5881c04a1f2eb14d831320f6990c",
+      "providers": [
+        "adyen"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@adyen/adyen-web 5.66.1 locked."
+    },
+    {
+      "repo": "SepteoPayments/pbs-dropin",
+      "commit": "4478a22ee9267efdd013d8455ef65c1f711590fe",
+      "providers": [
+        "adyen"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@adyen/adyen-web 6.44.0 locked."
+    },
+    {
+      "repo": "medusajs/medusa",
+      "commit": "0f47c81eac9dfb7f228cb919d7f9ce20829b0d5a",
+      "providers": [],
+      "exposures": [],
+      "pins": [],
+      "note": "At this commit no manifest declares a list-A package and no source calls a list-A host; medusa-payment-adyen is no longer in the monorepo."
+    },
+    {
+      "repo": "saurabharch/rollout",
+      "commit": "ce5554ce55b768fd49220fbb5eabcfdd76b5427b",
+      "providers": [
+        "adyen"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@adyen/api-library 9.1.0 locked; the apiVersion is Stripe's."
+    },
+    {
+      "repo": "R4heem-Orekoya/folio",
+      "commit": "b2fdb95cf440bb043ca90786c3eba0662a79d7e8",
+      "providers": [
+        "paddle"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@paddle/paddle-js 0.5.5 locked."
+    },
+    {
+      "repo": "csuermann/virtual-smart-home",
+      "commit": "8dc2e2a4e3b01866c6cc57dd8fba6a82b5954322",
+      "providers": [
+        "paddle"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@paddle/paddle-node-sdk 2.7.1 locked."
+    },
+    {
+      "repo": "pithy-sh/pithy",
+      "commit": "42b4695a243acb78f0bf6ea15a72464a07e40853",
+      "providers": [
+        "lemon-squeezy",
+        "paddle"
+      ],
+      "exposures": [],
+      "pins": [
+        "lemon-squeezy v1",
+        "paddle 1"
+      ],
+      "note": "Paddle via package and api.paddle.com, with paddle-version set from PADDLE_API_VERSION = \"1\" in the same file; Lemon Squeezy via https://api.lemonsqueezy.com/v1 in live code."
+    },
+    {
+      "repo": "material-atomic/ecosy-paddle",
+      "commit": "6016877ab3d131e77d5e114310dfda6d759e75d2",
+      "providers": [
+        "paddle"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@paddle/paddle-node-sdk 3.10.0."
+    },
+    {
+      "repo": "doganarif/build-it",
+      "commit": "7c1a3e5fff4f12e106658cc2a1fc409e00c455d4",
+      "providers": [
+        "lemon-squeezy"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@lemonsqueezy/lemonsqueezy.js 1.2.5 locked."
+    },
+    {
+      "repo": "IntrepidServicesLLC/lemonsqueezy-mcp-server",
+      "commit": "29de83ff7a30affc25096e71cfbfde767c313884",
+      "providers": [
+        "lemon-squeezy"
+      ],
+      "exposures": [],
+      "pins": [
+        "lemon-squeezy v1"
+      ],
+      "note": "api.lemonsqueezy.com/v1 in src/connector; the examples/ use is a test."
+    },
+    {
+      "repo": "heysash/lemonsqueezy-mcp",
+      "commit": "ef0e8fb02143706d756497921a9047be8a0de4db",
+      "providers": [
+        "lemon-squeezy"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@lemonsqueezy/lemonsqueezy.js 4.0.0."
+    },
+    {
+      "repo": "dodopayments/dodo-migrate",
+      "commit": "4c0ee8828913052fedb136f76e62523ce58c6e69",
+      "providers": [
+        "lemon-squeezy",
+        "paddle"
+      ],
+      "exposures": [],
+      "pins": [
+        "paddle 1"
+      ],
+      "note": "Lemon Squeezy package; Paddle through api.paddle.com with 'Paddle-Version': '1'."
+    },
+    {
+      "repo": "SeaMossBros/sea-moss-api",
+      "commit": "4f3a1e04f8aac2b6fc59afc0b3038d812b5da272",
+      "providers": [
+        "shippo"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "shippo ^1.7.1."
+    },
+    {
+      "repo": "absolutejs/commerce-adapters",
+      "commit": "bad3455e4ec9640d3b84e640c703e2657dc13a68",
+      "providers": [
+        "easypost",
+        "square"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "@easypost/api 8.9.0 in easypost/; Square through connect.squareup.com in square/src with Square-Version from a parameter, not a literal."
+    },
+    {
+      "repo": "pastudan/easypost-cli",
+      "commit": "58ab2ec8875fc4b031ed88368424aded6a61c1a7",
+      "providers": [
+        "easypost"
+      ],
+      "exposures": [
+        "easypost-2025-04-28-easypost-node-v7"
+      ],
+      "pins": [],
+      "note": "@easypost/api 5.3.0 locked in yarn.lock: deprecated v5."
+    },
+    {
+      "repo": "TehShrike/lob-check",
+      "commit": "ba7465e50533689a6c1c92dec148d3ca7711a033",
+      "providers": [
+        "lob"
+      ],
+      "exposures": [],
+      "pins": [],
+      "note": "lob 6.0.5 locked; require(`lob`) without apiVersion."
+    }
+  ]
+}
