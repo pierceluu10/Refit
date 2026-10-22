@@ -15,12 +15,14 @@ export const SUBSCRIPTION_PERIOD_HELPER_RULE = 'stripe-subscription-periods-help
 export const INVOICE_SUBSCRIPTION_HELPER_RULE = 'stripe-invoice-subscription-helper';
 export const INVOICE_PRICE_ID_HELPER_RULE = 'stripe-invoice-price-id-helper';
 export const CHECKOUT_SHIPPING_HELPER_RULE = 'stripe-checkout-shipping-details-helper';
+export const COUPON_ID_HELPER_RULE = 'stripe-coupon-id-helper';
 // Rules whose edits call the generated helper module.
 export const HELPER_RULES = new Set<string>([
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   INVOICE_PRICE_ID_HELPER_RULE,
   CHECKOUT_SHIPPING_HELPER_RULE,
+  COUPON_ID_HELPER_RULE,
 ]);
 const BEFORE_VERSION = '2025-02-24.acacia';
 const AFTER_VERSION = '2025-03-31.basil';
@@ -364,6 +366,7 @@ export const INVOICE_SUBSCRIPTION_HELPER = 'getInvoiceSubscription';
 const INVOICE_SUBSCRIPTION_LOCAL = 'invoiceSubscription';
 export const INVOICE_PRICE_ID_HELPER = 'getInvoicePriceId';
 export const CHECKOUT_SHIPPING_HELPER = 'getCheckoutShippingDetails';
+export const COUPON_ID_HELPER = 'getCouponId';
 // Fields of the old Shipping object that the new checkout address details no longer carry.
 const DROPPED_SHIPPING_FIELDS = new Set(['carrier', 'phone', 'tracking_number']);
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
@@ -579,6 +582,37 @@ export function invoicePriceIdHelperEdit(node: ts.Node, file: string, changeId: 
   return edit && { ...edit, end: read.getEnd() };
 }
 
+// Replaces `promotionCode.coupon.id` and `discount.coupon.id`: clover moved the auto-expanded
+// Coupon to `promotion.coupon` and `source.coupon`, an ID unless expanded. Other Coupon fields need
+// an expand or coupons.retrieve and stay with review. Sources, read 2026-10-22:
+// https://docs.stripe.com/changelog/clover/2025-09-30/polymorphic-coupon and
+// https://docs.stripe.com/changelog/clover/2025-09-30/add-discount-source-property
+export function couponIdHelperEdit(node: ts.Node, file: string, changeId: string) {
+  const read = node.parent;
+  if (
+    !ts.isPropertyAccessExpression(node) ||
+    node.name.text !== 'coupon' ||
+    !ts.isPropertyAccessExpression(read) ||
+    read.expression !== node ||
+    read.name.text !== 'id' ||
+    // `discount.coupon?.id.length` short-circuits on a missing coupon; the helper result would not.
+    ((read.questionDotToken || node.questionDotToken) &&
+      (ts.isPropertyAccessExpression(read.parent) ||
+        ts.isElementAccessExpression(read.parent) ||
+        ts.isCallExpression(read.parent)) &&
+      read.parent.expression === read)
+  )
+    return;
+  const edit = movedReadEdit(
+    node,
+    file,
+    changeId,
+    COUPON_ID_HELPER_RULE,
+    (value) => `${COUPON_ID_HELPER}(${value})`,
+  );
+  return edit && { ...edit, end: read.getEnd() };
+}
+
 // Replaces a Checkout Session `shipping_details` read, which moved to
 // `collected_information.shipping_details`. Its new object holds only `address` and `name`, so a
 // read of `carrier`, `phone` or `tracking_number` stays with review.
@@ -705,5 +739,20 @@ ${exported}function getCheckoutShippingDetails${typed ? '<T extends object>(sess
     collected && typeof collected === 'object' ? Reflect.get(collected, 'shipping_details') : undefined;
   return (legacy !== undefined ? legacy : (moved ?? null))${typed ? ' as CheckoutShippingDetails<T>' : ''};
 }
-${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId, getCheckoutShippingDetails };\n' : ''}`;
+
+// The old auto-expanded Coupon's ID when present (old-version payloads), otherwise the coupon a
+// promotion code's promotion or a discount's source holds: an ID, or a Coupon when expanded.
+${exported}function getCouponId(value${t(': object')})${t(': string | undefined')} {
+  const legacy${t(': unknown')} = Reflect.get(value, 'coupon');
+  const holder${t(': unknown')} =
+    legacy === undefined ? (Reflect.get(value, 'promotion') ?? Reflect.get(value, 'source')) : undefined;
+  const moved${t(': unknown')} =
+    holder && typeof holder === 'object' && Reflect.get(holder, 'type') === 'coupon'
+      ? Reflect.get(holder, 'coupon')
+      : undefined;
+  const coupon${t(': unknown')} = legacy !== undefined ? legacy : moved;
+  const id${t(': unknown')} = coupon && typeof coupon === 'object' ? Reflect.get(coupon, 'id') : coupon;
+  return typeof id === 'string' ? id : undefined;
+}
+${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId, getCheckoutShippingDetails, getCouponId };\n' : ''}`;
 }
