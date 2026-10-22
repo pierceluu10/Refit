@@ -44,6 +44,14 @@ Images are never pulled; `docker run --pull never` is unchanged. A run stops bef
 
 An operator who wants every allowed line available installs the images once: `docker pull node:18-alpine node:20-alpine node:24-alpine`. On the hosted worker, that means listing them in `REFIT_HOSTED_IMAGES`.
 
+## Package manager pins
+
+`packageManager` pins the package manager the way the files above pin Node.js. Refit does not run Corepack: Corepack would download the manager itself, and the installer containers keep `COREPACK_ENABLE_NETWORK=0`. Instead, preparation installs the exact pinned release from the npm registry with `--ignore-scripts`, and checks its version and registry integrity, plus a Corepack `sha512` checksum when the pin has one, before using it.
+
+- **pnpm and Yarn** pins were already handled this way.
+- **npm** pins are new: `npm@10.8.2`, optionally `+sha512.<hex>`, installs that npm, runs `npm ci` with it, and moves it into `node_modules/.refit-tools`, so the offline checks run the same npm. The environment records it as `npmToolVersion` and `npmToolIntegrity`; `npmVersion` stays the image's own npm. A pin that is not exact (`npm@10`, `npm@^10.8.0`) keeps the image's npm, as before.
+- **Not read:** `engines.npm` is not part of the image choice. Official Node.js images do not record their npm release in their environment, so reading it would mean starting each candidate image. A repository that needs a newer npm than its image ships can pin it with `packageManager`.
+
 ## Evidence
 
 The validation result records the choice as `validation.runtime`: the configured image, the image used, its Node.js release, the declarations read and the reason. The CLI summary shows it as a `Runtime` row, with the reason whenever the image differs from the configured one. `validation.image` remains the immutable image ID the checks ran on.
