@@ -2023,6 +2023,7 @@
      "line": 90,
      "column": 13,
      "property": "price",
+     "startLine": 88,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -9042,6 +9043,7 @@
      "line": 101,
      "column": 22,
      "property": "price",
+     "startLine": 99,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -15302,6 +15304,7 @@
      "line": 92,
      "column": 22,
      "property": "price",
+     "startLine": 90,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -20764,6 +20767,7 @@
      "line": 91,
      "column": 14,
      "property": "type",
+     "startLine": 89,
      "label": "not-stripe",
      "source": "rule-no-stripe-in-file"
     },
@@ -20780,6 +20784,7 @@
      "line": 97,
      "column": 14,
      "property": "type",
+     "startLine": 95,
      "label": "not-stripe",
      "source": "rule-no-stripe-in-file"
     },
@@ -20788,6 +20793,7 @@
      "line": 100,
      "column": 14,
      "property": "type",
+     "startLine": 98,
      "label": "not-stripe",
      "source": "rule-no-stripe-in-file"
     },
@@ -20804,6 +20810,7 @@
      "line": 106,
      "column": 14,
      "property": "type",
+     "startLine": 104,
      "label": "not-stripe",
      "source": "rule-no-stripe-in-file"
     },
@@ -32330,7 +32337,8 @@
      "column": 17,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "app/api/webhook/route.ts",
@@ -32667,7 +32675,8 @@
      "column": 15,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "src/app/api/webhooks/stripe/route.ts",
@@ -32740,6 +32749,7 @@
      "line": 112,
      "column": 16,
      "property": "price",
+     "startLine": 110,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -32821,7 +32831,8 @@
      "column": 71,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "src/app/api/webhooks/stripe/route.ts",
@@ -32845,6 +32856,7 @@
      "line": 110,
      "column": 22,
      "property": "price",
+     "startLine": 108,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -32942,7 +32954,8 @@
      "column": 15,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "src/app/api/webhooks/stripe/route.ts",
@@ -33410,7 +33423,8 @@
      "column": 15,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "app/api/stripe/route.ts",
@@ -33514,6 +33528,7 @@
      "line": 86,
      "column": 18,
      "property": "name",
+     "startLine": 84,
      "label": "not-stripe",
      "source": "rule-no-stripe-in-file"
     },
@@ -33987,7 +34002,8 @@
      "column": 17,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "src/app/api/webhooks/stripe/route.ts",
@@ -34148,7 +34164,8 @@
      "column": 17,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "app/api/webhook/stripe/route.ts",
@@ -34262,6 +34279,7 @@
      "line": 196,
      "column": 20,
      "property": "price",
+     "startLine": 194,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -36216,6 +36234,7 @@
      "line": 9,
      "column": 4,
      "property": "name",
+     "startLine": 8,
      "label": "not-stripe",
      "source": "rule-no-stripe-in-file"
     },
@@ -36568,7 +36587,8 @@
      "column": 21,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "app/api/webhooks/stripe/route.ts",
@@ -36937,6 +36957,7 @@
      "line": 105,
      "column": 22,
      "property": "price",
+     "startLine": 103,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -36945,6 +36966,7 @@
      "line": 134,
      "column": 20,
      "property": "price",
+     "startLine": 132,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -40167,7 +40189,8 @@
      "column": 15,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "app/api/webhook/route.ts",
@@ -40323,7 +40346,8 @@
      "column": 15,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "app/api/webhook/route.ts",
@@ -40914,7 +40938,8 @@
      "column": 17,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "src/app/api/webhooks/stripe/route.ts",
@@ -40938,6 +40963,7 @@
      "line": 106,
      "column": 22,
      "property": "price",
+     "startLine": 104,
      "label": "not-stripe",
      "source": "oracle"
     },
@@ -41035,7 +41061,8 @@
      "column": 15,
      "property": "subscription",
      "label": "stripe-unaffected",
-     "source": "oracle"
+     "source": "oracle",
+     "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
     },
     {
      "file": "src/app/api/webhooks/stripe/route.ts",
@@ -42803,8 +42830,8 @@
    "sdk": "17.7.0",
    "sdkSource": "package-lock.json",
    "verdict": "broken",
-   "reason": "2 breaking reads, 2 removed request parameters",
-   "breaking": 2,
+   "reason": "6 breaking reads, 2 removed request parameters",
+   "breaking": 6,
    "reads": [
     {
      "file": "ai/providers/anthropic.ts",
@@ -43213,16 +43240,20 @@
      "line": 232,
      "column": 71,
      "property": "current_period_start",
-     "label": "not-stripe",
-     "source": "oracle"
+     "label": "breaking",
+     "source": "manual",
+     "field": "subscription.current_period_start",
+     "note": "Stripe Subscription cast to a hand-written type; at runtime the field is gone (oracle: not-stripe)"
     },
     {
      "file": "app/api/stripe/webhook/route.ts",
      "line": 235,
      "column": 69,
      "property": "current_period_end",
-     "label": "not-stripe",
-     "source": "oracle"
+     "label": "breaking",
+     "source": "manual",
+     "field": "subscription.current_period_end",
+     "note": "Stripe Subscription cast to a hand-written type; at runtime the field is gone (oracle: not-stripe)"
     },
     {
      "file": "app/api/stripe/webhook/route.ts",
@@ -43237,16 +43268,22 @@
      "line": 263,
      "column": 11,
      "property": "current_period_end",
-     "label": "not-stripe",
-     "source": "oracle"
+     "startLine": 261,
+     "label": "breaking",
+     "source": "manual",
+     "field": "subscription.current_period_end",
+     "note": "Stripe Subscription cast to a hand-written type; at runtime the field is gone (oracle: not-stripe)"
     },
     {
      "file": "app/api/stripe/webhook/route.ts",
      "line": 347,
      "column": 27,
      "property": "price",
-     "label": "not-stripe",
-     "source": "oracle"
+     "startLine": 341,
+     "label": "breaking",
+     "source": "manual",
+     "field": "line_item.price",
+     "note": "invoice.lines.data[0] cast to a hand-written type; the invoice line item loses price (oracle: not-stripe)"
     },
     {
      "file": "app/docs/api/page.tsx",

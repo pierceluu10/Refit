@@ -3613,6 +3613,144 @@
    "column": 17,
    "property": "subscription",
    "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "AadityaShukla01/Simplex",
+   "file": "app/api/webhook/route.ts",
+   "line": 45,
+   "column": 17,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "4lbatr0s/jiro",
+   "file": "src/app/api/webhooks/stripe/route.ts",
+   "line": 56,
+   "column": 15,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "Yudhishthirr/askmypdf",
+   "file": "src/app/api/webhooks/stripe/route.ts",
+   "line": 67,
+   "column": 71,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "AshimaSingh0610/SwiftScribe",
+   "file": "src/app/api/webhooks/stripe/route.ts",
+   "line": 57,
+   "column": 15,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "miroshar-success/SaaS-CV-Creation",
+   "file": "app/api/stripe/route.ts",
+   "line": 57,
+   "column": 15,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "avikalp987/quill",
+   "file": "src/app/api/webhooks/stripe/route.ts",
+   "line": 61,
+   "column": 17,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "haimatrix99/quiz-me",
+   "file": "app/api/webhook/stripe/route.ts",
+   "line": 61,
+   "column": 17,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "DhavalDudheliya/DuoLingo_Clone",
+   "file": "app/api/webhooks/stripe/route.ts",
+   "line": 50,
+   "column": 21,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "H-Dodamani/AetherAI",
+   "file": "app/api/webhook/route.ts",
+   "line": 50,
+   "column": 15,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+   "file": "app/api/webhook/route.ts",
+   "line": 60,
+   "column": 15,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "QwertyFusion/bookworm",
+   "file": "src/app/api/webhooks/stripe/route.ts",
+   "line": 61,
+   "column": 17,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  },
+  {
+   "repo": "dheerajcl/Jynx2.0",
+   "file": "src/app/api/webhooks/stripe/route.ts",
+   "line": 57,
+   "column": 15,
+   "property": "subscription",
+   "disputed": "invoice.payment_succeeded payload cast to Stripe.Checkout.Session; at runtime an Invoice, whose subscription the target removed"
+  }
+ ],
+ "overrides": [
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/api/stripe/webhook/route.ts",
+   "line": 232,
+   "column": 71,
+   "property": "current_period_start",
+   "label": "breaking",
+   "field": "subscription.current_period_start",
+   "note": "Stripe Subscription cast to a hand-written type; at runtime the field is gone"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/api/stripe/webhook/route.ts",
+   "line": 235,
+   "column": 69,
+   "property": "current_period_end",
+   "label": "breaking",
+   "field": "subscription.current_period_end",
+   "note": "Stripe Subscription cast to a hand-written type; at runtime the field is gone"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/api/stripe/webhook/route.ts",
+   "line": 263,
+   "column": 11,
+   "property": "current_period_end",
+   "label": "breaking",
+   "field": "subscription.current_period_end",
+   "note": "Stripe Subscription cast to a hand-written type; at runtime the field is gone"
+  },
+  {
+   "repo": "aresjinwoo94-cpu/EliteVault",
+   "file": "app/api/stripe/webhook/route.ts",
+   "line": 347,
+   "column": 27,
+   "property": "price",
+   "label": "breaking",
+   "field": "line_item.price",
+   "note": "invoice.lines.data[0] cast to a hand-written type; the invoice line item loses price"
   }
  ]
 }

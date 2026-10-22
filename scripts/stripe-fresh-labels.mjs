@@ -158,22 +158,42 @@ const MENTIONS_STRIPE = /stripe/i;
 const EVENT_RECEIVER = /(?:^|[^\w$.])(?:event|evt|e|stripeEvent|webhookEvent)\??\.$/;
 
 // One repository's labels: the oracle's decided reads and typed request parameters, the
-// documented rules, then hand decisions for every read the oracle left unknown.
+// documented rules, then hand decisions for every read the oracle left unknown. An override
+// replaces an oracle label where a cast to a hand-written type hides a Stripe object.
 export function labelRepository({ entry, oracle, decisions, source }) {
   const forRepo = (list) =>
     new Map(list.filter((d) => d.repo === entry.repo).map((d) => [key(d), d]));
   const manual = forRepo(decisions.reads);
   const disputed = forRepo(decisions.disputed ?? []);
+  const overrides = forRepo(decisions.overrides ?? []);
   const reads = [];
   const requests = [];
   for (const read of oracle.reads) {
-    const base = { file: read.file, line: read.line, column: read.column, property: read.property };
+    const base = {
+      file: read.file,
+      line: read.line,
+      column: read.column,
+      property: read.property,
+      // A chain that spans lines starts earlier; Refit reports a read where its chain starts.
+      ...(read.start && read.start.line !== read.line ? { startLine: read.start.line } : {}),
+    };
     if (read.request) {
       requests.push({ ...base, label: 'breaking', source: 'oracle', field: read.request });
       continue;
     }
     const decision = manual.get(key(read));
-    if (read.label !== 'unknown') {
+    const override = overrides.get(key(read));
+    if (override) {
+      if (read.label === 'unknown')
+        throw new Error(`${entry.repo} ${key(read)}: override of unknown`);
+      reads.push({
+        ...base,
+        label: override.label,
+        source: 'manual',
+        ...(override.field ? { field: override.field } : {}),
+        note: `${override.note} (oracle: ${read.label})`,
+      });
+    } else if (read.label !== 'unknown') {
       if (decision)
         throw new Error(`${entry.repo} ${key(read)}: decided by the oracle and by hand`);
       reads.push({
@@ -212,8 +232,10 @@ export function labelRepository({ entry, oracle, decisions, source }) {
     requests.push({ ...rest, source: 'manual' });
   }
   const used = reads.filter((read) => read.source === 'manual').length;
-  if (used !== manual.size)
-    throw new Error(`${entry.repo}: ${manual.size - used} hand decisions match no read`);
+  if (used !== manual.size + overrides.size)
+    throw new Error(
+      `${entry.repo}: ${manual.size + overrides.size - used} hand decisions match no read`,
+    );
   const breaking = reads.filter((read) => read.label === 'breaking').length;
   const removed = requests.filter((request) => request.label === 'breaking').length;
   return {
@@ -281,6 +303,127 @@ async function assemble(root, oracleDirectory, decisionsPath, output) {
   );
 }
 
+// Refit reports a removed request parameter as `<call> argument[n].<path>`; the shared scorer
+// counts those against read precision, so they are scored here against the request labels.
+const REQUEST_FINDING = / argument\[\d+\]\./;
+
+// Read and request precision and recall, repository detection, and every miss and false alarm.
+// Disputed reads (labelled stripe-unaffected) are also scored as breaking.
+export function scoreLabels(labels, results) {
+  const byRepo = new Map(results.filter(Boolean).map((row) => [row.repo, row]));
+  const count = () => ({ tp: 0, fp: 0, fn: 0 });
+  const totals = {
+    reads: { confirmed: count(), any: count() },
+    readsDisputedBreaking: { confirmed: count(), any: count() },
+    requests: { confirmed: count(), any: count() },
+  };
+  // detected: a confirmed finding names a break; flagged: any finding does.
+  const repos = { broken: 0, detected: 0, flagged: 0, unaffected: 0, falseAlarms: 0 };
+  const misses = [];
+  const falsePositives = [];
+  for (const labelled of labels.repos) {
+    const row = byRepo.get(labelled.repo);
+    const findings = (row?.fullAdapter ?? row?.shippedAdapter)?.findings ?? [];
+    const readFindings = findings.filter((finding) => !REQUEST_FINDING.test(finding.property));
+    const requestFindings = findings.filter((finding) => REQUEST_FINDING.test(finding.property));
+    const at = (value) => `${value.file}\0${value.line}\0${value.property}`;
+    const starts = (read) =>
+      read.startLine ? [at(read), at({ ...read, line: read.startLine })] : [at(read)];
+    const labelOf = new Map(
+      labelled.reads.flatMap((read) => starts(read).map((key) => [key, read])),
+    );
+    const requestOf = (finding) =>
+      labelled.requests.find(
+        (request) =>
+          request.file === finding.file &&
+          request.line === finding.line &&
+          finding.property.endsWith(`.${request.property}`),
+      );
+    const hit = { confirmed: false, any: false };
+    for (const level of ['confirmed', 'any']) {
+      const reported = (list) =>
+        list.filter((finding) => level === 'any' || finding.confidence === 'confirmed');
+      const reads = new Set(reported(readFindings).map(at));
+      for (const [target, disputedBreaking] of [
+        [totals.reads[level], false],
+        [totals.readsDisputedBreaking[level], true],
+      ]) {
+        const breaking = (read) =>
+          read.label === 'breaking' || (disputedBreaking && Boolean(read.disputed));
+        for (const key of reads) {
+          const read = labelOf.get(key);
+          if (read && (['excluded', 'unknown'].includes(read.label) || breaking(read))) continue;
+          target.fp += 1;
+          if (!disputedBreaking && level === 'confirmed')
+            falsePositives.push({
+              repo: labelled.repo,
+              file: key.split('\0')[0],
+              line: Number(key.split('\0')[1]),
+              property: key.split('\0')[2],
+              label: read?.label ?? 'not a labelled read',
+              ...(read?.disputed ? { disputed: true } : {}),
+            });
+        }
+        // Reads are keyed by file, line and property, as in the shared scorer.
+        const unique = new Map(labelled.reads.filter(breaking).map((read) => [at(read), read]));
+        for (const read of unique.values())
+          if (starts(read).some((key) => reads.has(key))) target.tp += 1;
+          else {
+            target.fn += 1;
+            if (!disputedBreaking && level === 'confirmed')
+              misses.push({
+                repo: labelled.repo,
+                kind: 'read',
+                file: read.file,
+                line: read.line,
+                field: read.field,
+                reported: readFindings.some((finding) => starts(read).includes(at(finding)))
+                  ? 'review'
+                  : 'none',
+              });
+          }
+      }
+      const requests = reported(requestFindings);
+      const matched = new Set(requests.map(requestOf).filter(Boolean));
+      const breakingRequests = labelled.requests.filter((request) => request.label === 'breaking');
+      totals.requests[level].tp += breakingRequests.filter((request) =>
+        matched.has(request),
+      ).length;
+      totals.requests[level].fp += requests.filter(
+        (finding) =>
+          requestOf(finding)?.label !== 'breaking' && requestOf(finding)?.label !== 'excluded',
+      ).length;
+      for (const request of breakingRequests)
+        if (!matched.has(request)) {
+          totals.requests[level].fn += 1;
+          if (level === 'confirmed')
+            misses.push({
+              repo: labelled.repo,
+              kind: 'request',
+              file: request.file,
+              line: request.line,
+              field: request.field,
+              reported: requestFindings.some((finding) => requestOf(finding) === request)
+                ? 'review'
+                : 'none',
+            });
+        }
+      hit[level] =
+        [...reads].some((key) => labelOf.get(key)?.label === 'breaking') ||
+        breakingRequests.some((request) => matched.has(request));
+    }
+    if (labelled.verdict === 'broken') {
+      repos.broken += 1;
+      if (hit.confirmed) repos.detected += 1;
+      if (hit.any) repos.flagged += 1;
+    } else {
+      repos.unaffected += 1;
+      if (findings.some((finding) => finding.confidence === 'confirmed')) repos.falseAlarms += 1;
+    }
+  }
+  return { totals, repos, misses, falsePositives };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { positionals, values } = parseArgs({
     allowPositionals: true,
@@ -291,6 +434,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       oracle: { type: 'string' },
       decisions: { type: 'string' },
       output: { type: 'string' },
+      labels: { type: 'string' },
+      results: { type: 'string', multiple: true },
     },
   });
   const [command] = positionals;
@@ -309,9 +454,21 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     values.output
   )
     await assemble(resolve(values.root), resolve(values.oracle), values.decisions, values.output);
-  else {
+  else if (command === 'score' && values.labels && values.results) {
+    // Several results files (shards) are scored as one run.
+    const results = [];
+    for (const path of values.results) results.push(...JSON.parse(await readFile(path, 'utf8')));
+    const score = scoreLabels(JSON.parse(await readFile(values.labels, 'utf8')), results);
+    if (values.output) await writeFile(values.output, `${JSON.stringify(score, null, 1)}\n`);
+    const rate = ({ tp, fp, fn }) =>
+      `recall ${tp}/${tp + fn} (${Math.round((100 * tp) / (tp + fn || 1))}%)  precision ${tp}/${tp + fp} (${Math.round((100 * tp) / (tp + fp || 1))}%)`;
+    for (const [name, levels] of Object.entries(score.totals))
+      for (const [level, value] of Object.entries(levels))
+        console.log(`${name.padEnd(22)} ${level.padEnd(9)} ${rate(value)}`);
+    console.log(JSON.stringify(score.repos));
+  } else {
     console.error(
-      'Usage: node scripts/stripe-fresh-labels.mjs sample\n   or: prepare --source <fresh benchmark root> --root <new labelling root> --repos <repos.json>\n   or: assemble --root <labelling root> --oracle <benchmark:stripe-labels output> --decisions <decisions.json> --output <labels.json>',
+      'Usage: node scripts/stripe-fresh-labels.mjs sample\n   or: prepare --source <fresh benchmark root> --root <new labelling root> --repos <repos.json>\n   or: assemble --root <labelling root> --oracle <benchmark:stripe-labels output> --decisions <decisions.json> --output <labels.json>\n   or: score --labels <labels.json> --results <results.json> [--results …] [--output <score.json>]',
     );
     process.exit(1);
   }

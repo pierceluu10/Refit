@@ -38,6 +38,7 @@ export function labelRepository(options: {
     reads: Decision[];
     requests: Decision[];
     disputed?: (Omit<Decision, 'label'> & { disputed: string })[];
+    overrides?: Decision[];
   };
   source: (file: string) => string;
 }): {
@@ -46,4 +47,47 @@ export function labelRepository(options: {
   breaking: number;
   reads: (Omit<Decision, 'repo'> & { source: string; disputed?: string })[];
   requests: (Omit<Decision, 'repo'> & { source: string })[];
+};
+
+interface Counts {
+  tp: number;
+  fp: number;
+  fn: number;
+}
+export function scoreLabels(
+  labels: {
+    repos: {
+      repo: string;
+      verdict: string;
+      reads: {
+        file: string;
+        line: number;
+        property: string;
+        label: string;
+        startLine?: number;
+        disputed?: string;
+      }[];
+      requests: { file: string; line: number; property: string; label: string }[];
+    }[];
+  },
+  results: ({
+    repo: string;
+    fullAdapter?: {
+      findings: { file: string; line: number; property: string; confidence: string }[];
+    };
+  } | null)[],
+): {
+  totals: Record<
+    'reads' | 'readsDisputedBreaking' | 'requests',
+    Record<'confirmed' | 'any', Counts>
+  >;
+  repos: {
+    broken: number;
+    detected: number;
+    flagged: number;
+    unaffected: number;
+    falseAlarms: number;
+  };
+  misses: { repo: string; kind: string; file: string; line: number; reported: string }[];
+  falsePositives: { repo: string; file: string; line: number; property: string; label: string }[];
 };

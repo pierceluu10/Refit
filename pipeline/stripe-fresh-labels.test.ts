@@ -1,6 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
-import { draw, group, labelRepository, lockedStripe } from '../scripts/stripe-fresh-labels.mjs';
+import {
+  draw,
+  group,
+  labelRepository,
+  lockedStripe,
+  scoreLabels,
+} from '../scripts/stripe-fresh-labels.mjs';
 
 it('splits outcomes into affected, not affected and unscanned', () => {
   expect(group('not-affected')).toBe('not-affected');
@@ -187,4 +193,107 @@ it('combines oracle labels, the documented rules and hand decisions, and refuses
   expect(() =>
     labelRepository({ entry, oracle: { reads: [] }, decisions, source: (f) => files[f] }),
   ).toThrow(/match no read/);
+  // An override replaces an oracle label that followed a cast, and keeps the oracle's word.
+  const cast = { reads: [read('billing.ts', 7, 'current_period_end', 'not-stripe')] };
+  const overridden = labelRepository({
+    entry,
+    oracle: cast,
+    decisions: {
+      reads: [],
+      requests: [],
+      overrides: [
+        {
+          repo: 'o/r',
+          file: 'billing.ts',
+          line: 7,
+          column: 5,
+          property: 'current_period_end',
+          label: 'breaking',
+          field: 'subscription.current_period_end',
+          note: 'Stripe Subscription cast to a hand-written type',
+        },
+      ],
+    },
+    source: (f) => files[f],
+  });
+  expect(overridden.reads).toEqual([
+    expect.objectContaining({
+      label: 'breaking',
+      source: 'manual',
+      note: 'Stripe Subscription cast to a hand-written type (oracle: not-stripe)',
+    }),
+  ]);
+});
+
+it('scores reads and request parameters separately, with chain starts and disputed reads', () => {
+  const labels = {
+    repos: [
+      {
+        repo: 'a/broken',
+        verdict: 'broken',
+        reads: [
+          { file: 'w.ts', line: 3, property: 'current_period_end', label: 'breaking' },
+          // A chain over two lines: Refit reports line 5, the label is at the name on line 6.
+          { file: 'w.ts', line: 6, startLine: 5, property: 'price', label: 'breaking' },
+          { file: 'w.ts', line: 9, property: 'subscription', label: 'breaking' },
+          {
+            file: 'w.ts',
+            line: 12,
+            property: 'subscription',
+            label: 'stripe-unaffected',
+            disputed: 'invoice payload cast to a session',
+          },
+          { file: 'w.ts', line: 14, property: 'type', label: 'not-stripe' },
+        ],
+        requests: [
+          { file: 'c.ts', line: 4, property: 'payment_method_types', label: 'breaking' },
+          { file: 'c.ts', line: 8, property: 'payment_method_types', label: 'breaking' },
+        ],
+      },
+      { repo: 'b/fine', verdict: 'unaffected', reads: [], requests: [] },
+    ],
+  };
+  const finding = (file: string, line: number, property: string, confidence = 'confirmed') => ({
+    file,
+    line,
+    property,
+    confidence,
+  });
+  const results = [
+    {
+      repo: 'a/broken',
+      fullAdapter: {
+        findings: [
+          finding('w.ts', 3, 'current_period_end'),
+          finding('w.ts', 5, 'price'),
+          finding('w.ts', 9, 'subscription', 'review'),
+          finding('w.ts', 12, 'subscription'),
+          finding('w.ts', 14, 'type'),
+          finding('c.ts', 4, 'checkout.sessions.create argument[0].payment_method_types'),
+        ],
+      },
+    },
+    { repo: 'b/fine', fullAdapter: { findings: [finding('x.ts', 1, 'paid')] } },
+  ];
+  const score = scoreLabels(labels, results);
+  expect(score.totals.reads.confirmed).toEqual({ tp: 2, fp: 3, fn: 1 });
+  expect(score.totals.reads.any).toEqual({ tp: 3, fp: 3, fn: 0 });
+  expect(score.totals.readsDisputedBreaking.confirmed).toEqual({ tp: 3, fp: 2, fn: 1 });
+  expect(score.totals.requests.confirmed).toEqual({ tp: 1, fp: 0, fn: 1 });
+  expect(score.repos).toEqual({
+    broken: 1,
+    detected: 1,
+    flagged: 1,
+    unaffected: 1,
+    falseAlarms: 1,
+  });
+  expect(score.misses).toEqual([
+    expect.objectContaining({ kind: 'read', line: 9, reported: 'review' }),
+    expect.objectContaining({ kind: 'request', line: 8, reported: 'none' }),
+  ]);
+  expect(score.falsePositives.map((fp) => [fp.repo, fp.line, fp.label])).toEqual([
+    ['a/broken', 12, 'stripe-unaffected'],
+    ['a/broken', 14, 'not-stripe'],
+    ['b/fine', 1, 'not a labelled read'],
+  ]);
 });
