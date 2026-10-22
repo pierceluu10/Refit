@@ -1,4 +1,4 @@
-// A small TOML 1.0 reader for package manifests and lockfiles (pyproject.toml, Pipfile, uv.lock,
+// A small TOML reader (1.0, plus 1.1's multi-line inline tables) for package manifests and lockfiles (pyproject.toml, Pipfile, uv.lock,
 // poetry.lock, Cargo.toml, Cargo.lock, gradle/libs.versions.toml). It covers tables, arrays of
 // tables, dotted and quoted keys, the four string forms, arrays, inline tables, numbers, booleans
 // and date-times (kept as strings). Anything else throws TomlError, which callers report as a
@@ -188,21 +188,19 @@ export function parseToml(text: string): TomlTable {
       }
     }
     if (character === '{') {
+      // TOML 1.1 (which Cargo reads) allows newlines, comments and a trailing comma here.
       advance();
       const table: TomlTable = {};
-      skipSpaces();
-      if (peek() === '}') {
-        advance();
-        return table;
-      }
       for (;;) {
-        assign(table, key());
-        skipSpaces();
-        if (peek() === ',') advance();
-        else if (peek() === '}') {
+        skipBlank();
+        if (peek() === '}') {
           advance();
           return table;
-        } else fail('Expected , or } in an inline table');
+        }
+        assign(table, key());
+        skipBlank();
+        if (peek() === ',') advance();
+        else if (peek() !== '}') fail('Expected , or } in an inline table');
       }
     }
     return scalar();

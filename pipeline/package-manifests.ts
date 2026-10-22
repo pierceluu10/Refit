@@ -455,6 +455,33 @@ export function parseGemfile(content: string, file: string): ParsedManifest {
   return result;
 }
 
+// *.gemspec: a gem's own dependencies, from literal add_dependency, add_runtime_dependency and
+// add_development_dependency calls. The file is Ruby and is never evaluated.
+export function parseGemspec(content: string, file: string): ParsedManifest {
+  const result = empty();
+  for (const [index, raw] of content.replace(/\r\n/g, '\n').split('\n').entries()) {
+    const text = raw.replace(/(^|\s)#.*$/, '').trim();
+    const match = /\.add_(?:runtime_|development_)?dependency\s*\(?\s*(['"])([^'"]+)\1(.*)$/.exec(
+      text,
+    );
+    if (!match) continue;
+    const requirements = [...match[3].matchAll(/,\s*(['"])([^'"]*)\1/g)].map((item) => item[2]);
+    if (!requirements.length && /,\s*[A-Za-z_][\w:.]*/.test(match[3]))
+      result.stops.push(
+        stop(file, 'version-not-literal', `${match[2]} has a computed requirement`, index + 1),
+      );
+    result.dependencies.push({
+      ecosystem: 'rubygems',
+      name: match[2],
+      declared: requirements.length ? requirements.join(', ') : null,
+      file,
+      line: index + 1,
+      direct: true,
+    });
+  }
+  return result;
+}
+
 export function parseGemfileLock(content: string): ParsedManifest {
   const result = empty();
   let section = '';
@@ -694,11 +721,47 @@ function itemGroups(document: Record<string, unknown> | undefined) {
   return (project?.ItemGroup ?? []) as Record<string, unknown>[];
 }
 
-export function parseCsproj(content: string, file: string): ParsedManifest {
+// Literal MSBuild properties (<PropertyGroup><Name>value</Name>) a project or
+// Directory.Build.props defines. Values that reference other properties are resolved against the
+// ones already known; the rest are left out.
+export function msbuildProperties(content: string, inherited = new Map<string, string>()) {
+  const properties = new Map(inherited);
+  const document = new XMLParser({
+    parseTagValue: false,
+    trimValues: true,
+    processEntities: false,
+    isArray: (name) => name === 'PropertyGroup',
+  }).parse(content) as Record<string, unknown>;
+  const project = document?.Project as Record<string, unknown> | undefined;
+  for (const group of (project?.PropertyGroup ?? []) as Record<string, unknown>[])
+    for (const [name, value] of Object.entries(group ?? {})) {
+      const literal = text(value);
+      if (literal === undefined) continue;
+      const resolved = resolveProperties(literal, properties);
+      if (resolved !== null) properties.set(name, resolved);
+    }
+  return properties;
+}
+
+function resolveProperties(value: string, properties: Map<string, string>) {
+  const resolved = value.replace(
+    /\$\(([\w.]+)\)/g,
+    (whole, name: string) => properties.get(name) ?? whole,
+  );
+  return resolved.includes('$(') ? null : resolved;
+}
+
+// `inherited` holds the properties of the Directory.Build.props files above the project.
+export function parseCsproj(
+  content: string,
+  file: string,
+  inherited = new Map<string, string>(),
+): ParsedManifest {
   const result = empty();
   const document = xmlDocument(content, file, result);
   if (document && !document.Project)
     result.stops.push(stop(file, 'unparseable-xml', 'No <Project> element'));
+  const properties = document ? msbuildProperties(content, inherited) : inherited;
   let from = 0;
   for (const group of itemGroups(document))
     for (const reference of (group.PackageReference ?? []) as Record<string, unknown>[]) {
@@ -708,17 +771,10 @@ export function parseCsproj(content: string, file: string): ParsedManifest {
       const index = content.indexOf(`"${name}"`, from);
       if (index >= 0) from = index + 1;
       const line = lineOf(content, `"${name}"`, Math.max(index, 0));
-      const literal = version === null || !version.includes('$(');
-      if (!literal)
+      const declared = version === null ? null : resolveProperties(version, properties);
+      if (version !== null && declared === null)
         result.stops.push(stop(file, 'version-not-literal', `${name} uses ${version}`, line));
-      result.dependencies.push({
-        ecosystem: 'nuget',
-        name,
-        declared: literal ? version : null,
-        file,
-        line,
-        direct: true,
-      });
+      result.dependencies.push({ ecosystem: 'nuget', name, declared, file, line, direct: true });
     }
   return result;
 }
@@ -818,6 +874,8 @@ const REQUIREMENTS = /^requirements[\w.-]*\.(?:txt|in)$/i;
 export function manifestKind(name: string): ManifestKind | undefined {
   if (REQUIREMENTS.test(name))
     return { ecosystem: 'pypi', kind: 'manifest', parse: parseRequirements };
+  if (name.endsWith('.gemspec'))
+    return { ecosystem: 'rubygems', kind: 'manifest', parse: parseGemspec };
   if (name.endsWith('.csproj') || name.endsWith('.fsproj') || name.endsWith('.vbproj'))
     return { ecosystem: 'nuget', kind: 'manifest', parse: parseCsproj };
   switch (name) {
@@ -883,6 +941,7 @@ function lockKey(ecosystem: Ecosystem, name: string) {
 export async function readPackageManifests(directory: string): Promise<PackageInventory> {
   const root = await realpath(directory);
   const found: { file: string; kind: ManifestKind }[] = [];
+  const buildProps: string[] = [];
   let entries = 0;
   async function visit(path: string): Promise<void> {
     const children = (await readdir(path, { withFileTypes: true })).sort((a, b) =>
@@ -896,6 +955,8 @@ export async function readPackageManifests(directory: string): Promise<PackageIn
         if (!EXCLUDED_DIRECTORIES.has(child.name)) await visit(childPath);
         continue;
       }
+      if (child.isFile() && child.name === 'Directory.Build.props')
+        buildProps.push(relative(root, childPath).split('\\').join('/'));
       const kind = child.isFile() ? manifestKind(child.name) : undefined;
       if (kind) found.push({ file: relative(root, childPath).split('\\').join('/'), kind });
     }
@@ -910,7 +971,30 @@ export async function readPackageManifests(directory: string): Promise<PackageIn
       return empty();
     }
     // A UTF-8 byte-order mark (common in .csproj files) is not part of the document.
-    return kind.parse((await readFile(path, 'utf8')).replace(/^\uFEFF/, ''), file);
+    const content = (await readFile(path, 'utf8')).replace(/^\uFEFF/, '');
+    if (kind.parse === parseCsproj)
+      return parseCsproj(content, file, await inheritedProperties(file));
+    return kind.parse(content, file);
+  };
+  // MSBuild imports the nearest Directory.Build.props above a project (outer ones only when that
+  // file imports them, which Refit does not evaluate), so only the nearest one's literal
+  // properties resolve $(Name) versions.
+  const propertyFiles = new Map<string, Map<string, string>>();
+  const inheritedProperties = async (file: string) => {
+    for (let folder = posix.dirname(file); ; folder = posix.dirname(folder)) {
+      const props = posix.join(folder, 'Directory.Build.props');
+      if (buildProps.includes(props)) {
+        if (!propertyFiles.has(props)) {
+          const content = (await readFile(join(root, props), 'utf8')).replace(/^\uFEFF/, '');
+          propertyFiles.set(
+            props,
+            XMLValidator.validate(content) === true ? msbuildProperties(content) : new Map(),
+          );
+        }
+        return propertyFiles.get(props)!;
+      }
+      if (folder === '.' || folder === '/') return new Map<string, string>();
+    }
   };
   for (const { file, kind } of found) {
     inventory.manifests.push({ file, ecosystem: kind.ecosystem, kind: kind.kind });

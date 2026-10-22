@@ -627,3 +627,77 @@ describe('SDKs past end of support in other ecosystems', () => {
     expect(check({ ecosystem: 'pypi', kind: 'model' })).toHaveLength(1);
   });
 });
+
+describe('gemspecs, MSBuild properties and TOML 1.1 inline tables', () => {
+  it('reads literal gemspec dependencies, skipping commented ones', async () => {
+    const parsed = await parseFixture('ruby/honyaku/honyaku.gemspec');
+    expect(parsed.dependencies.map((entry) => [entry.name, entry.declared, entry.line])).toEqual([
+      ['thor', '~> 1.3', 35],
+      ['ruby-openai', '~> 6.3', 36],
+      ['yaml', '~> 0.3.0', 37],
+    ]);
+    const root = await repository({
+      'lib.gemspec': [
+        'Gem::Specification.new do |s|',
+        '  s.add_runtime_dependency("stripe", ">= 5", "< 13")',
+        "  s.add_development_dependency 'rspec'",
+        '  s.add_dependency "anthropic", Anthropic::VERSION',
+        'end',
+      ].join('\n'),
+    });
+    const inventory = await readPackageManifests(root);
+    expect(inventory.dependencies.map((entry) => [entry.name, entry.declared])).toEqual([
+      ['stripe', '>= 5, < 13'],
+      ['rspec', null],
+      ['anthropic', null],
+    ]);
+    expect(inventory.stops.map((entry) => [entry.reason, entry.line])).toEqual([
+      ['version-not-literal', 4],
+    ]);
+  });
+
+  it('resolves $(Name) versions from the project and the nearest Directory.Build.props', async () => {
+    const inventory = await readPackageManifests(join(FIXTURES, 'dotnet', 'bitwarden'));
+    expect(inventory.stops).toEqual([]);
+    expect(inventory.dependencies.map((entry) => [entry.name, entry.declared])).toEqual([
+      ['coverlet.collector', '6.0.0'],
+      ['Microsoft.AspNetCore.Mvc.Testing', '[10.0.10]'],
+      ['Microsoft.NET.Test.Sdk', '18.0.1'],
+      ['NSubstitute', '5.1.0'],
+      ['xunit', '2.6.6'],
+      ['xunit.runner.visualstudio', '2.5.6'],
+      ['AutoFixture.Xunit2', '4.18.1'],
+    ]);
+    const root = await repository({
+      'Directory.Build.props':
+        '<Project><PropertyGroup><StripeVersion>40.0.0</StripeVersion></PropertyGroup></Project>',
+      'src/Directory.Build.props':
+        '<Project><PropertyGroup><OpenAIVersion>2.1.0</OpenAIVersion></PropertyGroup></Project>',
+      'src/App/App.csproj': [
+        '<Project><PropertyGroup><TwilioMajor>7</TwilioMajor><TwilioVersion>$(TwilioMajor).3.0</TwilioVersion></PropertyGroup>',
+        '<ItemGroup>',
+        '<PackageReference Include="OpenAI" Version="$(OpenAIVersion)" />',
+        '<PackageReference Include="Twilio" Version="$(TwilioVersion)" />',
+        '<PackageReference Include="Stripe.net" Version="$(StripeVersion)" />',
+        '</ItemGroup></Project>',
+      ].join('\n'),
+    });
+    const nested = await readPackageManifests(root);
+    // Only the nearest Directory.Build.props is imported, so the root's StripeVersion is unknown.
+    expect(nested.dependencies.map((entry) => [entry.name, entry.declared])).toEqual([
+      ['OpenAI', '2.1.0'],
+      ['Twilio', '7.3.0'],
+      ['Stripe.net', null],
+    ]);
+    expect(nested.stops.map((entry) => entry.detail)).toEqual(['Stripe.net uses $(StripeVersion)']);
+  });
+
+  it('reads multi-line inline tables, which Cargo accepts', async () => {
+    const parsed = await parseFixture('rust/authbox/crates/authbox/Cargo.toml');
+    expect(parsed.stops).toEqual([]);
+    expect(pick(parsed.dependencies, 'authbox-email')).toMatchObject({
+      declared: '1.2.5',
+      line: 38,
+    });
+  });
+});

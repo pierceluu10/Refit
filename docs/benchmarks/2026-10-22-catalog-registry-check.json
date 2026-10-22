@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "checkedAt": "2026-10-22T08:17:52.397Z",
+  "checkedAt": "2026-10-22T08:34:14.505Z",
   "checks": [
     {
       "provider": "stripe",
@@ -45,6 +45,42 @@
       "status": 200,
       "latest": "34.1.0-beta.1",
       "source": "git@github.com:stripe/stripe-java.git"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripe-android",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripe-android/maven-metadata.xml",
+      "status": 200,
+      "latest": "23.25.0",
+      "source": "https://github.com/stripe/stripe-android"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripeterminal",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripeterminal/maven-metadata.xml",
+      "status": 200,
+      "latest": "6.0.0",
+      "source": "https://github.com/stripe/stripe-terminal-android"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripeterminal-core",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripeterminal-core/maven-metadata.xml",
+      "status": 200,
+      "latest": "6.0.0",
+      "source": "https://github.com/stripe/stripe-terminal-android"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripeterminal-localmobile",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripeterminal-localmobile/maven-metadata.xml",
+      "status": 200,
+      "latest": "3.10.2",
+      "source": "https://github.com/stripe/stripe-terminal-android"
     },
     {
       "provider": "stripe",
@@ -255,6 +291,15 @@
     },
     {
       "provider": "gemini",
+      "ecosystem": "rubygems",
+      "name": "gemini-ai",
+      "url": "https://rubygems.org/api/v1/gems/gemini-ai.json",
+      "status": 200,
+      "latest": "4.3.0",
+      "source": "https://github.com/gbaptista/gemini-ai"
+    },
+    {
+      "provider": "gemini",
       "ecosystem": "packagist",
       "name": "google-gemini-php/client",
       "url": "https://repo.packagist.org/p2/google-gemini-php/client.json",
@@ -279,6 +324,15 @@
       "status": 200,
       "latest": "1.26.1",
       "source": "https://github.com/googleapis/dotnet-genai"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "nuget",
+      "name": "Google_GenerativeAI",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/google_generativeai/index.json",
+      "status": 200,
+      "latest": "3.6.8",
+      "source": "https://github.com/gunpal5/Google_GenerativeAI"
     },
     {
       "provider": "shopify",
@@ -415,6 +469,33 @@
       "source": "http://github.com/twilio/twilio-csharp"
     },
     {
+      "provider": "twilio",
+      "ecosystem": "nuget",
+      "name": "Twilio.AspNet.Core",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/twilio.aspnet.core/index.json",
+      "status": 200,
+      "latest": "8.1.2",
+      "source": "https://github.com/twilio-labs/twilio-aspnet"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "nuget",
+      "name": "Twilio.AspNet.Common",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/twilio.aspnet.common/index.json",
+      "status": 200,
+      "latest": "8.1.2",
+      "source": "https://github.com/twilio-labs/twilio-aspnet"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "nuget",
+      "name": "Twilio.AspNet.Mvc",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/twilio.aspnet.mvc/index.json",
+      "status": 200,
+      "latest": "8.1.2",
+      "source": "https://github.com/twilio-labs/twilio-aspnet"
+    },
+    {
       "provider": "sendgrid",
       "ecosystem": "pypi",
       "name": "sendgrid",
@@ -485,6 +566,15 @@
       "status": 200,
       "latest": "v1.7.0",
       "source": "https://github.com/resend/resend-go"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "go",
+      "name": "github.com/resendlabs/resend-go",
+      "url": "https://proxy.golang.org/github.com/resendlabs/resend-go/@latest",
+      "status": 200,
+      "latest": "v1.7.0",
+      "source": "https://github.com/resendlabs/resend-go"
     },
     {
       "provider": "resend",
