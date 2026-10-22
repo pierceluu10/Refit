@@ -1,0 +1,125 @@
+{
+  "formatVersion": 1,
+  "repository": "nextai-translator/raycast-openai-translator",
+  "revision": "13b28b08661a41f0044014f7e705e02b2d63055d",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "openai",
+      "name": "OpenAI",
+      "packages": [],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": []
+    },
+    {
+      "provider": "anthropic",
+      "name": "Anthropic",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "@anthropic-ai/sdk",
+          "declared": "^0.19.0",
+          "locked": "0.19.2"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "model-fixes",
+      "apiVersions": []
+    },
+    {
+      "provider": "gemini",
+      "name": "Gemini",
+      "packages": [],
+      "configured": false,
+      "integration": null,
+      "capability": "report-only",
+      "apiVersions": []
+    }
+  ],
+  "deadlines": [
+    {
+      "id": "anthropic-2026-04-20-claude-3-haiku",
+      "provider": "anthropic",
+      "kind": "model",
+      "versions": [
+        "claude-3-haiku-20240307"
+      ],
+      "date": "2026-04-20",
+      "days": -185,
+      "summary": "Anthropic retires claude-3-haiku-20240307 on the Claude API; requests to a retired model fail.",
+      "replacement": "claude-haiku-4-5-20251001",
+      "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+      "evidence": [
+        {
+          "file": "src/providers/claude/config.ts",
+          "line": 6,
+          "text": "id: \"claude-3-haiku-20240307\","
+        },
+        {
+          "file": "src/providers/claude/config.ts",
+          "line": 7,
+          "text": "name: \"claude-3-haiku-20240307\","
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    },
+    {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-3.5-turbo"
+      ],
+      "date": "2026-10-23",
+      "days": 1,
+      "summary": "OpenAI shuts down gpt-3.5-turbo, gpt-3.5-turbo-0125, o4-mini.",
+      "replacement": "gpt-5.6-terra",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "evidence": [
+        {
+          "file": "src/providers/openai/config.ts",
+          "line": 8,
+          "text": "id: \"gpt-3.5-turbo\","
+        },
+        {
+          "file": "src/providers/openai/config.ts",
+          "line": 9,
+          "text": "name: \"gpt-3.5-turbo\","
+        },
+        {
+          "file": "src/providers/raycast/index.ts",
+          "line": 7,
+          "text": "const MODEL_NAME = \"gpt-3.5-turbo\";"
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    }
+  ],
+  "mentions": [
+    "anthropic-2024-11-06-claude-1",
+    "anthropic-2025-07-21-claude-2",
+    "anthropic-2025-07-21-claude-3-sonnet",
+    "anthropic-2026-01-05-claude-3-opus"
+  ],
+  "models": [
+    {
+      "model": null,
+      "provider": "anthropic",
+      "calls": [
+        {
+          "file": "src/providers/claude/index.ts",
+          "line": 33,
+          "call": "messages.create",
+          "test": false
+        }
+      ]
+    }
+  ],
+  "untracked": [],
+  "next": "Move off `claude-3-haiku-20240307` now: its sunset was 2026-04-20 (passed 185 days ago). Replacement: `claude-haiku-4-5-20251001`; `refit deadlines --propose-model-fixes` proposes it where the model is a literal in a traced call. 1 more deadline is past due or within 30 days; see Deadlines."
+}

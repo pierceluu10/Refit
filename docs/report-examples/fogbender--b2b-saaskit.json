@@ -1,0 +1,98 @@
+{
+  "formatVersion": 1,
+  "repository": "fogbender/b2b-saaskit",
+  "revision": "148385ddf8a0cc4820cb6de9c1c46fd6092851af",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "stripe",
+      "name": "Stripe",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "stripe",
+          "declared": "^12.12.0",
+          "locked": "12.12.0"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": []
+    },
+    {
+      "provider": "openai",
+      "name": "OpenAI",
+      "packages": [],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": []
+    }
+  ],
+  "deadlines": [
+    {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-3.5-turbo"
+      ],
+      "date": "2026-10-23",
+      "days": 1,
+      "summary": "OpenAI shuts down gpt-3.5-turbo, gpt-3.5-turbo-0125, o4-mini.",
+      "replacement": "gpt-5.6-terra",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "evidence": [
+        {
+          "file": "src/components/app/Prompt.tsx",
+          "line": 224,
+          "text": "model: 'gpt-3.5-turbo',"
+        },
+        {
+          "file": "src/lib/trpc/routers/prompts.ts",
+          "line": 352,
+          "text": "model: key?.keyType === 'gpt-4' ? 'gpt-4' : 'gpt-3.5-turbo',"
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    },
+    {
+      "id": "openai-2026-10-23-gpt-4",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4"
+      ],
+      "date": "2026-10-23",
+      "days": 1,
+      "summary": "OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o1-pro, o3-mini.",
+      "replacement": "gpt-5.6-sol",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "evidence": [
+        {
+          "file": "src/db/schema.ts",
+          "line": 55,
+          "text": "export const gptTypeEnum = pgEnum('gpt_type', ['gpt-3', 'gpt-4']);"
+        },
+        {
+          "file": "src/lib/trpc/routers/prompts.ts",
+          "line": 352,
+          "text": "model: key?.keyType === 'gpt-4' ? 'gpt-4' : 'gpt-3.5-turbo',"
+        },
+        {
+          "file": "src/lib/trpc/routers/settings.ts",
+          "line": 42,
+          "text": "keyType: z.enum(['gpt-3', 'gpt-4']),"
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    }
+  ],
+  "mentions": [],
+  "models": [],
+  "untracked": [],
+  "next": "Move off `gpt-3.5-turbo` before 2026-10-23 (1 day left). Replacement: `gpt-5.6-terra`; `refit deadlines --propose-model-fixes` proposes it where the model is a literal in a traced call. 1 more deadline is past due or within 30 days; see Deadlines."
+}
