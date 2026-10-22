@@ -27,8 +27,6 @@ import { PipelineInputError } from './types.ts';
 // A crashed worker's lease is reclaimed this many times before the job is marked failed.
 const MAX_LEASE_ATTEMPTS = 3;
 const TARGET_HASH_LENGTH = 16;
-// GitHub redelivers only deliveries from the past 3 days, so an older GUID can never recur.
-const DELIVERY_RETENTION_DAYS = 30;
 // Serializes claims so two workers never start jobs for one installation at once.
 const CLAIM_LOCK = 4_206_100_002;
 
@@ -137,10 +135,6 @@ export async function openHostedStore(
     transaction(pool, async (client) => {
       // claim locks jobs and then installations; taking its lock first keeps the order the same.
       await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
-      await client.query(
-        'DELETE FROM refit_deliveries WHERE received_at < now() - make_interval(days => $1)',
-        [DELIVERY_RETENTION_DAYS],
-      );
       const hash = digest(body);
       const inserted = await client.query(
         'INSERT INTO refit_deliveries (id, hash, event) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
@@ -173,8 +167,13 @@ export async function openHostedStore(
         };
       }
       if (change.kind !== 'installation' && change.kind !== 'repositories')
-        // Hosted mode acts on no pull request; the local service suggests agents from them.
-        return { status: change.kind === 'ping' ? ('accepted' as const) : 'ignored', ...none };
+        // Hosted mode acts on no pull request; the local service suggests agents from them. A push
+        // is accepted so monitoring can re-scan the repository.
+        return {
+          status:
+            change.kind === 'ping' || change.kind === 'push' ? ('accepted' as const) : 'ignored',
+          ...none,
+        };
       const { rows: prior } = await client.query<{
         owner: string;
         status: string;

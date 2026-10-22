@@ -46,6 +46,7 @@ approve stores a receipt made by refit enroll. Installing the App on an approved
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
 With REFIT_HOSTED_APPROVAL_ISSUES=1, serve opens one issue on each installed repository of an allowed account that has no approval, showing what refit enroll shows (or a proposed .refit.json), and handles /refit approve <fingerprint-prefix> and /refit revoke comments from users with the admin or maintain role. It needs the App's Issues permission and issue_comment event.
+REFIT_HOSTED_LIFECYCLE=1 (off by default) follows repository renames, transfers and archiving and account renames, and stops a target GitHub no longer serves or whose name now belongs to another repository. Approvals never follow a rename or transfer. Renames and transfers need the App's repository event.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
 inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
 --job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch or --publish-draft. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process.
@@ -353,6 +354,7 @@ try {
         jobMachines: values['job-machines'] ? jobMachines(process.env) : undefined,
         purgeUninstalled: values['purge-uninstalled'],
         approvalIssues: process.env.REFIT_HOSTED_APPROVAL_ISSUES === '1',
+        lifecycle: process.env.REFIT_HOSTED_LIFECYCLE === '1',
         notify,
         redact,
         host: values.host,

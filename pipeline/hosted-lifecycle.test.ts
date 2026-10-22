@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import pg from 'pg';
@@ -20,7 +20,7 @@ import { parseWebhook } from './github-webhooks.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
-import { readRepositoryApproval, type RepositoryApproval } from './repository-enrollment.ts';
+import type { RepositoryApproval } from './repository-enrollment.ts';
 
 const github = vi.hoisted(() => ({ missing: false, id: 789 }));
 vi.mock('./github-app.ts', async () => {
@@ -131,7 +131,7 @@ async function membership(pool: pg.Pool) {
   ).rows.map((row) => [Number(row.installation_id), row.repository, Number(row.github_id)]);
 }
 
-async function service(pool: pg.Pool, root: string) {
+async function service(pool: pg.Pool, root: string, lifecycle = true) {
   const controller = new AbortController();
   let ready: (url: string) => void;
   const listening = new Promise<string>((resolve) => (ready = resolve));
@@ -148,6 +148,7 @@ async function service(pool: pg.Pool, root: string) {
     intervalSeconds: 30,
     leaseSeconds: 30,
     worker: 'lifecycle-worker',
+    lifecycle,
     signal: controller.signal,
     onReady: (url) => ready(url),
     onProgress: (message) => progress.push(message),
@@ -211,7 +212,7 @@ it.skipIf(!DATABASE)(
     );
     expect(created).toEqual({ status: 'accepted', enrolled: [TARGET], cancelled: [], running: [] });
     const registry = await store.read();
-    expect(registry.installations).toEqual([
+    expect(registry.installations).toMatchObject([
       {
         id: String(INSTALLATION),
         owner: 'example',
@@ -364,7 +365,7 @@ it.skipIf(!DATABASE)(
 );
 
 it.skipIf(!DATABASE)(
-  'follows a renamed repository by its ID: the approval moves, the old target stops and the new name enrolls',
+  'follows a renamed repository by its ID: the old target stops and the approval stays with the old name',
   async () => {
     const pool = await database();
     const store = await openHostedStore(pool, TENANCY);
@@ -386,36 +387,32 @@ it.skipIf(!DATABASE)(
         repository: { name: { from: 'Application' } },
       }),
     );
+    // Owner decision (2026-10-22): approvals never follow a rename, so nothing enrolls.
     expect(renamed).toMatchObject({
       status: 'accepted',
       cancelled: [TARGET],
       running: [job!.job],
-      enrolled: [renamedTarget],
+      enrolled: [],
     });
     expect(await membership(pool)).toEqual([[INSTALLATION, 'example/billing', APPLICATION_ID]]);
     expect(await derived(pool)).toEqual(['example/billing', 'example/billing', 'example/billing']);
-    const [moved] = await approvals(pool);
-    expect(moved).toMatchObject({ repository: 'example/billing', approved_by: 'octo-reviewer' });
-    expect(moved.approval.files).toEqual(sample.approval.files);
-    expect(moved.approval.fingerprint).not.toBe(sample.approval.fingerprint);
-    // The moved approval passes the same verification as one written by `refit enroll`.
-    const file = join(sample.root, 'moved-approval.json');
-    await writeFile(file, JSON.stringify(moved.approval), { mode: 0o600 });
-    expect(await readRepositoryApproval(file)).toEqual(moved.approval);
+    expect(await approvals(pool)).toEqual([
+      {
+        repository: 'example/application',
+        approved_by: 'octo-reviewer',
+        approval: sample.approval,
+      },
+    ]);
     const { targets } = await store.read();
-    expect(targets).toHaveLength(2);
-    expect(targets.find((target) => target.id === renamedTarget)).toMatchObject({
-      repository: 'example/billing',
-      status: 'enrolled',
-      fingerprint: moved.approval.fingerprint,
-    });
-    expect(targets.find((target) => target.id === TARGET)).toMatchObject({
-      status: 'cancelled',
-      message: 'Repository renamed to example/billing.',
-    });
-    expect(await store.claim('worker-b', 30)).toMatchObject({
-      target: { id: renamedTarget, approval: moved.approval },
-    });
+    expect(targets).toEqual([
+      expect.objectContaining({
+        id: TARGET,
+        status: 'cancelled',
+        message: 'Repository renamed to example/billing; approve it under its new name to resume.',
+      }),
+    ]);
+    expect(targets.find((target) => target.id === renamedTarget)).toBeUndefined();
+    expect(await store.claim('worker-b', 30)).toBeFalsy();
 
     // The same rename sent again with a new GUID finds the repository already moved.
     expect(
@@ -626,7 +623,7 @@ it.skipIf(!DATABASE)(
 );
 
 it.skipIf(!DATABASE)(
-  'follows an account rename: the login, repository names, approvals and targets move together',
+  'follows an account rename: the login and repository names move, approvals stay and targets stop',
   async () => {
     const pool = await database();
     const store = await openHostedStore(pool, TENANCY);
@@ -638,17 +635,12 @@ it.skipIf(!DATABASE)(
       installation('created', [['example/application', APPLICATION_ID]]),
     );
     await derive(pool, 'example/application');
-    const renamedTarget = hostedTargetId('example-labs/application', 'main');
     const renamed = await deliver(
       store,
       'installation_target',
       accountRename('example', 'Example-Labs'),
     );
-    expect(renamed).toMatchObject({
-      status: 'accepted',
-      cancelled: [TARGET],
-      enrolled: [renamedTarget],
-    });
+    expect(renamed).toMatchObject({ status: 'accepted', cancelled: [TARGET], enrolled: [] });
     const registry = await store.read();
     expect(registry.installations).toEqual([
       expect.objectContaining({
@@ -656,9 +648,7 @@ it.skipIf(!DATABASE)(
         repositories: ['example-labs/application'],
       }),
     ]);
-    expect((await approvals(pool)).map((row) => row.repository)).toEqual([
-      'example-labs/application',
-    ]);
+    expect((await approvals(pool)).map((row) => row.repository)).toEqual(['example/application']);
     expect(await derived(pool)).toEqual([
       'example-labs/application',
       'example-labs/application',
@@ -687,7 +677,7 @@ it.skipIf(!DATABASE)(
     // A rename to a login the allowlist does not name stops every target and enrolls nothing.
     expect(
       await deliver(store, 'installation_target', accountRename('example-labs', 'example-gone')),
-    ).toMatchObject({ status: 'not-allowed', cancelled: [renamedTarget], enrolled: [] });
+    ).toMatchObject({ status: 'not-allowed', enrolled: [] });
     expect((await store.read()).installations[0]).toMatchObject({
       owner: 'example-gone',
       allowed: false,
@@ -726,6 +716,52 @@ it.skipIf(!DATABASE)(
         repositories: ['example-labs/application'],
       }),
     ]);
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
+  'ignores repository and account events unless lifecycle handling is on, and still accepts pushes',
+  async () => {
+    const pool = await database();
+    const sample = await approved();
+    const store = await openHostedStore(pool, TENANCY);
+    await store.approve(sample.approval, 'octo-reviewer');
+    const hosted = await service(pool, sample.root, false);
+    await hosted.send(
+      'installation',
+      installation('created', [['example/application', APPLICATION_ID]]),
+    );
+    const events: [string, unknown][] = [
+      [
+        'repository',
+        repositoryEvent('renamed', 'example/billing', {
+          repository: { name: { from: 'application' } },
+        }),
+      ],
+      ['repository', repositoryEvent('archived', 'example/application', undefined)],
+      ['installation_target', accountRename('example', 'example-labs')],
+    ];
+    for (const [event, payload] of events)
+      expect(await hosted.send(event, payload), event).toMatchObject({
+        status: 202,
+        body: { status: 'ignored', enrolled: [], cancelled: [] },
+      });
+    expect(await membership(pool)).toEqual([[INSTALLATION, 'example/application', APPLICATION_ID]]);
+    expect((await approvals(pool)).map((row) => row.repository)).toEqual(['example/application']);
+    expect((await hosted.status()).installations).toMatchObject([{ owner: 'example' }]);
+    // A default-branch push is accepted ahead of the ignored events, so monitoring can use it.
+    expect(
+      await hosted.send('push', {
+        ref: 'refs/heads/main',
+        after: 'c'.repeat(40),
+        installation: { id: INSTALLATION },
+        repository: {
+          ...repositoryRecord('example/application', APPLICATION_ID),
+          default_branch: 'main',
+        },
+      }),
+    ).toMatchObject({ status: 202, body: { status: 'accepted' } });
   },
   30_000,
 );
@@ -812,7 +848,7 @@ it.skipIf(!DATABASE)(
 );
 
 it.skipIf(!DATABASE)(
-  'treats a redelivery hours later as a duplicate and prunes delivery IDs after 30 days',
+  'treats a redelivery hours or months later as a duplicate and never prunes delivery IDs',
   async () => {
     const pool = await database();
     const store = await openHostedStore(pool, TENANCY);
@@ -835,22 +871,19 @@ it.skipIf(!DATABASE)(
     });
     expect((await store.read()).jobs).toHaveLength(1);
 
-    const recent = randomUUID();
-    await deliver(store, 'ping', { zen: 'Keep it logically awesome.' }, recent);
+    // Owner decision (2026-10-22): replay hashes are kept forever.
     await pool.query(
-      `UPDATE refit_deliveries SET received_at = now() - interval '31 days' WHERE id = $1`,
+      `UPDATE refit_deliveries SET received_at = now() - interval '400 days' WHERE id = $1`,
       [delivery],
-    );
-    await pool.query(
-      `UPDATE refit_deliveries SET received_at = now() - interval '29 days' WHERE id = $1`,
-      [recent],
     );
     const next = randomUUID();
     await deliver(store, 'ping', { zen: 'Design for failure.' }, next);
-    const { rows } = await pool.query<{ id: string }>(
-      'SELECT id FROM refit_deliveries ORDER BY id',
-    );
-    expect(rows.map((row) => row.id).sort()).toEqual([recent, next].sort());
+    expect(await deliver(store, 'installation', payload, delivery)).toMatchObject({
+      status: 'duplicate',
+      enrolled: [],
+    });
+    const { rows } = await pool.query<{ id: string }>('SELECT id FROM refit_deliveries');
+    expect(rows.map((row) => row.id).sort()).toEqual([delivery, next].sort());
   },
 );
 
@@ -878,7 +911,11 @@ it.skipIf(!DATABASE)(
       ],
       [
         'push',
-        { ref: 'refs/heads/main', repository: repositoryRecord('example/application', 789) },
+        {
+          ref: 'refs/heads/feature',
+          installation: { id: INSTALLATION },
+          repository: { ...repositoryRecord('example/application', 789), default_branch: 'main' },
+        },
       ],
       ['github_app_authorization', { action: 'revoked', sender: { login: 'octocat' } }],
       ['installation', { ...installation('created', []), action: 'reauthorized' }],
@@ -916,6 +953,12 @@ it.skipIf(!DATABASE)(
       'installation',
       installation('created', [['example/application', APPLICATION_ID]]),
     );
+    // The install inventory runs in the background; the snapshot waits until it has finished.
+    for (const deadline = Date.now() + 20_000; Date.now() < deadline;) {
+      const { inventories } = await hosted.status();
+      if (inventories.every((entry: { checkedAt: string | null }) => entry.checkedAt)) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     const snapshot = async () => ({
       registry: await hosted.status(),
       membership: await membership(pool),

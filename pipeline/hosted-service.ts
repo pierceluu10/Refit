@@ -113,6 +113,9 @@ export async function runHostedService(options: {
   // Opens an approval issue on installed repositories without an approval and handles
   // `/refit approve` and `/refit revoke` comments (REFIT_HOSTED_APPROVAL_ISSUES).
   approvalIssues?: boolean;
+  // Off by default (owner decision, 2026-10-22): follows repository renames, transfers and
+  // archiving, account renames, and repositories GitHub no longer serves (REFIT_HOSTED_LIFECYCLE).
+  lifecycle?: boolean;
   // The workflow's own notices, plus failed jobs at most once per target per hour.
   notify?: SlackSend;
   // Applied to job fields before a failure notice cuts them to length.
@@ -274,14 +277,18 @@ export async function runHostedService(options: {
     try {
       const access = await confirmRepositoryAccess(options.app, target.repository).catch(
         async (error: unknown) => {
-          if (error instanceof GitHubRequestError && error.status === NOT_FOUND)
+          if (
+            options.lifecycle &&
+            error instanceof GitHubRequestError &&
+            error.status === NOT_FOUND
+          )
             await store.retire(target.id, null);
           throw error;
         },
       );
       if (access.installationId !== target.installationId)
         throw new PipelineInputError('Repository now belongs to another App installation.');
-      if (await store.retire(target.id, access.id))
+      if (options.lifecycle && (await store.retire(target.id, access.id)))
         throw new PipelineInputError(
           'Repository name now belongs to a different GitHub repository; approve it again.',
         );
@@ -495,7 +502,8 @@ export async function runHostedService(options: {
         const parsed = parseWebhook(body, event, Number(options.app.appId));
         if ('installationId' in parsed) context.installation = parsed.installationId;
         const change =
-          parsed.kind === 'issue_comment' && !options.approvalIssues
+          (parsed.kind === 'issue_comment' && !options.approvalIssues) ||
+          ((parsed.kind === 'repository' || parsed.kind === 'account') && !options.lifecycle)
             ? { kind: 'ignored' as const }
             : parsed;
         const receipt = await store.accept(id, String(event), body, change);

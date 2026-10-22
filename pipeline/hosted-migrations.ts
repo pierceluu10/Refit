@@ -238,14 +238,13 @@ export const MIGRATIONS: HostedMigration[] = [
   },
   {
     version: 7,
-    name: 'Installation event order and delivery pruning',
+    name: 'Installation event order and rename cascades',
     // installation.updated_at of the newest installation event applied; older redeliveries are
-    // stale. Deliveries are pruned by age. Inventories, monitoring state and deadline alerts follow
-    // a repository or account rename.
+    // stale. Inventories, monitoring state and deadline alerts follow a repository or account
+    // rename. Deliveries are never pruned.
     up: (client) =>
       client.query(`
 ALTER TABLE refit_installations ADD COLUMN changed_at timestamptz;
-CREATE INDEX refit_deliveries_received ON refit_deliveries (received_at);
 ALTER TABLE refit_inventories
   DROP CONSTRAINT refit_inventories_installation_id_repository_fkey,
   ADD FOREIGN KEY (installation_id, repository)

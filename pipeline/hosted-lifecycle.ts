@@ -1,6 +1,5 @@
 import type { PoolClient } from 'pg';
 import { WebhookInputError, type GitHubWebhook } from './github-webhooks.ts';
-import { renameRepositoryApproval, type RepositoryApproval } from './repository-enrollment.ts';
 
 type RepositoryChange = Extract<GitHubWebhook, { kind: 'repository' }>;
 type AccountChange = Extract<GitHubWebhook, { kind: 'account' }>;
@@ -17,8 +16,8 @@ interface Installation {
   status: string;
 }
 
-// Moves an installed repository and its approvals to a new name in the same account. The reviewed
-// inputs are unchanged, so the approval follows the repository's ID instead of its old name.
+// Moves an installed repository to a new name in the same account. Owner decision (2026-10-22):
+// approvals never follow a rename, so the new name enrolls only once it is approved again.
 async function rename(
   client: PoolClient,
   installationId: number,
@@ -38,31 +37,11 @@ async function rename(
      WHERE installation_id = $1 AND repository = $2`,
     [installationId, from, to],
   );
-  const { rows } = await client.query<{
-    approval: RepositoryApproval;
-    approved_by: string;
-    approved_at: Date;
-  }>(
-    'DELETE FROM refit_approvals WHERE repository = $1 RETURNING approval, approved_by, approved_at',
-    [from],
-  );
-  for (const row of rows) {
-    const approval = renameRepositoryApproval(row.approval, to);
-    // An approval already reviewed under the new name wins over the moved one.
-    await client.query(
-      `INSERT INTO refit_approvals (repository, base, fingerprint, approval, approved_by, approved_at)
-       VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (repository, base) DO NOTHING`,
-      [
-        approval.repository,
-        approval.base,
-        approval.fingerprint,
-        approval,
-        row.approved_by,
-        row.approved_at,
-      ],
-    );
-  }
-  plan.cancel.push({ installationId, repository: from, message: `Repository renamed to ${to}.` });
+  plan.cancel.push({
+    installationId,
+    repository: from,
+    message: `Repository renamed to ${to}; approve it under its new name to resume.`,
+  });
   plan.enroll.push(to);
 }
 
