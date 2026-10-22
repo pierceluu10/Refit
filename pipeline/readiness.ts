@@ -245,7 +245,7 @@ export async function inspectRepositoryReadiness(options: {
         status: 'blocked',
         detail: originReview,
         action: evidence.findings.some((finding) => finding.requestParameter)
-          ? 'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit has no reviewed replacement for them.'
+          ? 'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.'
           : 'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
       });
     if (webhookReview)

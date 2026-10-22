@@ -34,7 +34,7 @@ export function renderReadiness(report: ReadinessReport) {
     );
   lines.push(
     '',
-    'Doctor only reads files: it runs no code, installs and downloads nothing, and the configuration is not approved or activated. Passing checks permit a validation attempt, not proof the migration is correct.',
+    'Doctor only reads files: it runs no code, installs and downloads nothing, and the configuration is not approved or activated. Passing checks permit a validation attempt, not proof the migration is correct. Only bounded ESM/CommonJS client patterns and configured SDK mappings are inspected, so other usage can remain undetected; SDK/API-version rollout and effective account versions still need review.',
   );
   return lines.join('\n');
 }

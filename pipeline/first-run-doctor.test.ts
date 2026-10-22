@@ -89,7 +89,7 @@ it('sends a new user to refit agents when the repository has no .refit.json', as
     'Next: Run refit agents to see which provider agents apply, then refit agents --add <id> to write .refit.json.',
   );
   expect(lines.at(-1)).toBe(
-    'Doctor only reads files: it runs no code, installs and downloads nothing, and the configuration is not approved or activated. Passing checks permit a validation attempt, not proof the migration is correct.',
+    'Doctor only reads files: it runs no code, installs and downloads nothing, and the configuration is not approved or activated. Passing checks permit a validation attempt, not proof the migration is correct. Only bounded ESM/CommonJS client patterns and configured SDK mappings are inspected, so other usage can remain undetected; SDK/API-version rollout and effective account versions still need review.',
   );
   expect(
     (await inspectRepositoryReadiness({ repository: join(app, 'typo') })).checks[0],
@@ -226,7 +226,7 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
   await commit(app);
   const report = await inspectRepositoryReadiness({ repository: app });
   expect(report.checks.find((check) => check.id === 'source-provenance')?.action).toBe(
-    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit has no reviewed replacement for them.',
+    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.',
   );
   // Before: "Verify the application client/account version and configure an exact
   // before-contract API-version pin."
