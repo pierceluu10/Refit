@@ -155,6 +155,90 @@ History rewrites and key rotations are listed here, never done.
 - **PP5.** Generate the test RSA keys at runtime (`generateKeyPairSync`), as `pipeline/hosted-security.test.ts` on #171 does, instead of committing PEM blocks (S7, S8). Build the fake `ghs_` tokens from parts so they don't match token scanners (S9–S11). Otherwise every public scanner and any gitleaks CI step will flag them.
 - **OP7 / OG9.** A CI step that runs gitleaks pinned by digest with this `.gitleaksignore` would keep `main` clean after publishing. OP7 covers the supply-chain side; the job belongs in OG9's `ci*.yml`.
 
+## Proposals for PP10 (not applied)
+
+These are drafts for the shared files, which only PP10 edits. Text in angle brackets is for the owner to fill in; nothing here commits the project to a response time or a contact it does not have.
+
+### `README.md`: a section for public visitors
+
+Proposed after "Use it on your repository":
+
+```markdown
+## Project status
+
+Refit is in early access. Releases are GitHub pre-releases (`vX.Y.Z`) with a packaged CLI and its checksums; there is no npm registry package yet. Stripe is the best-tested integration; [readiness](docs/READINESS.md) lists what each provider supports and what was verified. The hosted GitHub App currently serves a single allow-listed account.
+
+## Contributing and security
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), not in public issues.
+```
+
+The README's "See benchmarks on 781 real repositories" link should stay only if `docs/BENCHMARKS.md` still supports that count after the morning merge (OP10's claims checker).
+
+### `CONTRIBUTING.md` (new, repository root)
+
+```markdown
+# Contributing to Refit
+
+## Set up
+
+Refit needs Node.js 22.12+ (or 24+) and npm. Docker is needed only for validation and the gated suites.
+
+    npm ci
+    npm run typecheck && npm run format:check && npm test && npm run build
+
+All four must pass before a pull request is reviewed. CI runs them on Node 22 and 24.
+
+## Gated suites
+
+Docker, Postgres, oasdiff and real-SDK tests are skipped unless you opt in, for example `REFIT_DOCKER_IMAGE=node:22-alpine`, `REFIT_POSTGRES_URL=…`, `REFIT_OASDIFF=1`, `REFIT_STRIPE_SDK=1`. Say in your pull request which gated suites you ran; a skipped suite is not a passing one. These suites use simulated provider APIs; the live AI evaluations make paid model calls and are run only by maintainers.
+
+## Changes we can accept
+
+- Automatic edits stay limited to supported, evidence-backed migrations. Anything ambiguous (API versions, request or response semantics, webhook policies) must stop for review rather than guess.
+- New deterministic rules come with tests on real code snippets that show behaviour is preserved.
+- Never loosen an assertion, skip a test, raise a timeout or add a retry to make a test pass.
+- Registry and catalog data (`data/deadlines.json`, `data/meta-graph-changes.json` and similar) take facts only from a provider page you read, recorded with `source` and `checkedAt`. Run the matching check script after editing.
+- Recorded lockfile fixtures are byte-exact; list new ones in `.prettierignore` instead of reformatting them.
+- Benchmark repositories are other people's code: never install or run them outside Refit's offline Docker sandbox.
+
+## Commits and pull requests
+
+Use Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `perf:`, `ci:`). Keep pull requests focused, describe what changed and how you tested it (commands and counts), and list anything you could not verify. Maintainers merge; Refit itself never auto-merges.
+
+## Secrets
+
+Never commit credentials, `.env` files, private keys or account identifiers. Generate test keys at runtime. A secret scan runs against the full history <if the gitleaks CI step is adopted>.
+```
+
+### `SECURITY.md` (new, repository root)
+
+```markdown
+# Security policy
+
+## Reporting a vulnerability
+
+Please do not open a public issue. Report privately through GitHub's private vulnerability reporting (the "Report a vulnerability" button on the Security tab) <or: email address the owner chooses>. Include the affected version or commit, how to reproduce, and the impact you expect.
+
+<Owner: state a response window you can keep, for example "We aim to acknowledge reports within N business days.">
+
+## Supported versions
+
+Only the latest pre-release receives security fixes during early access.
+
+## Scope
+
+In scope: the `refit` CLI, the local service (`refit serve`), the hosted worker (`refit hosted serve`) and the Refit Agent GitHub App's use of its permissions. The hosted worker's threat model is in `docs/SECURITY.md`.
+
+Out of scope: vulnerabilities in third-party repositories Refit analyses, in provider APIs, or in the user's own validation image; findings that need an already compromised maintainer account or database credentials.
+
+## How Refit handles your code
+
+In App mode, Refit runs a repository's checks only after an explicit approval of its configuration. Checks run in a Docker container with no network and no credentials; dependencies are installed beforehand from the public npm registry with lifecycle scripts disabled. It opens draft pull requests only when publishing is enabled, and never merges them. AI patches are opt-in and send the relevant source to the configured model provider.
+```
+
+Owner settings these drafts depend on: turn on private vulnerability reporting, or pick a contact address, before publishing `SECURITY.md`.
+
 ## Not verified
 
 - Actions secret names (needs admin).
