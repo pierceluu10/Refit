@@ -195,6 +195,25 @@ describe('OpenRouter', () => {
       'meta-llama/llama-3-70b-instruct',
     ]);
   });
+
+  it('maps an OpenRouter google/ ID to the gemini registry provider', () => {
+    const found = detectModelHosts({
+      files: [
+        {
+          path: 'src/router.ts',
+          content: [
+            "const client = new OpenAI({ baseURL: 'https://openrouter.ai/api/v1' });",
+            "await client.chat.completions.create({ model: 'google/gemini-1.5-pro-002' });",
+          ].join('\n'),
+        },
+      ],
+    });
+    const has = (provider: string, version: string) =>
+      provider === 'gemini' && version === 'gemini-1.5-pro-002';
+    expect(hostDeadlineMatches(found, has).map((match) => [match.provider, match.version])).toEqual(
+      [['gemini', 'gemini-1.5-pro-002']],
+    );
+  });
 });
 
 describe('feeding scanDeadlines and the model-replacement rule', () => {
@@ -281,15 +300,17 @@ describe('feeding scanDeadlines and the model-replacement rule', () => {
     ]);
   });
 
-  it('leaves a repository that only routes a retiring model through OpenRouter unedited', async () => {
+  it('lists, but never edits, a repository that only routes a retiring model through OpenRouter', async () => {
     const root = await repository({
       'package.json': JSON.stringify({ dependencies: { openai: '^4.0.0' } }),
       'src/router.ts':
         "import OpenAI from 'openai';\nconst client = new OpenAI({ baseURL: 'https://openrouter.ai/api/v1' });\nexport const reply = client.chat.completions.create({ model: 'openai/gpt-4-0613', messages: [] });\n",
     });
     const proposal = await proposeModelReplacements(root, await loadDeadlineRegistry(), NOW);
-    // proposeModelReplacements stops early when no retiring model is quoted on its own, so the
-    // route is not listed here (a request to FG9); scanDeadlines still reports it.
-    expect(proposal).toMatchObject({ replacements: [], stops: [], unresolved: [], patch: null });
+    // The route alone is still listed as a stop, never edited.
+    expect(proposal).toMatchObject({ replacements: [], unresolved: [], patch: null });
+    expect(proposal.stops.map((stop) => [stop.file, stop.line, stop.call])).toEqual([
+      ['src/router.ts', 3, 'OpenRouter'],
+    ]);
   });
 });

@@ -163,7 +163,10 @@ export function detectModelHosts(repository: Pick<Repository, 'files'>): ModelHo
             host: 'openrouter',
             kind: 'model-id',
             value,
-            upstream: routed[1] === 'openrouter' ? null : { provider: routed[1], model: routed[2] },
+            upstream:
+              routed[1] === 'openrouter'
+                ? null
+                : { provider: OPENROUTER_PROVIDERS[routed[1]] ?? routed[1], model: routed[2] },
             stop: DATED.test(routed[2]) ? null : 'openrouter-alias',
           });
         }
@@ -229,6 +232,9 @@ export interface HostDeadlineMatch {
   site: ModelHostSite;
   text: string;
 }
+
+// OpenRouter namespaces whose registry provider has another name.
+const OPENROUTER_PROVIDERS: Record<string, string> = { google: 'gemini' };
 
 const HOST_NAMES: Record<ModelHost, string> = {
   bedrock: 'Amazon Bedrock',
