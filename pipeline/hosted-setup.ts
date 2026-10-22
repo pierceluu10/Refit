@@ -82,6 +82,9 @@ function deletion(contact: string | undefined) {
     : 'To have Refit delete what it stored, ask the operator of this Refit service.';
 }
 
+// GitHub has no uninstall redirect, so the setup page links the uninstall page.
+const KEPT = `<a href="${SETUP_ROUTES.uninstalled}">What Refit keeps after you uninstall</a>.`;
+
 type Installation = Awaited<ReturnType<typeof appInstallation>>;
 
 function uninstallLink(installation: Installation) {
@@ -110,7 +113,7 @@ export function setupPage(
     return page('Refit Agent is installed', [
       intro,
       '<h2>Uninstall</h2>',
-      `<p>Uninstall Refit Agent or remove repositories from ${uninstallLink(installation)}. ${deletion(setup.contact)}</p>`,
+      `<p>Uninstall Refit Agent or remove repositories from ${uninstallLink(installation)}. ${deletion(setup.contact)} ${KEPT}</p>`,
     ]);
   return page('Refit Agent is installed', [
     intro,
@@ -121,7 +124,7 @@ export function setupPage(
     '<h2>3. After approval</h2>',
     `<p>Refit checks out the repository, finds code affected by API changes and runs the approved checks in an offline container. If the configuration asks for it, dependencies are first installed from the package registry, with install scripts disabled. ${setup.publishDraft ? 'When a migration passes its checks, Refit opens a draft pull request for you to review. It never merges.' : 'This service does not open pull requests; results stay with the operator.'} ${setup.aiPatch ? 'It may ask an AI model to propose a patch, using the operator’s own key and a capped budget.' : 'It does not use AI.'}</p>`,
     '<h2>Uninstall</h2>',
-    `<p>Uninstall Refit Agent or remove repositories from ${uninstallLink(installation)}. Refit cancels queued and running work for those repositories at once and deletes their inventories. ${deletion(setup.contact)}</p>`,
+    `<p>Uninstall Refit Agent or remove repositories from ${uninstallLink(installation)}. Refit cancels queued and running work for those repositories at once and deletes their inventories. ${deletion(setup.contact)} ${KEPT}</p>`,
   ]);
 }
 

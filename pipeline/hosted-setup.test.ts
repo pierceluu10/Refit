@@ -122,6 +122,9 @@ it('names a confirmed, just-installed account and says what happens next', async
   );
   expect(page.text).toContain('This service does not open pull requests');
   expect(page.text).toContain('It does not use AI.');
+  expect(page.text).toContain(
+    '<a href="/github/uninstalled">What Refit keeps after you uninstall</a>.',
+  );
   expect(page.text).toContain('<a href="mailto:privacy@refit.example">privacy@refit.example</a>');
 });
 
@@ -144,6 +147,7 @@ it('tells an account that is not allowed that nothing is read or cloned', async 
   expect(text).toContain('<strong>someone-else</strong>, but this account is not enabled');
   expect(text).toContain('It does not read, clone or run anything');
   expect(text).not.toContain('Inventory');
+  expect(text).toContain('<a href="/github/uninstalled">');
 });
 
 it('shows only generic text unless GitHub confirms a recent installation of this App', async () => {
