@@ -18,6 +18,7 @@ import {
 } from './model-parameters.ts';
 import { readProviderAdapter, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
+import { pythonModelReports } from './python/model-reports.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import type { Repository, SourceEdit } from './types.ts';
 
@@ -45,6 +46,16 @@ export const MODEL_CALLS: Record<string, Set<string>> = {
   ]),
 };
 
+// Gemini's @google/genai model calls, kept out of MODEL_CALLS because Gemini is report only.
+const GEMINI_CALLS = new Set([
+  'models.generateContent',
+  'models.generateContentStream',
+  'models.countTokens',
+  'chats.create',
+]);
+const GEMINI_REPORT_ONLY =
+  'Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to';
+
 // The OpenAI v3 SDK and openai-edge, which keeps its API: methods on an `OpenAIApi` client.
 function legacyOpenAi(packageName: string): ProviderAdapter {
   return {
@@ -65,6 +76,8 @@ const TRACERS: {
   clientCalls?: Set<string>;
   // The client is not the provider's own endpoint, so its requests only ever stop for review.
   custom?: boolean;
+  // Report only: every request stops with this reason and is never edited (Gemini, AGENTS.md).
+  reportOnly?: string;
   // A cloud platform's client for the provider's models, whose model IDs and retirement dates are
   // the platform's own. Its requests only ever stop for review.
   platform?: string;
@@ -90,6 +103,32 @@ const TRACERS: {
     provider: 'anthropic',
     adapter: new URL('../examples/anthropic.provider.json', import.meta.url),
     resourceCalls: MODEL_CALLS.anthropic,
+  },
+  {
+    provider: 'gemini',
+    adapter: {
+      id: 'gemini',
+      packageName: '@google/genai',
+      defaultImport: false,
+      namedExport: 'GoogleGenAI',
+      operations: [],
+    },
+    resourceCalls: GEMINI_CALLS,
+    reportOnly: GEMINI_REPORT_ONLY,
+  },
+  {
+    // The old SDK selects the model once, in `getGenerativeModel({ model })`.
+    provider: 'gemini',
+    adapter: { ...legacyOpenAi('@google/generative-ai'), namedExport: 'GoogleGenerativeAI' },
+    clientCalls: new Set(['getGenerativeModel']),
+    reportOnly: GEMINI_REPORT_ONLY,
+  },
+  {
+    provider: 'gemini',
+    adapter: { ...legacyOpenAi('@google-cloud/vertexai'), namedExport: 'VertexAI' },
+    clientCalls: new Set(['getGenerativeModel']),
+    reportOnly:
+      "The client is Vertex AI, whose model retirement dates differ from the Gemini API's; check Google Cloud's model versions page and change it by hand, for example to",
   },
   ...[
     ['@anthropic-ai/bedrock-sdk', 'AnthropicBedrock', 'Amazon Bedrock'],
@@ -143,6 +182,7 @@ const UNTRACED_CALLS: Record<string, string[]> = {
     'moderations.create',
   ],
   anthropic: [...MODEL_CALLS.anthropic, ...MESSAGE_HELPERS, ...BATCH_CALLS, 'completions.create'],
+  gemini: [...GEMINI_CALLS],
 };
 // Claude API model IDs such as `claude-opus-4-8` or `claude-haiku-4-5-20251001`.
 const CLAUDE_VERSIONED = /^claude-(?:opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/;
@@ -2102,7 +2142,13 @@ export async function proposeModelReplacements(
       byProvider.set(entry.provider, models);
       for (const version of entry.versions) models.set(version, entry);
     }
-  const empty = { replacements: [], stops: [], unresolved: [], patch: null };
+  // Python call sites are reported, never edited (docs/ARCHITECTURE.md, "Other languages").
+  const python = await pythonModelReports(directory, registry, {
+    replacement: (entry, models) => finalReplacement(entry, models)?.to ?? null,
+    sensitive: (provider, to) =>
+      rejectsSampling(provider, to) ? (MODEL_PARAMETER_NAMES[provider] ?? new Set()) : new Set(),
+  });
+  const empty = { replacements: [], ...python, patch: null };
   if (
     ![...byProvider.keys()].some((provider) =>
       TRACERS.some((tracer) => tracer.provider === provider),
@@ -2149,6 +2195,7 @@ export async function proposeModelReplacements(
     custom: boolean;
     // Traced only by trusting an SDK import under an unreadable tsconfig or jsconfig.
     unverified?: boolean;
+    reportOnly?: string;
     // A cloud platform's client, such as Claude on Amazon Bedrock.
     platform?: string;
     // A client the analyzer could not trace to the SDK constructor, as written.
@@ -2225,6 +2272,7 @@ export async function proposeModelReplacements(
         sdk: true,
         custom: Boolean(tracer.custom),
         unverified: !confirmed.has(callKey(sdk)),
+        reportOnly: tracer.reportOnly,
         platform: tracer.platform,
       });
     }
@@ -2249,6 +2297,7 @@ export async function proposeModelReplacements(
         sdk: true,
         custom: false,
         platform: tracer.platform,
+        reportOnly: tracer.reportOnly,
         client,
       });
     }
@@ -2383,7 +2432,7 @@ export async function proposeModelReplacements(
       );
       const sensitiveProperties = found.object.properties.flatMap((item) => {
         const name = item.name && propertyName(item.name);
-        return name && MODEL_PARAMETER_NAMES[request.provider].has(name) ? [{ item, name }] : [];
+        return name && MODEL_PARAMETER_NAMES[request.provider]?.has(name) ? [{ item, name }] : [];
       });
       const sensitive = rejectsSampling(request.provider, resolved.to)
         ? sensitiveProperties.map(({ name }) => name)
@@ -2406,56 +2455,59 @@ export async function proposeModelReplacements(
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
-        : platform
-          ? `${request.platform ? `The client is Claude on ${platform}` : `\`${site.literal.text}\` is a model ID for ${platform}`}, where model IDs and retirement dates are ${platform}'s, not the Claude API's (the Claude API retires ${onPlatform?.id ?? site.literal.text} on ${entry.date}); check ${platform}'s model lifecycle and change it by hand to its ID for ${resolved.to}.`
-          : request.client
-            ? `The client \`${request.client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to ${resolved.to}.`
-            : request.unverified
-              ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
-              : MESSAGE_HELPERS.has(request.call)
-                ? `\`${request.call}\` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                : from === 'batch'
-                  ? `\`${request.call}\` is a Message Batches request, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                  : // Images, audio, embeddings, moderation and legacy completions change formats, vector
-                    // sizes or parameters with the model, so they are never edited. The wording is accurate for
-                    // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
-                    !request.text
-                    ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-                    : customUrl
-                      ? request.sdk
-                        ? client?.custom
-                          ? `The client sets \`${client.option}\` (${client.custom}), so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                          : client?.official && endpointSet && !endpointSet.everyClient
-                            ? `The repository mentions a custom endpoint (${endpointSet.at}), but this request's client (${client.official}) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to ${resolved.to}.`
-                            : `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                        : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                      : from
-                        ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                        : limit
-                          ? `${limit} ${resolved.to}.`
-                          : stop
-                            ? `${stop} ${resolved.to}.`
-                            : direct && (!direct.has(site.literal) || direct.get(site.literal))
-                              ? /^(?:axios|request) /.test(request.call)
-                                ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                                : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                              : found.shared
-                                ? `${found.shared} ${resolved.to}.`
-                                : found.object.properties.some((item) =>
-                                      ts.isSpreadAssignment(item),
-                                    )
-                                  ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                                  : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
-                                    // sampling or length parameter the name check cannot see.
-                                    found.object.properties.some(
-                                        (item) => item.name && ts.isComputedPropertyName(item.name),
+        : request.reportOnly
+          ? `${request.reportOnly} ${resolved.to}.`
+          : platform
+            ? `${request.platform ? `The client is Claude on ${platform}` : `\`${site.literal.text}\` is a model ID for ${platform}`}, where model IDs and retirement dates are ${platform}'s, not the Claude API's (the Claude API retires ${onPlatform?.id ?? site.literal.text} on ${entry.date}); check ${platform}'s model lifecycle and change it by hand to its ID for ${resolved.to}.`
+            : request.client
+              ? `The client \`${request.client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to ${resolved.to}.`
+              : request.unverified
+                ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
+                : MESSAGE_HELPERS.has(request.call)
+                  ? `\`${request.call}\` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                  : from === 'batch'
+                    ? `\`${request.call}\` is a Message Batches request, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                    : // Images, audio, embeddings, moderation and legacy completions change formats, vector
+                      // sizes or parameters with the model, so they are never edited. The wording is accurate for
+                      // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
+                      !request.text
+                      ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+                      : customUrl
+                        ? request.sdk
+                          ? client?.custom
+                            ? `The client sets \`${client.option}\` (${client.custom}), so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                            : client?.official && endpointSet && !endpointSet.everyClient
+                              ? `The repository mentions a custom endpoint (${endpointSet.at}), but this request's client (${client.official}) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to ${resolved.to}.`
+                              : `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                          : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                        : from
+                          ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                          : limit
+                            ? `${limit} ${resolved.to}.`
+                            : stop
+                              ? `${stop} ${resolved.to}.`
+                              : direct && (!direct.has(site.literal) || direct.get(site.literal))
+                                ? /^(?:axios|request) /.test(request.call)
+                                  ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                                  : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                                : found.shared
+                                  ? `${found.shared} ${resolved.to}.`
+                                  : found.object.properties.some((item) =>
+                                        ts.isSpreadAssignment(item),
                                       )
-                                    ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                                    : tabled
-                                      ? tableReasons.join(' ') || undefined
-                                      : sensitive.length
-                                        ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                                        : undefined;
+                                    ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                                    : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                                      // sampling or length parameter the name check cannot see.
+                                      found.object.properties.some(
+                                          (item) =>
+                                            item.name && ts.isComputedPropertyName(item.name),
+                                        )
+                                      ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                                      : tabled
+                                        ? tableReasons.join(' ') || undefined
+                                        : sensitive.length
+                                          ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                                          : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
@@ -2526,7 +2578,12 @@ export async function proposeModelReplacements(
     const models = byProvider.get(provider);
     if (!models || !TRACERS.some((tracer) => tracer.provider === provider)) continue;
     for (const evidence of exposure.evidence) {
-      if (evidence.kind !== 'source' || covered.has(`${evidence.file}:${evidence.line}`)) continue;
+      if (
+        evidence.kind !== 'source' ||
+        evidence.file.endsWith('.py') ||
+        covered.has(`${evidence.file}:${evidence.line}`)
+      )
+        continue;
       const entry = models.get(evidence.version) ?? exposure.deadline;
       const site = reported.get(`${evidence.file}:${evidence.line}:${evidence.version}`);
       if (site) {
@@ -2555,8 +2612,8 @@ export async function proposeModelReplacements(
   }
   return {
     replacements,
-    stops,
-    unresolved,
+    stops: [...stops, ...python.stops],
+    unresolved: [...unresolved, ...python.unresolved],
     patch: edits.length ? renderPatch(repository, edits) : null,
   };
 }

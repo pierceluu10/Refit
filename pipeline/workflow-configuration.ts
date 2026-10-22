@@ -103,9 +103,12 @@ function selectWorkflowConfiguration(
       );
     return configuration.workflows[0].workflow;
   }
+  // A collection with one integration has nothing to choose between.
+  if (integration === undefined && configuration.workflows.length === 1)
+    return { ...configuration.workflows[0].workflow, integration: configuration.workflows[0].id };
   if (!integration || !validIntegrationId(integration))
     throw new PipelineInputError(
-      `Choose --integration from: ${configuration.workflows.map((entry) => entry.id).join(', ')}.`,
+      `This configuration has ${configuration.workflows.length} integrations; choose one with --integration: ${configuration.workflows.map((entry) => entry.id).join(', ')}.`,
     );
   const selected = configuration.workflows.find((entry) => entry.id === integration);
   if (!selected)

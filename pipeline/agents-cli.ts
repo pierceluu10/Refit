@@ -13,9 +13,10 @@ import {
 import { parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
-  'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match, with any API version the code pins for a provider that versions its API by header, option or path. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.';
+  'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match, with any API version the code pins for a provider that versions its API by header, option or path. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.\nAfter --add: save the contracts it lists, commit, then run refit doctor.';
 const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 try {
@@ -137,6 +138,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'agents'));
   process.exitCode = 1;
 }

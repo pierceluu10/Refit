@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { scanPayPalCalls, type PayPalCall, type PayPalCallScan } from './paypal-calls.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE = `Usage: refit paypal [--repository <root>] [--json]
 Lists the PayPal REST requests a repository makes: @paypal/checkout-server-sdk request classes sent with client.execute, @paypal/paypal-server-sdk controller calls, and raw calls to api-m.paypal.com, api-m.sandbox.paypal.com, api.paypal.com and api.sandbox.paypal.com through fetch, axios and helpers. Each shows file:line, the HTTP method and path, the matching operation in PayPal's published OpenAPI documents, and the controller method of the newest recorded @paypal/paypal-server-sdk release that makes the same request. Values built at runtime are marked unknown, with the reason.
@@ -27,7 +28,7 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'paypal'));
   process.exitCode = 1;
 }
 
