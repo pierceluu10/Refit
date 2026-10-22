@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cloudflare review-only detection results",
+  "description": "Written by scripts/cloudflare-benchmark.mjs: the Cloudflare API requests and Workers compatibility settings `refit cloudflare` lists per repository of a frozen list. A repository that could not be fetched or scanned has `error` and no findings.",
+  "type": "object",
+  "required": ["formatVersion", "list", "refit", "scannedAt", "results"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "list": { "type": "string" },
+    "refit": {
+      "type": "object",
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": { "$ref": "common.schema.json#/$defs/commit" },
+        "dirty": { "type": "boolean" }
+      }
+    },
+    "scannedAt": { "$ref": "common.schema.json#/$defs/time" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit"],
+        "properties": {
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "commit": { "$ref": "common.schema.json#/$defs/commit" },
+          "packages": { "type": "array", "items": { "type": "string" } },
+          "calls": { "type": "array", "items": { "$ref": "#/$defs/call" } },
+          "workers": { "type": "array", "items": { "$ref": "#/$defs/workers" } },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "call": {
+      "type": "object",
+      "$ref": "common.schema.json#/$defs/location",
+      "required": ["kind", "use", "method", "path", "notices", "notes", "unknown"],
+      "properties": {
+        "kind": { "type": "string" },
+        "use": { "type": "string" },
+        "property": { "type": ["string", "null"] },
+        "method": { "type": ["string", "null"] },
+        "path": { "type": ["string", "null"] },
+        "notices": { "type": "array" },
+        "notes": { "type": "array" },
+        "unknown": { "type": "array" }
+      }
+    },
+    "workers": {
+      "type": "object",
+      "$ref": "common.schema.json#/$defs/location",
+      "required": ["compatibilityDate", "flags"],
+      "properties": {
+        "environment": { "type": ["string", "null"] },
+        "compatibilityDate": { "type": ["string", "null"] },
+        "flags": { "type": "array" },
+        "ageDays": { "type": ["integer", "null"] },
+        "laterDefaults": { "type": "array" },
+        "notes": { "type": "array" }
+      }
+    }
+  }
+}

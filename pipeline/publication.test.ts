@@ -51,6 +51,13 @@ async function report(): Promise<Report> {
       status: 'passed',
       revision: REVISION,
       image: `sha256:${'e'.repeat(64)}`,
+      runtime: {
+        configured: 'node:22-alpine',
+        image: 'node:22-alpine',
+        nodeVersion: '22.23.3',
+        declarations: [],
+        reason: 'The repository declares no Node.js version.',
+      },
       command: ['npm', 'test'],
       baselineCommand: ['npm', 'test'],
       archiveHash: 'f'.repeat(64),

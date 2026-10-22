@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Model replacement review (October 20)",
+  "description": "The 2026-10-20 model replacement proposals on the deadline set's OpenAI repositories, each judged by hand. Written once; later runs use ai-model-results.",
+  "type": "object",
+  "required": ["formatVersion", "ranAt", "refitCommit", "list", "repos"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "ranAt": { "$ref": "common.schema.json#/$defs/date" },
+    "refitCommit": { "type": "string" },
+    "list": { "type": "string" },
+    "note": { "type": "string" },
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit", "liveOctober23", "judgedExposed", "replacements", "stops"],
+        "properties": {
+          "repo": { "$ref": "common.schema.json#/$defs/repo" },
+          "commit": { "$ref": "common.schema.json#/$defs/commit" },
+          "liveOctober23": { "type": "boolean" },
+          "judgedExposed": { "type": ["boolean", "string", "null"] },
+          "replacements": {
+            "type": "array",
+            "items": { "$ref": "common.schema.json#/$defs/location" }
+          },
+          "stops": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/location" } }
+        }
+      }
+    }
+  }
+}

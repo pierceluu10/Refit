@@ -53,7 +53,11 @@ for (const entry of pinned.repos) {
     results.push({
       repo: entry.repo,
       commit: entry.commit,
-      error: String(error.message).slice(0, 300),
+      // Local checkout and clone paths stay out of committed results.
+      error: String(error.message)
+        .replaceAll(resolve(values.refit), '<refit>')
+        .replaceAll(resolve(values.root), '<root>')
+        .slice(0, 300),
     });
   }
 }

@@ -22,8 +22,9 @@ export function dataApiMatches(line: string, context: DataApiContext) {
   const found: Match[] = [];
   const add = (provider: Match['provider'], version: string, match: RegExpExecArray) =>
     found.push({ provider, version, column: match.indices![0]![0] });
-  // Mailchimp retired the Export API on 2023-06-01: `https://us1.api.mailchimp.com/export/1.0/…`.
-  for (const match of line.matchAll(/api\.mailchimp\.com\/export\/[12]\.0(?![\w.])/dg))
+  // Mailchimp retired the Export API 1.0 and API 2.0 on 2023-06-01:
+  // `https://us1.api.mailchimp.com/export/1.0/…` and `https://us1.api.mailchimp.com/2.0/…`.
+  for (const match of line.matchAll(/api\.mailchimp\.com\/(?:export\/[12]\.0|2\.0)(?![\w.])/dg))
     add('mailchimp', 'export-api', match);
   // HubSpot ends support for numbered v4 paths: `https://api.hubapi.com/crm/v4/objects/…`.
   for (const match of line.matchAll(

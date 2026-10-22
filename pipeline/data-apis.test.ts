@@ -155,6 +155,12 @@ describe('mailchimp-export-api', () => {
     ).toEqual([{ id: 'mailchimp-export-api', lines: ['src/a.js:1', 'src/a.js:2'] }]);
   });
 
+  it('matches the retired API 2.0 path', async () => {
+    expect(
+      await exposures({ 'src/a.js': `fetch('https://us19.api.mailchimp.com/2.0/lists/list');\n` }),
+    ).toEqual([{ id: 'mailchimp-export-api', lines: ['src/a.js:1'] }]);
+  });
+
   it('does not match Marketing API 3.0', async () => {
     expect(
       await exposures({ 'src/a.js': `fetch('https://us19.api.mailchimp.com/3.0/lists');\n` }),
@@ -169,6 +175,17 @@ describe('airtable-user-api-keys', () => {
         'src/a.js': `const Airtable = require('airtable');\nconst base = new Airtable({ apiKey: 'keyAbC123dEf456gH' }).base('app');\n`,
       }),
     ).toEqual([{ id: 'airtable-user-api-keys', lines: ['src/a.js:2'] }]);
+  });
+
+  it('reports where a legacy key is without copying its value', async () => {
+    const root = await repository({
+      'package.json': JSON.stringify({ name: 'app' }),
+      'src/a.js': `const Airtable = require('airtable');\nnew Airtable({ apiKey: 'keyAbC123dEf456gH' });\n`,
+    });
+    const scan = await scanDeadlines(root, await loadDeadlineRegistry(), new Date('2026-10-22'));
+    const text = JSON.stringify(scan);
+    expect(text).toContain('src/a.js');
+    expect(text).not.toContain('keyAbC123dEf456gH');
   });
 
   it('does not match a personal access token, or apiKey in a file without the package', async () => {
