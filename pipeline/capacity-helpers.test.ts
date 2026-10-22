@@ -1,3 +1,6 @@
+import { execFile } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import { promisify } from 'node:util';
 import { expect, it } from 'vitest';
 import { distribution, installSeconds, parseTime } from '../scripts/capacity-helpers.mjs';
 
@@ -58,4 +61,17 @@ it('reads the install time each package manager prints, flagging npm whole minut
   // The last report wins; a log without one is not guessed at.
   expect(installSeconds('added 3 packages in 1s\nadded 9 packages in 4s')?.seconds).toBe(4);
   expect(installSeconds('npm error code ETIMEDOUT')).toBeNull();
+});
+
+it('reproduces the committed capacity model from the committed measurements', async () => {
+  const { stdout } = await promisify(execFile)(process.execPath, ['scripts/capacity-model.mjs']);
+  const committed = JSON.parse(
+    await readFile('docs/benchmarks/2026-10-22-capacity-model.json', 'utf8'),
+  );
+  const model = JSON.parse(stdout);
+  expect(model).toEqual(committed);
+  // The size fly.toml runs today leaves under a quarter GiB beside a full validation container.
+  const today = model.sizes.find((size: { name: string }) => size.name === 'shared-cpu-2x');
+  expect(today).toMatchObject({ memoryGb: 4, usdPerMonth: 25.39, sustainedCpuPerSecond: 0.125 });
+  expect(today.memoryHeadroomGib).toBeLessThan(0.25);
 });
