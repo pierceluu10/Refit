@@ -232,6 +232,35 @@ func (w *wrapper) Ask(ctx context.Context, tier string) {
     ]);
   });
 
+  it('reads a client field through its own struct type when another struct reuses the name', async () => {
+    expect(
+      await traced({
+        'w/w.go': `package w
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/openai/openai-go/v3"
+)
+
+type fetcher struct{ client *http.Client }
+
+type wrapper struct {
+	client openai.Client
+	model  string
+}
+
+func (w *wrapper) Ask(ctx context.Context) {
+	w.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{Model: w.model})
+}
+
+func New() *wrapper { return &wrapper{client: openai.NewClient(), model: "gpt-4o"} }
+`,
+      }),
+    ).toEqual(['w/w.go:18 openai Chat.Completions.New class-field <- gpt-4o@21 (field `model`)']);
+  });
+
   it('finds clients declared in another file of the package and ignores other types', async () => {
     expect(
       await traced({

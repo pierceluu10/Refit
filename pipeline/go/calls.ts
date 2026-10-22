@@ -292,20 +292,28 @@ function resolveClient(context: Context, file: string, node: Node, depth = 0): C
     return client;
   }
   if (node.type === 'selector_expression') {
-    // `s.client` where a struct in the package declares `client` with an SDK client type.
+    // `s.client` where the struct type `s` holds (or, when unknown, every package struct with a
+    // `client` field) declares `client` with an SDK client type.
     const name = field(node, 'field')!.text;
+    const operand = unwrap(field(node, 'operand')!);
+    const owner = operand.type === 'identifier' ? structTypeOf(context, file, operand) : undefined;
     const directory = posix.dirname(file);
     context.fieldClients ??= new Map();
-    const key = `${directory}\t${name}`;
+    const key = `${directory}\t${owner ?? ''}\t${name}`;
     if (context.fieldClients.has(key)) return context.fieldClients.get(key) ?? undefined;
-    const found = fieldClient(context, directory, name);
+    const found = fieldClient(context, directory, name, owner);
     context.fieldClients.set(key, found ?? null);
     return found;
   }
   return undefined;
 }
 
-function fieldClient(context: Context, directory: string, name: string): Client | undefined {
+function fieldClient(
+  context: Context,
+  directory: string,
+  name: string,
+  owner: string | undefined,
+): Client | undefined {
   {
     let client: Client | undefined;
     for (const path of context.files.keys()) {
@@ -314,7 +322,8 @@ function fieldClient(context: Context, directory: string, name: string): Client 
       for (const declaration of root?.descendantsOfType('field_declaration') ?? []) {
         if (
           !declaration ||
-          !declaration.childrenForFieldName('name').some((item) => item?.text === name)
+          !declaration.childrenForFieldName('name').some((item) => item?.text === name) ||
+          (owner !== undefined && structName(declaration) !== owner)
         )
           continue;
         const sdk = clientType(imports(root!), field(declaration, 'type')!);
@@ -537,6 +546,13 @@ function structTypeOf(context: Context, file: string, node: Node): string | unde
     return type?.type === 'type_identifier' ? type.text : undefined;
   });
   return types.length && types.every((type) => type && type === types[0]) ? types[0] : undefined;
+}
+
+// The name of the struct type a field declaration belongs to.
+function structName(declaration: Node) {
+  for (let current = declaration.parent; current; current = current.parent)
+    if (current.type === 'type_spec') return field(current, 'name')?.text;
+  return undefined;
 }
 
 function receiverType(declaration: Node) {
