@@ -188,6 +188,14 @@
       "format": "ai-model-results",
       "predates": ["/harness", "/results/*/outcomeClass"]
     },
+    "2026-10-22-python-langchain-results.json": {
+      "format": "python-model-results",
+      "predates": []
+    },
+    "2026-10-22-python-model-results.json": {
+      "format": "python-model-results",
+      "predates": []
+    },
     "2026-10-22-slack-baseline-results.json": {
       "format": "slack-results",
       "predates": []
