@@ -122,6 +122,42 @@ export const sync = (store) => store.sync.services;
     expect(calls).toEqual([]);
   });
 
+  it('follows clients from a factory and rejects the client itself and the Twilio global', async () => {
+    const { calls } = await scanMessagingCalls(
+      await repository({
+        'src/serverless.ts': `import { getTwilioClient } from '../utils';
+export const environments = async (sid: string) => {
+  const client: any = getTwilioClient();
+  return client.serverless.services(sid).environments.list({ limit: 20 });
+};
+`,
+        'src/function.js': `exports.handler = async (context, event, callback) => {
+  const twilioClient = context.getTwilioClient();
+  await twilioClient.sync.services('default').fetch();
+  callback(null, await twilioClient.messages.create({ to: event.to, body: 'hi' }));
+};
+`,
+        'src/adapter.ts': `import * as Twilio from 'twilio';
+export class Adapter {
+  private api: Twilio.Twilio;
+  constructor(sid: string, token: string) {
+    this.api = Twilio(sid, token);
+  }
+  send(message: any) {
+    return this.api.messages.create(message);
+  }
+}
+`,
+        'src/mock.ts': `const service = (global as any).Twilio?.sync?.services?.('default');
+`,
+      }),
+    );
+    expect(summary(calls)).toEqual([
+      'src/function.js:3 twilioClient.sync.services live',
+      'src/serverless.ts:4 client.serverless.services live',
+    ]);
+  });
+
   it('marks tests', async () => {
     const { calls } = await scanMessagingCalls(
       await repository({

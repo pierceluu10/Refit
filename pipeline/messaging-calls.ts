@@ -158,6 +158,54 @@ function chain(node: ts.PropertyAccessExpression, length: number) {
   return names.length === length ? { names, receiver: current } : undefined;
 }
 
+// The SDK classes and the globals that hold them. A member read straight off one of these is a
+// static access, not a client: `Twilio.sync.services` on the Functions runtime global.
+const SDK_CLASSES = new Set(['Twilio', 'Mailgun']);
+
+// Whether a chain's receiver can be a client of the provider. `this` alone never is: in
+// `this.api.messages`, `this.api` is the client and `messages` its own getter. A receiver whose name
+// does not name the provider still counts when it is a local initialized from a call or `new` whose
+// callee does, such as `const client = getTwilioClient()` or `context.getTwilioClient()`.
+function clientReceiver(
+  receiver: ts.Expression,
+  provider: MessagingProvider,
+  loaded: boolean,
+  source: ts.SourceFile,
+) {
+  if (receiver.kind === ts.SyntaxKind.ThisKeyword || receiver.kind === ts.SyntaxKind.SuperKeyword)
+    return false;
+  const last = ts.isPropertyAccessExpression(receiver)
+    ? receiver.name.text
+    : ts.isIdentifier(receiver)
+      ? receiver.text
+      : undefined;
+  if (last && SDK_CLASSES.has(last)) return false;
+  const named = RECEIVER_NAMES[provider];
+  if (loaded || named.test(receiver.getText(source))) return true;
+  if (!ts.isIdentifier(receiver)) return false;
+  let factory = false;
+  const visit = (node: ts.Node) => {
+    if (factory) return;
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === receiver.text &&
+      node.initializer
+    ) {
+      let value = unwrap(node.initializer);
+      if (ts.isAwaitExpression(value)) value = unwrap(value.expression);
+      if (
+        (ts.isCallExpression(value) || ts.isNewExpression(value)) &&
+        named.test(value.expression.getText(source))
+      )
+        factory = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return factory;
+}
+
 function fileCalls(path: string, content: string, data: MessagingData): MessagingCall[] {
   const source = sourceOf(path, content);
   const use = TEST_PATH.test(path) ? 'test' : 'live';
@@ -185,8 +233,8 @@ function fileCalls(path: string, content: string, data: MessagingData): Messagin
       for (const member of members) {
         const found = chain(node, member.names.length);
         if (!found || found.names.join('.') !== member.path) continue;
+        if (!clientReceiver(found.receiver, member.sdk.provider, member.loaded, source)) continue;
         const receiver = found.receiver.getText(source);
-        if (!member.loaded && !RECEIVER_NAMES[member.sdk.provider].test(receiver)) continue;
         calls.push({
           provider: member.sdk.provider,
           kind: 'deprecated-member',
