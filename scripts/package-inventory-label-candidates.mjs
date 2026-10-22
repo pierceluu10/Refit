@@ -5,7 +5,7 @@
 // The sample is drawn with a fixed seed, stratified by ecosystem.
 //
 //   node scripts/package-inventory-label-candidates.mjs --list <frozen.json> --root <clones> \
-//     --per-ecosystem 5 --seed 20261022 [--sample-only]
+//     --per-ecosystem 5 --seed 20261022 [--exclude <labels.json>] [--sample-only]
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -17,6 +17,8 @@ const { values } = parseArgs({
     'per-ecosystem': { type: 'string', default: '5' },
     seed: { type: 'string', default: '20261022' },
     'sample-only': { type: 'boolean' },
+    // Labels already made: their repositories are left out of this draw (a held-out sample).
+    exclude: { type: 'string' },
   },
 });
 const DECLARING =
@@ -71,7 +73,16 @@ async function declaringFiles(root, directory = root, found = []) {
 }
 
 const frozen = JSON.parse(await readFile(values.list, 'utf8'));
-const chosen = sample(frozen.repositories, Number(values['per-ecosystem']), Number(values.seed));
+const excluded = new Set(
+  values.exclude
+    ? JSON.parse(await readFile(values.exclude, 'utf8')).repositories.map((item) => item.repository)
+    : [],
+);
+const chosen = sample(
+  frozen.repositories.filter((item) => !excluded.has(item.repository)),
+  Number(values['per-ecosystem']),
+  Number(values.seed),
+);
 for (const entry of chosen) {
   console.log(`\n## ${entry.ecosystem} ${entry.repository} ${entry.commit}`);
   if (values['sample-only']) continue;
