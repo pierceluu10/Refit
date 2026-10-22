@@ -12,6 +12,9 @@ const PROVIDERS = new Set([
   'openai',
   'anthropic',
   'gemini',
+  'slack',
+  'cloudflare',
+  'github',
   'auth0',
   'clerk',
   'firebase',
@@ -28,7 +31,7 @@ const PROVIDERS = new Set([
   'lob',
   'coinbase-commerce',
 ]);
-const KINDS = new Set(['api-version', 'model', 'sdk', 'feature']);
+const KINDS = new Set(['api-version', 'model', 'sdk', 'method', 'endpoint', 'field', 'feature']);
 const ENTRY_KEYS = [
   'id',
   'provider',
@@ -39,14 +42,22 @@ const ENTRY_KEYS = [
   'replacement',
   'source',
   'checkedAt',
+  'derivedDate',
 ];
+// Kinds whose matching is too new to gate a build or open an issue (owner decision, 2026-10-22).
+const REPORT_ONLY_KINDS = new Set(['method', 'endpoint', 'field', 'feature']);
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 // One reviewed sunset: the date a provider stops serving these API versions or models, ends
 // support for these SDK packages (`kind: 'sdk'`, whose versions are npm package names, each
-// optionally narrowed to a version range as in `@clerk/nextjs@<5`), or shuts down a product
-// (`kind: 'feature'`, whose versions are the source markers that use it, such as an API hostname
-// or an SDK option name), with the page it came from and the day a person last checked that page.
+// optionally narrowed to a version range as in `@clerk/nextjs@<5`), retires these API methods
+// (`kind: 'method'`, whose versions are method names such as `files.upload`), HTTP endpoints
+// (`kind: 'endpoint'`, whose versions read `GET /zones/{zone_id}/settings`) or GraphQL fields
+// (`kind: 'field'`, whose versions read `Type.field`), or shuts down a product (`kind: 'feature'`,
+// whose versions are the source markers that use it, such as an API hostname or an SDK option
+// name), with the page it came from and the day a person last checked that page. `derivedDate`
+// marks a date the provider never announced as a shutdown, such as one taken from a release date
+// or an OpenAPI eol field.
 export interface DeadlineEntry {
   id: string;
   provider:
@@ -55,6 +66,9 @@ export interface DeadlineEntry {
     | 'openai'
     | 'anthropic'
     | 'gemini'
+    | 'slack'
+    | 'cloudflare'
+    | 'github'
     | 'auth0'
     | 'clerk'
     | 'firebase'
@@ -70,13 +84,14 @@ export interface DeadlineEntry {
     | 'easypost'
     | 'lob'
     | 'coinbase-commerce';
-  kind: 'api-version' | 'model' | 'sdk' | 'feature';
+  kind: 'api-version' | 'model' | 'sdk' | 'method' | 'endpoint' | 'field' | 'feature';
   versions: string[];
   date: string;
   summary: string;
   replacement: string | null;
   source: string | null;
   checkedAt: string;
+  derivedDate?: true;
 }
 
 export interface DeadlineRegistry {
@@ -84,7 +99,12 @@ export interface DeadlineRegistry {
   deadlines: DeadlineEntry[];
 }
 
-function validDate(value: unknown): value is string {
+// Listed by `refit deadlines`, but never fails --fail-within or opens a --deadline-alerts issue.
+export function reportOnly(entry: DeadlineEntry) {
+  return entry.derivedDate === true || REPORT_ONLY_KINDS.has(entry.kind);
+}
+
+export function validDate(value: unknown): value is string {
   if (typeof value !== 'string' || !ISO_DATE.test(value)) return false;
   return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
 }
@@ -126,7 +146,7 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     if (!PROVIDERS.has(String(entry.provider)))
       errors.push(`${label}: provider must be one of ${[...PROVIDERS].join(', ')}.`);
     if (!KINDS.has(String(entry.kind)))
-      errors.push(`${label}: kind must be api-version, model, sdk or feature.`);
+      errors.push(`${label}: kind must be one of ${[...KINDS].join(', ')}.`);
     if (
       !Array.isArray(entry.versions) ||
       !entry.versions.length ||
@@ -155,6 +175,8 @@ export function checkDeadlineRegistry(value: unknown, now: Date) {
     if (!validDate(entry.date)) errors.push(`${label}: date must be a real YYYY-MM-DD date.`);
     if (!validDate(entry.checkedAt))
       errors.push(`${label}: checkedAt must be a real YYYY-MM-DD date.`);
+    if (entry.derivedDate !== undefined && entry.derivedDate !== true)
+      errors.push(`${label}: derivedDate must be true or left out.`);
     if (typeof entry.summary !== 'string' || !entry.summary.trim())
       errors.push(`${label}: summary is required.`);
     if (entry.replacement !== null && typeof entry.replacement !== 'string')

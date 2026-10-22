@@ -122,19 +122,26 @@ it('forks into the organization and points refit-base at the validated commit', 
 });
 
 it('summarizes affected repositories with their pull requests and stop reasons', () => {
+  const commit = 'a'.repeat(40);
   const table = summaryTable([
     {
       repo: 'a/one',
-      fullAdapter: { confirmed: 2 },
+      commit,
+      fullAdapter: { status: 'affected', confirmed: 2, review: 0, findings: [] },
       workflow: { status: 'validated', reason: 'publication was not requested' },
       publication: { url: 'https://github.com/refit-dev/one/pull/1' },
     },
     {
       repo: 'b/two',
-      fullAdapter: { confirmed: 1 },
+      commit,
+      fullAdapter: { status: 'affected', confirmed: 1, review: 0, findings: [] },
       workflow: { status: 'error', error: 'too | big' },
     },
-    { repo: 'c/three', fullAdapter: { confirmed: 0 } },
+    {
+      repo: 'c/three',
+      commit,
+      fullAdapter: { status: 'affected', confirmed: 0, review: 0, findings: [] },
+    },
   ]);
   expect(table).toContain('Repositories: 3. Affected: 2. Pull requests: 1.');
   expect(table).toContain(
@@ -142,6 +149,47 @@ it('summarizes affected repositories with their pull requests and stop reasons',
   );
   expect(table).toContain('| b/two | error |  | too / big |');
   expect(table).not.toContain('c/three');
+  expect(table).toContain(
+    'These results predate /*/outcomeClass; rows were classified from their fields.',
+  );
+});
+
+it('lists infrastructure errors apart from the counts and refuses rows that break the schema', () => {
+  const commit = 'a'.repeat(40);
+  const affected = {
+    fullAdapter: { status: 'affected', confirmed: 1, review: 0, findings: [] },
+    outcomeClass: 'repository',
+  };
+  const table = summaryTable([
+    { repo: 'a/one', commit, ...affected, workflow: { status: 'validated' } },
+    {
+      repo: 'b/two',
+      commit,
+      outcomeClass: 'infrastructure',
+      infrastructure: { kind: 'clone', message: 'the checkout is at 0000, not the pinned one' },
+    },
+    // Classified from its fields: the registry timed out during dependency preparation.
+    {
+      repo: 'c/three',
+      commit,
+      fullAdapter: { status: 'affected', confirmed: 1, review: 0, findings: [] },
+      workflow: {
+        status: 'error',
+        error: 'npm dependency preparation failed (1). npm error code ETIMEDOUT\nnpm error network',
+      },
+    },
+  ]);
+  expect(table).toContain('Repositories: 1. Affected: 1. Pull requests: 0.');
+  expect(table).toContain('| validated | 1 |');
+  expect(table).not.toContain('| error |');
+  expect(table).toContain('Infrastructure errors, not counted above: 2. Rerun them with --resume.');
+  expect(table).toContain('| b/two | clone | the checkout is at 0000, not the pinned one |');
+  expect(table).toContain(
+    '| c/three | registry | npm dependency preparation failed (1). npm error code ETIMEDOUT |',
+  );
+  expect(() => summaryTable([{ repo: 'a/one', commit: 'HEAD', ...affected }])).toThrow(
+    '/0/commit must match',
+  );
 });
 
 it('reuses the organization fork instead of creating name-1', async () => {

@@ -23,14 +23,17 @@ import {
   preparationProfile,
   validationProfile,
   removeDockerContainer,
+  removeExpiredSandboxContainers,
   resolveDockerImage,
 } from './docker-sandbox.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { readPreparationInputs, type PreparationIdentity } from './dependency-inputs.ts';
 import {
+  NPM_TOOL_INSTALL_COMMAND,
   PNPM_INSTALL_COMMAND,
   YARN_BERRY_INSTALL_COMMAND,
   YARN_INSTALL_COMMAND,
+  YARN_SKIP_PLATFORM_PACKAGES,
 } from './manager-install.ts';
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
@@ -40,8 +43,8 @@ import { verifyArtifacts } from './verification.ts';
 
 const RECIPE_VERSION = 5;
 const LEGACY_PEER_DEPS_MARKER = 'REFIT_LEGACY_PEER_DEPS=1';
-const NPM_CI =
-  'npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ' +
+const npmCi = (binary: string) =>
+  `${binary} ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ` +
   '--registry=https://registry.npmjs.org --cache=/workspace/.npm-cache';
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
@@ -95,7 +98,11 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
-function installCommand({ manager, managerVersion, legacyPeerDeps }: PreparationIdentity) {
+function installCommand(
+  { manager, managerVersion, legacyPeerDeps, platformPackages }: PreparationIdentity,
+  platformPackageMode?: 'skip' | 'install',
+) {
+  const NPM_CI = npmCi(managerVersion ? '"$refit_tool"' : 'npm');
   return [
     'sh',
     '-c',
@@ -108,8 +115,11 @@ function installCommand({ manager, managerVersion, legacyPeerDeps }: Preparation
         : manager === 'yarn'
           ? managerVersion?.startsWith('1.')
             ? YARN_INSTALL_COMMAND
-            : YARN_BERRY_INSTALL_COMMAND
-          : (legacyPeerDeps
+            : (platformPackages && platformPackageMode !== 'install'
+                ? YARN_SKIP_PLATFORM_PACKAGES
+                : '') + YARN_BERRY_INSTALL_COMMAND
+          : (managerVersion ? NPM_TOOL_INSTALL_COMMAND : '') +
+            (legacyPeerDeps
               ? // The repository's own .npmrc asks for it, so there is nothing to retry.
                 `${NPM_CI} --legacy-peer-deps >&2; `
               : // A peer dependency conflict (ERESOLVE) is retried once with the same exact lockfile
@@ -118,13 +128,18 @@ function installCommand({ manager, managerVersion, legacyPeerDeps }: Preparation
                 "elif grep -Eq '^npm (ERR!|error) code ERESOLVE$' /workspace/.refit-npm-ci.log; then " +
                 `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${NPM_CI} --legacy-peer-deps >&2; cat /workspace/.refit-npm-ci.log >&2; ` +
                 'else cat /workspace/.refit-npm-ci.log >&2; exit 1; fi; ') +
-            'mkdir -p node_modules; ') +
+            'mkdir -p node_modules; ' +
+            (managerVersion ? 'mv /workspace/.refit-tools node_modules/.refit-tools; ' : '')) +
       `node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
       'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +
       'for directory do if [ -d "$directory/node_modules" ]; then printf "%s\\n" "$directory/node_modules" >> /workspace/.refit-dependency-paths; fi; done; ' +
       'tar -cf - -T /workspace/.refit-dependency-paths',
   ];
 }
+
+// The environment keys that record the pinned manager: npmVersion is the image's own npm.
+const managerKey = (inputs: PreparationIdentity) =>
+  inputs.manager === 'npm' ? 'npmTool' : inputs.manager;
 
 function matchesManager(inputs: PreparationIdentity, version: unknown, integrity: unknown) {
   return (
@@ -147,6 +162,15 @@ export function installTimeoutSeconds(value = process.env.REFIT_DEPENDENCY_TIMEO
       `REFIT_DEPENDENCY_TIMEOUT_SECONDS must be a whole number from ${MIN_INSTALL_TIMEOUT_SECONDS} to ${MAX_INSTALL_TIMEOUT_SECONDS}.`,
     );
   return seconds;
+}
+
+// Yarn records platform-specific packages without checksums. Refit skips them unless an operator
+// accepts installing them unverified for this host (Needs owner decision; off by default).
+export function yarnPlatformPackageMode(value = process.env.REFIT_YARN_PLATFORM_PACKAGES) {
+  const mode = value?.trim() || 'skip';
+  if (mode !== 'skip' && mode !== 'install')
+    throw new PipelineInputError('REFIT_YARN_PLATFORM_PACKAGES must be skip or install.');
+  return mode;
 }
 
 export class DependencyPreparationError extends PipelineInputError {
@@ -275,7 +299,13 @@ async function installDependencies(
         `${inputs.manager} dependency preparation ran out of space in its ${workspace} workspace (ENOSPC).${
           workspace === '4g'
             ? ''
-            : " Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+            : `${
+                inputs.manager !== 'yarn'
+                  ? ''
+                  : inputs.managerVersion?.startsWith('1.')
+                    ? " Yarn 1 also downloads other platforms' optional binaries."
+                    : ' Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree.'
+              } An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare.`
         }`,
       );
     if (result.code !== 0)
@@ -287,8 +317,9 @@ async function installDependencies(
       );
     const nodeVersion = /^REFIT_NODE_VERSION=(v\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
     const npmVersion = /^REFIT_NPM_VERSION=(\d+\.\d+\.\d+)$/m.exec(stderr)?.[1];
-    const tool = inputs.manager === 'npm' ? undefined : inputs.manager;
-    const marker = tool?.toUpperCase();
+    const tool = inputs.manager === 'npm' && !inputs.managerVersion ? undefined : inputs.manager;
+    // The image's npm already reports REFIT_NPM_VERSION, so a pinned npm reports as NPM_TOOL.
+    const marker = tool === 'npm' ? 'NPM_TOOL' : tool?.toUpperCase();
     const toolVersion = new RegExp(`^REFIT_${marker}_VERSION=(\\d+\\.\\d+\\.\\d+)$`, 'm').exec(
       stderr,
     )?.[1];
@@ -336,7 +367,15 @@ export async function prepareDependencies(options: {
   const image = DOCKER_IMAGE_ID.test(options.image)
     ? options.image
     : await resolveDockerImage(options.image);
-  const signature = digest(JSON.stringify({ recipeVersion: RECIPE_VERSION, image, ...inputs }));
+  const platformPackageMode = inputs.platformPackages ? yarnPlatformPackageMode() : undefined;
+  const signature = digest(
+    JSON.stringify({
+      recipeVersion: RECIPE_VERSION,
+      image,
+      ...inputs,
+      ...(platformPackageMode ? { platformPackageMode } : {}),
+    }),
+  );
   const cacheDirectory = resolve(
     options.cacheDirectory ??
       (process.env.REFIT_DEPENDENCY_CACHE_DIRECTORY?.trim() || undefined) ??
@@ -384,11 +423,11 @@ export async function prepareDependencies(options: {
         Object.entries(inputs).some(
           ([key, value]) => JSON.stringify(environment[key]) !== JSON.stringify(value),
         ) ||
-        (inputs.manager !== 'npm' &&
+        (inputs.managerVersion !== undefined &&
           !matchesManager(
             inputs,
-            environment[`${inputs.manager}Version`],
-            environment[`${inputs.manager}Integrity`],
+            environment[`${managerKey(inputs)}Version`],
+            environment[`${managerKey(inputs)}Integrity`],
           )) ||
         !archiveEntry ||
         environment.archiveHash !== archiveEntry.sha256 ||
@@ -425,13 +464,14 @@ export async function prepareDependencies(options: {
       options.onProgress?.(
         `Installing locked public ${inputs.manager} dependencies in restricted Docker; lifecycle scripts are disabled...`,
       );
+      await removeExpiredSandboxContainers();
       const result = await installDependencies(
         dockerSandboxArguments({
           name,
           directory: input,
           image,
           command: [
-            ...installCommand(inputs),
+            ...installCommand(inputs, platformPackageMode),
             'refit-npm-install',
             JSON.stringify({
               links: inputs.workspaceLinks ?? {},
@@ -447,6 +487,7 @@ export async function prepareDependencies(options: {
             ...workspaceContents.keys(),
           ],
           network: 'bridge',
+          timeoutMs: timeoutSeconds * 1000,
           preparation,
         }),
         join(staging, ARCHIVE),
@@ -469,6 +510,10 @@ export async function prepareDependencies(options: {
           : {}),
         ...(inputs.manager === 'yarn'
           ? { yarnVersion: result.toolVersion, yarnIntegrity: result.toolIntegrity }
+          : {}),
+        ...(platformPackageMode ? { platformPackageMode } : {}),
+        ...(inputs.manager === 'npm' && inputs.managerVersion
+          ? { npmToolVersion: result.toolVersion, npmToolIntegrity: result.toolIntegrity }
           : {}),
         archiveHash: result.sha256,
         archiveBytes: result.bytes,

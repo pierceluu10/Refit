@@ -6,13 +6,13 @@ Checked 2026-10-22 (FP5). Nothing here was installed, run or sent to a provider.
 
 ## What is detected
 
-| Provider | Catalog packages (checked on the npm registry) | Hostnames (from published SDK code) |
-| --- | --- | --- |
-| Auth0 | `auth0`, `@auth0/nextjs-auth0`, `@auth0/auth0-react`, `@auth0/auth0-spa-js`, `@auth0/auth0-angular`, `@auth0/auth0-vue`, `@auth0/auth0-auth-js`, `@auth0/auth0-server-js`, `auth0-js`, `auth0-lock`, `express-openid-connect`, `express-oauth2-jwt-bearer` | `.auth0.com` (tenant domains, `your-tenant.auth0.com` in auth0 7.6.0) |
-| Clerk | 20 `@clerk/*` SDKs, including the renamed and deprecated ones (`@clerk/clerk-react`, `@clerk/clerk-expo`, `@clerk/clerk-sdk-node`, `@clerk/types`, `@clerk/elements`, `@clerk/edge`) | `api.clerk.com` (`API_URL` in @clerk/backend 3.26.1) |
-| Firebase | `firebase`, `firebase-admin` | `firestore`, `identitytoolkit`, `securetoken` and `firebasestorage.googleapis.com`, `firebaseio.com` (firebase-admin 14.5.0 and the @firebase packages) |
-| Supabase | `@supabase/supabase-js`, `@supabase/ssr`, the five `@supabase/auth-helpers-*` packages | `.supabase.co` (project URLs in @supabase/supabase-js 2.118.0) |
-| NextAuth.js | `next-auth`, `@auth/core`, `@auth/sveltekit`, `@auth/express`, `@auth/qwik`, `@auth/solid-start` | none: it runs inside the application |
+| Provider    | Catalog packages (checked on the npm registry)                                                                                                                                                                                                             | Hostnames (from published SDK code)                                                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth0       | `auth0`, `@auth0/nextjs-auth0`, `@auth0/auth0-react`, `@auth0/auth0-spa-js`, `@auth0/auth0-angular`, `@auth0/auth0-vue`, `@auth0/auth0-auth-js`, `@auth0/auth0-server-js`, `auth0-js`, `auth0-lock`, `express-openid-connect`, `express-oauth2-jwt-bearer` | `.auth0.com` (tenant domains, `your-tenant.auth0.com` in auth0 7.6.0)                                                                                   |
+| Clerk       | 20 `@clerk/*` SDKs, including the renamed and deprecated ones (`@clerk/clerk-react`, `@clerk/clerk-expo`, `@clerk/clerk-sdk-node`, `@clerk/types`, `@clerk/elements`, `@clerk/edge`)                                                                       | `api.clerk.com` (`API_URL` in @clerk/backend 3.26.1)                                                                                                    |
+| Firebase    | `firebase`, `firebase-admin`                                                                                                                                                                                                                               | `firestore`, `identitytoolkit`, `securetoken` and `firebasestorage.googleapis.com`, `firebaseio.com` (firebase-admin 14.5.0 and the @firebase packages) |
+| Supabase    | `@supabase/supabase-js`, `@supabase/ssr`, the five `@supabase/auth-helpers-*` packages                                                                                                                                                                     | `.supabase.co` (project URLs in @supabase/supabase-js 2.118.0)                                                                                          |
+| NextAuth.js | `next-auth`, `@auth/core`, `@auth/sveltekit`, `@auth/express`, `@auth/qwik`, `@auth/solid-start`                                                                                                                                                           | none: it runs inside the application                                                                                                                    |
 
 Every package's npm repository is in the provider's own GitHub organization. A hostname matches only where it ends, so `.supabase.co` matches `abc.supabase.co/rest` but not `api.supabase.com` or `app.supabase.com` (fixed after PP10's review; the benchmark below was run before that fix and was not rerun). Detection runs through `detectProviders` (`refit agents`), so the hosted inventory picks it up.
 
@@ -25,17 +25,17 @@ Two new forms in `data/deadlines.json`, matched by `pipeline/sdk-deadlines.ts`:
 
 `npm run deadlines:check` validates both forms. It rejects a range it cannot read, and two entries whose ranges (or a bare name and a range) share a release of the same package, since that release would get two deadlines.
 
-| Entry | Date | Matches | Source read |
-| --- | --- | --- | --- |
-| `auth0-2026-09-09-node-auth0-v6` | 2026-09-09 | `auth0@>=6 <7` | npm deprecation notice on every 6.x release of `auth0`: "v6 is deprecated and no longer receives updates". It gives no date; the date is when 7.0.0 was published. |
-| `clerk-2025-01-10-clerk-sdk-node` | 2025-01-10 | `@clerk/clerk-sdk-node` | npm deprecation notice: "January 10 2025 marks the end of support". |
-| `clerk-2025-04-19-core-1-unsupported` | 2025-04-19 | Core 1 and Legacy majors of 9 packages, plus `@clerk/edge` | Clerk's long term support schedule (clerk-docs `versioning.mdx`): Core 1 and Legacy are Unsupported, with no date. The date is derived: one year of LTS after the Core 2 majors appeared on npm (2024-04-19). The Core 1 majors are the ones Clerk's Core 2 upgrade guides name (`@clerk/nextjs@4`, `@clerk/backend@0`, `@clerk/remix@3`, …). |
-| `clerk-2026-03-03-elements` | 2026-03-03 | `@clerk/elements` | npm deprecation notice ("no longer supported"), which points to the Core 3 changelog of 2026-03-03. |
-| `clerk-2027-01-01-core-2-lts-ends` | 2027-01-01 | Core 2 majors of 17 packages | The same schedule: Core 2 is in long term support until "January 2027". It gives the month only, so the date is its first day. The Core 2 majors are those published between the Core 2 and Core 3 releases on npm; the Core 3 guide names `@clerk/nextjs@6` as the latest Core 2. |
-| `firebase-2025-08-01-dynamic-links` | 2025-08-01 | `dynamicLinkDomain`, `firebasedynamiclinks.googleapis.com`, `@react-native-firebase/dynamic-links` | Firebase JS SDK reference (`docs-devsite/auth.actioncodesettings.md`): Dynamic Links "will be shut down as early as August 2025". The page gives no day, so the date is the first of the month. |
-| `supabase-2024-11-27-auth-helpers` | 2024-11-27 | the five `@supabase/auth-helpers-*` packages | `supabase/auth-helpers` README: deprecated in favour of `@supabase/ssr`. The deprecation notice was committed on 2024-11-27 (commit `cb7c267`). |
-| `nextauth-2022-08-01-next-auth-v3` | 2022-08-01 | `next-auth@<4` | Auth.js security policy (`docs/pages/security.mdx` in nextauthjs/next-auth): "Security updates are only released for the current `latest` version. Old releases are not maintained". `latest` on npm is 4.24.15 (v5 is a beta), so v3 and older are unmaintained. The date is when the last v3 release (3.29.10) was published. |
-| `supabase-2026-12-31-legacy-api-keys` | 2026-12-31 | `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (also with `NEXT_PUBLIC_`, `VITE_`, `REACT_APP_` prefixes) | Supabase docs partial `api_keys_deprecation.mdx`: "deprecating the anon and service_role keys by the end of 2026". A variable with the legacy name may already hold a new key, so the alert says to check its value. |
+| Entry                                 | Date       | Matches                                                                                                     | Source read                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth0-2026-09-09-node-auth0-v6`      | 2026-09-09 | `auth0@>=6 <7`                                                                                              | npm deprecation notice on every 6.x release of `auth0`: "v6 is deprecated and no longer receives updates". It gives no date; the date is when 7.0.0 was published.                                                                                                                                                                            |
+| `clerk-2025-01-10-clerk-sdk-node`     | 2025-01-10 | `@clerk/clerk-sdk-node`                                                                                     | npm deprecation notice: "January 10 2025 marks the end of support".                                                                                                                                                                                                                                                                           |
+| `clerk-2025-04-19-core-1-unsupported` | 2025-04-19 | Core 1 and Legacy majors of 9 packages, plus `@clerk/edge`                                                  | Clerk's long term support schedule (clerk-docs `versioning.mdx`): Core 1 and Legacy are Unsupported, with no date. The date is derived: one year of LTS after the Core 2 majors appeared on npm (2024-04-19). The Core 1 majors are the ones Clerk's Core 2 upgrade guides name (`@clerk/nextjs@4`, `@clerk/backend@0`, `@clerk/remix@3`, …). |
+| `clerk-2026-03-03-elements`           | 2026-03-03 | `@clerk/elements`                                                                                           | npm deprecation notice ("no longer supported"), which points to the Core 3 changelog of 2026-03-03.                                                                                                                                                                                                                                           |
+| `clerk-2027-01-01-core-2-lts-ends`    | 2027-01-01 | Core 2 majors of 17 packages                                                                                | The same schedule: Core 2 is in long term support until "January 2027". It gives the month only, so the date is its first day. The Core 2 majors are those published between the Core 2 and Core 3 releases on npm; the Core 3 guide names `@clerk/nextjs@6` as the latest Core 2.                                                            |
+| `firebase-2025-08-01-dynamic-links`   | 2025-08-01 | `dynamicLinkDomain`, `firebasedynamiclinks.googleapis.com`, `@react-native-firebase/dynamic-links`          | Firebase JS SDK reference (`docs-devsite/auth.actioncodesettings.md`): Dynamic Links "will be shut down as early as August 2025". The page gives no day, so the date is the first of the month.                                                                                                                                               |
+| `supabase-2024-11-27-auth-helpers`    | 2024-11-27 | the five `@supabase/auth-helpers-*` packages                                                                | `supabase/auth-helpers` README: deprecated in favour of `@supabase/ssr`. The deprecation notice was committed on 2024-11-27 (commit `cb7c267`).                                                                                                                                                                                               |
+| `nextauth-2022-08-01-next-auth-v3`    | 2022-08-01 | `next-auth@<4`                                                                                              | Auth.js security policy (`docs/pages/security.mdx` in nextauthjs/next-auth): "Security updates are only released for the current `latest` version. Old releases are not maintained". `latest` on npm is 4.24.15 (v5 is a beta), so v3 and older are unmaintained. The date is when the last v3 release (3.29.10) was published.               |
+| `supabase-2026-12-31-legacy-api-keys` | 2026-12-31 | `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (also with `NEXT_PUBLIC_`, `VITE_`, `REACT_APP_` prefixes) | Supabase docs partial `api_keys_deprecation.mdx`: "deprecating the anon and service_role keys by the end of 2026". A variable with the legacy name may already hold a new key, so the alert says to check its value.                                                                                                                          |
 
 ### Checked, nothing announced
 
@@ -56,12 +56,12 @@ Vendor documentation sites (supabase.com, clerk.com, auth0.com, firebase.google.
 
 **Run.** `node scripts/auth-backend-benchmark.mjs --root <clones>` on clean commit `094634d` wrote `docs/benchmarks/2026-10-22-auth-backend-results.json`. Repository code was never installed or run.
 
-| Measure (37 labelled repositories scanned) | TP | FP | FN | Precision | Recall |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Provider detection | 45 | 0 | 0 | 100% | 100% |
-| Exposure (repository × entry) | 22 | 0 | 0 | 100% | 100% |
+| Measure (38 labelled repositories, 1 failed scan counted as misses) |  TP |  FP |  FN | Precision | Recall |
+| ------------------------------------------------------------------- | --: | --: | --: | --------: | -----: |
+| Provider detection                                                  |  45 |   0 |   1 |      100% |  97.8% |
+| Exposure (repository × entry)                                       |  22 |   0 |   0 |      100% |   100% |
 
-- One labelled repository (`getcord/cord`) and four unlabelled ones (`samepage-network/samepage.network`, `webiny/webiny-js`, `MemberJunction/MJ`, `sesamyab/authhero`) exceed Refit's existing scan limits (10,000 files or 50 MiB). They are counted as failed scans, not as hits or misses.
+- One labelled repository (`getcord/cord`) and four unlabelled ones (`samepage-network/samepage.network`, `webiny/webiny-js`, `MemberJunction/MJ`, `sesamyab/authhero`) exceed Refit's existing scan limits (10,000 files or 50 MiB). Failed scans stay in the denominator: `getcord/cord`'s one labelled provider (Auth0) counts as a miss, and it has no labelled exposure. The committed results file's `score` excludes it, so it reads 45/45.
 - The labels use the same definitions as the entries (range, lockfile first, live code only). So the score shows that Refit applies each entry as written. It does not check whether the entries' dates are right; that rests on the sources above.
 - **Legacy-key lines.** Every live evidence line for `supabase-2026-12-31-legacy-api-keys` across the first 75 scanned repositories was reviewed by hand after the scan, so this check is not blind.
   - Before the prose rule, 202 of 215 lines read the key. The other 13 named it in an error message (9) or in a generated `.env` template (4).
@@ -70,13 +70,13 @@ Vendor documentation sites (supabase.com, clerk.com, auth0.com, firebase.google.
 
 **Exposure across the 95 scanned repositories**
 
-| Provider | Detected | Repositories exposed | Entries hit (repositories) |
-| --- | ---: | ---: | --- |
-| Supabase | 25 | 22 | legacy API keys (21), auth helpers (6) |
-| Clerk | 22 | 20 | Core 2 LTS ends 2027-01 (14), Core 1 unsupported (6), clerk-sdk-node (2) |
-| Firebase | 20 | 0 | none: no Dynamic Links use in the sample |
-| Auth0 | 15 | 1 | node-auth0 v6 (`ctx-core/auth0-management`, `auth0 ^6.0.0`) |
-| NextAuth.js | 28 | 0 | none: every repository is on v4 or the v5 beta (no v3 among the 122 candidates either) |
+| Provider    | Detected | Repositories exposed | Entries hit (repositories)                                                             |
+| ----------- | -------: | -------------------: | -------------------------------------------------------------------------------------- |
+| Supabase    |       25 |                   22 | legacy API keys (21), auth helpers (6)                                                 |
+| Clerk       |       22 |                   20 | Core 2 LTS ends 2027-01 (14), Core 1 unsupported (6), clerk-sdk-node (2)               |
+| Firebase    |       20 |                    0 | none: no Dynamic Links use in the sample                                               |
+| Auth0       |       15 |                    1 | node-auth0 v6 (`ctx-core/auth0-management`, `auth0 ^6.0.0`)                            |
+| NextAuth.js |       28 |                    0 | none: every repository is on v4 or the v5 beta (no v3 among the 122 candidates either) |
 
 **Scan cost.** The catalog grew from 10 to 15 providers. `detectProviders` now reads source files once for every hostname check, and reads a package's declarations only when some manifest declares it. `scanDeadlines` reads each SDK package at most once.
 
