@@ -68,6 +68,8 @@ REFIT_POSTGRES_URL=postgres://refit:refit-local-test@127.0.0.1:55432/refit REFIT
 
 ### Operate the deployed worker
 
+The [hosted runbook](HOSTED-RUNBOOK.md) covers day-to-day operation: `refit hosted jobs`, `receipt`, `targets` and `health`, reading the JSON logs, what each alert means, deploy and rollback, retries, draining, secret rotation and crash recovery.
+
 - `GET /health` is public. `GET /status` with `Authorization: Bearer $REFIT_SERVICE_TOKEN` lists installations, targets and jobs with their receipts.
 - `fly logs -a refit-hosted` shows each job's progress lines, prefixed with the target id. `fly ssh console -a refit-hosted` reaches the volume; evidence lives under `/data/state/targets/<id>/runs/`.
 - A failed job stays cached for its commit, so the next scheduled run reuses it instead of paying again. After fixing the cause, `REFIT_DATABASE_URL=... refit hosted retry --target <id>` queues one fresh attempt (or marks the already-queued job); successful jobs remain cached, and approval and access gates still apply. A running job must finish first.

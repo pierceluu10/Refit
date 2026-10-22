@@ -243,7 +243,7 @@ it.skipIf(!DATABASE)(
       );
     expect(reads).toContain('machine');
     expect(reads.filter((read) => read === 'control')).toHaveLength(1);
-    expect(control.progress).toContain(`[${target}] Job machine ${created.id} destroyed.`);
+    expect(control.progress).toContain(`Job machine ${created.id} destroyed.`);
   },
   90_000,
 );
