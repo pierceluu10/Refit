@@ -1,6 +1,6 @@
 name: Registry sync
 
-# Reads every provider's deprecation page each day and opens or updates one pull request from
+# Reads Anthropic's deprecations page each day, and every provider's page when run by hand, and opens or updates one pull request from
 # the registry-sync branch when data/deadlines.json should change. Nothing is merged; a person
 # reviews the pull request. See docs/REGISTRY-SYNC.md.
 on:
@@ -26,7 +26,7 @@ jobs:
       BRANCH: registry-sync
       BOT_NAME: github-actions[bot]
       BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-      TITLE: 'chore(data): sync AI model deadlines'
+      TITLE: 'chore(data): sync provider deadlines'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -38,7 +38,13 @@ jobs:
         id: sync
         run: |
           failed=''
-          for provider in anthropic openai gemini shopify meta-graph; do
+          # The scheduled run keeps syncing Anthropic only; the other providers' syncs are new and
+          # run only when started by hand (owner decision, 2026-10-22: nothing new runs by default).
+          providers='anthropic'
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            providers='anthropic openai gemini shopify meta-graph'
+          fi
+          for provider in $providers; do
             echo "== $provider" >> "$RUNNER_TEMP/sync.txt"
             if ! node bin/refit.mjs deadlines --sync "$provider" --write >> "$RUNNER_TEMP/sync.txt" 2>&1; then
               failed="$failed $provider"

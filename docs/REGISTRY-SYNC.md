@@ -1,6 +1,6 @@
 # Registry sync
 
-`data/deadlines.json` lists the dates providers retire models and API versions. Refit keeps every provider's entries current by reading the provider's official deprecations or versioning page, and a scheduled workflow proposes every change as a pull request for a person to review. Matching, CI checks, alerts and model replacements still read only the committed registry; nothing at run time fetches a provider page.
+`data/deadlines.json` lists the dates providers retire models and API versions. Refit keeps every provider's entries current by reading the provider's official deprecations or versioning page, and a workflow proposes every change as a pull request for a person to review. Matching, CI checks, alerts and model replacements still read only the committed registry; nothing at run time fetches a provider page.
 
 ## Run a sync
 
@@ -70,9 +70,9 @@ A warning does not fail the check. For a synced provider, the next sync rechecks
 
 ## The scheduled workflow
 
-`.github/workflows/registry-sync.yml` runs every day at 06:17 UTC, and on demand from the Actions tab:
+`.github/workflows/registry-sync.yml` runs the Anthropic sync every day at 06:17 UTC, and every sync when started by hand from the Actions tab. The other providers stay off the schedule until the owner decides otherwise (2026-10-22: nothing new runs by default). GitHub Actions is currently disabled on this repository, so neither runs until it is enabled.
 
-1. It runs every sync with `--write`, then `npm run deadlines:check`.
+1. It runs each sync with `--write`, then `npm run deadlines:check`.
 2. When `data/deadlines.json` changed, it commits the file to the `registry-sync` branch, rebuilt from `main`, and opens a pull request from it, or updates the open one's description. The description lists each sync's output.
 3. A provider whose page could not be read or parsed fails the run, after the other providers are synced and the pull request is updated.
 

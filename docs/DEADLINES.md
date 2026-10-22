@@ -308,4 +308,4 @@ A deadline starts a code change only through [automatic model fixes](#automatic-
 - Evidence is capped at 20 live and 20 non-live matches per deadline, plus a count of the rest.
 - Issues are not closed automatically once the repository stops depending on a deadline.
 - `--fail-within` checks only what Refit can see; the limits above apply. A passing check does not prove the repository uses no retiring version or model.
-- The registry follows the provider pages listed above through a daily sync that a person reviews, and changes only when that pull request is merged. Recheck an entry's `source` before relying on a date.
+- The registry follows the provider pages listed above through a sync that a person reviews (Anthropic daily; the others when the workflow is started by hand), and changes only when that pull request is merged. Recheck an entry's `source` before relying on a date.
