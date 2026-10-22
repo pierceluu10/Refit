@@ -1,0 +1,726 @@
+{
+  "formatVersion": 1,
+  "provider": "cloudflare",
+  "list": "docs/benchmarks/2026-10-22-cloudflare-repos.json",
+  "labelledAt": "2026-10-22",
+  "selection": "Held out: the next 10 repositories of the frozen list, in list order after the 15 development repositories, that fit Refit's scan limits. Labelled after the detection changes that followed the development scores, before those changes scanned them. A first scan of all 41 had run earlier; only its per-repository totals were seen, in the progress log.",
+  "procedure": "As in 2026-10-22-cloudflare-labels.json, with the candidate grep widened after the development set showed what it missed: every JavaScript or TypeScript live file naming Cloudflare is searched, chains are matched wherever `.<resource>` starts (so `this.client.zones.list()` is found), and generic calls such as `post<T>(` are included. An HTTP request made with Node's https module and a `hostname` option, with no URL, is outside the label scope.",
+  "repos": [
+    {
+      "repo": "pedrogmbh/cmdflare",
+      "commit": "2d456f7a5628b0250162a61ebc6f0f5698880d8d",
+      "calls": [
+        {
+          "file": "src/commands/auth.ts",
+          "line": 100,
+          "method": "GET",
+          "path": "/user"
+        },
+        {
+          "file": "src/commands/auth.ts",
+          "line": 182,
+          "method": "GET",
+          "path": "/user"
+        },
+        {
+          "file": "src/commands/auth.ts",
+          "line": 211,
+          "method": "GET",
+          "path": "/user"
+        },
+        {
+          "file": "src/commands/stream-export.ts",
+          "line": 180,
+          "method": "GET",
+          "path": "/accounts/{}/stream/{}/downloads"
+        },
+        {
+          "file": "src/commands/stream-export.ts",
+          "line": 185,
+          "method": "POST",
+          "path": "/accounts/{}/stream/{}/downloads"
+        },
+        {
+          "file": "src/commands/stream-export.ts",
+          "line": 218,
+          "method": "GET",
+          "path": "/accounts/{}/stream/{}/downloads"
+        },
+        {
+          "file": "src/commands/stream-export.ts",
+          "line": 371,
+          "method": "GET",
+          "path": "/accounts/{}/stream/{}"
+        },
+        {
+          "file": "src/commands/stream-export.ts",
+          "line": 540,
+          "method": "GET",
+          "path": "/accounts/{}/stream/{}/captions"
+        },
+        {
+          "file": "src/commands/stream-export.ts",
+          "line": 552,
+          "method": "GET",
+          "path": "/accounts/{}/stream/{}/captions/{}/vtt"
+        },
+        {
+          "file": "src/commands/stream-export.ts",
+          "line": 565,
+          "method": "POST",
+          "path": "/accounts/{}/stream/{}/token"
+        },
+        {
+          "file": "src/core/token.ts",
+          "line": 38,
+          "method": "GET",
+          "path": "/user/tokens/verify"
+        },
+        {
+          "file": "src/core/token.ts",
+          "line": 50,
+          "method": "GET",
+          "path": "/accounts/{}/tokens/verify"
+        },
+        {
+          "file": "src/core/token.ts",
+          "line": 62,
+          "method": "GET",
+          "path": "/accounts/{}"
+        },
+        {
+          "file": "src/core/token.ts",
+          "line": 73,
+          "method": "GET",
+          "path": "/accounts"
+        }
+      ],
+      "note": "Builds most requests from a command manifest at runtime; only requests with a path or SDK resource written in source are labelled."
+    },
+    {
+      "repo": "ehmpathy/declastruct-cloudflare",
+      "commit": "81b7477be25f1bd3564489aa38cd462bd3f81f82",
+      "calls": [
+        {
+          "file": "provision/transferin/infra/getDomainTransferEligibility.ts",
+          "line": 17,
+          "method": "GET",
+          "path": "/accounts/{}/intel/whois"
+        },
+        {
+          "file": "src/domain.operations/domainDnsRecord/delDomainDnsRecord.ts",
+          "line": 74,
+          "method": "DELETE",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/domain.operations/domainDnsRecord/getAllDomainDnsRecords.ts",
+          "line": 28,
+          "method": "GET",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/domain.operations/domainDnsRecord/getOneDomainDnsRecord.ts",
+          "line": 39,
+          "method": "GET",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/domain.operations/domainDnsRecord/getOneDomainDnsRecord.ts",
+          "line": 55,
+          "method": "GET",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/domain.operations/domainDnsRecord/setDomainDnsRecord.ts",
+          "line": 97,
+          "method": "PUT",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/domain.operations/domainDnsRecord/setDomainDnsRecord.ts",
+          "line": 114,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/domain.operations/domainRegistration/getAllDomainRegistrations.ts",
+          "line": 22,
+          "method": "GET",
+          "path": "/accounts/{}/registrar/domains"
+        },
+        {
+          "file": "src/domain.operations/domainRegistration/getOneDomainRegistration.ts",
+          "line": 41,
+          "method": "GET",
+          "path": "/accounts/{}/registrar/domains/{}"
+        },
+        {
+          "file": "src/domain.operations/domainRegistration/setDomainRegistration.ts",
+          "line": 210,
+          "method": "PUT",
+          "path": "/accounts/{}/registrar/domains/{}"
+        },
+        {
+          "file": "src/domain.operations/domainRuleRedirect/delDomainRuleRedirect.ts",
+          "line": 52,
+          "method": "PUT",
+          "path": "/zones/{}/rulesets/phases/{}/entrypoint"
+        },
+        {
+          "file": "src/domain.operations/domainRuleRedirect/getAllDomainRuleRedirects.ts",
+          "line": 34,
+          "method": "GET",
+          "path": "/zones/{}/rulesets/phases/{}/entrypoint"
+        },
+        {
+          "file": "src/domain.operations/domainRuleRedirect/setDomainRuleRedirect.ts",
+          "line": 121,
+          "method": "PUT",
+          "path": "/zones/{}/rulesets/phases/{}/entrypoint"
+        },
+        {
+          "file": "src/domain.operations/domainRuleRedirect/setDomainRuleRedirect.ts",
+          "line": 152,
+          "method": "PUT",
+          "path": "/zones/{}/rulesets/phases/{}/entrypoint"
+        },
+        {
+          "file": "src/domain.operations/domainWhoisRecord/getOneDomainWhoisRecord.ts",
+          "line": 22,
+          "method": "GET",
+          "path": "/accounts/{}/intel/whois"
+        },
+        {
+          "file": "src/domain.operations/domainZone/delDomainZone.ts",
+          "line": 59,
+          "method": "DELETE",
+          "path": "/zones/{}"
+        },
+        {
+          "file": "src/domain.operations/domainZone/getAllDomainZones.ts",
+          "line": 19,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/domain.operations/domainZone/getOneDomainZone.ts",
+          "line": 37,
+          "method": "GET",
+          "path": "/zones/{}"
+        },
+        {
+          "file": "src/domain.operations/domainZone/getOneDomainZone.ts",
+          "line": 48,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/domain.operations/domainZone/setDomainZone.ts",
+          "line": 73,
+          "method": "PATCH",
+          "path": "/zones/{}"
+        },
+        {
+          "file": "src/domain.operations/domainZone/setDomainZone.ts",
+          "line": 83,
+          "method": "POST",
+          "path": "/zones"
+        }
+      ]
+    },
+    {
+      "repo": "ohos-ports/ohos-ports",
+      "commit": "790dccfc867985ffcde120b807bf3d1184c31c0e",
+      "calls": [],
+      "note": "Holds no JavaScript or TypeScript that uses Cloudflare (one Python script)."
+    },
+    {
+      "repo": "Barbapapazes/cloudflare-ai-search-sync",
+      "commit": "20ce07daa31fb38ef6a5f3af646f49eeb7eed65d",
+      "calls": [
+        {
+          "file": "src/metadata.ts",
+          "line": 22,
+          "method": "GET",
+          "path": "/accounts/{}/ai-search/namespaces/{}/instances/{}"
+        },
+        {
+          "file": "src/metadata.ts",
+          "line": 43,
+          "method": "PUT",
+          "path": "/accounts/{}/ai-search/namespaces/{}/instances/{}"
+        },
+        {
+          "file": "src/sync.ts",
+          "line": 37,
+          "method": "POST",
+          "path": "/accounts/{}/ai-search/namespaces/{}/instances/{}/items"
+        },
+        {
+          "file": "src/sync.ts",
+          "line": 65,
+          "method": "DELETE",
+          "path": "/accounts/{}/ai-search/namespaces/{}/instances/{}/items/{}"
+        },
+        {
+          "file": "src/sync.ts",
+          "line": 122,
+          "method": "GET",
+          "path": "/accounts/{}/ai-search/namespaces/{}/instances/{}/items"
+        }
+      ]
+    },
+    {
+      "repo": "FJRG2007/opentunnel",
+      "commit": "c5e7ff9571c488e88d89dce682e67b2f2e891969",
+      "calls": [
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 52,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 108,
+          "method": "PUT",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 119,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 157,
+          "method": "DELETE",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 177,
+          "method": "GET",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 218,
+          "method": "PUT",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 228,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 264,
+          "method": "PUT",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/dns/CloudflareDNS.ts",
+          "line": 274,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/server/CertManager.ts",
+          "line": 108,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/server/CertManager.ts",
+          "line": 245,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/server/CertManager.ts",
+          "line": 273,
+          "method": "DELETE",
+          "path": "/zones/{}/dns_records/{}"
+        }
+      ]
+    },
+    {
+      "repo": "Gaubee/dweb",
+      "commit": "9562dcd5696d7e2e8353b4f56f7d9c884dd6c400",
+      "calls": [
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 144,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 161,
+          "method": "GET",
+          "path": "/accounts/{}/cfd_tunnel"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 176,
+          "method": "POST",
+          "path": "/accounts/{}/cfd_tunnel"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 187,
+          "method": "GET",
+          "path": "/accounts/{}/cfd_tunnel/{}/token"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 194,
+          "method": "GET",
+          "path": "/accounts/{}/cfd_tunnel/{}/configurations"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 204,
+          "method": "PUT",
+          "path": "/accounts/{}/cfd_tunnel/{}/configurations"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 212,
+          "method": "GET",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 230,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 242,
+          "method": "PUT",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "packages/opendweb-ext-cf/src/cf-client.ts",
+          "line": 293,
+          "method": null,
+          "path": null
+        }
+      ]
+    },
+    {
+      "repo": "funish/axis",
+      "commit": "9998add3d3991be7618a9637fdd94a491d3f9c67",
+      "calls": [
+        {
+          "file": "packages/undns/src/drivers/cloudflare.ts",
+          "line": 27,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "packages/undns/src/drivers/cloudflare.ts",
+          "line": 70,
+          "method": "GET",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "packages/undns/src/drivers/cloudflare.ts",
+          "line": 226,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "packages/undns/src/drivers/cloudflare.ts",
+          "line": 246,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "packages/undns/src/drivers/cloudflare.ts",
+          "line": 270,
+          "method": "DELETE",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "packages/undns/src/drivers/cloudflare.ts",
+          "line": 290,
+          "method": "DELETE",
+          "path": "/zones/{}/dns_records/{}"
+        }
+      ]
+    },
+    {
+      "repo": "geektheripper/acme-dns01",
+      "commit": "1e0ef3275b14a0f427ad211d24b404e38e71f066",
+      "calls": [],
+      "note": "Names Cloudflare only in comments; no request."
+    },
+    {
+      "repo": "circlesac/cgrok",
+      "commit": "bb83e12aed17482a637b0beda15bb8b868a69633",
+      "calls": [
+        {
+          "file": "src/hooks/use-tunnel-lifecycle.ts",
+          "line": 107,
+          "method": "GET",
+          "path": "/accounts/{}/cfd_tunnel/{}/token"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 14,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 19,
+          "method": "GET",
+          "path": "/accounts/{}/cfd_tunnel"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 27,
+          "method": "GET",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 37,
+          "method": "DELETE",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 44,
+          "method": "PUT",
+          "path": "/zones/{}/dns_records/{}"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 84,
+          "method": "POST",
+          "path": "/accounts/{}/cfd_tunnel"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 123,
+          "method": "GET",
+          "path": "/accounts/{}/cfd_tunnel/{}/configurations"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 152,
+          "method": "POST",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 174,
+          "method": "DELETE",
+          "path": "/accounts/{}/cfd_tunnel/{}"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 186,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 243,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/utils/cloudflare.ts",
+          "line": 270,
+          "method": "PUT",
+          "path": "/accounts/{}/cfd_tunnel/{}/configurations"
+        },
+        {
+          "file": "src/utils/config.ts",
+          "line": 66,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/utils/config.ts",
+          "line": 77,
+          "method": "GET",
+          "path": "/zones/{}/dns_records"
+        },
+        {
+          "file": "src/utils/config.ts",
+          "line": 88,
+          "method": "GET",
+          "path": "/accounts"
+        },
+        {
+          "file": "src/utils/config.ts",
+          "line": 108,
+          "method": "GET",
+          "path": "/accounts/{}/cfd_tunnel"
+        }
+      ]
+    },
+    {
+      "repo": "baoduy/drunk-pulumi-cloudflare-components",
+      "commit": "1aa1e41f7485d9a0fb8f4a37303bc74490e29c75",
+      "calls": [
+        {
+          "file": "src/domain/CloudflareClient.ts",
+          "line": 34,
+          "method": "GET",
+          "path": "/zones"
+        },
+        {
+          "file": "src/domain/CloudflareClient.ts",
+          "line": 43,
+          "method": "GET",
+          "path": "/zones/{}/ssl/certificate_packs"
+        },
+        {
+          "file": "src/domain/CloudflareClient.ts",
+          "line": 53,
+          "method": "GET",
+          "path": "/zones/{}/ssl/universal/settings"
+        },
+        {
+          "file": "src/domain/CloudflareClient.ts",
+          "line": 55,
+          "method": "PATCH",
+          "path": "/zones/{}/ssl/universal/settings"
+        },
+        {
+          "file": "src/domain/CloudflareClient.ts",
+          "line": 60,
+          "method": "GET",
+          "path": "/zones/{}/client_certificates"
+        },
+        {
+          "file": "src/domain/CloudflareClient.ts",
+          "line": 71,
+          "method": "POST",
+          "path": "/zones/{}/client_certificates"
+        },
+        {
+          "file": "src/domain/CloudflareClient.ts",
+          "line": 76,
+          "method": "GET",
+          "path": "/certificates"
+        },
+        {
+          "file": "src/domain/CloudflareClient.ts",
+          "line": 87,
+          "method": "POST",
+          "path": "/certificates"
+        },
+        {
+          "file": "src/helpers/accountHelper.ts",
+          "line": 7,
+          "method": null,
+          "path": null
+        },
+        {
+          "file": "src/helpers/domainHelper.ts",
+          "line": 6,
+          "method": null,
+          "path": null
+        },
+        {
+          "file": "src/services/FirewallRuleset.ts",
+          "line": 15,
+          "method": "GET",
+          "path": "/zones/{}/rulesets/phases/{}/entrypoint"
+        },
+        {
+          "file": "src/services/FirewallRuleset.ts",
+          "line": 17,
+          "method": "POST",
+          "path": "/zones/{}/rulesets"
+        },
+        {
+          "file": "src/services/FirewallRuleset.ts",
+          "line": 37,
+          "method": "PUT",
+          "path": "/zones/{}/rulesets/phases/{}/entrypoint"
+        },
+        {
+          "file": "src/services/TurnstileComponent.ts",
+          "line": 26,
+          "method": "POST",
+          "path": "/accounts/{}/challenges/widgets"
+        },
+        {
+          "file": "src/services/TurnstileComponent.ts",
+          "line": 42,
+          "method": "PUT",
+          "path": "/accounts/{}/challenges/widgets/{}"
+        },
+        {
+          "file": "src/services/TurnstileComponent.ts",
+          "line": 55,
+          "method": "DELETE",
+          "path": "/accounts/{}/challenges/widgets/{}"
+        },
+        {
+          "file": "src/zeroTrust/ZeroTrustConnectivitySettings.ts",
+          "line": 20,
+          "method": "PATCH",
+          "path": "/accounts/{}/zerotrust/connectivity_settings"
+        },
+        {
+          "file": "src/zeroTrust/ZeroTrustDeviceSettings.ts",
+          "line": 38,
+          "method": "PUT",
+          "path": "/accounts/{}/devices/settings"
+        },
+        {
+          "file": "src/zeroTrust/ZeroTrustGatewayCertificateActivation.ts",
+          "line": 25,
+          "method": "GET",
+          "path": "/accounts/{}/gateway/certificates/{}"
+        },
+        {
+          "file": "src/zeroTrust/ZeroTrustGatewayCertificateActivation.ts",
+          "line": 30,
+          "method": "POST",
+          "path": "/accounts/{}/gateway/certificates/{}/activate"
+        },
+        {
+          "file": "src/zeroTrust/ZeroTrustPoliciesImport.ts",
+          "line": 32,
+          "method": "GET",
+          "path": "/accounts/{}/gateway/rules"
+        },
+        {
+          "file": "src/zeroTrust/ZeroTrustPoliciesImport.ts",
+          "line": 42,
+          "method": "PUT",
+          "path": "/accounts/{}/gateway/rules/{}"
+        },
+        {
+          "file": "src/zeroTrust/ZeroTrustPoliciesImport.ts",
+          "line": 52,
+          "method": "POST",
+          "path": "/accounts/{}/gateway/rules"
+        },
+        {
+          "file": "src/zeroTrust/ZeroTrustPoliciesImport.ts",
+          "line": 80,
+          "method": "DELETE",
+          "path": "/accounts/{}/gateway/rules/{}"
+        }
+      ],
+      "note": "Two helpers send requests to a base read from CLOUDFLARE_API_BASE_URL with https://api.cloudflare.com/client/v4 as the default; they are labelled with runtime method and path."
+    }
+  ]
+}

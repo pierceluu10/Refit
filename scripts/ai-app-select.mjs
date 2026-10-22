@@ -43,6 +43,32 @@ const PROVIDERS = {
     count: 50,
     importQuery: `"from '@anthropic-ai/sdk'" language:TypeScript`,
   },
+  // AI wrapper SDKs (FP3, docs/MODEL-WRAPPERS.md): one list each, merged into one frozen sample.
+  'ai-sdk-openai': {
+    sdk: '@ai-sdk/openai',
+    count: 15,
+    importQuery: `"from '@ai-sdk/openai'" language:TypeScript`,
+  },
+  'ai-sdk-anthropic': {
+    sdk: '@ai-sdk/anthropic',
+    count: 12,
+    importQuery: `"from '@ai-sdk/anthropic'" language:TypeScript`,
+  },
+  'langchain-openai': {
+    sdk: '@langchain/openai',
+    count: 15,
+    importQuery: `"from '@langchain/openai'" language:TypeScript`,
+  },
+  'langchain-anthropic': {
+    sdk: '@langchain/anthropic',
+    count: 8,
+    importQuery: `"from '@langchain/anthropic'" language:TypeScript`,
+  },
+  llamaindex: {
+    sdk: 'llamaindex',
+    count: 10,
+    importQuery: `"from 'llamaindex'" language:TypeScript`,
+  },
 };
 // The frozen commit must be on or after this date, so the set reflects current code.
 const CUTOFF = '2025-10-21';
@@ -66,7 +92,7 @@ const { values } = parseArgs({
 const provider = PROVIDERS[values.provider ?? ''];
 if (values.help || !provider || !values.output || !values.work || !values.root) {
   console.log(
-    'Usage: node scripts/ai-app-select.mjs --provider openai|anthropic --output <frozen.json> --work <dir> --root <dir> [--count N] [--pages 10]',
+    'Usage: node scripts/ai-app-select.mjs --provider openai|anthropic|ai-sdk-openai|ai-sdk-anthropic|langchain-openai|langchain-anthropic|llamaindex --output <frozen.json> --work <dir> --root <dir> [--count N] [--pages 10]',
   );
   process.exit(values.help ? 0 : 1);
 }

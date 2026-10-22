@@ -17,7 +17,7 @@ const IMPORTS: Record<string, RegExp> = {
 // concrete replacement for an entry, and the request parameters that replacement may reject.
 export interface ModelRules {
   replacement: (entry: DeadlineEntry, models: Map<string, DeadlineEntry>) => string | null;
-  sensitive: (provider: string, to: string) => Set<string>;
+  sensitive: (provider: string, to: string) => ReadonlySet<string>;
 }
 
 // Python requests that send a retiring model, as stops with the TypeScript rule's reasons, and
