@@ -266,7 +266,7 @@ async function uses(files: Record<string, string>) {
   const scan = await scanDeadlines(await repository(files), classifying, NOW);
   const result: Record<string, string> = {};
   for (const exposure of [...scan.exposures, ...scan.mentions])
-    for (const item of [...exposure.evidence, ...exposure.nonLive, ...(exposure.outside ?? [])])
+    for (const item of [...exposure.evidence, ...exposure.nonLive])
       result[`${item.file}:${item.line} ${item.version}`] = item.use;
   return { scan, result };
 }
@@ -598,7 +598,7 @@ it('matches and classifies Anthropic model IDs like OpenAI ones', async () => {
   );
   const result: Record<string, string> = {};
   for (const exposure of [...scan.exposures, ...scan.mentions])
-    for (const item of [...exposure.evidence, ...exposure.nonLive, ...(exposure.outside ?? [])])
+    for (const item of [...exposure.evidence, ...exposure.nonLive])
       result[`${item.file}:${item.line} ${item.version}`] = item.use;
   expect(result).toEqual({
     'src/claude.ts:2 claude-sonnet-4-5': 'live',
@@ -656,7 +656,7 @@ it('classifies platform records and membership collections as catalog', async ()
   );
   const result: Record<string, string> = {};
   for (const exposure of [...scan.exposures, ...scan.mentions])
-    for (const item of [...exposure.evidence, ...exposure.nonLive, ...(exposure.outside ?? [])])
+    for (const item of [...exposure.evidence, ...exposure.nonLive])
       result[`${item.file}:${item.line} ${item.version}`] = item.use;
   expect(result).toEqual({
     'src/configs.ts:2 claude-sonnet-4-5-20250929': 'catalog',
@@ -705,7 +705,7 @@ async function geminiUses(files: Record<string, unknown>) {
   const scan = await scanDeadlines(await repository(files), gemini, NOW);
   const result: Record<string, string> = {};
   for (const exposure of [...scan.exposures, ...scan.mentions])
-    for (const item of [...exposure.evidence, ...exposure.nonLive, ...(exposure.outside ?? [])])
+    for (const item of [...exposure.evidence, ...exposure.nonLive])
       result[`${item.file}:${item.line} ${item.version}`] = `${item.kind} ${item.use}`;
   return { scan, result };
 }

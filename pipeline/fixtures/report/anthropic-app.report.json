@@ -99,6 +99,7 @@
   ],
   "mentions": [],
   "outside": [],
+  "ignoredPaths": [],
   "models": [
     {
       "model": "claude-sonnet-4-5",

@@ -101,14 +101,18 @@ The terminal output lists live evidence first, then one collapsed `Not live` lin
 - The benchmark script's results add `nonLive` (counts by use), `nonLiveTotal` and `mentionedOnly`, and keep the 2026-10-20 keys.
 - Every evidence item has a `use`.
 - A top-level `mentions` array lists deadlines with no live match, in the same shape with an empty `evidence`.
-- Each exposure and mention has `outside` and `outsideMore`: matches outside application code, [not counted](#matches-outside-application-code-not-counted).
+- A match on a docs, example, test-fixture or build-output path still counts, with its reason in `excluded` ([labelled](#matches-outside-application-code-counted-and-labelled)). Each exposure and mention has `ignoredPaths` and `ignoredPathsMore`: matches on paths the repository opts out, each with its `ignoreReason`, not counted.
 - Each exposure has `ignored` (the [ignore entries](#accept-an-exposure-for-a-while) that accept it, or `null`) and `ignoreNote` (why an ignore for that deadline did not apply, or `null`).
 - A top-level `ignores` object names the ignore file read and lists `expired` and `unknown` entries.
 - With `--fail-within`, a top-level `check` holds `failWithin`, `status` (`pass` or `fail`), `failing` and `ignored` deadline IDs.
 
-### Matches outside application code (not counted)
+### Matches outside application code (counted and labelled)
 
-Owner decision, 2026-10-22: a match in docs, examples, test fixtures or build output is not an exposure. It never fails `--fail-within`, never opens or updates an alert and never reaches the model-fix lists. It is still listed, so nothing is hidden: `refit deadlines` prints it under each deadline as **Also found outside application code (not counted)**, with the path, the reason and the matched line, and `--json` gives it as `outside` (plus `outsideMore` past the 20-item cap) on each exposure and mention. A deadline matched only there moves to "Named only outside live code". `refit report` lists the same matches in its own section.
+Owner decision 22, confirmed by Furqan on 2026-10-22: a match in docs, examples, test fixtures or build output counts like any other. These paths are often deployed: embedbase's `docs/` is a Next.js site whose `docs/pages/api/qa.ts` calls OpenAI live. So such a match fails `--fail-within`, opens and updates alerts and reaches the model-fix lists. It is labelled, so you can see why it is there: `refit deadlines` adds `(counted; outside application code: docs-site)` to its evidence line, `--json` gives the reason in each evidence item's `excluded`, and `refit report` lists it under **Counted, outside application code**.
+
+```text
+  docs/pages/api/chat.ts:4  return openai.chat.completions.create({ model: 'gpt-4', messages: [] });  (counted; outside application code: docs-site)
+```
 
 A path is outside application code when one of its directories (matched as a whole segment) or its file name is:
 
@@ -119,19 +123,25 @@ A path is outside application code when one of its directories (matched as a who
 | `test-fixture` | `fixture(s)/`, `__fixtures__/`, `__mocks__/`, `testdata/`, `test-data/`, `mocks/` | Test data and mocks |
 | `build-output` | `out/`, `.next/`, `.nuxt/`, `.output/`, `.svelte-kit/`, `coverage/`, `.turbo/`, `dist/`, `build/`, and `*.min.js`, `*.bundle.js` files | Generated from the source, which is scanned itself |
 
-- **Still counted:** `vendor/`, `vendors/`, `vendored/` and `third_party/` code ships with the application, so it stays an exposure (with its `vendored` reason shown).
-- **Tests:** test files (`*.test.*`, `test/`, `__tests__/`, ...) are unchanged and stay under `Not live` as `test`. A match in `examples/` or `fixtures/`, which are also test paths, is listed outside application code instead, with use `test`.
-- **Never read:** the repository reader skips `dist/`, `build/`, `coverage/`, `.next/` and `node_modules/` before any matcher runs (`pipeline/repository.ts`), so matches there are neither counted nor listed. The other build-output paths above are read and listed.
+- **Vendored code:** `vendor/`, `vendors/`, `vendored/` and `third_party/` code ships with the application; it counts and keeps its `vendored` reason, without the "outside application code" label.
+- **Tests:** test files (`*.test.*`, `test/`, `__tests__/`, ...) and `examples/` and `fixtures/`, which are also test paths, stay under `Not live` as `test`, as before workspace attribution. Their evidence keeps its `excluded` reason.
+- **Never read:** the repository reader skips `dist/`, `build/`, `coverage/`, `.next/` and `node_modules/` before any matcher runs (`pipeline/repository.ts`), so matches there are neither counted nor listed. The other build-output paths above are read.
 
-The rules live in `pipeline/workspace-attribution.ts` (`EXCLUSIONS`, `UNCOUNTED_EXCLUSIONS`), and [WORKSPACE-ATTRIBUTION.md](WORKSPACE-ATTRIBUTION.md) has the measurement.
+The rules live in `pipeline/workspace-attribution.ts` (`EXCLUSIONS`, `OUTSIDE_APPLICATION_CODE`), and [WORKSPACE-ATTRIBUTION.md](WORKSPACE-ATTRIBUTION.md) has the measurement.
 
-**Declaring a path as application code.** Some of these directories are deployed: a `website/` that serves API routes, an `apps/demo` that is a product. Commit `.refit-application-paths.json` at the repository root to say so:
+**Opting paths out.** If a path really is never deployed, such as a static marketing site with no keys, commit `.refit-ignore-paths.json` at the repository root. Each entry is a path glob and a required reason:
 
 ```json
-{ "formatVersion": 1, "paths": ["website", "apps/demo"] }
+{
+  "formatVersion": 1,
+  "paths": [
+    { "path": "website", "reason": "static marketing site, no API keys" },
+    { "path": "apps/*/demo/**", "reason": "demos run against a mock server" }
+  ]
+}
 ```
 
-Each entry is a directory relative to the root, with no globs, `.` or `..` (at most 100). Inside those directories no exclusion applies, so matches count as exposures again and `refit agents` shows no exclusion reason. A file that is present but malformed stops the scan with an error naming it; it is never ignored. Without the file, the rules above apply.
+A glob matches a file or any directory above it (Node's `path.matchesGlob`), relative to the root, with no leading `/`, `.` or `..` (at most 100 entries; a reason is at most 500 characters). Ignored matches are not counted, but they are still listed: `refit deadlines` prints them under **Ignored by repository config (.refit-ignore-paths.json, not counted)** with the reason, `--json` puts them in `ignoredPaths`, and `refit report` lists them too. A deadline matched only on ignored paths becomes a mention. A file that is present but malformed (not JSON, an unknown key, a missing or empty reason, a parent or absolute path, too many entries, a symlink or over 2 MiB) stops the scan with an error naming it; it is never skipped. Without the file, every match counts.
 
 ## Fail a CI build before a deadline
 

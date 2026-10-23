@@ -79,10 +79,10 @@ export interface InventoryModelCall {
 
 // Stored inventories keep where a deadline matched, never the matched source line.
 export type InventoryEvidence = Omit<DeadlineEvidence, 'text'>;
-export type InventoryExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive' | 'outside'> & {
+export type InventoryExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive' | 'ignoredPaths'> & {
   evidence: InventoryEvidence[];
   nonLive: InventoryEvidence[];
-  outside?: InventoryEvidence[];
+  ignoredPaths?: InventoryEvidence[];
 };
 
 export interface Inventory {
@@ -176,7 +176,7 @@ function inventoryExposure(exposure: DeadlineExposure): InventoryExposure {
     ...exposure,
     evidence: withoutSource(exposure.evidence),
     nonLive: withoutSource(exposure.nonLive),
-    ...(exposure.outside ? { outside: withoutSource(exposure.outside) } : {}),
+    ...(exposure.ignoredPaths ? { ignoredPaths: withoutSource(exposure.ignoredPaths) } : {}),
   };
 }
 

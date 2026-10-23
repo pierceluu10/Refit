@@ -43,7 +43,7 @@ async function shipped(files: Record<string, unknown>) {
     scan,
     lines: [...scan.exposures, ...scan.mentions]
       .flatMap((exposure) =>
-        [...exposure.evidence, ...exposure.nonLive, ...(exposure.outside ?? [])].map(
+        [...exposure.evidence, ...exposure.nonLive].map(
           (item) => `${exposure.deadline.id} ${item.file}:${item.line} ${item.use}`,
         ),
       )

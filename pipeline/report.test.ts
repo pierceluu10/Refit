@@ -317,21 +317,42 @@ it('prints the report of a local repository from the command line', async () => 
   });
 });
 
-it('lists matches outside application code apart, as not counted', async () => {
-  const { report } = await fixture('nothing-found');
-  const markdown = renderReport({
-    ...report,
-    outside: [
-      {
-        id: 'openai-2026-07-14-gpt-4-5-preview',
-        file: 'examples/chat.ts',
-        line: 3,
-        version: 'gpt-4.5-preview',
-        reason: 'example',
+it('labels counted matches outside application code and lists ignored paths apart', async () => {
+  const { inventory, build } = await fixture('openai-near-shutdown');
+  const [first, ...rest] = inventory.deadlines.exposures;
+  const [match] = first.evidence;
+  const { report } = {
+    report: build({
+      ...inventory,
+      deadlines: {
+        ...inventory.deadlines,
+        exposures: [
+          {
+            ...first,
+            evidence: [{ ...match, file: 'docs/pages/api/qa.ts', excluded: 'docs-site' }],
+            ignoredPaths: [
+              { ...match, file: 'website/chat.ts', ignoreReason: 'static marketing site' },
+            ],
+          },
+          ...rest,
+        ],
       },
-    ],
-  });
+    }),
+  };
+  const item = { id: first.deadline.id, line: match.line, version: match.version };
+  // The labelled match still counts: its deadline keeps the evidence.
+  expect(report.deadlines.find((entry) => entry.id === first.deadline.id)!.evidence).toEqual([
+    { file: 'docs/pages/api/qa.ts', line: match.line },
+  ]);
+  expect(report.outside).toEqual([{ ...item, file: 'docs/pages/api/qa.ts', reason: 'docs-site' }]);
+  expect(report.ignoredPaths).toEqual([
+    { ...item, file: 'website/chat.ts', reason: 'static marketing site' },
+  ]);
+  const markdown = renderReport(report);
   expect(markdown).toContain(
-    'Also found outside application code (not counted):\n\n- `examples/chat.ts:3` (example): `gpt-4.5-preview` for `openai-2026-07-14-gpt-4-5-preview`',
+    `Counted, outside application code (docs / example / test fixture / build output). These paths are often deployed, so they count:\n\n- \`docs/pages/api/qa.ts:${match.line}\` (docs-site): \`${match.version}\` for \`${first.deadline.id}\``,
+  );
+  expect(markdown).toContain(
+    `Ignored by repository config (\`.refit-ignore-paths.json\`, not counted):\n\n- \`website/chat.ts:${match.line}\` (static marketing site)`,
   );
 });

@@ -29,9 +29,9 @@ import {
 import { slackMethodUses } from './slack-calls.ts';
 import { TEST_PATH } from './source-paths.ts';
 import {
+  ignoredReason,
   placeFinding,
   readWorkspaceLayout,
-  UNCOUNTED_EXCLUSIONS,
   type FindingPlace,
 } from './workspace-attribution.ts';
 import { isObject, parseObject } from './specifications.ts';
@@ -81,6 +81,8 @@ export interface DeadlineEvidence {
   // The monorepo package the match is in, and why its path is not product code, if it is not.
   workspace?: FindingPlace['workspace'];
   excluded?: FindingPlace['excluded'];
+  // Why the repository's IGNORE_PATHS_FILE opts this path out; set only on `ignoredPaths` matches.
+  ignoreReason?: string;
   // For a model sent through an AI wrapper SDK, the call that sends it (pipeline/model-wrappers.ts).
   via?: string;
 }
@@ -98,24 +100,24 @@ export interface DeadlineExposure {
   // The exact number of non-live matches by use, counted before the limit above. Always set by the
   // scan, and optional only so a hand-built exposure need not repeat it.
   nonLiveCounts?: Partial<Record<DeadlineUse, number>>;
-  // Live matches on a docs, example, test-fixture or build-output path (UNCOUNTED_EXCLUSIONS):
-  // listed with their `excluded` reason, never counted (owner decision, 2026-10-22). Set by the
-  // scan, and optional only so a hand-built exposure need not repeat them.
-  outside?: DeadlineEvidence[];
-  outsideMore?: number;
+  // Matches on paths the repository opts out in IGNORE_PATHS_FILE: listed with their
+  // `ignoreReason`, never counted. Set by the scan, and optional only so a hand-built exposure need
+  // not repeat them.
+  ignoredPaths?: DeadlineEvidence[];
+  ignoredPathsMore?: number;
 }
 
 // An exposure as alerts and reports read it: stored inventories drop each match's source line.
 export type ReportedEvidence = Omit<DeadlineEvidence, 'text'> & { text?: string };
-export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive' | 'outside'> & {
+export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive' | 'ignoredPaths'> & {
   evidence: ReportedEvidence[];
   nonLive: ReportedEvidence[];
-  outside?: ReportedEvidence[];
+  ignoredPaths?: ReportedEvidence[];
 };
 
-// Deadlines found in a repository: exposures have live evidence in application code; mentions are
-// deadlines the repository names only outside it (non-live matches, or live matches on an
-// uncounted path in `outside`), with `evidence` empty.
+// Deadlines found in a repository: exposures have live evidence; mentions are deadlines the
+// repository names only outside live code or on paths it opts out (`ignoredPaths`), with
+// `evidence` empty.
 export interface DeadlineScan {
   exposures: DeadlineExposure[];
   mentions: DeadlineExposure[];
@@ -563,7 +565,7 @@ export async function scanDeadlines(
   );
   const found = new Map<
     string,
-    Required<Pick<DeadlineExposure, 'outside' | 'outsideMore'>> & DeadlineExposure
+    Required<Pick<DeadlineExposure, 'ignoredPaths' | 'ignoredPathsMore'>> & DeadlineExposure
   >();
   const seen = new Set<string>();
   const layout = await readWorkspaceLayout(root);
@@ -583,22 +585,20 @@ export async function scanDeadlines(
       more: 0,
       nonLive: [],
       nonLiveMore: 0,
-      outside: [],
-      outsideMore: 0,
+      ignoredPaths: [],
+      ignoredPathsMore: 0,
     };
     found.set(deadline.id, exposure);
     const key = `${evidence.use === 'live'}\t${evidence.file}\t${evidence.line}\t${version}`;
     if (seen.has(key)) return;
     seen.add(key);
-    // A live or test-path match outside application code is listed with its reason and never
-    // counted (owner decision, 2026-10-22); examples and fixtures are test paths too.
-    if (
-      (evidence.use === 'live' || evidence.use === 'test') &&
-      evidence.excluded &&
-      UNCOUNTED_EXCLUSIONS.has(evidence.excluded)
-    ) {
-      if (exposure.outside.length < MAX_EVIDENCE) exposure.outside.push({ ...evidence, version });
-      else exposure.outsideMore += 1;
+    // The place is a label only: a live match outside application code still counts (owner
+    // decision 22). Only a path the repository opts out is listed apart and not counted.
+    const ignoreReason = ignoredReason(layout, evidence.file);
+    if (ignoreReason) {
+      if (exposure.ignoredPaths.length < MAX_EVIDENCE)
+        exposure.ignoredPaths.push({ ...evidence, version, ignoreReason });
+      else exposure.ignoredPathsMore += 1;
     } else if (evidence.use !== 'live') exposure.nonLive.push({ ...evidence, version });
     else if (exposure.evidence.length < MAX_EVIDENCE)
       exposure.evidence.push({ ...evidence, version });
