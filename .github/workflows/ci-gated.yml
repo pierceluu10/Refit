@@ -1,0 +1,189 @@
+name: Gated suites
+
+# The suites that need Docker, PostgreSQL, oasdiff, real SDK installs or the packed CLI. None of
+# them uses a secret or reaches a paid API. They run on main, nightly and on pull requests labelled
+# full-ci, so the checks every pull request runs in ci.yml stay fast. docs/CI.md explains each job.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  schedule:
+    - cron: '41 6 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-gated-${{ github.ref }}
+  # Cancel superseded pull request runs only, so every push to main and every nightly run finishes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  OASDIFF_VERSION: 1.33.0
+  # Source: https://github.com/oasdiff/oasdiff/releases/download/v1.33.0/checksums.txt, 2026-10-22
+  OASDIFF_SHA256: 43a4e328e2d13ba1552d760aa68d2485c75c5621f309f6ff64ae895188345247
+  # Source: docker buildx imagetools inspect node:22-alpine, 2026-10-22
+  NODE_IMAGE_DIGEST: sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+
+jobs:
+  oasdiff:
+    name: oasdiff suites
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: .github/scripts/install-oasdiff.sh "$OASDIFF_VERSION" "$OASDIFF_SHA256"
+      - name: Run every test file that reads REFIT_OASDIFF
+        env:
+          REFIT_OASDIFF: '1'
+        run: .github/scripts/run-gated.sh REFIT_OASDIFF
+
+  docker:
+    name: Docker suites
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: .github/scripts/install-oasdiff.sh "$OASDIFF_VERSION" "$OASDIFF_SHA256"
+      # Validation runs with --pull never, so the pinned image is pulled and named here.
+      - name: Pull the pinned validation image
+        run: |
+          docker pull "node@$NODE_IMAGE_DIGEST"
+          docker tag "node@$NODE_IMAGE_DIGEST" node:22-alpine
+      - name: Run every test file that reads REFIT_DOCKER_IMAGE or REFIT_NPM_PREPARE
+        env:
+          REFIT_DOCKER_IMAGE: node:22-alpine
+          REFIT_NPM_PREPARE: '1'
+          REFIT_OASDIFF: '1'
+        run: .github/scripts/run-gated.sh REFIT_DOCKER_IMAGE REFIT_NPM_PREPARE
+
+  postgres:
+    name: PostgreSQL suites
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    services:
+      postgres:
+        # Source: docker buildx imagetools inspect postgres:17-alpine, 2026-10-22
+        image: postgres:17-alpine@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
+        env:
+          POSTGRES_USER: refit
+          POSTGRES_PASSWORD: refit-ci-only
+          POSTGRES_DB: refit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U refit"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The hosted end-to-end test also validates in Docker with oasdiff.
+      - run: .github/scripts/install-oasdiff.sh "$OASDIFF_VERSION" "$OASDIFF_SHA256"
+      - name: Pull the pinned validation image
+        run: |
+          docker pull "node@$NODE_IMAGE_DIGEST"
+          docker tag "node@$NODE_IMAGE_DIGEST" node:22-alpine
+      - name: Run every test file that reads REFIT_POSTGRES_URL
+        env:
+          REFIT_POSTGRES_URL: postgres://refit:refit-ci-only@127.0.0.1:5432/refit
+          REFIT_DOCKER_IMAGE: node:22-alpine
+          REFIT_OASDIFF: '1'
+        run: .github/scripts/run-gated.sh REFIT_POSTGRES_URL
+
+  sdk:
+    name: Real SDK suites
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: .github/scripts/install-oasdiff.sh "$OASDIFF_VERSION" "$OASDIFF_SHA256"
+      - name: Pull the pinned validation image
+        run: |
+          docker pull "node@$NODE_IMAGE_DIGEST"
+          docker tag "node@$NODE_IMAGE_DIGEST" node:22-alpine
+      # The SDKs are installed from the npm registry; their HTTP goes only to local simulators.
+      - name: Run every test file that reads REFIT_STRIPE_SDK or REFIT_OPENAI_SDK
+        env:
+          REFIT_STRIPE_SDK: '1'
+          REFIT_OPENAI_SDK: '1'
+          REFIT_DOCKER_IMAGE: node:22-alpine
+          REFIT_NPM_PREPARE: '1'
+          REFIT_OASDIFF: '1'
+        run: .github/scripts/run-gated.sh REFIT_STRIPE_SDK REFIT_OPENAI_SDK
+
+  package:
+    name: Package and smoke install (Node ${{ matrix.node }})
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # Matches package.json engines: ^22.12.0 || >=24.0.0
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Pack the CLI
+        run: npm run package:cli -- --output "$RUNNER_TEMP/package"
+      - name: Install the tarball into a clean directory and run it
+        run: |
+          mkdir "$RUNNER_TEMP/smoke"
+          cd "$RUNNER_TEMP/smoke"
+          npm install --prefix . --ignore-scripts --no-audit --no-fund --omit=dev "$RUNNER_TEMP"/package/refit-*.tgz
+          ./node_modules/.bin/refit --help
+          ./node_modules/.bin/refit doctor --help
+      - name: Run every test file that reads REFIT_PACKAGE_INSTALL
+        env:
+          REFIT_PACKAGE_INSTALL: '1'
+        run: .github/scripts/run-gated.sh REFIT_PACKAGE_INSTALL

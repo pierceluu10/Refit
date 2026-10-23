@@ -53,16 +53,16 @@ The website's packages are declared as `dependencies` in the private root `packa
 
 ## GitHub Actions
 
-Every `uses:` now names a commit with its release as a comment. The tags were dereferenced on 2026-10-22, and both `v4` tags pointed at these same commits:
+Every `uses:` names a commit with its release as a comment, the same pins in every workflow (see [CI pinning](CI.md#pinning)):
 
-- `actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0`
-- `actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0`
+- `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`
+- `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0`
 
-`actionlint` 1.7.12 (Docker, pinned by digest) reports no issues in `ci.yml`, `deadlines-sync.yml` or the new `supply-chain.yml`.
+The audit gate first used the v4.4.0 commits; it moved to these pins when the gated-suite workflow landed, so one set is maintained. `actionlint` was run against the v4.4.0 version of `supply-chain.yml` only.
 
 Other workflow properties:
 - `ci.yml` and `supply-chain.yml` run with `contents: read` only, so fork pull requests get a read-only token.
-- `deadlines-sync.yml` has `contents: write` and `pull-requests: write`, and runs only on a schedule or a manual dispatch.
+- `registry-sync.yml` grants write permissions only to its own job, and runs only on a schedule or a manual dispatch.
 
 ## Container images
 
