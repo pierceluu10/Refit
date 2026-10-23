@@ -113,9 +113,10 @@ const ENDPOINT_OPTIONS = new Set(['base_url', 'azure_endpoint', 'api_base', 'htt
 const MAX_DEPTH = 8;
 const MAX_TEXT = 80;
 
-// Test, fixture and example files, by directory or name, including pytest's conventions.
+// Test, fixture and example files, by directory or name, including pytest's conventions and
+// end-to-end and system test directories (as in TEST_PATH).
 export const PYTHON_TEST_PATH =
-  /(?:^|\/)(?:tests?|testing|specs?|e2e|fixtures?|examples?|samples?|cookbooks?|notebooks?)\/|(?:^|\/)(?:test_[^/]*|[^/]*_test|conftest)\.py$/i;
+  /(?:^|\/)(?:tests?|testing|specs?|e2e|fixtures?|examples?|samples?|cookbooks?|notebooks?|(?:system|integration|acceptance|functional|smoke|e2e)[-_]?tests?|tests?[-_]e2e)\/|(?:^|\/)(?:test_[^/]*|[^/]*_test|conftest)\.py$/i;
 
 type Context = {
   files: Map<string, PythonFile>;

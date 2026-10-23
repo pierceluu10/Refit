@@ -62,9 +62,10 @@ const STRIPE_NOT_RESOURCES = new Set(['client', 'form', 'webhook', 'rawrequest',
 const MAX_DEPTH = 8;
 const MAX_TEXT = 80;
 
-// `_test.go` files and test, example and sample directories.
+// `_test.go` files and test, example and sample directories, including end-to-end and system
+// test directories (as in TEST_PATH).
 export const GO_TEST_PATH =
-  /(?:^|\/)(?:tests?|testing|e2e|fixtures?|examples?|samples?|_examples?)\/|_test\.go$/i;
+  /(?:^|\/)(?:tests?|testing|e2e|fixtures?|examples?|samples?|_examples?|(?:system|integration|acceptance|functional|smoke|e2e)[-_]?tests?|tests?[-_]e2e)\/|_test\.go$/i;
 
 // Generated from the SDKs' published sources by scripts/go-sdks.mjs: the Stripe API version each
 // stripe-go release pins, and the model constants of openai-go and anthropic-sdk-go.
