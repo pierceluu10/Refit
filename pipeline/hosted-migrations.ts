@@ -290,6 +290,13 @@ ALTER TABLE refit_reports
     ON DELETE CASCADE ON UPDATE CASCADE;
 `),
   },
+  {
+    version: 9,
+    name: 'Delivery body hash index',
+    // A known body under a new delivery GUID is refused as a replay; the lookup is by hash.
+    up: (client) =>
+      client.query('CREATE INDEX IF NOT EXISTS refit_deliveries_hash ON refit_deliveries (hash)'),
+  },
 ];
 
 // Reads the applied versions without creating anything. `unknown` lists versions a newer worker

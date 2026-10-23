@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { deadlineNotice, type SlackSend } from './slack.ts';
 import { mkdir, realpath } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -58,12 +58,12 @@ export function validateServiceSecret(value: string | undefined, name: string) {
   return value;
 }
 
+// Both sides are hashed to one length first, so timing reveals neither a wrong token's length nor its bytes.
 export function authorized(request: IncomingMessage, token: string) {
   const header = request.headers.authorization;
   if (typeof header !== 'string' || !header.startsWith('Bearer ')) return false;
-  const supplied = Buffer.from(header.slice('Bearer '.length));
-  const expected = Buffer.from(token);
-  return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+  const supplied = createHash('sha256').update(header.slice('Bearer '.length)).digest();
+  return timingSafeEqual(supplied, createHash('sha256').update(token).digest());
 }
 
 export async function requestBody(request: IncomingMessage, maximumBytes = MAX_BODY_BYTES) {

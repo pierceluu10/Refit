@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import pg from 'pg';
@@ -292,6 +292,19 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
     expect(
       transport.calls.every((call) => !call.args.join(' ').includes('private-read-test-token')),
     ).toBe(true);
+    // No credential reaches the evidence, managed checkouts or receipts the worker keeps on disk.
+    const kept = await readdir(join(sample.root, 'hosted-state'), {
+      withFileTypes: true,
+      recursive: true,
+    });
+    const stored = await Promise.all(
+      kept
+        .filter((entry) => entry.isFile())
+        .map((entry) => readFile(join(entry.parentPath, entry.name))),
+    );
+    expect(stored.length).toBeGreaterThan(0);
+    for (const secret of [WEBHOOK_SECRET, CONTROL_TOKEN, 'private-read-test-token'])
+      expect(stored.some((content) => content.includes(secret))).toBe(false);
 
     const uninstalled = await deliver(url, 'installation', installationPayload('deleted', []));
     expect(uninstalled).toMatchObject({ status: 202, body: { cancelled: [target] } });

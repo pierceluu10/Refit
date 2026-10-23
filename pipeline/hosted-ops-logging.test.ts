@@ -135,7 +135,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
   });
 
   const lines: string[] = [];
-  const { log, notify } = hostedLogging(SECRETS, (line) => lines.push(line));
+  const { log, notify, redact } = hostedLogging(SECRETS, (line) => lines.push(line));
   const directory = await mkdtemp(join(tmpdir(), 'refit-hosted-logging-'));
   cleanups.push(() => rm(directory, { recursive: true, force: true }));
   const controller = new AbortController();
@@ -149,6 +149,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     controlToken: SECRETS.REFIT_SERVICE_TOKEN,
     tenancy: { accounts: ['example'], limits: DEFAULT_TENANCY_LIMITS },
     notify,
+    redact,
     host: '127.0.0.1',
     port: 0,
     intervalSeconds: 30,

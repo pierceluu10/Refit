@@ -229,7 +229,7 @@ it.skipIf(!DATABASE)(
     const dryRun = await refit(['hosted', 'migrate', '--dry-run'], url);
     console.log(dryRun);
     expect(dryRun).toBe(
-      'Applied: none\nPending: 1 Initial hosted tables\nPending: 2 Operator retry flag on jobs\nPending: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nPending: 4 Approval issues and commands\nPending: 5 Repository inventories\nPending: 6 Deadline monitoring and alerts\nPending: 7 Report issues\nPending: 8 Installation event order and rename cascades\n',
+      'Applied: none\nPending: 1 Initial hosted tables\nPending: 2 Operator retry flag on jobs\nPending: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nPending: 4 Approval issues and commands\nPending: 5 Repository inventories\nPending: 6 Deadline monitoring and alerts\nPending: 7 Report issues\nPending: 8 Installation event order and rename cascades\nPending: 9 Delivery body hash index\n',
     );
     const created = await pool.query(
       `SELECT count(*)::int AS count FROM pg_class
@@ -238,18 +238,18 @@ it.skipIf(!DATABASE)(
     expect(created.rows[0].count).toBe(0);
 
     expect(await refit(['hosted', 'migrate'], url)).toBe(
-      'Applied: 1 Initial hosted tables\nApplied: 2 Operator retry flag on jobs\nApplied: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nApplied: 4 Approval issues and commands\nApplied: 5 Repository inventories\nApplied: 6 Deadline monitoring and alerts\nApplied: 7 Report issues\nApplied: 8 Installation event order and rename cascades\n',
+      'Applied: 1 Initial hosted tables\nApplied: 2 Operator retry flag on jobs\nApplied: 3 Allowed accounts, claim fairness, daily usage and AI ledgers\nApplied: 4 Approval issues and commands\nApplied: 5 Repository inventories\nApplied: 6 Deadline monitoring and alerts\nApplied: 7 Report issues\nApplied: 8 Installation event order and rename cascades\nApplied: 9 Delivery body hash index\n',
     );
     expect(await refit(['hosted', 'migrate'], url)).toBe('No pending migrations.\n');
     await pool.query(
-      `INSERT INTO refit_schema_migrations (version, name) VALUES (9, 'From a newer worker')`,
+      `INSERT INTO refit_schema_migrations (version, name) VALUES (10, 'From a newer worker')`,
     );
     expect(await refit(['hosted', 'migrate', '--dry-run'], url)).toBe(
-      'Applied: 1, 2, 3, 4, 5, 6, 7, 8, 9\nApplied by a newer worker: 9 From a newer worker\nNo pending migrations.\n',
+      'Applied: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10\nApplied by a newer worker: 10 From a newer worker\nNo pending migrations.\n',
     );
     const { unknown, pending } = await hostedSchemaStatus(pool);
     expect({ unknown: unknown.map((migration) => migration.version), pending }).toEqual({
-      unknown: [9],
+      unknown: [10],
       pending: [],
     });
   },
