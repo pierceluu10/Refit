@@ -50,7 +50,7 @@ The agent is not Claude. The local Claude CLI login was invalid, so the run used
 
   These went past four of Refit's stops: two type-check regressions (`Kanba-co/kanba`, `iggy-tech/product-hunt-clone-final`), one unresolved `shipping_details` finding (`abressiddique/AbresStore-Admin`) and one validation error (`utsavkrishnatra/pdf_answers`). Deterministic rules for those cases would have produced the same edits without the parameter risk.
 - **The environment limits both approaches equally.** 25 of 40 never reached validation because the repository's dependencies cannot be prepared offline (pnpm settings, private registries, size). A model does not change that.
-- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 39 s. Refit's AI spend across all 531 repositories was $0.07.
+- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 37 s. Refit's AI spend across all 531 repositories was $0.07.
 - **Caveats.**
   - The brief gave the contract diff but not the owner's card policy. An agent told the policy might replace the parameter instead of deleting it.
   - Codex could run shell commands offline; dependencies were not installed for it.
@@ -238,14 +238,14 @@ The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 reposit
 |---|---|---|
 | Live exposure to a registry deadline | 62 (31%) | 65 (17%) |
 | Past due | 22 | 9 |
-| Due within 7 days | 29 (Shopify `2025-10`, due today) | 51 (OpenAI 2026-10-23 retirements) |
+| Due within 7 days | 34: 29 on Shopify `2025-10` (due today) and 5 more on OpenAI 2026-10-23 retirements (6 in all) | 51 (OpenAI 2026-10-23 retirements) |
 | Most common | `shopify-admin-2025-10` (29), `-2025-07` (15) | `gpt-3.5-turbo` (35), `gpt-4` (15) |
 
 These counts are a lower bound for Shopify: the registry starts at `2025-04`, and many apps pin older versions.
 
 ## Meta Graph API requests (October 20)
 
-`refit meta-graph` was run over the 33 Meta repositories of the deadline benchmark, and each of the 162 requests it reports in live code was read in context ([labels](benchmarks/2026-10-20-meta-graph-call-labels.json), [results](benchmarks/2026-10-20-meta-graph-call-results.json)). All 162 are real Graph API requests or endpoints, and no reported version, path, edge, field, metric or method disagrees with the code. The version was read for 157 (the other 5 are unversioned), the path and edge for 158, and `fields` for 113. A request was found at 62 of the 63 live Graph pins labelled in the deadline benchmark; the miss is a browser `FB.init`. Labels are one reviewer's single pass. See [Meta Graph API](META-GRAPH.md#measured-on-the-deadline-benchmark).
+`refit meta-graph` was run over the 33 Meta repositories of the deadline benchmark, and each of the 162 requests it reports in live code was read in context ([labels](benchmarks/2026-10-20-meta-graph-call-labels.json), [results](benchmarks/2026-10-20-meta-graph-call-results.json)). All 162 are real Graph API requests or endpoints, and no reported version, path, edge, field, metric or method disagrees with the code. The version was read for 157 (the other 5 are unversioned), the path for 158, the edge for 116, and `fields` for 113. A request was found at 62 of the 63 live Graph pins labelled in the deadline benchmark; the miss is a browser `FB.init`. Labels are one reviewer's single pass. See [Meta Graph API](META-GRAPH.md#measured-on-the-deadline-benchmark).
 
 Review-only version moves to v25.0 on the same 33 repositories ([results](benchmarks/2026-10-20-meta-graph-move-results.json)): 0 proposed with the committed change list, because every changelog is unread; in a hypothetical run with every changelog marked reviewed and empty, 100 of the 131 live pins would move, each a one-line edit of the version text only.
 
@@ -275,12 +275,13 @@ Only 74 of the 505 live matches sit in a file that imports either Gemini SDK; li
 
 ## PayPal requests (October 21)
 
-`refit paypal` (review only) was run over a frozen set of **22** repositories from a pinned worktree at `1ec93a8` ([list](benchmarks/2026-10-21-paypal-repos.json), [results](benchmarks/2026-10-21-paypal-results.json)). Each repository's npm package declares `@paypal/checkout-server-sdk` or `@paypal/paypal-server-sdk`. npm search found only 22 such repositories, not the 50 the goal asks for, and **the set is libraries and plugins, not applications.**
+`refit paypal` (review only) was run over the **22** repositories the frozen set then held, from a pinned worktree at `1ec93a8` ([list](benchmarks/2026-10-21-paypal-repos.json), [results](benchmarks/2026-10-21-paypal-results.json)). Each repository's npm package declares `@paypal/checkout-server-sdk` or `@paypal/paypal-server-sdk`. npm search found only 22 such repositories, not the 50 the goal asks for, and **those 22 are libraries and plugins, not applications.**
 
 - **Scan.** 17 were scanned and 5 exceeded the scan limits. 11 scanned repositories make a live PayPal request.
 - **Requests.** 90 were reported: 82 `@paypal/paypal-server-sdk` controller calls and 8 raw REST calls. On hand review against each source line, all 90 are real requests with the right method and path. 83 match an operation in PayPal's published OpenAPI documents.
 - **Tracing.** A text heuristic counted 116 lines that look like SDK calls; 82 were traced. Of the 34 left, 15 are in the over-limit repositories, 9 are a plugin's own wrapper with SDK-like method names, and 10 are real misses through a controller getter in another file. That is 82 of 92 real call lines in scanned repositories (89%).
 - **Old SDK.** No `@paypal/checkout-server-sdk` request was in a scanned repository. Scanning only the PayPal package directory of the 3 over-limit repositories traced all 15 of their call lines, 12 of them old-SDK requests ([supplement](benchmarks/2026-10-21-paypal-subdirectory-results.json)). These are not counted above.
+- **Extended set (October 22).** GitHub code search added 20 repositories, mostly applications, so the list now holds 42. A second pass over all 42 at `662bc90` ([results](benchmarks/2026-10-22-paypal-results.json)) scanned 36; 6 exceeded the scan limits. 23 make a live PayPal request, with 135 live requests: 89 `@paypal/paypal-server-sdk` controller calls, 41 raw REST calls and 5 `@paypal/checkout-server-sdk` requests. 114 match a published operation. The 20 added repositories were hand-labelled before the run ([labels](benchmarks/2026-10-22-paypal-labels.json)): 56 requests in 15 of them. The scan reported 43 live requests there and matched 42 labels (recall 75%); the one unmatched report is a base URL constant. The 22 first repositories are not labelled. See [PayPal progress](PAYPAL-PROGRESS.md#benchmark).
 
 See [PayPal](PAYPAL.md#measured-on-a-frozen-set).
 

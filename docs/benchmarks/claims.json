@@ -1148,7 +1148,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 39 s. Refit's AI spend across all 531 repositories was $0.07.",
+      "quote": "- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 37 s. Refit's AI spend across all 531 repositories was $0.07.",
       "values": [
         {
           "says": "$6.45",
@@ -1196,7 +1196,7 @@
           }
         },
         {
-          "says": "39",
+          "says": "37",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-agent-comparison-results.json"
@@ -4698,10 +4698,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| Due within 7 days | 29 (Shopify `2025-10`, due today) | 51 (OpenAI 2026-10-23 retirements) |",
+      "quote": "| Due within 7 days | 34: 29 on Shopify `2025-10` (due today) and 5 more on OpenAI 2026-10-23 retirements (6 in all) | 51 (OpenAI 2026-10-23 retirements) |",
       "values": [
         {
-          "says": "29",
+          "says": "34",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-16-deadline-fresh-results.json"
@@ -4718,6 +4718,77 @@
                   {
                     "field": "days",
                     "lte": 7
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "29",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-deadline-fresh-results.json"
+            ],
+            "rows": "/sets/shopify-fresh",
+            "where": [
+              {
+                "field": "exposures",
+                "some": [
+                  {
+                    "field": "id",
+                    "equals": "shopify-admin-2025-10"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-deadline-fresh-results.json"
+            ],
+            "rows": "/sets/shopify-fresh",
+            "where": [
+              {
+                "field": "exposures",
+                "some": [
+                  {
+                    "field": "id",
+                    "matches": "^openai-2026-10-23-"
+                  }
+                ]
+              },
+              {
+                "not": {
+                  "field": "exposures",
+                  "some": [
+                    {
+                      "field": "id",
+                      "equals": "shopify-admin-2025-10"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-deadline-fresh-results.json"
+            ],
+            "rows": "/sets/shopify-fresh",
+            "where": [
+              {
+                "field": "exposures",
+                "some": [
+                  {
+                    "field": "id",
+                    "matches": "^openai-2026-10-23-"
                   }
                 ]
               }
@@ -4901,7 +4972,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "The version was read for 157 (the other 5 are unversioned), the path and edge for 158, and `fields` for 113.",
+      "quote": "The version was read for 157 (the other 5 are unversioned), the path for 158, the edge for 116, and `fields` for 113.",
       "values": [
         {
           "says": "157",
@@ -4959,14 +5030,29 @@
               {
                 "field": "path",
                 "exists": true
+              }
+            ]
+          }
+        },
+        {
+          "says": "116",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-meta-graph-call-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
               },
               {
                 "field": "edge",
                 "exists": true
               }
             ]
-          },
-          "note": "Path alone is known for 158 live calls; path and edge together for fewer."
+          }
         },
         {
           "says": "113",
@@ -5444,15 +5530,15 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "`refit paypal` (review only) was run over a frozen set of **22** repositories from a pinned worktree at `1ec93a8` ([list](benchmarks/2026-10-21-paypal-repos.json), [results](benchmarks/2026-10-21-paypal-results.json)).",
+      "quote": "`refit paypal` (review only) was run over the **22** repositories the frozen set then held, from a pinned worktree at `1ec93a8` ([list](benchmarks/2026-10-21-paypal-repos.json), [results](benchmarks/2026-10-21-paypal-results.json)).",
       "values": [
         {
           "says": "22",
           "query": {
             "results": [
-              "docs/benchmarks/2026-10-21-paypal-repos.json"
+              "docs/benchmarks/2026-10-21-paypal-results.json"
             ],
-            "rows": "/repos",
+            "rows": "/results",
             "where": []
           }
         }
@@ -5460,7 +5546,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "npm search found only 22 such repositories, not the 50 the goal asks for, and **the set is libraries and plugins, not applications.**",
+      "quote": "npm search found only 22 such repositories, not the 50 the goal asks for, and **those 22 are libraries and plugins, not applications.**",
       "values": [
         {
           "says": "22",
@@ -5469,7 +5555,12 @@
               "docs/benchmarks/2026-10-21-paypal-repos.json"
             ],
             "rows": "/repos",
-            "where": []
+            "where": [
+              {
+                "field": "source",
+                "exists": false
+              }
+            ]
           }
         }
       ],
@@ -5477,6 +5568,10 @@
         {
           "token": "50",
           "reason": "The goal's target size, not a measurement."
+        },
+        {
+          "token": "22",
+          "reason": "Names the 22 just counted, not a second measurement."
         }
       ]
     },
@@ -5661,6 +5756,284 @@
               }
             ],
             "flatten": "calls"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Extended set (October 22).** GitHub code search added 20 repositories, mostly applications, so the list now holds 42. A second pass over all 42 at `662bc90` ([results](benchmarks/2026-10-22-paypal-results.json)) scanned 36; 6 exceeded the scan limits. 23 make a live PayPal request, with 135 live requests: 89 `@paypal/paypal-server-sdk` controller calls, 41 raw REST calls and 5 `@paypal/checkout-server-sdk` requests. 114 match a published operation. The 20 added repositories were hand-labelled before the run ([labels](benchmarks/2026-10-22-paypal-labels.json)): 56 requests in 15 of them. The scan reported 43 live requests there and matched 42 labels (recall 75%); the one unmatched report is a base URL constant. The 22 first repositories are not labelled. See [PayPal progress](PAYPAL-PROGRESS.md#benchmark).",
+      "values": [
+        {
+          "says": "20",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "source",
+                "equals": "code-search"
+              }
+            ]
+          }
+        },
+        {
+          "says": "42",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "42",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": []
+          }
+        },
+        {
+          "says": "36",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "status",
+                "equals": "scanned"
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "status",
+                "equals": "not-scanned"
+              }
+            ]
+          }
+        },
+        {
+          "says": "23",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "calls",
+                "some": [
+                  {
+                    "field": "use",
+                    "equals": "live"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "135",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              }
+            ],
+            "flatten": "calls"
+          }
+        },
+        {
+          "says": "89",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              },
+              {
+                "field": "kind",
+                "equals": "server-sdk"
+              }
+            ]
+          }
+        },
+        {
+          "says": "41",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              },
+              {
+                "field": "kind",
+                "equals": "url"
+              }
+            ]
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              },
+              {
+                "field": "kind",
+                "equals": "checkout-sdk"
+              }
+            ]
+          }
+        },
+        {
+          "says": "114",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              },
+              {
+                "field": "operation",
+                "exists": true
+              }
+            ]
+          }
+        },
+        {
+          "says": "20",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-labels.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "56",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-labels.json"
+            ],
+            "rows": "/repos",
+            "where": [],
+            "flatten": "requests"
+          }
+        },
+        {
+          "says": "15",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-labels.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "requests",
+                "nonEmpty": true
+              }
+            ]
+          }
+        },
+        {
+          "says": "43",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "within": [
+              {
+                "field": "status",
+                "equals": "scanned"
+              },
+              {
+                "field": "repo",
+                "inQuery": {
+                  "results": [
+                    "docs/benchmarks/2026-10-22-paypal-labels.json"
+                  ],
+                  "rows": "/repos",
+                  "field": "repo"
+                }
+              }
+            ],
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              }
+            ]
+          }
+        },
+        {
+          "says": "42",
+          "notCheckable": "Matching reports to labels in the same file within 4 lines, one to one, is done by scripts/paypal-score.mjs, not a claims query; `node scripts/paypal-score.mjs docs/benchmarks/2026-10-22-paypal-results.json` recomputes it from these committed files (42 matched of 56, 43 reported)."
+        },
+        {
+          "says": "75%",
+          "notCheckable": "Matching reports to labels in the same file within 4 lines, one to one, is done by scripts/paypal-score.mjs, not a claims query; `node scripts/paypal-score.mjs docs/benchmarks/2026-10-22-paypal-results.json` recomputes it from these committed files (42 matched of 56, 43 reported)."
+        },
+        {
+          "says": "22",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "source",
+                "exists": false
+              }
+            ]
           }
         }
       ]
@@ -10823,7 +11196,7 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
-      "quote": "| 3 | Deadline entries with `source` and `checkedAt` | Yes | Yes, kept current by `refit deadlines --sync anthropic` |",
+      "quote": "| 3 | Deadline entries with `source` and `checkedAt` | Yes, kept current by `refit deadlines --sync openai` | Yes, kept current by `refit deadlines --sync anthropic` |",
       "values": [],
       "ignore": [
         {
@@ -11806,7 +12179,7 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
-      "quote": "| 3 | Deadline entries with `source` and `checkedAt` | Partly: the old SDK's end of support only; model dates wait for Google's page to be read. Not counted |",
+      "quote": "| 3 | Deadline entries with `source` and `checkedAt` | Partly: the old SDK's end of support; model dates are read by `refit deadlines --sync gemini` and enter with the registry-sync pull request. Not counted |",
       "values": [],
       "ignore": [
         {
@@ -11934,6 +12307,39 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
+      "quote": "The next work, in order: merge the registry-sync pull request that enters the 52 dated models `refit deadlines --sync gemini` read on 2026-10-22; then the owner decisions on replacements and the SDK swap.",
+      "values": [
+        {
+          "says": "52",
+          "query": {
+            "results": [
+              "data/deadlines.json"
+            ],
+            "rows": "/deadlines",
+            "within": [
+              {
+                "field": "provider",
+                "equals": "gemini"
+              },
+              {
+                "field": "kind",
+                "equals": "model"
+              },
+              {
+                "field": "checkedAt",
+                "equals": "2026-10-22"
+              }
+            ],
+            "flatten": "versions",
+            "where": [],
+            "measure": "distinct",
+            "field": ""
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/PROVIDER-GOALS.md",
       "quote": "The same ten items as the OpenAI and Anthropic checklist, worth 10% each.",
       "values": [],
       "ignore": [
@@ -12000,8 +12406,18 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
-      "quote": "| 6 | Frozen benchmark set | Partial: 22 of 50 repositories (npm search found no more) |",
+      "quote": "| 6 | Frozen benchmark set | Partial: 42 of 50 repositories (22 from npm search, 20 from GitHub code search) |",
       "values": [
+        {
+          "says": "42",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
         {
           "says": "22",
           "query": {
@@ -12009,7 +12425,27 @@
               "docs/benchmarks/2026-10-21-paypal-repos.json"
             ],
             "rows": "/repos",
-            "where": []
+            "where": [
+              {
+                "field": "source",
+                "exists": false
+              }
+            ]
+          }
+        },
+        {
+          "says": "20",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "source",
+                "equals": "code-search"
+              }
+            ]
           }
         }
       ],
