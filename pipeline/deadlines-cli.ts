@@ -39,6 +39,7 @@ import { parseObject } from './specifications.ts';
 import type { TracerStop } from './tree-sitter.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { IGNORE_PATHS_FILE, OUTSIDE_APPLICATION_CODE } from './workspace-attribution.ts';
 
 // Providers whose retiring model IDs `--propose-model-fixes` can replace; Gemini is report only.
 const MODEL_FIX_PROVIDERS = new Set(['openai', 'anthropic']);
@@ -270,8 +271,8 @@ try {
         nonLive,
         nonLiveMore,
         nonLiveCounts,
-        outside,
-        outsideMore,
+        ignoredPaths,
+        ignoredPathsMore,
         agent,
         ignored,
         ignoreNote,
@@ -291,10 +292,12 @@ try {
           `  Source       ${terminalText(deadline.source ?? '')} (checked ${deadline.checkedAt})`,
         );
         for (const item of evidence)
-          console.log(`  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.text)}`);
+          console.log(
+            `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.text)}${outsideLabel(item)}`,
+          );
         if (more) console.log(`  …and ${more} more matches`);
         printNonLive(nonLive, nonLiveMore, nonLiveCounts);
-        printOutside(outside, outsideMore);
+        printIgnoredPaths(ignoredPaths, ignoredPathsMore);
         // A retiring OpenAI or Anthropic model is replaced by a model fix, not an API contract run.
         console.log(
           `  Migration    ${terminalText(
@@ -310,7 +313,7 @@ try {
           const { deadline, days, nonLive, nonLiveMore, nonLiveCounts } = mention;
           console.log(`\n${terminalText(deadline.summary)} ${deadline.date} (${timing(days)})`);
           printNonLive(nonLive, nonLiveMore, nonLiveCounts);
-          printOutside(mention.outside, mention.outsideMore);
+          printIgnoredPaths(mention.ignoredPaths, mention.ignoredPathsMore);
         }
       }
       printTracerStops(scan.stops);
@@ -413,19 +416,28 @@ function printIgnoreWarnings(
     );
 }
 
-// Non-live matches, collapsed to one line per use: the exact count, then each listed file's line
-// numbers. A use whose matches all fall past the listing limit still gets a line with its count.
-// Live matches on docs, example, test-fixture and build-output paths, with the reason each path is
-// excluded. Listed so nothing is hidden; never counted (docs/WORKSPACE-ATTRIBUTION.md).
-function printOutside(items: DeadlineEvidence[] = [], more = 0) {
+// A counted match on a docs, example, test-fixture or build-output path says so and why; it still
+// counts (owner decision 22, docs/DEADLINES.md).
+function outsideLabel(item: DeadlineEvidence) {
+  return item.excluded && OUTSIDE_APPLICATION_CODE.has(item.excluded)
+    ? `  (counted; outside application code: ${item.excluded})`
+    : '';
+}
+
+// Matches on paths the repository opts out in IGNORE_PATHS_FILE, each with its reason. Listed so
+// nothing is hidden; never counted.
+function printIgnoredPaths(items: DeadlineEvidence[] = [], more = 0) {
   if (!items.length) return;
-  console.log('  Also found outside application code (not counted):');
+  console.log(`  Ignored by repository config (${IGNORE_PATHS_FILE}, not counted):`);
   for (const item of items)
     console.log(
-      `    ${terminalText(`${item.file}:${item.line}`)}  ${item.excluded}  ${terminalText(item.text)}`,
+      `    ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.ignoreReason ?? '')}  ${terminalText(item.text)}`,
     );
   if (more) console.log(`    …and ${more} more`);
 }
+
+// Non-live matches, collapsed to one line per use: the exact count, then each listed file's line
+// numbers. A use whose matches all fall past the listing limit still gets a line with its count.
 
 function printNonLive(
   items: DeadlineEvidence[],

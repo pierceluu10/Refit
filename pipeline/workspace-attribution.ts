@@ -30,33 +30,39 @@ export interface WorkspaceLayout {
   // Workspace globs from package.json, pnpm-workspace.yaml, lerna.json and rush.json.
   patterns: string[];
   packages: WorkspacePackage[];
-  // Directories the repository declares as application code in APPLICATION_PATHS_FILE: no
-  // exclusion applies inside them.
-  applicationPaths?: string[];
+  // Path globs the repository opts out of counting in IGNORE_PATHS_FILE, each with its reason.
+  ignoredPaths?: IgnoredPath[];
 }
 
 export type ExclusionReason =
   'node-modules' | 'vendored' | 'build-output' | 'example' | 'docs-site' | 'test-fixture';
+
+export interface IgnoredPath {
+  path: string;
+  reason: string;
+}
 
 export interface FindingPlace {
   workspace: { path: string; name: string | null } | null;
   excluded: ExclusionReason | null;
 }
 
-// Exclusions whose live deadline matches are listed but not counted as exposures (owner decision,
-// 2026-10-22): docs sites, examples, test fixtures and build output. Vendored and installed code
-// ships with the application, so it still counts.
-export const UNCOUNTED_EXCLUSIONS: ReadonlySet<ExclusionReason> = new Set([
+// Exclusions labelled "outside application code" in deadline output: docs sites, examples, test
+// fixtures and build output. Their matches still count (owner decision 22, confirmed 2026-10-22),
+// since such paths are often deployed. Vendored and installed code ships with the application.
+export const OUTSIDE_APPLICATION_CODE: ReadonlySet<ExclusionReason> = new Set([
   'build-output',
   'example',
   'docs-site',
   'test-fixture',
 ]);
 
-// An explicit, committed list of directories that are application code although their names match
-// an exclusion, such as a deployed `website/`: `{ "formatVersion": 1, "paths": ["website"] }`.
-export const APPLICATION_PATHS_FILE = '.refit-application-paths.json';
-const MAX_APPLICATION_PATHS = 100;
+// An explicit, committed opt-out: path globs whose deadline matches Refit lists as ignored and does
+// not count, each with a required reason:
+// `{ "formatVersion": 1, "paths": [{ "path": "website/**", "reason": "static marketing site" }] }`.
+export const IGNORE_PATHS_FILE = '.refit-ignore-paths.json';
+const MAX_IGNORED_PATHS = 100;
+const MAX_REASON = 500;
 
 // Directory names, matched as whole path segments, for each exclusion. The first match wins.
 const EXCLUSIONS: [ExclusionReason, RegExp][] = [
@@ -119,39 +125,63 @@ async function readText(path: string) {
   return readFile(path, 'utf8').catch(() => undefined);
 }
 
-// The directories APPLICATION_PATHS_FILE declares, or none when the file is absent. A file that is
-// present but malformed stops the scan rather than being ignored.
-export async function readApplicationPaths(root: string): Promise<string[]> {
-  const text = await readText(join(root, APPLICATION_PATHS_FILE));
+// The paths IGNORE_PATHS_FILE opts out, or none when the file is absent. A file that is present but
+// malformed stops the scan rather than being ignored.
+export async function readIgnoredPaths(root: string): Promise<IgnoredPath[]> {
+  const text = await readText(join(root, IGNORE_PATHS_FILE));
   if (text === undefined) {
-    const info = await lstat(join(root, APPLICATION_PATHS_FILE)).catch(() => undefined);
+    const info = await lstat(join(root, IGNORE_PATHS_FILE)).catch(() => undefined);
     if (info)
-      throw new PipelineInputError(
-        `${APPLICATION_PATHS_FILE} must be a regular file of at most 2 MiB.`,
-      );
+      throw new PipelineInputError(`${IGNORE_PATHS_FILE} must be a regular file of at most 2 MiB.`);
     return [];
   }
   const value = jsonObject(text);
   const paths = value?.paths;
-  const invalid = (path: unknown) =>
-    typeof path !== 'string' ||
-    !path ||
-    path.startsWith('/') ||
-    path.includes('\\') ||
-    /[*?[\]{}!]/.test(path) ||
-    path.split('/').some((segment) => segment === '..' || segment === '.');
+  const invalid = (item: unknown) => {
+    const entry = item && typeof item === 'object' ? (item as Record<string, unknown>) : undefined;
+    const { path, reason } = entry ?? {};
+    return (
+      !entry ||
+      Object.keys(entry).sort().join(',') !== 'path,reason' ||
+      typeof path !== 'string' ||
+      !path ||
+      path.startsWith('/') ||
+      path.includes('\\') ||
+      path.split('/').some((segment) => segment === '..' || segment === '.') ||
+      typeof reason !== 'string' ||
+      !reason.trim() ||
+      reason.length > MAX_REASON
+    );
+  };
   if (
     !value ||
     Object.keys(value).sort().join(',') !== 'formatVersion,paths' ||
     value.formatVersion !== 1 ||
     !Array.isArray(paths) ||
-    paths.length > MAX_APPLICATION_PATHS ||
+    paths.length > MAX_IGNORED_PATHS ||
     paths.some(invalid)
   )
     throw new PipelineInputError(
-      `${APPLICATION_PATHS_FILE} must be { "formatVersion": 1, "paths": [...] } with at most ${MAX_APPLICATION_PATHS} relative directory paths, without globs, "." or "..".`,
+      `${IGNORE_PATHS_FILE} must be { "formatVersion": 1, "paths": [{ "path": "<glob>", "reason": "<why>" }] } with at most ${MAX_IGNORED_PATHS} relative path globs, without "." or "..", each with a non-empty reason of at most ${MAX_REASON} characters.`,
     );
-  return (paths as string[]).map((path) => path.replace(/\/+$/, ''));
+  return (paths as IgnoredPath[]).map(({ path, reason }) => ({
+    path: path.replace(/\/+$/, ''),
+    reason: reason.trim(),
+  }));
+}
+
+// The reason a file is opted out in IGNORE_PATHS_FILE: a glob matches the file or a directory
+// above it.
+export function ignoredReason(layout: WorkspaceLayout, file: string): string | null {
+  for (const { path, reason } of layout.ignoredPaths ?? [])
+    if (
+      posix.matchesGlob(file, path) ||
+      file
+        .split('/')
+        .some((_, index, segments) => posix.matchesGlob(segments.slice(0, index).join('/'), path))
+    )
+      return reason;
+  return null;
 }
 
 function jsonObject(text: string | undefined): Record<string, unknown> | undefined {
@@ -311,14 +341,13 @@ export async function readWorkspaceLayout(root: string): Promise<WorkspaceLayout
     tools: [...tools].sort(),
     patterns,
     packages: [...found.values()].sort((a, b) => a.path.localeCompare(b.path)),
-    applicationPaths: await readApplicationPaths(root),
+    ignoredPaths: await readIgnoredPaths(root),
   };
 }
 
 // The package a repository file belongs to and whether its path is excluded.
 export function placeFinding(layout: WorkspaceLayout, file: string): FindingPlace {
-  const declared = (layout.applicationPaths ?? []).some((path) => file.startsWith(`${path}/`));
-  const excluded = declared ? null : exclusionReason(file);
+  const excluded = exclusionReason(file);
   let folder = posix.dirname(file);
   for (;;) {
     const found = layout.packages.find((item) => item.path === folder);

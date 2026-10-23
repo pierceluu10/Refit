@@ -249,7 +249,7 @@ describe('registry and catalog', () => {
     expect(aws.evidence.map((item) => `${item.file}:${item.line} ${item.use}`)).toEqual([
       'package.json:4 live',
     ]);
-    expect(aws.outside!.map((item) => `${item.file} ${item.use}`)).toEqual([
+    expect(aws.nonLive.map((item) => `${item.file} ${item.use}`)).toEqual([
       'examples/demo/package.json test',
     ]);
     expect(aws.days).toBeLessThan(0);

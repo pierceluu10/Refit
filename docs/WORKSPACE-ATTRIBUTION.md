@@ -23,7 +23,7 @@ In a monorepo, every finding `detectProviders` and `scanDeadlines` report now sa
 How the two scanners use them:
 
 - **`detectProviders`** keeps every detection and marks each package and hostname with its place.
-- **`scanDeadlines`** keeps every match's `use` as it was and adds the place. A match on a `docs-site`, `example`, `test-fixture` or `build-output` path is **listed but not counted** (owner decision, 2026-10-22): it goes to the exposure's `outside` list, never to `evidence`, so it does not count for `--fail-within`, deadline alerts or model-fix lists. `vendored` matches still count. A repository declares a deployed `website/` or `apps/demo` as application code in `.refit-application-paths.json`. [DEADLINES.md](DEADLINES.md#matches-outside-application-code-not-counted) has the exact paths, the output and the override.
+- **`scanDeadlines`** keeps every match's `use` as it was and adds the place. A match on a `docs-site`, `example`, `test-fixture` or `build-output` path **still counts** (owner decision 22, confirmed 2026-10-22) for `--fail-within`, deadline alerts and model-fix lists, and is labelled "outside application code" in `refit deadlines` and `refit report`. A repository opts specific paths out, each with a reason, in `.refit-ignore-paths.json`; those matches are listed as ignored and not counted. [DEADLINES.md](DEADLINES.md#matches-outside-application-code-counted-and-labelled) has the exact paths, the output and the opt-out.
 - **`refit agents`** prints the place after each piece of evidence, for example `[example, package checkout-example]`.
 
 **Versions from the right lockfile.** The root lockfile still decides when it covers a package. A nested `package.json` that it does not cover (an app with its own lockfile and no workspaces) is resolved against the `package-lock.json`, `pnpm-lock.yaml` or `yarn.lock` in its own directory, through the existing `resolveLockedDependency`. Other ecosystems already lock from the nearest ancestor lockfile (`pipeline/package-manifests.ts`), which covers a uv or Cargo workspace's single root lockfile.
@@ -80,11 +80,15 @@ node scripts/workspace-nested-locks.mjs --list docs/benchmarks/2026-10-22-worksp
 
 `workspace-monorepos.mjs` fetches trees only. Check each repository out at its frozen commit (`git -C <dir> checkout --detach <commit>`) before running the scans.
 
-**Not counting matches outside application code** ([before and after](benchmarks/2026-10-22-workspace-uncounted.json), `scripts/workspace-uncounted.mjs`, at `d7621ae`, clean). The exclusion scan above found excluded findings in 4 of the 320 monorepos; the other 316 had no live deadline match on an excluded path at `f4e587d`, so the decision does not change their counts (they were not rerun). The 4 were checked out again at their frozen commits:
+## Matches outside application code, recounted (2026-10-22)
+
+Owner decision 22 stands, as Furqan confirmed on 2026-10-22: live deadline matches on `docs-site`, `example`, `test-fixture` and `build-output` paths count, labelled. From `d7621ae` until this change they were listed but not counted. The recount below is computed from committed data, not a rerun: the [results](benchmarks/2026-10-22-workspace-uncounted.json) that `scripts/workspace-uncounted.mjs` wrote at `d7621ae` (clean) record, per repository, every deadline a live match names (`countedBefore`) and the deadlines counted at the time (`countedAfter`). None of these repositories commits `.refit-ignore-paths.json`, so the deadlines counted now are exactly `countedBefore`.
+
+The [exclusion scan](benchmarks/2026-10-22-workspace-exclusions.json) found excluded findings in 4 of the 320 monorepos. The others have no live deadline match on an excluded path, so neither rule changes their counts.
 
 | 4 repositories with an excluded finding | Deadlines counted as exposures |
 |---|---:|
-| Before (any live match counts) | 10 |
-| After (matches outside application code listed, not counted) | 7 |
+| Listed, not counted (`d7621ae`, superseded) | 7 |
+| Counted and labelled (owner decision 22, now) | 10 |
 
-4 matches moved to the "not counted" list: communisaas/commons `tests/mocks/external-services.ts` (`meta-graph-v18-0`, test-fixture), embedbase `docs/pages/api/qa.ts` (`gpt-4`, docs-site; still counted from its other live code), and LocalRouter `website/src/components/GuardrailApprovalDemo.tsx` (`claude-3-5-sonnet`, docs-site) and `website/src/components/demo/TauriMockSetup.ts` (`gpt-4`, example). So commons loses one exposure and LocalRouter both of its two. embedbase's `docs/` is a deployed docs site that calls OpenAI live; its owner would add `docs` to `.refit-application-paths.json` to count it. The "before" column is computed from the same run (every live match, wherever it is), not from an older commit.
+The 4 labelled matches: communisaas/commons `tests/mocks/external-services.ts` (`meta-graph-v18-0`, test-fixture), embedbase `docs/pages/api/qa.ts` (`gpt-4`, docs-site), and LocalRouter `website/src/components/GuardrailApprovalDemo.tsx` (`claude-3-5-sonnet`, docs-site) and `website/src/components/demo/TauriMockSetup.ts` (`gpt-4`, example). Counting them again gives commons back `meta-graph-v18-0` and LocalRouter both of its deadlines. embedbase's `gpt-4` was counted from its other live code either way; its deployed docs site, which calls OpenAI live, is the case decision 22 protects.
