@@ -351,7 +351,7 @@ The same ten items as the OpenAI and Anthropic checklist, worth 10% each.
 | 3   | Deadline entries with `source` and `checkedAt`                       | No. No dated end of support found on a page readable from here                                       |
 | 4   | Deterministic replacement rule with named stops                      | No. The SDK replacement is an owner decision                                                         |
 | 5   | Automatic validated draft pull requests                              | No                                                                                                   |
-| 6   | Frozen benchmark set                                                 | Partial: 22 of 50 repositories (npm search found no more)                                            |
+| 6   | Frozen benchmark set                                                 | Partial: 42 of 50 repositories (22 from npm search, 20 from GitHub code search)                     |
 | 7   | Hand-labelled live requests                                          | Partial: all 90 reported requests reviewed; missed calls are counted by a text heuristic, not labels |
 | 8   | At least 90% of likely SDK calls traced                              | No: 82 of 92 (89%) in scanned repositories                                                           |
 | 9   | At least 70% of affected repositories with runnable checks validated | No: no fix is proposed                                                                               |
