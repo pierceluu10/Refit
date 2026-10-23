@@ -3,12 +3,13 @@
 // with no install, no repository code run and no provider contacted.
 //
 // Two passes per repository:
-// - the shipped registry, which has no Gemini model dates yet (Google's deprecations page was not
-//   reachable when the set was frozen), so its only Gemini exposure is the old SDK's end of support;
+// - the shipped registry, whose Gemini entries are the old SDK's end of support and, since
+//   2026-10-22, the dated shutdowns on Google's Gemini API deprecations page;
 // - a census registry written to --root for that repository alone, listing every quoted
 //   Gemini-shaped model ID its source names, with a placeholder date. It measures how the matcher
-//   classifies Gemini pins (live, catalog, test, check, comment). Its dates mean nothing and it is
-//   never written to data/deadlines.json.
+//   classifies Gemini pins (live, catalog, test, check, comment) and which model sites the
+//   report-only Gemini tracers reach (`refit deadlines --propose-model-fixes`). Its dates mean
+//   nothing and it is never written to data/deadlines.json.
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
@@ -135,6 +136,17 @@ for (const [index, entry] of frozen.repos.entries()) {
   const census = ids.length
     ? await refitJson(['deadlines', '--repository', directory, '--registry', registryPath])
     : { result: { exposures: [], mentions: [] } };
+  // What the report-only Gemini tracers reach: every stop's model site, with the census registry.
+  const proposal = ids.length
+    ? await refitJson([
+        'deadlines',
+        '--propose-model-fixes',
+        '--repository',
+        directory,
+        '--registry',
+        registryPath,
+      ])
+    : { result: { stops: [] } };
   const items = [...(census.result?.exposures ?? []), ...(census.result?.mentions ?? [])].flatMap(
     (exposure) => [...exposure.evidence, ...exposure.nonLive],
   );
@@ -164,6 +176,11 @@ for (const [index, entry] of frozen.repos.entries()) {
     // Live pins in a file that imports either Gemini SDK, where a call can send them directly.
     liveInSdkFiles: live.filter((item) => SDK_IMPORT.test(files.get(item.file) ?? '')).length,
     live: live.map((item) => `${item.file}:${item.line} ${item.version}`),
+    matches: items.map((item) => `${item.file}:${item.line} ${item.version} ${item.use}`),
+    traced: (proposal.result?.stops ?? [])
+      .filter((stop) => stop.provider === 'gemini')
+      .map((stop) => `${stop.at.file}:${stop.at.line} ${stop.model}`),
+    ...(proposal.error ? { tracerError: proposal.error } : {}),
   });
 }
 
@@ -174,7 +191,8 @@ const summary = {
   errors: results.filter((item) => item.error).length,
   timedOut: results.filter((item) => item.error?.startsWith('timed out')).length,
   declaresOldSdk: frozen.repos.filter((item) => item.sdk === '@google/generative-ai').length,
-  exposedToOldSdkEndOfSupport: scanned.filter((item) => item.shippedExposures.length).length,
+  // Any shipped Gemini deadline: the old SDK's end of support or a dated model shutdown.
+  exposedToShippedDeadlines: scanned.filter((item) => item.shippedExposures.length).length,
   withGeminiIds: scanned.filter((item) => item.geminiIds).length,
   withLivePins: scanned.filter((item) => item.uses.live).length,
   pins: {
@@ -186,6 +204,7 @@ const summary = {
     tokenizer: total('tokenizer'),
   },
   liveInSdkFiles: scanned.reduce((sum, item) => sum + item.liveInSdkFiles, 0),
+  traced: scanned.reduce((sum, item) => sum + item.traced.length, 0),
   cappedNotListed: scanned.reduce((sum, item) => sum + item.capped, 0),
 };
 await writeFile(

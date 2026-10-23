@@ -27,21 +27,23 @@ A report-only hook (`ReportOnlySource`, tag `ready/FG9`) lets other detectors (F
 
 ## Frozen application sets, before and after
 
-Sets: `docs/benchmarks/2026-10-21-openai-app-repos.json` (100) and `2026-10-21-anthropic-app-repos.json` (50). Command: `node scripts/ai-model-benchmark.mjs --list <set> --root <checkouts> --output <results>`, from a detached worktree at each commit, never from a working tree. Before is main `7b2c86a`; after is this branch at `263d88f`. Results: [`benchmarks/2026-10-22-openai-app-results.json`](benchmarks/2026-10-22-openai-app-results.json) and [`benchmarks/2026-10-22-anthropic-app-results.json`](benchmarks/2026-10-22-anthropic-app-results.json), each with its baseline summary.
+Sets: `docs/benchmarks/2026-10-21-openai-app-repos.json` (100) and `2026-10-21-anthropic-app-repos.json` (38; 50 when these runs were made). Command: `node scripts/ai-model-benchmark.mjs --list <set> --root <checkouts> --output <results>`, from a detached worktree at each commit, never from a working tree. Before is main `7b2c86a`; after is this branch at `263d88f`. Results: [`benchmarks/2026-10-22-openai-app-results.json`](benchmarks/2026-10-22-openai-app-results.json) and [`benchmarks/2026-10-22-anthropic-app-results.json`](benchmarks/2026-10-22-anthropic-app-results.json), each with its baseline summary.
+
+On 2026-10-22 we removed 12 copies of leaked proprietary source from the Anthropic set; numbers recomputed on the remaining 38. The Anthropic after column comes from the committed per-repository results. The before run kept only a summary over all 50, so its Anthropic column cannot be recomputed without the copies and is left out.
 
 |                                                                    | OpenAI before   | OpenAI after        | Anthropic before | Anthropic after |
 | ------------------------------------------------------------------ | --------------- | ------------------- | ---------------- | --------------- |
-| Repositories (scan errors)                                         | 100 (1)         | 100 (1)             | 50 (0)           | 50 (0)          |
-| Exposed: live use of a registry model                              | 32              | 32                  | 28               | 28              |
-| A replacement proposed                                             | 2               | 2                   | 2                | 2               |
-| Stopped for review only                                            | 18              | **21**              | 12               | 12              |
-| Unresolved only (every live match listed with where it is written) | 11              | **8**               | 14               | 14              |
-| Replacements / stops / unresolved sites                            | 3 / 44 / 68     | 3 / **52** / **60** | 3 / 16 / 58      | 3 / 16 / 58     |
-| Live lines reaching an edit or a named stop                        | 47 of 116 (41%) | **55 of 116 (47%)** | 19 of 77 (25%)   | 19 of 77 (25%)  |
+| Repositories (scan errors)                                         | 100 (1)         | 100 (1)             | n/a              | 38 (0)          |
+| Exposed: live use of a registry model                              | 32              | 32                  | n/a              | 16              |
+| A replacement proposed                                             | 2               | 2                   | n/a              | 2               |
+| Stopped for review only                                            | 18              | **21**              | n/a              | 11              |
+| Unresolved only (every live match listed with where it is written) | 11              | **8**               | n/a              | 3               |
+| Replacements / stops / unresolved sites                            | 3 / 44 / 68     | 3 / **52** / **60** | n/a              | 3 / 15 / 15     |
+| Live lines reaching an edit or a named stop                        | 47 of 116 (41%) | **55 of 116 (47%)** | n/a              | 18 of 33 (55%)  |
 
-On the OpenAI set the gain is the untraced-client stop: `rohitg00/manim-video-generator` (six files with `let openaiClient: OpenAI | null` set in a `try`), `kirill-markin/chatgpt-telegram-bot-telegraf` (a typed `openai: OpenAI` parameter) and one more. The Anthropic set has none of the new shapes, so nothing moved: none of its 50 applications uses Bedrock or Vertex AI clients outside the twelve copies of one leaked Claude Code tree, where those IDs sit in model tables rather than requests, and none uses batches, spreads or the tool runner. The new shapes are covered by tests on real-shaped snippets instead.
+On the OpenAI set the gain is the untraced-client stop: `rohitg00/manim-video-generator` (six files with `let openaiClient: OpenAI | null` set in a `try`), `kirill-markin/chatgpt-telegram-bot-telegraf` (a typed `openai: OpenAI` parameter) and one more. The Anthropic set has none of the new shapes, so nothing moved (every count in the summary over all 50 was the same before and after): none of its 38 applications uses Bedrock or Vertex AI clients, and none uses batches, spreads or the tool runner. The new shapes are covered by tests on real-shaped snippets instead.
 
-What stays unresolved is mostly not a request. By where the model is written (the `unresolved` reason), the 60 OpenAI sites are: 27 values of an object (settings defaults, seed rows, UI state, model tables), 12 not where a request reads a model (JSX options, string checks), 9 assigned to a variable no traced request reads, 7 passed to another function (one is the Vercel AI SDK's `openai(...)`, FP3's area; four are a model updater's lists), and 5 others. Of the 58 Anthropic sites, 24 are `return 'claude-…'` lines in the Claude Code copies' name normalizers, 11 are a model ID inside a prompt template in the same copies, and 20 are values in state objects, converters and model tables.
+What stays unresolved is mostly not a request. By where the model is written (the `unresolved` reason), the 60 OpenAI sites are: 27 values of an object (settings defaults, seed rows, UI state, model tables), 12 not where a request reads a model (JSX options, string checks), 9 assigned to a variable no traced request reads, 7 passed to another function (one is the Vercel AI SDK's `openai(...)`, FP3's area; four are a model updater's lists), and 5 others. Of the 15 Anthropic sites, 13 are values in objects (state, converters and model tables), 1 is a class field and 1 is not where a request reads a model.
 
 ## Stop reasons ranked by repositories blocked
 
@@ -51,7 +53,7 @@ After, both sets (OpenAI + Anthropic):
 
 | Stop reason                                                                        | Blocked | Repositories |
 | ---------------------------------------------------------------------------------- | ------- | ------------ |
-| A custom endpoint mentioned somewhere, not tied to the request's client            | 4 + 6   | 4 + 6        |
+| A custom endpoint mentioned somewhere, not tied to the request's client            | 4 + 5   | 4 + 5        |
 | The call is not one Refit edits (images, audio, realtime, embeddings)              | 9 + 0   | 9 + 0        |
 | The request's own client sets `baseURL`, `fetch` or similar (named, with its line) | 5 + 1   | 5 + 1        |
 | The client is not one Refit can trace to the SDK constructor                       | 3 + 0   | 3 + 0        |
@@ -60,7 +62,7 @@ After, both sets (OpenAI + Anthropic):
 | Sampling or length parameters the replacement may reject                           | 1 + 0   | 2 + 0        |
 | Raw request to another host, a reused request object, an unreadable tsconfig       | 0 + 3   | 0 + 3        |
 
-Before, the custom-endpoint stop was one reason for all of these: 10 OpenAI and 8 Anthropic repositories. It is still the largest blocker. In 6 repositories the request's own client really does set another endpoint (for example the Goofish bots' user-configured `baseURL`), so the stop is right. In 3 the mention is elsewhere and the request's client sets none. In 10 the client is built in a way the attribution cannot follow (a getter with arguments, a constructor parameter, a factory), so the old wording stays. A repository with several requests can appear under two of these.
+Before, the custom-endpoint stop was one reason for all of these: 10 OpenAI and 8 Anthropic repositories (counted before the 12 copies were removed). It is still the largest blocker. In 6 repositories the request's own client really does set another endpoint (for example the Goofish bots' user-configured `baseURL`), so the stop is right. In 3 the mention is elsewhere and the request's client sets none. In 9 the client is built in a way the attribution cannot follow (a getter with arguments, a constructor parameter, a factory), so the old wording stays. A repository with several requests can appear under two of these.
 
 ## Docker validation of every current proposal
 
@@ -86,7 +88,7 @@ The default checks failed for reasons outside the change. Both Next.js 14 apps' 
 
 ## Off-by-default options measured
 
-`proposeModelReplacements` was run on each of the 60 exposed app-set repositories and the four extra checkouts with four option sets: default, `endpoints: true`, `indirect: true` (D-06 to D-08) and both, one process per repository with a 2-minute cap, at `263d88f`. These counts are not backed by a committed results file.
+`proposeModelReplacements` was run on each of the 60 exposed app-set repositories (48 without the 12 removed copies) and the four extra checkouts with four option sets: default, `endpoints: true`, `indirect: true` (D-06 to D-08) and both, one process per repository with a 2-minute cap, at `263d88f`. These counts are not backed by a committed results file.
 
 | Option set        | Repositories with a proposal | Sites |
 | ----------------- | ---------------------------- | ----- |
@@ -95,7 +97,7 @@ The default checks failed for reasons outside the change. Both Next.js 14 apps' 
 | `indirect: true`  | 7                            | 13    |
 | both              | 7                            | 13    |
 
-16 repositories did not finish all four runs inside the cap (the 12 Claude Code copies, both lobe-chat-pro entries, CraftingComputer and promptbook) and are not counted. On the other 48, neither option adds a proposal. Where the endpoint attribution clears a request, the next stop is a sampling or length parameter (Emineon's `temperature` and `max_tokens`) or the request was already blocked by another rule. So on these sets the evidence does not support turning either option on: the larger gate is the sampling-parameter stop (an owner decision) and the non-text calls.
+16 repositories did not finish all four runs inside the cap (the 12 copies since removed, both lobe-chat-pro entries, CraftingComputer and promptbook) and are not counted. On the other 48, neither option adds a proposal. Where the endpoint attribution clears a request, the next stop is a sampling or length parameter (Emineon's `temperature` and `max_tokens`) or the request was already blocked by another rule. So on these sets the evidence does not support turning either option on: the larger gate is the sampling-parameter stop (an owner decision) and the non-text calls.
 
 ## Requests for other lanes
 

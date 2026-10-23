@@ -24,6 +24,7 @@ const TARGET = { id: 'target-a', repository: 'example/application', base: 'main'
 const fake = vi.hoisted(() => ({
   claims: [] as unknown[],
   store: {} as Record<string, ReturnType<typeof vi.fn>>,
+  inventoryReads: [] as (string | undefined)[],
 }));
 vi.mock('./hosted-store.ts', () => ({ openHostedStore: vi.fn(async () => fake.store) }));
 vi.mock('./inventory-store.ts', () => ({
@@ -31,7 +32,10 @@ vi.mock('./inventory-store.ts', () => ({
     request: vi.fn(async () => 0),
     requestMissing: vi.fn(async () => 0),
     claim: vi.fn(async () => null),
-    read: vi.fn(async () => []),
+    read: vi.fn(async (repository?: string) => {
+      fake.inventoryReads.push(repository);
+      return [];
+    }),
   })),
 }));
 vi.mock('./service-worker.ts', () => ({
@@ -62,6 +66,8 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     allow: vi.fn(async () => ({ enrolled: [], cancelled: [] })),
     enqueueDue: vi.fn(async () => 0),
     claim: vi.fn(async () => fake.claims.shift() ?? null),
+    // The repository keeps its GitHub ID, so nothing is retired.
+    retire: vi.fn(async () => false),
     // Lease renewal fails while job 2 runs, which must abort it.
     renew: vi.fn(async () => {
       throw new Error(`connection to ${SECRETS.REFIT_DATABASE_URL} terminated`);
@@ -133,7 +139,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
   });
 
   const lines: string[] = [];
-  const { log, notify } = hostedLogging(SECRETS, (line) => lines.push(line));
+  const { log, notify, redact } = hostedLogging(SECRETS, (line) => lines.push(line));
   const directory = await mkdtemp(join(tmpdir(), 'refit-hosted-logging-'));
   cleanups.push(() => rm(directory, { recursive: true, force: true }));
   const controller = new AbortController();
@@ -147,6 +153,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     controlToken: SECRETS.REFIT_SERVICE_TOKEN,
     tenancy: { accounts: ['example'], limits: DEFAULT_TENANCY_LIMITS },
     notify,
+    redact,
     host: '127.0.0.1',
     port: 0,
     intervalSeconds: 30,
@@ -197,6 +204,8 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     inventories: [],
   });
   expect((await status('')).status).toBe(200);
+  // A target's view reads only its repository's inventory; the full view reads every one.
+  expect(fake.inventoryReads).toEqual([TARGET.repository, undefined]);
   expect((await status('?target=missing')).status).toBe(404);
   expect((await status('?since=today')).status).toBe(400);
   expect((await status(`?target=${TARGET.id}`, 'wrong-token')).status).toBe(401);

@@ -34,7 +34,7 @@ An entry's `kind` is `api-version`, `model` or `sdk`. An `sdk` entry lists npm p
 
 Some entries are **report only**: `refit deadlines` lists them, marked `Report only`, but they never fail `--fail-within` and never open a `--deadline-alerts` issue (owner decision, 2026-10-22). That covers:
 
-- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from;
+- an entry with `"derivedDate": true`, whose date the provider never announced as a shutdown, such as one taken from a release date or an OpenAPI `eol` field. Its summary says where the date comes from. `refit deadlines` labels it as an estimate ("the provider has not announced this date"). For example, `twilio-node-below-6-2026-04-20` is Refit's estimate: Twilio has announced no end-of-support date for twilio-node 5.x, so the date comes from its support policy (only the current major is supported) and the 6.0.0 release date. Its summary says so, and that Refit watches for the official date: like every entry, its sources are re-checked at least every 30 days (`npm run deadlines:check` lists entries checked longer ago), and an announced date replaces the estimate and drops `derivedDate` (owner decision, 2026-10-22);
 - every entry whose `kind` is `method`, `endpoint`, `field` or `feature`.
 
 Past-due entries stay in the registry on purpose: a repository still pinning a retired version is the most urgent case. To change the registry, edit the file from the provider's page, set `checkedAt` to the day you checked, and run:
@@ -101,9 +101,47 @@ The terminal output lists live evidence first, then one collapsed `Not live` lin
 - The benchmark script's results add `nonLive` (counts by use), `nonLiveTotal` and `mentionedOnly`, and keep the 2026-10-20 keys.
 - Every evidence item has a `use`.
 - A top-level `mentions` array lists deadlines with no live match, in the same shape with an empty `evidence`.
+- A match on a docs, example, test-fixture or build-output path still counts, with its reason in `excluded` ([labelled](#matches-outside-application-code-counted-and-labelled)). Each exposure and mention has `ignoredPaths` and `ignoredPathsMore`: matches on paths the repository opts out, each with its `ignoreReason`, not counted.
 - Each exposure has `ignored` (the [ignore entries](#accept-an-exposure-for-a-while) that accept it, or `null`) and `ignoreNote` (why an ignore for that deadline did not apply, or `null`).
 - A top-level `ignores` object names the ignore file read and lists `expired` and `unknown` entries.
 - With `--fail-within`, a top-level `check` holds `failWithin`, `status` (`pass` or `fail`), `failing` and `ignored` deadline IDs.
+
+### Matches outside application code (counted and labelled)
+
+Owner decision 22, confirmed by Furqan on 2026-10-22: a match in docs, examples, test fixtures or build output counts like any other. These paths are often deployed: embedbase's `docs/` is a Next.js site whose `docs/pages/api/qa.ts` calls OpenAI live. So such a match fails `--fail-within`, opens and updates alerts and reaches the model-fix lists. It is labelled, so you can see why it is there: `refit deadlines` adds `(counted; outside application code: docs-site)` to its evidence line, `--json` gives the reason in each evidence item's `excluded`, and `refit report` lists it under **Counted, outside application code**.
+
+```text
+  docs/pages/api/chat.ts:4  return openai.chat.completions.create({ model: 'gpt-4', messages: [] });  (counted; outside application code: docs-site)
+```
+
+A path is outside application code when one of its directories (matched as a whole segment) or its file name is:
+
+| Reason | Paths | Why |
+|---|---|---|
+| `docs-site` | `doc/`, `docs/`, `website/`, `documentation/` | Documentation and marketing sites |
+| `example` | `example(s)/`, `sample(s)/`, `demo(s)/` | Sample code that is not the application |
+| `test-fixture` | `fixture(s)/`, `__fixtures__/`, `__mocks__/`, `testdata/`, `test-data/`, `mocks/` | Test data and mocks |
+| `build-output` | `out/`, `.next/`, `.nuxt/`, `.output/`, `.svelte-kit/`, `coverage/`, `.turbo/`, `dist/`, `build/`, and `*.min.js`, `*.bundle.js` files | Generated from the source, which is scanned itself |
+
+- **Vendored code:** `vendor/`, `vendors/`, `vendored/` and `third_party/` code ships with the application; it counts and keeps its `vendored` reason, without the "outside application code" label.
+- **Tests:** test files (`*.test.*`, `test/`, `__tests__/`, ...) and `examples/` and `fixtures/`, which are also test paths, stay under `Not live` as `test`, as before workspace attribution. Their evidence keeps its `excluded` reason.
+- **Never read:** the repository reader skips `dist/`, `build/`, `coverage/`, `.next/` and `node_modules/` before any matcher runs (`pipeline/repository.ts`), so matches there are neither counted nor listed. The other build-output paths above are read.
+
+The rules live in `pipeline/workspace-attribution.ts` (`EXCLUSIONS`, `OUTSIDE_APPLICATION_CODE`), and [WORKSPACE-ATTRIBUTION.md](WORKSPACE-ATTRIBUTION.md) has the measurement.
+
+**Opting paths out.** If a path really is never deployed, such as a static marketing site with no keys, commit `.refit-ignore-paths.json` at the repository root. Each entry is a path glob and a required reason:
+
+```json
+{
+  "formatVersion": 1,
+  "paths": [
+    { "path": "website", "reason": "static marketing site, no API keys" },
+    { "path": "apps/*/demo/**", "reason": "demos run against a mock server" }
+  ]
+}
+```
+
+A glob matches a file or any directory above it (Node's `path.matchesGlob`), relative to the root, with no leading `/`, `.` or `..` (at most 100 entries; a reason is at most 500 characters). Ignored matches are not counted, but they are still listed: `refit deadlines` prints them under **Ignored by repository config (.refit-ignore-paths.json, not counted)** with the reason, `--json` puts them in `ignoredPaths`, and `refit report` lists them too. A deadline matched only on ignored paths becomes a mention. A file that is present but malformed (not JSON, an unknown key, a missing or empty reason, a parent or absolute path, too many entries, a symlink or over 2 MiB) stops the scan with an error naming it; it is never skipped. Without the file, every match counts.
 
 ## Fail a CI build before a deadline
 
@@ -113,7 +151,7 @@ refit deadlines --fail-within 30
 
 With `--fail-within <days>`, the command exits **2** when the repository has a live exposure whose deadline has passed, is today or is within that many days. It exits **0** when there is none, and **1** on any error. `0` fails only on past-due deadlines and today; the maximum is 3650. Without the flag, `refit deadlines` only reports and always exits 0 unless it hits an error.
 
-Only live evidence counts, and report-only deadlines (see [The registry](#the-registry)) never fail it. A model named in a list, a test, an example or a comment never fails a build. The output ends with the result, and on failure it lists each failing deadline with its date and days left.
+Only live evidence counts, and report-only deadlines (see [The registry](#the-registry)) never fail it. A model named in a list, a test, an example or a comment never fails a build. The output ends with the result, and on failure it lists each failing deadline with its date and days left. A deadline that has already passed also gets its source, what to upgrade to and what Refit can do ([below](#past-due-deadlines)).
 
 Run it on pull requests to block new uses, and on a schedule so a quiet repository still notices an approaching date:
 
@@ -134,6 +172,35 @@ jobs:
       - run: npm install --global ./refit-X.Y.Z.tgz # the CLI archive from a Refit release
       - run: refit deadlines --fail-within 30
 ```
+
+### Past-due deadlines
+
+Owner decision, 2026-10-22: a deadline that has already passed **keeps failing** `--fail-within`. Report-only deadlines, including derived and estimated dates, still never fail. On failure, each passed deadline gets these lines:
+
+```
+  algolia-javascript-client-v4  2026-08-14 (passed 69 days ago)
+    Passed       on 2026-08-14; this deadline is already in effect
+    Source       https://changelog.algolia.com/label/80880
+    Upgrade to   algoliasearch 5 (the upgrade guide covers the removed initIndex pattern)
+    Action       Refit reports this, and the upgrade is manual.
+```
+
+`Action` offers a draft pull request only where Refit has a fixer:
+- an OpenAI or Anthropic model with a concrete registry replacement: `refit serve --model-fixes`, for models written as a literal in a traced SDK call;
+- an API version of a provider with a Refit agent (Stripe, Shopify), through that agent's migration run.
+
+Every other deadline says the upgrade is manual.
+
+**Allow named past-due deadlines:** `--allow-past-due <id>`, repeatable or comma-separated, with `--fail-within`:
+
+```sh
+refit deadlines --fail-within 30 --allow-past-due algolia-javascript-client-v4
+```
+
+- It turns the named deadlines into warnings, only when they have already passed. They are still printed, with `Warning: … allowed by --allow-past-due` and the lines above, and `--json` lists them in `check.allowed`.
+- It never applies to a deadline that has not passed yet, including one due today: such a deadline still fails inside the window, and the command notes that the flag did not apply.
+- An ID that is not in the registry is an error (exit 1), so a typo never silences anything. Without `--fail-within` the flag is an error too.
+- For an exception with a reason and an expiry, use the ignore file below instead.
 
 ### Accept an exposure for a while
 

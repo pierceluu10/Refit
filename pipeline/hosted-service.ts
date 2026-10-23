@@ -12,6 +12,8 @@ import { loadDeadlineRegistry } from './deadline-registry.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import { hostedPages } from './hosted-setup.ts';
+import { GitHubRequestError } from './github.ts';
 import { isDatabaseUnavailable } from './hosted-database.ts';
 import { purgeUninstalled } from './hosted-retention.ts';
 import { processApprovalIssues } from './hosted-approval.ts';
@@ -25,7 +27,12 @@ import {
   runHostedTarget,
   runJobMachine,
 } from './hosted-runner.ts';
-import { failedJobNotifier, filterHostedStatus, type HostedLogContext } from './hosted-ops.ts';
+import {
+  failedJobNotifier,
+  filterHostedStatus,
+  hostedRedactor,
+  type HostedLogContext,
+} from './hosted-ops.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
@@ -42,6 +49,8 @@ import {
   type HostedAlerts,
 } from './monitoring.ts';
 import { openMonitoringStore } from './monitoring-store.ts';
+import { syncReportIssues } from './report-issues.ts';
+import { openReportStore } from './report-store.ts';
 import {
   authorized,
   DEFAULT_SERVICE_PORT,
@@ -69,6 +78,7 @@ const DEFAULT_LEASE_SECONDS = 300;
 const MIN_LEASE_SECONDS = 3;
 // Renewing three times per lease keeps one missed renewal from releasing a running job.
 const RENEWALS_PER_LEASE = 3;
+const NOT_FOUND = 404;
 // An inventory holds its lease for its whole time cap, plus this margin, without renewing it.
 const INVENTORY_LEASE_MARGIN_SECONDS = 60;
 // While PostgreSQL is unreachable the worker waits, doubling the wait up to the maximum.
@@ -88,9 +98,14 @@ export async function runHostedService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Where customers ask for data deletion and report security issues (REFIT_HOSTED_CONTACT).
+  contact?: string;
   // Off by default: re-scans inventories on push, registry change and age, and opens or updates
   // deadline issues at the lead times. Needs the App's Issues write permission.
   alerts?: HostedAlerts;
+  // Off by default: keeps one report issue per inventoried repository, re-scanned like alerts.
+  // Needs the App's Issues write permission.
+  reports?: boolean;
   // The deadline registry file, by default the bundled one.
   registry?: string | URL;
   now?: () => Date;
@@ -111,6 +126,9 @@ export async function runHostedService(options: {
   // Opens an approval issue on installed repositories without an approval and handles
   // `/refit approve` and `/refit revoke` comments (REFIT_HOSTED_APPROVAL_ISSUES).
   approvalIssues?: boolean;
+  // Off by default (owner decision, 2026-10-22): follows repository renames, transfers and
+  // archiving, account renames, and repositories GitHub no longer serves (REFIT_HOSTED_LIFECYCLE).
+  lifecycle?: boolean;
   // The workflow's own notices, plus failed jobs at most once per target per hour.
   notify?: SlackSend;
   // Applied to job fields before a failure notice cuts them to length.
@@ -147,6 +165,25 @@ export async function runHostedService(options: {
   if (!Number.isInteger(lease) || lease < MIN_LEASE_SECONDS)
     throw new PipelineInputError(`Worker leases must be at least ${MIN_LEASE_SECONDS} seconds.`);
   const worker = options.worker ?? `${hostname()}:${process.pid}`;
+  // Logs, stored receipts and error responses never carry a credential, whatever produced the text.
+  // `refit hosted serve` passes a redactor built from its whole environment; otherwise the
+  // service's own secrets are redacted.
+  const redact =
+    options.redact ??
+    hostedRedactor({
+      REFIT_WEBHOOK_SECRET: options.webhookSecret,
+      REFIT_SERVICE_TOKEN: options.controlToken,
+      OPENAI_API_KEY: options.aiPatch?.apiKey,
+      REFIT_DATABASE_URL: options.database.options?.connectionString,
+    });
+  const redactReceipt = <Receipt extends { message: string | null }>(receipt: Receipt) => ({
+    ...receipt,
+    message: receipt.message && redact(receipt.message),
+  });
+  const onProgress: typeof options.onProgress =
+    options.onProgress &&
+    ((message: string, context?: HostedLogContext) =>
+      options.onProgress?.(redact(message), context));
   options.signal.throwIfAborted();
   const root = resolve(options.directory);
   await standaloneStateDirectory(root);
@@ -176,7 +213,7 @@ export async function runHostedService(options: {
   };
   let outage = OUTAGE_RETRY_MS;
   const unavailable = async (error: Error) => {
-    options.onProgress?.(
+    onProgress?.(
       `PostgreSQL is unavailable (${error.message}); retrying in ${outage / MILLISECONDS_PER_SECOND} s.`,
     );
     await pause(outage);
@@ -189,7 +226,7 @@ export async function runHostedService(options: {
         const store = await openHostedStore(options.database, options.tenancy);
         const allowed = await store.allow();
         if (allowed.enrolled.length || allowed.cancelled.length)
-          options.onProgress?.(
+          onProgress?.(
             `Allowed accounts ${options.tenancy.accounts.join(', ')}: enrolled ${allowed.enrolled.length}, cancelled ${allowed.cancelled.length} targets.`,
           );
         return store;
@@ -203,6 +240,7 @@ export async function runHostedService(options: {
   outage = OUTAGE_RETRY_MS;
   const inventories = openInventoryStore(options.database, options.tenancy.limits);
   const monitoring = openMonitoringStore(options.database);
+  const reports = openReportStore(options.database);
   const now = () => options.now?.() ?? new Date();
   const approvals = openApprovalStore(options.database);
   const notifyFailures =
@@ -223,10 +261,10 @@ export async function runHostedService(options: {
         machines,
         (job) => channel.has(job) || (leases.has(job) && leases.get(job) !== worker),
       ))
-        options.onProgress?.(`Destroyed orphaned job machine ${id}.`);
+        onProgress?.(`Destroyed orphaned job machine ${id}.`);
     } catch (error) {
       if (!(error instanceof FlyMachinesError)) throw error;
-      options.onProgress?.(`Job machine reaper failed: ${error.message}`);
+      onProgress?.(`Job machine reaper failed: ${error.message}`);
     }
   };
 
@@ -236,7 +274,7 @@ export async function runHostedService(options: {
     options.signal.addEventListener('abort', abort, { once: true });
     running.set(job, controller);
     const progress = (message: string, level?: 'error') =>
-      options.onProgress?.(message, {
+      onProgress?.(message, {
         job,
         target: target.id,
         installation: target.installationId,
@@ -270,9 +308,23 @@ export async function runHostedService(options: {
       );
     }, renewEvery);
     try {
-      const access = await confirmRepositoryAccess(options.app, target.repository);
+      const access = await confirmRepositoryAccess(options.app, target.repository).catch(
+        async (error: unknown) => {
+          if (
+            options.lifecycle &&
+            error instanceof GitHubRequestError &&
+            error.status === NOT_FOUND
+          )
+            await store.retire(target.id, null);
+          throw error;
+        },
+      );
       if (access.installationId !== target.installationId)
         throw new PipelineInputError('Repository now belongs to another App installation.');
+      if (options.lifecycle && (await store.retire(target.id, access.id)))
+        throw new PipelineInputError(
+          'Repository name now belongs to a different GitHub repository; approve it again.',
+        );
       const outcome = jobs
         ? await runJobMachine({
             ...jobs,
@@ -316,7 +368,7 @@ export async function runHostedService(options: {
             notify: options.notify,
             onProgress: progress,
           });
-      await store.finish(job, worker, outcome.status, outcome.receipt);
+      await store.finish(job, worker, outcome.status, redactReceipt(outcome.receipt));
       // The receipt carries the error name from both runners, so a job machine's refusal counts too.
       if (options.approvalIssues && outcome.receipt.message?.startsWith('RepositoryApprovalError:'))
         await approvals.changed(target.repository);
@@ -324,7 +376,7 @@ export async function runHostedService(options: {
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       const outcome = failedOutcome(error, controller.signal.aborted);
-      await store.finish(job, worker, outcome.status, outcome.receipt);
+      await store.finish(job, worker, outcome.status, redactReceipt(outcome.receipt));
       progress(`${error.name}: ${error.message}`, 'error');
     } finally {
       clearInterval(renewal);
@@ -336,7 +388,7 @@ export async function runHostedService(options: {
   // A read-only inventory of an installed repository, approved or not; it never enrolls anything.
   const runInventory = async (claimed: InventoryClaim) => {
     const progress = (message: string) =>
-      options.onProgress?.(`[inventory ${claimed.repository}] ${message}`);
+      onProgress?.(`[inventory ${claimed.repository}] ${message}`);
     const started = Date.now();
     try {
       const registry = await loadDeadlineRegistry(options.registry, now());
@@ -372,13 +424,21 @@ export async function runHostedService(options: {
     }
   };
 
+  const pages = hostedPages({
+    app: options.app,
+    tenancy: options.tenancy,
+    publishDraft: Boolean(options.publishDraft),
+    aiPatch: Boolean(options.aiPatch),
+    contact: options.contact,
+    onProgress: options.onProgress,
+  });
   // A registry that does not load skips monitoring for this pass, as it does locally.
   const monitoringRegistry = async () => {
     try {
       return await loadDeadlineRegistry(options.registry, now());
     } catch (error) {
       if (!(error instanceof Error)) throw error;
-      options.onProgress?.(`Deadline monitoring skipped: ${error.name}: ${error.message}`);
+      onProgress?.(`Deadline monitoring skipped: ${error.name}: ${error.message}`);
       return null;
     }
   };
@@ -400,9 +460,9 @@ export async function runHostedService(options: {
         const context: HostedLogContext = { level: 'error' };
         const handler = router(request, response, context).catch((error: unknown) => {
           if (error instanceof WebhookInputError)
-            respond(response, error.status, { error: error.message });
+            respond(response, error.status, { error: redact(error.message) });
           else {
-            options.onProgress?.(
+            onProgress?.(
               `${address.label} processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
               context,
             );
@@ -437,6 +497,7 @@ export async function runHostedService(options: {
     const host = options.host ?? HOSTED_HOST;
     const address = await listen(
       async (request, response, context) => {
+        if (await pages(request, response)) return;
         if (request.method === 'GET' && request.url === '/health') {
           respond(response, 200, { status: 'listening' });
           return;
@@ -463,6 +524,7 @@ export async function runHostedService(options: {
                 alerts: Boolean(options.alerts),
                 installations: await upcomingDeadlines(monitoring, now()),
               },
+              reports: { enabled: Boolean(options.reports), issues: await reports.read() },
             }),
           });
           return;
@@ -483,10 +545,19 @@ export async function runHostedService(options: {
         const parsed = parseWebhook(body, event, Number(options.app.appId));
         if ('installationId' in parsed) context.installation = parsed.installationId;
         const change =
-          parsed.kind === 'issue_comment' && !options.approvalIssues
+          (parsed.kind === 'issue_comment' && !options.approvalIssues) ||
+          ((parsed.kind === 'repository' || parsed.kind === 'account') && !options.lifecycle)
             ? { kind: 'ignored' as const }
             : parsed;
         const receipt = await store.accept(id, String(event), body, change);
+        if (
+          change.kind === 'account' &&
+          options.tenancy.accounts.includes(change.previousOwner) &&
+          !options.tenancy.accounts.includes(change.owner)
+        )
+          options.onProgress?.(
+            `Account ${change.previousOwner} is now ${change.owner}, which REFIT_HOSTED_ACCOUNTS does not list; its targets stopped. Add ${change.owner} to allow it again.`,
+          );
         for (const job of receipt.running) running.get(job)?.abort();
         const inventoried =
           receipt.status === 'accepted' && 'added' in change && change.added.length
@@ -496,7 +567,9 @@ export async function runHostedService(options: {
               )
             : 0;
         const pushed =
-          options.alerts && receipt.status === 'accepted' && change.kind === 'push'
+          (options.alerts || options.reports) &&
+          receipt.status === 'accepted' &&
+          change.kind === 'push'
             ? await monitoring.pushed(change.installation, change.repository, now())
             : false;
         // With approval issues on, new installations and comments are handled without waiting.
@@ -539,7 +612,7 @@ export async function runHostedService(options: {
         timeoutSeconds: options.jobMachines.timeoutSeconds ?? JOB_TIMEOUT_SECONDS,
         pollSeconds: options.jobMachines.pollSeconds ?? JOB_POLL_SECONDS,
       };
-      options.onProgress?.(`Job channel listening at ${jobs.callback}; jobs run on Fly Machines.`);
+      onProgress?.(`Job channel listening at ${jobs.callback}; jobs run on Fly Machines.`);
     }
     options.onReady?.(`http://${host}:${address.port}`);
     while (!options.signal.aborted) {
@@ -556,26 +629,24 @@ export async function runHostedService(options: {
             onCancelled: (jobs) => {
               for (const job of jobs) running.get(job)?.abort();
             },
-            onProgress: options.onProgress,
+            onProgress,
           });
         await store.enqueueDue(interval);
         if (options.purgeUninstalled) {
           const purged = await purgeUninstalled(options.database, directory);
           if (purged.targets.length)
-            options.onProgress?.(
+            onProgress?.(
               `Deleted ${purged.targets.length} target(s) and ${purged.jobs} job(s) of installation(s) ${purged.installations.join(', ')}, uninstalled more than the grace period ago.`,
             );
           for (const { target, reason } of purged.kept)
-            options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
+            onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
         }
         await inventories.requestMissing();
-        const registry = options.alerts && (await monitoringRegistry());
+        const registry = (options.alerts || options.reports) && (await monitoringRegistry());
         if (registry) {
           const due = await requestRescans({ monitoring, inventories, registry, now: now() });
           for (const item of due)
-            options.onProgress?.(
-              `[monitoring ${item.repository}] Inventory requested (${item.reason}).`,
-            );
+            onProgress?.(`[monitoring ${item.repository}] Inventory requested (${item.reason}).`);
         }
         // Inventories are short and read-only, so a queued one goes before the next validation job.
         while (!options.signal.aborted) {
@@ -602,6 +673,15 @@ export async function runHostedService(options: {
             now: now(),
             leadDays: options.alerts.leadDays,
             digest: options.alerts.digest,
+            signal: options.signal,
+            onProgress,
+          });
+        if (registry && options.reports && !options.signal.aborted)
+          await syncReportIssues({
+            app: options.app,
+            reports,
+            registry,
+            now: now(),
             signal: options.signal,
             onProgress: options.onProgress,
           });

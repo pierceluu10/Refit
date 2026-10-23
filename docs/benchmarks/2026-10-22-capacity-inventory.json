@@ -19,76 +19,76 @@
     "deadlines": "refit deadlines --json --repository <checkout>",
     "agents": "refit agents --json --repository <checkout>"
   },
-  "measured": 97,
+  "measured": 91,
   "failed": 3,
   "summary": {
     "deadlines": {
       "wallSeconds": {
-        "count": 97,
-        "p50": 0.514,
-        "p90": 1.187,
+        "count": 91,
+        "p50": 0.5,
+        "p90": 1.002,
         "p99": 2.111,
         "max": 2.111
       },
       "cpuSeconds": {
-        "count": 97,
-        "p50": 0.6100000000000001,
-        "p90": 1.27,
+        "count": 91,
+        "p50": 0.6,
+        "p90": 1.18,
         "p99": 2.4299999999999997,
         "max": 2.4299999999999997
       },
       "maxRssBytes": {
-        "count": 97,
-        "p50": 222445568,
-        "p90": 369164288,
-        "p99": 465731584,
-        "max": 465731584
+        "count": 91,
+        "p50": 221396992,
+        "p90": 334413824,
+        "p99": 386727936,
+        "max": 386727936
       }
     },
     "agents": {
       "wallSeconds": {
-        "count": 97,
-        "p50": 1.107,
-        "p90": 5.601,
+        "count": 91,
+        "p50": 1.044,
+        "p90": 4.655,
         "p99": 13.942,
         "max": 13.942
       },
       "cpuSeconds": {
-        "count": 97,
-        "p50": 1.2000000000000002,
-        "p90": 6.07,
+        "count": 91,
+        "p50": 1.07,
+        "p90": 5.08,
         "p99": 11.92,
         "max": 11.92
       },
       "maxRssBytes": {
-        "count": 97,
-        "p50": 279805952,
-        "p90": 529154048,
-        "p99": 868548608,
-        "max": 868548608
+        "count": 91,
+        "p50": 268894208,
+        "p90": 494747648,
+        "p99": 682033152,
+        "max": 682033152
       }
     },
     "inventory": {
       "wallSeconds": {
-        "count": 97,
-        "p50": 1.645,
-        "p90": 6.711,
+        "count": 91,
+        "p50": 1.5190000000000001,
+        "p90": 5.5840000000000005,
         "p99": 15.906,
         "max": 15.906
       },
       "cpuSeconds": {
-        "count": 97,
-        "p50": 1.7800000000000002,
-        "p90": 7.29,
+        "count": 91,
+        "p50": 1.7000000000000002,
+        "p90": 6.0600000000000005,
         "p99": 14.35,
         "max": 14.35
       },
       "maxRssBytes": {
-        "count": 97,
-        "p50": 279805952,
-        "p90": 529154048,
-        "p99": 868548608,
-        "max": 868548608
+        "count": 91,
+        "p50": 268894208,
+        "p90": 494747648,
+        "p99": 682033152,
+        "max": 682033152
       }
     }
   },
@@ -1210,27 +1210,6 @@
     },
     {
       "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
-      "repo": "wk42worldworld/cybercode",
-      "commit": "a43863b90a4ccba6e6f8b6406cf0e2c4df44bc0c",
-      "files": 3701,
-      "bytes": 160698676,
-      "deadlines": {
-        "wallSeconds": 1.452,
-        "userSeconds": 1.41,
-        "systemSeconds": 0.25,
-        "maxRssBytes": 397950976,
-        "exit": 0
-      },
-      "agents": {
-        "wallSeconds": 6.578,
-        "userSeconds": 3.22,
-        "systemSeconds": 3.25,
-        "maxRssBytes": 521666560,
-        "exit": 0
-      }
-    },
-    {
-      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
       "repo": "kgoedecke/doop",
       "commit": "0f274ac01b2168c9248424b5e7724d3a8a7c626b",
       "files": 608,
@@ -1268,27 +1247,6 @@
         "userSeconds": 0.48,
         "systemSeconds": 0.12,
         "maxRssBytes": 201654272,
-        "exit": 0
-      }
-    },
-    {
-      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
-      "repo": "OpenAisec/Miko",
-      "commit": "85f6ab54577064f42b64095213a5b236d458ba82",
-      "files": 4345,
-      "bytes": 299656645,
-      "deadlines": {
-        "wallSeconds": 1.437,
-        "userSeconds": 1.28,
-        "systemSeconds": 0.29,
-        "maxRssBytes": 369164288,
-        "exit": 0
-      },
-      "agents": {
-        "wallSeconds": 7.478,
-        "userSeconds": 3.17,
-        "systemSeconds": 3.52,
-        "maxRssBytes": 449462272,
         "exit": 0
       }
     },
@@ -1352,27 +1310,6 @@
         "userSeconds": 0.43,
         "systemSeconds": 0.08,
         "maxRssBytes": 210354176,
-        "exit": 0
-      }
-    },
-    {
-      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
-      "repo": "JrCx7scC/claude-code-source",
-      "commit": "431056a3ed6a0826e88cded587b88e5c2d91811c",
-      "files": 2269,
-      "bytes": 47863794,
-      "deadlines": {
-        "wallSeconds": 1.119,
-        "userSeconds": 1.1,
-        "systemSeconds": 0.19,
-        "maxRssBytes": 390709248,
-        "exit": 0
-      },
-      "agents": {
-        "wallSeconds": 5.458,
-        "userSeconds": 2.45,
-        "systemSeconds": 2.45,
-        "maxRssBytes": 570785792,
         "exit": 0
       }
     },
@@ -1462,27 +1399,6 @@
     },
     {
       "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
-      "repo": "fazxes/Claude-code",
-      "commit": "0607f147615853e39de908d6a7ddc8356644edc2",
-      "files": 2433,
-      "bytes": 39336617,
-      "deadlines": {
-        "wallSeconds": 1.971,
-        "userSeconds": 1.85,
-        "systemSeconds": 0.32,
-        "maxRssBytes": 465731584,
-        "exit": 0
-      },
-      "agents": {
-        "wallSeconds": 5.601,
-        "userSeconds": 2.69,
-        "systemSeconds": 2.57,
-        "maxRssBytes": 708689920,
-        "exit": 0
-      }
-    },
-    {
-      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
       "repo": "AmazingAng/PolyWorld",
       "commit": "9483ddea61043809bcc4515a5ca5816bad6ae192",
       "files": 202,
@@ -1499,27 +1415,6 @@
         "userSeconds": 0.64,
         "systemSeconds": 0.26,
         "maxRssBytes": 255180800,
-        "exit": 0
-      }
-    },
-    {
-      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
-      "repo": "txl16095/MiniClaude",
-      "commit": "561531ea4567e83bcaaf0aa45c038b5cfda58297",
-      "files": 1836,
-      "bytes": 34516322,
-      "deadlines": {
-        "wallSeconds": 1.12,
-        "userSeconds": 1.05,
-        "systemSeconds": 0.17,
-        "maxRssBytes": 383942656,
-        "exit": 0
-      },
-      "agents": {
-        "wallSeconds": 3.792,
-        "userSeconds": 2.12,
-        "systemSeconds": 1.76,
-        "maxRssBytes": 739835904,
         "exit": 0
       }
     },
@@ -1604,27 +1499,6 @@
         "userSeconds": 0.75,
         "systemSeconds": 0.48,
         "maxRssBytes": 268894208,
-        "exit": 0
-      }
-    },
-    {
-      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
-      "repo": "TaGoat/claude_code_cli",
-      "commit": "66f7740787048a97b44c52c89999839cffe49b76",
-      "files": 2117,
-      "bytes": 41598591,
-      "deadlines": {
-        "wallSeconds": 1.164,
-        "userSeconds": 1.08,
-        "systemSeconds": 0.18,
-        "maxRssBytes": 390135808,
-        "exit": 0
-      },
-      "agents": {
-        "wallSeconds": 4.366,
-        "userSeconds": 2.31,
-        "systemSeconds": 2.08,
-        "maxRssBytes": 868548608,
         "exit": 0
       }
     },
@@ -2199,5 +2073,17 @@
         "exit": 0
       }
     }
-  ]
+  ],
+  "removed": {
+    "removedAt": "2026-10-22",
+    "reason": "Rows for repositories that are copies of leaked proprietary Claude Code source were removed with them from the Anthropic app list; the summary is over the remaining rows.",
+    "repos": [
+      "wk42worldworld/cybercode",
+      "OpenAisec/Miko",
+      "JrCx7scC/claude-code-source",
+      "fazxes/Claude-code",
+      "txl16095/MiniClaude",
+      "TaGoat/claude_code_cli"
+    ]
+  }
 }

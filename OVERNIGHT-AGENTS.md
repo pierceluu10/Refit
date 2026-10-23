@@ -45,9 +45,9 @@ A customer installs the Refit Agent GitHub App, and then:
 Every lane must follow these. Read them before anything else.
 
 - **Read first.** Read `AGENTS.md`, `docs/READINESS.md`, `docs/ARCHITECTURE.md` and the docs and code your lane touches before writing anything. Reuse existing modules and follow existing patterns. Add no new dependency unless the lane says so.
-- **Isolation.** `$REFIT` is your main clone of `pierceluu10/Refit` (Pierce: `/Users/pierceluu/Repos/Refit-hosted`). Work in your own worktree:
+- **Isolation.** `$REFIT` is your main clone of `pierceluu10/Refit` (Pierce: `~/Repos/Refit-hosted`). Work in your own worktree:
   - Run `git -C "$REFIT" fetch origin && git -C "$REFIT" worktree add -b <branch> "$REFIT-<lane>" origin/main`, then `npm ci` inside the worktree.
-  - Never touch another lane's worktree, branch or PR. Never touch Pierce's website checkout `/Users/pierceluu/Repos/Refit`.
+  - Never touch another lane's worktree, branch or PR. Never touch Pierce's website checkout `~/Repos/Refit`.
 - **Owned files.** Each lane lists what it owns.
   - Lanes owned by another person are off limits. If you need something changed there, describe it in your PR under "Requests for other lanes".
   - Shared docs (`docs/READINESS.md`, `docs/BENCHMARKS.md`, `AGENTS.md`, `README.md`, `docs/CLI.md`) are edited only by PP10. Put your findings in your own doc and your PR summary; PP10 folds them in.

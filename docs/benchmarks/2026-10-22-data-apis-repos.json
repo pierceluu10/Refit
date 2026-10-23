@@ -1,0 +1,2171 @@
+{
+  "formatVersion": 1,
+  "selectedAt": "2026-10-22T08:52:23.844Z",
+  "method": "GitHub code search (gh api search/code, up to 3 pages of 100) for each package of each provider with the query shape \"<package>\" filename:package.json path:/ (root package.json files naming the package); candidates in result order, one provider per repository; kept when not a fork or archived, pushed on or after 2025-10-21, under 60000 KB, not the provider's own organisation, and the root package.json at the default-branch HEAD declares the package; first 14 per provider.",
+  "queries": [
+    {
+      "provider": "google-maps",
+      "q": "\"@googlemaps/js-api-loader\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "google-maps",
+      "q": "\"@googlemaps/js-api-loader\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "google-maps",
+      "q": "\"@googlemaps/js-api-loader\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "google-maps",
+      "q": "\"@react-google-maps/api\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "google-maps",
+      "q": "\"@react-google-maps/api\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "google-maps",
+      "q": "\"@react-google-maps/api\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "google-maps",
+      "q": "\"@vis.gl/react-google-maps\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "google-maps",
+      "q": "\"@vis.gl/react-google-maps\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "google-maps",
+      "q": "\"@vis.gl/react-google-maps\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "mapbox",
+      "q": "\"mapbox-gl\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "mapbox",
+      "q": "\"mapbox-gl\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "mapbox",
+      "q": "\"mapbox-gl\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "mapbox",
+      "q": "\"@mapbox/mapbox-sdk\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "mapbox",
+      "q": "\"@mapbox/mapbox-sdk\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "mapbox",
+      "q": "\"@mapbox/mapbox-sdk\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "algolia",
+      "q": "\"algoliasearch\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "algolia",
+      "q": "\"algoliasearch\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "algolia",
+      "q": "\"algoliasearch\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "algolia",
+      "q": "\"react-instantsearch\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "algolia",
+      "q": "\"react-instantsearch\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "algolia",
+      "q": "\"react-instantsearch\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "hubspot",
+      "q": "\"@hubspot/api-client\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "hubspot",
+      "q": "\"@hubspot/api-client\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "hubspot",
+      "q": "\"@hubspot/api-client\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "intercom",
+      "q": "\"intercom-client\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "intercom",
+      "q": "\"intercom-client\" filename:package.json path:/",
+      "page": 2,
+      "results": 8
+    },
+    {
+      "provider": "mailchimp",
+      "q": "\"@mailchimp/mailchimp_marketing\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "mailchimp",
+      "q": "\"@mailchimp/mailchimp_marketing\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "mailchimp",
+      "q": "\"@mailchimp/mailchimp_marketing\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "mailchimp",
+      "q": "\"@mailchimp/mailchimp_transactional\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "mailchimp",
+      "q": "\"@mailchimp/mailchimp_transactional\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "mailchimp",
+      "q": "\"@mailchimp/mailchimp_transactional\" filename:package.json path:/",
+      "page": 3,
+      "results": 23
+    },
+    {
+      "provider": "zoom",
+      "q": "\"@zoom/meetingsdk\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "zoom",
+      "q": "\"@zoom/meetingsdk\" filename:package.json path:/",
+      "page": 2,
+      "results": 80
+    },
+    {
+      "provider": "zoom",
+      "q": "\"@zoomus/websdk\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "zoom",
+      "q": "\"@zoomus/websdk\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "zoom",
+      "q": "\"@zoomus/websdk\" filename:package.json path:/",
+      "page": 3,
+      "results": 49
+    },
+    {
+      "provider": "zoom",
+      "q": "\"@zoom/videosdk\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "zoom",
+      "q": "\"@zoom/videosdk\" filename:package.json path:/",
+      "page": 2,
+      "results": 33
+    },
+    {
+      "provider": "dropbox",
+      "q": "\"dropbox\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "dropbox",
+      "q": "\"dropbox\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "dropbox",
+      "q": "\"dropbox\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "notion",
+      "q": "\"@notionhq/client\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "notion",
+      "q": "\"@notionhq/client\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "notion",
+      "q": "\"@notionhq/client\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "airtable",
+      "q": "\"airtable\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "airtable",
+      "q": "\"airtable\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "airtable",
+      "q": "\"airtable\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "segment",
+      "q": "\"@segment/analytics-node\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "segment",
+      "q": "\"@segment/analytics-node\" filename:package.json path:/",
+      "page": 2,
+      "results": 46
+    },
+    {
+      "provider": "segment",
+      "q": "\"@segment/analytics-next\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "segment",
+      "q": "\"@segment/analytics-next\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "segment",
+      "q": "\"@segment/analytics-next\" filename:package.json path:/",
+      "page": 3,
+      "results": 65
+    },
+    {
+      "provider": "segment",
+      "q": "\"analytics-node\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "segment",
+      "q": "\"analytics-node\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "segment",
+      "q": "\"analytics-node\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/node\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/node\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/node\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/browser\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/browser\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/browser\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/nextjs\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/nextjs\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "sentry",
+      "q": "\"@sentry/nextjs\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "discord",
+      "q": "\"discord.js\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "discord",
+      "q": "\"discord.js\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "discord",
+      "q": "\"discord.js\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "contentful",
+      "q": "\"contentful\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "contentful",
+      "q": "\"contentful\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "contentful",
+      "q": "\"contentful\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "contentful",
+      "q": "\"contentful-management\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "contentful",
+      "q": "\"contentful-management\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "contentful",
+      "q": "\"contentful-management\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "cloudinary",
+      "q": "\"cloudinary\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "cloudinary",
+      "q": "\"cloudinary\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "cloudinary",
+      "q": "\"cloudinary\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    },
+    {
+      "provider": "cloudinary",
+      "q": "\"@cloudinary/url-gen\" filename:package.json path:/",
+      "page": 1,
+      "results": 100
+    },
+    {
+      "provider": "cloudinary",
+      "q": "\"@cloudinary/url-gen\" filename:package.json path:/",
+      "page": 2,
+      "results": 100
+    },
+    {
+      "provider": "cloudinary",
+      "q": "\"@cloudinary/url-gen\" filename:package.json path:/",
+      "page": 3,
+      "results": 100
+    }
+  ],
+  "rejected": {
+    "old": 738,
+    "large": 75,
+    "not declared at HEAD": 33,
+    "unreachable": 5
+  },
+  "repos": [
+    {
+      "provider": "google-maps",
+      "repo": "burdas/TaxiPeralta2024",
+      "commit": "caa5473b6d30657914fcb692edfd853916bc7be0",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 0,
+      "pushedAt": "2026-09-11T15:26:59Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "Hack4Impact-UMD/for-all-ages",
+      "commit": "28c3c200964d2e006ea287d2238f5ba49b38e848",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 5,
+      "pushedAt": "2026-10-18T04:39:37Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "ideil/ideil-vite-starter",
+      "commit": "ad39483eb548c06012bf43b03331fea221f5f7cb",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 1,
+      "pushedAt": "2026-01-14T12:23:51Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "tjhorner/transit-tracker-configurator",
+      "commit": "272a6f952eaad1b97b61f7c57e93dcd5b4ab278f",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 3,
+      "pushedAt": "2026-08-01T02:06:22Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "rene-mdd/global-warming",
+      "commit": "4f31b04c35627b78cb395ea9b46b7850515b91c4",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 7,
+      "pushedAt": "2026-10-18T10:44:38Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "Meku-nint/ylakun",
+      "commit": "3ea68d9ebe3a329c467672dbc8be5d663ef95e73",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 4,
+      "pushedAt": "2026-01-22T08:09:44Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "khadka27/fishtail-infosolutions",
+      "commit": "f051d8712c873160584d4351534bc4a5a9098bf9",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 2,
+      "pushedAt": "2025-12-31T07:10:29Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "beatrizsmerino/vue-users",
+      "commit": "d1d116c6600d45776aa1f643b8b2cb6348a214c8",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 6,
+      "pushedAt": "2026-10-20T18:54:28Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "mr-robertamoah/TalkTherapy",
+      "commit": "f97652e4ec9371d8e08bf0a7ab9fc652015c84fd",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 3,
+      "pushedAt": "2026-09-15T06:13:15Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "4GeeksAcademy/Proyecto-final-CEMJ-Ishtar-Inanna",
+      "commit": "2a25e8880b0ace6610f2662a4ca9caacb4a13a3d",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 3,
+      "pushedAt": "2025-12-17T19:32:45Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "sidd233/krushisaathi",
+      "commit": "b1dae717369ba4743736f9bf877b1053b27c568f",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 4,
+      "pushedAt": "2026-03-11T09:15:58Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "OX-Security-Demo/Multi-currency-management",
+      "commit": "994f1eb0bd56bde8c910ffce48b5d004a1190839",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 1,
+      "pushedAt": "2026-10-21T21:46:20Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "kyeotic/foodie",
+      "commit": "759aae1fa89a0e62acb192fd75dfc30656fe5ad2",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 0,
+      "pushedAt": "2026-03-30T01:53:49Z"
+    },
+    {
+      "provider": "google-maps",
+      "repo": "twonum/DhondLo",
+      "commit": "6d729f0a5c063fcbc7f180281f802f102391ebf4",
+      "package": "@googlemaps/js-api-loader",
+      "stars": 0,
+      "pushedAt": "2026-09-02T11:45:14Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "NASA-IMPACT/veda-ui",
+      "commit": "5e60eb7b3545c142455608d8a984bc76fbcf6d51",
+      "package": "mapbox-gl",
+      "stars": 45,
+      "pushedAt": "2026-06-10T21:59:25Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "howion/anatolia-19th",
+      "commit": "8e148643f4b9bab6e7d9706fe197b71c89859b72",
+      "package": "mapbox-gl",
+      "stars": 7,
+      "pushedAt": "2026-06-24T14:53:18Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "sun0225SUN/camlife",
+      "commit": "a1754fb2fd1788220465d69ab0ce1033dbd18e98",
+      "package": "mapbox-gl",
+      "stars": 112,
+      "pushedAt": "2026-06-01T20:02:22Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "SITU-Research/codec",
+      "commit": "1eb8574387aa4631ec6d7c15b76e3edc8439ddde",
+      "package": "mapbox-gl",
+      "stars": 66,
+      "pushedAt": "2026-10-12T14:49:30Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "Iconem/search-satellite-imagery",
+      "commit": "f7626c4673e70352776a47545735b018e7de1e50",
+      "package": "mapbox-gl",
+      "stars": 58,
+      "pushedAt": "2026-10-01T10:51:09Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "Plant-for-the-Planet-org/planet-widgets",
+      "commit": "95904bd808ad9f6ada3d0ce7d407cdf76837f40e",
+      "package": "mapbox-gl",
+      "stars": 6,
+      "pushedAt": "2026-02-26T12:35:16Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "Iconem/historical-satellite",
+      "commit": "416cebbb7777c4bc2055f0eb66b8bd443ece8e7f",
+      "package": "mapbox-gl",
+      "stars": 17,
+      "pushedAt": "2026-08-24T09:03:02Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "sbsev/site",
+      "commit": "4c8ffe6a548835a05323ccf3865dc52ab8a67bdb",
+      "package": "mapbox-gl",
+      "stars": 14,
+      "pushedAt": "2026-10-05T19:58:03Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "SixthFlow-Reserach-OS/OutbreakX",
+      "commit": "bfbd868c9b65420ed1a84f593688c57b6a17afb8",
+      "package": "mapbox-gl",
+      "stars": 6,
+      "pushedAt": "2025-12-21T22:48:05Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "nicasmar/dharma-gates",
+      "commit": "c8d8ce3920f3943e2bac609589fc49d98c3b7a57",
+      "package": "mapbox-gl",
+      "stars": 0,
+      "pushedAt": "2026-01-28T16:11:49Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "AayushMathur7/ask-singapore",
+      "commit": "0d77e0343c2cdbac74e759e789471d8411061ee3",
+      "package": "mapbox-gl",
+      "stars": 21,
+      "pushedAt": "2026-02-23T07:24:42Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "sajided/durnity-map",
+      "commit": "3d4adfb28a23c847a87c6f1081b9bf6ffe0de261",
+      "package": "mapbox-gl",
+      "stars": 10,
+      "pushedAt": "2026-03-02T10:34:21Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "carlinoc/reciclape-web",
+      "commit": "edcf4b3fc71e26d940d4ef7c42105627960c0a47",
+      "package": "mapbox-gl",
+      "stars": 0,
+      "pushedAt": "2026-02-05T06:28:23Z"
+    },
+    {
+      "provider": "mapbox",
+      "repo": "openearth/AST2.0",
+      "commit": "fb27ddf67e4487a9e49930a3d09a22f22cd08af3",
+      "package": "mapbox-gl",
+      "stars": 0,
+      "pushedAt": "2025-10-24T06:50:23Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "axelarnetwork/axelar-docs",
+      "commit": "e45fbd1a59cd3d03c0186e170acb077e287bb109",
+      "package": "algoliasearch",
+      "stars": 70,
+      "pushedAt": "2026-09-04T15:56:41Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "theme-shoka-x/hexo-theme-shokaX",
+      "commit": "7e411762d202893172f092b670a96598a42f7a4b",
+      "package": "algoliasearch",
+      "stars": 485,
+      "pushedAt": "2026-02-24T14:10:35Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "doctrine/doctrine-website",
+      "commit": "ea3bd5061d02238e2ff3951dc71689be7d4043f2",
+      "package": "algoliasearch",
+      "stars": 33,
+      "pushedAt": "2026-10-22T07:18:50Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "xhyrom/bun-discord-bot",
+      "commit": "260f722de781de4c00e376a61f484a85a9f44e94",
+      "package": "algoliasearch",
+      "stars": 39,
+      "pushedAt": "2025-11-09T17:04:46Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "spring-io/antora-ui-spring",
+      "commit": "00618195cca8f5e6cae541163dc011650b1973c3",
+      "package": "algoliasearch",
+      "stars": 19,
+      "pushedAt": "2026-03-13T17:42:52Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "edx/frontend-component-authn-edx",
+      "commit": "08d552bae904e3b640c3a9c008ab0a28654babbd",
+      "package": "algoliasearch",
+      "stars": 0,
+      "pushedAt": "2026-08-06T11:00:26Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "fxhash/fxhash-api",
+      "commit": "4b04860ae89f999fab4d16b3323ee1a617067615",
+      "package": "algoliasearch",
+      "stars": 12,
+      "pushedAt": "2026-10-15T11:05:05Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "chain4travel/camino-docs",
+      "commit": "90b91262b116beeafb27c076736a382247b98f3e",
+      "package": "algoliasearch",
+      "stars": 3,
+      "pushedAt": "2026-02-02T12:32:59Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "fvilers/nestjs-algolia",
+      "commit": "24f7606679fa61fb6ca7b5ccd939d1374f443734",
+      "package": "algoliasearch",
+      "stars": 19,
+      "pushedAt": "2026-10-13T05:45:34Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "nypublicradio/radiolab-vue",
+      "commit": "aad2a03614e8c33dd27f9596a55114cf4dbeb9fb",
+      "package": "algoliasearch",
+      "stars": 2,
+      "pushedAt": "2026-10-21T19:26:46Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "naabu/naabu",
+      "commit": "1c404f61fe32b30a57ba6ddfe207d172d0d4f84d",
+      "package": "algoliasearch",
+      "stars": 26,
+      "pushedAt": "2026-02-13T10:10:09Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "pixie-io/docs.px.dev",
+      "commit": "011de5b09be544e94974cabbe0cedf43b9010bba",
+      "package": "algoliasearch",
+      "stars": 21,
+      "pushedAt": "2025-11-11T04:29:07Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "prezly/theme-nextjs-starter",
+      "commit": "85012c4ab9dc0000264229a667a52c2b11d7c456",
+      "package": "algoliasearch",
+      "stars": 13,
+      "pushedAt": "2026-10-21T22:37:06Z"
+    },
+    {
+      "provider": "algolia",
+      "repo": "JEK58/WPRS-Forecast",
+      "commit": "bae7089328cb910f56e20ad3154bb61cc441fadc",
+      "package": "algoliasearch",
+      "stars": 6,
+      "pushedAt": "2026-10-13T12:52:17Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "looker-open-source/actions",
+      "commit": "5d136eb830c3ea21b55032f7d4297935eaa03d56",
+      "package": "@hubspot/api-client",
+      "stars": 69,
+      "pushedAt": "2026-10-06T21:01:55Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "hubspotdev/crm-object-sync",
+      "commit": "7f24375dc2a0ef708cd0c4c368d6f81364ed10d4",
+      "package": "@hubspot/api-client",
+      "stars": 27,
+      "pushedAt": "2026-01-30T01:34:04Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "Atlas-Authority/marketing-automation",
+      "commit": "f2866ca1d7630c922911b38f6b8a4fe51171e65f",
+      "package": "@hubspot/api-client",
+      "stars": 25,
+      "pushedAt": "2026-09-10T03:48:53Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "abbaspour/actions-gallery",
+      "commit": "4a9aba59d2bc115ad8a5ca2b0636b536980d461e",
+      "package": "@hubspot/api-client",
+      "stars": 20,
+      "pushedAt": "2026-09-17T00:49:34Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "personizeai/revenue-os",
+      "commit": "7efa73c10495b3f41da10ad9bf7f6c25194089c9",
+      "package": "@hubspot/api-client",
+      "stars": 12,
+      "pushedAt": "2026-04-23T19:42:41Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "amplication/amplication-site",
+      "commit": "95b85b224ffdfa7ffe0367c60cb325363d1e364e",
+      "package": "@hubspot/api-client",
+      "stars": 12,
+      "pushedAt": "2026-01-29T07:39:08Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "spyder-ide/spyder-website",
+      "commit": "4a5b29672a585afe9a28067563b94123abe9385b",
+      "package": "@hubspot/api-client",
+      "stars": 2,
+      "pushedAt": "2026-08-26T00:35:11Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "adeel0x01/hubspot-mcp-tools",
+      "commit": "005966dfd8386606d71aa94bc76a6b0da3f32d63",
+      "package": "@hubspot/api-client",
+      "stars": 4,
+      "pushedAt": "2026-03-24T10:31:08Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "cheloynesh/elan2",
+      "commit": "f6d80a3c7dd5072129c134571537a1c6a8b71ccb",
+      "package": "@hubspot/api-client",
+      "stars": 0,
+      "pushedAt": "2026-03-12T21:49:39Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "01-edu/hubspot",
+      "commit": "4d897d0f5f85e08e7b2dbb72a3a00230a19b9274",
+      "package": "@hubspot/api-client",
+      "stars": 1,
+      "pushedAt": "2026-10-01T03:53:16Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "SDxCommunity/sdx-site",
+      "commit": "85ab0ff5b303023a79021be25716395753ad1cc6",
+      "package": "@hubspot/api-client",
+      "stars": 2,
+      "pushedAt": "2026-10-20T20:02:30Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "theodi/care.theodi.org",
+      "commit": "c9ffaa4031ee8e68fb72e3ef01763182b43b5341",
+      "package": "@hubspot/api-client",
+      "stars": 0,
+      "pushedAt": "2026-09-22T05:31:13Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "chirag127/OmniDistribute",
+      "commit": "64317b75a9f4942b710b5d1391a1115ed4f56d6d",
+      "package": "@hubspot/api-client",
+      "stars": 1,
+      "pushedAt": "2026-10-06T05:43:07Z"
+    },
+    {
+      "provider": "hubspot",
+      "repo": "cdonaleski/valid-assessment",
+      "commit": "210e443ab39b19f4dd1d475c1acac85123fadd6e",
+      "package": "@hubspot/api-client",
+      "stars": 0,
+      "pushedAt": "2026-03-15T04:29:25Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "likecoin/likecoin-api-public",
+      "commit": "33370f316baf47805adeae3ea66fd15abac2fdb2",
+      "package": "intercom-client",
+      "stars": 5,
+      "pushedAt": "2026-10-22T07:24:12Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "cyverse-de/portal2",
+      "commit": "8697c2aeb8dc20a47228e5fde95933c1af715d83",
+      "package": "intercom-client",
+      "stars": 0,
+      "pushedAt": "2026-09-01T21:03:59Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "ElishaKay/intercom-nodejs",
+      "commit": "2d672dd8fe11c221bded38ed011c934fa29594c5",
+      "package": "intercom-client",
+      "stars": 0,
+      "pushedAt": "2026-01-05T00:05:40Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "henteko/intercom-daily-conversation-summary",
+      "commit": "d432a487e6ab9bbd962be2a7ee2eda137ae875eb",
+      "package": "intercom-client",
+      "stars": 0,
+      "pushedAt": "2025-10-28T02:37:01Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "centre-for-effective-altruism/ea-forum",
+      "commit": "11c93a0ceb0468ab1ee52271513df923635da24f",
+      "package": "intercom-client",
+      "stars": 2,
+      "pushedAt": "2026-10-18T09:04:23Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "derekbowen/poolrentalnearme-web",
+      "commit": "fe19094a79bbe03688c31fd0c7a0461b8b515586",
+      "package": "intercom-client",
+      "stars": 0,
+      "pushedAt": "2026-10-17T15:41:06Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "Sofject/successai-backend",
+      "commit": "01c0d2e8f1fbf76e06a1c78b54d7f04292edb769",
+      "package": "intercom-client",
+      "stars": 0,
+      "pushedAt": "2026-06-11T08:48:33Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "zite/zitejs-starter",
+      "commit": "c97e79d6e7718f9dc09fb8828c1e65248a45c931",
+      "package": "intercom-client",
+      "stars": 0,
+      "pushedAt": "2026-06-30T00:39:47Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "devedmonton/DES-Website",
+      "commit": "b55806ceb6de82f0e43c39a38939606ead0187e0",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 36,
+      "pushedAt": "2026-10-05T18:36:42Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "unfolding-io/Astrogency",
+      "commit": "bfadefa364ed937bb961e0ea51402a07554b4e62",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 74,
+      "pushedAt": "2026-05-10T09:26:01Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "Garden-Steward/steward-bank",
+      "commit": "6c0aae3909b0aa2e33ac358aca1600d215a3214f",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 1,
+      "pushedAt": "2026-10-22T05:22:57Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "BuilderIO/blog-example",
+      "commit": "0819a330402dccc862d993400d351f2a71194005",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 11,
+      "pushedAt": "2026-05-21T19:28:13Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "hermesloom/theglobalburn",
+      "commit": "47a4e6238d0bc05c6b6d54a6a9f3b44d8e4c6294",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 20,
+      "pushedAt": "2026-08-05T08:47:04Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "teia-community/teia-blog",
+      "commit": "4a44d16e5ee03a3aa5bf58b6680c56df1b653208",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 4,
+      "pushedAt": "2025-11-30T15:54:10Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "GavinRay97/GavinRay97.github.io",
+      "commit": "45a21d841c38dc6da9c4b1774018a33de9da5994",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 5,
+      "pushedAt": "2026-10-21T18:34:34Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "avasdao/awesome-nexa",
+      "commit": "6fc89e2583a1133351431a622d21564369a57153",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 6,
+      "pushedAt": "2026-05-05T06:51:51Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "fixthestatusquo/proca-sync",
+      "commit": "1206759a1c8de328640740c35b97d207e03d6e3f",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 3,
+      "pushedAt": "2026-09-30T10:33:41Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "Nym-HQ/nym",
+      "commit": "3ebdc52655785c2458cb841f4753bd9dbab95044",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 60,
+      "pushedAt": "2026-08-06T21:24:43Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "mindstudio-ai/mscr",
+      "commit": "ccadd673b87c38ec66154e6433d954a3c7707d01",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 11,
+      "pushedAt": "2026-05-28T20:16:45Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "mrded/wroom",
+      "commit": "7d97faa40837c9df77200b338b38b50a8ff9d4c8",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 2,
+      "pushedAt": "2026-09-10T09:45:58Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "Telecom-Etude/jet-centre",
+      "commit": "86bd2d5719743b7d811488c51c55fa2221403651",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 10,
+      "pushedAt": "2026-05-19T06:12:29Z"
+    },
+    {
+      "provider": "mailchimp",
+      "repo": "cheqd/studio",
+      "commit": "ebb3e6772390896208b2bbc3768a37971c7893a8",
+      "package": "@mailchimp/mailchimp_marketing",
+      "stars": 12,
+      "pushedAt": "2026-10-14T16:09:56Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "cindyzli/jigglewiggle",
+      "commit": "5ea25d3eeae2e56b9a532141b1174a5ef3bc57f5",
+      "package": "@zoom/meetingsdk",
+      "stars": 8,
+      "pushedAt": "2026-02-16T05:02:30Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "Beyondintern/beyond-intern-v2",
+      "commit": "b681ac9c6c38795152377bedb8b62362ba70267a",
+      "package": "@zoom/meetingsdk",
+      "stars": 2,
+      "pushedAt": "2026-10-21T10:56:11Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "PraneethUday/SecureHealthCareSystem",
+      "commit": "186dcd122173eed03ea4a475a218d5202c7fa56c",
+      "package": "@zoom/meetingsdk",
+      "stars": 2,
+      "pushedAt": "2026-10-03T08:21:01Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "manzil-infinity180/webrtc-client",
+      "commit": "dafb5b2173de7fb2c9c562bb30f5ffbaee7febc4",
+      "package": "@zoom/meetingsdk",
+      "stars": 3,
+      "pushedAt": "2025-11-16T16:30:46Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "dontKnew/zoom-johntvlive",
+      "commit": "1493cab5a289b362428a662fd4811594248987c9",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2025-12-28T08:31:37Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "HarmonyUK/harmonyDECIDE",
+      "commit": "ffbe86cb15ff42e31c41abca7886b37c30f12293",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2025-11-25T03:19:02Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "Iamritupatil/miniclayai-pro",
+      "commit": "48090d3b181b9081c29eb6d2b2a6d2fe49ddbe88",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2026-10-10T11:16:00Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "tallkoh/zoombot",
+      "commit": "3a7f36f4c71e681a2a186072d53ef39d4b00d2da",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2026-08-26T10:19:52Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "upasanaprabhakar/Skill-Sync",
+      "commit": "8be297b1d266a93d2f80e3e666e5817bc6c424b1",
+      "package": "@zoom/meetingsdk",
+      "stars": 1,
+      "pushedAt": "2025-11-26T16:46:21Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "ornicar/azchess.az-frontend",
+      "commit": "67892508ce2c31d202445d48d17e1484ed9c73c9",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2026-03-30T07:09:24Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "SaidMohamedDayas/badjanani2",
+      "commit": "1496985d262c221debb1ed49e146063f4d434e66",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2026-07-27T09:07:52Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "yousef21321/Mr-Ashraf-Abed",
+      "commit": "9d83672b8d042d16c925f5364d96f7d871f5ce96",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2026-08-07T19:26:28Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "kumailx051/freelancenest",
+      "commit": "ebe1dabfcd0a16fdeb3539c74b855379c5b979ce",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2026-03-15T13:21:32Z"
+    },
+    {
+      "provider": "zoom",
+      "repo": "alvaroGrande/re-conecta-frontal",
+      "commit": "2d2b3196f34ab22449f8f5a1aadbf77664f93893",
+      "package": "@zoom/meetingsdk",
+      "stars": 0,
+      "pushedAt": "2026-09-01T16:32:37Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "igorski/bitmappery",
+      "commit": "93d5bdb9696607e72185b1003f3d160def58f3dd",
+      "package": "dropbox",
+      "stars": 347,
+      "pushedAt": "2026-09-01T22:05:09Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "adventurerscodex/adventurerscodex",
+      "commit": "6427fecfe99cb805985d3dee3687cc5be5ea08d7",
+      "package": "dropbox",
+      "stars": 254,
+      "pushedAt": "2026-09-15T21:20:05Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "JimmyLv/styled-roam",
+      "commit": "b2c2983be96ef6d13dbca9d9251642f2279e45c7",
+      "package": "dropbox",
+      "stars": 120,
+      "pushedAt": "2026-10-20T16:31:33Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "ChoicescriptIDE/main",
+      "commit": "6407d0a7ac322aa7f0ed070c23f813fda68e0cd0",
+      "package": "dropbox",
+      "stars": 36,
+      "pushedAt": "2026-03-09T01:35:06Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "arichiv/supernote-crossword",
+      "commit": "c1c2bc35adba2d1e9ce14a4eee50e22805ffaf78",
+      "package": "dropbox",
+      "stars": 30,
+      "pushedAt": "2026-07-27T17:31:35Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "Yentis/manga-reader",
+      "commit": "be3258b5e777afaed0bfd0c4749722cdb86bb917",
+      "package": "dropbox",
+      "stars": 14,
+      "pushedAt": "2026-08-02T12:13:42Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "bandinopla/weightxreps-client",
+      "commit": "2901cc3085d6de687b6ad71aa79458cdf2a06f73",
+      "package": "dropbox",
+      "stars": 30,
+      "pushedAt": "2026-01-11T08:38:32Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "RakambdaOrg/YTTracker",
+      "commit": "eb0184956e692f9f969bb216083403e5d689145f",
+      "package": "dropbox",
+      "stars": 20,
+      "pushedAt": "2026-10-10T16:07:19Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "Dcup-dev/dcup",
+      "commit": "3baa528098f2ce97eefd89710f94d87c65b7edfc",
+      "package": "dropbox",
+      "stars": 54,
+      "pushedAt": "2026-02-20T17:10:42Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "fuccac/Fitness",
+      "commit": "dad5f6749298db4fe4b921f39b57ae44ca13ce32",
+      "package": "dropbox",
+      "stars": 6,
+      "pushedAt": "2026-01-05T13:36:45Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "devKanyanta/sambilila",
+      "commit": "9ff4a20e8e64e94e4c66039bcfb7dc6319c89736",
+      "package": "dropbox",
+      "stars": 0,
+      "pushedAt": "2026-10-10T23:23:07Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "accimeesterlin/video-management",
+      "commit": "7e5498dc8dad4892178b449fb8a3743e435c07c2",
+      "package": "dropbox",
+      "stars": 0,
+      "pushedAt": "2026-03-03T16:42:35Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "DAurielS/ST-CharacterDistributor-Server",
+      "commit": "aef9e5bfe2c3db3a090ac3544871e378849213b8",
+      "package": "dropbox",
+      "stars": 0,
+      "pushedAt": "2026-04-28T20:14:32Z"
+    },
+    {
+      "provider": "dropbox",
+      "repo": "CHSIRmarketing/JotformUpload2",
+      "commit": "5e261147110863049dbbcce17ab550a6dca75183",
+      "package": "dropbox",
+      "stars": 1,
+      "pushedAt": "2026-07-05T08:08:13Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "tryfabric/martian",
+      "commit": "58570384b6d75da9dc5a76d5cff65ea349e6fa5d",
+      "package": "@notionhq/client",
+      "stars": 542,
+      "pushedAt": "2026-10-18T14:31:53Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "Othmane-Khadri/YALC-the-GTM-operating-system",
+      "commit": "5686d1f2f526346133f78eef3349fc5a655757b4",
+      "package": "@notionhq/client",
+      "stars": 321,
+      "pushedAt": "2026-08-20T16:57:19Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "Intina47/context-sync",
+      "commit": "235fd51cd85ebb30b1ab2af83a57b3f0575cae21",
+      "package": "@notionhq/client",
+      "stars": 189,
+      "pushedAt": "2026-04-11T12:48:15Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "MannyCooper/anzifan.com",
+      "commit": "a301585529847fd8427491050cf74af4c5415726",
+      "package": "@notionhq/client",
+      "stars": 117,
+      "pushedAt": "2026-04-08T07:38:56Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "lcjnil/github-notion-star",
+      "commit": "4c9be30f243bc75d74ceab109adc7873f7a8de52",
+      "package": "@notionhq/client",
+      "stars": 135,
+      "pushedAt": "2026-04-27T07:22:11Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "vezlo/src-to-kb",
+      "commit": "f5e48067bfd33645adefcf0ca3ac0194a2ef1f40",
+      "package": "@notionhq/client",
+      "stars": 40,
+      "pushedAt": "2025-12-30T10:31:45Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "suinkimme/next-judge",
+      "commit": "9fde266b44759480c09290dd172170fc1f0641e4",
+      "package": "@notionhq/client",
+      "stars": 99,
+      "pushedAt": "2026-05-20T06:03:42Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "brianlovin/x-notion-sync",
+      "commit": "ae49d81a76d40d7197d11abf78131b5d2ea362af",
+      "package": "@notionhq/client",
+      "stars": 37,
+      "pushedAt": "2026-05-18T21:46:02Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "khaaleoo/notion-nextjs-mini-kit",
+      "commit": "ccca26d40ea0dca48c51fd494ecc3488bcc01b61",
+      "package": "@notionhq/client",
+      "stars": 35,
+      "pushedAt": "2026-07-12T14:30:52Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "FuelLabs/forum-notifier",
+      "commit": "db40ad23c4f7ce6696d53af8311bd66d014762c4",
+      "package": "@notionhq/client",
+      "stars": 2,
+      "pushedAt": "2026-04-01T08:39:27Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "WesleySmits/project-manager-bot",
+      "commit": "2b762c9650cf93417ce1ee0e0fba599a03fd237c",
+      "package": "@notionhq/client",
+      "stars": 1,
+      "pushedAt": "2026-05-28T12:13:40Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "iamschulz/iamschulz-11ty",
+      "commit": "49fa4a3f7f32537abb7079c397c042d838233a03",
+      "package": "@notionhq/client",
+      "stars": 8,
+      "pushedAt": "2026-07-25T21:24:08Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "federico-terzi/federico-terzi.github.io",
+      "commit": "c236fdd19aa012f070fbd945159a56fb982a6d2a",
+      "package": "@notionhq/client",
+      "stars": 8,
+      "pushedAt": "2026-05-28T15:47:22Z"
+    },
+    {
+      "provider": "notion",
+      "repo": "open-source-uc/ccc.ing.puc.cl",
+      "commit": "9087b5d65cbef47d4aa34dda6a31e6364e43a802",
+      "package": "@notionhq/client",
+      "stars": 9,
+      "pushedAt": "2026-04-27T03:01:26Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "MaxBittker/shaderbooth",
+      "commit": "886bbd7bb637916c613db3f9ee8d09277a10d215",
+      "package": "airtable",
+      "stars": 113,
+      "pushedAt": "2026-01-17T19:31:53Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "domdomegg/airtable-ts",
+      "commit": "9a06f1da8e4b09a1352bf72dc8eb07e0eab735aa",
+      "package": "airtable",
+      "stars": 39,
+      "pushedAt": "2026-10-21T05:03:06Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "hackclub/hack-hour",
+      "commit": "f6f675b438d5edb032fda2734f3875753d644129",
+      "package": "airtable",
+      "stars": 31,
+      "pushedAt": "2026-06-22T04:09:59Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "hackclub/airbridge",
+      "commit": "ba415e316cc630b7ec07b791ef94691fb22e553f",
+      "package": "airtable",
+      "stars": 36,
+      "pushedAt": "2026-10-11T12:49:34Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "hackclub/librarian",
+      "commit": "e8b325b442c2611331a5b4763653ef57e9a8bed8",
+      "package": "airtable",
+      "stars": 12,
+      "pushedAt": "2026-10-21T21:39:49Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "santifer/santifer-irepair",
+      "commit": "5c1ce0b27e6486f0118ae974584af5a52568762e",
+      "package": "airtable",
+      "stars": 41,
+      "pushedAt": "2026-08-27T16:19:39Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "hackclub/map",
+      "commit": "f929b39fa3c590ecd8d5f67319b5db0c2d761ed6",
+      "package": "airtable",
+      "stars": 11,
+      "pushedAt": "2026-08-02T01:35:36Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "kingdom-code/kingdom-code",
+      "commit": "29567743aa25ce7534214fe0b1a80bdbd0ba4b74",
+      "package": "airtable",
+      "stars": 6,
+      "pushedAt": "2026-10-20T19:45:08Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "Ohlasy/web",
+      "commit": "448179a5e35e757163f6b918f11c99995f0d1759",
+      "package": "airtable",
+      "stars": 1,
+      "pushedAt": "2026-10-21T07:02:14Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "BentleyDavis/bentleydavis.github.io",
+      "commit": "8e5d74bd4116af697061792a40845b61eb9afb25",
+      "package": "airtable",
+      "stars": 1,
+      "pushedAt": "2026-09-17T16:12:37Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "poteat/shieldgen",
+      "commit": "9777e72cf23522683055e6c2817ba4729436ceb2",
+      "package": "airtable",
+      "stars": 0,
+      "pushedAt": "2026-09-01T06:03:36Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "nabilkaz/nabilkaz",
+      "commit": "021176fe68bc4f9303c8e52aa6743478c679d115",
+      "package": "airtable",
+      "stars": 0,
+      "pushedAt": "2026-03-01T16:15:20Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "mmogib/classwork-v2",
+      "commit": "da67e1399621af253b386f4e29db652d3d27ed21",
+      "package": "airtable",
+      "stars": 0,
+      "pushedAt": "2026-08-23T01:34:47Z"
+    },
+    {
+      "provider": "airtable",
+      "repo": "seanjiangsh/ztm-next-discover-coffee-stores",
+      "commit": "502b8551957d39a242e23047bbf7d63460180a7b",
+      "package": "airtable",
+      "stars": 1,
+      "pushedAt": "2025-12-07T02:02:49Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "apify/apify-mcp-server",
+      "commit": "e45c1cd6bde0b8bac2dab192f30ba77299ae6b26",
+      "package": "@segment/analytics-node",
+      "stars": 12517,
+      "pushedAt": "2026-10-22T08:22:10Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "pezzolabs/pezzo",
+      "commit": "0787e3c037ad24544c2d3e6842507c3e7461a1de",
+      "package": "@segment/analytics-node",
+      "stars": 3280,
+      "pushedAt": "2026-08-21T21:40:31Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "neondatabase/mcp-server-neon",
+      "commit": "fd9123cfba3f3e7d03c6bc01bad880251d5bf682",
+      "package": "@segment/analytics-node",
+      "stars": 656,
+      "pushedAt": "2026-10-21T19:55:34Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "openops-cloud/openops",
+      "commit": "aaacf849cd977dd6b6b1157aa7539e4a82f68e38",
+      "package": "@segment/analytics-node",
+      "stars": 1078,
+      "pushedAt": "2026-10-22T06:56:30Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "retracedhq/retraced",
+      "commit": "e0d4f6e4ad28e2b59afc0bb74c01b9cd7cdb8658",
+      "package": "@segment/analytics-node",
+      "stars": 451,
+      "pushedAt": "2026-08-07T17:48:19Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "mongodb-js/vscode",
+      "commit": "1c3f25c081d92d2f58141e788464e8cada4dca39",
+      "package": "@segment/analytics-node",
+      "stars": 360,
+      "pushedAt": "2026-10-16T08:21:22Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "redhat-developer/vscode-redhat-telemetry",
+      "commit": "dee781a78aedd34ff66e322689692a9d2892f3bc",
+      "package": "@segment/analytics-node",
+      "stars": 32,
+      "pushedAt": "2026-10-11T17:01:31Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "getcord/cord",
+      "commit": "c115dddb47a3036e8d2e82f3320144382d2fb686",
+      "package": "@segment/analytics-node",
+      "stars": 107,
+      "pushedAt": "2026-03-05T18:06:14Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "contentful/contentful-merge",
+      "commit": "d089087a005044ff3f6f603ff1a2af8a59266b9a",
+      "package": "@segment/analytics-node",
+      "stars": 30,
+      "pushedAt": "2026-10-21T22:44:46Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "atlassian/atlascode",
+      "commit": "7ef48ac216e6ecb8da95ef5af92a94e5fea23f2d",
+      "package": "@segment/analytics-node",
+      "stars": 134,
+      "pushedAt": "2026-10-16T14:17:13Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "ansible/aap-mcp-server",
+      "commit": "269e8e94c53710359d8ddd103b98bc47b5020390",
+      "package": "@segment/analytics-node",
+      "stars": 34,
+      "pushedAt": "2026-10-20T15:29:29Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "onset/lameta",
+      "commit": "042245abd3b60589d3be6645a4fe96814520c8f1",
+      "package": "@segment/analytics-node",
+      "stars": 25,
+      "pushedAt": "2026-10-22T01:28:43Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "gitpod-io/gitpod-vscode-desktop",
+      "commit": "d5e2cf5024611f00bf8c343c2ff98f59189e5a9a",
+      "package": "@segment/analytics-node",
+      "stars": 30,
+      "pushedAt": "2026-09-17T16:35:31Z"
+    },
+    {
+      "provider": "segment",
+      "repo": "Rookout/explorook",
+      "commit": "584e39541dbf8f31dc5f1fc8b0bb9e1de1e13570",
+      "package": "@segment/analytics-node",
+      "stars": 20,
+      "pushedAt": "2026-02-12T13:21:32Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "vercel/ncc",
+      "commit": "cb1f1f058bfa7de4cb63f2411e14a724e714e260",
+      "package": "@sentry/node",
+      "stars": 9842,
+      "pushedAt": "2026-08-13T03:20:10Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "radian-software/riju",
+      "commit": "ace9df7cd8f186b869af14d721e055864ed8f3e4",
+      "package": "@sentry/node",
+      "stars": 1733,
+      "pushedAt": "2026-03-27T20:46:44Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "matrix-org/matrix-appservice-irc",
+      "commit": "c261a5e89a7e7f2740b9b97083fb1df7dc339680",
+      "package": "@sentry/node",
+      "stars": 507,
+      "pushedAt": "2026-04-02T15:31:38Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "webwhiz-ai/webwhiz",
+      "commit": "8262769f5e5d532c1f793d270c62a59365f18b63",
+      "package": "@sentry/node",
+      "stars": 1046,
+      "pushedAt": "2026-01-08T11:45:29Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "eduardosasso/bullish",
+      "commit": "4ee2ed5141ffafe43bd7dbd39d797392766e9abb",
+      "package": "@sentry/node",
+      "stars": 189,
+      "pushedAt": "2026-05-01T17:29:21Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "quirrel-dev/quirrel",
+      "commit": "154e1a131f648f0f3d3b2fd87f0254fc9766db2d",
+      "package": "@sentry/node",
+      "stars": 929,
+      "pushedAt": "2026-10-05T21:02:56Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "steveruizok/globs",
+      "commit": "d7fc0fcbcebb16e5a6a92a0fe7acc9a75e3090ae",
+      "package": "@sentry/node",
+      "stars": 250,
+      "pushedAt": "2026-05-24T09:13:07Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "datagouv/api-geo",
+      "commit": "4aa08283d93a7f051cf521a796deca6ad659b88c",
+      "package": "@sentry/node",
+      "stars": 54,
+      "pushedAt": "2026-03-30T09:20:57Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "vedmant/my-little-bitcoin",
+      "commit": "1e2d24167ac4b2e571964ed5d195297a5cc80d31",
+      "package": "@sentry/node",
+      "stars": 78,
+      "pushedAt": "2026-02-16T22:38:46Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "artsy/volley",
+      "commit": "278c201102d70202c39b1ddf63343968d87214c2",
+      "package": "@sentry/node",
+      "stars": 6,
+      "pushedAt": "2026-09-16T03:07:26Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "niraj-khatiwada/ultimate-nestjs-boilerplate",
+      "commit": "8b5661314aa991e399ba3af0659065b9c82bbd94",
+      "package": "@sentry/node",
+      "stars": 440,
+      "pushedAt": "2025-12-05T17:34:05Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "muehlemann-popp/html-to-pdf",
+      "commit": "4e3b4b62565d04f96d3c9872d7d18e7a6fc6a3f1",
+      "package": "@sentry/node",
+      "stars": 29,
+      "pushedAt": "2026-09-01T13:22:50Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "SAPikachu/amae-koromo-scripts",
+      "commit": "d375252fefd2bb6b1cca82b409b7a1abcf155197",
+      "package": "@sentry/node",
+      "stars": 103,
+      "pushedAt": "2026-07-25T03:11:25Z"
+    },
+    {
+      "provider": "sentry",
+      "repo": "DestinyItemManager/dim-api",
+      "commit": "826bcc21e6bcd19607247a5a537f04e6cb4d8a91",
+      "package": "@sentry/node",
+      "stars": 41,
+      "pushedAt": "2026-09-14T18:52:51Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "MarcusOtter/discord-needle",
+      "commit": "aefcd126abd8861d44d4afd53608b0fdeb093639",
+      "package": "discord.js",
+      "stars": 231,
+      "pushedAt": "2026-10-08T19:52:48Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "Vertex-Solutions-dev/All-In-One-Discord-Bot",
+      "commit": "1114a9fe2e3038b379f29dcbd4ecf3b32e54bb97",
+      "package": "discord.js",
+      "stars": 39,
+      "pushedAt": "2026-03-21T10:57:53Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "mojira/mojira-discord-bot",
+      "commit": "02005a2b61c01535bfc4496c1522e7f40a0b7457",
+      "package": "discord.js",
+      "stars": 21,
+      "pushedAt": "2026-10-20T19:25:12Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "nullabork/talkbot",
+      "commit": "d9f2ba0440fada66b3a0980c50c1e4e00227b8cb",
+      "package": "discord.js",
+      "stars": 31,
+      "pushedAt": "2026-04-05T11:14:45Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "bas3line/Gopher",
+      "commit": "7eb3c68fee413ae9a7667e69e3552832aa3b2890",
+      "package": "discord.js",
+      "stars": 196,
+      "pushedAt": "2026-08-03T02:47:15Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "voodoohop/discord-pollinations-family",
+      "commit": "cfdc797c17f441071455ded66bc44367f1602bed",
+      "package": "discord.js",
+      "stars": 9,
+      "pushedAt": "2026-03-22T20:45:57Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "GrantGryczan/Miroware",
+      "commit": "913fa504c3ccbafb09f312d710aff8fd85fc773e",
+      "package": "discord.js",
+      "stars": 20,
+      "pushedAt": "2026-10-19T18:18:32Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "tom-byte-sys/OpenPollen",
+      "commit": "4e61d2eb127d03e6add00bbd26d2b1d7883a60c8",
+      "package": "discord.js",
+      "stars": 41,
+      "pushedAt": "2026-03-04T10:09:09Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "IntriguingTiles/hgrunt-bot",
+      "commit": "55138d4fbe7548a164befa67aef637c24c646581",
+      "package": "discord.js",
+      "stars": 10,
+      "pushedAt": "2026-09-05T05:44:40Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "owliabot/owliabot",
+      "commit": "a7c45e7b076eebe75273cdf9eb9f968b70dc49e7",
+      "package": "discord.js",
+      "stars": 30,
+      "pushedAt": "2026-03-04T07:44:38Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "Focus04/samp-status",
+      "commit": "668e2b7cb6b47ee2ba84c6d7a320db209270f870",
+      "package": "discord.js",
+      "stars": 20,
+      "pushedAt": "2026-05-07T19:44:28Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "Protected/rowboat",
+      "commit": "4b22fc8822bf67409c660809b52b56fccf5306fa",
+      "package": "discord.js",
+      "stars": 4,
+      "pushedAt": "2026-03-02T22:15:01Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "adh319/Aurox",
+      "commit": "9904edb45aedf4c5eb2884b20ffe3351febdb826",
+      "package": "discord.js",
+      "stars": 8,
+      "pushedAt": "2026-02-16T18:11:37Z"
+    },
+    {
+      "provider": "discord",
+      "repo": "osu-cascades/hackbot",
+      "commit": "ad39f833e3d2c1fa6c784af3d6deb5a725e8d993",
+      "package": "discord.js",
+      "stars": 4,
+      "pushedAt": "2026-02-11T14:06:44Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "akshat-OwO/syllabusx-client",
+      "commit": "271f087b7b48b7d645d5f9d14f8ed325e131bd44",
+      "package": "contentful",
+      "stars": 216,
+      "pushedAt": "2026-05-30T03:50:51Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "futurice/masifunde-fe",
+      "commit": "729e401b3b4c414fd43542fd1ee92d67b20fd49e",
+      "package": "contentful",
+      "stars": 0,
+      "pushedAt": "2026-01-21T23:15:15Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "Royal-Navy/design-system-docs",
+      "commit": "82e4f7b69bed1eca1077b68be5670ad0a8fa68c8",
+      "package": "contentful",
+      "stars": 7,
+      "pushedAt": "2026-02-13T15:20:14Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "TencentEdgeOne/saas-starter",
+      "commit": "c57c4648e09fd55e242442a27107fadb67ba0d03",
+      "package": "contentful",
+      "stars": 19,
+      "pushedAt": "2026-08-17T09:19:41Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "Frank-Fan-AU/visa-dashboard",
+      "commit": "ca359b4f340b0845f89a3119d969cbe3e8ee5245",
+      "package": "contentful",
+      "stars": 34,
+      "pushedAt": "2026-03-12T06:55:14Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "contentful-labs/floating-editor-extension",
+      "commit": "f9735573459444def62e3a88d5f6e45e2271790f",
+      "package": "contentful",
+      "stars": 1,
+      "pushedAt": "2026-04-09T15:50:18Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "Emanuele-Sgroi/emanuelesgroi.com",
+      "commit": "a883c4e3b7db940c965496a1373536cb79c89980",
+      "package": "contentful",
+      "stars": 8,
+      "pushedAt": "2026-01-13T21:54:41Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "KumaKorin/react-homepage",
+      "commit": "37cc57b431f9a9a81a2f58483b46ca7636795f98",
+      "package": "contentful",
+      "stars": 6,
+      "pushedAt": "2026-09-15T08:41:04Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "ZouhairEM/capathon-cms",
+      "commit": "f913ffaca5e4a9d2019b9759247930c2e95c2c78",
+      "package": "contentful",
+      "stars": 4,
+      "pushedAt": "2025-11-10T15:32:45Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "McCambley/apiary",
+      "commit": "8fd3b6f4f81806a606ff21f6ed561e9a853da780",
+      "package": "contentful",
+      "stars": 3,
+      "pushedAt": "2025-12-14T23:00:38Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "xindixu/xindixu.space-v3",
+      "commit": "0541496e5d05bd518814fd13a756f483788e6cd6",
+      "package": "contentful",
+      "stars": 1,
+      "pushedAt": "2026-05-16T09:55:04Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "vishpatel913/vishpatel-site-gatsby",
+      "commit": "892a92265860ab38285e4011a0e90b8a3184adbe",
+      "package": "contentful",
+      "stars": 1,
+      "pushedAt": "2026-06-06T10:29:57Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "epilepsy-science/epilepsy-science-app",
+      "commit": "1acd7e49a234adb2f2081e63507248fc0ec59907",
+      "package": "contentful",
+      "stars": 0,
+      "pushedAt": "2026-10-20T18:21:12Z"
+    },
+    {
+      "provider": "contentful",
+      "repo": "BytewiseTec/bytewisetech-vhp",
+      "commit": "de2a91d03a1e9dcdca1812fdb505fb546326bb20",
+      "package": "contentful",
+      "stars": 0,
+      "pushedAt": "2025-12-16T11:27:23Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "harshit-exe/FlowKit",
+      "commit": "a84473298887267e6dae61da1f649c7f82457201",
+      "package": "cloudinary",
+      "stars": 102,
+      "pushedAt": "2026-04-12T15:24:53Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "theapplegates/whono2-astro",
+      "commit": "179447cd08a3df2580739fd58780a89b64320f19",
+      "package": "cloudinary",
+      "stars": 0,
+      "pushedAt": "2026-07-18T23:05:12Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "niharika-mente/DevEvent_Tracker",
+      "commit": "7dc2a037cc73ab1ae4425be13e45d4034bc29c76",
+      "package": "cloudinary",
+      "stars": 16,
+      "pushedAt": "2026-07-29T07:09:43Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "Aarmil1234/Queueless-Back",
+      "commit": "ee5f899b1330b99021185235e788b784045c634a",
+      "package": "cloudinary",
+      "stars": 0,
+      "pushedAt": "2026-10-18T12:38:20Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "PavithraSharma14/wanderlust-mern-fullstack",
+      "commit": "07de2545a8d7fa870c852a006915da1277519beb",
+      "package": "cloudinary",
+      "stars": 12,
+      "pushedAt": "2025-12-04T08:40:15Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "AryaVeerJai/wattn_inventory",
+      "commit": "708afece94cc7304725efa7a892f764f09b8ad46",
+      "package": "cloudinary",
+      "stars": 0,
+      "pushedAt": "2026-05-18T08:13:42Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "westborn/SB-Reg-svelte5",
+      "commit": "bd39957fefed932756d44ac98badca8c2d8f0b4b",
+      "package": "cloudinary",
+      "stars": 1,
+      "pushedAt": "2026-10-21T03:36:33Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "GRAVITAD-SL/pizquito-backend-strapi",
+      "commit": "3d39b0e128aa10a68ef49e366a9cb8998fada50c",
+      "package": "cloudinary",
+      "stars": 0,
+      "pushedAt": "2026-01-08T18:28:16Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "DigitalHealthAgency/Back_End_Auth_System",
+      "commit": "3caacced03177a0dbeaad8cc15a19d6ec40ce7f1",
+      "package": "cloudinary",
+      "stars": 0,
+      "pushedAt": "2025-12-11T17:30:14Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "Vanzzy027/Vanzzy-Travel-Agency-backend",
+      "commit": "525f7f706e713b9df5a7c30a30477eb2001a987e",
+      "package": "cloudinary",
+      "stars": 0,
+      "pushedAt": "2026-05-18T06:13:41Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "Peter-diper/Property-with-NextJs",
+      "commit": "ccb0f29952ee7085f08aafd745304d17884a07f4",
+      "package": "cloudinary",
+      "stars": 12,
+      "pushedAt": "2026-08-12T21:49:43Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "Banshraj1/techedu",
+      "commit": "f40815947fd89806c6ad79e52104df0a935ca1a4",
+      "package": "cloudinary",
+      "stars": 1,
+      "pushedAt": "2026-10-19T15:02:30Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "abhiram-ar/aicademy-backend",
+      "commit": "bd5db59b222c1580307cc788d0996b2bbc4e6cf7",
+      "package": "cloudinary",
+      "stars": 8,
+      "pushedAt": "2026-03-31T15:36:58Z"
+    },
+    {
+      "provider": "cloudinary",
+      "repo": "sreekarnv/burger-house",
+      "commit": "013450a7b288087433ae8b45c4e6c0955bbc09bc",
+      "package": "cloudinary",
+      "stars": 6,
+      "pushedAt": "2026-07-01T21:23:19Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "oomol-lab/open-connector",
+      "commit": "83f271a19f7f8ba98262723eb9dc60054a723929",
+      "package": null,
+      "host": "api.intercom.io",
+      "stars": 6064,
+      "pushedAt": "2026-10-22T06:24:41Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "holaboss-ai/holaOS",
+      "commit": "4684714ee133794cdbb86630e42b7d93447fb2e2",
+      "package": null,
+      "host": "api.intercom.io",
+      "stars": 11456,
+      "pushedAt": "2026-08-21T13:11:13Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "CaviraOSS/LongMemory",
+      "commit": "8badf44d48d0d72a07e1ea3daf1ecbd76ae1a357",
+      "package": null,
+      "host": "api.intercom.io",
+      "stars": 4543,
+      "pushedAt": "2026-10-18T15:42:48Z"
+    },
+    {
+      "provider": "intercom",
+      "repo": "danielsogl/awesome-cordova-plugins",
+      "commit": "89e85a4b2d99d7efb63ede4d82089ad28a8ab230",
+      "package": null,
+      "host": "api.intercom.io",
+      "stars": 2450,
+      "pushedAt": "2026-10-20T20:30:44Z"
+    }
+  ],
+  "supplements": [
+    {
+      "provider": "intercom",
+      "query": "\"api.intercom.io\" language:TypeScript",
+      "added": 4,
+      "at": "2026-10-22T08:53:09.777Z"
+    }
+  ]
+}

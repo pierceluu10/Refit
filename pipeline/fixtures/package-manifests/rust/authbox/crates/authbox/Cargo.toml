@@ -1,0 +1,44 @@
+# Fixture: copied from https://github.com/anomalous254/authbox/blob/69ec71f90d87f1cace830c43c7e6c63614ca8b51/crates/authbox/Cargo.toml
+[package]
+name = "authbox"
+version = "1.1.6"
+edition = "2024"
+description = "A lightweight, modular authentication framework for Rust built around traits, async support, and pluggable component"
+license = "Apache-2.0"
+repository = "https://github.com/anomalous254/authbox"
+homepage = "https://github.com/anomalous254/authbox"
+documentation = "https://docs.rs/authbox"
+readme = "../../README.md"
+keywords = ["authentication", "jwt", "actix", "security", "auth"]
+categories = ["authentication", "web-programming"]
+authors = ["anomalous254"]
+
+
+[features]
+default = []
+email = ["dep:authbox-email"]
+email-resend = [
+    "email",
+    "authbox-email/resend"
+]
+email-sendgrid = [
+    "email",
+    "authbox-email/sendgrid"
+]
+email-smtp = [
+    "email",
+    "authbox-email/smtp"
+]
+
+[dependencies]
+authbox-core = "1.2.4"
+authbox-jwt = "1.2.4"
+authbox-argon2 = "1.2.4"
+authbox-redis = "1.2.4"
+authbox-email = {
+    version = "1.2.5",
+    optional = true
+}
+async-trait = "0.1.89"
+tokio = { version = "1", features = ["full"] }
+redis = { version = "1.2.2", features = ["tokio-comp"] }

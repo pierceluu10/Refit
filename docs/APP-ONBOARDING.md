@@ -11,7 +11,7 @@ Commit `.refit.json`, its before contract and its provider adapter when needed. 
 Run the [readiness check](REPOSITORY-SETUP.md), then inspect the exact committed profile:
 
 ```sh
-refit enroll --repository /Users/pierceluu/Repos/refit-billing-demo \
+refit enroll --repository ~/Repos/refit-billing-demo \
   --github pierceluu10/refit-billing-demo --base main
 ```
 
@@ -22,10 +22,10 @@ This requires the reviewed configuration to exist in that checkout. The command 
 After review, rerun the same command with the **full fingerprint it printed**:
 
 ```sh
-refit enroll --repository /Users/pierceluu/Repos/refit-billing-demo \
+refit enroll --repository ~/Repos/refit-billing-demo \
   --github pierceluu10/refit-billing-demo --base main \
   --approve <exact-reviewed-fingerprint> \
-  --output /Users/pierceluu/.refit/approvals/billing-demo.json
+  --output ~/.refit/approvals/billing-demo.json
 ```
 
 The receipt must be new and outside every Git checkout. It is created with owner-only permissions and contains target identity, the reviewed commit, hashes and byte counts; it does not embed source contents or credentials. A stale fingerprint is refused before writing. Receipts are unsigned local operator state, not authenticated hosted administrator approval. Keep them under the operator's control.
@@ -44,7 +44,7 @@ Create an operator service file with `approval` instead of `workflow`:
       "id": "billing-demo-stripe",
       "repository": "pierceluu10/refit-billing-demo",
       "base": "main",
-      "approval": "/Users/pierceluu/.refit/approvals/billing-demo.json"
+      "approval": "/home/you/.refit/approvals/billing-demo.json"
     }
   ]
 }

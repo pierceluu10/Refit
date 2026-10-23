@@ -16,6 +16,6 @@ Two reviewed historical projections were used: the [Acacia-to-Basil subscription
 
 An initial incomplete Invoice projection produced three review matches in Checkout Session branches. That exposed a same-name filtering flaw: Checkout Session's `subscription` is not Invoice's removed field. Known event-schema mappings now discard those matches even when the supplied projection omits Checkout Session's component. Regression tests preserve this distinction and keep genuinely unresolved schemas under review.
 
-Retained scripts, inputs and per-repository results are at `/Users/pierceluu/.refit/evaluations/stripe-webhooks-2026-10-14/benchmark`. `final-results.json` and `final-invoice-results.json` are the final comparisons. Earlier exploratory results remain for debugging and must not be used as affected-usage metrics.
+Retained scripts, inputs and per-repository results stayed on the benchmark machine and are not in this repository. `final-results.json` and `final-invoice-results.json` are the final comparisons. Earlier exploratory results remain for debugging and must not be used as affected-usage metrics.
 
 These results are separate from the 45-repository SDK call benchmark and the 100-repository Stripe migration benchmark. The signed real-SDK fixture proves bounded tracing and historical failure behavior; it does not establish ground-truth recall, precision or migrations across these public repositories.

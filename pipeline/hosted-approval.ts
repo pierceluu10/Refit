@@ -1,6 +1,12 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { addAgents, detectProviders, scaffoldChecks, v1IntegrationId } from './agent-catalog.ts';
+import {
+  addable,
+  addAgents,
+  detectProviders,
+  scaffoldChecks,
+  v1IntegrationId,
+} from './agent-catalog.ts';
 import { enrollmentReviewText } from './enrollment-review.ts';
 import { authenticateGitHubIssues, type GitHubAppConfiguration } from './github-app.ts';
 import { withGitHubCheckout } from './github-checkout.ts';
@@ -87,9 +93,7 @@ async function inspect(context: ApprovalContext, repository: string, base: strin
       if (!existsSync(join(checkout.directory, REPOSITORY_CONFIGURATION))) {
         const detections = await detectProviders(checkout.directory);
         const detected = detections.map((detection) => detection.agent.name);
-        const ids = detections
-          .filter((detection) => detection.agent.adapter)
-          .map((detection) => detection.agent.id);
+        const ids = detections.filter(addable).map((detection) => detection.agent.id);
         if (!ids.length) return { state: 'no-providers', detected };
         const scaffold = addAgents({
           configuration: undefined,

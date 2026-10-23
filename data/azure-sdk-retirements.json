@@ -1,0 +1,1242 @@
+{
+  "formatVersion": 1,
+  "generatedBy": "scripts/azure-sdk-retirements.mjs",
+  "checkedAt": "2026-10-22",
+  "source": "https://github.com/Azure/azure-sdk/blob/671a60848e02af18b43dd08aad5f67ad9e0e81fb/_data/releases/latest/js-packages.csv",
+  "page": "https://azure.github.io/azure-sdk/releases/deprecated/js.html",
+  "skipped": {
+    "noDate": [],
+    "versionOnly": [
+      "@azure-rest/ai-anomaly-detector",
+      "@azure-rest/ai-personalizer",
+      "@azure-rest/purview-account",
+      "@azure-rest/purview-catalog",
+      "@azure/ai-anomaly-detector",
+      "@azure/arm-advisor",
+      "@azure/arm-analysisservices",
+      "@azure/arm-apimanagement",
+      "@azure/arm-appplatform",
+      "@azure/arm-appservice",
+      "@azure/arm-astro",
+      "@azure/arm-attestation",
+      "@azure/arm-batch",
+      "@azure/arm-billing",
+      "@azure/arm-cdn",
+      "@azure/arm-changeanalysis",
+      "@azure/arm-cognitiveservices",
+      "@azure/arm-compute",
+      "@azure/arm-consumption",
+      "@azure/arm-containerinstance",
+      "@azure/arm-containerregistry",
+      "@azure/arm-containerservice",
+      "@azure/arm-cosmosdb",
+      "@azure/arm-datafactory",
+      "@azure/arm-devtestlabs",
+      "@azure/arm-edgegateway",
+      "@azure/arm-eventgrid",
+      "@azure/arm-eventhub",
+      "@azure/arm-features",
+      "@azure/arm-hdinsight",
+      "@azure/arm-hdinsightcontainers",
+      "@azure/arm-iothub",
+      "@azure/arm-iotspaces",
+      "@azure/arm-lambdatesthyperexecute",
+      "@azure/arm-links",
+      "@azure/arm-locks",
+      "@azure/arm-logic",
+      "@azure/arm-managedapplications",
+      "@azure/arm-managementgroups",
+      "@azure/arm-mediaservices",
+      "@azure/arm-mediaservices",
+      "@azure/arm-mixedreality",
+      "@azure/arm-mobilenetwork",
+      "@azure/arm-monitor",
+      "@azure/arm-msi",
+      "@azure/arm-mysql",
+      "@azure/arm-neonpostgres",
+      "@azure/arm-network",
+      "@azure/arm-networkanalytics",
+      "@azure/arm-notificationhubs",
+      "@azure/arm-operationalinsights",
+      "@azure/arm-pineconevectordb",
+      "@azure/arm-playwrighttesting",
+      "@azure/arm-policy",
+      "@azure/arm-postgresql",
+      "@azure/arm-recoveryservices",
+      "@azure/arm-rediscache",
+      "@azure/arm-relay",
+      "@azure/arm-resourcehealth",
+      "@azure/arm-resources",
+      "@azure/arm-resources-subscriptions",
+      "@azure/arm-search",
+      "@azure/arm-security",
+      "@azure/arm-servicebus",
+      "@azure/arm-servicefabric",
+      "@azure/arm-sql",
+      "@azure/arm-storage",
+      "@azure/arm-storageimportexport",
+      "@azure/arm-storsimple1200series",
+      "@azure/arm-storsimple8000series",
+      "@azure/arm-streamanalytics",
+      "@azure/arm-subscriptions",
+      "@azure/arm-templatespecs",
+      "@azure/arm-videoanalyzer",
+      "@azure/arm-voiceservices",
+      "@azure/arm-weightsandbiases",
+      "@azure/cognitiveservices-anomalydetector",
+      "@azure/cognitiveservices-personalizer",
+      "@azure/communication-network-traversal",
+      "@azure/cosmos",
+      "@azure/create-microsoft-playwright-testing",
+      "@azure/event-hubs",
+      "@azure/microsoft-playwright-testing",
+      "@azure/mixed-reality-authentication",
+      "@azure/mixed-reality-remote-rendering",
+      "@azure/monitor-query",
+      "@azure/service-bus",
+      "@azure/synapse",
+      "@azure/video-analyzer-edge"
+    ],
+    "notOnNpm": []
+  },
+  "packages": [
+    {
+      "name": "@azure/applicationinsights-query",
+      "displayName": "Application Insights - Query",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/monitor-query"
+      ],
+      "latest": "1.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/monitor-query which works both on node.js and browsers"
+    },
+    {
+      "name": "@azure/cognitiveservices-formrecognizer",
+      "displayName": "Form Recognizer",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/ai-form-recognizer"
+      ],
+      "latest": "2.0.1",
+      "npmDeprecated": "Please note, this package is deprecated and not functional as it uses a version of the Form Recognizer service (v1.0-preview) that is no longer available. As of August 2020, you can instead use @azure/ai-form-recognizer."
+    },
+    {
+      "name": "@azure/cognitiveservices-textanalytics",
+      "displayName": "Text Analytics",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/ai-text-analytics"
+      ],
+      "latest": "4.0.0",
+      "npmDeprecated": "This package has been superseded by @azure/ai-language-text."
+    },
+    {
+      "name": "@azure/event-processor-host",
+      "displayName": "Event Hubs - Event Processor",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/event-hubs",
+        "@azure/eventhubs-checkpointstore-blob"
+      ],
+      "latest": "2.1.1",
+      "npmDeprecated": "Please note, a newer package @azure/event-hubs is available as of January, 2020. While this package will continue to receive critical bug fixes, we strongly encourage you to upgrade."
+    },
+    {
+      "name": "@azure/graph",
+      "displayName": "Graph",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@microsoft/microsoft-graph-client"
+      ],
+      "latest": "5.0.3",
+      "npmDeprecated": "This package has been superseded by @microsoft/microsoft-graph-client"
+    },
+    {
+      "name": "@azure/keyvault",
+      "displayName": "@azure/keyvault",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/keyvault-keys"
+      ],
+      "latest": "0.1.0",
+      "npmDeprecated": "This package has been deprecated. Please use @azure/keyvault-keys, @azure/keyvault-secrets or @azure/keyvault-certificates instead"
+    },
+    {
+      "name": "@azure/loganalytics",
+      "displayName": "Log Analytics - Query",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/monitor-query"
+      ],
+      "latest": "0.3.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/monitor-query which works both on node.js and browsers"
+    },
+    {
+      "name": "@azure/search",
+      "displayName": "Cognitive Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/search-documents"
+      ],
+      "latest": "11.0.0-preview.1",
+      "npmDeprecated": "This package has been superceded by @azure/search-documents. Please use that instead."
+    },
+    {
+      "name": "azure-applicationinsights-query",
+      "displayName": "Application Insights - Query",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/applicationinsights-query"
+      ],
+      "latest": "1.1.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of @azure/applicationinsights-query whick works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-advisor",
+      "displayName": "Resource Management - Advisor",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-advisor"
+      ],
+      "latest": "1.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-advisor which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-analysisservices",
+      "displayName": "Resource Management - Analysis Services",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-analysisservices"
+      ],
+      "latest": "2.3.0",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-analysisservices which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-apimanagement",
+      "displayName": "Resource Management - API Management",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-apimanagement"
+      ],
+      "latest": "6.0.0",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-apimanagement which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-appinsights",
+      "displayName": "Resource Management - Application Insights",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-appinsights"
+      ],
+      "latest": "2.1.0",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-appinsights which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-authorization",
+      "displayName": "Resource Management - Authorization",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-authorization"
+      ],
+      "latest": "8.3.1",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-authorization which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-automation",
+      "displayName": "Resource Management - Automation",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-automation"
+      ],
+      "latest": "9.1.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-automation which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-batch",
+      "displayName": "Resource Management - Batch",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-batch"
+      ],
+      "latest": "7.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-batch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-batchai",
+      "displayName": "Resource Management - Batch AI",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-batchai"
+      ],
+      "latest": "2.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-batchai which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-billing",
+      "displayName": "Resource Management - Billing",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-billing"
+      ],
+      "latest": "2.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-billing which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-cdn",
+      "displayName": "Resource Management - Content Delivery Network",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-cdn"
+      ],
+      "latest": "4.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-cdn which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-cognitiveservices",
+      "displayName": "Resource Management - Cognitive Services",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-cognitiveservices"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-cognitiveservices which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-commerce",
+      "displayName": "Resource Management - Commerce",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-commerce"
+      ],
+      "latest": "2.1.0",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-commerce which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-compute",
+      "displayName": "Resource Management - Compute",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-compute"
+      ],
+      "latest": "10.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-compute whick works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-consumption",
+      "displayName": "Resource Management - Consumption",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-consumption"
+      ],
+      "latest": "6.3.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-consumption which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-containerinstance",
+      "displayName": "Resource Management - Container Instances",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-containerinstance"
+      ],
+      "latest": "5.4.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-containerinstance which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-containerregistry",
+      "displayName": "Resource Management - Container Registry",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-containerregistry"
+      ],
+      "latest": "5.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-containerregistry which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-containerservice",
+      "displayName": "Resource Management - Container Service",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-containerservice"
+      ],
+      "latest": "8.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-containerservice which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-cosmosdb",
+      "displayName": "Resource Management - Cosmos DB",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-cosmosdb"
+      ],
+      "latest": "2.3.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-cosmosdb which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-customerinsights",
+      "displayName": "Resource Management - Customer Insights",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-customerinsights"
+      ],
+      "latest": "3.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-customerinsights which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-datafactory",
+      "displayName": "Resource Management - Data Factory",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-datafactory"
+      ],
+      "latest": "5.3.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-datafactory which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-datalake-analytics",
+      "displayName": "Resource Management - Data Lake Analytics",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-datalake-analytics"
+      ],
+      "latest": "3.1.0-preview",
+      "npmDeprecated": null
+    },
+    {
+      "name": "azure-arm-datalake-store",
+      "displayName": "Resource Management - Data Lake Store",
+      "endOfLife": "2023-03-31",
+      "replacement": [],
+      "latest": "3.1.2-preview",
+      "npmDeprecated": null
+    },
+    {
+      "name": "azure-arm-deviceprovisioningservices",
+      "displayName": "Resource Management - Device Provisioning Services",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-deviceprovisioningservices"
+      ],
+      "latest": "2.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-deviceprovisioningservices which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-devtestlabs",
+      "displayName": "Resource Management - DevTest Labs",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-devtestlabs"
+      ],
+      "latest": "3.2.0",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-devtestlabs which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-dns",
+      "displayName": "Resource Management - DNS",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-dns"
+      ],
+      "latest": "3.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-dns which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-documentdb",
+      "displayName": "Resource Management - Cosmos DB",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "azure-arm-cosmosdb"
+      ],
+      "latest": "1.0.3-preview",
+      "npmDeprecated": "This package has been deprecated. Please use \"azure-arm-cosmosdb\" instead."
+    },
+    {
+      "name": "azure-arm-domainservices",
+      "displayName": "Resource Management - Domain Services",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-domainservices"
+      ],
+      "latest": "3.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-domainservices which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-eventgrid",
+      "displayName": "Resource Management - Event Grid",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-eventgrid"
+      ],
+      "latest": "3.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-eventgrid which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-eventhub",
+      "displayName": "Resource Management - Event Hubs",
+      "endOfLife": "2023-12-31",
+      "replacement": [
+        "@azure/arm-eventhub"
+      ],
+      "latest": "3.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-eventhub which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-hdinsight",
+      "displayName": "Resource Management - HDInsight",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-hdinsight"
+      ],
+      "latest": "0.13.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-hdinsight which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-hdinsight-jobs",
+      "displayName": "Resource Management - HDInsight Job",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-hdinsight"
+      ],
+      "latest": "0.1.1",
+      "npmDeprecated": null
+    },
+    {
+      "name": "azure-arm-insights",
+      "displayName": "Resource Management - Insights",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-monitor"
+      ],
+      "latest": "1.0.2-preview",
+      "npmDeprecated": null
+    },
+    {
+      "name": "azure-arm-iothub",
+      "displayName": "Resource Management - IoT Hub",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-iothub"
+      ],
+      "latest": "2.1.0",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-iothub which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-keyvault",
+      "displayName": "Resource Management - Key Vault",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-keyvault"
+      ],
+      "latest": "1.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-keyvault which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-labservices",
+      "displayName": "Resource Management - Lab Services",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-labservices"
+      ],
+      "latest": "1.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-labservices which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-logic",
+      "displayName": "Resource Management - Logic Apps",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-logic"
+      ],
+      "latest": "6.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-logic which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-machinelearning",
+      "displayName": "Resource Management - Machine Learning",
+      "endOfLife": "2024-02-02",
+      "replacement": [
+        "@azure/arm-machinelearningcompute"
+      ],
+      "latest": "1.2.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-commitmentplans, @azure/arm-webservices, @azure/arm-workspaces which work both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-machinelearningcompute",
+      "displayName": "Resource Management - Machine Learning Compute",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-machinelearningcompute"
+      ],
+      "latest": "1.1.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-machinelearningcompute which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-marketplaceordering",
+      "displayName": "Resource Management - Marketplace Ordering",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-marketplaceordering"
+      ],
+      "latest": "1.3.1",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-marketplaceordering which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-mediaservices",
+      "displayName": "Resource Management - Media Services",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-mediaservices"
+      ],
+      "latest": "6.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-mediaservices which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-mobileengagement",
+      "displayName": "Resource Management - Mobile Engagement",
+      "endOfLife": "2023-03-31",
+      "replacement": [],
+      "latest": "1.0.0-preview",
+      "npmDeprecated": "Azure Mobile Engagement has been retired"
+    },
+    {
+      "name": "azure-arm-monitor",
+      "displayName": "Resource Management - Monitor",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-monitor"
+      ],
+      "latest": "5.4.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-monitor which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-mysql",
+      "displayName": "Resource Management - MySQL",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-mysql"
+      ],
+      "latest": "3.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-mysql which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-network",
+      "displayName": "Resource Management - Network",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-network"
+      ],
+      "latest": "13.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-network whick works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-notificationhubs",
+      "displayName": "Resource Management - Notification Hubs",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-notificationhubs"
+      ],
+      "latest": "1.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-notificationhubs which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-operationalinsights",
+      "displayName": "Resource Management - Log Analytics",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-operationalinsights"
+      ],
+      "latest": "1.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-operationalinsights which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-operations",
+      "displayName": "Resource Management - Operations",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-operations"
+      ],
+      "latest": "2.1.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-operations which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-postgresql",
+      "displayName": "Resource Management - PostgreSQL",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-postgresql"
+      ],
+      "latest": "4.3.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-postgresql which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-powerbiembedded",
+      "displayName": "Resource Management - Power BI Embedded",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-powerbiembedded"
+      ],
+      "latest": "1.2.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-powerbiembedded which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-recoveryservices",
+      "displayName": "Resource Management - Recovery Services",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-recoveryservices"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-recoveryservices which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-recoveryservices-siterecovery",
+      "displayName": "Resource Management - Recovery Services Site Recovery",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-recoveryservices-siterecovery"
+      ],
+      "latest": "3.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-recoveryservices-siterecovery which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-recoveryservicesbackup",
+      "displayName": "Resource Management - Recovery Services Backup",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-recoveryservicesbackup"
+      ],
+      "latest": "4.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-recoveryservicesbackup which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-rediscache",
+      "displayName": "Resource Management - Redis",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-rediscache"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-rediscache which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-relay",
+      "displayName": "Resource Management - Relay",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-relay"
+      ],
+      "latest": "2.1.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-relay which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-resource",
+      "displayName": "Resource Management - Resources",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-resources"
+      ],
+      "latest": "7.4.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-resources which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-resourcehealth",
+      "displayName": "Resource Management - Resource Health",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-resourcehealth"
+      ],
+      "latest": "1.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-resourcehealth which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-sb",
+      "displayName": "Resource Management - Service Bus",
+      "endOfLife": "2023-12-31",
+      "replacement": [
+        "@azure/arm-servicebus"
+      ],
+      "latest": "3.2.0",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-servicebus which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-scheduler",
+      "displayName": "Resource Management - Logic Apps",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-logic"
+      ],
+      "latest": "1.2.0-preview",
+      "npmDeprecated": null
+    },
+    {
+      "name": "azure-arm-search",
+      "displayName": "Resource Management - Cognitive Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-search"
+      ],
+      "latest": "1.3.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-search which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-servermanagement",
+      "displayName": "Resource Management - Server Management",
+      "endOfLife": "2023-03-31",
+      "replacement": [],
+      "latest": "1.1.0",
+      "npmDeprecated": null
+    },
+    {
+      "name": "azure-arm-servicefabric",
+      "displayName": "Resource Management - Service Fabric",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-servicefabric"
+      ],
+      "latest": "2.1.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-servicefabric which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-servicemap",
+      "displayName": "Resource Management - Service Map",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-servicemap"
+      ],
+      "latest": "2.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-servicemap which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-sql",
+      "displayName": "Resource Managament - SQL",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-sql"
+      ],
+      "latest": "5.7.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-sql whick works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-storage",
+      "displayName": "Resource Management - Storage",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-storage"
+      ],
+      "latest": "8.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-storage whick works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-storageimportexport",
+      "displayName": "Resource Management - Storage Import/Export",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-storageimportexport"
+      ],
+      "latest": "1.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-storageimportexport which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-storsimple8000series",
+      "displayName": "Resource Management - StorSimple 8000 series",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-storsimple8000series"
+      ],
+      "latest": "1.1.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-storsimple8000series which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-streamanalytics",
+      "displayName": "Resource Management - Stream Analytics",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-streamanalytics"
+      ],
+      "latest": "1.1.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-streamanalytics which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-trafficmanager",
+      "displayName": "Resource Management - Traffic Manager",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-trafficmanager"
+      ],
+      "latest": "4.1.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-trafficmanager whick works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-visualstudio",
+      "displayName": "Resource Management - Visual Studio",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-visualstudio"
+      ],
+      "latest": "2.2.0-preview",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-visualstudio which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-arm-website",
+      "displayName": "Resource Management - App Services",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-appservice"
+      ],
+      "latest": "5.7.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-appservice whick works both on node.js and browsers"
+    },
+    {
+      "name": "azure-asm-compute",
+      "displayName": "Resource Management - Compute",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-compute"
+      ],
+      "latest": "0.18.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-compute which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-asm-hdinsight",
+      "displayName": "Resource Management - HDInsight",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-hdinsight"
+      ],
+      "latest": "0.10.3",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-hdinsight which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-asm-network",
+      "displayName": "Resource Management - Network",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-network"
+      ],
+      "latest": "0.13.1",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-network which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-asm-sb",
+      "displayName": "Resource Management - Service Bus",
+      "endOfLife": "2023-12-31",
+      "replacement": [
+        "@azure/arm-servicebus"
+      ],
+      "latest": "0.10.2",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-servicebus which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-asm-sql",
+      "displayName": "Resource Management - SQL",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-sql"
+      ],
+      "latest": "0.10.3",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-sql which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-asm-storage",
+      "displayName": "Resource Management - Storage",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-storage"
+      ],
+      "latest": "0.12.1",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-storage which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-asm-trafficmanager",
+      "displayName": "Resource Management - Traffic Manager",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-trafficmanager"
+      ],
+      "latest": "0.10.4",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-trafficmanager which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-asm-website",
+      "displayName": "Resource Management - App Service",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-appservice"
+      ],
+      "latest": "0.10.7",
+      "npmDeprecated": "This package is deprecated in favor of  @azure/arm-appservice which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-autosuggest",
+      "displayName": "Auto Suggest",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-autosuggest"
+      ],
+      "latest": "1.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-autosuggest which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-computervision",
+      "displayName": "Computer Vision",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-computervision"
+      ],
+      "latest": "4.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-computervision which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-contentmoderator",
+      "displayName": "Content Safety",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-contentmoderator"
+      ],
+      "latest": "4.1.1",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-contentmoderator which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-customimagesearch",
+      "displayName": "Custom Image Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-customimagesearch"
+      ],
+      "latest": "1.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-customimagesearch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-customsearch",
+      "displayName": "Custom Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-customsearch"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-customsearch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-customvision-prediction",
+      "displayName": "Custom Vision Prediction",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-customvision-prediction"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-customvision-prediction which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-customvision-training",
+      "displayName": "Custom Vision Training",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-customvision-training"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-customvision-training which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-entitysearch",
+      "displayName": "Entity Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-entitysearch"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-entitysearch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-face",
+      "displayName": "Face",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-face"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-face which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-imagesearch",
+      "displayName": "Image Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-imagesearch"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-imagesearch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-luis-authoring",
+      "displayName": "LUIS Authoring",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-luis-authoring"
+      ],
+      "latest": "2.1.1",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-luis-authoring which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-luis-runtime",
+      "displayName": "LUIS Runtime",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-luis-runtime"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-luis-runtime which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-newssearch",
+      "displayName": "News Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-newssearch"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-newssearch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-spellcheck",
+      "displayName": "Spell Check",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-spellcheck"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-spellcheck which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-textanalytics",
+      "displayName": "Text Analytics",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-textanalytics"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-textanalytics which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-videosearch",
+      "displayName": "Video Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-videosearch"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-videosearch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-visualsearch",
+      "displayName": "Visual Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-visualsearch"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-visualsearch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-cognitiveservices-websearch",
+      "displayName": "Web Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-websearch"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-websearch which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-eventgrid",
+      "displayName": "Event Grid",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/eventgrid"
+      ],
+      "latest": "1.6.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/eventgrid which works in both node.js and browsers."
+    },
+    {
+      "name": "azure-graph",
+      "displayName": "Graph RBAC",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@microsoft/microsoft-graph-client"
+      ],
+      "latest": "4.3.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/graph which works both on node.js and browsers."
+    },
+    {
+      "name": "azure-keyvault",
+      "displayName": "Key Vault",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/keyvault-keys"
+      ],
+      "latest": "3.0.5",
+      "npmDeprecated": "This package has been deprecated. Please use @azure/keyvault-keys, @azure/keyvault-secrets or @azure/keyvault-certificates instead"
+    },
+    {
+      "name": "azure-loganalytics",
+      "displayName": "Log Analytics - Query",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/loganalytics"
+      ],
+      "latest": "0.2.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/monitor-query which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-monitoring",
+      "displayName": "Resource Management - Monitor",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-monitor"
+      ],
+      "latest": "0.10.6",
+      "npmDeprecated": "This package is deprecated in favor of @azure/arm-monitor."
+    },
+    {
+      "name": "azure-sb",
+      "displayName": "Service Bus",
+      "endOfLife": "2023-12-31",
+      "replacement": [
+        "@azure/service-bus"
+      ],
+      "latest": "0.11.2",
+      "npmDeprecated": "Please note, a newer package @azure/service-bus for Azure Service Bus is available as of May 2019 and [@azure/notification-hubs] for Azure Notification Hubs as of March 2023. We strongly encourage you to upgrade to the new package for your Service Bus and Notification Hubs needs. Migration guide can be found at:\n \nhttps://github.com/Azure/azure-sdk-for-js/blob/main/sdk/servicebus/service-bus/migrationguide.md\n \nand\n \nhttps://github.com/Azure/azure-sdk-for-js/blob/main/sdk/notificationhubs/notification-hubs/migrationguide.md\n"
+    },
+    {
+      "name": "azure-scheduler",
+      "displayName": "Logic Apps",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/arm-logic"
+      ],
+      "latest": "0.10.4",
+      "npmDeprecated": "This package is deprecated in favor of  azure-arm-scheduler which works both on node.js and browsers"
+    },
+    {
+      "name": "azure-servicefabric",
+      "displayName": "Service Fabric",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/servicefabric"
+      ],
+      "latest": "3.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/servicefabric which works in both node.js and browsers."
+    },
+    {
+      "name": "azure-storage",
+      "displayName": "Storage",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/storage-blob",
+        "@azure/storage-queue",
+        "@azure/storage-file-share",
+        "@azure/data-tables"
+      ],
+      "latest": "2.10.7",
+      "npmDeprecated": "Please note: newer packages @azure/storage-blob, @azure/storage-queue and @azure/storage-file are available as of November 2019 and @azure/data-tables is available as of June 2021. While the legacy azure-storage package will continue to receive critical bug fixes, we strongly encourage you to upgrade. Migration guide can be found: https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/storage/MigrationGuide.md"
+    }
+  ]
+}

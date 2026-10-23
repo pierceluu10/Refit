@@ -11,6 +11,7 @@ import {
 import { proposeVersionMoves } from './meta-graph-moves.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE = `Usage: refit meta-graph [--repository <root>] [--json]
        refit meta-graph --propose-version-moves --target <version> [--repository <root>] [--output <patch>] [--changes <path>] [--json]
@@ -54,7 +55,7 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'meta-graph'));
   process.exitCode = 1;
 }
 

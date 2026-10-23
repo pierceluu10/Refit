@@ -1,0 +1,35 @@
+{
+  "formatVersion": 1,
+  "repository": "Kanba-co/kanba",
+  "revision": "d5dfe822a503dcf87e14e687e4a13a0baffc9fe3",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "stripe",
+      "name": "Stripe",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "stripe",
+          "declared": "^14.15.0",
+          "locked": "14.25.0"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": [
+        {
+          "file": "lib/stripe.ts",
+          "line": 3,
+          "value": "2023-10-16"
+        }
+      ]
+    }
+  ],
+  "deadlines": [],
+  "mentions": [],
+  "models": [],
+  "untracked": [],
+  "next": "Add the Stripe agent with `refit agents --add stripe` and approve the repository, so Refit can propose migrations for its breaking changes."
+}

@@ -1,0 +1,103 @@
+{
+  "formatVersion": 1,
+  "repository": "getmaxun/maxun",
+  "revision": "4347a8f96b48e550f5cd1dca8347e250ea554ac0",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "openai",
+      "name": "OpenAI",
+      "packages": [],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": []
+    },
+    {
+      "provider": "anthropic",
+      "name": "Anthropic",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "@anthropic-ai/sdk",
+          "declared": "^0.71.2",
+          "locked": null
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "model-fixes",
+      "apiVersions": []
+    }
+  ],
+  "deadlines": [
+    {
+      "id": "anthropic-2026-02-19-claude-3-5-haiku",
+      "provider": "anthropic",
+      "kind": "model",
+      "versions": [
+        "claude-3-5-haiku-20241022"
+      ],
+      "date": "2026-02-19",
+      "days": -245,
+      "summary": "Anthropic retires claude-3-5-haiku-20241022 on the Claude API; requests to a retired model fail.",
+      "replacement": "claude-haiku-4-5-20251001",
+      "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+      "evidence": [
+        {
+          "file": "server/src/workflow-management/classes/DocumentInterpreter.ts",
+          "line": 1478
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    }
+  ],
+  "mentions": [],
+  "models": [
+    {
+      "model": null,
+      "provider": "anthropic",
+      "calls": [
+        {
+          "file": "server/src/sdk/aiExtract/llmClient.ts",
+          "line": 114,
+          "call": "messages.create",
+          "test": false
+        },
+        {
+          "file": "server/src/sdk/browserAgent.ts",
+          "line": 409,
+          "call": "messages.create",
+          "test": false
+        },
+        {
+          "file": "server/src/sdk/browserAgent.ts",
+          "line": 537,
+          "call": "messages.create",
+          "test": false
+        },
+        {
+          "file": "server/src/workflow-management/classes/DocumentInterpreter.ts",
+          "line": 1481,
+          "call": "messages.create",
+          "test": false
+        },
+        {
+          "file": "server/src/sdk/anthropicToolHelper.ts",
+          "line": 81,
+          "call": "messages.create",
+          "test": false
+        },
+        {
+          "file": "server/src/utils/summarizer.ts",
+          "line": 73,
+          "call": "messages.create",
+          "test": false
+        }
+      ]
+    }
+  ],
+  "untracked": [],
+  "next": "Move off `claude-3-5-haiku-20241022` now: its sunset was 2026-02-19 (passed 245 days ago). Replacement: `claude-haiku-4-5-20251001`; `refit deadlines --propose-model-fixes` proposes it where the model is a literal in a traced call."
+}
