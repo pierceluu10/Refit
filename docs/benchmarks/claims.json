@@ -17076,6 +17076,207 @@
           "reason": "The owner decision's number in the launch checklist, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Gemini.** `scripts/gemini-benchmark.mjs` ran once from main `3182b66` and once with the widened paths ([recount](benchmarks/2026-10-22-test-paths-recount.json)). Live-class precision went from 34/59 (57.6%) to 34/50 (68.0%); recall stayed 34/39 (87.2%). 9 matches changed use, all `system_test/` lines in `googleapis/nodejs-vertexai` labelled not sent, so repositories with a Gemini exposure went from 27 to 26. Live matches went from 439 to 430. No labelled sent pin was lost.",
+      "values": [
+        {
+          "says": "34/59",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "rows": "/gemini/pins",
+            "where": [
+              {
+                "field": "before",
+                "equals": "live"
+              }
+            ],
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "label",
+                "equals": "sent"
+              }
+            ]
+          }
+        },
+        {
+          "says": "57.6%",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "rows": "/gemini/pins",
+            "where": [
+              {
+                "field": "before",
+                "equals": "live"
+              }
+            ],
+            "measure": "rate",
+            "part": [
+              {
+                "field": "label",
+                "equals": "sent"
+              }
+            ]
+          }
+        },
+        {
+          "says": "34/50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "rows": "/gemini/pins",
+            "where": [
+              {
+                "field": "after",
+                "equals": "live"
+              }
+            ],
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "label",
+                "equals": "sent"
+              }
+            ]
+          }
+        },
+        {
+          "says": "68.0%",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "rows": "/gemini/pins",
+            "where": [
+              {
+                "field": "after",
+                "equals": "live"
+              }
+            ],
+            "measure": "rate",
+            "part": [
+              {
+                "field": "label",
+                "equals": "sent"
+              }
+            ]
+          }
+        },
+        {
+          "says": "34/39",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "rows": "/gemini/pins",
+            "where": [
+              {
+                "field": "label",
+                "equals": "sent"
+              }
+            ],
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "after",
+                "equals": "live"
+              }
+            ]
+          }
+        },
+        {
+          "says": "87.2%",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "rows": "/gemini/pins",
+            "where": [
+              {
+                "field": "label",
+                "equals": "sent"
+              }
+            ],
+            "measure": "rate",
+            "part": [
+              {
+                "field": "after",
+                "equals": "live"
+              }
+            ]
+          }
+        },
+        {
+          "says": "9",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "rows": "/gemini/changed",
+            "where": []
+          }
+        },
+        {
+          "says": "27",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "value": "/gemini/before/summary/exposedToShippedDeadlines"
+          }
+        },
+        {
+          "says": "26",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "value": "/gemini/after/summary/exposedToShippedDeadlines"
+          }
+        },
+        {
+          "says": "439",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "value": "/gemini/before/summary/pins/live"
+          }
+        },
+        {
+          "says": "430",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-test-paths-recount.json"
+            ],
+            "value": "/gemini/after/summary/pins/live"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Rule.** The shared `TEST_PATH` and the Go and Python tracers' test paths now also treat end-to-end and system test directories as tests, by whole directory segment: `system_test(s)/`, `integration_test(s)/`, `acceptance_test(s)/`, `functional_test(s)/`, `smoke_test(s)/`, `e2e_test(s)/` (with `_`, `-` or nothing before `test`) and `tests-e2e/`. Test files keep the `test` use, as before, so owner decision 22 (docs, examples, fixtures and build output still count) is unchanged. `playwright/` and a bare `integration/` were left out: on the frozen sets both name application code in some repositories (`src/targets/playwright/`, `src/integrations/shopify.js`).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "22",
+          "reason": "An owner decision number, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Other sets.** A listing of every frozen repository's files at its recorded commit found the newly matched directories only in test harnesses (for example `integration-tests/`, `e2e-tests/`, `system-test/`), and no labelled live site in any benchmark sits in one. The one recorded live site that moves is a v2 client in `jagregory/cognito-local`'s `integration-tests/aws-sdk/setup.ts`, an unlabelled Vitest harness ([Cloud SDK](CLOUD-SDK-EOL.md)). Sets whose results keep only aggregates (API hosts, the fresh deadline sets) have no frozen repository with such a directory, so they are unchanged.",
+      "values": [],
+      "ignore": []
     }
   ]
 }

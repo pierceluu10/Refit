@@ -1,0 +1,2885 @@
+{
+ "formatVersion": 1,
+ "method": "scripts/gemini-benchmark.mjs over docs/benchmarks/2026-10-21-gemini-repos.json at the frozen commits, once from main 3182b66 (before) and once with the widened TEST_PATH (after). Files read only; no install, no code run, no provider contacted. Pins are the non-ambiguous labels of docs/benchmarks/2026-10-22-gemini-labels.json in repositories both runs scanned, with the use each run gave the labelled line.",
+ "gemini": {
+  "before": {
+   "truePositives": 34,
+   "falsePositives": 25,
+   "sent": 39,
+   "traced": 17,
+   "sdkSent": 35,
+   "wrong": 1,
+   "summary": {
+    "repositories": 50,
+    "errors": 6,
+    "timedOut": 0,
+    "declaresOldSdk": 6,
+    "exposedToShippedDeadlines": 27,
+    "withGeminiIds": 44,
+    "withLivePins": 39,
+    "pins": {
+     "live": 439,
+     "catalog": 1003,
+     "test": 3213,
+     "check": 189,
+     "comment": 160,
+     "tokenizer": 0
+    },
+    "liveInSdkFiles": 69,
+    "traced": 187,
+    "cappedNotListed": 1624
+   }
+  },
+  "after": {
+   "truePositives": 34,
+   "falsePositives": 16,
+   "sent": 39,
+   "traced": 17,
+   "sdkSent": 35,
+   "wrong": 1,
+   "summary": {
+    "repositories": 50,
+    "errors": 6,
+    "timedOut": 0,
+    "declaresOldSdk": 6,
+    "exposedToShippedDeadlines": 26,
+    "withGeminiIds": 44,
+    "withLivePins": 38,
+    "pins": {
+     "live": 430,
+     "catalog": 1003,
+     "test": 3222,
+     "check": 189,
+     "comment": 160,
+     "tokenizer": 0
+    },
+    "liveInSdkFiles": 69,
+    "traced": 187,
+    "cappedNotListed": 1624
+   }
+  },
+  "pins": [
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/types.ts:101",
+    "model": "gemini-2.0-flash",
+    "label": "sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:477",
+    "model": "gemini-2.5-pro-preview-06-05",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:478",
+    "model": "gemini-2.5-flash-preview-05-20",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:479",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:480",
+    "model": "gemini-1.5-pro-latest",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:481",
+    "model": "gemini-1.5-flash-latest",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:1158",
+    "model": "gemini-2",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:1159",
+    "model": "gemini-1.5",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:1233",
+    "model": "gemini-2",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/model-detection.ts:1234",
+    "model": "gemini-1.5",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/tools.ts:287",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/types.ts:249",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/types.ts:250",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "calliopeai/calliope-cli",
+    "at": "src/types.ts:251",
+    "model": "gemini-1.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "taahamahdi/i18n-ai-translate",
+    "at": "src/constants.ts:13",
+    "model": "gemini-2.5-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "taahamahdi/i18n-ai-translate",
+    "at": "src/chats/gemini.ts:2",
+    "model": "gemini-zod",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "taahamahdi/i18n-ai-translate",
+    "at": "src/types.ts:16",
+    "model": "gemini-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "eclipse-theia/theia",
+    "at": "packages/ai-core/src/browser/favorite-models-service.ts:229",
+    "model": "gemini-3.7-flash",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "eclipse-theia/theia",
+    "at": "packages/ai-core/src/common/model-discovery-util.ts:75",
+    "model": "gemini-flash-latest",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "eclipse-theia/theia",
+    "at": "packages/ai-core/src/common/model-discovery-util.ts:83",
+    "model": "gemini-3.7-flash",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "eclipse-theia/theia",
+    "at": "packages/ai-core/src/common/model-discovery-util.ts:93",
+    "model": "gemini-3.7",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "nbonamy/multi-llm-ts",
+    "at": "src/providers/google.ts:60",
+    "model": "gemini-1.5-pro-latest",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "nbonamy/multi-llm-ts",
+    "at": "src/providers/google.ts:63",
+    "model": "gemini-exp-1206",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "nbonamy/multi-llm-ts",
+    "at": "src/providers/google.ts:109",
+    "model": "gemini-2.5-computer-use-preview-10-2025",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "jee1/memento",
+    "at": "packages/memento-core/src/shared/config/constants.ts:185",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "jee1/memento",
+    "at": "packages/memento-core/src/shared/config/constants.ts:188",
+    "model": "gemini-flash-latest",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:10",
+    "model": "gemini-3.1-pro-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:53",
+    "model": "gemini-3-flash-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:96",
+    "model": "gemini-3.1-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:143",
+    "model": "gemini-2.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:186",
+    "model": "gemini-2.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:229",
+    "model": "gemini-2.5-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:271",
+    "model": "gemini-3.1-flash-image-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:303",
+    "model": "gemini-3-pro-image-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:337",
+    "model": "gemini-2.5-flash-image",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:374",
+    "model": "gemini-2.5-flash-preview-tts",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:402",
+    "model": "gemini-2.5-pro-preview-tts",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:430",
+    "model": "gemini-3.1-flash-tts-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:462",
+    "model": "gemini-embedding-001",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/gemini/models.ts:490",
+    "model": "gemini-embedding-2",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/venice/models.ts:10",
+    "model": "gemini-3-6-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/venice/models.ts:42",
+    "model": "gemini-3-5-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/venice/models.ts:1163",
+    "model": "gemini-3-1-pro-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/venice/models.ts:1195",
+    "model": "gemini-3-5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/venice/models.ts:1227",
+    "model": "gemini-3-flash-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "a2arium/callLLM",
+    "at": "src/adapters/venice/models.ts:4273",
+    "model": "gemini-embedding-2-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "system_test/prompts_e2e_test.ts:11",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "system_test/prompts_sample_test.ts:14",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/src/models/generative_models.ts:540",
+    "model": "gemini-1.0-pro",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/src/models/generative_models.ts:543",
+    "model": "gemini-1.0-pro",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/src/types/content.ts:148",
+    "model": "gemini-1.0-pro",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/src/vertex_ai.ts:95",
+    "model": "gemini-1.0-pro",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/src/vertex_ai.ts:96",
+    "model": "gemini-1.0-pro-vision",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/system_test/end_to_end_sample_test.ts:137",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/system_test/end_to_end_sample_test.ts:151",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/system_test/end_to_end_sample_test.ts:158",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/system_test/end_to_end_sample_test.ts:164",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/system_test/end_to_end_sample_test.ts:167",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/system_test/end_to_end_sample_test.ts:170",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "googleapis/nodejs-vertexai",
+    "at": "vertexai/system_test/end_to_end_sample_test.ts:174",
+    "model": "gemini-2.0-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/french-bistro/agent-worker.js:95",
+    "model": "gemini-3.1-flash-lite",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/french-bistro/agent.js:232",
+    "model": "gemini-3.1-flash-lite",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/page-agent/script.js:159",
+    "model": "gemini-3.5-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/sport-shop-angular/src/app/services/agent.service.ts:144",
+    "model": "gemini-3.1-flash-lite",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/sport-shop-angular/src/app/services/product.service.ts:37",
+    "model": "gemini-pro-grip-gloves",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/sport-shop-angular/src/app/services/product.service.ts:60",
+    "model": "gemini-basketball",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/sport-shop-angular/src/app/services/product.service.ts:71",
+    "model": "gemini-basketball-junior",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/sport-shop-angular/src/app/services/product.service.ts:127",
+    "model": "gemini-ultimate-boots",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/sport-shop-angular/src/app/services/product.service.ts:138",
+    "model": "gemini-ultimate-boots-youth",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/sport-shop-angular/src/app/services/product.service.ts:183",
+    "model": "gemini-forerunner-watch",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "demos/sport-shop-angular/src/app/services/product.service.ts:217",
+    "model": "gemini-massive-pop-bat",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "webmcp-evals/src/analyzer/index.ts:17",
+    "model": "gemini-3.5-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "webmcp-evals/src/backends/factory.ts:20",
+    "model": "gemini-3-flash-preview",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "webmcp-evals/src/backends/vercel.ts:33",
+    "model": "gemini-3-flash-preview",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "webmcp-evals/src/bin/webmcp-evals.ts:41",
+    "model": "gemini-3.5-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "webmcp-evals/src/bin/webmcp-evals.ts:49",
+    "model": "gemini-3.5-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "webmcp-skills/src/evals/aggregate-benchmark.ts:193",
+    "model": "gemini-3.5-flash-lite",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "GoogleChromeLabs/webmcp-tools",
+    "at": "webmcp-skills/src/evals/provider.ts:57",
+    "model": "gemini-3.5-flash-lite",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/beta/gemini_stt.ts:21",
+    "model": "gemini-3.5-transcribe-live",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/beta/gemini_tts.ts:52",
+    "model": "gemini-3.1-flash-tts-preview",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/beta/gemini_tts.ts:63",
+    "model": "gemini-3.8-flash-tts",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/llm.ts:30",
+    "model": "gemini-3",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/llm.ts:34",
+    "model": "gemini-4",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/llm.ts:88",
+    "model": "gemini-3",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/llm.ts:148",
+    "model": "gemini-2.0-flash-001",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/llm.ts:192",
+    "model": "gemini-2.0-flash-001",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:94",
+    "model": "gemini-3.8-flash-tts",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:95",
+    "model": "gemini-3.8-flash-lite-tts",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:96",
+    "model": "gemini-3.1-flash-tts-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:97",
+    "model": "gemini-2.5-flash-tts",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:98",
+    "model": "gemini-2.5-flash-lite-preview-tts",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:99",
+    "model": "gemini-2.5-pro-tts",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:102",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:103",
+    "model": "gemini-3.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:104",
+    "model": "gemini-3-pro-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:105",
+    "model": "gemini-3-flash-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:106",
+    "model": "gemini-2.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:107",
+    "model": "gemini-2.5-pro-preview-05-06",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:108",
+    "model": "gemini-2.5-flash-preview-04-17",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:109",
+    "model": "gemini-2.5-flash-preview-05-20",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:110",
+    "model": "gemini-2.0-flash-001",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:111",
+    "model": "gemini-2.0-flash-lite-preview-02-05",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:112",
+    "model": "gemini-2.0-pro-exp-02-05",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/models.ts:113",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/api_proto.ts:18",
+    "model": "gemini-3.8-live",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/api_proto.ts:20",
+    "model": "gemini-live-2.5-flash-native-audio",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/api_proto.ts:21",
+    "model": "gemini-live-2.5-flash-preview-native-audio-09-2025",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/api_proto.ts:22",
+    "model": "gemini-live-2.5-flash-preview-native-audio",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/api_proto.ts:24",
+    "model": "gemini-3.8-live-extended-thinking",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/api_proto.ts:25",
+    "model": "gemini-3.1-flash-live-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/api_proto.ts:26",
+    "model": "gemini-2.5-flash-native-audio-preview-12-2025",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/api_proto.ts:27",
+    "model": "gemini-2.0-flash-exp",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:53",
+    "model": "gemini-3.8-live",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:56",
+    "model": "gemini-3.8-live",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:57",
+    "model": "gemini-3.8-live-extended-thinking",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:58",
+    "model": "gemini-3.1-flash-live-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:59",
+    "model": "gemini-2.5-flash-native-audio-preview-12-2025",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:117",
+    "model": "gemini-live-2.5-flash-native-audio",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:129",
+    "model": "gemini-2.5-flash-native-audio-preview-12-2025",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:446",
+    "model": "gemini-3.8-live",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:451",
+    "model": "gemini-3.8-live-extended-thinking",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:438",
+    "model": "gemini-live-2.5-flash-native-audio",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "livekit/agents-js",
+    "at": "plugins/google/src/realtime/realtime_api.ts:439",
+    "model": "gemini-2.5-flash-native-audio-preview-12-2025",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "scripts/example.ts:21",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/handlers/gemini.ts:47",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:222",
+    "model": "gemini-2.0-flash-001",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:223",
+    "model": "gemini-2.0-flash-lite-preview-02-05",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:224",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:225",
+    "model": "gemini-1.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:226",
+    "model": "gemini-1.5-flash-8b",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:227",
+    "model": "gemini-1.0-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:228",
+    "model": "gemini-2.5-flash-preview-04-17",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:229",
+    "model": "gemini-2.5-pro-preview-03-25",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:233",
+    "model": "gemini-2.0-flash-001",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:234",
+    "model": "gemini-2.0-flash-lite-preview-02-05",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:235",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:236",
+    "model": "gemini-1.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:237",
+    "model": "gemini-1.5-flash-8b",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:238",
+    "model": "gemini-1.0-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:239",
+    "model": "gemini-2.5-flash-preview-04-17",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:240",
+    "model": "gemini-2.5-pro-preview-03-25",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:243",
+    "model": "gemini-2.0-flash-001",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:244",
+    "model": "gemini-2.0-flash-lite-preview-02-05",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:245",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:246",
+    "model": "gemini-1.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:247",
+    "model": "gemini-1.5-flash-8b",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:248",
+    "model": "gemini-2.5-flash-preview-04-17",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:249",
+    "model": "gemini-2.5-pro-preview-03-25",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:252",
+    "model": "gemini-2.0-flash-001",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:253",
+    "model": "gemini-2.0-flash-lite-preview-02-05",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:254",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:255",
+    "model": "gemini-1.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:256",
+    "model": "gemini-1.5-flash-8b",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:257",
+    "model": "gemini-2.5-flash-preview-04-17",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:258",
+    "model": "gemini-2.5-pro-preview-03-25",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:261",
+    "model": "gemini-2.0-flash-001",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:262",
+    "model": "gemini-1.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:263",
+    "model": "gemini-1.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:264",
+    "model": "gemini-1.5-flash-8b",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:265",
+    "model": "gemini-1.0-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:266",
+    "model": "gemini-2.5-flash-preview-04-17",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "token-js/token.js",
+    "at": "src/models.ts:267",
+    "model": "gemini-2.5-pro-preview-03-25",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "AIGNE-io/aigne-framework",
+    "at": "models/aigne-hub/src/utils/find-provider.ts:106",
+    "model": "gemini-2.5-pro",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "AIGNE-io/aigne-framework",
+    "at": "models/aigne-hub/src/utils/find-provider.ts:113",
+    "model": "gemini-2.5-pro",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "AIGNE-io/aigne-framework",
+    "at": "models/gemini/src/gemini-chat-model.ts:48",
+    "model": "gemini-2.0-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "AIGNE-io/aigne-framework",
+    "at": "models/gemini/src/gemini-chat-model.ts:345",
+    "model": "gemini-3",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "ctrf-io/ai-test-reporter",
+    "at": "src/index.ts:174",
+    "model": "gemini-pro",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "ctrf-io/ai-test-reporter",
+    "at": "src/models/gemini.ts:14",
+    "model": "gemini-pro",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "ConechoAI/Nano-Banana-MCP",
+    "at": "src/index.ts:223",
+    "model": "gemini-2.5-flash-image-preview",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "ConechoAI/Nano-Banana-MCP",
+    "at": "src/index.ts:356",
+    "model": "gemini-2.5-flash-image-preview",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "ConechoAI/Nano-Banana-MCP",
+    "at": "test-integration.ts:171",
+    "model": "gemini-2.5-flash-image-preview",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "receptron/graphai",
+    "at": "agents/vanilla_agents/lib/data_agents/lookup_dictionary_agent.js:26",
+    "model": "gemini-2.0-pro-exp-02-05",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "receptron/graphai",
+    "at": "agents/vanilla_agents/lib/data_agents/lookup_dictionary_agent.js:73",
+    "model": "gemini-2.0-pro-exp-02-05",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "receptron/graphai",
+    "at": "agents/vanilla_agents/src/data_agents/lookup_dictionary_agent.ts:32",
+    "model": "gemini-2.0-pro-exp-02-05",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "receptron/graphai",
+    "at": "agents/vanilla_agents/src/data_agents/lookup_dictionary_agent.ts:80",
+    "model": "gemini-2.0-pro-exp-02-05",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "receptron/graphai",
+    "at": "llm_agents/gemini_agent/lib/gemini_agent.js:145",
+    "model": "gemini-2.5-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "receptron/graphai",
+    "at": "llm_agents/gemini_agent/src/gemini_agent.ts:216",
+    "model": "gemini-2.5-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/config/index.ts:38",
+    "model": "gemini-4-argon",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/config/index.ts:39",
+    "model": "gemini-3.1-pro-preview",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/config/index.ts:44",
+    "model": "gemini-3.8-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/config/index.ts:45",
+    "model": "gemini-3.1-pro-preview",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/config/index.ts:46",
+    "model": "gemini-3.8-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/config/index.ts:47",
+    "model": "gemini-3-pro-image",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/config/index.ts:58",
+    "model": "gemini-mcp",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:15",
+    "model": "gemini-3-pro-image",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:16",
+    "model": "gemini-3.1-flash-image",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:17",
+    "model": "gemini-3.1-flash-lite-image",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:18",
+    "model": "gemini-3-pro-image-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:19",
+    "model": "gemini-3.1-flash-image-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:21",
+    "model": "gemini-2.5-flash-image",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:26",
+    "model": "gemini-3.8-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:27",
+    "model": "gemini-3.7-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:28",
+    "model": "gemini-3.6-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:29",
+    "model": "gemini-3.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:30",
+    "model": "gemini-3.5-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:31",
+    "model": "gemini-3.1-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:32",
+    "model": "gemini-3.1-pro-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:33",
+    "model": "gemini-3-pro-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:34",
+    "model": "gemini-3-flash-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:35",
+    "model": "gemini-3-pro-image",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:36",
+    "model": "gemini-3-pro-image-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:37",
+    "model": "gemini-3.1-flash-image",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:38",
+    "model": "gemini-2.5-flash-image",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:39",
+    "model": "gemini-2.5-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:40",
+    "model": "gemini-2.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:50",
+    "model": "gemini-3-pro-image",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/image-service.ts:51",
+    "model": "gemini-3.8-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/index.ts:236",
+    "model": "gemini-3.1-pro-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/index.ts:243",
+    "model": "gemini-3.1-pro-preview-customtools",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/index.ts:251",
+    "model": "gemini-3-pro-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/services/gemini/index.ts:258",
+    "model": "gemini-3-flash-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/tools/gemini-help.ts:48",
+    "model": "gemini-3-pro-image",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/tools/gemini-help.ts:120",
+    "model": "gemini-3-pro-image",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/tools/gemini-help.ts:210",
+    "model": "gemini-3.8-flash",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/tools/generate-svg.ts:16",
+    "model": "gemini-3-flash-preview",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/tools/register-viewers.ts:23",
+    "model": "gemini-image-viewer",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/tools/register-viewers.ts:30",
+    "model": "gemini-video-viewer",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/tools/register-viewers.ts:37",
+    "model": "gemini-svg-viewer",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "houtini-ai/gemini-mcp",
+    "at": "src/tools/register-viewers.ts:43",
+    "model": "gemini-landing-page-viewer",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1633",
+    "model": "gemini-flash-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1634",
+    "model": "gemini-3.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1635",
+    "model": "gemini-flash-lite-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1636",
+    "model": "gemini-3.1-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1662",
+    "model": "gemini-3.1-flash-lite-preview",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1664",
+    "model": "gemini-flash-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1665",
+    "model": "gemini-3.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1666",
+    "model": "gemini-flash-lite-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1667",
+    "model": "gemini-3.1-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/scripts/generate-models.ts:1673",
+    "model": "gemini-2.5-flash",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/src/api/google-shared.ts:80",
+    "model": "gemini-flash-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/src/api/google-shared.ts:81",
+    "model": "gemini-flash-lite-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/src/auth/oauth/google-antigravity.ts:244",
+    "model": "gemini-3.1-pro-high",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/src/auth/oauth/google-antigravity.ts:245",
+    "model": "gemini-3.1-pro-low",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/src/auth/oauth/google-antigravity.ts:246",
+    "model": "gemini-3.8-flash-high",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/src/auth/oauth/google-antigravity.ts:247",
+    "model": "gemini-3.8-flash-medium",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/ai/src/auth/oauth/google-antigravity.ts:256",
+    "model": "gemini-3.8-flash-low",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/coding-agent/src/core/model-resolver.ts:30",
+    "model": "gemini-3.1-pro-preview",
+    "label": "sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "Averyyy/pi-client",
+    "at": "packages/coding-agent/src/core/model-resolver.ts:31",
+    "model": "gemini-3.1-pro-preview",
+    "label": "sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/dated-list-prices.ts:18",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/dated-list-prices.ts:19",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2032",
+    "model": "gemini-flash-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2033",
+    "model": "gemini-3.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2034",
+    "model": "gemini-flash-lite-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2035",
+    "model": "gemini-3.1-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2066",
+    "model": "gemini-3.1-flash-lite-preview",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2068",
+    "model": "gemini-flash-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2069",
+    "model": "gemini-3.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2070",
+    "model": "gemini-flash-lite-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2071",
+    "model": "gemini-3.1-flash-lite",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:2077",
+    "model": "gemini-2.5-flash",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:3812",
+    "model": "gemini-3.1-flash-lite-preview",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/scripts/generate-models.ts:3814",
+    "model": "gemini-3.1-flash-lite-preview",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/src/api/google-shared.ts:85",
+    "model": "gemini-flash-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/src/api/google-shared.ts:86",
+    "model": "gemini-flash-lite-latest",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/src/cursor/model-capabilities.ts:138",
+    "model": "gemini-3.7-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/src/cursor/model-capabilities.ts:144",
+    "model": "gemini-3.6-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/src/cursor/model-capabilities.ts:191",
+    "model": "gemini-3-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/src/cursor/model-capabilities.ts:192",
+    "model": "gemini-3.1-pro",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/src/cursor/model-capabilities.ts:193",
+    "model": "gemini-3.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/ai/src/providers/bai.ts:32",
+    "model": "gemini-3.5-flash-lite",
+    "label": "not-sent",
+    "before": "comment",
+    "after": "comment"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/cursor-cli-oauth/models.ts:76",
+    "model": "gemini-3.7-flash-high",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/look-at/model-selector.ts:9",
+    "model": "gemini-3.5-flash",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/prompt-preset/contract.ts:110",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/prompt-preset/contract.ts:151",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/prompt-preset/contract.ts:187",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/prompt-preset/presets.ts:99",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "check",
+    "after": "check"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/prompt-preset/settings.ts:21",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/prompt-preset/settings.ts:61",
+    "model": "gemini-4-argon",
+    "label": "not-sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/extensions/builtin/websearch/websearch/providers/google.ts:16",
+    "model": "gemini-2.5-flash",
+    "label": "sent",
+    "before": "live",
+    "after": "live"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/model-resolver.ts:60",
+    "model": "gemini-3.1-pro-preview",
+    "label": "sent",
+    "before": "catalog",
+    "after": "catalog"
+   },
+   {
+    "repo": "code-yeongyu/senpi",
+    "at": "packages/coding-agent/src/core/model-resolver.ts:61",
+    "model": "gemini-3.1-pro-preview",
+    "label": "sent",
+    "before": "catalog",
+    "after": "catalog"
+   }
+  ],
+  "changed": [
+   {
+    "match": "googleapis/nodejs-vertexai system_test/prompts_e2e_test.ts:11 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "match": "googleapis/nodejs-vertexai system_test/prompts_sample_test.ts:14 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "match": "googleapis/nodejs-vertexai vertexai/system_test/end_to_end_sample_test.ts:137 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "match": "googleapis/nodejs-vertexai vertexai/system_test/end_to_end_sample_test.ts:151 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "match": "googleapis/nodejs-vertexai vertexai/system_test/end_to_end_sample_test.ts:158 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "match": "googleapis/nodejs-vertexai vertexai/system_test/end_to_end_sample_test.ts:164 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "match": "googleapis/nodejs-vertexai vertexai/system_test/end_to_end_sample_test.ts:167 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "match": "googleapis/nodejs-vertexai vertexai/system_test/end_to_end_sample_test.ts:170 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   },
+   {
+    "match": "googleapis/nodejs-vertexai vertexai/system_test/end_to_end_sample_test.ts:174 gemini-2.0-flash",
+    "before": "live",
+    "after": "test"
+   }
+  ],
+  "repos": {
+   "before": [
+    {
+     "repo": "earendil-works/pi",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "googleapis/nodejs-vertexai",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "langchain-ai/langchainjs",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "openclaw/openclaw",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "livekit/agents-js",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "TanStack/ai",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "mastra-ai/mastra",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "grafana/agento11y",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "code-yeongyu/senpi",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "ctrf-io/ai-test-reporter",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "nexus-substrate/nexus-agents",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "f5-sales-demo/xcsh",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "bastani-inc/atomic",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "receptron/graphai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "GoogleChromeLabs/webmcp-tools",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "eclipse-theia/theia",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "grantsingleton/batch-ai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "taahamahdi/i18n-ai-translate",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "just-every/ensemble",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "samestrin/llm-interface",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "dperussina/convex-nano-banana",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "MemberJunction/MJ",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "houtini-ai/gemini-mcp",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "asimar007/no-commit",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "xrkseek/XRK-harness",
+     "error": "refit deadlines: Repository exceeds the 128 source-configuration file limit.",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "office-sec/aioncli",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "desplega-ai/agent-fs",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "nbonamy/multi-llm-ts",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "AIGNE-io/aigne-framework",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "nullp2ike/visual-reasoning",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "BaseModelAI/base-context",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "token-js/token.js",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "kolisachint/hoocode-ts",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "ashx-j/lunR",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "Averyyy/pi-client",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "jee1/memento",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "agnt-ai/agnt-node",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "warlockjs/framework",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "ConechoAI/Nano-Banana-MCP",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "workglow-dev/libs",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "calliopeai/calliope-cli",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "aebrer/dreb",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "fractaal/pi",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "ZenMux/rosetta-ai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "a2arium/callLLM",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "aantich/oneringai",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "agdevhq/core-ai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "ranxianglei/pi-stable",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "windupjs/windup",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "randombet/bodhi_realtime_agent",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    }
+   ],
+   "after": [
+    {
+     "repo": "earendil-works/pi",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "googleapis/nodejs-vertexai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "langchain-ai/langchainjs",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "openclaw/openclaw",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "livekit/agents-js",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "TanStack/ai",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "mastra-ai/mastra",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "grafana/agento11y",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "code-yeongyu/senpi",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "ctrf-io/ai-test-reporter",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "nexus-substrate/nexus-agents",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "f5-sales-demo/xcsh",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "bastani-inc/atomic",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "receptron/graphai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "GoogleChromeLabs/webmcp-tools",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "eclipse-theia/theia",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "grantsingleton/batch-ai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "taahamahdi/i18n-ai-translate",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "just-every/ensemble",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "samestrin/llm-interface",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "dperussina/convex-nano-banana",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "MemberJunction/MJ",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "houtini-ai/gemini-mcp",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "asimar007/no-commit",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "xrkseek/XRK-harness",
+     "error": "refit deadlines: Repository exceeds the 128 source-configuration file limit.",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "office-sec/aioncli",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "desplega-ai/agent-fs",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "nbonamy/multi-llm-ts",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "AIGNE-io/aigne-framework",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "nullp2ike/visual-reasoning",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "BaseModelAI/base-context",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "token-js/token.js",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "kolisachint/hoocode-ts",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "ashx-j/lunR",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "Averyyy/pi-client",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "jee1/memento",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "agnt-ai/agnt-node",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "warlockjs/framework",
+     "error": "refit deadlines: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "ConechoAI/Nano-Banana-MCP",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "workglow-dev/libs",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "calliopeai/calliope-cli",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "aebrer/dreb",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "fractaal/pi",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "ZenMux/rosetta-ai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "a2arium/callLLM",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "aantich/oneringai",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "agdevhq/core-ai",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    },
+    {
+     "repo": "ranxianglei/pi-stable",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "windupjs/windup",
+     "error": null,
+     "exposed": true,
+     "dated": true
+    },
+    {
+     "repo": "randombet/bodhi_realtime_agent",
+     "error": null,
+     "exposed": false,
+     "dated": false
+    }
+   ]
+  }
+ }
+}

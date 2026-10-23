@@ -68,4 +68,4 @@ FP10's "Keep going" item, Python `google-genai` patterns, depends on FG1 (#187),
 - Owner: whether Vertex AI dates get their own registry provider, with call-site attribution (`vertexai: true` on `@google/genai`, `@google-cloud/vertexai`). Until then they are only in this document.
 - Owner: Gemini replacements stay report only (AGENTS.md); the old-to-new SDK swap too.
 - PP10: fold the checklist above into `docs/PROVIDER-GOALS.md` (Gemini 20% → 40%) and the results into `docs/BENCHMARKS.md`.
-- Matcher (whoever owns `pipeline/deadline-exposure.ts` next): `TEST_PATH` misses `system_test/` directories and `test-*.ts` files; changing it shifts every provider's measured numbers, so it was not changed in this lane.
+- Matcher: done for directories on 2026-10-22. `TEST_PATH` now treats `system_test/` and other end-to-end test directories as tests, which removes the 9 `system_test/` false live pins (precision 34/59 → 34/50, recall unchanged; see [Benchmarks](BENCHMARKS.md#test-paths-widened-october-22)). `test-*.ts` file names such as `test-integration.ts` are still not covered: a file-name rule that broad could match application code.
