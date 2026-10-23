@@ -62,3 +62,35 @@ export function benchmarkSummary(results) {
     ).length,
   };
 }
+
+// A stop reason without what varies between sites: quoted names, places in parentheses, model IDs
+// and the closing "change it by hand to <model>".
+export function stopReasonKind(reason) {
+  return reason
+    .replace(/`[^`]*`/g, '`…`')
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/[;,]?\s*(?:check [^;]* and )?change (?:it|its model) by hand.*$/, '')
+    .replace(/\b(?:gpt|claude|chatgpt|dall-e|tts|whisper|o\d)[\w.:@-]*/g, '<model>')
+    .trim();
+}
+
+// Stop reasons ranked by the exposed repositories they block: `repositories` where the reason
+// stops at least one site, and `blocked` where the repository also gets no replacement.
+export function stopReasons(results) {
+  const kinds = new Map();
+  for (const item of results) {
+    if (!item.exposures?.length) continue;
+    for (const kind of new Set(
+      (item.stops ?? []).map((stop) => stopReasonKind(stop.reason ?? '')),
+    )) {
+      const counts = kinds.get(kind) ?? { reason: kind, repositories: 0, blocked: 0 };
+      kinds.set(kind, counts);
+      counts.repositories += 1;
+      if (!item.replacements?.length) counts.blocked += 1;
+    }
+  }
+  return [...kinds.values()].sort(
+    (a, b) =>
+      b.blocked - a.blocked || b.repositories - a.repositories || a.reason.localeCompare(b.reason),
+  );
+}

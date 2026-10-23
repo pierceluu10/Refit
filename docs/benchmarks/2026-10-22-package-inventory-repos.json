@@ -1,0 +1,1040 @@
+{
+  "formatVersion": 1,
+  "selectedAt": "2026-10-22T08:28:10.489Z",
+  "method": "Reverse-dependency listings of catalog SDKs (pkg.go.dev, rubygems.org, packagist.org, crates.io, nuget.org GitHub Usage) and gitlab.com project search for PyPI and Maven, round-robin across queries in listing order, deduplicated, SDK vendor organisations, forks and archived projects removed, kept once a shallow clone succeeded. Provider exposure is never consulted.",
+  "counts": {
+    "pypi": 15,
+    "go": 15,
+    "rubygems": 15,
+    "packagist": 15,
+    "maven": 10,
+    "nuget": 15,
+    "cargo": 15
+  },
+  "queries": [
+    {
+      "ecosystem": "pypi",
+      "query": "https://gitlab.com/api/v4/projects?search=stripe&with_programming_language=Python&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 35
+    },
+    {
+      "ecosystem": "pypi",
+      "query": "https://gitlab.com/api/v4/projects?search=openai&with_programming_language=Python&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "pypi",
+      "query": "https://gitlab.com/api/v4/projects?search=anthropic&with_programming_language=Python&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 38
+    },
+    {
+      "ecosystem": "pypi",
+      "query": "https://gitlab.com/api/v4/projects?search=twilio&with_programming_language=Python&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "pypi",
+      "query": "https://gitlab.com/api/v4/projects?search=sendgrid&with_programming_language=Python&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 22
+    },
+    {
+      "ecosystem": "pypi",
+      "query": "https://gitlab.com/api/v4/projects?search=gemini&with_programming_language=Python&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "go",
+      "query": "https://pkg.go.dev/github.com/stripe/stripe-go/v82?tab=importedby",
+      "candidates": 152
+    },
+    {
+      "ecosystem": "go",
+      "query": "https://pkg.go.dev/github.com/openai/openai-go?tab=importedby",
+      "candidates": 957
+    },
+    {
+      "ecosystem": "go",
+      "query": "https://pkg.go.dev/github.com/sashabaranov/go-openai?tab=importedby",
+      "candidates": 4232
+    },
+    {
+      "ecosystem": "go",
+      "query": "https://pkg.go.dev/github.com/anthropics/anthropic-sdk-go?tab=importedby",
+      "candidates": 1502
+    },
+    {
+      "ecosystem": "go",
+      "query": "https://pkg.go.dev/github.com/twilio/twilio-go?tab=importedby",
+      "candidates": 494
+    },
+    {
+      "ecosystem": "go",
+      "query": "https://pkg.go.dev/github.com/sendgrid/sendgrid-go?tab=importedby",
+      "candidates": 2452
+    },
+    {
+      "ecosystem": "go",
+      "query": "https://pkg.go.dev/google.golang.org/genai?tab=importedby",
+      "candidates": 2565
+    },
+    {
+      "ecosystem": "rubygems",
+      "query": "https://rubygems.org/api/v1/gems/stripe/reverse_dependencies.json",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "rubygems",
+      "query": "https://rubygems.org/api/v1/gems/openai/reverse_dependencies.json",
+      "candidates": 26
+    },
+    {
+      "ecosystem": "rubygems",
+      "query": "https://rubygems.org/api/v1/gems/ruby-openai/reverse_dependencies.json",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "rubygems",
+      "query": "https://rubygems.org/api/v1/gems/anthropic/reverse_dependencies.json",
+      "candidates": 36
+    },
+    {
+      "ecosystem": "rubygems",
+      "query": "https://rubygems.org/api/v1/gems/twilio-ruby/reverse_dependencies.json",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "rubygems",
+      "query": "https://rubygems.org/api/v1/gems/sendgrid-ruby/reverse_dependencies.json",
+      "candidates": 24
+    },
+    {
+      "ecosystem": "packagist",
+      "query": "https://packagist.org/packages/stripe/stripe-php/dependents.json?order_by=downloads",
+      "candidates": 30
+    },
+    {
+      "ecosystem": "packagist",
+      "query": "https://packagist.org/packages/openai-php/client/dependents.json?order_by=downloads",
+      "candidates": 30
+    },
+    {
+      "ecosystem": "packagist",
+      "query": "https://packagist.org/packages/twilio/sdk/dependents.json?order_by=downloads",
+      "candidates": 30
+    },
+    {
+      "ecosystem": "packagist",
+      "query": "https://packagist.org/packages/sendgrid/sendgrid/dependents.json?order_by=downloads",
+      "candidates": 30
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=stripe&with_programming_language=Java&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=openai&with_programming_language=Java&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 25
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=anthropic&with_programming_language=Java&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 1
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=twilio&with_programming_language=Java&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=sendgrid&with_programming_language=Java&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 10
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=gemini&with_programming_language=Java&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=stripe&with_programming_language=Kotlin&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 17
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=openai&with_programming_language=Kotlin&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 14
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=anthropic&with_programming_language=Kotlin&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 4
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=twilio&with_programming_language=Kotlin&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 40
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=sendgrid&with_programming_language=Kotlin&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 0
+    },
+    {
+      "ecosystem": "maven",
+      "query": "https://gitlab.com/api/v4/projects?search=gemini&with_programming_language=Kotlin&order_by=star_count&sort=desc&per_page=40",
+      "candidates": 18
+    },
+    {
+      "ecosystem": "nuget",
+      "query": "https://www.nuget.org/packages/Stripe.net (GitHub Usage)",
+      "candidates": 20
+    },
+    {
+      "ecosystem": "nuget",
+      "query": "https://www.nuget.org/packages/OpenAI (GitHub Usage)",
+      "candidates": 20
+    },
+    {
+      "ecosystem": "nuget",
+      "query": "https://www.nuget.org/packages/Twilio (GitHub Usage)",
+      "candidates": 20
+    },
+    {
+      "ecosystem": "nuget",
+      "query": "https://www.nuget.org/packages/SendGrid (GitHub Usage)",
+      "candidates": 20
+    },
+    {
+      "ecosystem": "nuget",
+      "query": "https://www.nuget.org/packages/Anthropic.SDK (GitHub Usage)",
+      "candidates": 6
+    },
+    {
+      "ecosystem": "cargo",
+      "query": "https://crates.io/api/v1/crates/async-openai/reverse_dependencies?per_page=50",
+      "candidates": 30
+    },
+    {
+      "ecosystem": "cargo",
+      "query": "https://crates.io/api/v1/crates/async-stripe/reverse_dependencies?per_page=50",
+      "candidates": 21
+    },
+    {
+      "ecosystem": "cargo",
+      "query": "https://crates.io/api/v1/crates/resend-rs/reverse_dependencies?per_page=50",
+      "candidates": 8
+    }
+  ],
+  "rejected": [
+    {
+      "ecosystem": "go",
+      "repository": "github.com/stripe/stripe-go",
+      "reason": "sdk-vendor"
+    },
+    {
+      "ecosystem": "go",
+      "repository": "github.com/openai/openai-go",
+      "reason": "sdk-vendor"
+    },
+    {
+      "ecosystem": "go",
+      "repository": "github.com/sashabaranov/go-openai",
+      "reason": "sdk-vendor"
+    },
+    {
+      "ecosystem": "go",
+      "repository": "github.com/anthropics/anthropic-sdk-go",
+      "reason": "sdk-vendor"
+    },
+    {
+      "ecosystem": "go",
+      "repository": "github.com/twilio/twilio-go",
+      "reason": "sdk-vendor"
+    },
+    {
+      "ecosystem": "go",
+      "repository": "github.com/sendgrid/sendgrid-go",
+      "reason": "sdk-vendor"
+    },
+    {
+      "ecosystem": "go",
+      "repository": "github.com/0xhea/azure-sdk-for-go",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/0xhea/azure-sdk-for-go.git /tmp/claude-0/fg5-clones/github.com/0xhea/azure-sdk-for-go"
+    },
+    {
+      "ecosystem": "rubygems",
+      "repository": "github.com/onwarddev/od-payments",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/onwarddev/od-payments.git /tmp/claude-0/fg5-clones/github.com/onwarddev/od-payments"
+    },
+    {
+      "ecosystem": "rubygems",
+      "repository": "github.com/siliconjungles/doctor-strange",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/SiliconJungles/doctor-strange.git /tmp/claude-0/fg5-clones/github.com/SiliconJungles/doctor-strange"
+    },
+    {
+      "ecosystem": "rubygems",
+      "repository": "github.com/backstitch/distribution_wrappers",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/backstitch/distribution_wrappers.git /tmp/claude-0/fg5-clones/github.com/backstitch/distribution_wrappers"
+    },
+    {
+      "ecosystem": "rubygems",
+      "repository": "github.com/sumoners/dm_courier",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/sumoners/dm_courier.git /tmp/claude-0/fg5-clones/github.com/sumoners/dm_courier"
+    },
+    {
+      "ecosystem": "rubygems",
+      "repository": "github.com/fiatinsight/fiat_stripe",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/fiatinsight/fiat_stripe.git /tmp/claude-0/fg5-clones/github.com/fiatinsight/fiat_stripe"
+    },
+    {
+      "ecosystem": "rubygems",
+      "repository": "github.com/andreibondarev/vectorsearch",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/andreibondarev/vectorsearch.git /tmp/claude-0/fg5-clones/github.com/andreibondarev/vectorsearch"
+    },
+    {
+      "ecosystem": "rubygems",
+      "repository": "github.com/ninjacazaam/esp-modkit",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/ninjacazaam/esp-modkit.git /tmp/claude-0/fg5-clones/github.com/ninjacazaam/esp-modkit"
+    },
+    {
+      "ecosystem": "packagist",
+      "repository": "github.com/openai-php/laravel",
+      "reason": "sdk-vendor"
+    },
+    {
+      "ecosystem": "packagist",
+      "repository": "github.com/openai-php/symfony",
+      "reason": "sdk-vendor"
+    },
+    {
+      "ecosystem": "cargo",
+      "repository": "github.com/merlinfuchs/stripeql",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/merlinfuchs/stripeql.git /tmp/claude-0/fg5-clones/github.com/merlinfuchs/stripeql"
+    },
+    {
+      "ecosystem": "cargo",
+      "repository": "github.com/netrondev/netron",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/netrondev/netron.git /tmp/claude-0/fg5-clones/github.com/netrondev/netron"
+    },
+    {
+      "ecosystem": "cargo",
+      "repository": "github.com/umerkhan95/gatekpr",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/umerkhan95/gatekpr.git /tmp/claude-0/fg5-clones/github.com/umerkhan95/gatekpr"
+    },
+    {
+      "ecosystem": "cargo",
+      "repository": "github.com/segersniels/propr-cli",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/segersniels/propr-cli.git /tmp/claude-0/fg5-clones/github.com/segersniels/propr-cli"
+    },
+    {
+      "ecosystem": "cargo",
+      "repository": "github.com/lzpel/ngoni",
+      "reason": "clone: Command failed: git clone --depth 1 --no-recurse-submodules --quiet https://github.com/lzpel/ngoni.git /tmp/claude-0/fg5-clones/github.com/lzpel/ngoni"
+    }
+  ],
+  "repositories": [
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "uniluxembourg/lcsb/eci/chemicalstripes",
+      "commit": "3a709d235800bf090b3f24e809d3780db0556295",
+      "committedAt": "2024-08-02T07:05:01+00:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "aadnk/whisper-webui",
+      "commit": "1929c74428c7831bfd33ba41598eb9344b312722",
+      "committedAt": "2026-10-03T20:18:50+02:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "lx-industries/wally-the-wobot/wally",
+      "commit": "3dd153b66850e714d4c93b702369749369399e89",
+      "committedAt": "2025-12-20T23:18:08+00:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "ColoradoSchoolOfMines/datanium",
+      "commit": "e1bbbe8a58678edce4a8553fda70ffb0f7c9775d",
+      "committedAt": "2018-10-14T11:17:41-04:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "kordspace/sendgrid-sms",
+      "commit": "6bb6a7a08daa5856c0bad74290ab6a6cdfc1b1f6",
+      "committedAt": "2020-03-15T13:24:51-07:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "therealseandonahoe/ijfw",
+      "commit": "9ecb7ec262992e50cde7b24a2fa74acfeb0b15df",
+      "committedAt": "2026-05-26T12:19:51+07:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "miodeq/python-and-stripe",
+      "commit": "bf20799b85187ccf79d2559df133f771075e5b10",
+      "committedAt": "2020-09-15T13:14:24+02:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "doctorj/sairen",
+      "commit": "2a96d381cfd278bcbd8e44834f0982854e48c0f9",
+      "committedAt": "2017-07-18T16:35:15-07:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "mattbusel/llm-cpp",
+      "commit": "8d08fbf167863d3547b6413caf04c9ee47028f95",
+      "committedAt": "2026-10-21T23:11:32+00:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "vipulgupta2048/sendgrid-python",
+      "commit": "1627df741b06b5659890c77ccf6168b7281f5a1d",
+      "committedAt": "2018-10-04T21:25:51-07:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "g2764/smolver",
+      "commit": "327b9db00c7222595c23b2746a3ce462e83b0d9a",
+      "committedAt": "2026-05-16T22:06:02-04:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "gitlab-ai-hackathon/transcend-october-2026/43479942/stripes",
+      "commit": "a6a826135717f66e6c2e8449284ab8b4e35f6ed6",
+      "committedAt": "2026-10-22T07:15:09+00:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "blockshooter/claude-ui-mod",
+      "commit": "a1f54bf1eeffd4b52006beca1c7401ae1e1601e9",
+      "committedAt": "2026-10-03T20:28:48-04:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "0reo/claude-with",
+      "commit": "77fb87bbebbe2f97c4c1c2975531e20cf03bfce8",
+      "committedAt": "2026-06-25T16:03:02-04:00"
+    },
+    {
+      "ecosystem": "pypi",
+      "host": "gitlab.com",
+      "repository": "agirulkar/whatsapp-twilio-api-integration",
+      "commit": "a2788bf2c3295eb2c4c948fec5b457e96832ba8e",
+      "committedAt": "2019-12-29T14:02:12+05:30"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "004Ongoro/gitaid",
+      "commit": "23a48f0f10dbe79a30a004577c9040bbe86605c2",
+      "committedAt": "2025-12-25T13:53:03+03:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "0xCyberFred/zenmux-sdk-go",
+      "commit": "b1105854e0bf4de208d0979ca59a0ab579af5f25",
+      "committedAt": "2026-04-25T20:53:26+08:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "88warren/lmw-fitness-backend",
+      "commit": "12f7a3c2448f18a15c3f025f46735733ba784763",
+      "committedAt": "2026-06-22T16:45:05+01:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "0xdeafcafe/bloefish",
+      "commit": "69d59ad264eaef8c7aab2e51aad07a01d8dd54f0",
+      "committedAt": "2025-05-10T22:17:11+02:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "0x28F4/discord-bot",
+      "commit": "2c8ee36c605eb9c18a16e3049899aadf38890000",
+      "committedAt": "2024-11-02T18:01:11+01:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "0x5d/shiru",
+      "commit": "47441c86a3e206750e9baacc15324adb51d360b2",
+      "committedAt": "2026-02-22T21:37:38-05:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "0187773933/StreamDeck",
+      "commit": "86329a760f44279e61640e4b08f796cd89826b86",
+      "committedAt": "2024-06-12T16:59:44-04:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "0xThomas3000/be-go-codebase",
+      "commit": "ba4b89f749579c329d741a12f1667168aa9edefe",
+      "committedAt": "2022-10-07T11:44:23+07:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "Agent-Field/backai",
+      "commit": "bc547a2ce9ac50cc727d444b811bfc33037e462d",
+      "committedAt": "2026-10-20T17:26:15-04:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "14jasimmtp/CityVibe-Project-Clean-Architecture",
+      "commit": "f5b693e6684f2e25e5af7c484f47a2d6dddc43a4",
+      "committedAt": "2024-12-15T11:23:57+00:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "1backend/1backend",
+      "commit": "65ffb46ae9fc39cc285b0be8773c3b1e159b32d9",
+      "committedAt": "2026-05-27T22:38:16+02:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "0x34d/go-fuzz-GPT",
+      "commit": "be329e0bc58dcf79cae3eb1abb35cbbefdded80f",
+      "committedAt": "2024-04-09T22:04:36+05:30"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "3dw1nM0535/nyatta",
+      "commit": "05ba9c9fbf39dd1fde24d79636be4923c9fa89af",
+      "committedAt": "2023-12-08T20:08:00+03:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "Builder-Lawyers/builder-backend",
+      "commit": "8a5c66bcc6b9bb4bf82442559364247fd02a2d5c",
+      "committedAt": "2026-01-22T20:05:55+01:00"
+    },
+    {
+      "ecosystem": "go",
+      "host": "github.com",
+      "repository": "0xJacky/Nginx-UI",
+      "commit": "1b3548af566ef17c754b501af1e2d96b175a0186",
+      "committedAt": "2026-10-22T12:38:26+08:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "vicentereig/dspy.rb",
+      "commit": "b18a402143091a6b435972d460b8c4c8feca0b2d",
+      "committedAt": "2026-08-15T22:58:01+02:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "mjacobus/mj",
+      "commit": "6e75f4f740466b577f67cc479f876490305c98e7",
+      "committedAt": "2026-01-30T08:04:19-05:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "andrewhampton/bristow",
+      "commit": "a1aec3a6b357921f5c9cfa047dce55acd3480ea2",
+      "committedAt": "2025-05-26T16:33:49-04:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "ryu39/sendgrid_actionmailer_adapter",
+      "commit": "a617afb98ebfc2bdab940030b937b99be66224f1",
+      "committedAt": "2021-03-09T17:54:13+09:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "activeagents/activeagent",
+      "commit": "9f8a527f8e88a18f1db519c56d7cbad7056f6254",
+      "committedAt": "2026-10-21T16:32:40-07:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "andrewculver/honyaku",
+      "commit": "27ef64ee0f613ca46d5659da76fe5319ac39a0cd",
+      "committedAt": "2025-05-08T10:28:31-07:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "icebaker/ruby-nano-bots",
+      "commit": "bcecf2865328710034b7f508c63e602ade642f53",
+      "committedAt": "2024-06-23T18:47:15-03:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "eimermusic/smess",
+      "commit": "c67c2b92982ad1715e1c4911f846d956c4787ead",
+      "committedAt": "2026-06-22T09:53:37+02:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "Stefanija-Trpkovska/octo-stripe-gateway",
+      "commit": "37aef667449f27003a251aea8a171fa8c44eba81",
+      "committedAt": "2026-03-10T12:11:48+01:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "jackal998/aicommit",
+      "commit": "fc53dfc1554d9326d586f8599fe2830d857eca68",
+      "committedAt": "2025-04-02T08:13:47+08:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "unitymind/web_checker",
+      "commit": "36e9dcce6f2c0e3c6548842dabc558d804c5c633",
+      "committedAt": "2014-07-01T20:59:34+04:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "nankhor/crimson",
+      "commit": "4b70aecc90e551de586167588093dcbd9d255734",
+      "committedAt": "2026-06-15T17:21:04+02:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "mrmalvi/rails_error_notifier",
+      "commit": "3d28835f2f8ef5d4a3c8304deb3bd7442d152378",
+      "committedAt": "2025-12-05T13:06:49+05:30"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "holysugar/sendgrid_notification",
+      "commit": "e4a37d0a252b8567fc8f54d7def5f226c499cc04",
+      "committedAt": "2020-01-27T22:55:13+09:00"
+    },
+    {
+      "ecosystem": "rubygems",
+      "host": "github.com",
+      "repository": "tungnt1203/minds_ruby_sdk",
+      "commit": "7c66a01e09cfcd58265ecd3a47158068c49098a6",
+      "committedAt": "2025-08-15T10:48:24+07:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "laravel/cashier-stripe",
+      "commit": "676765cc7c0f997086a565309c145a9eba47bd8f",
+      "committedAt": "2026-10-20T06:15:25-04:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "spatie/laravel-ignition",
+      "commit": "f06b7f73d2e3b7f3c87ba8549e5869d482d974b1",
+      "committedAt": "2026-10-19T16:32:05+00:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "laravel-notification-channels/twilio",
+      "commit": "31abf845e315dda8cd039bc433550d34df8df674",
+      "committedAt": "2026-03-18T17:49:25+01:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "swiftmade/laravel-sendgrid-notification-channel",
+      "commit": "0811a133616e59e24b0e03fd45e2f08cf44dcc07",
+      "committedAt": "2026-03-27T16:42:19+02:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "Payum/PayumBundle",
+      "commit": "854ed36ab02c00c350b70ae3f7656d6a980f8a66",
+      "committedAt": "2026-07-07T14:12:48+02:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "spatie/error-solutions",
+      "commit": "d4970ba0a2c95265f8b52f0ff3e10a6086d55b5f",
+      "committedAt": "2026-09-21T19:35:21+00:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "aloha/laravel-twilio",
+      "commit": "0349c2f6a5da267387240b3a0ee132877a35a3f1",
+      "committedAt": "2024-05-08T11:02:54-04:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "expertcoder/SwiftmailerSendGridBundle",
+      "commit": "44047bf4ba7745f24f9267493c6e0737aa43f002",
+      "committedAt": "2019-11-28T15:11:08+01:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "Payum/Payum",
+      "commit": "256e9a5284e6be6960a78b4be77c9af5e732fb99",
+      "committedAt": "2026-10-21T17:27:18+02:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "worksome/verify-by-phone",
+      "commit": "45f73814356d2f9df73967402bee0b4f522f57ef",
+      "committedAt": "2026-03-19T10:37:29+00:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "shershennm/yii2-sendgrid",
+      "commit": "12ed9b97e9bf072d6c8b6bb66a8428b4262930ab",
+      "committedAt": "2019-05-27T16:55:30+03:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "spatie/laravel-stripe-webhooks",
+      "commit": "024bfb84a4dce38cb5166563471b376ba2d7aa43",
+      "committedAt": "2026-10-08T15:47:49+00:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "fridolin-koch/VreshTwilioBundle",
+      "commit": "95b432962d3dd1e430d6a012348a31b97bf03181",
+      "committedAt": "2016-08-17T20:09:02+02:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "Iandenh/cakephp-sendgrid",
+      "commit": "7b3a344169505da53842342baec10ec8a53cb42c",
+      "committedAt": "2025-03-10T20:46:34+01:00"
+    },
+    {
+      "ecosystem": "packagist",
+      "host": "github.com",
+      "repository": "spaze/phpstan-stripe",
+      "commit": "acfa1e720be863e8a4419234f6e134b1de9a35f0",
+      "committedAt": "2026-06-23T20:10:12+02:00"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "jobcase-bpalaniappan/sb-stripe",
+      "commit": "a83941f08b5ebedb7c7aabc243858ba43197101d",
+      "committedAt": "2023-06-02T18:51:26-05:00"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "codalilitari/OpenJKDF2-MotS-Fixes",
+      "commit": "74e4657c4f1751d09af9ad9e056acb8f41997acb",
+      "committedAt": "2026-09-13T04:04:36-04:00"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "abhishekthapa1/coding-agent-anthropic-claude-basic",
+      "commit": "c8a66201d0390c6586fb7fa8265755f15956c9ca",
+      "committedAt": "2026-07-26T14:51:22+05:45"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "twilio-flutter/conversations",
+      "commit": "a0f0e520f449cdc17c0da0efbf4f7af4fb959fca",
+      "committedAt": "2022-01-18T18:49:47+00:00"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "yamoahekow88/sendgrid-java",
+      "commit": "12a2ce039559a9568908314802f21ba55123e649",
+      "committedAt": "2022-07-06T16:15:04-07:00"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "manideep_bhattacharyya/SkillTuner-AI",
+      "commit": "b99a18fda422111e9e475454a4a6cb390d82532b",
+      "committedAt": "2026-01-15T00:10:05+05:30"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "squirelboy360/tap-to-pay-android-demo",
+      "commit": "ad1b48b0008baea241b696aa67bc12b36fda288d",
+      "committedAt": "2024-08-28T14:17:52-07:00"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "mobile-artificial-intelligence/maid",
+      "commit": "5ee32394aa56525bba089f74b6dd0068b8bff15d",
+      "committedAt": "2026-03-10T15:03:16+10:00"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "thiago.hernandes.souza/agents-config",
+      "commit": "60efae1d71a7ba9dd632833a66a4f3ee89c5fa97",
+      "committedAt": "2026-10-21T17:13:20-03:00"
+    },
+    {
+      "ecosystem": "maven",
+      "host": "gitlab.com",
+      "repository": "twilio-flutter/programmable-video",
+      "commit": "85508e670a0f06cf58a840e13466b2c571a0487a",
+      "committedAt": "2023-05-31T10:46:15+00:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "bitwarden/server",
+      "commit": "3327e2fdedeb2b3eb7ebcf4ccb705b2548639ab2",
+      "committedAt": "2026-10-22T12:16:32+09:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "microsoft/semantic-kernel",
+      "commit": "25501830b9483ad6b23955dee340c8590fa54152",
+      "committedAt": "2026-10-22T07:39:53+00:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "dotnet/AspNetCore.Docs",
+      "commit": "b3c9c8a58b77d5ca52b059932b708775fd69b259",
+      "committedAt": "2026-10-22T08:23:04+00:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "SciSharp/BotSharp",
+      "commit": "c8f632bf13bb22aed53c8ba63d41ee9e0e0fb75b",
+      "committedAt": "2026-10-18T20:20:37-05:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "simplcommerce/SimplCommerce",
+      "commit": "3472ba02a6f2d9b6bdca7f7fb84957176aa799dc",
+      "committedAt": "2026-06-08T21:31:33+03:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "dotnet/maui",
+      "commit": "e65f0f8d043e0157ddd0b679ca9a0c9144fc3019",
+      "committedAt": "2026-10-21T14:15:25+02:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "Ombi-app/Ombi",
+      "commit": "697d35647bf8cef8e11f334e0d4e775e1f9f30b0",
+      "committedAt": "2026-09-29T19:50:39+00:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "signumsoftware/framework",
+      "commit": "cfd3b99f244eb5ef71e1f11210b95756936c3307",
+      "committedAt": "2026-10-21T12:58:41+02:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "exceptionless/Exceptionless",
+      "commit": "83151e3a565ed417e602c591cce014fee224c252",
+      "committedAt": "2026-10-21T23:31:01-05:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "microsoft/aspire",
+      "commit": "8f73d674d0689589521e23e525e7e7f5dba5c764",
+      "committedAt": "2026-10-21T17:06:06-07:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "ONLYOFFICE/CommunityServer",
+      "commit": "fe1fa7babd093969e939ba6ff45a9fee1299dc93",
+      "committedAt": "2026-05-05T09:23:09+00:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "louthy/language-ext",
+      "commit": "54d27a2d76cf3f14b964ce1ab421ae80a080bb7a",
+      "committedAt": "2026-10-09T11:01:26+01:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "PederHP/mcpdotnet",
+      "commit": "307fea02a6e97d8100d8c51c235e9a416ed63639",
+      "committedAt": "2025-03-21T08:21:03+01:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "smartstore/Smartstore",
+      "commit": "edfb8fb2edb18776906bc45f33505564e2a5f242",
+      "committedAt": "2026-10-22T10:27:30+02:00"
+    },
+    {
+      "ecosystem": "nuget",
+      "host": "github.com",
+      "repository": "sourcegit-scm/sourcegit",
+      "commit": "cb11d68782117ec4590a5863cdf3ffd25e15b1f7",
+      "committedAt": "2026-10-12T10:02:39+08:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "Cormanz/smartgpt",
+      "commit": "a259aa2412c406c4b6a29ec239eee750b3ef5dca",
+      "committedAt": "2023-06-02T13:20:22-04:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "zurawiki/gptee",
+      "commit": "d13f37c1ce2e169dc9a62afcaa31d5161e7661fe",
+      "committedAt": "2024-06-02T21:05:02-04:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "AntoniosBarotsis/Rss2Email",
+      "commit": "688928b4fe124e65b2919834700b33a6f9142856",
+      "committedAt": "2025-03-25T17:20:33+01:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "nikwithak/tailwag",
+      "commit": "b7bbe21a9c2ab7b0b73da4cdb0d88411bd4b23ba",
+      "committedAt": "2026-05-16T17:15:35-07:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "netrondev/tinkr",
+      "commit": "8ae7a5a4d6a0f14d455b64de4a5d5877c98f0758",
+      "committedAt": "2025-11-17T13:19:21+02:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "ssoudan/sapiens",
+      "commit": "6333a75f887f3eb6e018f802fcd2e67d445c961d",
+      "committedAt": "2026-01-19T09:40:22-08:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "lucas-montes/stefn",
+      "commit": "67cc9df097ec50c7d1d6a51bd40f20e8f42d1d32",
+      "committedAt": "2025-08-16T12:55:30+02:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "saasba-se/micron",
+      "commit": "43782fd55a33311ac6fd36996d8db2a17db529df",
+      "committedAt": "2025-07-04T15:34:42+02:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "anomalous254/authbox",
+      "commit": "69ec71f90d87f1cace830c43c7e6c63614ca8b51",
+      "committedAt": "2026-08-21T23:48:49+03:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "sobelio/llm-chain",
+      "commit": "5d26adf8fecdbc2ea5e4b233620fdf206bd36446",
+      "committedAt": "2024-10-31T17:17:59+01:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "sagikazarmark/email-rs",
+      "commit": "25bbd6bfa2841d204fdeb1ed7364a3fd4cf2bc24",
+      "committedAt": "2026-09-05T21:11:44+02:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "vicanso/tibba",
+      "commit": "5f1f8ba7b830787257e6b8070b0a0a8576044f87",
+      "committedAt": "2026-10-03T19:26:57+08:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "grantslatton/openai-magic-instantiate",
+      "commit": "99400c06830bef31bbdc88b886b19be1160fee84",
+      "committedAt": "2024-02-11T19:31:27-08:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "zetareticula/zeta-reticula-server",
+      "commit": "edf104e7bc8e27c3f08cc9e39509ded507c302ac",
+      "committedAt": "2026-04-10T18:54:34-07:00"
+    },
+    {
+      "ecosystem": "cargo",
+      "host": "github.com",
+      "repository": "mairie360/API_lib",
+      "commit": "73151c38429fc9b655a8cfde2c0f2b560622bcc7",
+      "committedAt": "2026-10-20T12:16:00+00:00"
+    }
+  ]
+}

@@ -13,7 +13,8 @@
       "minLength": 1
     },
     "provider": {
-      "enum": ["openai", "anthropic", "gemini"]
+      "description": "A list with no single provider (the AI wrapper sample) counts every model provider.",
+      "enum": ["openai", "anthropic", "gemini", "openai, anthropic, gemini"]
     },
     "ranAt": {
       "$ref": "common.schema.json#/$defs/time"

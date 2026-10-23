@@ -114,8 +114,9 @@ const run = (root: string, output: string, ...args: string[]) =>
   );
 const read = async (path: string) => JSON.parse(await readFile(path, 'utf8'));
 // Timing is measured, not decided by the run.
+// Timings depend on host load, so only the outcomes are compared.
 const outcomes = (rows: Record<string, unknown>[]) =>
-  rows.map(({ seconds: _seconds, ...row }) => row);
+  rows.map(({ seconds: _seconds, stageSeconds: _stageSeconds, ...row }) => row);
 
 it('records the run, classifies clone failures, orders rows and resumes the same run only', async () => {
   const root = await benchmarkRoot();

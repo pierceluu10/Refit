@@ -3,8 +3,10 @@ import {
   approveRepositoryEnrollment,
   inspectRepositoryEnrollment,
 } from './repository-enrollment.ts';
+import { enrollmentReview, enrollmentReviewText } from './enrollment-review.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit enroll --repository <clean-git-root> --github owner/repository --base main [--json]\nApprove after review: add --approve <exact-fingerprint> --output <new-receipt-outside-git.json>\nReads the committed root .refit.json, baseline and adapter without running app code, installing dependencies, contacting GitHub or requesting AI. Inspect the settings and files before approval. A receipt does not grant GitHub access, run a worker or enable AI/publication.';
@@ -35,30 +37,6 @@ try {
       github: values.github,
       base: values.base,
     });
-    const review = {
-      formatVersion: 1,
-      kind: 'refit-enrollment-review',
-      repository: enrollment.repository,
-      base: enrollment.base,
-      reviewedRevision: enrollment.reviewedRevision,
-      fingerprint: enrollment.fingerprint,
-      files: enrollment.files,
-      settings: enrollment.settings,
-      apiVersion: enrollment.apiVersion,
-      profiles: enrollment.profiles.map(({ id, apiVersion }) => ({ id, apiVersion })),
-      scope:
-        'This review covers execution settings, baseline and adapter. Application code and current API source contents may change. No execution, AI or publication is enabled by this command.',
-    };
-    const settings = JSON.stringify(enrollment.settings, null, 2)
-      .split('\n')
-      .map(terminalText)
-      .join('\n');
-    const versions = enrollment.profiles
-      .map(
-        ({ id, apiVersion }) =>
-          `${id ? `${terminalText(id)}: ` : ''}${terminalText(apiVersion.reason)} Source: ${terminalText(apiVersion.source.status)} (${terminalText(apiVersion.policy)}).`,
-      )
-      .join('\n');
     if (values.approve) {
       const result = await approveRepositoryEnrollment({
         enrollment,
@@ -73,12 +51,12 @@ try {
     } else
       console.log(
         values.json
-          ? JSON.stringify(review, null, 2)
-          : `Review repository configuration\n\nTarget       ${terminalText(enrollment.repository)} at ${terminalText(enrollment.base)}\nRevision     ${enrollment.reviewedRevision}\nFingerprint  ${enrollment.fingerprint}\n\nAPI versions\n${versions}\n\nCommitted inputs\n${enrollment.files.map((file) => `  ${file.integration ? `${terminalText(file.integration)} ` : ''}${file.role}: ${terminalText(file.path)} (${file.bytes} bytes, SHA-256 ${file.sha256})`).join('\n')}\n\nSettings\n${settings}\n\n${review.scope}\nApprove only after inspecting these settings and files, using --approve with this exact fingerprint and --output outside Git.`,
+          ? JSON.stringify(enrollmentReview(enrollment), null, 2)
+          : `${enrollmentReviewText(enrollment)}\nApprove only after inspecting these settings and files, using --approve with this exact fingerprint and --output outside Git.`,
       );
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'enroll'));
   process.exitCode = 1;
 }

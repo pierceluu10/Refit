@@ -258,6 +258,14 @@ it('allows a checkout-free configuration but requires explicit App syncing befor
   });
 });
 
+it('refuses a Shopify SDK upgrade opt-in in configuration; only the run flag enables it', async () => {
+  const { path, configuration } = await setup();
+  await writeFile(path, JSON.stringify({ ...configuration, shopifySdkUpgrade: true }));
+  await expect(readWorkflowConfiguration(path)).rejects.toThrow(
+    'Unknown run configuration fields: shopifySdkUpgrade.',
+  );
+});
+
 it('accepts only the keep-listed payment method opt-in', async () => {
   const { path, configuration } = await setup();
   expect((await readWorkflowConfiguration(path)).keepListedPaymentMethods).toBeUndefined();

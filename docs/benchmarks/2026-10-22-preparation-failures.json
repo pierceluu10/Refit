@@ -1,0 +1,704 @@
+{
+  "run": "2026-10-22",
+  "refit": {
+    "main": "fb0143a",
+    "branchInputs": "fix/preparation-failures (input checks only, no installation)"
+  },
+  "command": "refit prepare --repository <pinned clone> --image node:22-alpine --cache <private directory> --json, one repository per Docker lock hold",
+  "source": "every Stripe and Shopify benchmark row whose outcome is refused-for-validation, baseline-failed, patched-preparation-error or patched-baseline-failed",
+  "rows": [
+    {
+      "repo": "4NDR3S-01/StyleHub",
+      "commit": "8071226b297b67a09e895f40d0bb32ddaf82508b",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "baseline-failed",
+      "cause": "prepares-on-main",
+      "main": {
+        "prepare": "prepared",
+        "seconds": 46,
+        "message": null
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "Addisu87/digital-marketplace",
+      "commit": "2126f5d453f7a9d03aa8a17857d1fe7239d02aff",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 61,
+        "message": "yarn dependency preparation ran out of space in its 2g workspace (ENOSPC). Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "Amarnath0077/industrialstore-main",
+      "commit": "32a6cd5110ba2d8c59406eefd26be2fb7e842515",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "package.json dependencies differ from the committed package-lock.json: @vercel/node is \"^5.0.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "branchInputs": {
+        "message": "package.json dependencies differ from the committed package-lock.json: @vercel/node is \"^5.0.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+        "stop": "lockfile-out-of-sync"
+      }
+    },
+    {
+      "repo": "App-4-Dat-LLC/LandLORDER-rp",
+      "commit": "f360e1139c847dbba4a846a32eb513a81f2766ab",
+      "benchmark": "2026-10-16-stripe-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "unsupported-lockfile",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "Automatic preparation requires a root npm lockfile version 2 or 3 with at most 20,000 package records."
+      },
+      "branchInputs": {
+        "message": "Automatic preparation requires a root npm lockfile version 2 or 3 with at most 20,000 package records.",
+        "stop": "unsupported-lockfile"
+      }
+    },
+    {
+      "repo": "ArhanAnsari/InspireGem",
+      "commit": "a6bf456cd830a5f5d7267d69407c5c0a5fcc8336",
+      "benchmark": "2026-10-16-stripe-fixrate-original-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "package.json dependencies differ from the committed package-lock.json: next is \"15.0.3\" in package.json but \"15.0.1\" in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "branchInputs": {
+        "message": "package.json dependencies differ from the committed package-lock.json: next is \"15.0.3\" in package.json but \"15.0.1\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+        "stop": "lockfile-out-of-sync"
+      }
+    },
+    {
+      "repo": "CiphersLab/SaaSPilot",
+      "commit": "41bc80fea31d3e54a1691b54b7b79dd83af86f79",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 66,
+        "message": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "DeepRahangdale/Concierge-AI",
+      "commit": "7a618d45380ab6dc4e59e5244990aa7622f2b517",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "prepares-on-main",
+      "main": {
+        "prepare": "prepared",
+        "seconds": 42,
+        "message": null
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "Drago-03/Neural-Nexus",
+      "commit": "6b2a3b7703851ebe45019944f46f0f88dfdb55ca",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 45,
+        "message": "npm dependency preparation ran out of space in its 2g workspace (ENOSPC). Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "LDAWoo/webprodigies-plura",
+      "commit": "a72ff4ce18f329766365081802a176fadb89d076",
+      "benchmark": "2026-10-16-stripe-fixrate-original-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "package.json dependencies differ from the committed package-lock.json: @stripe/react-stripe-js is \"^2.8.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "branchInputs": {
+        "message": "package.json dependencies differ from the committed package-lock.json: @stripe/react-stripe-js is \"^2.8.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+        "stop": "lockfile-out-of-sync"
+      }
+    },
+    {
+      "repo": "Mangu-Commerce/madcaptees",
+      "commit": "ad29f774d0ffdc749a90f0268ea4d93f7b6eb488",
+      "benchmark": "2026-10-16-stripe-active-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "non-registry-dependency",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters."
+      },
+      "branchInputs": {
+        "message": "Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters; package-lock.json resolves node_modules/@babel/code-frame from registry.npmmirror.com.",
+        "stop": "non-registry-dependency"
+      }
+    },
+    {
+      "repo": "Miguel07Alm/text2question",
+      "commit": "ce789503da89a1a7cc488c96e0717727b5abb4ec",
+      "benchmark": "2026-10-16-stripe-fixrate-original-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "non-registry-dependency",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "pnpm declarations must use public registry, configured catalogs or explicit local workspaces."
+      },
+      "branchInputs": {
+        "message": "pnpm declarations must use public registry, configured catalogs or explicit local workspaces; package.json declares react@latest as \"link:ai/react@latest\".",
+        "stop": "non-registry-dependency"
+      }
+    },
+    {
+      "repo": "Mohanatheeba/deepa-test-app",
+      "commit": "c62173bb83be4b6dd40fd4f49a9f238cccc356da",
+      "benchmark": "2026-10-16-shopify-fresh-results.json",
+      "benchmarkOutcome": "patched-baseline-failed",
+      "cause": "not-rerun-no-local-clone",
+      "main": {
+        "prepare": null,
+        "seconds": null,
+        "message": null
+      },
+      "branchInputs": null
+    },
+    {
+      "repo": "PedroPini/ScaleNext",
+      "commit": "1ff6087dad58cc6343858ffbfec0d8c49abd6790",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "non-registry-dependency",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "Automatic preparation supports public npm registry dependencies only; local, Git and URL dependencies require a custom image."
+      },
+      "branchInputs": {
+        "message": "Automatic preparation supports public npm registry dependencies only; package.json declares @nanostores/react as \"github:ai/react\". Local, Git and URL dependencies require a custom image.",
+        "stop": "non-registry-dependency"
+      }
+    },
+    {
+      "repo": "RaulRicco/CashBack",
+      "commit": "aacdd7564d2a19df515d6c079cd81453c516f642",
+      "benchmark": "2026-10-16-stripe-active-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "conflicting-dependency-files",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image."
+      },
+      "branchInputs": {
+        "message": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository tracks mailchimp-proxy/node_modules; remove it from Git and add it to .gitignore.",
+        "stop": "conflicting-dependency-files"
+      }
+    },
+    {
+      "repo": "Sanjdcool/ApanStack-Newsletter",
+      "commit": "fe50120d42b54754a7261fc5e51fdc67f3470dde",
+      "benchmark": "2026-10-16-stripe-fixrate-heldout-results.json",
+      "benchmarkOutcome": "baseline-failed",
+      "cause": "prepares-on-main",
+      "main": {
+        "prepare": "prepared",
+        "seconds": 51,
+        "message": null
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "SergeySharipov/ai-companion-saas",
+      "commit": "b680ee296e699edda4db4325e42fbeb1fbf97cc3",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "package.json dependencies differ from the committed package-lock.json: next is \"15.3.6\" in package.json but \"15.3.0\" in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "branchInputs": {
+        "message": "package.json dependencies differ from the committed package-lock.json: next is \"15.3.6\" in package.json but \"15.3.0\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+        "stop": "lockfile-out-of-sync"
+      }
+    },
+    {
+      "repo": "Strata-Labs/BitScript",
+      "commit": "21af774f5cd2604acc591cd60e694a061a54a06c",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 110,
+        "message": "yarn dependency preparation ran out of space in its 2g workspace (ENOSPC). Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "Suhaib3100/online-compiler",
+      "commit": "f982961a6c7b5598e53015c2fea2accce64cc513",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "legacy-capitalised-registry-name",
+      "main": {
+        "prepare": "refused",
+        "seconds": 4,
+        "message": "Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image."
+      },
+      "branchInputs": {
+        "message": "Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image. pnpm-lock.yaml records JSONStream@1.3.5 without them.",
+        "stop": "non-registry-dependency"
+      }
+    },
+    {
+      "repo": "TN0123/Schematic",
+      "commit": "ebca1776e1a297722bfbe96afac53c03da5f7042",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "non-registry-dependency",
+      "main": {
+        "prepare": "refused",
+        "seconds": 2,
+        "message": "Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters."
+      },
+      "branchInputs": {
+        "message": "Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters; package-lock.json resolves node_modules/@electron/node-gyp from github.com.",
+        "stop": "non-registry-dependency"
+      }
+    },
+    {
+      "repo": "VishalRaut2106/HackMate_AI",
+      "commit": "42b04936f1316b3812009b7061c308da8deb0575",
+      "benchmark": "2026-10-16-stripe-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "conflicting-dependency-files",
+      "main": {
+        "prepare": "refused",
+        "seconds": 3,
+        "message": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image."
+      },
+      "branchInputs": {
+        "message": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+        "stop": "conflicting-dependency-files"
+      }
+    },
+    {
+      "repo": "Yosef-Ali/compasstio-ai",
+      "commit": "51248326567925c5965bb18254971a9865a9ad84",
+      "benchmark": "2026-10-16-stripe-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "conflicting-dependency-files",
+      "main": {
+        "prepare": "refused",
+        "seconds": 3,
+        "message": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image."
+      },
+      "branchInputs": {
+        "message": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package manager you use.",
+        "stop": "conflicting-dependency-files"
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "commit": "6b409f3db888e0792800d10942ea361e0a338500",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 76,
+        "message": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "adobetoby-maker/app.languagethreshold.com",
+      "commit": "90429512ace6887327e947600218002854488d36",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "prepares-on-main",
+      "main": {
+        "prepare": "prepared",
+        "seconds": 48,
+        "message": null
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "commit": "cf8f84cc8bfc4b6fc35ae462deea9369ff7afc27",
+      "benchmark": "2026-10-16-stripe-fixrate-original-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 70,
+        "message": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "bichsonnhat/cognito",
+      "commit": "57f5008d7b5b84b6415b275eaadfaacb0951a105",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "submodule",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "Validation does not accept submodules."
+      },
+      "branchInputs": {
+        "message": "Validation does not accept submodules; server/facefusion is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.",
+        "stop": null
+      }
+    },
+    {
+      "repo": "dcam9586/scout-source2",
+      "commit": "badf7080a1fe79f6881b9db166012568536341e7",
+      "benchmark": "2026-10-16-shopify-fresh-results.json",
+      "benchmarkOutcome": "patched-preparation-error",
+      "cause": "not-rerun-no-local-clone",
+      "main": {
+        "prepare": null,
+        "seconds": null,
+        "message": null
+      },
+      "branchInputs": null
+    },
+    {
+      "repo": "devczero/microsaas-thumbnail-previewer",
+      "commit": "e626d7b925455ff07708fdf8efa0db946b7726be",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "prepares-on-main",
+      "main": {
+        "prepare": "prepared",
+        "seconds": 40,
+        "message": null
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "devczero/saas-pdf-analysis-dev",
+      "commit": "dbe5c9eea021bf9abbd36589d006647f31a7acb5",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "npm dependency preparation failed (1). npm error code EUSAGE npm error npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing. npm error npm error Invalid: lock file's picomatch@2.3.1 does not satisfy picomatch@4.0.7 npm error Missing: picomatch@2.3.2 from lock file npm error npm error Clean install a project npm error npm error Usage: npm error npm ci npm error npm error Options: npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundli"
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "devczero/vid-analyzer-saas",
+      "commit": "f98f5bef7cda650c370ee1e16f51f1e607582e58",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "package.json dependencies differ from the committed package-lock.json: youtube-transcript is missing in package.json but \"^1.2.1\" in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "branchInputs": {
+        "message": "package.json dependencies differ from the committed package-lock.json: youtube-transcript is missing in package.json but \"^1.2.1\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+        "stop": "lockfile-out-of-sync"
+      }
+    },
+    {
+      "repo": "drewsephski/get2cracked",
+      "commit": "338539dd627e3a4a69dc2ad665cead9614e29107",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "legacy-capitalised-registry-name",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image."
+      },
+      "branchInputs": {
+        "message": "Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image. pnpm-lock.yaml records JSONStream@1.3.5 without them.",
+        "stop": "non-registry-dependency"
+      }
+    },
+    {
+      "repo": "duggal1/flux-io",
+      "commit": "3257b3fb2cc8c4022e4d1a36538474cb7fbbc4bd",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "package.json devDependencies differ from the committed package-lock.json: eslint is \"^8.0.0\" in package.json but \"^9.13.0\" in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "branchInputs": {
+        "message": "package.json devDependencies differ from the committed package-lock.json: eslint is \"^8.0.0\" in package.json but \"^9.13.0\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+        "stop": "lockfile-out-of-sync"
+      }
+    },
+    {
+      "repo": "eka0789/evofuture",
+      "commit": "af720ff8553f976e37d1459d31751eac6df4dc45",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "submodule",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "Validation does not accept submodules."
+      },
+      "branchInputs": {
+        "message": "Validation does not accept submodules; mobile is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.",
+        "stop": null
+      }
+    },
+    {
+      "repo": "habibjutt/nextjs_boilerplate",
+      "commit": "fea3745a2b1808e298947c0a0d6b2e6f8b44c761",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "non-registry-dependency",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "Automatic preparation supports public npm registry dependencies only; local, Git and URL dependencies require a custom image."
+      },
+      "branchInputs": {
+        "message": "Automatic preparation supports public npm registry dependencies only; package-lock.json record node_modules/@tabler/icons-react declares @tabler/icons as \"\". Local, Git and URL dependencies require a custom image.",
+        "stop": "non-registry-dependency"
+      }
+    },
+    {
+      "repo": "miazme/digitalhippo",
+      "commit": "260819f3afa81a585637271b535b0d960b7336f5",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 75,
+        "message": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "muhallimir/ampertalent",
+      "commit": "ba02c46a72249238776bbbf98c04875ec3cddfb1",
+      "benchmark": "2026-10-16-stripe-active-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 6,
+        "message": "npm dependency preparation failed (1). npm error code EUSAGE npm error npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing. npm error npm error Missing: webpack@5.112.0 from lock file npm error Missing: @webassemblyjs/ast@1.14.1 from lock file npm error Missing: @webassemblyjs/wasm-edit@1.14.1 from lock file npm error Missing: @webassemblyjs/wasm-parser@1.14.1 from lock file npm error Missing: chrome-trace-event@1.0.4 from lock file npm error Missing: enha"
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "nizzyabi/nizzy-starter",
+      "commit": "66afadaa6b793bed39925752a860e20bf4d3b1c2",
+      "benchmark": "2026-10-16-stripe-fixrate-original-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 94,
+        "message": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "odota/core",
+      "commit": "b877fd1c169c84e4dfc2651a3f2fcdd68b5fef08",
+      "benchmark": "2026-10-16-stripe-fixrate-original-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-integrity",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "package-lock.json records node_modules/@apidevtools/openapi-schemas and 125 more packages without a version, registry \"resolved\" URL and SHA-256-or-stronger \"integrity\", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile."
+      },
+      "branchInputs": {
+        "message": "package-lock.json records node_modules/@apidevtools/openapi-schemas and 125 more packages without a version, registry \"resolved\" URL and SHA-256-or-stronger \"integrity\", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile.",
+        "stop": "lockfile-integrity"
+      }
+    },
+    {
+      "repo": "piyush805/miro-clone",
+      "commit": "eddde6ac5a4655e76187cd7ccd7d1a8ddd95ba9a",
+      "benchmark": "2026-10-16-stripe-fixrate-heldout-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "lockfile-out-of-sync",
+      "main": {
+        "prepare": "refused",
+        "seconds": 0,
+        "message": "package.json dependencies differ from the committed package-lock.json: stripe is \"^16.7.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json."
+      },
+      "branchInputs": {
+        "message": "package.json dependencies differ from the committed package-lock.json: stripe is \"^16.7.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+        "stop": "lockfile-out-of-sync"
+      }
+    },
+    {
+      "repo": "shaoxuan0916/life-slice",
+      "commit": "a015a6003083c51f325e2944169ae63a5d9d9186",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 79,
+        "message": "yarn dependency preparation ran out of space in its 2g workspace (ENOSPC). Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "tejashVaishnav/Fast-saas-next.js-boilerplate",
+      "commit": "cf9770e6e04a535cbcd9ce6b5ae0d5fa035f890d",
+      "benchmark": "2026-10-16-stripe-fixrate-original-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 75,
+        "message": "Dependency archive exceeds 1024 MiB. An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "utsavkrishnatra/pdf_answers",
+      "commit": "064833f31558c5c995ba7a0ca7ec534effd222ec",
+      "benchmark": "2026-10-16-stripe-fixrate-heldout-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "prepares-on-main",
+      "main": {
+        "prepare": "prepared",
+        "seconds": 58,
+        "message": null
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "vignesh-gupta/digibee-marketplace",
+      "commit": "974e169b7831751118789fdf52e4100044faa553",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "dependency-tree-too-large",
+      "main": {
+        "prepare": "refused",
+        "seconds": 123,
+        "message": "yarn dependency preparation ran out of space in its 2g workspace (ENOSPC). Yarn 1 also downloads other platforms' optional binaries. An operator can set REFIT_VALIDATION_WORKSPACE=4g (4 GiB workspace, 5 GiB container memory) on a host with memory to spare."
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "yassine-ahmed/MyBusinessWebsite",
+      "commit": "117e800ad8cba8270c6e0442e127203dacdbd9ee",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "prepares-on-main",
+      "main": {
+        "prepare": "prepared",
+        "seconds": 66,
+        "message": null
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    },
+    {
+      "repo": "yuens1002/artisan-roast",
+      "commit": "15be9a627bfe0a96f8a6606e6016b961f2035f09",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "non-registry-dependency",
+      "main": {
+        "prepare": "refused",
+        "seconds": 1,
+        "message": "Automatic preparation supports public npm registry dependencies only; local, Git and URL dependencies require a custom image."
+      },
+      "branchInputs": {
+        "message": "Automatic preparation supports public npm registry dependencies only; package.json declares artisan-roast-sdk as \"github:yuens1002/artisan-roast-sdk#v0.6.2\". Local, Git and URL dependencies require a custom image.",
+        "stop": "non-registry-dependency"
+      }
+    },
+    {
+      "repo": "zero19124/next-ai-platform",
+      "commit": "5d3470a737473d08b9a2b3651feb8f5de5396ac2",
+      "benchmark": "2026-10-16-stripe-fixrate-fresh-results.json",
+      "benchmarkOutcome": "refused-for-validation",
+      "cause": "prepares-on-main",
+      "main": {
+        "prepare": "prepared",
+        "seconds": 29,
+        "message": null
+      },
+      "branchInputs": {
+        "inputs": "accepted"
+      }
+    }
+  ]
+}

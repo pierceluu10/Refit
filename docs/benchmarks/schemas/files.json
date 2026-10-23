@@ -100,6 +100,145 @@
     "2026-10-21-paypal-subdirectory-results.json": {
       "format": "paypal-subdirectory-results",
       "predates": []
+    },
+    "2026-10-22-ai-app-model-site-all-results.json": {
+      "format": "ai-app-model-site-results",
+      "predates": []
+    },
+    "2026-10-22-ai-app-model-site-results.json": {
+      "format": "ai-app-model-site-results",
+      "predates": []
+    },
+    "2026-10-22-ai-patch-results.json": {
+      "format": "ai-patch-results",
+      "predates": []
+    },
+    "2026-10-22-anthropic-app-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-22-api-hosts-results.json": {
+      "format": "api-hosts-results",
+      "predates": []
+    },
+    "2026-10-22-auth-backend-results.json": {
+      "format": "auth-backend-results",
+      "predates": []
+    },
+    "2026-10-22-cloud-sdk-results.json": {
+      "format": "cloud-sdk-results",
+      "predates": []
+    },
+    "2026-10-22-cloudflare-baseline-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
+    "2026-10-22-cloudflare-heldout-blind-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
+    "2026-10-22-cloudflare-results.json": {
+      "format": "cloudflare-results",
+      "predates": []
+    },
+    "2026-10-22-commerce-results.json": {
+      "format": "commerce-results",
+      "predates": []
+    },
+    "2026-10-22-data-apis-results.json": {
+      "format": "data-apis-results",
+      "predates": []
+    },
+    "2026-10-22-deadline-fresh-sample-results.json": {
+      "format": "deadline-results",
+      "predates": ["/*/outcomeClass"]
+    },
+    "2026-10-22-deadline-fresh-sets-results.json": {
+      "format": "deadline-sets",
+      "predates": [
+        "/harness",
+        "/sets/shopify-fresh/*/outcomeClass",
+        "/sets/stripe-fresh/*/outcomeClass"
+      ]
+    },
+    "2026-10-22-deadline-rerun-results.json": {
+      "format": "deadline-rerun-results",
+      "predates": [
+        "/runs/classified/results/*/outcomeClass",
+        "/runs/current/results/*/outcomeClass"
+      ]
+    },
+    "2026-10-22-gemini-results.json": {
+      "format": "gemini-results",
+      "predates": []
+    },
+    "2026-10-22-github-first-results.json": {
+      "format": "github-api-results",
+      "predates": []
+    },
+    "2026-10-22-github-results.json": {
+      "format": "github-api-results",
+      "predates": []
+    },
+    "2026-10-22-go-results.json": {
+      "format": "go-tracer-results",
+      "predates": []
+    },
+    "2026-10-22-inventory-sample-results.json": {
+      "format": "inventory-sample-results",
+      "predates": []
+    },
+    "2026-10-22-messaging-results.json": {
+      "format": "messaging-results",
+      "predates": []
+    },
+    "2026-10-22-messaging-targeted-results.json": {
+      "format": "messaging-results",
+      "predates": []
+    },
+    "2026-10-22-meta-platform-results.json": {
+      "format": "meta-platform-results",
+      "predates": []
+    },
+    "2026-10-22-model-wrapper-app-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-22-openai-app-results.json": {
+      "format": "ai-model-results",
+      "predates": ["/harness", "/results/*/outcomeClass"]
+    },
+    "2026-10-22-paypal-results.json": {
+      "format": "paypal-results",
+      "predates": []
+    },
+    "2026-10-22-python-langchain-results.json": {
+      "format": "python-model-results",
+      "predates": []
+    },
+    "2026-10-22-python-model-results.json": {
+      "format": "python-model-results",
+      "predates": []
+    },
+    "2026-10-22-shopify-rest-results.json": {
+      "format": "shopify-rest-results",
+      "predates": []
+    },
+    "2026-10-22-slack-baseline-results.json": {
+      "format": "slack-results",
+      "predates": []
+    },
+    "2026-10-22-slack-heldout-blind-results.json": {
+      "format": "slack-results",
+      "predates": []
+    },
+    "2026-10-22-slack-results.json": {
+      "format": "slack-results",
+      "predates": []
+    },
+    "2026-10-22-upstream-replay-results.json": {
+      "format": "upstream-replay-results",
+      "predates": []
     }
   }
 }

@@ -99,7 +99,7 @@ it('runs model fixes for enrolled repositories only when enabled, and remembers 
     intervalSeconds: 30,
     webhookSecret: 'webhook-secret-for-model-fix-tests-1',
     controlToken: 'control-token-for-model-fix-tests-2',
-    now: () => new Date('2026-10-20T12:00:00Z'),
+    now: () => new Date('2026-10-21T12:00:00Z'),
     once: true,
   };
   // Off by default.

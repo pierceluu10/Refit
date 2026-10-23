@@ -1,0 +1,895 @@
+{
+  "description": "Read-only inventories (pipeline/inventory.ts inventoryDirectory) of the first 10 repositories of three frozen lists, at their recorded commits, taken locally on a shared laptop. Generated from public repositories; nothing in them was installed or run.",
+  "refitCommit": "863cb342209b0609bf861b1e43f9f6a1fc7e5049",
+  "command": "node scripts/inventory-sample.mjs --list docs/benchmarks/2026-10-21-openai-app-repos.json --list docs/benchmarks/2026-10-21-anthropic-app-repos.json --list docs/benchmarks/2026-10-14-stripe-repos.json --limit 10 --root <temporary> --output <results.json>",
+  "takenAt": "2026-10-22T07:52:34.688Z",
+  "limits": {
+    "repositoryKilobytes": 1000000,
+    "checkoutFiles": 50000,
+    "checkoutBytes": 536870912,
+    "seconds": 300
+  },
+  "results": [
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "yetone/cumora",
+      "commit": "60fb5b3e489c0926b0654189cd6a8c6e5430b296",
+      "fetchMs": 4154,
+      "checkout": {
+        "files": 954,
+        "bytes": 37953093
+      },
+      "scanMs": 11625,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic", "resend"],
+        "deadlines": [],
+        "mentions": [
+          "openai-2026-10-23-gpt-4",
+          "anthropic-2026-11-30-claude-sonnet-4-5",
+          "openai-2027-04-01-gpt-5-4-nano"
+        ],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "OpenCoworkAI/open-cowork",
+      "commit": "e94ee2c50239e64ba0e18921e339d49b93dae31f",
+      "fetchMs": 16818,
+      "checkout": {
+        "files": 665,
+        "bytes": 19918803
+      },
+      "scanMs": 7389,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic", "gemini"],
+        "deadlines": [],
+        "mentions": [
+          "openai-2026-10-23-gpt-3-5-turbo",
+          "anthropic-2026-11-30-claude-sonnet-4-5",
+          "openai-2027-04-01-gpt-5-1",
+          "openai-2027-04-01-gpt-5-4-nano"
+        ],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 2
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "JohnRiceML/clawport-ui",
+      "commit": "40db84d69b793048a9f738db57fe6e5db9751df3",
+      "fetchMs": 5788,
+      "checkout": {
+        "files": 219,
+        "bytes": 3829512
+      },
+      "scanMs": 3491,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic"],
+        "deadlines": [
+          {
+            "id": "openai-2027-01-06-tts-1",
+            "date": "2027-01-06",
+            "live": 1
+          },
+          {
+            "id": "openai-2027-02-26-whisper-1",
+            "date": "2027-02-26",
+            "live": 1
+          }
+        ],
+        "mentions": ["anthropic-2026-11-30-claude-sonnet-4-5"],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 2
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "yayasoumah/pocket-server",
+      "commit": "10854b5ebc2055346c57bf000f86222da1d953fe",
+      "fetchMs": 802,
+      "checkout": {
+        "files": 89,
+        "bytes": 502927
+      },
+      "scanMs": 1432,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic"],
+        "deadlines": [
+          {
+            "id": "anthropic-2026-06-15-claude-sonnet-4",
+            "date": "2026-06-15",
+            "live": 2
+          },
+          {
+            "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+            "date": "2026-11-30",
+            "live": 4
+          }
+        ],
+        "mentions": [],
+        "apiVersions": [],
+        "models": ["claude-sonnet-4-5"],
+        "modelCalls": 1
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "pdovhomilja/nextcrm-app",
+      "commit": "ade5fcfb8137b6b05ef578cc79a1365a00b3f619",
+      "fetchMs": 11376,
+      "checkout": {
+        "files": 2031,
+        "bytes": 12152658
+      },
+      "scanMs": 27564,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "resend"],
+        "deadlines": [],
+        "mentions": ["openai-2026-10-23-gpt-4"],
+        "apiVersions": [],
+        "models": ["gpt-5", "gpt-5-mini", "gpt-4o-mini"],
+        "modelCalls": 12
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "mayfer/dbpill",
+      "commit": "b5b176943f678a1a009cda73236805ebc0c0ae29",
+      "fetchMs": 4709,
+      "checkout": {
+        "files": 63,
+        "bytes": 1997916
+      },
+      "scanMs": 1091,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "openai", "anthropic", "gemini"],
+        "deadlines": [],
+        "mentions": [],
+        "apiVersions": ["2023-10-16"],
+        "models": [],
+        "modelCalls": 2
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "babarot/oksskolten",
+      "commit": "8fb6ceed07320b8f85e7fa5bbaebd400af6c4a26",
+      "fetchMs": 28796,
+      "checkout": {
+        "files": 580,
+        "bytes": 13691768
+      },
+      "scanMs": 6665,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic", "gemini"],
+        "deadlines": [],
+        "mentions": [
+          "anthropic-2026-06-15-claude-opus-4",
+          "anthropic-2026-06-15-claude-sonnet-4",
+          "openai-2026-10-23-gpt-4",
+          "openai-2026-10-23-gpt-4-1-nano",
+          "anthropic-2026-11-30-claude-sonnet-4-5",
+          "openai-2027-04-01-gpt-5-4-nano"
+        ],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 9
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "Wing900/ManimCat",
+      "commit": "344187503c5e1ad6041bfbebadec5b68bf24ee2c",
+      "fetchMs": 56048,
+      "checkout": {
+        "files": 672,
+        "bytes": 52605707
+      },
+      "scanMs": 4244,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "gemini"],
+        "deadlines": [],
+        "mentions": [],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 4
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "rohitg00/manim-video-generator",
+      "commit": "9c41982e620bf9dbaac6553197eb2dfafbef90f2",
+      "fetchMs": 1125,
+      "checkout": {
+        "files": 220,
+        "bytes": 5853155
+      },
+      "scanMs": 1280,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic", "gemini"],
+        "deadlines": [
+          {
+            "id": "gemini-2025-11-30-google-generative-ai",
+            "date": "2025-11-30",
+            "live": 1
+          },
+          {
+            "id": "anthropic-2026-06-15-claude-sonnet-4",
+            "date": "2026-06-15",
+            "live": 1
+          },
+          {
+            "id": "openai-2026-10-23-gpt-4-1-nano",
+            "date": "2026-10-23",
+            "live": 8
+          },
+          {
+            "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+            "date": "2026-11-30",
+            "live": 1
+          }
+        ],
+        "mentions": [],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 9
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "vual/lobe-chat-pro",
+      "commit": "2a400facaee734beedeb9c93d9977728d626bec2",
+      "fetchMs": 8634,
+      "checkout": {
+        "files": 5375,
+        "bytes": 85927688
+      },
+      "scanMs": 80596,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "openai", "anthropic", "gemini"],
+        "deadlines": [
+          {
+            "id": "anthropic-2026-01-05-claude-3-opus",
+            "date": "2026-01-05",
+            "live": 1
+          },
+          {
+            "id": "openai-2026-02-17-chatgpt-4o-latest",
+            "date": "2026-02-17",
+            "live": 1
+          },
+          {
+            "id": "anthropic-2026-04-20-claude-3-haiku",
+            "date": "2026-04-20",
+            "live": 2
+          },
+          {
+            "id": "openai-2026-05-12-dall-e-2",
+            "date": "2026-05-12",
+            "live": 2
+          },
+          {
+            "id": "openai-2026-10-23-gpt-4",
+            "date": "2026-10-23",
+            "live": 1
+          },
+          {
+            "id": "openai-2026-10-23-gpt-4-1-nano",
+            "date": "2026-10-23",
+            "live": 1
+          },
+          {
+            "id": "openai-2026-10-23-gpt-image-1",
+            "date": "2026-10-23",
+            "live": 2
+          },
+          {
+            "id": "openai-2026-12-01-gpt-image-1-mini",
+            "date": "2026-12-01",
+            "live": 1
+          },
+          {
+            "id": "openai-2027-01-06-tts-1",
+            "date": "2027-01-06",
+            "live": 3
+          },
+          {
+            "id": "openai-2027-02-26-whisper-1",
+            "date": "2027-02-26",
+            "live": 3
+          }
+        ],
+        "mentions": [
+          "openai-2025-07-14-gpt-4-5-preview",
+          "anthropic-2025-07-21-claude-2",
+          "anthropic-2025-07-21-claude-3-sonnet",
+          "openai-2025-07-28-o1-preview",
+          "openai-2025-10-27-o1-mini",
+          "anthropic-2025-10-28-claude-3-5-sonnet",
+          "openai-2026-02-12-codex-mini-latest",
+          "anthropic-2026-02-19-claude-3-5-haiku",
+          "anthropic-2026-02-19-claude-3-7-sonnet",
+          "openai-2026-03-26-gpt-4-0314",
+          "openai-2026-05-07-gpt-4o-audio-preview",
+          "openai-2026-05-07-gpt-4o-realtime-preview",
+          "anthropic-2026-06-15-claude-opus-4",
+          "anthropic-2026-06-15-claude-sonnet-4",
+          "openai-2026-07-23-gpt-5-1-codex-mini",
+          "openai-2026-07-23-gpt-5-chat-latest",
+          "anthropic-2026-08-05-claude-opus-4-1",
+          "openai-2026-08-10-gpt-5-2-chat-latest",
+          "openai-2026-09-28-gpt-3-5-turbo-instruct",
+          "openai-2026-10-23-gpt-3-5-turbo",
+          "anthropic-2026-11-30-claude-sonnet-4-5",
+          "openai-2026-12-11-gpt-5-2025-08-07",
+          "openai-2027-01-14-gpt-4o-2024-08-06",
+          "openai-2027-04-01-gpt-5-1",
+          "openai-2027-04-01-gpt-5-4-nano"
+        ],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 11
+      },
+      "nonLiveModels": 1
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "getmaxun/maxun",
+      "commit": "4347a8f96b48e550f5cd1dca8347e250ea554ac0",
+      "fetchMs": 811,
+      "checkout": {
+        "files": 301,
+        "bytes": 3425069
+      },
+      "scanMs": 8910,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic"],
+        "deadlines": [
+          {
+            "id": "anthropic-2026-02-19-claude-3-5-haiku",
+            "date": "2026-02-19",
+            "live": 1
+          }
+        ],
+        "mentions": [],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "viperrcrypto/Siftly",
+      "commit": "b25daa45b858f4be096b5c368671c34db4407d8e",
+      "fetchMs": 1063,
+      "checkout": {
+        "files": 116,
+        "bytes": 1018620
+      },
+      "scanMs": 1561,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic"],
+        "deadlines": [
+          {
+            "id": "openai-2026-10-23-gpt-4",
+            "date": "2026-10-23",
+            "live": 1
+          }
+        ],
+        "mentions": ["openai-2026-10-23-gpt-3-5-turbo", "openai-2026-10-23-gpt-4-1-nano"],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "OpenCoworkAI/open-cowork",
+      "commit": "e94ee2c50239e64ba0e18921e339d49b93dae31f",
+      "fetchMs": 2908,
+      "checkout": {
+        "files": 665,
+        "bytes": 19918803
+      },
+      "scanMs": 11063,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic", "gemini"],
+        "deadlines": [],
+        "mentions": [
+          "openai-2026-10-23-gpt-3-5-turbo",
+          "anthropic-2026-11-30-claude-sonnet-4-5",
+          "openai-2027-04-01-gpt-5-1",
+          "openai-2027-04-01-gpt-5-4-nano"
+        ],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 2
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "kgoedecke/doop",
+      "commit": "0f274ac01b2168c9248424b5e7724d3a8a7c626b",
+      "fetchMs": 1229,
+      "checkout": {
+        "files": 608,
+        "bytes": 8136183
+      },
+      "scanMs": 14007,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "openai", "anthropic", "gemini", "meta-graph"],
+        "deadlines": [
+          {
+            "id": "meta-graph-v21-0",
+            "date": "2027-01-21",
+            "live": 1
+          }
+        ],
+        "mentions": [],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 4
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "yayasoumah/pocket-server",
+      "commit": "10854b5ebc2055346c57bf000f86222da1d953fe",
+      "fetchMs": 581,
+      "checkout": {
+        "files": 89,
+        "bytes": 502927
+      },
+      "scanMs": 1688,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic"],
+        "deadlines": [
+          {
+            "id": "anthropic-2026-06-15-claude-sonnet-4",
+            "date": "2026-06-15",
+            "live": 2
+          },
+          {
+            "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+            "date": "2026-11-30",
+            "live": 4
+          }
+        ],
+        "mentions": [],
+        "apiVersions": [],
+        "models": ["claude-sonnet-4-5"],
+        "modelCalls": 1
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "FerroxLabs/wayland",
+      "commit": "4c030c7b01c241df7b6e3535635a970f10d781af",
+      "fetchMs": 213241,
+      "checkout": {
+        "files": 9138,
+        "bytes": 149513385
+      },
+      "scanMs": 91737,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic", "gemini", "meta-graph", "twilio"],
+        "deadlines": [
+          {
+            "id": "anthropic-2026-04-20-claude-3-haiku",
+            "date": "2026-04-20",
+            "live": 2
+          },
+          {
+            "id": "anthropic-2026-06-15-claude-sonnet-4",
+            "date": "2026-06-15",
+            "live": 2
+          },
+          {
+            "id": "meta-graph-v21-0",
+            "date": "2027-01-21",
+            "live": 2
+          },
+          {
+            "id": "openai-2027-02-26-whisper-1",
+            "date": "2027-02-26",
+            "live": 2
+          }
+        ],
+        "mentions": [
+          "anthropic-2025-07-21-claude-2",
+          "anthropic-2025-07-21-claude-3-sonnet",
+          "openai-2025-07-28-o1-preview",
+          "openai-2025-10-27-o1-mini",
+          "anthropic-2025-10-28-claude-3-5-sonnet",
+          "anthropic-2026-01-05-claude-3-opus",
+          "openai-2026-02-12-codex-mini-latest",
+          "openai-2026-02-17-chatgpt-4o-latest",
+          "anthropic-2026-02-19-claude-3-5-haiku",
+          "anthropic-2026-02-19-claude-3-7-sonnet",
+          "openai-2026-03-26-gpt-4-0314",
+          "openai-2026-05-12-dall-e-2",
+          "anthropic-2026-06-15-claude-opus-4",
+          "openai-2026-07-23-gpt-5-1-codex-mini",
+          "openai-2026-07-23-gpt-5-chat-latest",
+          "openai-2026-09-28-gpt-3-5-turbo-instruct",
+          "openai-2026-10-23-gpt-3-5-turbo",
+          "openai-2026-10-23-gpt-4",
+          "openai-2026-10-23-gpt-image-1",
+          "anthropic-2026-11-30-claude-sonnet-4-5",
+          "openai-2026-12-01-gpt-image-1-mini",
+          "openai-2027-01-06-tts-1",
+          "openai-2027-01-14-gpt-4o-2024-08-06",
+          "openai-2027-04-01-gpt-5-1"
+        ],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "babarot/oksskolten",
+      "commit": "8fb6ceed07320b8f85e7fa5bbaebd400af6c4a26",
+      "fetchMs": 2888,
+      "checkout": {
+        "files": 580,
+        "bytes": 13691768
+      },
+      "scanMs": 7373,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic", "gemini"],
+        "deadlines": [],
+        "mentions": [
+          "anthropic-2026-06-15-claude-opus-4",
+          "anthropic-2026-06-15-claude-sonnet-4",
+          "openai-2026-10-23-gpt-4",
+          "openai-2026-10-23-gpt-4-1-nano",
+          "anthropic-2026-11-30-claude-sonnet-4-5",
+          "openai-2027-04-01-gpt-5-4-nano"
+        ],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 9
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "nextai-translator/raycast-openai-translator",
+      "commit": "13b28b08661a41f0044014f7e705e02b2d63055d",
+      "fetchMs": 3157,
+      "checkout": {
+        "files": 94,
+        "bytes": 25763512
+      },
+      "scanMs": 481,
+      "status": "complete",
+      "summary": {
+        "providers": ["openai", "anthropic", "gemini"],
+        "deadlines": [
+          {
+            "id": "anthropic-2026-04-20-claude-3-haiku",
+            "date": "2026-04-20",
+            "live": 2
+          },
+          {
+            "id": "openai-2026-10-23-gpt-3-5-turbo",
+            "date": "2026-10-23",
+            "live": 3
+          }
+        ],
+        "mentions": [
+          "anthropic-2024-11-06-claude-1",
+          "anthropic-2025-07-21-claude-2",
+          "anthropic-2025-07-21-claude-3-sonnet",
+          "anthropic-2026-01-05-claude-3-opus"
+        ],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 1
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "agentset-ai/agentset",
+      "commit": "03283cc6383b96facbec53190ed352079b641789",
+      "fetchMs": 2896,
+      "checkout": {
+        "files": 1042,
+        "bytes": 21594231
+      },
+      "scanMs": 5299,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "resend"],
+        "deadlines": [],
+        "mentions": ["openai-2027-04-01-gpt-5-1"],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "odota/core",
+      "commit": "b877fd1c169c84e4dfc2651a3f2fcdd68b5fef08",
+      "fetchMs": 1211,
+      "checkout": {
+        "files": 321,
+        "bytes": 3482329
+      },
+      "scanMs": 1233,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe"],
+        "deadlines": [],
+        "mentions": [],
+        "apiVersions": ["2022-11-15"],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "steven-tey/extrapolate",
+      "commit": "90031932a6492e15ee92ae16a9d9e9271440f2c3",
+      "fetchMs": 824,
+      "checkout": {
+        "files": 105,
+        "bytes": 571560
+      },
+      "scanMs": 1644,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe"],
+        "deadlines": [],
+        "mentions": [],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "fogbender/b2b-saaskit",
+      "commit": "148385ddf8a0cc4820cb6de9c1c46fd6092851af",
+      "fetchMs": 1492,
+      "checkout": {
+        "files": 174,
+        "bytes": 1844058
+      },
+      "scanMs": 2417,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "openai"],
+        "deadlines": [
+          {
+            "id": "openai-2026-10-23-gpt-3-5-turbo",
+            "date": "2026-10-23",
+            "live": 2
+          },
+          {
+            "id": "openai-2026-10-23-gpt-4",
+            "date": "2026-10-23",
+            "live": 3
+          }
+        ],
+        "mentions": [],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "Kanba-co/kanba",
+      "commit": "d5dfe822a503dcf87e14e687e4a13a0baffc9fe3",
+      "fetchMs": 1571,
+      "checkout": {
+        "files": 182,
+        "bytes": 2945577
+      },
+      "scanMs": 963,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe"],
+        "deadlines": [],
+        "mentions": [],
+        "apiVersions": ["2023-10-16"],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "horizon-ui/shadcn-nextjs-boilerplate",
+      "commit": "efe90c62391f2d3247a5a5f0712adcad0515aba7",
+      "fetchMs": 1197,
+      "checkout": {
+        "files": 109,
+        "bytes": 1137008
+      },
+      "scanMs": 753,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "openai"],
+        "deadlines": [
+          {
+            "id": "openai-2026-03-26-gpt-4-0314",
+            "date": "2026-03-26",
+            "live": 1
+          },
+          {
+            "id": "openai-2026-10-23-gpt-3-5-turbo",
+            "date": "2026-10-23",
+            "live": 2
+          }
+        ],
+        "mentions": ["openai-2026-10-23-gpt-4"],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "ItusiAI/Open-Magiviz",
+      "commit": "38ea70ec218d4d17caad30888779b1bb2935c0e2",
+      "fetchMs": 1604,
+      "checkout": {
+        "files": 277,
+        "bytes": 4282221
+      },
+      "scanMs": 4318,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "openai", "resend"],
+        "deadlines": [],
+        "mentions": [],
+        "apiVersions": ["2026-01-28.clover"],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "different-ai/embedbase",
+      "commit": "fb0afda5e8c2ad0212ea8c0dfa495be9865221d5",
+      "fetchMs": 5144,
+      "checkout": {
+        "files": 390,
+        "bytes": 27044704
+      },
+      "scanMs": 1384,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "openai", "sendgrid"],
+        "deadlines": [
+          {
+            "id": "openai-2026-10-23-gpt-3-5-turbo",
+            "date": "2026-10-23",
+            "live": 3
+          },
+          {
+            "id": "openai-2026-10-23-gpt-4",
+            "date": "2026-10-23",
+            "live": 2
+          }
+        ],
+        "mentions": [],
+        "apiVersions": ["2022-11-15"],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "encoredev/examples",
+      "commit": "5bfb4a9cf7d0eba2ae0352cadf4f69e1b9518495",
+      "fetchMs": 4936,
+      "checkout": {
+        "files": 1753,
+        "bytes": 35564017
+      },
+      "scanMs": 6279,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe", "openai", "anthropic", "sendgrid", "resend"],
+        "deadlines": [
+          {
+            "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+            "date": "2025-10-28",
+            "live": 1
+          },
+          {
+            "id": "openai-2026-05-12-dall-e-2",
+            "date": "2026-05-12",
+            "live": 1
+          },
+          {
+            "id": "openai-2026-10-23-gpt-3-5-turbo",
+            "date": "2026-10-23",
+            "live": 1
+          }
+        ],
+        "mentions": [],
+        "apiVersions": [],
+        "models": ["claude-sonnet-4-6"],
+        "modelCalls": 6
+      },
+      "nonLiveModels": 0
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "repo": "kovrichard/catalyst",
+      "commit": "e600749798151d128ac83a817662ee4feec994de",
+      "fetchMs": 700,
+      "checkout": {
+        "files": 296,
+        "bytes": 1452203
+      },
+      "scanMs": 793,
+      "status": "complete",
+      "summary": {
+        "providers": ["stripe"],
+        "deadlines": [],
+        "mentions": [],
+        "apiVersions": [],
+        "models": [],
+        "modelCalls": 0
+      },
+      "nonLiveModels": 0
+    }
+  ],
+  "removed": {
+    "removedAt": "2026-10-22",
+    "reason": "Rows for repositories that are copies of leaked proprietary Claude Code source were removed with them from the Anthropic app list.",
+    "repos": ["wk42worldworld/cybercode", "OpenAisec/Miko"]
+  }
+}

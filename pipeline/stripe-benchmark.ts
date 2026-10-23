@@ -2,8 +2,10 @@ import { splitRows } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { analyzeRepository } from './analyzer.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { runPipeline } from './run.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 
 // Refit adapters accept at most 100 operations; Stripe exposes far more, so each repository
 // gets the operations its own traced calls use.
@@ -230,4 +232,47 @@ export async function forkAtCommit(
       throw new PipelineInputError(`${name} already has ${PUBLISH_BASE} at another commit.`);
   }
   return name;
+}
+
+// The workflow's stops that need only its scan, decided on the scan `refit run` makes with the
+// same inputs, so the benchmark starts `refit run` only for repositories that get past them. A
+// scan that fails here returns undefined and is left to `refit run`, which records the error.
+export async function workflowScanStop(
+  inputs: {
+    repository: string;
+    before: string;
+    after: string;
+    apiVersion: string;
+    providerConfig: string;
+    keepListedPaymentMethods?: boolean;
+  },
+  aiPatch: boolean,
+  leaveRequestParameters: boolean,
+) {
+  return runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters }).then(
+    (scan) =>
+      scanReviewReason(scan, aiPatch, leaveRequestParameters) ??
+      proposalReviewReason(scan, aiPatch),
+    () => undefined,
+  );
+}
+
+// Why a `refit run` child left no manifest: the harness time limit stopped it, a signal killed
+// it, or it exited on its own, usually with its last stderr line saying why.
+export function workflowExitReason(error: unknown, limitMs: number) {
+  const { code, signal, killed, stderr, message } = error as {
+    code?: number | string | null;
+    signal?: string | null;
+    killed?: boolean;
+    stderr?: string;
+    message?: string;
+  };
+  if (typeof code === 'string') return `refit run failed: ${message?.split('\n')[0]}`;
+  if (killed)
+    return `refit run was stopped with ${signal} at the ${limitMs / 60_000}-minute limit.`;
+  const last = String(stderr ?? '')
+    .trim()
+    .split('\n')
+    .at(-1);
+  return `refit run ${signal ? `was killed by ${signal}` : `exited with code ${code}`}${last ? `: ${last}` : '.'}`;
 }

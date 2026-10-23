@@ -1,0 +1,3620 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-python-langchain-repos.json",
+  "labels": "docs/benchmarks/2026-10-22-python-langchain-labels.json",
+  "checkedAt": "2026-10-22T09:40:21.444Z",
+  "summary": {
+    "repositories": 20,
+    "scanned": 20,
+    "withCalls": 18,
+    "calls": 272,
+    "sites": 219,
+    "stops": 61,
+    "labelled": {
+      "repositories": [
+        {
+          "repo": "genglongling/M-APPLE-OS",
+          "reported": 17,
+          "correct": 17,
+          "sent": 17,
+          "calls": 17,
+          "callsTraced": 17
+        },
+        {
+          "repo": "Fennec-AI/agent-runtime",
+          "reported": 1,
+          "correct": 1,
+          "sent": 1,
+          "calls": 1,
+          "callsTraced": 1
+        },
+        {
+          "repo": "ghadinehme/VideoCAD",
+          "reported": 0,
+          "correct": 0,
+          "sent": 0,
+          "calls": 5,
+          "callsTraced": 5
+        },
+        {
+          "repo": "eng-accelerator/ai-accelerator-C6",
+          "reported": 7,
+          "correct": 7,
+          "sent": 7,
+          "calls": 7,
+          "callsTraced": 7
+        },
+        {
+          "repo": "mongodb-developer/hr_agentic_chatbot",
+          "reported": 1,
+          "correct": 1,
+          "sent": 1,
+          "calls": 1,
+          "callsTraced": 1
+        },
+        {
+          "repo": "pragatidev/AIAgentsBootcamp",
+          "reported": 2,
+          "correct": 2,
+          "sent": 2,
+          "calls": 5,
+          "callsTraced": 5
+        },
+        {
+          "repo": "temporal-cortex/mcp",
+          "reported": 0,
+          "correct": 0,
+          "sent": 0,
+          "calls": 0,
+          "callsTraced": 0
+        },
+        {
+          "repo": "godelcomplete9/open-deepthink",
+          "reported": 3,
+          "correct": 3,
+          "sent": 4,
+          "calls": 8,
+          "callsTraced": 8
+        },
+        {
+          "repo": "jingw2/microharness",
+          "reported": 2,
+          "correct": 2,
+          "sent": 2,
+          "calls": 2,
+          "callsTraced": 2
+        },
+        {
+          "repo": "IAAR-Shanghai/GuessArena",
+          "reported": 0,
+          "correct": 0,
+          "sent": 0,
+          "calls": 1,
+          "callsTraced": 1
+        }
+      ],
+      "linePrecision": 1,
+      "lineRecall": 0.9705882352941176,
+      "callRecall": 1,
+      "counts": {
+        "truePositives": 33,
+        "falsePositives": 0,
+        "sent": 34,
+        "labelledCalls": 47,
+        "tracedCalls": 47
+      },
+      "wrong": [],
+      "missed": [
+        "godelcomplete9/open-deepthink deepthink/config.py:140 stepfun/step-3.5-flash:free"
+      ]
+    }
+  },
+  "results": [
+    {
+      "repo": "FreedomIntelligence/OpenClaw-Medical-Skills",
+      "commit": "b1f9b6e3306f8d870e23b2023057bf730090036f",
+      "calls": [
+        {
+          "file": "skills/biomaster-workflows/repo/agents/Biomaster.py",
+          "line": 380,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/CheckAgent.py",
+          "line": 37,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/Knowledge.py",
+          "line": 230,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/Knowledge.py",
+          "line": 334,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/ToolAgent.py",
+          "line": 80,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 146,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 194,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 214,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 229,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 272,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/model/retriever.py",
+          "line": 103,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/utils.py",
+          "line": 333,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/graph_anthropic.py",
+          "line": 105,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/graph_anthropic.py",
+          "line": 106,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/graph.py",
+          "line": 101,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/squidpy_rag.py",
+          "line": 104,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/tools.py",
+          "line": 464,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/util_anthropic.py",
+          "line": 184,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/util.py",
+          "line": 150,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/graph_anthropic.py",
+          "line": 105,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/graph_anthropic.py",
+          "line": 106,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/graph.py",
+          "line": 101,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/squidpy_rag.py",
+          "line": 104,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/tools.py",
+          "line": 464,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/util_anthropic.py",
+          "line": 184,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/util.py",
+          "line": 150,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "skills/biomaster-workflows/repo/agents/Biomaster.py",
+          "line": 49,
+          "model": "o3-mini"
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/Biomaster.py",
+          "line": 51,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/Knowledge.py",
+          "line": 230,
+          "model": "o3-mini-2025-01-31"
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/Knowledge.py",
+          "line": 334,
+          "model": "o3-mini-2025-01-31"
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/ToolAgent.py",
+          "line": 45,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/config.py",
+          "line": 46,
+          "model": "claude-sonnet-4-5"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/agent/function_generator.py",
+          "line": 17,
+          "model": "claude-3-haiku-20240307"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/agent/qa_llm.py",
+          "line": 17,
+          "model": "claude-3-haiku-20240307"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/tool/database.py",
+          "line": 69,
+          "model": "claude-3-5-haiku-20241022"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/tool/genomics.py",
+          "line": 479,
+          "model": "claude-3-5-sonnet-20241022"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 60,
+          "model": "claude-3-5-sonnet-20241022"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/model/retriever.py",
+          "line": 103,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/utils.py",
+          "line": 333,
+          "model": "claude-3-5-sonnet-20240620"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/graph_anthropic.py",
+          "line": 105,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/graph_anthropic.py",
+          "line": 106,
+          "model": "claude-3-5-sonnet-20241022"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/graph.py",
+          "line": 101,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/squidpy_rag.py",
+          "line": 45,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/tools.py",
+          "line": 464,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/util_anthropic.py",
+          "line": 184,
+          "model": "claude-3-5-sonnet-20240620"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-agent/repo/src/util.py",
+          "line": 150,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/graph_anthropic.py",
+          "line": 105,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/graph_anthropic.py",
+          "line": 106,
+          "model": "claude-3-5-sonnet-20241022"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/graph.py",
+          "line": 101,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/squidpy_rag.py",
+          "line": 45,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/tools.py",
+          "line": 464,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/util_anthropic.py",
+          "line": 184,
+          "model": "claude-3-5-sonnet-20240620"
+        },
+        {
+          "file": "skills/spatial-transcriptomics-analysis/STAgent/repo/src/util.py",
+          "line": 150,
+          "model": "gpt-4o"
+        }
+      ],
+      "stops": [
+        {
+          "file": "skills/biomaster-workflows/repo/agents/Biomaster.py",
+          "line": 380,
+          "reason": "The model comes from `config['models']['main']`, which Refit cannot trace."
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/CheckAgent.py",
+          "line": 37,
+          "reason": "The model comes from `config['models']['main']`, which Refit cannot trace."
+        },
+        {
+          "file": "skills/biomaster-workflows/repo/agents/ToolAgent.py",
+          "line": 80,
+          "reason": "The model comes from `config['models']['main']`, which Refit cannot trace."
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 146,
+          "reason": "The model comes from the parameter `llm`, and no caller Refit found passes it."
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 194,
+          "reason": "The model comes from the parameter `llm`, and no caller Refit found passes it."
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 214,
+          "reason": "The model comes from the parameter `llm`, and no caller Refit found passes it."
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 229,
+          "reason": "The model comes from the parameter `llm`, and no caller Refit found passes it."
+        },
+        {
+          "file": "skills/biomni-general-agent/repo/biomni/llm.py",
+          "line": 272,
+          "reason": "The model comes from the parameter `llm`, and no caller Refit found passes it."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "ghadinehme/VideoCAD",
+      "commit": "2d69eeaf0ac44210c76dcab2d08b4d4610be236c",
+      "calls": [
+        {
+          "file": "eval_qa.py",
+          "line": 127,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "eval_qa.py",
+          "line": 140,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "eval_qa.py",
+          "line": 153,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "eval_qa.py",
+          "line": 166,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "eval_qa.py",
+          "line": 181,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        }
+      ],
+      "sites": [],
+      "stops": [
+        {
+          "file": "eval_qa.py",
+          "line": 127,
+          "reason": "The model comes from `name`, which is reassigned or unpacked where Refit cannot trace it."
+        },
+        {
+          "file": "eval_qa.py",
+          "line": 140,
+          "reason": "The model comes from `name`, which is reassigned or unpacked where Refit cannot trace it."
+        },
+        {
+          "file": "eval_qa.py",
+          "line": 153,
+          "reason": "The model comes from `name`, which is reassigned or unpacked where Refit cannot trace it."
+        },
+        {
+          "file": "eval_qa.py",
+          "line": 166,
+          "reason": "The model comes from `name`, which is reassigned or unpacked where Refit cannot trace it."
+        },
+        {
+          "file": "eval_qa.py",
+          "line": 181,
+          "reason": "The model comes from `name`, which is reassigned or unpacked where Refit cannot trace it."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "rungalileo/agent-leaderboard",
+      "commit": "09b903f64c380bb2f9147bf5df3251c67d85ceb5",
+      "calls": [
+        {
+          "file": "v1/evaluate/llm_handler.py",
+          "line": 247,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "v1/evaluate/llm_handler.py",
+          "line": 263,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "v2/datasets/personas.py",
+          "line": 127,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "v2/datasets/scenarios.py",
+          "line": 315,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "v2/datasets/tools.py",
+          "line": 196,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "v2/evaluate/llm_handler.py",
+          "line": 230,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "v2/evaluate/llm_handler.py",
+          "line": 238,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "v2/evaluate/llm_handler.py",
+          "line": 259,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "v2/datasets/personas.py",
+          "line": 15,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "v2/datasets/scenarios.py",
+          "line": 17,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "v2/datasets/tools.py",
+          "line": 13,
+          "model": "claude-sonnet-4-20250514"
+        }
+      ],
+      "stops": [
+        {
+          "file": "v1/evaluate/llm_handler.py",
+          "line": 247,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        },
+        {
+          "file": "v1/evaluate/llm_handler.py",
+          "line": 263,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        },
+        {
+          "file": "v2/evaluate/llm_handler.py",
+          "line": 230,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        },
+        {
+          "file": "v2/evaluate/llm_handler.py",
+          "line": 238,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        },
+        {
+          "file": "v2/evaluate/llm_handler.py",
+          "line": 259,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "godelcomplete9/open-deepthink",
+      "commit": "b440af10fd8fc9550b3a70fc76761465aede7a4b",
+      "calls": [
+        {
+          "file": "app.py",
+          "line": 464,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "app.py",
+          "line": 489,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "app.py",
+          "line": 1516,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "deepthink/providers.py",
+          "line": 74,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/qdad/run_template.py",
+          "line": 90,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/qdad/run_template.py",
+          "line": 100,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/qnn/run_template.py",
+          "line": 116,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "skills/qnn/run_template.py",
+          "line": 126,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "app.py",
+          "line": 1506,
+          "model": "stepfun/step-3.5-flash:free"
+        },
+        {
+          "file": "app.py",
+          "line": 1508,
+          "model": "llama-3.2-1b-instruct"
+        },
+        {
+          "file": "skills/qdad/run_template.py",
+          "line": 150,
+          "model": "stepfun/step-3.5-flash:free"
+        },
+        {
+          "file": "skills/qnn/run_template.py",
+          "line": 179,
+          "model": "stepfun/step-3.5-flash:free"
+        }
+      ],
+      "stops": [
+        {
+          "file": "app.py",
+          "line": 464,
+          "reason": "The model comes from `cfg.openrouter_model`, which Refit cannot trace."
+        },
+        {
+          "file": "app.py",
+          "line": 489,
+          "reason": "The model comes from `params.get(\"synthesis_model\", \"\").strip()`, which Refit cannot trace."
+        },
+        {
+          "file": "app.py",
+          "line": 1516,
+          "reason": "The model comes from `payload.get(\"synthesis_model\", \"\").strip()`, which Refit cannot trace."
+        },
+        {
+          "file": "deepthink/providers.py",
+          "line": 74,
+          "reason": "The model comes from `None`, which Refit cannot trace."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "Fennec-AI/agent-runtime",
+      "commit": "3441fbde350df50cc070851856c343680babefb4",
+      "calls": [
+        {
+          "file": "bootstrap.py",
+          "line": 72,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "bootstrap.py",
+          "line": 73,
+          "model": "claude-sonnet-4-5"
+        }
+      ],
+      "stops": [],
+      "status": "scanned"
+    },
+    {
+      "repo": "jingw2/microharness",
+      "commit": "628bbfb176b88ef007eee8d605320a39d49b551a",
+      "calls": [
+        {
+          "file": "config.py",
+          "line": 72,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "config.py",
+          "line": 93,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "config.py",
+          "line": 43,
+          "model": "claude-sonnet-4-20250514"
+        },
+        {
+          "file": "config.py",
+          "line": 44,
+          "model": "claude-haiku-4-5-20251001"
+        }
+      ],
+      "stops": [],
+      "status": "scanned"
+    },
+    {
+      "repo": "pragatidev/AIAgentsBootcamp",
+      "commit": "eb1c87bd067c9ae5cb0c3b25c94a0dd1d37f8537",
+      "calls": [
+        {
+          "file": "config.py",
+          "line": 93,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "config.py",
+          "line": 102,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "config.py",
+          "line": 138,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "src/llm.py",
+          "line": 55,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "src/llm.py",
+          "line": 75,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "src/llm.py",
+          "line": 50,
+          "model": "claude-haiku-4-5"
+        },
+        {
+          "file": "src/llm.py",
+          "line": 63,
+          "model": "gpt-4o-mini"
+        }
+      ],
+      "stops": [
+        {
+          "file": "src/llm.py",
+          "line": 55,
+          "reason": "The model comes from `os.environ.get(name, \"\").strip()`, which Refit cannot trace."
+        },
+        {
+          "file": "src/llm.py",
+          "line": 75,
+          "reason": "The model comes from `os.environ.get(name, \"\").strip()`, which Refit cannot trace."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "BattModels/material_agent",
+      "commit": "99c9d71961df6922bfbca3e3ecdf4afb135a3376",
+      "calls": [
+        {
+          "file": "src/graph.py",
+          "line": 105,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "src/planNexe2.py",
+          "line": 267,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "src/planNexe2.py",
+          "line": 268,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "src/planNexeHighPlan.py",
+          "line": 114,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "src/tools.py",
+          "line": 722,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "src/planNexe2.py",
+          "line": 267,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "src/planNexe2.py",
+          "line": 268,
+          "model": "claude-3-7-sonnet-20250219"
+        },
+        {
+          "file": "src/tools.py",
+          "line": 722,
+          "model": "claude-3-7-sonnet-20250219"
+        }
+      ],
+      "stops": [
+        {
+          "file": "src/graph.py",
+          "line": 105,
+          "reason": "The model comes from `config[\"LANGSIM_MODEL\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "src/planNexeHighPlan.py",
+          "line": 114,
+          "reason": "The model comes from `config[\"LANGSIM_MODEL\"]`, which Refit cannot trace."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "mongodb-developer/hr_agentic_chatbot",
+      "commit": "4ab4d5193b181a76f00582dfa155fae59fda4506",
+      "calls": [
+        {
+          "file": "app.py",
+          "line": 34,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "app.py",
+          "line": 34,
+          "model": "gpt-4o-2024-05-13"
+        }
+      ],
+      "stops": [],
+      "status": "scanned"
+    },
+    {
+      "repo": "temporal-cortex/mcp",
+      "commit": "46968c2ee8d90168a80466dae0db26e68ae9bd1d",
+      "calls": [],
+      "sites": [],
+      "stops": [],
+      "status": "scanned"
+    },
+    {
+      "repo": "SurvivorsStudio/langstar",
+      "commit": "2dc1b51f14dd8d3d9eaa5ff2657c966c20a344af",
+      "calls": [
+        {
+          "file": "server/services/workflow_service.py",
+          "line": 147,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "server/services/workflow_service.py",
+          "line": 339,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        }
+      ],
+      "sites": [],
+      "stops": [
+        {
+          "file": "server/services/workflow_service.py",
+          "line": 147,
+          "reason": "The model comes from `msg['model']['modelName']`, which Refit cannot trace."
+        },
+        {
+          "file": "server/services/workflow_service.py",
+          "line": 339,
+          "reason": "The model comes from `msg['model']['modelName']`, which Refit cannot trace."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "abvijaykumar/deep-agents-langchain-blog",
+      "commit": "bf2a81cab5fd687288be2180798e945004710339",
+      "calls": [
+        {
+          "file": "agent.py",
+          "line": 37,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "agent.py",
+          "line": 42,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "agent.py",
+          "line": 38,
+          "model": "claude-3-5-sonnet-20240620"
+        },
+        {
+          "file": "agent.py",
+          "line": 43,
+          "model": "gpt-4o"
+        }
+      ],
+      "stops": [],
+      "status": "scanned"
+    },
+    {
+      "repo": "chaturvedisunidhi8/Q-A-chatbot-with-message-history",
+      "commit": "c5246d21fb360d6fcc3905a45ef9ed50189d53f2",
+      "calls": [],
+      "sites": [],
+      "stops": [],
+      "status": "scanned"
+    },
+    {
+      "repo": "IAAR-Shanghai/GuessArena",
+      "commit": "fd717bab05f4acc93f6111c78648d44d7daa17f1",
+      "calls": [
+        {
+          "file": "src/utils/kbg_gen.py",
+          "line": 58,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [],
+      "stops": [
+        {
+          "file": "src/utils/kbg_gen.py",
+          "line": 58,
+          "reason": "The model comes from `self.llms_config.get( model_name, \"model\", fallback=\"default_model\" )`, which Refit cannot trace."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "eng-accelerator/ai-accelerator-C6",
+      "commit": "47a41be404988b9ff624c5d6f8b046aae44c039a",
+      "calls": [
+        {
+          "file": "Day 13/Orion/src/agents/ai_generator_agent.py",
+          "line": 78,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "Day 8/agent-simple-updated.py",
+          "line": 32,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "Day 8/simple_lcel (1).py",
+          "line": 15,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "Day 8/simple_without_lcel-1.py",
+          "line": 30,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "Day 8/updated-arag.py",
+          "line": 144,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "Day 9/agent-eval.py",
+          "line": 34,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "Day 9/agent-eval.py",
+          "line": 41,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "Day 13/Orion/src/agents/ai_generator_agent.py",
+          "line": 57,
+          "model": "gpt-5-mini"
+        },
+        {
+          "file": "Day 8/agent-simple-updated.py",
+          "line": 33,
+          "model": "openai/gpt-4o"
+        },
+        {
+          "file": "Day 8/simple_lcel (1).py",
+          "line": 16,
+          "model": "gpt-3.5-turbo"
+        },
+        {
+          "file": "Day 8/simple_without_lcel-1.py",
+          "line": 31,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "Day 8/updated-arag.py",
+          "line": 145,
+          "model": "openai/gpt-4o"
+        },
+        {
+          "file": "Day 9/agent-eval.py",
+          "line": 35,
+          "model": "openai/gpt-4o-mini"
+        },
+        {
+          "file": "Day 9/agent-eval.py",
+          "line": 42,
+          "model": "openai/gpt-4o-mini"
+        }
+      ],
+      "stops": [],
+      "status": "scanned"
+    },
+    {
+      "repo": "genglongling/M-APPLE-OS",
+      "commit": "27e203583526fb964b1a6398d2ae72ebf7035e44",
+      "calls": [
+        {
+          "file": "agent_frameworks/crewai_multi_agent/router.py",
+          "line": 17,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks/langgraph/analyze_data.py",
+          "line": 26,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks/langgraph/generate_sql_query.py",
+          "line": 40,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks/langgraph/router.py",
+          "line": 19,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_jssp/crewai_multi_agent/router.py",
+          "line": 18,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_jssp/langgraph/analyze_data.py",
+          "line": 26,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_jssp/langgraph/generate_sql_query.py",
+          "line": 40,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_jssp/langgraph/router.py",
+          "line": 21,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_jssp/langgraph/router.py",
+          "line": 23,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_p10/langgraph/analyze_data.py",
+          "line": 26,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_p10/langgraph/generate_sql_query.py",
+          "line": 40,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_p10/mas_backbone.py",
+          "line": 56,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_p10/mas_backbone.py",
+          "line": 63,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_p4/langgraph/analyze_data.py",
+          "line": 26,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_p4/langgraph/generate_sql_query.py",
+          "line": 40,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_p4/mas_backbone.py",
+          "line": 59,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent_frameworks_p4/mas_backbone.py",
+          "line": 66,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "agent_frameworks/crewai_multi_agent/router.py",
+          "line": 17,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "agent_frameworks/langgraph/analyze_data.py",
+          "line": 26,
+          "model": "gpt-4"
+        },
+        {
+          "file": "agent_frameworks/langgraph/generate_sql_query.py",
+          "line": 40,
+          "model": "gpt-4"
+        },
+        {
+          "file": "agent_frameworks/langgraph/router.py",
+          "line": 19,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "agent_frameworks_jssp/crewai_multi_agent/router.py",
+          "line": 18,
+          "model": "claude-sonnet-4-20250514"
+        },
+        {
+          "file": "agent_frameworks_jssp/langgraph/analyze_data.py",
+          "line": 26,
+          "model": "gpt-4"
+        },
+        {
+          "file": "agent_frameworks_jssp/langgraph/generate_sql_query.py",
+          "line": 40,
+          "model": "gpt-4"
+        },
+        {
+          "file": "agent_frameworks_jssp/langgraph/router.py",
+          "line": 21,
+          "model": "claude-sonnet-4-20250514"
+        },
+        {
+          "file": "agent_frameworks_jssp/langgraph/router.py",
+          "line": 23,
+          "model": "claude-sonnet-4-20250514"
+        },
+        {
+          "file": "agent_frameworks_p10/langgraph/analyze_data.py",
+          "line": 26,
+          "model": "gpt-4"
+        },
+        {
+          "file": "agent_frameworks_p10/langgraph/generate_sql_query.py",
+          "line": 40,
+          "model": "gpt-4"
+        },
+        {
+          "file": "agent_frameworks_p10/mas_backbone.py",
+          "line": 57,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "agent_frameworks_p10/mas_backbone.py",
+          "line": 64,
+          "model": "claude-sonnet-4-20250514"
+        },
+        {
+          "file": "agent_frameworks_p4/langgraph/analyze_data.py",
+          "line": 26,
+          "model": "gpt-4"
+        },
+        {
+          "file": "agent_frameworks_p4/langgraph/generate_sql_query.py",
+          "line": 40,
+          "model": "gpt-4"
+        },
+        {
+          "file": "agent_frameworks_p4/mas_backbone.py",
+          "line": 60,
+          "model": "gpt-4o"
+        },
+        {
+          "file": "agent_frameworks_p4/mas_backbone.py",
+          "line": 67,
+          "model": "claude-sonnet-4-20250514"
+        }
+      ],
+      "stops": [],
+      "status": "scanned"
+    },
+    {
+      "repo": "sysadmin-info/reloaded",
+      "commit": "0d15f1268024ee09d87c21fa7ef00e61e453cf0e",
+      "calls": [
+        {
+          "file": "agent.py",
+          "line": 244,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "agent.py",
+          "line": 266,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent.py",
+          "line": 278,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "agent.py",
+          "line": 288,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [],
+      "stops": [
+        {
+          "file": "agent.py",
+          "line": 244,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        },
+        {
+          "file": "agent.py",
+          "line": 266,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        },
+        {
+          "file": "agent.py",
+          "line": 278,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        },
+        {
+          "file": "agent.py",
+          "line": 288,
+          "reason": "The model comes from the parameter `model_name`, and no caller Refit found passes it."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "juyangbai/MAS-PromptBench",
+      "commit": "edcf35007a84ecc05c69fe2f24d5bd1e0b719244",
+      "calls": [
+        {
+          "file": "optimizers/gepa/real_runner_gepa/adapters/bfcl_common.py",
+          "line": 134,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "optimizers/gepa/real_runner_gepa/adapters/gpqa_common.py",
+          "line": 56,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "optimizers/mipro/real_runner_mipro/adapters/bfcl_common.py",
+          "line": 134,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "optimizers/mipro/real_runner_mipro/adapters/gpqa_common.py",
+          "line": 56,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/apps/apps_r10.py",
+          "line": 209,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/apps/apps_r2.py",
+          "line": 119,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/apps/apps_r4.py",
+          "line": 143,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/apps/apps_r8.py",
+          "line": 186,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/bfcl/bfcl_r10.py",
+          "line": 91,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/bfcl/bfcl_r2.py",
+          "line": 91,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/bfcl/bfcl_r4.py",
+          "line": 91,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/bfcl/bfcl_r8.py",
+          "line": 91,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/gpqa/gpqa_r10.py",
+          "line": 200,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/gpqa/gpqa_r2.py",
+          "line": 110,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/gpqa/gpqa_r4.py",
+          "line": 134,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/gpqa/gpqa_r8.py",
+          "line": 177,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/hotpotqa/hotpotqa_r10.py",
+          "line": 225,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/hotpotqa/hotpotqa_r2.py",
+          "line": 136,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/hotpotqa/hotpotqa_r4.py",
+          "line": 159,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/hotpotqa/hotpotqa_r8.py",
+          "line": 202,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/lcb/lcb_r10.py",
+          "line": 208,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/lcb/lcb_r2.py",
+          "line": 118,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/lcb/lcb_r4.py",
+          "line": 142,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/lcb/lcb_r8.py",
+          "line": 185,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/math/math_r10.py",
+          "line": 194,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/math/math_r2.py",
+          "line": 105,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/math/math_r4.py",
+          "line": 128,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/math/math_r8.py",
+          "line": 171,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/swe/swe_r10.py",
+          "line": 335,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/swe/swe_r2.py",
+          "line": 245,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/swe/swe_r4.py",
+          "line": 269,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/centralized/swe/swe_r8.py",
+          "line": 312,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/apps/apps_r10.py",
+          "line": 97,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/apps/apps_r2.py",
+          "line": 97,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/apps/apps_r4.py",
+          "line": 97,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/apps/apps_r8.py",
+          "line": 97,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/bfcl/bfcl_r10.py",
+          "line": 87,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/bfcl/bfcl_r2.py",
+          "line": 87,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/bfcl/bfcl_r4.py",
+          "line": 87,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/bfcl/bfcl_r8.py",
+          "line": 87,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/gpqa/gpqa_r10.py",
+          "line": 127,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/gpqa/gpqa_r2.py",
+          "line": 127,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/gpqa/gpqa_r4.py",
+          "line": 127,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/gpqa/gpqa_r8.py",
+          "line": 127,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/hotpotqa/hotpotqa_r10.py",
+          "line": 124,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/hotpotqa/hotpotqa_r2.py",
+          "line": 124,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/hotpotqa/hotpotqa_r4.py",
+          "line": 124,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/hotpotqa/hotpotqa_r8.py",
+          "line": 124,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/lcb/lcb_r10.py",
+          "line": 99,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/lcb/lcb_r2.py",
+          "line": 99,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/lcb/lcb_r4.py",
+          "line": 99,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/lcb/lcb_r8.py",
+          "line": 99,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/math/math_r10.py",
+          "line": 125,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/math/math_r2.py",
+          "line": 125,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/math/math_r4.py",
+          "line": 125,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/math/math_r8.py",
+          "line": 125,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/swe/swe_r10.py",
+          "line": 212,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/swe/swe_r2.py",
+          "line": 212,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/swe/swe_r4.py",
+          "line": 212,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/decentralized/swe/swe_r8.py",
+          "line": 212,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/apps/apps_r10.py",
+          "line": 116,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/apps/apps_r2.py",
+          "line": 116,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/apps/apps_r4.py",
+          "line": 116,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/apps/apps_r8.py",
+          "line": 116,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/bfcl/bfcl_r10.py",
+          "line": 158,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/bfcl/bfcl_r2.py",
+          "line": 158,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/bfcl/bfcl_r4.py",
+          "line": 158,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/bfcl/bfcl_r8.py",
+          "line": 158,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/gpqa/gpqa_r10.py",
+          "line": 92,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/gpqa/gpqa_r2.py",
+          "line": 92,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/gpqa/gpqa_r4.py",
+          "line": 92,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/gpqa/gpqa_r8.py",
+          "line": 92,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/hotpotqa/hotpotqa_r10.py",
+          "line": 128,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/hotpotqa/hotpotqa_r2.py",
+          "line": 128,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/hotpotqa/hotpotqa_r4.py",
+          "line": 128,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/hotpotqa/hotpotqa_r8.py",
+          "line": 128,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/lcb/lcb_r10.py",
+          "line": 132,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/lcb/lcb_r2.py",
+          "line": 132,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/lcb/lcb_r4.py",
+          "line": 132,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/lcb/lcb_r8.py",
+          "line": 132,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/math/math_r10.py",
+          "line": 96,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/math/math_r2.py",
+          "line": 96,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/math/math_r4.py",
+          "line": 96,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/math/math_r8.py",
+          "line": 96,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/swe/swe_r10.py",
+          "line": 251,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/swe/swe_r2.py",
+          "line": 251,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/swe/swe_r4.py",
+          "line": 251,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/independent/swe/swe_r8.py",
+          "line": 251,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/apps/apps_r10.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/apps/apps_r2.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/apps/apps_r4.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/apps/apps_r8.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/bfcl/bfcl_r10.py",
+          "line": 79,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/bfcl/bfcl_r2.py",
+          "line": 79,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/bfcl/bfcl_r4.py",
+          "line": 79,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/bfcl/bfcl_r8.py",
+          "line": 79,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/gpqa/gpqa_r10.py",
+          "line": 77,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/gpqa/gpqa_r2.py",
+          "line": 77,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/gpqa/gpqa_r4.py",
+          "line": 77,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/gpqa/gpqa_r8.py",
+          "line": 77,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/hotpotqa/hotpotqa_r10.py",
+          "line": 102,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/hotpotqa/hotpotqa_r2.py",
+          "line": 102,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/hotpotqa/hotpotqa_r4.py",
+          "line": 102,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/hotpotqa/hotpotqa_r8.py",
+          "line": 102,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/lcb/lcb_r10.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/lcb/lcb_r2.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/lcb/lcb_r4.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/lcb/lcb_r8.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/math/math_r10.py",
+          "line": 71,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/math/math_r2.py",
+          "line": 71,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/math/math_r4.py",
+          "line": 71,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/math/math_r8.py",
+          "line": 71,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/swe/swe_r10.py",
+          "line": 245,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/swe/swe_r2.py",
+          "line": 245,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/swe/swe_r4.py",
+          "line": 245,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "teamsizes/sequential/swe/swe_r8.py",
+          "line": 245,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/centralized/langgraph/apps/langgraph_apps.py",
+          "line": 143,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/centralized/langgraph/bfcl/langgraph_bfcl.py",
+          "line": 91,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/centralized/langgraph/gpqa/langgraph_gpqa.py",
+          "line": 134,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/centralized/langgraph/hotpotqa/langgraph_hotpotqa.py",
+          "line": 161,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/centralized/langgraph/lcb/langgraph_lcb.py",
+          "line": 144,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/centralized/langgraph/math/langgraph_math.py",
+          "line": 128,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/centralized/langgraph/swe/langgraph_swe.py",
+          "line": 269,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/apps/langgraph_apps.py",
+          "line": 97,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/bfcl/langgraph_bfcl.py",
+          "line": 87,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/gpqa/langgraph_gpqa.py",
+          "line": 127,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/hotpotqa/langgraph_hotpotqa.py",
+          "line": 126,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/lcb/langgraph_lcb.py",
+          "line": 101,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/math/langgraph_math.py",
+          "line": 125,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/swe/langgraph_swe.py",
+          "line": 212,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/independent/apps/langgraph_apps.py",
+          "line": 116,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/independent/bfcl/langgraph_bfcl.py",
+          "line": 158,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/independent/gpqa/langgraph_gpqa.py",
+          "line": 92,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/independent/hotpotqa/langgraph_hotpotqa.py",
+          "line": 128,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/independent/lcb/langgraph_lcb.py",
+          "line": 132,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/independent/math/langgraph_math.py",
+          "line": 96,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/independent/swe/langgraph_swe.py",
+          "line": 251,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/sequential/langgraph/apps/langgraph_apps.py",
+          "line": 89,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/sequential/langgraph/bfcl/langgraph_bfcl.py",
+          "line": 79,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/sequential/langgraph/gpqa/langgraph_gpqa.py",
+          "line": 77,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/sequential/langgraph/hotpotqa/langgraph_hotpotqa.py",
+          "line": 104,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/sequential/langgraph/lcb/langgraph_lcb.py",
+          "line": 91,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/sequential/langgraph/math/langgraph_math.py",
+          "line": 71,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/sequential/langgraph/swe/langgraph_swe.py",
+          "line": 245,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/single/apps/langgraph_apps.py",
+          "line": 108,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/single/bfcl/langgraph_bfcl.py",
+          "line": 175,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/single/gpqa/langgraph_gpqa.py",
+          "line": 81,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/single/hotpotqa/langgraph_hotpotqa.py",
+          "line": 127,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/single/langgraph_base.py",
+          "line": 37,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/single/lcb/langgraph_lcb.py",
+          "line": 115,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/single/math/langgraph_math.py",
+          "line": 95,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "topologies/single/swe/langgraph_swe.py",
+          "line": 240,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        }
+      ],
+      "sites": [
+        {
+          "file": "optimizers/gepa/real_runner_gepa/lm.py",
+          "line": 12,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "optimizers/mipro/real_runner_mipro/lm.py",
+          "line": 12,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/apps/apps_r10.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/apps/apps_r2.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/apps/apps_r4.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/apps/apps_r8.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/bfcl/bfcl_r10.py",
+          "line": 46,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/bfcl/bfcl_r2.py",
+          "line": 46,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/bfcl/bfcl_r4.py",
+          "line": 46,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/bfcl/bfcl_r8.py",
+          "line": 46,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/gpqa/gpqa_r10.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/gpqa/gpqa_r2.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/gpqa/gpqa_r4.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/gpqa/gpqa_r8.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/hotpotqa/hotpotqa_r10.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/hotpotqa/hotpotqa_r2.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/hotpotqa/hotpotqa_r4.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/hotpotqa/hotpotqa_r8.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/lcb/lcb_r10.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/lcb/lcb_r2.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/lcb/lcb_r4.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/lcb/lcb_r8.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/math/math_r10.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/math/math_r2.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/math/math_r4.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/math/math_r8.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/swe/swe_r10.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/swe/swe_r2.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/swe/swe_r4.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/centralized/swe/swe_r8.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/apps/apps_r10.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/apps/apps_r2.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/apps/apps_r4.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/apps/apps_r8.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/bfcl/bfcl_r10.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/bfcl/bfcl_r2.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/bfcl/bfcl_r4.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/bfcl/bfcl_r8.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/gpqa/gpqa_r10.py",
+          "line": 86,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/gpqa/gpqa_r2.py",
+          "line": 86,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/gpqa/gpqa_r4.py",
+          "line": 86,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/gpqa/gpqa_r8.py",
+          "line": 86,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/hotpotqa/hotpotqa_r10.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/hotpotqa/hotpotqa_r2.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/hotpotqa/hotpotqa_r4.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/hotpotqa/hotpotqa_r8.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/lcb/lcb_r10.py",
+          "line": 43,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/lcb/lcb_r2.py",
+          "line": 43,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/lcb/lcb_r4.py",
+          "line": 43,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/lcb/lcb_r8.py",
+          "line": 43,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/math/math_r10.py",
+          "line": 81,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/math/math_r2.py",
+          "line": 81,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/math/math_r4.py",
+          "line": 81,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/math/math_r8.py",
+          "line": 81,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/swe/swe_r10.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/swe/swe_r2.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/swe/swe_r4.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/decentralized/swe/swe_r8.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/apps/apps_r10.py",
+          "line": 39,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/apps/apps_r2.py",
+          "line": 39,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/apps/apps_r4.py",
+          "line": 39,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/apps/apps_r8.py",
+          "line": 39,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/bfcl/bfcl_r10.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/bfcl/bfcl_r2.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/bfcl/bfcl_r4.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/bfcl/bfcl_r8.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/gpqa/gpqa_r10.py",
+          "line": 36,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/gpqa/gpqa_r2.py",
+          "line": 36,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/gpqa/gpqa_r4.py",
+          "line": 36,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/gpqa/gpqa_r8.py",
+          "line": 36,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/hotpotqa/hotpotqa_r10.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/hotpotqa/hotpotqa_r2.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/hotpotqa/hotpotqa_r4.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/hotpotqa/hotpotqa_r8.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/lcb/lcb_r10.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/lcb/lcb_r2.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/lcb/lcb_r4.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/lcb/lcb_r8.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/math/math_r10.py",
+          "line": 33,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/math/math_r2.py",
+          "line": 33,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/math/math_r4.py",
+          "line": 33,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/math/math_r8.py",
+          "line": 33,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/swe/swe_r10.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/swe/swe_r2.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/swe/swe_r4.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/independent/swe/swe_r8.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/apps/apps_r10.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/apps/apps_r2.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/apps/apps_r4.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/apps/apps_r8.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/bfcl/bfcl_r10.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/bfcl/bfcl_r2.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/bfcl/bfcl_r4.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/bfcl/bfcl_r8.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/gpqa/gpqa_r10.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/gpqa/gpqa_r2.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/gpqa/gpqa_r4.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/gpqa/gpqa_r8.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/hotpotqa/hotpotqa_r10.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/hotpotqa/hotpotqa_r2.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/hotpotqa/hotpotqa_r4.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/hotpotqa/hotpotqa_r8.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/lcb/lcb_r10.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/lcb/lcb_r2.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/lcb/lcb_r4.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/lcb/lcb_r8.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/math/math_r10.py",
+          "line": 34,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/math/math_r2.py",
+          "line": 34,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/math/math_r4.py",
+          "line": 34,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/math/math_r8.py",
+          "line": 34,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/swe/swe_r10.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/swe/swe_r2.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/swe/swe_r4.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "teamsizes/sequential/swe/swe_r8.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/centralized/langgraph/apps/langgraph_apps.py",
+          "line": 45,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/centralized/langgraph/bfcl/langgraph_bfcl.py",
+          "line": 46,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/centralized/langgraph/gpqa/langgraph_gpqa.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/centralized/langgraph/hotpotqa/langgraph_hotpotqa.py",
+          "line": 43,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/centralized/langgraph/lcb/langgraph_lcb.py",
+          "line": 46,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/centralized/langgraph/math/langgraph_math.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/centralized/langgraph/swe/langgraph_swe.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/apps/langgraph_apps.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/bfcl/langgraph_bfcl.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/gpqa/langgraph_gpqa.py",
+          "line": 86,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/hotpotqa/langgraph_hotpotqa.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/lcb/langgraph_lcb.py",
+          "line": 44,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/math/langgraph_math.py",
+          "line": 81,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/decentralized/langgraph/swe/langgraph_swe.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/independent/apps/langgraph_apps.py",
+          "line": 39,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/independent/bfcl/langgraph_bfcl.py",
+          "line": 42,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/independent/gpqa/langgraph_gpqa.py",
+          "line": 36,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/independent/hotpotqa/langgraph_hotpotqa.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/independent/lcb/langgraph_lcb.py",
+          "line": 40,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/independent/math/langgraph_math.py",
+          "line": 33,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/independent/swe/langgraph_swe.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/sequential/langgraph/apps/langgraph_apps.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/sequential/langgraph/bfcl/langgraph_bfcl.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/sequential/langgraph/gpqa/langgraph_gpqa.py",
+          "line": 37,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/sequential/langgraph/hotpotqa/langgraph_hotpotqa.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/sequential/langgraph/lcb/langgraph_lcb.py",
+          "line": 41,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/sequential/langgraph/math/langgraph_math.py",
+          "line": 34,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/sequential/langgraph/swe/langgraph_swe.py",
+          "line": 35,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/single/apps/langgraph_apps.py",
+          "line": 32,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/single/bfcl/langgraph_bfcl.py",
+          "line": 34,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/single/gpqa/langgraph_gpqa.py",
+          "line": 29,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/single/hotpotqa/langgraph_hotpotqa.py",
+          "line": 38,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/single/langgraph_base.py",
+          "line": 37,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "topologies/single/lcb/langgraph_lcb.py",
+          "line": 33,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/single/math/langgraph_math.py",
+          "line": 34,
+          "model": "Qwen/Qwen3.5-9B"
+        },
+        {
+          "file": "topologies/single/swe/langgraph_swe.py",
+          "line": 26,
+          "model": "Qwen/Qwen3.5-9B"
+        }
+      ],
+      "stops": [
+        {
+          "file": "optimizers/mipro/real_runner_mipro/adapters/bfcl_common.py",
+          "line": 134,
+          "reason": "The model is read from the environment variable MIPRO_TASK_MODEL with no default."
+        },
+        {
+          "file": "optimizers/mipro/real_runner_mipro/adapters/gpqa_common.py",
+          "line": 56,
+          "reason": "The model is read from the environment variable MIPRO_TASK_MODEL with no default."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "liusizhezzz/a-share-research-platform",
+      "commit": "bfe10c1ce6993bfe0d652fb8f6dd91b59483e64d",
+      "calls": [
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 134,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 144,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 183,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 275,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 282,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 299,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 307,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 325,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 333,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 345,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 352,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 363,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 370,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        }
+      ],
+      "sites": [],
+      "stops": [
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 134,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 144,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 183,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 275,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 282,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 299,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 307,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 325,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 333,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 345,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 352,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 363,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 370,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        }
+      ],
+      "status": "scanned"
+    },
+    {
+      "repo": "skyarcher2008/TradingAgentsCN_V1",
+      "commit": "31d4681f6e4e0cf9f837615dc07e5523631abc1e",
+      "calls": [
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 134,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 144,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 183,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 275,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 282,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 299,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 307,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 325,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 333,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 345,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 352,
+          "provider": "openai",
+          "call": "langchain.ChatOpenAI",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 363,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 370,
+          "provider": "anthropic",
+          "call": "langchain.ChatAnthropic",
+          "client": "constructor"
+        }
+      ],
+      "sites": [],
+      "stops": [
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 134,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 144,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 183,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 275,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 282,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 299,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 307,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 325,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 333,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 345,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 352,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 363,
+          "reason": "The model comes from `self.config[\"deep_think_llm\"]`, which Refit cannot trace."
+        },
+        {
+          "file": "tradingagents/graph/trading_graph.py",
+          "line": 370,
+          "reason": "The model comes from `self.config[\"quick_think_llm\"]`, which Refit cannot trace."
+        }
+      ],
+      "status": "scanned"
+    }
+  ]
+}

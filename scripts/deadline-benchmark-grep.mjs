@@ -23,6 +23,8 @@ const root = resolve(values.root);
 const pinned = JSON.parse(await readFile(values.list, 'utf8'));
 const { deadlines } = JSON.parse(await readFile(values.registry, 'utf8'));
 const SOURCE = /\.[cm]?[jt]sx?$/;
+// Manifests are read too, for SDK end-of-support entries such as `@google/generative-ai`.
+const MANIFEST = /^package\.json$/;
 const SKIP = new Set([
   'node_modules',
   '.git',
@@ -34,7 +36,16 @@ const SKIP = new Set([
   'vendor',
 ]);
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const models = deadlines.filter((d) => d.provider === 'openai').flatMap((d) => d.versions);
+const modelProvider = new Map(
+  deadlines
+    .filter((d) => d.kind === 'model')
+    .flatMap((d) => d.versions.map((v) => [v, d.provider])),
+);
+const models = [...modelProvider.keys()];
+const packages = deadlines.filter((d) => d.kind === 'sdk').flatMap((d) => d.versions);
+const sdkProvider = new Map(
+  deadlines.filter((d) => d.kind === 'sdk').flatMap((d) => d.versions.map((v) => [v, d.provider])),
+);
 const MODEL = new RegExp(
   `(?<![\\w.-])(${models
     .sort((a, b) => b.length - a.length)
@@ -49,13 +60,16 @@ async function* files(directory) {
     if (SKIP.has(entry.name)) continue;
     const path = join(directory, entry.name);
     if (entry.isDirectory()) yield* files(path);
-    else if (entry.isFile() && SOURCE.test(entry.name)) yield path;
+    else if (entry.isFile() && (SOURCE.test(entry.name) || MANIFEST.test(entry.name))) yield path;
   }
 }
 
 function lineMatches(line, shopifyFile, metaFile) {
   const found = [];
-  for (const match of line.matchAll(MODEL)) found.push(['openai', match[1]]);
+  for (const match of line.matchAll(MODEL)) found.push([modelProvider.get(match[1]), match[1]]);
+  for (const name of packages)
+    if (line.includes(`'${name}'`) || line.includes(`"${name}"`))
+      found.push([sdkProvider.get(name), name]);
   for (const match of line.matchAll(/graph\.facebook\.com\/(v\d+\.\d+)/g))
     found.push(['meta-graph', match[1]]);
   if (metaFile)

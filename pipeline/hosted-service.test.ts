@@ -1,64 +1,39 @@
+import { execFile } from 'node:child_process';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import pg from 'pg';
 import { afterEach, expect, it, vi } from 'vitest';
 import { gitEnvironment } from './git-environment.ts';
 import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
+import { hostedTenancy, TENANCY_REFUSALS } from './hosted-tenancy.ts';
 import {
   approveRepositoryEnrollment,
   inspectRepositoryEnrollment,
   readRepositoryApproval,
 } from './repository-enrollment.ts';
 import { verifyArtifacts } from './verification.ts';
+import { startFakeGitHub } from './fixtures/fake-github.ts';
 
 const transport = vi.hoisted(() => ({
   source: '',
   head: '',
   calls: [] as { binary: string; args: string[] }[],
-  native: undefined as
-    undefined | ((args: string[], cwd: string) => Promise<{ stdout: string; stderr: string }>),
 }));
-vi.mock('node:child_process', async (original) => {
-  const actual = await original<typeof import('node:child_process')>();
-  const { promisify } = await import('node:util');
-  const execute = promisify(actual.execFile);
-  transport.native = (args, cwd) => execute('git', args, { cwd, env: gitEnvironment() });
-  const execFile = vi.fn();
-  Object.defineProperty(execFile, promisify.custom, {
-    value: async (binary: string, args: string[], options: { env: NodeJS.ProcessEnv }) => {
-      transport.calls.push({ binary, args });
-      if (binary !== 'git' || !args.includes('fetch')) return execute(binary, args, options);
-      const local = [...args];
-      local[local.indexOf('origin')] = transport.source;
-      return execute(binary, ['-c', 'protocol.file.allow=always', ...local], options);
-    },
-  });
-  return { ...actual, execFile };
-});
-vi.mock('./github-app.ts', () => ({
-  authenticateGitHubRead: vi.fn(async () => ({
-    token: 'private-read-test-token',
-    appId: 123,
-    installationId: 456,
-  })),
-}));
-vi.mock('./github.ts', async (original) => ({
-  ...(await original<typeof import('./github.ts')>()),
-  requestGitHub: vi.fn(async (_token: string, method: string, path: string) => {
-    expect(method).toBe('GET');
-    if (path === '/repos/example/application')
-      return { id: 789, full_name: 'example/application', archived: false, disabled: false };
-    expect(path).toBe('/repos/example/application/git/ref/heads/main');
-    return { object: { type: 'commit', sha: transport.head } };
-  }),
-}));
+vi.mock('node:child_process', async (original) =>
+  (await import('./fixtures/fake-github-git.ts')).throughFakeGitHub(
+    await original(),
+    (binary, args) => transport.calls.push({ binary, args }),
+  ),
+);
 
+const git = (args: string[], cwd: string) =>
+  promisify(execFile)('git', args, { cwd, env: gitEnvironment() });
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const INSTALLATION = 456;
-const APP = { appId: '123', privateKeyFile: 'unused-test-key' };
 const WEBHOOK_SECRET = 'webhook-secret-for-hosted-service-tests-123';
 const CONTROL_TOKEN = 'control-secret-for-hosted-service-tests-456';
 const fixture = resolve('pipeline/fixtures/endpoint-replacement');
@@ -66,6 +41,7 @@ const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   transport.calls = [];
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
@@ -85,8 +61,8 @@ async function database() {
 }
 
 async function commit() {
-  await transport.native!(['add', '.'], transport.source);
-  await transport.native!(
+  await git(['add', '.'], transport.source);
+  await git(
     [
       '-c',
       'user.name=Refit Tests',
@@ -99,7 +75,7 @@ async function commit() {
     ],
     transport.source,
   );
-  transport.head = (await transport.native!(['rev-parse', 'HEAD'], transport.source)).stdout.trim();
+  transport.head = (await git(['rev-parse', 'HEAD'], transport.source)).stdout.trim();
 }
 
 // A committed application whose contract already changed, with a reviewed approval receipt.
@@ -124,7 +100,7 @@ async function approvedRepository() {
       command: ['node', '--experimental-strip-types', 'simulator/check.mjs', 'after'],
     }),
   );
-  await transport.native!(['init', '--quiet', '--initial-branch=main'], transport.source);
+  await git(['init', '--quiet', '--initial-branch=main'], transport.source);
   await commit();
   const enrollment = await inspectRepositoryEnrollment({
     repository: transport.source,
@@ -172,6 +148,19 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
   async () => {
     const pool = await database();
     const sample = await approvedRepository();
+    const github = await startFakeGitHub({ appId: 123, webhookSecret: WEBHOOK_SECRET });
+    cleanups.push(() => github.close());
+    vi.stubGlobal('fetch', github.fetch);
+    // Both installed repositories are inventoried from the same source; only one is approved.
+    const repositories = ['example/application', 'example/unapproved'];
+    for (const [index, repository] of repositories.entries())
+      await github.publish(repository, transport.source, { id: 789 + index });
+    github.installations.set(INSTALLATION, {
+      id: INSTALLATION,
+      login: 'example',
+      repositories,
+      suspended: false,
+    });
     expect(await (await openHostedStore(pool)).approve(sample.approval, 'octo-reviewer')).toEqual(
       [],
     );
@@ -181,11 +170,11 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
     const progress: string[] = [];
     const service = runHostedService({
       database: pool,
-      app: APP,
+      app: github.app,
       directory: join(sample.root, 'hosted-state'),
       webhookSecret: WEBHOOK_SECRET,
       controlToken: CONTROL_TOKEN,
-      owner: 'Example',
+      tenancy: hostedTenancy({ REFIT_HOSTED_OWNER: 'Example' }),
       host: '127.0.0.1',
       port: 0,
       intervalSeconds: 30,
@@ -225,7 +214,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
       installation: { id: 999, app_id: 123, account: { login: 'someone-else' } },
       repositories: [{ id: 901, full_name: 'someone-else/application' }],
     });
-    expect(foreign.body).toMatchObject({ status: 'ignored', enrolled: [] });
+    expect(foreign.body).toMatchObject({ status: 'not-allowed', enrolled: [] });
 
     let registry = await status(url);
     for (
@@ -240,7 +229,21 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
         id: String(INSTALLATION),
         owner: 'example',
         status: 'active',
+        allowed: true,
         repositories: ['example/application', 'example/unapproved'],
+        jobsToday: 1,
+        inventoriesToday: 0,
+        refusals: [],
+      },
+      {
+        id: '999',
+        owner: 'someone-else',
+        status: 'active',
+        allowed: false,
+        repositories: ['someone-else/application'],
+        jobsToday: 0,
+        inventoriesToday: 0,
+        refusals: [TENANCY_REFUSALS.notAllowed],
       },
     ]);
     expect(registry.targets).toEqual([
@@ -265,9 +268,36 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
     expect(report.patch.generator).toBe('deterministic');
     expect((await verifyArtifacts(job.receipt.output)).status).toBe('integrity-verified');
     expect(transport.calls.some((call) => call.binary === 'docker')).toBe(true);
+    expect(github.issued().length).toBeGreaterThan(0);
     expect(
-      transport.calls.every((call) => !call.args.join(' ').includes('private-read-test-token')),
+      transport.calls.every((call) =>
+        github.issued().every((token) => !call.args.join(' ').includes(token)),
+      ),
     ).toBe(true);
+    // Installation tokens only read both installed repositories and their base branch.
+    const reads = github.requests.filter(
+      ({ path }) => path.startsWith('/repos/') && !path.endsWith('/installation'),
+    );
+    expect(reads.length).toBeGreaterThan(0);
+    for (const { method, path } of reads) {
+      expect(method).toBe('GET');
+      expect(path).toMatch(
+        /^\/repos\/example\/(?:application|unapproved)(?:\/git\/ref\/heads\/main)?$/,
+      );
+    }
+    // No credential reaches the evidence, managed checkouts or receipts the worker keeps on disk.
+    const kept = await readdir(join(sample.root, 'hosted-state'), {
+      withFileTypes: true,
+      recursive: true,
+    });
+    const stored = await Promise.all(
+      kept
+        .filter((entry) => entry.isFile())
+        .map((entry) => readFile(join(entry.parentPath, entry.name))),
+    );
+    expect(stored.length).toBeGreaterThan(0);
+    for (const secret of [WEBHOOK_SECRET, CONTROL_TOKEN, ...github.issued()])
+      expect(stored.some((content) => content.includes(secret))).toBe(false);
 
     const uninstalled = await deliver(url, 'installation', installationPayload('deleted', []));
     expect(uninstalled).toMatchObject({ status: 202, body: { cancelled: [target] } });
@@ -292,7 +322,7 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const sample = await approvedRepository();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, hostedTenancy({ REFIT_HOSTED_OWNER: 'example' }));
     const change = (action: string, added: string[], removed: string[] = []) => ({
       kind: 'repositories' as const,
       installationId: 456,
@@ -382,7 +412,7 @@ it.skipIf(!DATABASE)(
   async () => {
     const pool = await database();
     const sample = await approvedRepository();
-    const store = await openHostedStore(pool);
+    const store = await openHostedStore(pool, hostedTenancy({ REFIT_HOSTED_OWNER: 'example' }));
     const target = hostedTargetId('example/application', 'main');
     const change = (action: string, added: string[], removed: string[] = []) => ({
       kind: 'repositories' as const,

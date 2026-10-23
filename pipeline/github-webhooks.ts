@@ -4,7 +4,10 @@ import { PipelineInputError } from './types.ts';
 
 const DELIVERY_ID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const SIGNATURE = /^sha256=([a-f0-9]{64})$/;
-const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
+// GitHub limits logins to 39 characters and repository names to 100.
+const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9_.-]{1,100}$/;
+const LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+const REPOSITORY_NAME = /^[A-Za-z0-9_.-]{1,100}$/;
 const INSTALLATION_ACTIONS = new Set([
   'created',
   'deleted',
@@ -13,6 +16,14 @@ const INSTALLATION_ACTIONS = new Set([
   'new_permissions_accepted',
 ]);
 const REPOSITORY_ACTIONS = new Set(['added', 'removed']);
+const REPOSITORY_EVENT_ACTIONS = new Set(['renamed', 'transferred', 'archived', 'unarchived']);
+const LIFECYCLE_EVENTS = new Set([
+  'installation',
+  'installation_repositories',
+  'installation_target',
+  'repository',
+]);
+const MILLISECONDS_PER_SECOND = 1000;
 const MAX_EVENT_REPOSITORIES = 10_000;
 
 export class WebhookInputError extends PipelineInputError {
@@ -38,6 +49,17 @@ export type GitHubWebhook =
       base: string;
       head: string;
     }
+  | { kind: 'push'; installation: number; repository: string; head: string }
+  | {
+      kind: 'issue_comment';
+      installation: number;
+      repository: string;
+      issue: number;
+      comment: number;
+      edited: boolean;
+      author: string;
+      body: string;
+    }
   | {
       kind: 'installation' | 'repositories';
       installationId: number;
@@ -45,6 +67,26 @@ export type GitHubWebhook =
       action: string;
       added: WebhookRepository[];
       removed: WebhookRepository[];
+      // installation.updated_at in milliseconds, which orders installation status changes.
+      updatedAt?: number | null;
+    }
+  | {
+      kind: 'repository';
+      installationId: number;
+      owner: string;
+      // The owner before a transfer; the current owner for every other action.
+      previousOwner: string;
+      action: string;
+      repository: WebhookRepository;
+      // The full name before a rename; null for every other action.
+      previous: string | null;
+    }
+  | {
+      kind: 'account';
+      installationId: number;
+      owner: string;
+      previousOwner: string;
+      action: 'renamed';
     };
 
 export function verifyWebhook(
@@ -61,6 +103,14 @@ export function verifyWebhook(
   if (typeof delivery !== 'string' || !DELIVERY_ID.test(delivery))
     throw new WebhookInputError(400, 'A valid GitHub delivery GUID is required.');
   return delivery.toLowerCase();
+}
+
+// Reads a nested payload property, or undefined when any level is not an object.
+function nested(value: unknown, ...keys: string[]) {
+  return keys.reduce<unknown>(
+    (current, key) => (isObject(current) ? current[key] : undefined),
+    value,
+  );
 }
 
 function positiveIdentifier(value: unknown) {
@@ -125,6 +175,141 @@ function pullRequest(payload: Record<string, unknown>): GitHubWebhook {
   };
 }
 
+// GitHub's schema allows an ISO timestamp or Unix seconds.
+function timestamp(value: unknown) {
+  if (value === undefined || value === null) return null;
+  const time =
+    typeof value === 'string'
+      ? Date.parse(value)
+      : Number.isSafeInteger(value)
+        ? Number(value) * MILLISECONDS_PER_SECOND
+        : NaN;
+  if (!Number.isFinite(time) || time <= 0)
+    throw new WebhookInputError(422, 'Webhook installation timestamp is invalid.');
+  return time;
+}
+
+// Repository events carry only the installation ID; the repository ID identifies what moved.
+function repositoryEvent(payload: Record<string, unknown>, action: string): GitHubWebhook {
+  if (!REPOSITORY_EVENT_ACTIONS.has(action)) return { kind: 'ignored' };
+  const repository = payload.repository;
+  if (
+    !isObject(repository) ||
+    typeof repository.full_name !== 'string' ||
+    !REPOSITORY.test(repository.full_name)
+  )
+    throw new WebhookInputError(422, 'Repository webhook is incomplete.');
+  const name = repository.full_name.toLowerCase();
+  const owner = name.split('/')[0];
+  let previousOwner = owner;
+  let previous: string | null = null;
+  if (action === 'renamed') {
+    const from = nested(payload, 'changes', 'repository', 'name', 'from');
+    if (typeof from !== 'string' || !REPOSITORY_NAME.test(from))
+      throw new WebhookInputError(422, 'Repository rename does not name the previous repository.');
+    previous = `${owner}/${from.toLowerCase()}`;
+  }
+  if (action === 'transferred') {
+    const from =
+      nested(payload, 'changes', 'owner', 'from', 'user', 'login') ??
+      nested(payload, 'changes', 'owner', 'from', 'organization', 'login');
+    if (typeof from !== 'string' || !LOGIN.test(from))
+      throw new WebhookInputError(422, 'Repository transfer does not name the previous owner.');
+    previousOwner = from.toLowerCase();
+  }
+  return {
+    kind: 'repository',
+    installationId: positiveIdentifier(nested(payload, 'installation', 'id')),
+    owner,
+    previousOwner,
+    action,
+    repository: { id: positiveIdentifier(repository.id), name },
+    previous,
+  };
+}
+
+// installation_target reports a renamed account; a change without a login change moves nothing.
+function accountEvent(payload: Record<string, unknown>, action: string): GitHubWebhook {
+  const from = nested(payload, 'changes', 'login', 'from');
+  if (action !== 'renamed' || from === undefined) return { kind: 'ignored' };
+  const login = nested(payload, 'account', 'login');
+  if (
+    typeof login !== 'string' ||
+    !LOGIN.test(login) ||
+    typeof from !== 'string' ||
+    !LOGIN.test(from)
+  )
+    throw new WebhookInputError(422, 'Account rename webhook is incomplete.');
+  return {
+    kind: 'account',
+    installationId: positiveIdentifier(nested(payload, 'installation', 'id')),
+    owner: login.toLowerCase(),
+    previousOwner: from.toLowerCase(),
+    action: 'renamed',
+  };
+}
+
+// Only a push that moves the default branch matters; other branches, tags and deletions are ignored.
+function push(payload: Record<string, unknown>): GitHubWebhook {
+  const repository = payload.repository;
+  if (
+    !isObject(payload.installation) ||
+    !isObject(repository) ||
+    typeof repository.full_name !== 'string' ||
+    !REPOSITORY.test(repository.full_name) ||
+    typeof repository.default_branch !== 'string' ||
+    typeof payload.ref !== 'string'
+  )
+    throw new WebhookInputError(422, 'Push webhook is incomplete.');
+  if (payload.deleted === true || payload.ref !== `refs/heads/${repository.default_branch}`)
+    return { kind: 'ignored' };
+  if (typeof payload.after !== 'string' || !COMMIT.test(payload.after))
+    throw new WebhookInputError(422, 'Push webhook is incomplete.');
+  return {
+    kind: 'push',
+    installation: positiveIdentifier(payload.installation.id),
+    repository: repository.full_name.toLowerCase(),
+    head: payload.after,
+  };
+}
+
+const COMMENT_ACTIONS = new Set(['created', 'edited']);
+
+// Issue comments carry only the installation ID. Pull request comments, bot comments (including
+// Refit's own replies) and deleted or pinned comments are ignored.
+function issueComment(payload: Record<string, unknown>): GitHubWebhook {
+  if (typeof payload.action !== 'string' || !COMMENT_ACTIONS.has(payload.action))
+    return { kind: 'ignored' };
+  const { installation, repository, issue, comment } = payload;
+  if (
+    !isObject(installation) ||
+    !isObject(repository) ||
+    typeof repository.full_name !== 'string' ||
+    !REPOSITORY.test(repository.full_name) ||
+    !isObject(issue) ||
+    !isObject(comment) ||
+    typeof comment.body !== 'string' ||
+    !isObject(comment.user) ||
+    typeof comment.user.login !== 'string' ||
+    typeof comment.user.type !== 'string'
+  )
+    throw new WebhookInputError(422, 'Issue comment webhook is incomplete.');
+  // Bot logins end in `[bot]`, which LOGIN rejects, so bots are ignored before it is checked.
+  if (issue.pull_request !== undefined || comment.user.type === 'Bot') return { kind: 'ignored' };
+  if (!LOGIN.test(comment.user.login))
+    throw new WebhookInputError(422, 'Issue comment webhook is incomplete.');
+  return {
+    kind: 'issue_comment',
+    installation: positiveIdentifier(installation.id),
+    repository: repository.full_name.toLowerCase(),
+    issue: positiveIdentifier(issue.number),
+    comment: positiveIdentifier(comment.id),
+    edited: payload.action === 'edited',
+    author: comment.user.login.toLowerCase(),
+    body: comment.body,
+  };
+}
+
 export function parseWebhook(body: Uint8Array, event: unknown, appId: number): GitHubWebhook {
   if (typeof event !== 'string' || !/^[a-z_]+$/.test(event))
     throw new WebhookInputError(400, 'A GitHub event name is required.');
@@ -139,23 +324,27 @@ export function parseWebhook(body: Uint8Array, event: unknown, appId: number): G
   }
   if (event === 'ping') return { kind: 'ping' };
   if (event === 'pull_request') return pullRequest(payload);
-  if (!['installation', 'installation_repositories'].includes(event)) return { kind: 'ignored' };
+  if (event === 'push') return push(payload);
+  if (event === 'issue_comment') return issueComment(payload);
+  if (!LIFECYCLE_EVENTS.has(event)) return { kind: 'ignored' };
+  if (typeof payload.action !== 'string')
+    throw new WebhookInputError(422, 'Lifecycle webhooks require an action.');
+  if (event === 'repository') return repositoryEvent(payload, payload.action);
+  if (event === 'installation_target') return accountEvent(payload, payload.action);
+  // Actions GitHub adds later are acknowledged rather than refused, so they are never redelivered.
+  if (!(event === 'installation' ? INSTALLATION_ACTIONS : REPOSITORY_ACTIONS).has(payload.action))
+    return { kind: 'ignored' };
   const installation = payload.installation;
   if (
     !isObject(installation) ||
     installation.app_id !== appId ||
     !isObject(installation.account) ||
     typeof installation.account.login !== 'string' ||
-    !/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(installation.account.login)
+    !LOGIN.test(installation.account.login)
   )
     throw new WebhookInputError(422, 'Webhook installation does not match this App.');
   const installationId = positiveIdentifier(installation.id);
   const owner = installation.account.login.toLowerCase();
-  if (
-    typeof payload.action !== 'string' ||
-    !(event === 'installation' ? INSTALLATION_ACTIONS : REPOSITORY_ACTIONS).has(payload.action)
-  )
-    throw new WebhookInputError(422, 'Unsupported installation action.');
   const added =
     event === 'installation_repositories'
       ? repositories(payload.repositories_added, owner)
@@ -176,5 +365,6 @@ export function parseWebhook(body: Uint8Array, event: unknown, appId: number): G
     action: payload.action,
     added,
     removed,
+    updatedAt: timestamp(installation.updated_at),
   };
 }

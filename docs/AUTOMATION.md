@@ -27,10 +27,10 @@ From the source checkout, `node bin/refit.mjs` works wherever the examples below
 On Pierce's machine, the installed App and reviewed repository approval are already configured. This uses the approved `.refit.json` from an App-managed checkout:
 
 ```sh
-cd /Users/pierceluu/Repos/Refit
+cd ~/Repos/Refit
 refit serve --env .env \
-  --config /Users/pierceluu/.refit/evaluations/app-enrollment-2026-10-13/billing-service.json \
-  --state /Users/pierceluu/.refit/evaluations/stripe-service-0.12-2026-10-14 \
+  --config ~/.refit/evaluations/app-enrollment-2026-10-13/billing-service.json \
+  --state ~/.refit/evaluations/stripe-service-0.12-2026-10-14 \
   --port 0 --once
 ```
 
@@ -49,17 +49,17 @@ You no longer need a local clone or to pull the base branch manually. `--sync-gi
 On Pierce's machine, repeat the verified remote workflow:
 
 ```sh
-cd /Users/pierceluu/Repos/Refit
+cd ~/Repos/Refit
 refit watch --env .env \
   --config examples/billing-demo.github.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/stripe-managed-checkout-0.10-2026-10-14 \
+  --state ~/.refit/evaluations/stripe-managed-checkout-0.10-2026-10-14 \
   --sync-github --github pierceluu10/refit-billing-demo --base main --github-app \
   --once --publish-draft
 ```
 
 This example omits `repository` and uses Refit's curated historical Stripe contract fixtures. It refreshes the base and checks whether a matching current migration already exists; an older draft is not automatically reused after base advancement. Remove `--once` for continuous polling. Before returning a cached result, the worker refreshes App authorization and reads the current remote base. A changed base becomes a new repository revision for scanning.
 
-To run and inspect a fresh migration without publishing, choose a new state directory and omit `--publish-draft`. The live evaluation already did this at `/Users/pierceluu/.refit/evaluations/stripe-managed-validation-2026-10-12`, passing both billing contracts, TypeScript, 103-attempt pagination and empty history in offline Docker. It generated the supported deterministic history patch without calling OpenAI. The original billing checkout stayed clean and unmigrated.
+To run and inspect a fresh migration without publishing, choose a new state directory and omit `--publish-draft`. The live evaluation already did this at `~/.refit/evaluations/stripe-managed-validation-2026-10-12`, passing both billing contracts, TypeScript, 103-attempt pagination and empty history in offline Docker. It generated the supported deterministic history patch without calling OpenAI. The original billing checkout stayed clean and unmigrated.
 
 For AI, add the same `REFIT_AI_BUDGET_USD=2` and `REFIT_AI_BUDGET_DIRECTORY` environment values used above, followed by `--ai-patch --repair-attempts 2`. Scanning and the existing-PR preflight still run first; a reused job does not regenerate merely because AI was enabled. For a review-required or failed job, use `--retry --once` after addressing its cause. Switching publication mode requires a fresh state directory.
 
@@ -74,22 +74,22 @@ The managed directory stores ownership, configuration hash and pinned revision e
 To see a new AI proposal independently of the already-open PR, create a disposable source file and a fresh local-only worker state. This remains within the same shared spending ledger:
 
 ```sh
-cp /Users/pierceluu/Repos/refit-billing-demo/docs/contracts/before.json \
+cp ~/Repos/refit-billing-demo/docs/contracts/before.json \
   /tmp/refit-demo-current.json
 
 REFIT_AI_BUDGET_USD=2 \
-REFIT_AI_BUDGET_DIRECTORY=/Users/pierceluu/.refit/evaluations/2026-10-12 \
+REFIT_AI_BUDGET_DIRECTORY=~/.refit/evaluations/2026-10-12 \
 refit watch --env .env \
   --config examples/billing-demo.refit.json \
   --source-file /tmp/refit-demo-current.json \
-  --state /Users/pierceluu/.refit/evaluations/stripe-arrival-demo \
+  --state ~/.refit/evaluations/stripe-arrival-demo \
   --interval 30 --ai-patch --repair-attempts 2
 ```
 
 In a second terminal:
 
 ```sh
-cp /Users/pierceluu/Repos/refit-billing-demo/docs/contracts/after.json \
+cp ~/Repos/refit-billing-demo/docs/contracts/after.json \
   /tmp/refit-demo-next.json
 mv /tmp/refit-demo-next.json /tmp/refit-demo-current.json
 ```
@@ -127,15 +127,15 @@ From Refit `5fdff08` (0.39.0):
 
 ```sh
 REFIT_AI_BUDGET_USD=2 \
-REFIT_AI_BUDGET_DIRECTORY=/Users/pierceluu/.refit/evaluations/2026-10-12 \
+REFIT_AI_BUDGET_DIRECTORY=~/.refit/evaluations/2026-10-12 \
 refit watch --env .env \
-  --config /Users/pierceluu/.refit/evaluations/live-endive-clario-2026-10-21/inputs/clario.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/live-endive-clario-2026-10-21/state \
+  --config ~/.refit/evaluations/live-endive-clario-2026-10-21/inputs/clario.refit.json \
+  --state ~/.refit/evaluations/live-endive-clario-2026-10-21/state \
   --sync-github --github refit-dev/Clario-ai --base main --github-app \
   --latest-stripe --prepare-dependencies --once --publish-draft
 ```
 
-Evidence is in `/Users/pierceluu/.refit/evaluations/live-endive-clario-2026-10-21/state/runs/79e2486b446cd471fafadfac64b25a1f14ea6db0127159bcd294e30e7ef8f4fa-1`. Repeating the command reuses the job and the open draft.
+Evidence is in `~/.refit/evaluations/live-endive-clario-2026-10-21/state/runs/79e2486b446cd471fafadfac64b25a1f14ea6db0127159bcd294e30e7ef8f4fa-1`. Repeating the command reuses the job and the open draft.
 
 What this does not show:
 
@@ -172,7 +172,7 @@ Other providers reuse this worker, ingestion, differ, analyzer, budget, sandbox,
 
 Scanning, comparing specifications, and looking up an existing App PR make no AI requests. A failing baseline also stops before paid generation. Patch context contains confirmed findings, their relevant changes and affected files, plus at most 12 resolved import modules as read-only context. The model cannot edit the rest of the repository or change check commands.
 
-Before generation, Refit counts input tokens and reserves the maximum configured response cost in a shared local ledger. Generation is capped at 32,768 input tokens and 4,096 output tokens; the 64 KiB evidence limit binds first. It records actual input, output, cached input, reasoning, and cost metadata. Reasoning tokens are part of output billing, not charged twice by the ledger. Repairs are explicit and limited to two; failed network requests are not silently regenerated.
+Before generation, Refit counts input tokens and reserves the maximum configured response cost in a shared local ledger. Generation is capped at 32,768 input tokens and 25,000 output tokens, reasoning included, as OpenAI advises for reasoning models; the 64 KiB evidence limit binds first. A generation request waits up to three minutes. It records actual input, output, cached input, reasoning, and cost metadata. Reasoning tokens are part of output billing, not charged twice by the ledger. Repairs are explicit and limited to two; failed network requests are not silently regenerated. An answer Refit rejects as edits (wrong schema, scope, unmatched or uncovered text, overlap, a syntax error) gets one corrected request carrying the reason, and both requests count against the ledger; a guard or policy stop never does. Two failed checks stop for review without a repair request, because every passing repair would need a decision the model may not make: an object-literal property the upgraded types reject and the original code compiled with (Checkout's `subscription_data.trial_from_plan` under stripe-node 12), and a read of a subscription's `current_period_start` or `current_period_end`, which Stripe moved onto subscription items, where choosing an item is the reviewed `stripeSubscriptionPeriods` rule.
 
 The CLI defaults to a $1 ledger at `~/.refit/ai-budget`. Set `REFIT_AI_BUDGET_USD` and `REFIT_AI_BUDGET_DIRECTORY` to choose the shared allowance. All worker instances that should share a limit must use the same directory. A different limit is rejected for an existing ledger; the CLI does not reset spending. This controls Refit's recorded/reserved generation allowance, not your entire OpenAI account's billing.
 

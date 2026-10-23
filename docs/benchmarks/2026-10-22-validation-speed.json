@@ -1,0 +1,2095 @@
+{
+  "run": "2026-10-22",
+  "refit": {
+    "before": "5493ffa",
+    "after": "00b411e (4130de3 adds the Docker-host memory gate, which leaves this host overlapping)"
+  },
+  "host": {
+    "dockerMemTotalBytes": 8318976000,
+    "image": "node:22-alpine"
+  },
+  "list": "docs/benchmarks/2026-10-16-stripe-fresh-repos.json, run.json from the 2026-10-16 fix-rate benchmark",
+  "command": "refit run --config <run.json> --output <new directory> --quiet --json; cold with an empty REFIT_DEPENDENCY_CACHE_DIRECTORY, warm reusing it; one repository per Docker lock hold",
+  "fields": "seconds is wall-clock for the whole run; timings are validation.timings in milliseconds (overlapping stages each count their own time); memory is the peak docker stats usage per sandbox kind and the peak sum across sandboxes running at once (after only); probe times sandbox start, source copy and dependency archive extraction on the repository own archive",
+  "rows": [
+    {
+      "repo": "Hombre2014/Genius",
+      "commit": "375bbe751130abbe738dc67971560acba715f1f5",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 82.8,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "5e0fbd4f2325bbb8730a094c2976089b30fbf675cb4bc870fb0fe10b4f695930",
+          "archiveHash": "301864a8ba6b3d6872d60da439ee962d68c28ab92afabbf894cded23164fe2f2",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 32,
+            "preparation": 26322,
+            "dependencySnapshot": 649,
+            "baselineChecks": 6978,
+            "proposal": 582,
+            "candidatePreparation": 35462,
+            "candidates": 35720,
+            "patchedChecks": 7300,
+            "generatedChecks": 3513
+          },
+          "baselineArchive": "2d90b51cc20e078a85eba3c3ff27ad8c801e3e413d7b01e0f32621801f3a39c0",
+          "patchedArchive": "21276b8ad34ebe78cca37310de280c2cc6c17c0ee4c7d7f806b8ce3b1453277a",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 21.4,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "5e0fbd4f2325bbb8730a094c2976089b30fbf675cb4bc870fb0fe10b4f695930",
+          "archiveHash": "301864a8ba6b3d6872d60da439ee962d68c28ab92afabbf894cded23164fe2f2",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 35,
+            "preparation": 391,
+            "dependencySnapshot": 422,
+            "baselineChecks": 6677,
+            "proposal": 435,
+            "candidatePreparation": 1020,
+            "candidates": 1241,
+            "patchedChecks": 7304,
+            "generatedChecks": 3327
+          },
+          "baselineArchive": "2d90b51cc20e078a85eba3c3ff27ad8c801e3e413d7b01e0f32621801f3a39c0",
+          "patchedArchive": "21276b8ad34ebe78cca37310de280c2cc6c17c0ee4c7d7f806b8ce3b1453277a",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 48.3,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "5e0fbd4f2325bbb8730a094c2976089b30fbf675cb4bc870fb0fe10b4f695930",
+          "archiveHash": "301864a8ba6b3d6872d60da439ee962d68c28ab92afabbf894cded23164fe2f2",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 32,
+            "proposal": 297,
+            "candidatePreparation": 34221,
+            "preparation": 35856,
+            "dependencySnapshot": 678,
+            "candidates": 183,
+            "baselineChecks": 7576,
+            "patchedChecks": 7884,
+            "generatedChecks": 2164
+          },
+          "baselineArchive": "2d90b51cc20e078a85eba3c3ff27ad8c801e3e413d7b01e0f32621801f3a39c0",
+          "patchedArchive": "21276b8ad34ebe78cca37310de280c2cc6c17c0ee4c7d7f806b8ce3b1453277a",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 792,
+              "baseline": 909,
+              "patched": 976,
+              "generated": 311
+            },
+            "concurrentPeakMiB": 1861
+          }
+        },
+        "warm": {
+          "seconds": 13.1,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "5e0fbd4f2325bbb8730a094c2976089b30fbf675cb4bc870fb0fe10b4f695930",
+          "archiveHash": "301864a8ba6b3d6872d60da439ee962d68c28ab92afabbf894cded23164fe2f2",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 37,
+            "proposal": 309,
+            "preparation": 636,
+            "dependencySnapshot": 670,
+            "candidatePreparation": 1310,
+            "candidates": 486,
+            "baselineChecks": 7449,
+            "patchedChecks": 7420,
+            "generatedChecks": 2327
+          },
+          "baselineArchive": "2d90b51cc20e078a85eba3c3ff27ad8c801e3e413d7b01e0f32621801f3a39c0",
+          "patchedArchive": "21276b8ad34ebe78cca37310de280c2cc6c17c0ee4c7d7f806b8ce3b1453277a",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 916,
+              "patched": 986,
+              "generated": 501
+            },
+            "concurrentPeakMiB": 1917
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 451,
+          "startSeconds": 0.09315337499913584,
+          "sourceCopySeconds": 0.040000000000873115,
+          "extractionSeconds": 0.6000000000003638
+        },
+        "after": {
+          "archiveMiB": 451,
+          "startSeconds": 0.09527724999912607,
+          "sourceCopySeconds": 0.040000000000873115,
+          "extractionSeconds": 0.5999999999985448
+        }
+      }
+    },
+    {
+      "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+      "commit": "c0f562bcfc967b330642a127fac975721f379003",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 110.5,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "4fab959085955688eef22c4f9c2a18c138d92721970b50c6b64c42b4d1abdeac",
+          "archiveHash": "e379f0b428a2b796e530e7a400cb07f47134ca9aca19934222c59c2f74b5b56a",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 32,
+            "preparation": 29791,
+            "dependencySnapshot": 606,
+            "baselineChecks": 17424,
+            "proposal": 893,
+            "candidatePreparation": 43624,
+            "candidates": 44063,
+            "patchedChecks": 10379,
+            "generatedChecks": 5227
+          },
+          "baselineArchive": "c75026a5d390e1fc9d187d531b1828da468dee060c0f9312e50f76957e451453",
+          "patchedArchive": "80ab930d8025412c821813d6d63abef8ceba3b0a7d60e4c1d435536a5aeb9766",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 30.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "4fab959085955688eef22c4f9c2a18c138d92721970b50c6b64c42b4d1abdeac",
+          "archiveHash": "e379f0b428a2b796e530e7a400cb07f47134ca9aca19934222c59c2f74b5b56a",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 42,
+            "preparation": 423,
+            "dependencySnapshot": 599,
+            "baselineChecks": 10324,
+            "proposal": 685,
+            "candidatePreparation": 1084,
+            "candidates": 1419,
+            "patchedChecks": 10216,
+            "generatedChecks": 5247
+          },
+          "baselineArchive": "c75026a5d390e1fc9d187d531b1828da468dee060c0f9312e50f76957e451453",
+          "patchedArchive": "80ab930d8025412c821813d6d63abef8ceba3b0a7d60e4c1d435536a5aeb9766",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 62.1,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "4fab959085955688eef22c4f9c2a18c138d92721970b50c6b64c42b4d1abdeac",
+          "archiveHash": "e379f0b428a2b796e530e7a400cb07f47134ca9aca19934222c59c2f74b5b56a",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 31,
+            "proposal": 477,
+            "candidatePreparation": 44046,
+            "preparation": 45133,
+            "dependencySnapshot": 621,
+            "candidates": 315,
+            "baselineChecks": 10755,
+            "patchedChecks": 10850,
+            "generatedChecks": 3040
+          },
+          "baselineArchive": "c75026a5d390e1fc9d187d531b1828da468dee060c0f9312e50f76957e451453",
+          "patchedArchive": "80ab930d8025412c821813d6d63abef8ceba3b0a7d60e4c1d435536a5aeb9766",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 931,
+              "baseline": 1167,
+              "patched": 1164,
+              "generated": 677
+            },
+            "concurrentPeakMiB": 2332
+          }
+        },
+        "warm": {
+          "seconds": 16.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "4fab959085955688eef22c4f9c2a18c138d92721970b50c6b64c42b4d1abdeac",
+          "archiveHash": "e379f0b428a2b796e530e7a400cb07f47134ca9aca19934222c59c2f74b5b56a",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 33,
+            "proposal": 495,
+            "preparation": 890,
+            "dependencySnapshot": 575,
+            "candidatePreparation": 1282,
+            "candidates": 598,
+            "baselineChecks": 10255,
+            "patchedChecks": 10007,
+            "generatedChecks": 3021
+          },
+          "baselineArchive": "c75026a5d390e1fc9d187d531b1828da468dee060c0f9312e50f76957e451453",
+          "patchedArchive": "80ab930d8025412c821813d6d63abef8ceba3b0a7d60e4c1d435536a5aeb9766",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1169,
+              "patched": 1164,
+              "generated": 738
+            },
+            "concurrentPeakMiB": 2334
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 524,
+          "startSeconds": 0.08354887499891628,
+          "sourceCopySeconds": 0.050000000001091394,
+          "extractionSeconds": 0.749999999998181
+        },
+        "after": {
+          "archiveMiB": 524,
+          "startSeconds": 0.08741674999894167,
+          "sourceCopySeconds": 0.050000000001091394,
+          "extractionSeconds": 0.7299999999995634
+        }
+      }
+    },
+    {
+      "repo": "abhiya492/ticket-saas-app",
+      "commit": "b37b8a885a31a162dbd805cdca11f616bf8de04e",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 88.2,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "331b1428df2b101df0b9c58381e3d444caffde3f3f75b1bef64e5384796ab1c7",
+          "archiveHash": "9148d242af5eecdc90af24d15ab36dd7e23eabe89a3150a9adc5c8c9c3eb2745",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 93,
+            "preparation": 32521,
+            "dependencySnapshot": 740,
+            "baselineChecks": 8360,
+            "proposal": 602,
+            "candidatePreparation": 34192,
+            "candidates": 34509,
+            "patchedChecks": 9153,
+            "generatedChecks": 314
+          },
+          "baselineArchive": "fdd364cfc71298de5894b33e47f351251fbeac769b2ea5d637da4d5b3daed06b",
+          "patchedArchive": "0448c10ae3cf28ce53edbbff53a7270043b033e7d4f2e1daa8e928123defaa96",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 23.6,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "331b1428df2b101df0b9c58381e3d444caffde3f3f75b1bef64e5384796ab1c7",
+          "archiveHash": "9148d242af5eecdc90af24d15ab36dd7e23eabe89a3150a9adc5c8c9c3eb2745",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 100,
+            "preparation": 471,
+            "dependencySnapshot": 669,
+            "baselineChecks": 8775,
+            "proposal": 615,
+            "candidatePreparation": 1377,
+            "candidates": 1671,
+            "patchedChecks": 8946,
+            "generatedChecks": 324
+          },
+          "baselineArchive": "fdd364cfc71298de5894b33e47f351251fbeac769b2ea5d637da4d5b3daed06b",
+          "patchedArchive": "0448c10ae3cf28ce53edbbff53a7270043b033e7d4f2e1daa8e928123defaa96",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 57.7,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "331b1428df2b101df0b9c58381e3d444caffde3f3f75b1bef64e5384796ab1c7",
+          "archiveHash": "9148d242af5eecdc90af24d15ab36dd7e23eabe89a3150a9adc5c8c9c3eb2745",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 93,
+            "proposal": 409,
+            "candidatePreparation": 45067,
+            "preparation": 45779,
+            "dependencySnapshot": 602,
+            "candidates": 252,
+            "baselineChecks": 8686,
+            "patchedChecks": 8929,
+            "generatedChecks": 301
+          },
+          "baselineArchive": "fdd364cfc71298de5894b33e47f351251fbeac769b2ea5d637da4d5b3daed06b",
+          "patchedArchive": "0448c10ae3cf28ce53edbbff53a7270043b033e7d4f2e1daa8e928123defaa96",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1021,
+              "baseline": 1164,
+              "patched": 1155
+            },
+            "concurrentPeakMiB": 2319
+          }
+        },
+        "warm": {
+          "seconds": 11.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "331b1428df2b101df0b9c58381e3d444caffde3f3f75b1bef64e5384796ab1c7",
+          "archiveHash": "9148d242af5eecdc90af24d15ab36dd7e23eabe89a3150a9adc5c8c9c3eb2745",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 87,
+            "proposal": 410,
+            "preparation": 770,
+            "dependencySnapshot": 812,
+            "candidatePreparation": 1654,
+            "candidates": 745,
+            "baselineChecks": 7667,
+            "patchedChecks": 7619,
+            "generatedChecks": 290
+          },
+          "baselineArchive": "fdd364cfc71298de5894b33e47f351251fbeac769b2ea5d637da4d5b3daed06b",
+          "patchedArchive": "0448c10ae3cf28ce53edbbff53a7270043b033e7d4f2e1daa8e928123defaa96",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1135,
+              "patched": 1157
+            },
+            "concurrentPeakMiB": 2261
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 605,
+          "startSeconds": 0.10955016600004455,
+          "sourceCopySeconds": 0.050000000001091394,
+          "extractionSeconds": 0.75
+        },
+        "after": {
+          "archiveMiB": 605,
+          "startSeconds": 0.08290479199920082,
+          "sourceCopySeconds": 0.040000000000873115,
+          "extractionSeconds": 0.6599999999998545
+        }
+      }
+    },
+    {
+      "repo": "SudoKMaar/leaf",
+      "commit": "57eb85f1b068cf9886a648ffc04949a5062c9388",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 131.7,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "0a332597ea2caf7a3f0ae126fe795aeed30e50d6d6e8542f2a50685cecfe62e2",
+          "archiveHash": "c41768647ded91eba0d150cc56ade646ef7443e3374e4407bee7c84cd6ed28bf",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 64,
+            "preparation": 46754,
+            "dependencySnapshot": 755,
+            "baselineChecks": 13212,
+            "proposal": 719,
+            "candidatePreparation": 47849,
+            "candidates": 48231,
+            "patchedChecks": 12627,
+            "generatedChecks": 7338
+          },
+          "baselineArchive": "72e0e0c2f25e9bab35b5586a12f02058a0625357bcc6edf16310dd0c3359de48",
+          "patchedArchive": "a97b6ccc1f7a83fdaed005b0689398e628040e2cf64bdacad1dbb3dd36c55678",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 40.4,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "0a332597ea2caf7a3f0ae126fe795aeed30e50d6d6e8542f2a50685cecfe62e2",
+          "archiveHash": "c41768647ded91eba0d150cc56ade646ef7443e3374e4407bee7c84cd6ed28bf",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 78,
+            "preparation": 793,
+            "dependencySnapshot": 913,
+            "baselineChecks": 14810,
+            "proposal": 689,
+            "candidatePreparation": 1664,
+            "candidates": 2030,
+            "patchedChecks": 12350,
+            "generatedChecks": 6531
+          },
+          "baselineArchive": "72e0e0c2f25e9bab35b5586a12f02058a0625357bcc6edf16310dd0c3359de48",
+          "patchedArchive": "a97b6ccc1f7a83fdaed005b0689398e628040e2cf64bdacad1dbb3dd36c55678",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 74.5,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "0a332597ea2caf7a3f0ae126fe795aeed30e50d6d6e8542f2a50685cecfe62e2",
+          "archiveHash": "c41768647ded91eba0d150cc56ade646ef7443e3374e4407bee7c84cd6ed28bf",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 62,
+            "proposal": 446,
+            "candidatePreparation": 55337,
+            "preparation": 56623,
+            "dependencySnapshot": 809,
+            "candidates": 301,
+            "patchedChecks": 10878,
+            "baselineChecks": 11468,
+            "generatedChecks": 3253
+          },
+          "baselineArchive": "72e0e0c2f25e9bab35b5586a12f02058a0625357bcc6edf16310dd0c3359de48",
+          "patchedArchive": "a97b6ccc1f7a83fdaed005b0689398e628040e2cf64bdacad1dbb3dd36c55678",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1514,
+              "baseline": 1817,
+              "patched": 1763,
+              "generated": 1110
+            },
+            "concurrentPeakMiB": 4538
+          }
+        },
+        "warm": {
+          "seconds": 18.4,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "0a332597ea2caf7a3f0ae126fe795aeed30e50d6d6e8542f2a50685cecfe62e2",
+          "archiveHash": "c41768647ded91eba0d150cc56ade646ef7443e3374e4407bee7c84cd6ed28bf",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 67,
+            "proposal": 511,
+            "preparation": 953,
+            "dependencySnapshot": 962,
+            "candidatePreparation": 1794,
+            "candidates": 694,
+            "baselineChecks": 11218,
+            "patchedChecks": 10794,
+            "generatedChecks": 3295
+          },
+          "baselineArchive": "72e0e0c2f25e9bab35b5586a12f02058a0625357bcc6edf16310dd0c3359de48",
+          "patchedArchive": "a97b6ccc1f7a83fdaed005b0689398e628040e2cf64bdacad1dbb3dd36c55678",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1807,
+              "patched": 1725,
+              "generated": 950
+            },
+            "concurrentPeakMiB": 3533
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 764,
+          "startSeconds": 0.10577950000013517,
+          "sourceCopySeconds": 0.07999999999992724,
+          "extractionSeconds": 1.8699999999989814
+        },
+        "after": {
+          "archiveMiB": 764,
+          "startSeconds": 0.08041612499867914,
+          "sourceCopySeconds": 0.050000000001091394,
+          "extractionSeconds": 1.4799999999995634
+        }
+      }
+    },
+    {
+      "repo": "DhavalDudheliya/DuoLingo_Clone",
+      "commit": "d702cd0ac03d657390775ad644bfc24911fdcd3e",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 103.7,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "62dee4484a0ee3ec01a98132875e92097265117d6f107bb5107020ece6f9aeb2",
+          "archiveHash": "ccebffcbd65652bf4c5e6526cf1e30614bf2949ec5fcfa39f1ceda10ec67540d",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 41,
+            "preparation": 38252,
+            "dependencySnapshot": 705,
+            "baselineChecks": 9385,
+            "proposal": 625,
+            "candidatePreparation": 36878,
+            "candidates": 37194,
+            "patchedChecks": 9500,
+            "generatedChecks": 6052
+          },
+          "baselineArchive": "7e8e321afcb3707bacfc3ee8a0d3f0035d9960555119296b1455196cb13d00b5",
+          "patchedArchive": "275879f99cc7c4aa3aa3300ddf5e57630e44d226a3aac1efb3d5ff7de81b2c89",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 30.3,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "62dee4484a0ee3ec01a98132875e92097265117d6f107bb5107020ece6f9aeb2",
+          "archiveHash": "ccebffcbd65652bf4c5e6526cf1e30614bf2949ec5fcfa39f1ceda10ec67540d",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 44,
+            "preparation": 532,
+            "dependencySnapshot": 563,
+            "baselineChecks": 9678,
+            "proposal": 615,
+            "candidatePreparation": 1301,
+            "candidates": 1615,
+            "patchedChecks": 9305,
+            "generatedChecks": 5889
+          },
+          "baselineArchive": "7e8e321afcb3707bacfc3ee8a0d3f0035d9960555119296b1455196cb13d00b5",
+          "patchedArchive": "275879f99cc7c4aa3aa3300ddf5e57630e44d226a3aac1efb3d5ff7de81b2c89",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 61.8,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "62dee4484a0ee3ec01a98132875e92097265117d6f107bb5107020ece6f9aeb2",
+          "archiveHash": "ccebffcbd65652bf4c5e6526cf1e30614bf2949ec5fcfa39f1ceda10ec67540d",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 37,
+            "proposal": 408,
+            "preparation": 45877,
+            "candidatePreparation": 46192,
+            "dependencySnapshot": 889,
+            "candidates": 259,
+            "baselineChecks": 9912,
+            "patchedChecks": 9795,
+            "generatedChecks": 3158
+          },
+          "baselineArchive": "7e8e321afcb3707bacfc3ee8a0d3f0035d9960555119296b1455196cb13d00b5",
+          "patchedArchive": "275879f99cc7c4aa3aa3300ddf5e57630e44d226a3aac1efb3d5ff7de81b2c89",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1315,
+              "baseline": 1440,
+              "patched": 1412,
+              "generated": 1056
+            },
+            "concurrentPeakMiB": 3214
+          }
+        },
+        "warm": {
+          "seconds": 15.8,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "62dee4484a0ee3ec01a98132875e92097265117d6f107bb5107020ece6f9aeb2",
+          "archiveHash": "ccebffcbd65652bf4c5e6526cf1e30614bf2949ec5fcfa39f1ceda10ec67540d",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 40,
+            "proposal": 414,
+            "preparation": 880,
+            "dependencySnapshot": 672,
+            "candidatePreparation": 1460,
+            "candidates": 596,
+            "baselineChecks": 9110,
+            "patchedChecks": 8897,
+            "generatedChecks": 3098
+          },
+          "baselineArchive": "7e8e321afcb3707bacfc3ee8a0d3f0035d9960555119296b1455196cb13d00b5",
+          "patchedArchive": "275879f99cc7c4aa3aa3300ddf5e57630e44d226a3aac1efb3d5ff7de81b2c89",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1437,
+              "patched": 1413,
+              "generated": 893
+            },
+            "concurrentPeakMiB": 2850
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 638,
+          "startSeconds": 0.09344179099886968,
+          "sourceCopySeconds": 0.050000000001091394,
+          "extractionSeconds": 1.4200000000000728
+        },
+        "after": {
+          "archiveMiB": 638,
+          "startSeconds": 0.0822255829990172,
+          "sourceCopySeconds": 0.050000000001091394,
+          "extractionSeconds": 1.25
+        }
+      }
+    },
+    {
+      "repo": "palashb01/DocuChat",
+      "commit": "4f222d3a5131129ebeb7f4239c96bdd6392e38da",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 101.5,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "2fd3e7da83b4a871e784f2c47c24ab54f4a9bd40524602636ca8cbf43541287c",
+          "archiveHash": "5027550f89d0ba9ccba7a4496737c8be06bc4bc1622837097459319857a9d5cc",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 41,
+            "preparation": 38666,
+            "dependencySnapshot": 765,
+            "baselineChecks": 9159,
+            "proposal": 498,
+            "candidatePreparation": 40231,
+            "candidates": 40483,
+            "patchedChecks": 9961,
+            "generatedChecks": 316
+          },
+          "baselineArchive": "93a76d597aace7190e415f1044dd9c047b04a0a098227e21809185241ef326e9",
+          "patchedArchive": "d3acec5da621c2115409d9b259573d72d9b788dda7329eed4ddb503c15f5a700",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 25.4,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "2fd3e7da83b4a871e784f2c47c24ab54f4a9bd40524602636ca8cbf43541287c",
+          "archiveHash": "5027550f89d0ba9ccba7a4496737c8be06bc4bc1622837097459319857a9d5cc",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 36,
+            "preparation": 568,
+            "dependencySnapshot": 912,
+            "baselineChecks": 9926,
+            "proposal": 504,
+            "candidatePreparation": 1476,
+            "candidates": 1730,
+            "patchedChecks": 9706,
+            "generatedChecks": 324
+          },
+          "baselineArchive": "93a76d597aace7190e415f1044dd9c047b04a0a098227e21809185241ef326e9",
+          "patchedArchive": "d3acec5da621c2115409d9b259573d72d9b788dda7329eed4ddb503c15f5a700",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 66.3,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "2fd3e7da83b4a871e784f2c47c24ab54f4a9bd40524602636ca8cbf43541287c",
+          "archiveHash": "5027550f89d0ba9ccba7a4496737c8be06bc4bc1622837097459319857a9d5cc",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 33,
+            "proposal": 327,
+            "candidatePreparation": 52800,
+            "preparation": 53940,
+            "dependencySnapshot": 654,
+            "candidates": 194,
+            "baselineChecks": 9359,
+            "patchedChecks": 9608,
+            "generatedChecks": 282
+          },
+          "baselineArchive": "93a76d597aace7190e415f1044dd9c047b04a0a098227e21809185241ef326e9",
+          "patchedArchive": "d3acec5da621c2115409d9b259573d72d9b788dda7329eed4ddb503c15f5a700",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1143,
+              "baseline": 1359,
+              "patched": 1379
+            },
+            "concurrentPeakMiB": 2738
+          }
+        },
+        "warm": {
+          "seconds": 12.7,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "2fd3e7da83b4a871e784f2c47c24ab54f4a9bd40524602636ca8cbf43541287c",
+          "archiveHash": "5027550f89d0ba9ccba7a4496737c8be06bc4bc1622837097459319857a9d5cc",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 38,
+            "proposal": 337,
+            "preparation": 890,
+            "dependencySnapshot": 1014,
+            "candidatePreparation": 1695,
+            "candidates": 320,
+            "baselineChecks": 8496,
+            "patchedChecks": 8722,
+            "generatedChecks": 299
+          },
+          "baselineArchive": "93a76d597aace7190e415f1044dd9c047b04a0a098227e21809185241ef326e9",
+          "patchedArchive": "d3acec5da621c2115409d9b259573d72d9b788dda7329eed4ddb503c15f5a700",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1339,
+              "patched": 1395
+            },
+            "concurrentPeakMiB": 2704
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 692,
+          "startSeconds": 0.0927353329990874,
+          "sourceCopySeconds": 0.040000000000873115,
+          "extractionSeconds": 0.999999999998181
+        },
+        "after": {
+          "archiveMiB": 692,
+          "startSeconds": 0.08755399999934889,
+          "sourceCopySeconds": 0.030000000000654836,
+          "extractionSeconds": 0.8599999999987631
+        }
+      }
+    },
+    {
+      "repo": "thangtran3112/next-marketplace",
+      "commit": "dbeee93254bc479b257f27a092352ea744188b9c",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 142.1,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "51322892c4b66a62d3eb4a4cad5cc02e217919842b9d00ea07b1bc3b74dc7258",
+          "archiveHash": "8b8c85c90ffd395bfe4ff157d3d9079894a5f2c01e89907119124a96d5d409b1",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 74,
+            "preparation": 58547,
+            "dependencySnapshot": 1021,
+            "baselineChecks": 9843,
+            "proposal": 558,
+            "candidatePreparation": 59297,
+            "candidates": 59596,
+            "patchedChecks": 10322,
+            "generatedChecks": 319
+          },
+          "baselineArchive": "715bcffa0e4f04893ae890a872f147d1d79736f2c6a38d2f5e4bb9eb8d8cc98d",
+          "patchedArchive": "fbe4201971a96d1bd072bf9eceecda394387d88dce00a71b18a396221d86626c",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 28,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "51322892c4b66a62d3eb4a4cad5cc02e217919842b9d00ea07b1bc3b74dc7258",
+          "archiveHash": "8b8c85c90ffd395bfe4ff157d3d9079894a5f2c01e89907119124a96d5d409b1",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 76,
+            "preparation": 736,
+            "dependencySnapshot": 1053,
+            "baselineChecks": 10338,
+            "proposal": 590,
+            "candidatePreparation": 2132,
+            "candidates": 2425,
+            "patchedChecks": 10529,
+            "generatedChecks": 321
+          },
+          "baselineArchive": "715bcffa0e4f04893ae890a872f147d1d79736f2c6a38d2f5e4bb9eb8d8cc98d",
+          "patchedArchive": "fbe4201971a96d1bd072bf9eceecda394387d88dce00a71b18a396221d86626c",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 89.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "51322892c4b66a62d3eb4a4cad5cc02e217919842b9d00ea07b1bc3b74dc7258",
+          "archiveHash": "8b8c85c90ffd395bfe4ff157d3d9079894a5f2c01e89907119124a96d5d409b1",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 69,
+            "proposal": 413,
+            "preparation": 75206,
+            "dependencySnapshot": 1404,
+            "candidatePreparation": 77373,
+            "candidates": 1446,
+            "baselineChecks": 10159,
+            "patchedChecks": 9774,
+            "generatedChecks": 292
+          },
+          "baselineArchive": "715bcffa0e4f04893ae890a872f147d1d79736f2c6a38d2f5e4bb9eb8d8cc98d",
+          "patchedArchive": "fbe4201971a96d1bd072bf9eceecda394387d88dce00a71b18a396221d86626c",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1655,
+              "baseline": 1752,
+              "patched": 1794
+            },
+            "concurrentPeakMiB": 3503
+          }
+        },
+        "warm": {
+          "seconds": 14.8,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "51322892c4b66a62d3eb4a4cad5cc02e217919842b9d00ea07b1bc3b74dc7258",
+          "archiveHash": "8b8c85c90ffd395bfe4ff157d3d9079894a5f2c01e89907119124a96d5d409b1",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 79,
+            "proposal": 385,
+            "preparation": 1068,
+            "dependencySnapshot": 1272,
+            "candidatePreparation": 2251,
+            "candidates": 545,
+            "baselineChecks": 10142,
+            "patchedChecks": 9989,
+            "generatedChecks": 280
+          },
+          "baselineArchive": "715bcffa0e4f04893ae890a872f147d1d79736f2c6a38d2f5e4bb9eb8d8cc98d",
+          "patchedArchive": "fbe4201971a96d1bd072bf9eceecda394387d88dce00a71b18a396221d86626c",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1751,
+              "patched": 1797
+            },
+            "concurrentPeakMiB": 3548
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 986,
+          "startSeconds": 0.09360029200071585,
+          "sourceCopySeconds": 0.06000000000130967,
+          "extractionSeconds": 1.4699999999993452
+        },
+        "after": {
+          "archiveMiB": 986,
+          "startSeconds": 0.09326933299942175,
+          "sourceCopySeconds": 0.049999999999272404,
+          "extractionSeconds": 1.2400000000016007
+        }
+      }
+    },
+    {
+      "repo": "cdinnison/goal-reminder",
+      "commit": "caf009acb0b1a376ba37ea2003ca3f6d2d603810",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 102.1,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "7e7ab33fbc76a83587400e30d4e5b395fadba745aca2e416679df78ea92bd5b2",
+          "archiveHash": "44ad2bf348f93802ffa0415d8de2945221fea6999c4cd4d49bcd0dbf5e24fef2",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 34,
+            "preparation": 36700,
+            "dependencySnapshot": 742,
+            "baselineChecks": 9978,
+            "proposal": 699,
+            "candidatePreparation": 40826,
+            "candidates": 41184,
+            "patchedChecks": 10503,
+            "generatedChecks": 301
+          },
+          "baselineArchive": "988e3a4749b11afa7259a37fc3f70d7154e98b3598254c37674b6eaebf6e4ce8",
+          "patchedArchive": "8143604d7701279cc74eeea889023d7f942141d2480020061d6289fe9f772951",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 26.5,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "7e7ab33fbc76a83587400e30d4e5b395fadba745aca2e416679df78ea92bd5b2",
+          "archiveHash": "44ad2bf348f93802ffa0415d8de2945221fea6999c4cd4d49bcd0dbf5e24fef2",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 34,
+            "preparation": 511,
+            "dependencySnapshot": 733,
+            "baselineChecks": 10456,
+            "proposal": 661,
+            "candidatePreparation": 1346,
+            "candidates": 1670,
+            "patchedChecks": 10236,
+            "generatedChecks": 305
+          },
+          "baselineArchive": "988e3a4749b11afa7259a37fc3f70d7154e98b3598254c37674b6eaebf6e4ce8",
+          "patchedArchive": "8143604d7701279cc74eeea889023d7f942141d2480020061d6289fe9f772951",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 65,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "7e7ab33fbc76a83587400e30d4e5b395fadba745aca2e416679df78ea92bd5b2",
+          "archiveHash": "44ad2bf348f93802ffa0415d8de2945221fea6999c4cd4d49bcd0dbf5e24fef2",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 26,
+            "proposal": 533,
+            "preparation": 51632,
+            "dependencySnapshot": 951,
+            "candidatePreparation": 52638,
+            "candidates": 898,
+            "baselineChecks": 9585,
+            "patchedChecks": 9369,
+            "generatedChecks": 298
+          },
+          "baselineArchive": "988e3a4749b11afa7259a37fc3f70d7154e98b3598254c37674b6eaebf6e4ce8",
+          "patchedArchive": "8143604d7701279cc74eeea889023d7f942141d2480020061d6289fe9f772951",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1209,
+              "baseline": 1484,
+              "patched": 1503
+            },
+            "concurrentPeakMiB": 2961
+          }
+        },
+        "warm": {
+          "seconds": 14.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "7e7ab33fbc76a83587400e30d4e5b395fadba745aca2e416679df78ea92bd5b2",
+          "archiveHash": "44ad2bf348f93802ffa0415d8de2945221fea6999c4cd4d49bcd0dbf5e24fef2",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 28,
+            "proposal": 512,
+            "preparation": 1125,
+            "dependencySnapshot": 994,
+            "candidatePreparation": 1767,
+            "candidates": 441,
+            "baselineChecks": 10263,
+            "patchedChecks": 10122,
+            "generatedChecks": 286
+          },
+          "baselineArchive": "988e3a4749b11afa7259a37fc3f70d7154e98b3598254c37674b6eaebf6e4ce8",
+          "patchedArchive": "8143604d7701279cc74eeea889023d7f942141d2480020061d6289fe9f772951",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1480,
+              "patched": 1511
+            },
+            "concurrentPeakMiB": 2953
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 724,
+          "startSeconds": 0.0881100420006842,
+          "sourceCopySeconds": 0.040000000000873115,
+          "extractionSeconds": 0.999999999998181
+        },
+        "after": {
+          "archiveMiB": 724,
+          "startSeconds": 0.08882733299936808,
+          "sourceCopySeconds": 0.030000000000654836,
+          "extractionSeconds": 0.9399999999986903
+        }
+      }
+    },
+    {
+      "repo": "Anuradha-Herath/Pinnacle",
+      "commit": "0d0ae991c29090e5442872399b8a14834bfdd364",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 143.1,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "36ce2aa187b5c8ef6388d833068f4e70f949868d95b60ce36f26f54f5568f02d",
+          "archiveHash": "c617ece806246c33a6ec08463bdef2cf0eed08e61cc18fa61dc765af399e7728",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 82,
+            "preparation": 55831,
+            "dependencySnapshot": 828,
+            "baselineChecks": 16294,
+            "proposal": 3085,
+            "candidatePreparation": 43282,
+            "candidates": 45044,
+            "patchedChecks": 15813,
+            "generatedChecks": 331
+          },
+          "baselineArchive": "b228180d7cd77b7088e8d8d2956898418c2dc07e6a0a5d90139078ac436c8219",
+          "patchedArchive": "4611a4fa2fa461a8ad00c6a68d7f1b195a5c3da6040967ca4d57a53cab077b69",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 46.2,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "36ce2aa187b5c8ef6388d833068f4e70f949868d95b60ce36f26f54f5568f02d",
+          "archiveHash": "c617ece806246c33a6ec08463bdef2cf0eed08e61cc18fa61dc765af399e7728",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 110,
+            "preparation": 542,
+            "dependencySnapshot": 808,
+            "baselineChecks": 15750,
+            "proposal": 3052,
+            "candidatePreparation": 1754,
+            "candidates": 3252,
+            "patchedChecks": 16061,
+            "generatedChecks": 334
+          },
+          "baselineArchive": "b228180d7cd77b7088e8d8d2956898418c2dc07e6a0a5d90139078ac436c8219",
+          "patchedArchive": "4611a4fa2fa461a8ad00c6a68d7f1b195a5c3da6040967ca4d57a53cab077b69",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 82.3,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "36ce2aa187b5c8ef6388d833068f4e70f949868d95b60ce36f26f54f5568f02d",
+          "archiveHash": "c617ece806246c33a6ec08463bdef2cf0eed08e61cc18fa61dc765af399e7728",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 84,
+            "proposal": 2929,
+            "preparation": 57351,
+            "dependencySnapshot": 1057,
+            "candidatePreparation": 55661,
+            "candidates": 1806,
+            "baselineChecks": 16005,
+            "patchedChecks": 16231,
+            "generatedChecks": 348
+          },
+          "baselineArchive": "b228180d7cd77b7088e8d8d2956898418c2dc07e6a0a5d90139078ac436c8219",
+          "patchedArchive": "4611a4fa2fa461a8ad00c6a68d7f1b195a5c3da6040967ca4d57a53cab077b69",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1524,
+              "baseline": 1913,
+              "patched": 1900
+            },
+            "concurrentPeakMiB": 3753
+          }
+        },
+        "warm": {
+          "seconds": 26.6,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "36ce2aa187b5c8ef6388d833068f4e70f949868d95b60ce36f26f54f5568f02d",
+          "archiveHash": "c617ece806246c33a6ec08463bdef2cf0eed08e61cc18fa61dc765af399e7728",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 82,
+            "proposal": 2754,
+            "preparation": 3187,
+            "dependencySnapshot": 1072,
+            "candidatePreparation": 2057,
+            "candidates": 2036,
+            "baselineChecks": 14644,
+            "patchedChecks": 14565,
+            "generatedChecks": 319
+          },
+          "baselineArchive": "b228180d7cd77b7088e8d8d2956898418c2dc07e6a0a5d90139078ac436c8219",
+          "patchedArchive": "4611a4fa2fa461a8ad00c6a68d7f1b195a5c3da6040967ca4d57a53cab077b69",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1876,
+              "patched": 1870
+            },
+            "concurrentPeakMiB": 3706
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 788,
+          "startSeconds": 0.08592583299995749,
+          "sourceCopySeconds": 0.09000000000014552,
+          "extractionSeconds": 1.5600000000013097
+        },
+        "after": {
+          "archiveMiB": 788,
+          "startSeconds": 0.09299820799946609,
+          "sourceCopySeconds": 0.07999999999992724,
+          "extractionSeconds": 1.5300000000006548
+        }
+      }
+    },
+    {
+      "repo": "MuhammadTanveerAbbas/Clario-ai",
+      "commit": "1cb1754244fcec19b23e8ce809606a20a24920a9",
+      "check": "pnpm test",
+      "before": {
+        "cold": {
+          "seconds": 97.9,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "e4437c6710bd02b79322c69d901a274b47edcf9ea10511f7af7c431c594ce79b",
+          "archiveHash": "16536e755ae5b33125c9920c64432684f190415c9d39efd7f6446c68c7356841",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 35,
+            "preparation": 42435,
+            "dependencySnapshot": 780,
+            "baselineChecks": 2446,
+            "proposal": 1598,
+            "candidatePreparation": 43355,
+            "candidates": 44298,
+            "patchedChecks": 2711,
+            "generatedChecks": 316
+          },
+          "baselineArchive": "8d8f4c03ea298d07d7ff925f7af24d1a5579eb58a027a99a0a7f48a8201fe03e",
+          "patchedArchive": "20c96ce4eb1037da894ca61c2ab1f8477f21d15689e11856add377a0d03489e8",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 14.9,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "e4437c6710bd02b79322c69d901a274b47edcf9ea10511f7af7c431c594ce79b",
+          "archiveHash": "16536e755ae5b33125c9920c64432684f190415c9d39efd7f6446c68c7356841",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 39,
+            "preparation": 625,
+            "dependencySnapshot": 873,
+            "baselineChecks": 2677,
+            "proposal": 1541,
+            "candidatePreparation": 1633,
+            "candidates": 2398,
+            "patchedChecks": 2662,
+            "generatedChecks": 321
+          },
+          "baselineArchive": "8d8f4c03ea298d07d7ff925f7af24d1a5579eb58a027a99a0a7f48a8201fe03e",
+          "patchedArchive": "20c96ce4eb1037da894ca61c2ab1f8477f21d15689e11856add377a0d03489e8",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 67.5,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "e4437c6710bd02b79322c69d901a274b47edcf9ea10511f7af7c431c594ce79b",
+          "archiveHash": "16536e755ae5b33125c9920c64432684f190415c9d39efd7f6446c68c7356841",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 35,
+            "proposal": 1277,
+            "candidatePreparation": 57605,
+            "preparation": 59653,
+            "dependencySnapshot": 811,
+            "candidates": 825,
+            "baselineChecks": 2720,
+            "patchedChecks": 2626,
+            "generatedChecks": 302
+          },
+          "baselineArchive": "8d8f4c03ea298d07d7ff925f7af24d1a5579eb58a027a99a0a7f48a8201fe03e",
+          "patchedArchive": "20c96ce4eb1037da894ca61c2ab1f8477f21d15689e11856add377a0d03489e8",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1271,
+              "baseline": 881,
+              "patched": 902
+            },
+            "concurrentPeakMiB": 2295
+          }
+        },
+        "warm": {
+          "seconds": 10.1,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "e4437c6710bd02b79322c69d901a274b47edcf9ea10511f7af7c431c594ce79b",
+          "archiveHash": "16536e755ae5b33125c9920c64432684f190415c9d39efd7f6446c68c7356841",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 36,
+            "proposal": 1462,
+            "preparation": 2168,
+            "dependencySnapshot": 1075,
+            "candidatePreparation": 1986,
+            "candidates": 924,
+            "baselineChecks": 2583,
+            "patchedChecks": 2452,
+            "generatedChecks": 307
+          },
+          "baselineArchive": "8d8f4c03ea298d07d7ff925f7af24d1a5579eb58a027a99a0a7f48a8201fe03e",
+          "patchedArchive": "20c96ce4eb1037da894ca61c2ab1f8477f21d15689e11856add377a0d03489e8",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 862,
+              "patched": 864
+            },
+            "concurrentPeakMiB": 1054
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 787,
+          "startSeconds": 0.08936879200072145,
+          "sourceCopySeconds": 0.05999999999949068,
+          "extractionSeconds": 1.5900000000001455
+        },
+        "after": {
+          "archiveMiB": 787,
+          "startSeconds": 0.09277400000022318,
+          "sourceCopySeconds": 0.040000000000873115,
+          "extractionSeconds": 1.3699999999989814
+        }
+      }
+    },
+    {
+      "repo": "profullstack/vibe-stack",
+      "commit": "26b774d586c917fe6d56f1d6ec958b212652ebf0",
+      "check": "pnpm test",
+      "before": {
+        "cold": {
+          "seconds": 48,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "c9d2151ff3fe3b100457edce08b26374d29f1450e8218836d19cd144ef02bc7a",
+          "archiveHash": "c293d0e00ee20db4ea128810652083ef74729f866da0764239a52be3cbe171c4",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 113,
+            "preparation": 9526,
+            "dependencySnapshot": 267,
+            "baselineChecks": 3288,
+            "proposal": 5927,
+            "candidatePreparation": 11263,
+            "candidates": 14151,
+            "patchedChecks": 3027,
+            "generatedChecks": 2463
+          },
+          "baselineArchive": "2098ecc547833eb012f84d5750ad8a90f2339331a206c5a3d14805387bf669f8",
+          "patchedArchive": "cd55990157519a0c13e0b51a6823f023b1aec32b9f53a8ffb198798a3c4637ff",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 26.3,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "c9d2151ff3fe3b100457edce08b26374d29f1450e8218836d19cd144ef02bc7a",
+          "archiveHash": "c293d0e00ee20db4ea128810652083ef74729f866da0764239a52be3cbe171c4",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 105,
+            "preparation": 213,
+            "dependencySnapshot": 105,
+            "baselineChecks": 2986,
+            "proposal": 5258,
+            "candidatePreparation": 812,
+            "candidates": 3291,
+            "patchedChecks": 3018,
+            "generatedChecks": 2486
+          },
+          "baselineArchive": "2098ecc547833eb012f84d5750ad8a90f2339331a206c5a3d14805387bf669f8",
+          "patchedArchive": "cd55990157519a0c13e0b51a6823f023b1aec32b9f53a8ffb198798a3c4637ff",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 29.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "c9d2151ff3fe3b100457edce08b26374d29f1450e8218836d19cd144ef02bc7a",
+          "archiveHash": "c293d0e00ee20db4ea128810652083ef74729f866da0764239a52be3cbe171c4",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 95,
+            "proposal": 4340,
+            "preparation": 14264,
+            "dependencySnapshot": 142,
+            "candidatePreparation": 10698,
+            "candidates": 2811,
+            "baselineChecks": 2940,
+            "patchedChecks": 2870,
+            "generatedChecks": 1636
+          },
+          "baselineArchive": "2098ecc547833eb012f84d5750ad8a90f2339331a206c5a3d14805387bf669f8",
+          "patchedArchive": "cd55990157519a0c13e0b51a6823f023b1aec32b9f53a8ffb198798a3c4637ff",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 351,
+              "baseline": 257,
+              "patched": 232,
+              "generated": 207
+            },
+            "concurrentPeakMiB": 633
+          }
+        },
+        "warm": {
+          "seconds": 20.1,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "c9d2151ff3fe3b100457edce08b26374d29f1450e8218836d19cd144ef02bc7a",
+          "archiveHash": "c293d0e00ee20db4ea128810652083ef74729f866da0764239a52be3cbe171c4",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 91,
+            "proposal": 4515,
+            "preparation": 4567,
+            "dependencySnapshot": 110,
+            "candidatePreparation": 736,
+            "candidates": 2806,
+            "baselineChecks": 2910,
+            "patchedChecks": 2881,
+            "generatedChecks": 1595
+          },
+          "baselineArchive": "2098ecc547833eb012f84d5750ad8a90f2339331a206c5a3d14805387bf669f8",
+          "patchedArchive": "cd55990157519a0c13e0b51a6823f023b1aec32b9f53a8ffb198798a3c4637ff",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 223,
+              "patched": 232,
+              "generated": 168
+            },
+            "concurrentPeakMiB": 561
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 121,
+          "startSeconds": 0.0960779170004098,
+          "sourceCopySeconds": 0.1499999999996362,
+          "extractionSeconds": 0.2999999999992724
+        },
+        "after": {
+          "archiveMiB": 121,
+          "startSeconds": 0.07975062499931665,
+          "sourceCopySeconds": 0.13999999999941792,
+          "extractionSeconds": 0.27000000000043656
+        }
+      }
+    },
+    {
+      "repo": "Honey-Bagel/Milanote-Clone",
+      "commit": "84a14deebaf969f25b927cf662bf7d83e628b62a",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 137.7,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "4288473d39951189576815592e0345a8a4267c8a9569b43db1a57ad968f547fa",
+          "archiveHash": "11a209c8591532025cef3fbbd0438d54b1ba7db815f63d1376ec2a7273ad874f",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 54,
+            "preparation": 46153,
+            "dependencySnapshot": 919,
+            "baselineChecks": 16462,
+            "proposal": 3251,
+            "candidatePreparation": 46090,
+            "candidates": 47820,
+            "patchedChecks": 16977,
+            "generatedChecks": 343
+          },
+          "baselineArchive": "8190b04b02ffe9c885c26a884e8132fb6574b93ba4df3e4b3165fe039465864d",
+          "patchedArchive": "e1b600d91044a094b4c898439819218dd9aa6275525abf8fb110757547689ee5",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 46.1,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "4288473d39951189576815592e0345a8a4267c8a9569b43db1a57ad968f547fa",
+          "archiveHash": "11a209c8591532025cef3fbbd0438d54b1ba7db815f63d1376ec2a7273ad874f",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 50,
+            "preparation": 615,
+            "dependencySnapshot": 885,
+            "baselineChecks": 16224,
+            "proposal": 2923,
+            "candidatePreparation": 1742,
+            "candidates": 3134,
+            "patchedChecks": 16327,
+            "generatedChecks": 355
+          },
+          "baselineArchive": "8190b04b02ffe9c885c26a884e8132fb6574b93ba4df3e4b3165fe039465864d",
+          "patchedArchive": "e1b600d91044a094b4c898439819218dd9aa6275525abf8fb110757547689ee5",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 88.2,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "4288473d39951189576815592e0345a8a4267c8a9569b43db1a57ad968f547fa",
+          "archiveHash": "11a209c8591532025cef3fbbd0438d54b1ba7db815f63d1376ec2a7273ad874f",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 50,
+            "proposal": 2327,
+            "preparation": 63961,
+            "dependencySnapshot": 1189,
+            "candidatePreparation": 63222,
+            "candidates": 1753,
+            "baselineChecks": 15628,
+            "patchedChecks": 15866,
+            "generatedChecks": 340
+          },
+          "baselineArchive": "8190b04b02ffe9c885c26a884e8132fb6574b93ba4df3e4b3165fe039465864d",
+          "patchedArchive": "e1b600d91044a094b4c898439819218dd9aa6275525abf8fb110757547689ee5",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1416,
+              "baseline": 1840,
+              "patched": 1799
+            },
+            "concurrentPeakMiB": 3534
+          }
+        },
+        "warm": {
+          "seconds": 26.8,
+          "workflow": "validated",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "4288473d39951189576815592e0345a8a4267c8a9569b43db1a57ad968f547fa",
+          "archiveHash": "11a209c8591532025cef3fbbd0438d54b1ba7db815f63d1376ec2a7273ad874f",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 83,
+            "proposal": 2563,
+            "preparation": 3232,
+            "dependencySnapshot": 1296,
+            "candidatePreparation": 2344,
+            "candidates": 1772,
+            "baselineChecks": 15115,
+            "patchedChecks": 14857,
+            "generatedChecks": 341
+          },
+          "baselineArchive": "8190b04b02ffe9c885c26a884e8132fb6574b93ba4df3e4b3165fe039465864d",
+          "patchedArchive": "e1b600d91044a094b4c898439819218dd9aa6275525abf8fb110757547689ee5",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1818,
+              "patched": 1782
+            },
+            "concurrentPeakMiB": 3518
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 853,
+          "startSeconds": 0.09728395799860301,
+          "sourceCopySeconds": 0.07000000000152795,
+          "extractionSeconds": 1.2599999999983993
+        },
+        "after": {
+          "archiveMiB": 853,
+          "startSeconds": 0.08699120799946833,
+          "sourceCopySeconds": 0.06999999999970896,
+          "extractionSeconds": 1.1499999999996362
+        }
+      }
+    },
+    {
+      "repo": "vinroger/onellm-frontend",
+      "commit": "2456f2d3eceffaf5a902958bae618836856669df",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 148.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "193288fa768988db80396d6782533558befd453e3955a3003aaa1ab0dde4f1fc",
+          "archiveHash": "316c8fbd826482f9ebf6645bebb63064bfa64c11faf95329d77e350e2974fb7a",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 125,
+            "preparation": 45690,
+            "dependencySnapshot": 993,
+            "baselineChecks": 14211,
+            "proposal": 1228,
+            "candidatePreparation": 52544,
+            "candidates": 53724,
+            "patchedChecks": 24917,
+            "generatedChecks": 5444
+          },
+          "baselineArchive": "3345545e5fa8cfb2f60d88a794544f553fb251fa563d04a4ef3a373edb717873",
+          "patchedArchive": "31eae14f145216aadb64c41151a78d6c6fb8c39ae3b588a5e01e195d1269ae31",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 54.4,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "193288fa768988db80396d6782533558befd453e3955a3003aaa1ab0dde4f1fc",
+          "archiveHash": "316c8fbd826482f9ebf6645bebb63064bfa64c11faf95329d77e350e2974fb7a",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 117,
+            "preparation": 560,
+            "dependencySnapshot": 866,
+            "baselineChecks": 13168,
+            "proposal": 1162,
+            "candidatePreparation": 3959,
+            "candidates": 5133,
+            "patchedChecks": 25184,
+            "generatedChecks": 5626
+          },
+          "baselineArchive": "3345545e5fa8cfb2f60d88a794544f553fb251fa563d04a4ef3a373edb717873",
+          "patchedArchive": "31eae14f145216aadb64c41151a78d6c6fb8c39ae3b588a5e01e195d1269ae31",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 92.8,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "193288fa768988db80396d6782533558befd453e3955a3003aaa1ab0dde4f1fc",
+          "archiveHash": "316c8fbd826482f9ebf6645bebb63064bfa64c11faf95329d77e350e2974fb7a",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 123,
+            "proposal": 822,
+            "candidatePreparation": 58141,
+            "preparation": 58081,
+            "dependencySnapshot": 921,
+            "candidates": 2997,
+            "baselineChecks": 13202,
+            "patchedChecks": 24851,
+            "generatedChecks": 3238
+          },
+          "baselineArchive": "3345545e5fa8cfb2f60d88a794544f553fb251fa563d04a4ef3a373edb717873",
+          "patchedArchive": "31eae14f145216aadb64c41151a78d6c6fb8c39ae3b588a5e01e195d1269ae31",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 1546,
+              "baseline": 1898,
+              "patched": 1869,
+              "generated": 1264
+            },
+            "concurrentPeakMiB": 4400
+          }
+        },
+        "warm": {
+          "seconds": 36.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "193288fa768988db80396d6782533558befd453e3955a3003aaa1ab0dde4f1fc",
+          "archiveHash": "316c8fbd826482f9ebf6645bebb63064bfa64c11faf95329d77e350e2974fb7a",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 121,
+            "proposal": 878,
+            "preparation": 1415,
+            "dependencySnapshot": 1162,
+            "candidatePreparation": 4348,
+            "candidates": 3745,
+            "baselineChecks": 13703,
+            "patchedChecks": 24681,
+            "generatedChecks": 3264
+          },
+          "baselineArchive": "3345545e5fa8cfb2f60d88a794544f553fb251fa563d04a4ef3a373edb717873",
+          "patchedArchive": "31eae14f145216aadb64c41151a78d6c6fb8c39ae3b588a5e01e195d1269ae31",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 1873,
+              "patched": 1864,
+              "generated": 1075
+            },
+            "concurrentPeakMiB": 3838
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 826,
+          "startSeconds": 0.08836045800038847,
+          "sourceCopySeconds": 0.05999999999949068,
+          "extractionSeconds": 1.640000000001237
+        },
+        "after": {
+          "archiveMiB": 826,
+          "startSeconds": 0.08510920800018357,
+          "sourceCopySeconds": 0.06999999999970896,
+          "extractionSeconds": 1.5300000000024738
+        }
+      }
+    },
+    {
+      "repo": "Shivamrai15/Spotify-Clone",
+      "commit": "afb71d76a542d761966d743fff4230f2bdc0595d",
+      "check": "node -e 0",
+      "before": {
+        "cold": {
+          "seconds": 34.1,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "e31216300a90496703fa15e0e0a310edc54f643b41427ea35f1f2fc69fdfd421",
+          "archiveHash": "c0e013f90d2f3a889b1efd69fdad1ca5289a07e91ced18495ea8c233c1dc326f",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 23,
+            "preparation": 27040,
+            "dependencySnapshot": 602,
+            "baselineChecks": 820,
+            "proposal": 389,
+            "candidates": 161,
+            "patchedChecks": 820,
+            "generatedChecks": 2941
+          },
+          "baselineArchive": "1512e22b682bc9c0c4ab056ee18c7e4dd0f64531cd88656d693aa526e870cea4",
+          "patchedArchive": null,
+          "reused": false
+        },
+        "warm": {
+          "seconds": 7.2,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "e31216300a90496703fa15e0e0a310edc54f643b41427ea35f1f2fc69fdfd421",
+          "archiveHash": "c0e013f90d2f3a889b1efd69fdad1ca5289a07e91ced18495ea8c233c1dc326f",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 27,
+            "preparation": 363,
+            "dependencySnapshot": 500,
+            "baselineChecks": 855,
+            "proposal": 339,
+            "candidates": 139,
+            "patchedChecks": 831,
+            "generatedChecks": 2722
+          },
+          "baselineArchive": "1512e22b682bc9c0c4ab056ee18c7e4dd0f64531cd88656d693aa526e870cea4",
+          "patchedArchive": null,
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 29.7,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "e31216300a90496703fa15e0e0a310edc54f643b41427ea35f1f2fc69fdfd421",
+          "archiveHash": "c0e013f90d2f3a889b1efd69fdad1ca5289a07e91ced18495ea8c233c1dc326f",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 28,
+            "proposal": 252,
+            "preparation": 25121,
+            "dependencySnapshot": 607,
+            "candidates": 201,
+            "baselineChecks": 852,
+            "patchedChecks": 744,
+            "generatedChecks": 1603
+          },
+          "baselineArchive": "1512e22b682bc9c0c4ab056ee18c7e4dd0f64531cd88656d693aa526e870cea4",
+          "patchedArchive": null,
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 808,
+              "baseline": 45
+            },
+            "concurrentPeakMiB": 808
+          }
+        },
+        "warm": {
+          "seconds": 4.8,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "e31216300a90496703fa15e0e0a310edc54f643b41427ea35f1f2fc69fdfd421",
+          "archiveHash": "c0e013f90d2f3a889b1efd69fdad1ca5289a07e91ced18495ea8c233c1dc326f",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 24,
+            "proposal": 252,
+            "preparation": 581,
+            "dependencySnapshot": 487,
+            "candidates": 197,
+            "baselineChecks": 869,
+            "patchedChecks": 763,
+            "generatedChecks": 1559
+          },
+          "baselineArchive": "1512e22b682bc9c0c4ab056ee18c7e4dd0f64531cd88656d693aa526e870cea4",
+          "patchedArchive": null,
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 190,
+              "patched": 11
+            },
+            "concurrentPeakMiB": 201
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 498,
+          "startSeconds": 0.08781995799910511,
+          "sourceCopySeconds": 0.040000000000873115,
+          "extractionSeconds": 0.569999999999709
+        },
+        "after": {
+          "archiveMiB": 498,
+          "startSeconds": 0.08025758300093003,
+          "sourceCopySeconds": 0.030000000002473826,
+          "extractionSeconds": 0.48999999999796273
+        }
+      }
+    },
+    {
+      "repo": "psykat1116/Spotify",
+      "commit": "8f5b3847ef5ece1e69ced3a701cf587c5b443ceb",
+      "check": "npx --no-install tsc --noEmit --pretty false -p .",
+      "before": {
+        "cold": {
+          "seconds": 79.6,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "df8c84b867c6a88c4fe463139d267c8a7858ee9610d5a61c30a4e34fb4875d0f",
+          "archiveHash": "1bd9c04d91cdd86c3ee12339f77579c4794b0a3fda16c97ad5a41e7392cfb5af",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 35,
+            "preparation": 30553,
+            "dependencySnapshot": 539,
+            "baselineChecks": 5021,
+            "proposal": 416,
+            "candidatePreparation": 27733,
+            "candidates": 28114,
+            "patchedChecks": 10269,
+            "generatedChecks": 2965
+          },
+          "baselineArchive": "f96691878004581db38ca92efb29635034da5074f6518e14ffb5a0d6f7b3e2df",
+          "patchedArchive": "18c2b5d52ef125e6536c5854bb5afb3ebb022ff5cd48cfe0613cecc49b922c2f",
+          "reused": false
+        },
+        "warm": {
+          "seconds": 23.7,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "df8c84b867c6a88c4fe463139d267c8a7858ee9610d5a61c30a4e34fb4875d0f",
+          "archiveHash": "1bd9c04d91cdd86c3ee12339f77579c4794b0a3fda16c97ad5a41e7392cfb5af",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 33,
+            "preparation": 366,
+            "dependencySnapshot": 475,
+            "baselineChecks": 5132,
+            "proposal": 377,
+            "candidatePreparation": 1890,
+            "candidates": 2255,
+            "patchedChecks": 10750,
+            "generatedChecks": 2874
+          },
+          "baselineArchive": "f96691878004581db38ca92efb29635034da5074f6518e14ffb5a0d6f7b3e2df",
+          "patchedArchive": "18c2b5d52ef125e6536c5854bb5afb3ebb022ff5cd48cfe0613cecc49b922c2f",
+          "reused": true
+        }
+      },
+      "after": {
+        "cold": {
+          "seconds": 51.9,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "df8c84b867c6a88c4fe463139d267c8a7858ee9610d5a61c30a4e34fb4875d0f",
+          "archiveHash": "1bd9c04d91cdd86c3ee12339f77579c4794b0a3fda16c97ad5a41e7392cfb5af",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 35,
+            "proposal": 304,
+            "candidatePreparation": 33877,
+            "preparation": 36534,
+            "dependencySnapshot": 546,
+            "candidates": 1291,
+            "baselineChecks": 4991,
+            "patchedChecks": 10270,
+            "generatedChecks": 1841
+          },
+          "baselineArchive": "f96691878004581db38ca92efb29635034da5074f6518e14ffb5a0d6f7b3e2df",
+          "patchedArchive": "18c2b5d52ef125e6536c5854bb5afb3ebb022ff5cd48cfe0613cecc49b922c2f",
+          "reused": false,
+          "memory": {
+            "peakMiB": {
+              "preparation": 834,
+              "baseline": 904,
+              "patched": 980,
+              "generated": 685
+            },
+            "concurrentPeakMiB": 1908
+          }
+        },
+        "warm": {
+          "seconds": 16.3,
+          "workflow": "needs-review",
+          "stage": "validation",
+          "validation": "passed",
+          "patchHash": "df8c84b867c6a88c4fe463139d267c8a7858ee9610d5a61c30a4e34fb4875d0f",
+          "archiveHash": "1bd9c04d91cdd86c3ee12339f77579c4794b0a3fda16c97ad5a41e7392cfb5af",
+          "baseline": "passed",
+          "patched": "passed",
+          "generated": null,
+          "timings": {
+            "snapshot": 31,
+            "proposal": 266,
+            "preparation": 640,
+            "dependencySnapshot": 482,
+            "candidatePreparation": 2052,
+            "candidates": 1517,
+            "baselineChecks": 5004,
+            "patchedChecks": 10455,
+            "generatedChecks": 1866
+          },
+          "baselineArchive": "f96691878004581db38ca92efb29635034da5074f6518e14ffb5a0d6f7b3e2df",
+          "patchedArchive": "18c2b5d52ef125e6536c5854bb5afb3ebb022ff5cd48cfe0613cecc49b922c2f",
+          "reused": true,
+          "memory": {
+            "peakMiB": {
+              "baseline": 918,
+              "patched": 971,
+              "generated": 648
+            },
+            "concurrentPeakMiB": 1874
+          }
+        }
+      },
+      "probe": {
+        "before": {
+          "archiveMiB": 494,
+          "startSeconds": 0.08360970900114625,
+          "sourceCopySeconds": 0.030000000000654836,
+          "extractionSeconds": 0.5199999999986176
+        },
+        "after": {
+          "archiveMiB": 494,
+          "startSeconds": 0.08145220799936215,
+          "sourceCopySeconds": 0.040000000000873115,
+          "extractionSeconds": 0.47000000000116415
+        }
+      }
+    }
+  ]
+}

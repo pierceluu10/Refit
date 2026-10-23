@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Data and productivity API detection results",
+  "description": "Written by scripts/data-apis-benchmark.mjs: the catalog detections and deadline exposures `refit agents` and `refit deadlines` report per repository of the frozen data-API sample. A repository that could not be scanned has `error` and no findings.",
+  "type": "object",
+  "required": ["formatVersion", "refit", "dirty", "scannedAt", "results"],
+  "properties": {
+    "formatVersion": {
+      "const": 1
+    },
+    "refit": {
+      "$ref": "common.schema.json#/$defs/commit"
+    },
+    "dirty": {
+      "type": "boolean"
+    },
+    "scannedAt": {
+      "$ref": "common.schema.json#/$defs/time"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "provider", "commit"],
+        "properties": {
+          "repo": {
+            "$ref": "common.schema.json#/$defs/repo"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "commit": {
+            "$ref": "common.schema.json#/$defs/commit"
+          },
+          "detected": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id"]
+            }
+          },
+          "exposures": {
+            "type": "array"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

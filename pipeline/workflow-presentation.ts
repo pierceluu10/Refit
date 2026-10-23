@@ -201,6 +201,17 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
       rows.push(
         `Found       ${confirmed.length} confirmed ${confirmed.length === 1 ? 'usage' : 'usages'} in ${files.size} ${files.size === 1 ? 'file' : 'files'}`,
       );
+    // Where each removed request parameter is still sent, so the person knows what to change.
+    const removed = confirmed.flatMap((finding) => {
+      const { requestParameter, file, line } = finding as Record<string, unknown>;
+      return isObject(requestParameter) && typeof requestParameter.parameter === 'string'
+        ? [`${requestParameter.parameter} is still sent at ${String(file)}:${Number(line)}`]
+        : [];
+    });
+    for (const site of removed.slice(0, MAX_SUMMARY_ITEMS))
+      rows.push(`Removed     ${terminalText(site)}`);
+    if (removed.length > MAX_SUMMARY_ITEMS)
+      rows.push(`            and ${removed.length - MAX_SUMMARY_ITEMS} more in the evidence`);
     const review = report.findings.filter(
       (finding) => isObject(finding) && finding.confidence === 'review',
     );
@@ -279,7 +290,22 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
     const validation = report.validation;
     if (isObject(validation.environment))
       rows.push(
-        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : `Prepared from ${typeof validation.environment.manager === 'string' ? validation.environment.manager : 'npm'} lockfile`}; checks offline`,
+        `Dependencies ${validation.environment.reused ? 'Verified cache reused' : `Prepared from ${typeof validation.environment.manager === 'string' ? validation.environment.manager : 'npm'} lockfile`}; checks offline${
+          typeof validation.environment.platformPackages !== 'number'
+            ? ''
+            : validation.environment.platformPackageMode === 'install'
+              ? `; ${validation.environment.platformPackages} platform-specific packages installed without checksums (REFIT_YARN_PLATFORM_PACKAGES=install)`
+              : `; ${validation.environment.platformPackages} platform-specific packages without checksums not installed`
+        }`,
+      );
+    const runtime = validation.runtime;
+    if (isObject(runtime) && typeof runtime.image === 'string')
+      rows.push(
+        `Runtime     ${terminalText(runtime.image)}${typeof runtime.nodeVersion === 'string' ? ` (Node.js ${terminalText(runtime.nodeVersion)})` : ''}${
+          Array.isArray(runtime.declarations) && runtime.declarations.length
+            ? `. ${terminalText(String(runtime.reason))}`
+            : ''
+        }`,
       );
     if (isObject(validation.baseline) && isObject(validation.patched))
       rows.push(

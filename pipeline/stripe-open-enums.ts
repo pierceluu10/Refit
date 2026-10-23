@@ -281,3 +281,26 @@ export function openEnumRepair(
   }
   return results;
 }
+
+// The introduced errors the restore handles, each on its own. Before an AI repair of a rules
+// proposal, the restore applies to these and leaves the rest to the model.
+export function restorableOpenEnumErrors<T extends TypeErrorAt>(
+  files: { path: string; content: string }[],
+  errors: T[],
+) {
+  return errors.filter((error) => openEnumRepair(files, [error]));
+}
+
+// A restored candidate whose checks still fail is kept, as the AI repair's starting point, only
+// when it fails on type errors and every one is an introduced error the restore did not target.
+export function keepsPartialRestore(
+  introduced: { key: string }[],
+  restored: { key: string }[],
+  remaining: { key: string }[],
+) {
+  const targeted = new Set(restored.map((error) => error.key));
+  const left = new Set(
+    introduced.filter((error) => !targeted.has(error.key)).map((error) => error.key),
+  );
+  return remaining.length > 0 && remaining.every((error) => left.has(error.key));
+}

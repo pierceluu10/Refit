@@ -7,6 +7,7 @@ import { runLocalService, validateServiceSecret } from './local-service.ts';
 import { readServiceConfiguration } from './service-configuration.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const REVIEW_STATUSES = new Set([
   'needs-review',
@@ -127,6 +128,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'serve'));
   process.exitCode = 1;
 }

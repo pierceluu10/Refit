@@ -18,6 +18,7 @@ import {
   classifyGhError,
   EXCLUDED_DIRECTORIES,
   EXCLUDED_NAME,
+  LEAKED_SOURCE,
   SCAN_LIMITS,
   SIZE_BUCKETS,
   SOURCE_EXTENSION,
@@ -43,6 +44,32 @@ const PROVIDERS = {
     count: 50,
     importQuery: `"from '@anthropic-ai/sdk'" language:TypeScript`,
   },
+  // AI wrapper SDKs (FP3, docs/MODEL-WRAPPERS.md): one list each, merged into one frozen sample.
+  'ai-sdk-openai': {
+    sdk: '@ai-sdk/openai',
+    count: 15,
+    importQuery: `"from '@ai-sdk/openai'" language:TypeScript`,
+  },
+  'ai-sdk-anthropic': {
+    sdk: '@ai-sdk/anthropic',
+    count: 12,
+    importQuery: `"from '@ai-sdk/anthropic'" language:TypeScript`,
+  },
+  'langchain-openai': {
+    sdk: '@langchain/openai',
+    count: 15,
+    importQuery: `"from '@langchain/openai'" language:TypeScript`,
+  },
+  'langchain-anthropic': {
+    sdk: '@langchain/anthropic',
+    count: 8,
+    importQuery: `"from '@langchain/anthropic'" language:TypeScript`,
+  },
+  llamaindex: {
+    sdk: 'llamaindex',
+    count: 10,
+    importQuery: `"from 'llamaindex'" language:TypeScript`,
+  },
 };
 // The frozen commit must be on or after this date, so the set reflects current code.
 const CUTOFF = '2025-10-21';
@@ -66,7 +93,7 @@ const { values } = parseArgs({
 const provider = PROVIDERS[values.provider ?? ''];
 if (values.help || !provider || !values.output || !values.work || !values.root) {
   console.log(
-    'Usage: node scripts/ai-app-select.mjs --provider openai|anthropic --output <frozen.json> --work <dir> --root <dir> [--count N] [--pages 10]',
+    'Usage: node scripts/ai-app-select.mjs --provider openai|anthropic|ai-sdk-openai|ai-sdk-anthropic|langchain-openai|langchain-anthropic|llamaindex --output <frozen.json> --work <dir> --root <dir> [--count N] [--pages 10]',
   );
   process.exit(values.help ? 0 : 1);
 }
@@ -197,6 +224,7 @@ for (const file of (await readdir(join(HERE, '..', 'docs', 'benchmarks'))).sort(
 const rejected = {
   invalidName,
   alreadyFrozen: 0,
+  leakedSource: 0,
   unreachable: 0,
   noCommit: 0,
   fork: 0,
@@ -211,8 +239,10 @@ const rejected = {
   noModelCall: 0,
 };
 const unique = [...pool.keys()].sort();
-const open = unique.filter((name) => !frozen.has(name));
-rejected.alreadyFrozen = unique.length - open.length;
+const unfrozen = unique.filter((name) => !frozen.has(name));
+rejected.alreadyFrozen = unique.length - unfrozen.length;
+const open = unfrozen.filter((name) => !LEAKED_SOURCE.has(name));
+rejected.leakedSource = unfrozen.length - open.length;
 
 // 4. Metadata and the root manifest, 20 repositories per GraphQL query.
 const metadata = new Map();
@@ -436,6 +466,7 @@ await writeFile(
         `the tree passes Refit's scan limits (${SCAN_LIMITS.files} files, 2 MiB per file, 50 MiB total)`,
         `repository name or topics do not match ${EXCLUDED_NAME.source} (case-insensitive)`,
         'repository is in no other frozen list under docs/benchmarks',
+        'repository is not a known copy of leaked proprietary source (LEAKED_SOURCE)',
         'one level of apps/* and packages/* manifests; deeper nesting not read (D-11)',
       ],
       sortOrder: 'stars desc, full name asc, within the retrievable code-search pool',

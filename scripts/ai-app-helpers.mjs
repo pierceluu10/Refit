@@ -35,11 +35,34 @@ const LOCKFILES = ['npm-shrinkwrap.json', 'package-lock.json', 'pnpm-lock.yaml',
 export const EXCLUDED_NAME =
   /sdk|wrapper|client|langchain|llamaindex|provider|plugin|adapter|framework|boilerplate-generator/i;
 
+// Copies of leaked proprietary Claude Code source, removed from the Anthropic app list on
+// 2026-10-22 (its `removed` field). Lower-cased, as the candidate pool is.
+export const LEAKED_SOURCE = new Set([
+  'andforce/openclaude',
+  'chenqinggang001/claude-code-build',
+  'ddogezd/claudium',
+  'doriandarko/kimi-2-6-code',
+  'fazxes/claude-code',
+  'jrcx7scc/claude-code-source',
+  'kill136/claudecode',
+  'openaisec/miko',
+  'tagoat/claude_code_cli',
+  'txl16095/miniclaude',
+  'wk42worldworld/cybercode',
+  'wyh0626/claude-code-local',
+]);
+
 // GitHub `size:a..b` ranges are inclusive, so adjacent buckets must not share an endpoint.
 // Bucket edges come from GitHub code search trials on 2026-10-21.
 export const SIZE_BUCKETS = {
   openai: ['<600', '600..899', '900..1299', '1300..1799', '1800..2499', '2500..3999', '>=4000'],
   anthropic: ['<1500', '1500..2999', '>=3000'],
+  // AI wrapper SDKs (2026-10-22), with the Anthropic set's edges.
+  'ai-sdk-openai': ['<1500', '1500..2999', '>=3000'],
+  'ai-sdk-anthropic': ['<1500', '1500..2999', '>=3000'],
+  'langchain-openai': ['<1500', '1500..2999', '>=3000'],
+  'langchain-anthropic': ['<1500', '1500..2999', '>=3000'],
+  llamaindex: ['<1500', '1500..2999', '>=3000'],
 };
 
 export function validRepoName(name) {
@@ -117,11 +140,23 @@ export function scanLimitsFromTree(listing) {
 const SDK_IMPORT = {
   openai: /(?:from\s*|require\(\s*)['"]openai['"]/,
   anthropic: /(?:from\s*|require\(\s*)['"]@anthropic-ai\/sdk['"]/,
+  'ai-sdk-openai': /(?:from\s*|require\(\s*)['"]@ai-sdk\/openai['"]/,
+  'ai-sdk-anthropic': /(?:from\s*|require\(\s*)['"]@ai-sdk\/anthropic['"]/,
+  'langchain-openai': /(?:from\s*|require\(\s*)['"]@langchain\/openai['"]/,
+  'langchain-anthropic': /(?:from\s*|require\(\s*)['"]@langchain\/anthropic['"]/,
+  llamaindex: /(?:from\s*|require\(\s*)['"](?:llamaindex|@llamaindex\/(?:openai|anthropic))['"]/,
 };
+// A wrapper call that names a model: `openai('gpt-4o')`, `anthropic.messages('claude-…')`,
+// `new ChatOpenAI({ … })`, LlamaIndex's `new OpenAI({ … })` or `openai({ … })`.
 const MODEL_CALL = {
   openai:
     /\.(?:beta\.)?(?:chat\.completions|responses|messages|images|audio(?:\.\w+)?|embeddings)\.\w+\(/,
   anthropic: /\.(?:beta\.)?messages\.\w+\(/,
+  'ai-sdk-openai': /\b\w*openai(?:\.(?:chat|responses|completion|languageModel))?\(\s*['"`\w]/i,
+  'ai-sdk-anthropic': /\b\w*anthropic(?:\.(?:messages|chat|languageModel))?\(\s*['"`\w]/i,
+  'langchain-openai': /\bnew\s+(?:Chat|Azure)?OpenAI\s*\(/,
+  'langchain-anthropic': /\bnew\s+ChatAnthropic\s*\(/,
+  llamaindex: /\bnew\s+(?:OpenAI|Anthropic)\s*\(|\b(?:openai|anthropic)\(\s*\{/,
 };
 const TEST_PATH = /(?:^|\/)(?:tests?|__tests__|spec|e2e|fixtures?)\/|\.(?:test|spec)\./;
 

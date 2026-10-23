@@ -1,0 +1,979 @@
+{
+  "formatVersion": 1,
+  "selectedAt": "2026-10-22T09:05:21.852Z",
+  "method": "Repositories already frozen in docs/benchmarks/*-repos.json whose root package.json at the pinned commit declares a catalog package of the provider (any dependency section); 20 per provider in SHA-256 order of the lower-case repository name; one provider per repository. Providers short of 20 are topped up from npm search (2 pages of 250 per query; queries listed per provider in the script) with packages published since 2024-01-01 whose latest manifest declares a provider package in dependencies and links a github.com repository outside the vendor's organizations, ranked by monthly downloads and frozen at HEAD from git ls-remote.",
+  "counts": {
+    "auth0": {
+      "frozenCandidates": 5,
+      "frozen": 5,
+      "npm": 15
+    },
+    "clerk": {
+      "frozenCandidates": 129,
+      "frozen": 20,
+      "npm": 0
+    },
+    "firebase": {
+      "frozenCandidates": 43,
+      "frozen": 20,
+      "npm": 0
+    },
+    "supabase": {
+      "frozenCandidates": 162,
+      "frozen": 20,
+      "npm": 0
+    },
+    "nextauth": {
+      "frozenCandidates": 122,
+      "frozen": 20,
+      "npm": 0
+    }
+  },
+  "repos": [
+    {
+      "provider": "auth0",
+      "repo": "discover-legal/lawstory",
+      "commit": "c34b13179ef2fc8835e26d926d58d485e0f17ba4",
+      "source": "frozen:2026-10-16-stripe-active-repos.json",
+      "declared": {
+        "@auth0/nextjs-auth0": "4.25.0"
+      }
+    },
+    {
+      "provider": "auth0",
+      "repo": "getcord/cord",
+      "commit": "c115dddb47a3036e8d2e82f3320144382d2fb686",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "auth0": "^3.7.2",
+        "@auth0/auth0-react": "^1.8.0"
+      }
+    },
+    {
+      "provider": "auth0",
+      "repo": "heyzbh/scrapmatic-saas-app",
+      "commit": "b36c4b0693ecedb1c083a1bee88a067a1bf1cc45",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@auth0/nextjs-auth0": "^3.5.0"
+      }
+    },
+    {
+      "provider": "auth0",
+      "repo": "omakatse-dev/omakatse",
+      "commit": "87a6d512625c3e70c3f10742360bd15e8e96bdaa",
+      "source": "frozen:2026-10-16-shopify-fresh-repos.json",
+      "declared": {
+        "@auth0/nextjs-auth0": "^3.6.0"
+      }
+    },
+    {
+      "provider": "auth0",
+      "repo": "karanchhina/playground0",
+      "commit": "bff6af5905e407c1111c0471e3dc3e9f50e6f436",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "auth0": "^4.20.0",
+        "@auth0/nextjs-auth0": "^4.5.1"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "projectplannerai/nextjs-clerk-convex-stripe-resend-template",
+      "commit": "df7ce90436610e7bf911f32038bd824590417447",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^5.1.2",
+        "@clerk/clerk-sdk-node": "^5.0.9"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "aviroopjana/PersonaVerse",
+      "commit": "51df86a6bda24f46468ac4008a1aceeeef6203eb",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^4.23.2"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "devczero/vid-analyzer-saas",
+      "commit": "f98f5bef7cda650c370ee1e16f51f1e607582e58",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^6.12.4"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "mckaywrigley/takeoff-todo-app",
+      "commit": "58fce75ac86b9b19b56aa8118a77fcb9c1e20463",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^5.3.7",
+        "@clerk/backend": "^1.9.0"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "aiaspiringdeveloper/fastblog",
+      "commit": "1da817bbe184e261c34dbbeb2617a59a22b28cd0",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^5.4.1"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "vual/lobe-chat-pro",
+      "commit": "2a400facaee734beedeb9c93d9977728d626bec2",
+      "source": "frozen:2026-10-21-anthropic-app-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^6.33.3"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "seangray-dev/formail-app",
+      "commit": "fabd1c4f8a86f3c2ab6d6995e47fd247e3a7d6fa",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^4.29.9",
+        "@clerk/clerk-sdk-node": "^4.13.11"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "ahmadk953/tasko",
+      "commit": "c09840230cce63d244158e4fc621148c86482b33",
+      "source": "frozen:2026-10-15-stripe-heldout-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^7.5.2"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+      "commit": "3c91a83e792d84178c86be02a486cfb7f14b6d00",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^6.24.0"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "piyush805/miro-clone",
+      "commit": "eddde6ac5a4655e76187cd7ccd7d1a8ddd95ba9a",
+      "source": "frozen:2026-10-15-stripe-heldout-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^5.2.10"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "vukrosic/nextjs14-chatgpt",
+      "commit": "d7830543b78bd5d69a80190092a7cdcc702376ae",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^4.29.9",
+        "@clerk/clerk-react": "^4.30.7"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "abhiya492/ticket-saas-app",
+      "commit": "b37b8a885a31a162dbd805cdca11f616bf8de04e",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^6.9.6"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "M74JJI/multivendor-ecommerce-build-2025",
+      "commit": "feda1ef2fb0bfa8e8f73cccdf70f03bdc798d181",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^6.9.6"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "avikalp987/lingo",
+      "commit": "c9ac6e835fe827644674beb4cdafef06125ebe18",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^4.29.11"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "SudoKMaar/leaf",
+      "commit": "57eb85f1b068cf9886a648ffc04949a5062c9388",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^4.29.11"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "M74JJI/multivendor_ecommerce",
+      "commit": "009110470b970bb7056445f276fa33bacae4feb9",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^5.1.5"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "kianush00/joyassol-ecommerce",
+      "commit": "dff301cd8919898ce00b5f5f02c29809bb26402f",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^7.3.2"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "mckaywrigley/takeoff-notes-app",
+      "commit": "9f70d89cc205a92047595d8344a780aeade54625",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^5.5.2",
+        "@clerk/backend": "^1.11.1"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "samepage-network/samepage.network",
+      "commit": "0342a73278b1deee225fd35408953dd15312ca9b",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/clerk-react": "4.15.3",
+        "@clerk/clerk-sdk-node": "^4.8.4",
+        "@clerk/remix": "2.5.3",
+        "@clerk/chrome-extension": "^0.2.7"
+      }
+    },
+    {
+      "provider": "clerk",
+      "repo": "mageshyt/Nextjs-saas-starter",
+      "commit": "56884fa15a0ba2c2bea926f8fecc4d3ca68a8c7b",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@clerk/nextjs": "^6.9.9"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "grepsoft/thelibrary",
+      "commit": "801ce84fbd2559e6c1522a8555126929530c893e",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "firebase": "^11.1.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "Drago-03/Neural-Nexus",
+      "commit": "6b2a3b7703851ebe45019944f46f0f88dfdb55ca",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase": "^11.7.1"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "Liroo/emilievizcano.com",
+      "commit": "5d1a19a3d5d9f047201e6dbe1039b8595e6fd93a",
+      "source": "frozen:2026-10-16-shopify-fresh-repos.json",
+      "declared": {
+        "firebase-admin": "^12.0.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "atsuki-sakai/shopify-point-app",
+      "commit": "69a01aa38487b3395da720909bfbea67cc178cb2",
+      "source": "frozen:2026-10-16-shopify-fresh-repos.json",
+      "declared": {
+        "firebase-admin": "^12.7.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "Mcgyver-ai/DMForge",
+      "commit": "84d4f4c35f78f25e8b0718aaeeaf84b388763b0e",
+      "source": "frozen:2026-10-16-stripe-active-repos.json",
+      "declared": {
+        "firebase": "^12.15.0",
+        "firebase-admin": "13.10.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "grepsoft/ezrental",
+      "commit": "935e79a08dfd59d9cbc01e363971d13fd22fe7b4",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "firebase": "^10.7.2"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "RemiMinderAI/RemiMinderAI",
+      "commit": "00464648db4ae1604f8c0a2d2015138cd4bb4ad1",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase": "^12.12.1"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "RiP3rQ/AI-Butler",
+      "commit": "4dadd4021c2d91bd742b122a45b2b26e86f4abc4",
+      "source": "frozen:2026-10-16-deadline-repos.json",
+      "declared": {
+        "firebase": "^10.9.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "ClinkedIn/Backend",
+      "commit": "3445fda804ed4b726221d42c46841d0f2a7adf4e",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase": "^11.4.0",
+        "firebase-admin": "^13.2.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "Divith123/Ninja-Drive",
+      "commit": "189395ab4115fbd7d406c960ff51aae1bde1f110",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase": "^11.0.2"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "wyvern800/tldkp",
+      "commit": "741584019aaa2525f8cd588790e2ff70ca6208d6",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase-admin": "12.6.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "hasanRafi2002/asgn-12-server",
+      "commit": "3761d2326346b269c7535715d749582c74c83ec3",
+      "source": "frozen:2026-10-15-stripe-heldout-repos.json",
+      "declared": {
+        "firebase-admin": "^11.11.1"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "spheceo/stoic-platform",
+      "commit": "0b865a211bb092895e8b1186f6a4fddaf3b57c18",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase": "^10.3.1"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "SWE-S26/Backend-Team5",
+      "commit": "ba01b6f93b33cb546d351161c8d1b676368a03db",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase-admin": "^13.8.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "itw-creative-works/backend-manager",
+      "commit": "110a734a23e5f79de676f3c907c20b7b002feff5",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase-admin": "^13.10.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "adrianhorning08/web-scraping-course-app",
+      "commit": "bb74b211acd3e03f2ea3a7e86819de5d2e8e27f9",
+      "source": "frozen:2026-10-15-stripe-heldout-repos.json",
+      "declared": {
+        "firebase": "^10.8.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "marketstandard/onix",
+      "commit": "10099b4bc216002f176f8523c25fd9de00b1da0e",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase": "^10.9.0",
+        "firebase-admin": "^11.9.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "Abdul-Rafay-2002/SparkSprint",
+      "commit": "7f4168ee3215bbf035a4fcbc357dcef03b24279f",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase": "^10.7.2"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "YosraGhanmi/BrainTrain-",
+      "commit": "2e5998b220efae72a8571679092b679713b2840a",
+      "source": "frozen:2026-10-16-stripe-active-repos.json",
+      "declared": {
+        "firebase-admin": "^14.4.0"
+      }
+    },
+    {
+      "provider": "firebase",
+      "repo": "BTheCoderr/jackerboxV2",
+      "commit": "c09ca7c66ef99061cf5e187877956fa9cc3d24b2",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "firebase": "^10.14.1"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "CampusStoresCanada/shipping-label",
+      "commit": "8b10eda239ac7bcf8eded80debaa610e6e46d4d6",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.47.10"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "qesmsep/noir-crm-dashboard",
+      "commit": "1f59675a9636716b8efc028c9a637c9568e8fb8e",
+      "source": "frozen:2026-10-16-stripe-active-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.49.4"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "hugodemenez/deltalytix",
+      "commit": "1ed4c7306c0361eaada02919bfd7994735de526b",
+      "source": "frozen:2026-10-21-openai-app-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "latest",
+        "@supabase/ssr": "latest"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "IramMcFly/kitchen-soft-platform",
+      "commit": "5a3a8221b5a30307d4086b2498bc4e02c50368c1",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.103.3"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "Chivo1530/CHIVITO-AI-DEV",
+      "commit": "f492e7183d889ad259781f57b6defc6d31fa906e",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.51.0",
+        "@supabase/auth-helpers-nextjs": "^0.10.0",
+        "@supabase/auth-helpers-react": "^0.5.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "offers-png/genid",
+      "commit": "0d401a6efe71b3aa7af890116b32d3930c1acdea",
+      "source": "frozen:2026-10-16-stripe-active-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.105.1"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "Joseyosei/Share-The-Link",
+      "commit": "ccc7947d2efa45fddef8619bc5c940c1b669a854",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.90.1"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "daffy0208/ai-dev-standards",
+      "commit": "32c3241e48f9fe2c3de611ad9168503ea41f28fd",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.81.1",
+        "@supabase/ssr": "^0.7.0",
+        "@supabase/auth-helpers-nextjs": "^0.10.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "4NDR3S-01/StyleHub",
+      "commit": "8071226b297b67a09e895f40d0bb32ddaf82508b",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.52.1",
+        "@supabase/auth-helpers-nextjs": "^0.10.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "dlackner/charlie_chat",
+      "commit": "ae88946a9aceaba3b4111e985ae0cde817d55412",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.49.4",
+        "@supabase/ssr": "^0.6.1"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "4NDR3S-01/TuSuerteEC",
+      "commit": "cafa2f19d763120540fdaf53c3b20b7008f4dca5",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.45.5",
+        "@supabase/ssr": "^0.7.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "KyngKai909/nova-editor",
+      "commit": "f9e91c1113166d3483fe3a5e5849e7af4f548781",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.108.1"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "mrwebwork/spotify",
+      "commit": "91cfa45df898fef97f66fb5125009e86872633a0",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.26.0",
+        "@supabase/auth-helpers-nextjs": "^0.7.2",
+        "@supabase/auth-helpers-react": "^0.4.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "Dursun242/Zenbat",
+      "commit": "a3a7d4991dd37c6bcad2ee5b2fa569028f045305",
+      "source": "frozen:2026-10-16-stripe-active-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.103.3"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "AlefeSk8/Spotify-Clone-Next.js",
+      "commit": "9b5d9ccc9740a51cab5249adee5dac5a8c112f91",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.25.0",
+        "@supabase/auth-helpers-nextjs": "^0.10.0",
+        "@supabase/auth-helpers-react": "^0.5.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "Auriti-Labs/geo-score",
+      "commit": "52c2f95b27936dc9cda33bc3761a12dc31da64a4",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.98.0",
+        "@supabase/ssr": "^0.8.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "arebrinkemil/mp3streamer",
+      "commit": "bf45a7dd48e7dfb532ce0a02302ca0de83292caa",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.26.0",
+        "@supabase/auth-helpers-nextjs": "^0.7.2",
+        "@supabase/auth-helpers-react": "^0.4.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "ADRIG-AI/shofipy-backend",
+      "commit": "34ebd0a687af72388ee82d21a21216f2eadfb0ea",
+      "source": "frozen:2026-10-16-deadline-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.50.1"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "cdinnison/goal-reminder",
+      "commit": "caf009acb0b1a376ba37ea2003ca3f6d2d603810",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.39.0"
+      }
+    },
+    {
+      "provider": "supabase",
+      "repo": "grimorio007-collab/private_Whatsapp",
+      "commit": "1b719d0cdbc31d4083927c64d266f33eb5318a9a",
+      "source": "frozen:2026-10-15-deadline-pilot-repos.json",
+      "declared": {
+        "@supabase/supabase-js": "^2.43.0"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "naveennaidu/OpenformStack",
+      "commit": "6eec1c882ee327efd4095ac8279543d2bcbe4b68",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "next-auth": "4.21.1"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "LarytheLord/Adventurers-Guild",
+      "commit": "21ec323ea2347e266b037e7818b9bb1030760e9f",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "next-auth": "4.24.7"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "thereactfoundation/react.foundation",
+      "commit": "5a51afb76c2a54e6aa967221b76f03e4f92da5fd",
+      "source": "frozen:2026-10-21-openai-app-repos.json",
+      "declared": {
+        "next-auth": "^4.24.11"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "sudeepmahato16/airbnb-clone",
+      "commit": "fe8a793e7f7e296e8f52a050b1536fb756323f5d",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "next-auth": "^4.24.5"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "sa902/ship-fast-ts-main",
+      "commit": "e6ef4f2a99e0aaa330c25b1fa08f439a3152b1cb",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "next-auth": "^4.23.1"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "Shivamrai15/lms",
+      "commit": "161b3edab4eb1179cce56ed956423ff388097287",
+      "source": "frozen:2026-10-15-stripe-heldout-repos.json",
+      "declared": {
+        "next-auth": "^5.0.0-beta.20"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "Will-404-debug/Katana-Forge",
+      "commit": "e1b9e5f954630fe3f0c8cccfbdf9b76b9a6047cd",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "next-auth": "^4.24.11"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "zebbern/repolens",
+      "commit": "9d0a2ff046600ea633b40837a03d5895173ef8d0",
+      "source": "frozen:2026-10-16-deadline-repos.json",
+      "declared": {
+        "next-auth": "5.0.0-beta.32",
+        "@auth/core": "0.41.3"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "el-noir/Tempify",
+      "commit": "6ac52870a972bb9c47efc76708d1bf8cac34acd7",
+      "source": "frozen:2026-10-15-stripe-heldout-repos.json",
+      "declared": {
+        "next-auth": "^4.24.11"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "hex22a/techwear-shop-nextjs",
+      "commit": "900582b17a9f5d82f84128d53f190b318593eefd",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "next-auth": "5.0.0-beta.25"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "dsound-zz/DDIA-RAG",
+      "commit": "51f1aa65dc0be6d3bbc77ba3923fa28bfb9db965",
+      "source": "frozen:2026-10-21-openai-app-repos.json",
+      "declared": {
+        "next-auth": "^5.0.0-beta.31"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "LakshAgrawal28/CreatorOS",
+      "commit": "6eee911bd9aaf90e6d670dc0ff736a8a1678b394",
+      "source": "frozen:2026-10-16-deadline-repos.json",
+      "declared": {
+        "next-auth": "^4.24.14"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "membranehq/ai-agent-example",
+      "commit": "ad9989e8554d0c2d51282a23406649d5c5ca8555",
+      "source": "frozen:2026-10-21-openai-app-repos.json",
+      "declared": {
+        "next-auth": "5.0.0-beta.25"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "nishantharkut/Uproot.AI",
+      "commit": "2c9ab42949c6bf2a9e80239ca9693afd34338094",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "next-auth": "5.0.0-beta.30"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "QizarBilal/GreenNode",
+      "commit": "c87911372df41efa8cbade32840682dee8eee4dc",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "next-auth": "^4.24.11"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "Yousuf-Basir/sso-server",
+      "commit": "e2b522e62db369498a78adfed09b5d042ab55b31",
+      "source": "frozen:2026-10-16-deadline-repos.json",
+      "declared": {
+        "next-auth": "^4.24.11"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "gr8monk3ys/link-flame",
+      "commit": "742dfb7dd3a6ffe14a89b93bd17497a674a09ce6",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "next-auth": "^5.0.0-beta.32"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "ElricLiu/AutoGPT-Next-Web",
+      "commit": "93c325afd54a255e60762b27f77763fc5631b23d",
+      "source": "frozen:2026-10-16-stripe-fresh-repos.json",
+      "declared": {
+        "next-auth": "^4.23.2"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "Panda2Chan/ai-asmr",
+      "commit": "cbaf6a28512730839a9a0d72a852416e97f0f0dc",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "next-auth": "^4.24.0"
+      }
+    },
+    {
+      "provider": "nextauth",
+      "repo": "ItusiAI/Open-Magiviz",
+      "commit": "38ea70ec218d4d17caad30888779b1bb2935c0e2",
+      "source": "frozen:2026-10-14-stripe-repos.json",
+      "declared": {
+        "next-auth": "^4.24.13"
+      }
+    },
+    {
+      "provider": "auth0",
+      "repo": "ctx-core/auth0",
+      "commit": "5b151bbd76381cb8cbecb0406579eabc202a270e",
+      "source": "npm:@ctx-core/auth0@40.1.298",
+      "declared": {
+        "auth0-js": "^9.30.1"
+      },
+      "monthlyDownloads": 5809
+    },
+    {
+      "provider": "auth0",
+      "repo": "ndustrialio/contxt-sdk-js",
+      "commit": "bb9ea76fa64f42e9367208c810ec06e9f1c41e31",
+      "source": "npm:@ndustrial/contxt-sdk@5.8.3",
+      "declared": {
+        "auth0-js": "^10.2.0"
+      },
+      "monthlyDownloads": 4093
+    },
+    {
+      "provider": "auth0",
+      "repo": "webiny/webiny-js",
+      "commit": "34ee0488057248aa86cd630318bed59603267180",
+      "source": "npm:@webiny/auth0@6.5.0",
+      "declared": {
+        "@auth0/auth0-spa-js": "2.28.4"
+      },
+      "monthlyDownloads": 3735
+    },
+    {
+      "provider": "auth0",
+      "repo": "MemberJunction/MJ",
+      "commit": "9222b5b3b3bd08ab475062399ad41507d62a3443",
+      "source": "npm:@memberjunction/ng-auth-services@6.1.6",
+      "declared": {
+        "@auth0/auth0-spa-js": "^2.14.0"
+      },
+      "monthlyDownloads": 3579
+    },
+    {
+      "provider": "auth0",
+      "repo": "ctx-core/auth0-management",
+      "commit": "e8d351cb23dce2ec5c936ba84cdd77735d79e183",
+      "source": "npm:@ctx-core/auth0-management@10.0.178",
+      "declared": {
+        "auth0": "^5.4.0"
+      },
+      "monthlyDownloads": 3471
+    },
+    {
+      "provider": "auth0",
+      "repo": "ctx-core/object",
+      "commit": "09615611d53468b520d1512562c4bd45520cdb92",
+      "source": "npm:@ctx-core/auth0-cs-solid@2.1.324",
+      "declared": {
+        "auth0-js": "^9.30.1"
+      },
+      "monthlyDownloads": 2100
+    },
+    {
+      "provider": "auth0",
+      "repo": "meathill/awesome-comment",
+      "commit": "2b49e53d0a0ab243fa52fd4e4960ee6ec9f2f801",
+      "source": "npm:@roudanio/awesome-comment@0.12.1",
+      "declared": {
+        "@auth0/auth0-vue": "^2.7.0"
+      },
+      "monthlyDownloads": 2075
+    },
+    {
+      "provider": "auth0",
+      "repo": "sesamyab/authhero",
+      "commit": "cc848ceeaf3cebfb9efe31af1b3a6b041fbdf94d",
+      "source": "npm:@authhero/admin@0.22.4",
+      "declared": {
+        "auth0": "^5.10.0",
+        "@auth0/auth0-spa-js": "^2.17.1"
+      },
+      "monthlyDownloads": 1628
+    },
+    {
+      "provider": "auth0",
+      "repo": "Twirelab/nestjs-auth0",
+      "commit": "420068f1c13e991430703d06510ed27181bc6740",
+      "source": "npm:@twirelab/nestjs-auth0@1.0.0",
+      "declared": {
+        "auth0": "^5.0.0"
+      },
+      "monthlyDownloads": 1478
+    },
+    {
+      "provider": "auth0",
+      "repo": "ctx-core/auth0-lock",
+      "commit": "1b607abfc95536c13602e41a1fc2d1f01afb4448",
+      "source": "npm:@ctx-core/auth0-lock@15.4.337",
+      "declared": {
+        "auth0-lock": "^14.2.4"
+      },
+      "monthlyDownloads": 1047
+    },
+    {
+      "provider": "auth0",
+      "repo": "OpenArCloud/scd-access",
+      "commit": "8d79e1c8b47ea846afe2dd0539b101ecf25226ed",
+      "source": "npm:@oarc/scd-access@0.5.0",
+      "declared": {
+        "@auth0/auth0-spa-js": "^2.1.3"
+      },
+      "monthlyDownloads": 775
+    },
+    {
+      "provider": "auth0",
+      "repo": "vierroth/cdk-auth0",
+      "commit": "f426b8b54002b46d8c0f3448c5adaed343b8fbb0",
+      "source": "npm:@flit/cdk-auth0@1.24.0",
+      "declared": {
+        "auth0": "^5.11.0"
+      },
+      "monthlyDownloads": 687
+    },
+    {
+      "provider": "auth0",
+      "repo": "ctx-core/auth0-spa-svelte",
+      "commit": "bbf62c0333256627b0b7dab1a0a401943d82935e",
+      "source": "npm:@ctx-core/auth0-spa-svelte@1.2.310",
+      "declared": {
+        "auth0-js": "^9.30.1"
+      },
+      "monthlyDownloads": 651
+    },
+    {
+      "provider": "auth0",
+      "repo": "Othent/KeyManagementService",
+      "commit": "ef5b6873d599e74e2d1329d5e492d1824604b39d",
+      "source": "npm:@othent/kms@2.1.1",
+      "declared": {
+        "@auth0/auth0-spa-js": "^2.1.3"
+      },
+      "monthlyDownloads": 452
+    },
+    {
+      "provider": "auth0",
+      "repo": "httptoolkit/lock",
+      "commit": "54a53f07901c4daa2bc538a3c85664612226e4fa",
+      "source": "npm:@httptoolkit/auth0-lock@12.5.2",
+      "declared": {
+        "auth0-js": "^9.26.0"
+      },
+      "monthlyDownloads": 327
+    }
+  ]
+}

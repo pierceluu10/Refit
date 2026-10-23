@@ -1,0 +1,13 @@
+fix(shopify): upgrade Admin API to 2026-04
+
+This app pins Shopify Admin API 2025-10. A deterministic Refit rule
+moves it to 2026-04 after checking every traced GraphQL document against
+the 2026-04 schema.
+
+- .graphqlrc.ts: Moves the pinned Admin API version to 2026-04.
+- app/shopify.server.ts: Moves the pinned Admin API version to 2026-04.
+
+Checks: npm test passed on the original and migrated code in offline
+Docker.
+
+Refit-Run: a6212c5cfe66

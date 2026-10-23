@@ -9,6 +9,7 @@ import {
   type DeadlineEntry,
   type DeadlineRegistry,
 } from './deadline-registry.ts';
+import type { ModelParameterEntry, ModelParameterTable } from './model-parameters.ts';
 import { proposeModelReplacements as proposeDirect } from './model-retirements.ts';
 
 // Most cases exercise the full resolver, with indirect edits (D-06 to D-08) enabled. The default,
@@ -183,7 +184,8 @@ it('stops for review where a swap could change the request, and skips what it ca
       "  await openai.chat.completions.create({ ...options, model: 'gpt-4', messages });",
       '  await openai.chat.completions.create({ model: MODEL, messages });',
       "  await openai.chat.completions.create({ model: 'gpt-prose', messages });",
-      // Not a text-generation call: it stops for review. Not the SDK, or not a retiring model: nothing.
+      // Not a text-generation call, or an Amazon Bedrock ID: it stops for review. Not the SDK, or
+      // not a retiring model: nothing.
       "  await openai.embeddings.create({ model: 'gpt-4', input: 'x' });",
       "  await fetch('https://api.openai.com', { body: JSON.stringify({ model: 'gpt-4' }) });",
       "  await openai.chat.completions.create({ model: 'gpt-4o', messages });",
@@ -222,6 +224,11 @@ it('stops for review where a swap could change the request, and skips what it ca
       8,
       'claude-3-opus-20240229',
       'The request sets temperature, which claude-opus-4-8 may reject or treat differently.',
+    ],
+    [
+      15,
+      'anthropic.claude-3-opus-20240229-v1:0',
+      "`anthropic.claude-3-opus-20240229-v1:0` is a model ID for Amazon Bedrock, where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Amazon Bedrock's model lifecycle and change it by hand to its ID for claude-opus-4-8.",
     ],
   ]);
 });
@@ -281,17 +288,29 @@ it('never proposes Gemini model or SDK replacements', async () => {
     'src/gemini.ts': [
       "import { GoogleGenAI } from '@google/genai';",
       "import { GoogleGenerativeAI } from '@google/generative-ai';",
+      "import { VertexAI } from '@google-cloud/vertexai';",
       'const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });',
       "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi' });",
+      'const genAI = new GoogleGenerativeAI(key);',
+      "const MODEL = process.env.GEMINI_MODEL ?? 'gemini-1.5-flash';",
+      'genAI.getGenerativeModel({ model: MODEL });',
+      "const vertex = new VertexAI({ project: 'p', location: 'us-central1' });",
+      "vertex.getGenerativeModel({ model: 'gemini-1.5-flash' });",
       "new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-1.5-flash' });",
     ].join('\n'),
   });
-  expect(await proposeModelReplacements(root, gemini, NOW)).toEqual({
-    replacements: [],
-    stops: [],
-    unresolved: [],
-    patch: null,
-  });
+  const proposal = await proposeModelReplacements(root, gemini, NOW);
+  // Reported, never edited.
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(
+    proposal.stops.map((stop) => `${stop.line} ${stop.call} ${stop.at.line}: ${stop.reason}`),
+  ).toEqual([
+    '5 models.generateContent 5: Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-2.0-flash.',
+    '8 getGenerativeModel 7: Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-2.0-flash.',
+    "10 getGenerativeModel 10: The client is Vertex AI, whose model retirement dates differ from the Gemini API's; check Google Cloud's model versions page and change it by hand, for example to gemini-2.0-flash.",
+  ]);
+  expect(proposal.unresolved.map((item) => item.line)).toEqual([11]);
 });
 
 // Shapes found on the deadline benchmark: the openai v3 SDK and openai-edge, request objects held in
@@ -511,6 +530,9 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
       'const anthropic = new Anthropic();',
       "anthropic.messages.create({ model: 'claude-3-haiku-20240307', temperature: 0, max_tokens: 9, messages: [] });",
       "anthropic.messages.create({ model: 'claude-3-opus-20240229', top_k: 5, max_tokens: 9, messages: [] });",
+      // Claude 4.7 and later reject `thinking: { type: 'enabled' }`; Claude Haiku 4.5 keeps it.
+      "anthropic.messages.create({ model: 'claude-3-opus-20240229', thinking: { type: 'enabled', budget_tokens: 2048 }, max_tokens: 4096, messages: [] });",
+      "anthropic.messages.create({ model: 'claude-3-haiku-20240307', thinking: { type: 'enabled', budget_tokens: 2048 }, max_tokens: 4096, messages: [] });",
     ].join('\n'),
   });
   const proposal = await proposeModelReplacements(
@@ -532,9 +554,11 @@ it('keeps Anthropic sampling parameters when the replacement predates Claude 4.7
   );
   expect(proposal.replacements.map((item) => [item.line, item.to])).toEqual([
     [3, 'claude-haiku-4-5-20251001'],
+    [6, 'claude-haiku-4-5-20251001'],
   ]);
   expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
     [4, 'The request sets top_k, which claude-opus-4-8 may reject or treat differently.'],
+    [5, 'The request sets thinking, which claude-opus-4-8 may reject or treat differently.'],
   ]);
 });
 
@@ -1351,7 +1375,11 @@ it('stops instead of editing when a client sets a custom base URL or is an Azure
   expect(proposal.patch).toBeNull();
   expect(proposal.stops.map((item) => [item.file, item.model, item.reason]).sort()).toEqual([
     ['src/azure.ts', 'gpt-4', reason],
-    ['src/proxy.ts', 'gpt-4', reason],
+    [
+      'src/proxy.ts',
+      'gpt-4',
+      "The client sets `baseURL` (src/proxy.ts:2), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+    ],
   ]);
 
   // Without a base URL or an Azure client the same request is edited, and a raw request to the
@@ -1374,7 +1402,12 @@ it('stops instead of editing when a client sets a custom base URL or is an Azure
   });
   const held = await proposeModelReplacements(mixed, registry, NOW);
   expect(edited(held)).toEqual(['src/raw.ts:1 o1-mini']);
-  expect(held.stops.map((item) => [item.file, item.reason])).toEqual([['src/a.ts', reason]]);
+  expect(held.stops.map((item) => [item.file, item.reason])).toEqual([
+    [
+      'src/a.ts',
+      "The repository mentions a custom endpoint (src/proxy.ts:1), but this request's client (src/a.ts:2) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to gpt-5.6-sol.",
+    ],
+  ]);
 });
 
 it('stops on overridden methods, subclass fields and super(...) arguments instead of dropping them', async () => {
@@ -1485,9 +1518,25 @@ it('stops every SDK request when any file mentions a custom endpoint, in any sha
     });
     const proposal = await proposeModelReplacements(root, registry, NOW);
     expect([label, proposal.replacements]).toEqual([label, []]);
+    // Where only another client's constructor sets the endpoint, the stop says so; with the
+    // endpoint-tracing option (off by default, pending an owner decision) the request is edited.
+    const elsewhere = ['options object', 'spread'].includes(label);
     expect([label, proposal.stops.map((item) => [item.file, item.reason])]).toEqual([
       label,
-      [['src/a.ts', reason]],
+      [
+        [
+          'src/a.ts',
+          elsewhere
+            ? "The repository mentions a custom endpoint (src/client.ts:2), but this request's client (src/a.ts:2) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to gpt-5.6-sol."
+            : reason,
+        ],
+      ],
+    ]);
+    const traced = await proposeModelReplacements(root, registry, NOW, { endpoints: true });
+    expect([label, traced.replacements.length, traced.stops.length]).toEqual([
+      label,
+      elsewhere ? 1 : 0,
+      elsewhere ? 0 : 1,
     ]);
   }
   // A compiler `baseUrl`, files in node_modules, and words that only contain `base`
@@ -1918,10 +1967,6 @@ it('follows the right side of && and keeps the other shapes untraced', async () 
     ],
     arguments: ['function ask() {', `  return ${send('arguments[0]')}`, '}', "ask('gpt-4');"],
     'this in an object method': ["const o = { m: 'gpt-4', go() { " + send('this.m') + ' } };'],
-    'spread from a const object': [
-      "const base = { model: 'gpt-4' };",
-      'openai.chat.completions.create({ ...base, messages: [] });',
-    ],
   };
   for (const [label, lines] of Object.entries(shapes)) {
     const proposal = await proposeModelReplacements(
@@ -1931,6 +1976,26 @@ it('follows the right side of && and keeps the other shapes untraced', async () 
     );
     expect([label, proposal.replacements, proposal.stops]).toEqual([label, [], []]);
   }
+  // A model spread in from a `const` object is reported, not edited.
+  const spread = await proposeModelReplacements(
+    await repository({
+      'src/a.ts': [
+        ...HEAD,
+        "const base = { model: 'gpt-4' };",
+        'openai.chat.completions.create({ ...base, messages: [] });',
+      ].join('\n'),
+    }),
+    registry,
+    NOW,
+  );
+  expect(spread.replacements).toEqual([]);
+  expect(spread.stops).toMatchObject([
+    {
+      model: 'gpt-4',
+      reason:
+        'The request takes its model from the options it spreads (`...base`), which Refit reports but does not edit; change it by hand to gpt-5.6-sol.',
+    },
+  ]);
 });
 it('reports class property models at their initializers and assignments without editing them', async () => {
   const root = await repository({
@@ -2289,13 +2354,43 @@ it('explains every live model ID that no traced request sends', async () => {
       "export const model = anthropic('claude-3-opus-20240229');",
     ].join('\n'),
   });
-  expect((await proposeModelReplacements(withoutSdk, registry, NOW)).unresolved).toMatchObject([
+  // An AI wrapper SDK call is listed by the wrapper detector (pipeline/model-wrappers.ts).
+  const wrapped = await proposeModelReplacements(withoutSdk, registry, NOW);
+  expect(wrapped.unresolved).toEqual([]);
+  expect(wrapped.stops).toMatchObject([
+    { file: 'src/model.ts', line: 2, call: '@ai-sdk/anthropic anthropic()' },
+  ]);
+  // Without the detector, the same match is unresolved, with where it is written.
+  expect(
+    (await proposeModelReplacements(withoutSdk, registry, NOW, { reportOnly: [] })).unresolved,
+  ).toMatchObject([
     {
       file: 'src/model.ts',
       line: 2,
       reason: expect.stringMatching(
-        /^No file imports `@anthropic-ai\/sdk`, so the model may reach the API through another library or a wrapper \(it is passed to anthropic\(\)\)\./,
+        /^No file imports `@anthropic-ai\/sdk`, `@anthropic-ai\/bedrock-sdk` or `@anthropic-ai\/vertex-sdk`, so the model may reach the API through another library or a wrapper \(it is passed to anthropic\(\)\)\./,
       ),
+    },
+  ]);
+  // A report-only detector's site is listed as its stop, with its reason, instead.
+  const wrapper = {
+    file: 'src/model.ts',
+    line: 2,
+    model: 'claude-3-opus-20240229',
+    call: '@ai-sdk/anthropic anthropic()',
+    reason: 'Reported by a wrapper detector.',
+  };
+  const reported = await proposeModelReplacements(withoutSdk, registry, NOW, {
+    reportOnly: [() => [wrapper], () => [{ ...wrapper, line: 9 }]],
+  });
+  expect(reported.unresolved).toEqual([]);
+  expect(reported.patch).toBeNull();
+  expect(reported.stops).toEqual([
+    {
+      deadline: 'anthropic-claude-3-opus',
+      provider: 'anthropic',
+      ...wrapper,
+      at: { file: 'src/model.ts', line: 2 },
     },
   ]);
 });
@@ -2330,4 +2425,497 @@ it('treats the SDK as the package under a catch-all paths entry unless a source 
   expect(shadowed.replacements).toEqual([]);
   expect(shadowed.patch).toBeNull();
   expect(shadowed.unresolved).toMatchObject([{ file: 'server/src/summarize.ts', line: 4 }]);
+});
+
+// Messages API shapes real applications use: streaming, beta.messages and a tool-use loop are
+// plain requests and are edited; the rest are reported with why they are not.
+it('edits streaming, beta and tool-loop Messages requests and stops on helpers, batches and spreads', async () => {
+  const root = await repository({
+    'src/chat.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export async function chat(messages: any[], tools: any[]) {',
+      "  const stream = await anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages, stream: true });",
+      '  for await (const event of stream) console.log(event);',
+      "  await anthropic.messages.stream({ model: 'claude-3-opus-20240229', max_tokens: 9, messages }).on('text', console.log).finalMessage();",
+      "  await anthropic.beta.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages, betas: ['x'] });",
+      "  anthropic.beta.messages.stream({ model: 'claude-3-opus-20240229', max_tokens: 9, messages });",
+      '  while (true) {',
+      "    const response = await anthropic.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      "    if (response.stop_reason !== 'tool_use') return response;",
+      "    messages.push({ role: 'assistant', content: response.content });",
+      '  }',
+      '}',
+    ].join('\n'),
+    'src/other.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export async function other(messages: any[], tools: any[]) {',
+      "  await anthropic.beta.messages.toolRunner({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      "  await anthropic.beta.tools.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, tools, messages });",
+      '  await anthropic.messages.batches.create({',
+      "    requests: [{ custom_id: 'a', params: { model: 'claude-3-opus-20240229', max_tokens: 9, messages } }],",
+      '  });',
+      "  const params = { model: 'claude-3-opus-20240229', max_tokens: 9, tools };",
+      '  await anthropic.messages.create({ ...params, messages });',
+      '}',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements.map((item) => [item.file, item.line, item.call])).toEqual([
+    ['src/chat.ts', 4, 'messages.create'],
+    ['src/chat.ts', 6, 'messages.stream'],
+    ['src/chat.ts', 7, 'beta.messages.create'],
+    ['src/chat.ts', 8, 'beta.messages.stream'],
+    ['src/chat.ts', 10, 'messages.create'],
+  ]);
+  expect(proposal.stops.map((item) => [item.at.line, item.call, item.reason])).toEqual([
+    [
+      4,
+      'beta.messages.toolRunner',
+      '`beta.messages.toolRunner` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      5,
+      'beta.tools.messages.create',
+      '`beta.tools.messages.create` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      7,
+      'messages.batches.create',
+      '`messages.batches.create` is a Message Batches request, which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+    [
+      9,
+      'messages.create',
+      'The request takes its model from the options it spreads (`...params`), which Refit reports but does not edit; change it by hand to claude-opus-4-8.',
+    ],
+  ]);
+  expect(proposal.unresolved).toEqual([]);
+});
+
+// Claude on Amazon Bedrock and Google Cloud Vertex AI keeps its own model IDs and retirement
+// dates, so its requests are reported with the Claude API model they name and never edited.
+it('stops on Bedrock and Vertex AI clients and on platform model IDs', async () => {
+  const root = await repository({
+    'package.json': JSON.stringify({
+      name: 'app',
+      dependencies: {
+        '@anthropic-ai/sdk': '0.40.0',
+        '@anthropic-ai/bedrock-sdk': '0.12.0',
+        '@anthropic-ai/vertex-sdk': '0.6.0',
+      },
+    }),
+    'src/bedrock.ts': [
+      "import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk';",
+      'const bedrock = new AnthropicBedrock();',
+      'export const ask = (messages: any[]) =>',
+      "  bedrock.messages.create({ model: 'us.anthropic.claude-3-opus-20240229-v1:0', max_tokens: 9, messages });",
+    ].join('\n'),
+    'src/vertex.ts': [
+      "import AnthropicVertex from '@anthropic-ai/vertex-sdk';",
+      "const vertex = new AnthropicVertex({ region: 'us-east5', projectId: 'p' });",
+      'export const ask = (messages: any[]) =>',
+      "  vertex.messages.stream({ model: 'claude-3-opus@20240229', max_tokens: 9, messages });",
+      'export const plain = (messages: any[]) =>',
+      "  vertex.messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages });",
+    ].join('\n'),
+    // A Bedrock ID on the Claude API client (a gateway, say) stops too; the next model is not.
+    'src/api.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const anthropic = new Anthropic();',
+      'export const ask = (messages: any[]) =>',
+      "  anthropic.messages.create({ model: 'anthropic.claude-3-opus-20240229-v1:0', max_tokens: 9, messages });",
+      'export const keep = (messages: any[]) =>',
+      "  anthropic.messages.create({ model: 'anthropic.claude-opus-4-8-v1:0', max_tokens: 9, messages });",
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const bedrock =
+    "where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Amazon Bedrock's model lifecycle and change it by hand to its ID for claude-opus-4-8.";
+  const vertex =
+    "The client is Claude on Google Cloud Vertex AI, where model IDs and retirement dates are Google Cloud Vertex AI's, not the Claude API's (the Claude API retires claude-3-opus-20240229 on 2026-01-05); check Google Cloud Vertex AI's model lifecycle and change it by hand to its ID for claude-opus-4-8.";
+  expect(
+    proposal.stops
+      .map((item) => [item.file, item.model, item.reason])
+      .sort((a, b) => a[0].localeCompare(b[0])),
+  ).toEqual([
+    [
+      'src/api.ts',
+      'anthropic.claude-3-opus-20240229-v1:0',
+      `\`anthropic.claude-3-opus-20240229-v1:0\` is a model ID for Amazon Bedrock, ${bedrock}`,
+    ],
+    [
+      'src/bedrock.ts',
+      'us.anthropic.claude-3-opus-20240229-v1:0',
+      `The client is Claude on Amazon Bedrock, ${bedrock}`,
+    ],
+    ['src/vertex.ts', 'claude-3-opus@20240229', vertex],
+    ['src/vertex.ts', 'claude-3-opus-20240229', vertex],
+  ]);
+});
+
+// A client the analyzer cannot trace to `new Anthropic()` is still the SDK when its declaration
+// names the SDK export; its requests are listed with that reason and never edited.
+it('lists requests on clients it cannot trace to the SDK constructor', async () => {
+  const create = "messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages })";
+  const root = await repository({
+    'src/clients.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'let lazy: Anthropic | null = null;',
+      'try { lazy = new Anthropic(); } catch {}',
+      'const maybe: Anthropic | undefined = process.env.KEY ? new Anthropic() : undefined;',
+      'const held = { claude: new Anthropic() };',
+      'export async function all(messages: any[], given: Anthropic) {',
+      `  if (lazy) await lazy.${create};`,
+      `  await maybe!.${create};`,
+      `  await held.claude.${create};`,
+      `  await given.${create};`,
+      '}',
+      'export class Service {',
+      '  constructor(private readonly client: Anthropic) {}',
+      `  run(messages: any[]) { return this.client.${create}; }`,
+      '}',
+    ].join('\n'),
+    // Not the SDK: an ORM table that happens to be called `messages`.
+    'src/store.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'declare const db: { messages: { create(row: object): void } };',
+      "export const save = () => db.messages.create({ model: 'claude-3-opus-20240229' });",
+      'export type Client = Anthropic;',
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const reason = (client: string) =>
+    `The client \`${client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to claude-opus-4-8.`;
+  expect(proposal.stops.map((item) => [item.line, item.reason])).toEqual([
+    [7, reason('lazy')],
+    [8, reason('maybe')],
+    [9, reason('held.claude')],
+    [10, reason('given')],
+    [14, reason('this.client')],
+  ]);
+  expect(proposal.unresolved).toMatchObject([{ file: 'src/store.ts', line: 3 }]);
+});
+
+// The custom-endpoint stop names the request's own client where its constructor shows one, and
+// keeps the repository-wide wording where the client cannot be followed.
+it("ties the custom-endpoint stop to the request's own client where it can", async () => {
+  const create = "chat.completions.create({ model: 'gpt-4', messages: [] })";
+  const root = await repository({
+    'src/field.ts': [
+      "import OpenAI from 'openai';",
+      'export class Chat {',
+      "  client = new OpenAI({ apiKey: 'k', baseURL: 'https://router.example/v1' });",
+      `  ask() { return this.client.${create}; }`,
+      '}',
+    ].join('\n'),
+    'src/fetch.ts': [
+      "import OpenAI from 'openai';",
+      'const traced = new OpenAI({ fetch: globalThis.fetch });',
+      `export const ask = () => traced.${create};`,
+    ].join('\n'),
+    // A lazy getter over a `let` is followed through its assignments.
+    'src/lazy.ts': [
+      "import OpenAI from 'openai';",
+      'let cached: OpenAI | null = null;',
+      'function client() {',
+      '  if (!cached) cached = new OpenAI({ apiKey: process.env.KEY, baseURL: process.env.URL });',
+      '  return cached;',
+      '}',
+      `export const ask = () => client().${create};`,
+    ].join('\n'),
+    'src/helper.ts': [
+      "import OpenAI from 'openai';",
+      'const helped = new OpenAI();',
+      `const run = (client: OpenAI) => client.${create};`,
+      'export const ask = () => run(helped);',
+    ].join('\n'),
+  });
+  for (const endpoints of [false, true]) {
+    const proposal = await proposeModelReplacements(root, registry, NOW, { endpoints });
+    expect(proposal.replacements).toEqual([]);
+    expect(proposal.stops.map((item) => [item.file, item.reason]).sort()).toEqual([
+      [
+        'src/fetch.ts',
+        "The client sets `fetch` (src/fetch.ts:2), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/field.ts',
+        "The client sets `baseURL` (src/field.ts:3), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/helper.ts',
+        "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+      [
+        'src/lazy.ts',
+        "The client sets `baseURL` (src/lazy.ts:4), so the model may name another provider's model or a deployment; change it by hand to gpt-5.6-sol.",
+      ],
+    ]);
+  }
+});
+
+// Fixture tables stand in for data/model-parameters.json; no test reads the live file or calls a provider.
+const OFFICIAL = 'https://platform.claude.com/docs/en/models/sonnet-5-5/overview';
+const table = (...models: Pick<ModelParameterEntry, 'provider' | 'model' | 'parameters'>[]) =>
+  ({
+    formatVersion: 1,
+    models: models.map((model) => ({
+      ...model,
+      source: OFFICIAL,
+      defaultSource: OFFICIAL,
+      checkedAt: '2026-10-21',
+    })),
+  }) as ModelParameterTable;
+const PARAMETERS = table(
+  {
+    provider: 'anthropic',
+    model: 'claude-sonnet-5-5',
+    parameters: {
+      temperature: { accepts: 'default-only', default: 1 },
+      top_k: { accepts: 'none' },
+    },
+  },
+  {
+    provider: 'anthropic',
+    model: 'claude-range-test',
+    parameters: { temperature: { accepts: 'any', min: 0, max: 1 } },
+  },
+  {
+    provider: 'openai',
+    model: 'gpt-5.6-sol',
+    parameters: {
+      temperature: { accepts: 'any', min: 0, max: 2 },
+      top_p: { accepts: 'default-only', default: 1 },
+      max_tokens: { accepts: 'none', renamedTo: 'max_completion_tokens' },
+    },
+  },
+);
+const parameterRegistry: DeadlineRegistry = {
+  formatVersion: 1,
+  deadlines: [
+    ...registry.deadlines,
+    entry({
+      id: 'a-sonnet',
+      provider: 'anthropic',
+      versions: ['claude-3-5-sonnet-20241022'],
+      replacement: 'claude-sonnet-5-5',
+    }),
+    entry({
+      id: 'a-range',
+      provider: 'anthropic',
+      versions: ['claude-range-old'],
+      replacement: 'claude-range-test',
+    }),
+    entry({
+      id: 'a-haiku',
+      provider: 'anthropic',
+      versions: ['claude-3-haiku-20240307'],
+      replacement: 'claude-haiku-4-5-20251001',
+    }),
+    entry({
+      id: 'o-nano',
+      provider: 'openai',
+      versions: ['gpt-4.1-nano'],
+      replacement: 'gpt-5.6-luna',
+    }),
+  ],
+};
+
+async function propose(
+  target: readonly [provider: 'openai' | 'anthropic', model: string],
+  extra: string,
+  options: { parameters?: ModelParameterTable } = { parameters: PARAMETERS },
+) {
+  const [provider, model] = target;
+  const call =
+    provider === 'openai'
+      ? `openai.chat.completions.create({ model: '${model}', messages: [], ${extra} })`
+      : `anthropic.messages.create({ model: '${model}', max_tokens: 9, messages: [], ${extra} })`;
+  const root = await repository({
+    'src/ai.ts': [
+      "import OpenAI from 'openai';",
+      "import Anthropic from '@anthropic-ai/sdk';",
+      'const openai = new OpenAI();',
+      'const anthropic = new Anthropic();',
+      'const T = 1; const options = {};',
+      `export const call = (temperature: number) => ${call};`,
+    ].join('\n'),
+  });
+  return proposeModelReplacements(root, parameterRegistry, NOW, options);
+}
+
+const stopped = (reason: string) => [expect.objectContaining({ reason })];
+const SONNET = ['anthropic', 'claude-3-5-sonnet-20241022'] as const;
+const GPT = ['openai', 'gpt-4'] as const;
+
+it('parameter table: is off unless passed, so the heuristic stop stays', async () => {
+  const proposal = await propose(SONNET, 'temperature: 1', {});
+  expect(proposal.patch).toBeNull();
+  expect(proposal.stops).toEqual(
+    stopped(
+      'The request sets temperature, which claude-sonnet-5-5 may reject or treat differently.',
+    ),
+  );
+});
+
+it('parameter table: continues for a sourced literal and edits only the model', async () => {
+  for (const [args, extra, to] of [
+    [SONNET, 'temperature: 1', 'claude-sonnet-5-5'],
+    [GPT, 'temperature: 0.7', 'gpt-5.6-sol'],
+    [['anthropic', 'claude-range-old'], 'temperature: 0.5', 'claude-range-test'],
+  ] as const) {
+    const proposal = await propose(args, extra);
+    expect(proposal.stops).toEqual([]);
+    expect(proposal.replacements.map((item) => item.to)).toEqual([to]);
+    // Only the model ID differs between the removed and added text; every parameter is untouched.
+    const lines = (proposal.patch ?? '').split('\n');
+    const side = (mark: string) =>
+      lines.filter((line) => line.startsWith(mark) && !line.startsWith(mark.repeat(3)));
+    const removed = side('-').map((line) => line.slice(1));
+    const added = side('+').map((line) => line.slice(1));
+    expect(added.join('\n')).toBe(removed.join('\n').replace(/model: '[^']+'/, `model: '${to}'`));
+  }
+});
+
+it.each([
+  [
+    'unproven top_p on claude-sonnet-5-5',
+    SONNET,
+    'top_p: 1',
+    'The request sets top_p 1, which no official page read for claude-sonnet-5-5 proves it accepts; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'non-default temperature',
+    SONNET,
+    'temperature: 0.2',
+    'The request sets temperature 0.2, which claude-sonnet-5-5 accepts only at 1 (non-default value); change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'top_k',
+    SONNET,
+    'top_k: 5',
+    'The request sets top_k 5, which claude-sonnet-5-5 does not accept; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a constant',
+    SONNET,
+    'temperature: T',
+    'The request sets temperature to a value that is not a numeric literal, so it cannot be checked against what claude-sonnet-5-5 accepts; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a shorthand property',
+    SONNET,
+    'temperature',
+    'The request sets temperature to a value that is not a numeric literal, so it cannot be checked against what claude-sonnet-5-5 accepts; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'an Anthropic value out of range',
+    ['anthropic', 'claude-range-old'] as const,
+    'temperature: 1.5',
+    'The request sets temperature 1.5, outside the 0 to 1 range claude-range-test accepts; change it by hand to claude-range-test.',
+  ],
+  [
+    'an OpenAI value out of range',
+    GPT,
+    'temperature: -1',
+    'The request sets temperature -1, outside the 0 to 2 range gpt-5.6-sol accepts; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'an OpenAI non-default top_p',
+    GPT,
+    'top_p: 0.5',
+    'The request sets top_p 0.5, which gpt-5.6-sol accepts only at 1 (non-default value); change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'an OpenAI parameter without a spec',
+    GPT,
+    'presence_penalty: 0',
+    'The request sets presence_penalty 0, which no official page read for gpt-5.6-sol proves it accepts; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a string numeral',
+    GPT,
+    "temperature: '0.7'",
+    'The request sets temperature to a value that is not a numeric literal, so it cannot be checked against what gpt-5.6-sol accepts; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a renamed parameter',
+    GPT,
+    'max_tokens: 100',
+    'The request sets max_tokens 100, which gpt-5.6-sol does not accept; it takes max_completion_tokens instead, and Refit does not rename parameters; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'only the failing parameter in a mix',
+    GPT,
+    'temperature: 0.7, top_p: 0.5',
+    'The request sets top_p 0.5, which gpt-5.6-sol accepts only at 1 (non-default value); change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a spread, ahead of the table',
+    GPT,
+    '...options, temperature: 0.7',
+    'The request spreads other options, which may set parameters the replacement rejects.',
+  ],
+  [
+    'a computed string key',
+    SONNET,
+    "['temperature']: 0.5",
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a computed template key',
+    SONNET,
+    '[`top_k`]: 5',
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to claude-sonnet-5-5.',
+  ],
+  [
+    'a computed OpenAI key',
+    GPT,
+    "['max_tokens']: 5",
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to gpt-5.6-sol.',
+  ],
+  [
+    'a computed variable key',
+    GPT,
+    '[T]: 5',
+    'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to gpt-5.6-sol.',
+  ],
+])('parameter table: stops for %s', async (_name, args, extra, reason) => {
+  const proposal = await propose(args, extra);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.stops).toEqual(stopped(reason));
+  // Nothing is rewritten, renamed parameters included.
+  expect(proposal.patch).toBeNull();
+});
+
+it("parameter table: keeps today's behavior for replacements with no entry", async () => {
+  const haiku = await propose(['anthropic', 'claude-3-haiku-20240307'], 'temperature: 0');
+  expect(haiku.replacements.map((item) => item.to)).toEqual(['claude-haiku-4-5-20251001']);
+  const opus = await propose(['anthropic', 'claude-3-opus-20240229'], 'temperature: 1');
+  expect(opus.stops).toEqual(
+    stopped('The request sets temperature, which claude-opus-4-8 may reject or treat differently.'),
+  );
+  const nano = await propose(['openai', 'gpt-4.1-nano'], 'temperature: 0.7');
+  expect(nano.stops).toEqual(
+    stopped('The request sets temperature, which gpt-5.6-luna may reject or treat differently.'),
+  );
+});
+
+it('stops on a computed property name for replacements with no entry too', async () => {
+  const computed = (to: string) =>
+    stopped(
+      `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${to}.`,
+    );
+  const haiku = await propose(['anthropic', 'claude-3-haiku-20240307'], "['temperature']: 0");
+  expect(haiku.replacements).toEqual([]);
+  expect(haiku.stops).toEqual(computed('claude-haiku-4-5-20251001'));
+  const nano = await propose(['openai', 'gpt-4.1-nano'], "['max_tokens']: 5");
+  expect(nano.replacements).toEqual([]);
+  expect(nano.stops).toEqual(computed('gpt-5.6-luna'));
 });

@@ -51,6 +51,13 @@ async function report(): Promise<Report> {
       status: 'passed',
       revision: REVISION,
       image: `sha256:${'e'.repeat(64)}`,
+      runtime: {
+        configured: 'node:22-alpine',
+        image: 'node:22-alpine',
+        nodeVersion: '22.23.3',
+        declarations: [],
+        reason: 'The repository declares no Node.js version.',
+      },
       command: ['npm', 'test'],
       baselineCommand: ['npm', 'test'],
       archiveHash: 'f'.repeat(64),
@@ -329,10 +336,13 @@ it('publishes only the candidate files on the existing base tree and creates a d
     base_tree: BASE_TREE,
     tree: value.publicationFiles.map((file) => ({ ...file, type: 'blob' })),
   });
-  expect(remote.calls.find((call) => call.path === '/git/commits')?.body).toMatchObject({
-    parents: [REVISION],
-    tree: PATCH_TREE,
-  });
+  const commit = remote.calls.find((call) => call.path === '/git/commits')?.body;
+  expect(commit).toMatchObject({ parents: [REVISION], tree: PATCH_TREE });
+  // The commit names the change, the checks and the run, and carries no check logs.
+  expect(commit?.message).toMatch(
+    /^fix\(stripe\): [^\n]+\n\n[\s\S]*\nChecks: [\s\S]*\nRefit-Run: [0-9a-f]{12}\n$/,
+  );
+  expect(commit?.message).not.toContain('PRIVATE LOG');
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   expect(request.body).toMatchObject({ draft: true, base: 'main', maintainer_can_modify: false });
   expect(request.body.body).toContain(value.validation.patchHash);
