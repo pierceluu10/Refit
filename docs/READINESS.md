@@ -10,7 +10,7 @@
 - **`paths` fallback.** A bare import matching a `paths` entry is the installed package when no mapped target or `baseUrl` lookup is a scanned source, as TypeScript resolves it. This applies to every provider's analysis, Stripe included.
 - **Catalogs.** A model's per-platform ID record (with a Bedrock or Vertex AI form) and members of a `new Set([...])` or keys of a `new Map([...])` are catalog.
 
-On the application sets, read only against `main` at `fb0143a`, exposed repositories with no outcome went from 17 to 0 for Anthropic and 12 to 0 for OpenAI; replacements stayed at 2 repositories per set and no repository lost one ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)). Tests: `pipeline/model-retirements.test.ts`, `pipeline/deadlines.test.ts` and `pipeline/ai-model-benchmark-summary.test.ts`.
+On the application sets, read only against `main` at `fb0143a`, exposed repositories with no outcome went from 6 to 0 for Anthropic (38 applications, after we removed 12 copies of leaked proprietary source) and 12 to 0 for OpenAI; replacements stayed at 2 repositories per set and no repository lost one ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)). Tests: `pipeline/model-retirements.test.ts`, `pipeline/deadlines.test.ts` and `pipeline/ai-model-benchmark-summary.test.ts`.
 
 ## October 22 checkpoint: sourced parameter table, off by default (unreleased, after 0.39.0)
 

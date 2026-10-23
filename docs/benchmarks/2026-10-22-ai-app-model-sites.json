@@ -54,7 +54,6 @@
       "nextai-translator/raycast-openai-translator",
       "vual/lobe-chat-pro",
       "Charlie85270/Dorothy",
-      "fazxes/Claude-code",
       "yayasoumah/pocket-server",
       "zdenham/anvil",
       "kgoedecke/doop",
@@ -66,16 +65,11 @@
       "seongsu-kang/tycono",
       "OpenCoworkAI/open-cowork",
       "jhmeel/bigfoot",
-      "wk42worldworld/cybercode",
       "prime-radiant-inc/gauntlet",
       "viperrcrypto/Siftly",
       "EthyMoney/TsukiBot",
       "snapetech-org/seerrng",
-      "OpenAisec/Miko",
-      "vibeforge1111/vibeship-idearalph",
-      "kill136/claudecode",
-      "chenqinggang001/claude-code-build",
-      "wyh0626/claude-code-local"
+      "vibeforge1111/vibeship-idearalph"
     ]
   },
   "sites": [
@@ -810,46 +804,6 @@
       "notes": "summarize default model"
     },
     {
-      "repo": "chenqinggang001/claude-code-build",
-      "file": "src/utils/model/configs.ts",
-      "line": 31,
-      "model": "claude-haiku-4-5-20251001",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "chenqinggang001/claude-code-build",
-      "file": "src/utils/model/configs.ts",
-      "line": 45,
-      "model": "claude-sonnet-4-5-20250929",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": true,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "chenqinggang001/claude-code-build",
-      "file": "src/utils/model/configs.ts",
-      "line": 73,
-      "model": "claude-opus-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "chenqinggang001/claude-code-build",
-      "file": "src/utils/model/configs.ts",
-      "line": 80,
-      "model": "claude-sonnet-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
       "repo": "convex/components-submissions-directory",
       "file": "convex/aiReview.ts",
       "line": 807,
@@ -1068,46 +1022,6 @@
       "via": "sdk",
       "registry": false,
       "notes": "beta.messages.create"
-    },
-    {
-      "repo": "fazxes/Claude-code",
-      "file": "src/utils/model/configs.ts",
-      "line": 31,
-      "model": "claude-haiku-4-5-20251001",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "fazxes/Claude-code",
-      "file": "src/utils/model/configs.ts",
-      "line": 45,
-      "model": "claude-sonnet-4-5-20250929",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": true,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "fazxes/Claude-code",
-      "file": "src/utils/model/configs.ts",
-      "line": 73,
-      "model": "claude-opus-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "fazxes/Claude-code",
-      "file": "src/utils/model/configs.ts",
-      "line": 80,
-      "model": "claude-sonnet-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
     },
     {
       "repo": "fltman/beatbrawl",
@@ -1440,46 +1354,6 @@
       "notes": "DEFAULT_GEMINI_MODEL"
     },
     {
-      "repo": "kill136/claudecode",
-      "file": "src/utils/model/configs.ts",
-      "line": 31,
-      "model": "claude-haiku-4-5-20251001",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "kill136/claudecode",
-      "file": "src/utils/model/configs.ts",
-      "line": 45,
-      "model": "claude-sonnet-4-5-20250929",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": true,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "kill136/claudecode",
-      "file": "src/utils/model/configs.ts",
-      "line": 73,
-      "model": "claude-opus-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "kill136/claudecode",
-      "file": "src/utils/model/configs.ts",
-      "line": 80,
-      "model": "claude-sonnet-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
       "repo": "linkcraftstudio/feedlog",
       "file": "server/api/admin/changelogs/ai/generate.post.ts",
       "line": 21,
@@ -1728,66 +1602,6 @@
       "via": "indirect",
       "registry": false,
       "notes": "OPENAI_MODEL default"
-    },
-    {
-      "repo": "OpenAisec/Miko",
-      "file": "desktop/src/constants/modelCatalog.ts",
-      "line": 3,
-      "model": "claude-opus-4-7",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "OFFICIAL_DEFAULT_MODEL_ID the desktop sends when no model is chosen"
-    },
-    {
-      "repo": "OpenAisec/Miko",
-      "file": "src/server/api/models.ts",
-      "line": 48,
-      "model": "claude-opus-4-7",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "server DEFAULT_MODEL"
-    },
-    {
-      "repo": "OpenAisec/Miko",
-      "file": "src/utils/model/configs.ts",
-      "line": 34,
-      "model": "claude-haiku-4-5-20251001",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "OpenAisec/Miko",
-      "file": "src/utils/model/configs.ts",
-      "line": 50,
-      "model": "claude-sonnet-4-5-20250929",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": true,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "OpenAisec/Miko",
-      "file": "src/utils/model/configs.ts",
-      "line": 82,
-      "model": "claude-opus-4-7",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "OpenAisec/Miko",
-      "file": "src/utils/model/configs.ts",
-      "line": 90,
-      "model": "claude-sonnet-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
     },
     {
       "repo": "OpenCoworkAI/open-cowork",
@@ -2720,166 +2534,6 @@
       "notes": "painting palette default image model; correction 1"
     },
     {
-      "repo": "wk42worldworld/cybercode",
-      "file": "desktop/src/constants/modelCatalog.ts",
-      "line": 3,
-      "model": "claude-opus-4-8",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "OFFICIAL_DEFAULT_MODEL_ID the desktop sends when no model is chosen"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/server/api/models.ts",
-      "line": 45,
-      "model": "claude-opus-4-8",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "server DEFAULT_MODEL"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/shared/mediaProviders.ts",
-      "line": 312,
-      "model": "gpt-image-2",
-      "provider": "openai",
-      "via": "indirect",
-      "registry": false,
-      "notes": "OpenAI image preset defaultModel"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/shared/mediaProviders.ts",
-      "line": 363,
-      "model": "openai/gpt-5.4-image-2",
-      "provider": "compatible",
-      "via": "indirect",
-      "registry": false,
-      "notes": "OpenRouter image preset defaultModel"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/shared/mediaProviders.ts",
-      "line": 389,
-      "model": "imagen-4.0-generate-001",
-      "provider": "gemini",
-      "via": "indirect",
-      "registry": false,
-      "notes": "Vertex image preset defaultModel"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/shared/mediaProviders.ts",
-      "line": 885,
-      "model": "veo-3.0-generate-001",
-      "provider": "gemini",
-      "via": "indirect",
-      "registry": false,
-      "notes": "Vertex video preset defaultModel"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/shared/mediaProviders.ts",
-      "line": 1203,
-      "model": "gpt-4o-mini-tts",
-      "provider": "openai",
-      "via": "indirect",
-      "registry": false,
-      "notes": "OpenAI audio preset defaultModel"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/shared/mediaProviders.ts",
-      "line": 1229,
-      "model": "gemini-3.1-flash-tts-preview",
-      "provider": "gemini",
-      "via": "indirect",
-      "registry": false,
-      "notes": "Vertex audio preset defaultModel"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/utils/model/configs.ts",
-      "line": 31,
-      "model": "claude-haiku-4-5-20251001",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/utils/model/configs.ts",
-      "line": 45,
-      "model": "claude-sonnet-4-5-20250929",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": true,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/utils/model/configs.ts",
-      "line": 73,
-      "model": "claude-opus-4-8",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/utils/model/configs.ts",
-      "line": 80,
-      "model": "claude-sonnet-5",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/utils/model/configs.ts",
-      "line": 31,
-      "model": "claude-haiku-4-5-20251001",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/utils/model/configs.ts",
-      "line": 45,
-      "model": "claude-sonnet-4-5-20250929",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": true,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/utils/model/configs.ts",
-      "line": 73,
-      "model": "claude-opus-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/utils/model/configs.ts",
-      "line": 80,
-      "model": "claude-sonnet-4-6",
-      "provider": "anthropic",
-      "via": "indirect",
-      "registry": false,
-      "notes": "first-party default returned by src/utils/model/model.ts"
-    },
-    {
       "repo": "yayasoumah/pocket-server",
       "file": "src/agent/anthropic/anthropic.ts",
       "line": 80,
@@ -3213,183 +2867,15 @@
     },
     {
       "set": "anthropic",
-      "draw": 1,
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/tools/WebSearchTool/WebSearchTool.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 2,
-      "repo": "OpenAisec/Miko",
-      "file": "src/utils/sideQuery.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 3,
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/tools/FileReadTool/FileReadTool.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 4,
-      "repo": "OpenAisec/Miko",
-      "file": "src/services/compact/microCompact.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 5,
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/hooks/toolPermission/handlers/interactiveHandler.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 6,
-      "repo": "kill136/claudecode",
-      "file": "src/Tool.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 7,
-      "repo": "OpenAisec/Miko",
-      "file": "src/services/mcp/client.ts"
-    },
-    {
-      "set": "anthropic",
       "draw": 8,
       "repo": "backenly/backenly",
       "file": "lib/ai/llm/providers/anthropic.ts"
     },
     {
       "set": "anthropic",
-      "draw": 9,
-      "repo": "OpenAisec/Miko",
-      "file": "src/utils/ultraplan/ccrSession.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 10,
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/utils/messages/mappers.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 11,
-      "repo": "chenqinggang001/claude-code-build",
-      "file": "src/tools/GlobTool/UI.tsx"
-    },
-    {
-      "set": "anthropic",
       "draw": 12,
       "repo": "zdenham/anvil",
       "file": "src/components/thread/tool-blocks/bash-tool-block.tsx"
-    },
-    {
-      "set": "anthropic",
-      "draw": 13,
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/components/messages/AssistantThinkingMessage.tsx"
-    },
-    {
-      "set": "anthropic",
-      "draw": 14,
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/utils/processUserInput/processBashCommand.tsx"
-    },
-    {
-      "set": "anthropic",
-      "draw": 15,
-      "repo": "chenqinggang001/claude-code-build",
-      "file": "src/components/messages/GroupedToolUseContent.tsx"
-    },
-    {
-      "set": "anthropic",
-      "draw": 16,
-      "repo": "kill136/claudecode",
-      "file": "src/tools/BashTool/bashPermissions.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 17,
-      "repo": "OpenAisec/Miko",
-      "file": "src/screens/REPL.tsx"
-    },
-    {
-      "set": "anthropic",
-      "draw": 18,
-      "repo": "OpenAisec/Miko",
-      "file": "src/services/openaiAuth/fetch.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 19,
-      "repo": "fazxes/Claude-code",
-      "file": "src/cli/print.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 20,
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/types/permissions.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 21,
-      "repo": "fazxes/Claude-code",
-      "file": "src/utils/modelCost.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 22,
-      "repo": "kill136/claudecode",
-      "file": "src/services/api/promptCacheBreakDetection.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 23,
-      "repo": "wk42worldworld/cybercode",
-      "file": "src/services/api/errorUtils.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 24,
-      "repo": "OpenAisec/Miko",
-      "file": "src/services/settingsSync/types.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 25,
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/components/messages/UserAgentNotificationMessage.tsx"
-    },
-    {
-      "set": "anthropic",
-      "draw": 26,
-      "repo": "chenqinggang001/claude-code-build",
-      "file": "src/services/vcr.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 27,
-      "repo": "fazxes/Claude-code",
-      "file": "src/hooks/useCanUseTool.tsx"
-    },
-    {
-      "set": "anthropic",
-      "draw": 28,
-      "repo": "OpenAisec/Miko",
-      "file": "src/utils/processUserInput/processUserInput.ts"
-    },
-    {
-      "set": "anthropic",
-      "draw": 29,
-      "repo": "wyh0626/claude-code-local",
-      "file": "src/tools/GlobTool/UI.tsx"
-    },
-    {
-      "set": "anthropic",
-      "draw": 30,
-      "repo": "chenqinggang001/claude-code-build",
-      "file": "src/utils/toolSchemaCache.ts"
     }
   ],
   "negativeDrawsSkipped": [
@@ -3505,5 +2991,20 @@
       "file": "server/aiProfileGenerator.ts",
       "reason": "has a labelled site"
     }
-  ]
+  ],
+  "removed": {
+    "removedAt": "2026-10-22",
+    "reason": "On 2026-10-22, the repositories that are copies of leaked proprietary Claude Code source were removed from the Anthropic sample (drawn from all 50 before the removal), with their sites, negatives and results.",
+    "repos": [
+      "fazxes/Claude-code",
+      "wk42worldworld/cybercode",
+      "OpenAisec/Miko",
+      "kill136/claudecode",
+      "chenqinggang001/claude-code-build",
+      "wyh0626/claude-code-local"
+    ],
+    "negatives": {
+      "anthropic": 28
+    }
+  }
 }

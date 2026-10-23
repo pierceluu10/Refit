@@ -95,6 +95,18 @@ describe('labels', () => {
     expect(validateSiteLabels(labels)).toEqual([]);
   });
 
+  it('counts negatives removed with their repositories toward the 30 drawn', () => {
+    const labels = {
+      sample,
+      sites: [],
+      negatives: [...negatives('openai', 'o/two'), ...negatives('anthropic', 'a/one').slice(0, 2)],
+      removed: { negatives: { anthropic: 28 } },
+    };
+    expect(validateSiteLabels(labels)).toEqual([]);
+    labels.removed.negatives.anthropic = 27;
+    expect(validateSiteLabels(labels)).toEqual(['anthropic: 2 negative files, at least 30 needed']);
+  });
+
   it('reports sites outside the sample, bad fields, duplicates and too few negatives', () => {
     const labels = {
       sample,

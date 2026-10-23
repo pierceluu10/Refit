@@ -660,32 +660,32 @@
     },
     "anthropic": {
       "set": "anthropic",
-      "repositories": 25,
+      "repositories": 19,
       "errored": [],
-      "labelledSites": 131,
-      "registrySites": 26,
-      "nonRegistrySites": 105,
-      "compatibleSites": 7,
+      "labelledSites": 98,
+      "registrySites": 20,
+      "nonRegistrySites": 78,
+      "compatibleSites": 6,
       "precision": {
         "k": 20,
-        "n": 67,
-        "rate": 29.9,
-        "low": 20.2,
-        "high": 41.7
+        "n": 33,
+        "rate": 60.6,
+        "low": 43.7,
+        "high": 75.3
       },
       "recall": {
         "k": 20,
-        "n": 26,
-        "rate": 76.9,
-        "low": 57.9,
-        "high": 89
+        "n": 20,
+        "rate": 100,
+        "low": 83.9,
+        "high": 100
       },
       "recallAllSites": {
         "k": 20,
-        "n": 131,
-        "rate": 15.3,
-        "low": 10.1,
-        "high": 22.4
+        "n": 98,
+        "rate": 20.4,
+        "low": 13.6,
+        "high": 29.4
       },
       "negativeFileFalsePositives": 0,
       "truePositives": [
@@ -962,33 +962,6 @@
           "negativeFile": false
         },
         {
-          "repo": "fazxes/Claude-code",
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "provider": "anthropic",
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "negativeFile": false
-        },
-        {
-          "repo": "fazxes/Claude-code",
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "fazxes/Claude-code",
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
           "repo": "seongsu-kang/tycono",
           "file": "packages/server/src/api/src/routes/execute.ts",
           "line": 903,
@@ -1007,291 +980,12 @@
           "negativeFile": false
         },
         {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "provider": "anthropic",
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/shared/webSessionProviders.ts",
-          "line": 185,
-          "model": "gpt-4-turbo",
-          "provider": "openai",
-          "deadline": "openai-2026-10-23-gpt-4",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/shared/webSessionProviders.ts",
-          "line": 186,
-          "model": "gpt-4",
-          "provider": "openai",
-          "deadline": "openai-2026-10-23-gpt-4",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/shared/webSessionProviders.ts",
-          "line": 336,
-          "model": "gpt-4-turbo",
-          "provider": "openai",
-          "deadline": "openai-2026-10-23-gpt-4",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/shared/webSessionProviders.ts",
-          "line": 457,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/utils/commitAttribution.ts",
-          "line": 165,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/utils/model/model.ts",
-          "line": 243,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/shared/mediaProviders.ts",
-          "line": 316,
-          "model": "gpt-image-1.5",
-          "provider": "openai",
-          "deadline": "openai-2026-12-01-gpt-image-1-mini",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/shared/mediaProviders.ts",
-          "line": 317,
-          "model": "gpt-image-1-mini",
-          "provider": "openai",
-          "deadline": "openai-2026-12-01-gpt-image-1-mini",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/shared/mediaProviders.ts",
-          "line": 1206,
-          "model": "tts-1-hd",
-          "provider": "openai",
-          "deadline": "openai-2027-01-06-tts-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/shared/mediaProviders.ts",
-          "line": 1208,
-          "model": "whisper-1",
-          "provider": "openai",
-          "deadline": "openai-2027-02-26-whisper-1",
-          "negativeFile": false
-        },
-        {
           "repo": "viperrcrypto/Siftly",
           "file": "lib/vision-analyzer.ts",
           "line": 68,
           "model": "gpt-4",
           "provider": "openai",
           "deadline": "openai-2026-10-23-gpt-4",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "provider": "anthropic",
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/utils/model/model.ts",
-          "line": 259,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "desktop/src/constants/openaiOfficialProvider.ts",
-          "line": 4,
-          "model": "gpt-5.3-codex",
-          "provider": "openai",
-          "deadline": "openai-2027-04-01-gpt-5-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/server/api/models.ts",
-          "line": 241,
-          "model": "gpt-5.3-codex",
-          "provider": "openai",
-          "deadline": "openai-2027-04-01-gpt-5-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/services/openaiAuth/models.ts",
-          "line": 1,
-          "model": "gpt-5.3-codex",
-          "provider": "openai",
-          "deadline": "openai-2027-04-01-gpt-5-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/utils/model/configs.ts",
-          "line": 106,
-          "model": "gpt-5.3-codex",
-          "provider": "openai",
-          "deadline": "openai-2027-04-01-gpt-5-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/utils/model/configs.ts",
-          "line": 107,
-          "model": "gpt-5.3-codex",
-          "provider": "openai",
-          "deadline": "openai-2027-04-01-gpt-5-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/utils/model/configs.ts",
-          "line": 108,
-          "model": "gpt-5.3-codex",
-          "provider": "openai",
-          "deadline": "openai-2027-04-01-gpt-5-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/utils/model/configs.ts",
-          "line": 109,
-          "model": "gpt-5.3-codex",
-          "provider": "openai",
-          "deadline": "openai-2027-04-01-gpt-5-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/utils/model/configs.ts",
-          "line": 110,
-          "model": "gpt-5.3-codex",
-          "provider": "openai",
-          "deadline": "openai-2027-04-01-gpt-5-1",
-          "negativeFile": false
-        },
-        {
-          "repo": "kill136/claudecode",
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "provider": "anthropic",
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "negativeFile": false
-        },
-        {
-          "repo": "kill136/claudecode",
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "kill136/claudecode",
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "chenqinggang001/claude-code-build",
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "provider": "anthropic",
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "negativeFile": false
-        },
-        {
-          "repo": "chenqinggang001/claude-code-build",
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "chenqinggang001/claude-code-build",
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "wyh0626/claude-code-local",
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "provider": "anthropic",
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "negativeFile": false
-        },
-        {
-          "repo": "wyh0626/claude-code-local",
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "negativeFile": false
-        },
-        {
-          "repo": "wyh0626/claude-code-local",
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "provider": "anthropic",
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
           "negativeFile": false
         }
       ],
@@ -1315,68 +1009,7 @@
           "negativeFile": false
         }
       ],
-      "falseNegatives": [
-        {
-          "repo": "fazxes/Claude-code",
-          "file": "src/utils/model/configs.ts",
-          "line": 45,
-          "model": "claude-sonnet-4-5-20250929",
-          "provider": "anthropic",
-          "via": "indirect",
-          "registry": true,
-          "notes": "first-party default returned by src/utils/model/model.ts"
-        },
-        {
-          "repo": "wk42worldworld/cybercode",
-          "file": "src/utils/model/configs.ts",
-          "line": 45,
-          "model": "claude-sonnet-4-5-20250929",
-          "provider": "anthropic",
-          "via": "indirect",
-          "registry": true,
-          "notes": "first-party default returned by src/utils/model/model.ts"
-        },
-        {
-          "repo": "OpenAisec/Miko",
-          "file": "src/utils/model/configs.ts",
-          "line": 50,
-          "model": "claude-sonnet-4-5-20250929",
-          "provider": "anthropic",
-          "via": "indirect",
-          "registry": true,
-          "notes": "first-party default returned by src/utils/model/model.ts"
-        },
-        {
-          "repo": "kill136/claudecode",
-          "file": "src/utils/model/configs.ts",
-          "line": 45,
-          "model": "claude-sonnet-4-5-20250929",
-          "provider": "anthropic",
-          "via": "indirect",
-          "registry": true,
-          "notes": "first-party default returned by src/utils/model/model.ts"
-        },
-        {
-          "repo": "chenqinggang001/claude-code-build",
-          "file": "src/utils/model/configs.ts",
-          "line": 45,
-          "model": "claude-sonnet-4-5-20250929",
-          "provider": "anthropic",
-          "via": "indirect",
-          "registry": true,
-          "notes": "first-party default returned by src/utils/model/model.ts"
-        },
-        {
-          "repo": "wyh0626/claude-code-local",
-          "file": "src/utils/model/configs.ts",
-          "line": 45,
-          "model": "claude-sonnet-4-5-20250929",
-          "provider": "anthropic",
-          "via": "indirect",
-          "registry": true,
-          "notes": "first-party default returned by src/utils/model/model.ts"
-        }
-      ],
+      "falseNegatives": [],
       "beyondLimit": []
     }
   }

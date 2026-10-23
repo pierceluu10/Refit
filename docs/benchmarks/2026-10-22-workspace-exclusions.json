@@ -3,17 +3,29 @@
   "refitCommit": "f4e587d1842167b4a21516f62ae002e0694f6aff",
   "pipelineDirty": false,
   "now": "2026-10-22T00:00:00.000Z",
-  "repositories": 326,
+  "repositories": 320,
   "errors": 6,
-  "findings": 1496,
-  "liveAfter": 1485,
-  "outsideRoot": 311,
-  "excluded": 11,
-  "repositoriesWithExcluded": 5,
+  "findings": 1396,
+  "liveAfter": 1386,
+  "outsideRoot": 301,
+  "excluded": 10,
+  "repositoriesWithExcluded": 4,
   "byReason": {
     "test-fixture": 2,
-    "docs-site": 4,
+    "docs-site": 3,
     "example": 5
+  },
+  "removed": {
+    "removedAt": "2026-10-22",
+    "reason": "Repositories that are copies of leaked proprietary Claude Code source were removed with them from the Anthropic app list on 2026-10-22; the counts are over the remaining results.",
+    "repos": [
+      "fazxes/Claude-code",
+      "OpenAisec/Miko",
+      "TaGoat/claude_code_cli",
+      "txl16095/MiniClaude",
+      "wk42worldworld/cybercode",
+      "wyh0626/claude-code-local"
+    ]
   },
   "results": [
     {
@@ -785,14 +797,6 @@
       "findings": 1,
       "live": 1,
       "outsideRoot": 0,
-      "excluded": []
-    },
-    {
-      "repository": "fazxes/Claude-code",
-      "commit": "0607f147615853e39de908d6a7ddc8356644edc2",
-      "findings": 10,
-      "live": 10,
-      "outsideRoot": 1,
       "excluded": []
     },
     {
@@ -1741,14 +1745,6 @@
       "excluded": []
     },
     {
-      "repository": "OpenAisec/Miko",
-      "commit": "85f6ab54577064f42b64095213a5b236d458ba82",
-      "findings": 19,
-      "live": 19,
-      "outsideRoot": 1,
-      "excluded": []
-    },
-    {
       "repository": "OpenCoworkAI/open-cowork",
       "commit": "e94ee2c50239e64ba0e18921e339d49b93dae31f",
       "findings": 18,
@@ -2438,14 +2434,6 @@
       "excluded": []
     },
     {
-      "repository": "TaGoat/claude_code_cli",
-      "commit": "66f7740787048a97b44c52c89999839cffe49b76",
-      "findings": 10,
-      "live": 10,
-      "outsideRoot": 0,
-      "excluded": []
-    },
-    {
       "repository": "tahaygun/ai-calorie-tracker",
       "commit": "f0921bf543d6f1581afbf36b68c71a6305eccb52",
       "findings": 1,
@@ -2542,21 +2530,6 @@
       "excluded": []
     },
     {
-      "repository": "txl16095/MiniClaude",
-      "commit": "561531ea4567e83bcaaf0aa45c038b5cfda58297",
-      "findings": 25,
-      "live": 24,
-      "outsideRoot": 1,
-      "excluded": [
-        {
-          "kind": "hostname",
-          "provider": "openai",
-          "file": "website/src/pages/docs/ThirdPartyModels.tsx",
-          "reason": "docs-site"
-        }
-      ]
-    },
-    {
       "repository": "umxr/shopify-product-reviews",
       "commit": "974daab7d5b5e9786bee68a7f32b282ba28b5a0c",
       "findings": 2,
@@ -2622,26 +2595,10 @@
       "excluded": []
     },
     {
-      "repository": "wk42worldworld/cybercode",
-      "commit": "a43863b90a4ccba6e6f8b6406cf0e2c4df44bc0c",
-      "findings": 27,
-      "live": 27,
-      "outsideRoot": 7,
-      "excluded": []
-    },
-    {
       "repository": "workos/next-b2b-starter-kit",
       "commit": "095046d5ec6810f8f9768c75378649e169a62f5f",
       "findings": 1,
       "live": 1,
-      "outsideRoot": 0,
-      "excluded": []
-    },
-    {
-      "repository": "wyh0626/claude-code-local",
-      "commit": "1c10909c9a8d52be964e1554b16294941f9627ff",
-      "findings": 9,
-      "live": 9,
       "outsideRoot": 0,
       "excluded": []
     },
