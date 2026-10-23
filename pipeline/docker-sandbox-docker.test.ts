@@ -73,20 +73,22 @@ async function check(
   return { ...result.baseline, seconds: (Date.now() - started) / 1000 };
 }
 
-async function sandboxContainers() {
+// Other gated files run sandboxes at the same time, so only containers running this check count.
+async function sandboxContainers(command: string) {
   return (
     await execute('docker', [
       'ps',
       '--all',
-      '--quiet',
       '--no-trunc',
       '--filter',
       `label=${SANDBOX_EXPIRY_LABEL}`,
+      '--format',
+      '{{.ID}} {{.Command}}',
     ])
   ).stdout
     .split('\n')
-    .filter(Boolean)
-    .sort();
+    .filter((line) => line.includes(command))
+    .map((line) => line.split(' ')[0]);
 }
 
 const INSPECT = `
@@ -245,14 +247,13 @@ const attempt = (host, port) => new Promise((resolve) => {
 gated(
   'stops a check whose output passes the cap and names the reason',
   async () => {
-    const before = await sandboxContainers();
     const result = await check({}, ['yes', 'flood']);
     expect(result).toMatchObject({
       status: 'error',
       error: 'Check output exceeded 1 MiB; the container was stopped.',
     });
     expect(result.seconds).toBeLessThan(60);
-    expect(await sandboxContainers()).toEqual(before);
+    expect(await sandboxContainers('flood')).toEqual([]);
   },
   120_000,
 );
@@ -260,14 +261,13 @@ gated(
 gated(
   'ends a check that ignores SIGTERM at the timeout and removes its container',
   async () => {
-    const before = await sandboxContainers();
     const result = await check({}, ['sh', '-c', 'trap "" TERM INT; while :; do :; done']);
     expect(result).toMatchObject({
       status: 'error',
       error: 'Check exceeded 120 seconds; the container was stopped.',
     });
     expect(result.seconds).toBeLessThan(170);
-    expect(await sandboxContainers()).toEqual(before);
+    expect(await sandboxContainers('while :; do :; done')).toEqual([]);
   },
   240_000,
 );
@@ -275,7 +275,6 @@ gated(
 gated(
   'stops a running check when the caller aborts and removes its container',
   async () => {
-    const before = await sandboxContainers();
     const controller = new AbortController();
     const started = Date.now();
     setTimeout(() => controller.abort(), 5_000);
@@ -285,7 +284,7 @@ gated(
       }),
     ).rejects.toMatchObject({ name: 'AbortError' });
     expect(Date.now() - started).toBeLessThan(30_000);
-    expect(await sandboxContainers()).toEqual(before);
+    expect(await sandboxContainers('while :; do :; done')).toEqual([]);
   },
   120_000,
 );
@@ -314,8 +313,9 @@ gated(
         ]);
       const id = async (name: string) =>
         (await execute('docker', ['inspect', '--format', '{{.Id}}', name])).stdout.trim();
-      const expired = await id(names[0]);
-      expect(await removeExpiredSandboxContainers()).toContain(expired);
+      expect(await id(names[0])).toMatch(/^[a-f0-9]{64}$/);
+      // A sandbox start in another gated file may remove it first, so only its absence counts.
+      await removeExpiredSandboxContainers();
       await expect(id(names[0])).rejects.toThrow(/no such object/i);
       expect(await id(names[1])).toMatch(/^[a-f0-9]{64}$/);
       expect(await id(names[2])).toMatch(/^[a-f0-9]{64}$/);

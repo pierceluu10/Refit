@@ -219,7 +219,9 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
     let registry = await status(url);
     for (
       const deadline = Date.now() + 90_000;
-      registry.jobs[0]?.status !== 'finished' && Date.now() < deadline;
+      (registry.jobs[0]?.status !== 'finished' ||
+        registry.installations[0]?.inventoriesToday !== repositories.length) &&
+      Date.now() < deadline;
       registry = await status(url)
     )
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -232,7 +234,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
         allowed: true,
         repositories: ['example/application', 'example/unapproved'],
         jobsToday: 1,
-        inventoriesToday: 0,
+        inventoriesToday: repositories.length,
         refusals: [],
       },
       {

@@ -298,11 +298,14 @@ it
       const evidence = JSON.parse(body.input[0].content);
       expect(evidence.files[0].content).toBe(SOURCE);
       expect(body.tools).toBeUndefined();
+      // The third invalid-edit request is the one corrected request of repair 1 after its edit
+      // was rejected, not a second repair.
+      const attempt = scenario === 'invalid-edit' ? 1 : requests - 1;
       if (requests > 1) {
         expect(body.instructions).toContain('untrusted check output');
-        expect(evidence.repair.attempt).toBe(requests - 1);
+        expect(evidence.repair.attempt).toBe(attempt);
         expect(evidence.repair.failedPatch).toContain(
-          requests === 2 ? '+  return [];' : '+  return [1];',
+          attempt === 1 ? '+  return [];' : '+  return [1];',
         );
         expect(evidence.repair.check.stderr.length).toBeLessThanOrEqual(4096);
         expect(evidence.repair.check.truncated).toBe(true);
@@ -370,13 +373,15 @@ it
     const expectedRequests =
       scenario === 'baseline-failed'
         ? 0
-        : scenario === 'exhausted'
+        : ['exhausted', 'invalid-edit'].includes(scenario)
           ? 3
           : ['baseline-failed', 'disabled', 'stale'].includes(scenario)
             ? 1
             : 2;
     expect(requests, JSON.stringify(result.validation, null, 2)).toBe(expectedRequests);
-    expect(result.validation.repair.requested).toBe(Math.max(0, requests - 1));
+    expect(result.validation.repair.requested).toBe(
+      scenario === 'invalid-edit' ? 1 : Math.max(0, requests - 1),
+    );
     expect(progress.filter((message) => message.includes('Requesting AI repair'))).toHaveLength(
       result.validation.repair.requested,
     );
