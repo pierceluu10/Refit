@@ -1,0 +1,198 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json",
+  "unit": "One catalog provider declared as a direct dependency (including dev, test, optional and workspace declarations) in one dependency-declaring file, in that file's ecosystem. Files Refit does not parse (*.gemspec, setup.py, packages.config) count too.",
+  "rules": [
+    "A provider package is its official SDK, other packages the provider publishes for its API (Stripe Terminal, Twilio.AspNet helpers), or a general-purpose community client of that API (ruby-openai, gemini-ai, Google_GenerativeAI, async-openai, async-stripe, resend-rs, resendlabs/resend-go).",
+    "Framework and gateway adapters that wrap an SDK are not provider packages: Laravel Cashier, Payum and Omnipay gateways, Spring AI starters, DSPy adapters, LangChain integrations.",
+    "Azure OpenAI clients (Azure.AI.OpenAI) are not the OpenAI API.",
+    "Central version lists (Directory.Packages.props PackageVersion) and Gemfile `gemspec` lines declare nothing by themselves; the file with the PackageReference or add_dependency does.",
+    "A repository that is the SDK itself (a fork of sendgrid-python) does not depend on it."
+  ],
+  "labelledAt": "2026-10-22",
+  "sample": "node scripts/package-inventory-label-candidates.mjs --per-ecosystem 2 --seed 20261023 --exclude docs/benchmarks/2026-10-22-package-inventory-labels.json (14 repositories)",
+  "blind": "Held out: labelled after the parser and catalog changes at 7975aff, which the first label set informed, and before Refit was run on these repositories at any commit after 7975aff was looked at for them. They were part of the 100-repository runs before and after, whose per-repository output was not read for them.",
+  "repositories": [
+    {
+      "repository": "therealseandonahoe/ijfw",
+      "ecosystem": "pypi",
+      "commit": "9ecb7ec262992e50cde7b24a2fa74acfeb0b15df",
+      "units": []
+    },
+    {
+      "repository": "ColoradoSchoolOfMines/datanium",
+      "ecosystem": "pypi",
+      "commit": "e1bbbe8a58678edce4a8553fda70ffb0f7c9775d",
+      "units": [
+        {
+          "provider": "twilio",
+          "ecosystem": "pypi",
+          "file": "central/requirements.txt"
+        }
+      ]
+    },
+    {
+      "repository": "0xThomas3000/be-go-codebase",
+      "ecosystem": "go",
+      "commit": "ba4b89f749579c329d741a12f1667168aa9edefe",
+      "units": [
+        {
+          "provider": "sendgrid",
+          "ecosystem": "go",
+          "file": "go.mod"
+        }
+      ]
+    },
+    {
+      "repository": "0xdeafcafe/bloefish",
+      "ecosystem": "go",
+      "commit": "69d59ad264eaef8c7aab2e51aad07a01d8dd54f0",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "go",
+          "file": "go.mod"
+        }
+      ]
+    },
+    {
+      "repository": "mrmalvi/rails_error_notifier",
+      "ecosystem": "rubygems",
+      "commit": "3d28835f2f8ef5d4a3c8304deb3bd7442d152378",
+      "units": [
+        {
+          "provider": "twilio",
+          "ecosystem": "rubygems",
+          "file": "Gemfile"
+        },
+        {
+          "provider": "twilio",
+          "ecosystem": "rubygems",
+          "file": "rails_error_notifier.gemspec"
+        }
+      ]
+    },
+    {
+      "repository": "mjacobus/mj",
+      "ecosystem": "rubygems",
+      "commit": "6e75f4f740466b577f67cc479f876490305c98e7",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "rubygems",
+          "file": "mj.gemspec"
+        }
+      ]
+    },
+    {
+      "repository": "aloha/laravel-twilio",
+      "ecosystem": "packagist",
+      "commit": "0349c2f6a5da267387240b3a0ee132877a35a3f1",
+      "units": [
+        {
+          "provider": "twilio",
+          "ecosystem": "packagist",
+          "file": "composer.json"
+        }
+      ]
+    },
+    {
+      "repository": "spatie/laravel-ignition",
+      "ecosystem": "packagist",
+      "commit": "f06b7f73d2e3b7f3c87ba8549e5869d482d974b1",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "packagist",
+          "file": "composer.json"
+        }
+      ]
+    },
+    {
+      "repository": "mobile-artificial-intelligence/maid",
+      "ecosystem": "maven",
+      "commit": "5ee32394aa56525bba089f74b6dd0068b8bff15d",
+      "units": [
+        {
+          "provider": "anthropic",
+          "ecosystem": "npm",
+          "file": "package.json"
+        },
+        {
+          "provider": "openai",
+          "ecosystem": "npm",
+          "file": "package.json"
+        }
+      ]
+    },
+    {
+      "repository": "twilio-flutter/programmable-video",
+      "ecosystem": "maven",
+      "commit": "85508e670a0f06cf58a840e13466b2c571a0487a",
+      "units": [
+        {
+          "provider": "twilio",
+          "ecosystem": "maven",
+          "file": "programmable_video/android/build.gradle"
+        },
+        {
+          "provider": "twilio",
+          "ecosystem": "npm",
+          "file": "programmable_video/example/firebase/functions/package.json"
+        }
+      ]
+    },
+    {
+      "repository": "dotnet/maui",
+      "ecosystem": "nuget",
+      "commit": "e65f0f8d043e0157ddd0b679ca9a0c9144fc3019",
+      "units": []
+    },
+    {
+      "repository": "dotnet/AspNetCore.Docs",
+      "ecosystem": "nuget",
+      "commit": "b3c9c8a58b77d5ca52b059932b708775fd69b259",
+      "units": [
+        {
+          "provider": "twilio",
+          "ecosystem": "nuget",
+          "file": "aspnetcore/security/authentication/2fa/samples/Web2FA/Web2FA.csproj"
+        },
+        {
+          "provider": "sendgrid",
+          "ecosystem": "nuget",
+          "file": "aspnetcore/security/authentication/accconfirm/samples/WebPWrecover30/WebPWrecover.csproj"
+        },
+        {
+          "provider": "sendgrid",
+          "ecosystem": "nuget",
+          "file": "aspnetcore/security/authentication/accconfirm/samples/WebPWrecover60/WebPWrecover.csproj"
+        }
+      ]
+    },
+    {
+      "repository": "saasba-se/micron",
+      "ecosystem": "cargo",
+      "commit": "43782fd55a33311ac6fd36996d8db2a17db529df",
+      "units": [
+        {
+          "provider": "stripe",
+          "ecosystem": "cargo",
+          "file": "lib/Cargo.toml"
+        }
+      ]
+    },
+    {
+      "repository": "grantslatton/openai-magic-instantiate",
+      "ecosystem": "cargo",
+      "commit": "99400c06830bef31bbdc88b886b19be1160fee84",
+      "units": [
+        {
+          "provider": "openai",
+          "ecosystem": "cargo",
+          "file": "openai-magic-instantiate/Cargo.toml"
+        }
+      ]
+    }
+  ]
+}

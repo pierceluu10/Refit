@@ -168,6 +168,8 @@
     }
   ],
   "mentions": [],
+  "outside": [],
+  "ignoredPaths": [],
   "models": [
     {
       "model": null,

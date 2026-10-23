@@ -1,0 +1,129 @@
+{
+  "formatVersion": 1,
+  "list": "docs/benchmarks/2026-10-22-go-repos.json",
+  "labelledAt": "2026-10-22",
+  "method": "Held-out hand labels, same scope as 2026-10-22-go-labels.json, made with the tracer frozen at 25c1613 and before it was scored on these repositories: the next repositories in the seeded order after the labelled sample, skipping open-telemetry/opentelemetry-go-compile-instrumentation (instrumentation templates, not application calls).",
+  "repos": [
+    {
+      "repo": "arpxspace/smartcommit",
+      "calls": [
+        {
+          "file": "internal/ai/ai.go",
+          "line": 92,
+          "provider": "openai"
+        },
+        {
+          "file": "internal/ai/ai.go",
+          "line": 200,
+          "provider": "openai"
+        },
+        {
+          "file": "internal/ai/ai.go",
+          "line": 249,
+          "provider": "openai"
+        },
+        {
+          "file": "internal/ai/ai.go",
+          "line": 338,
+          "provider": "openai"
+        },
+        {
+          "file": "internal/ai/ai.go",
+          "line": 394,
+          "provider": "openai"
+        },
+        {
+          "file": "internal/ai/ai.go",
+          "line": 435,
+          "provider": "openai"
+        }
+      ],
+      "sent": [
+        {
+          "file": "internal/ai/ai.go",
+          "line": 97,
+          "model": "gpt-4o-2024-08-06"
+        },
+        {
+          "file": "internal/ai/ai.go",
+          "line": 205,
+          "model": "gpt-4o-2024-08-06"
+        },
+        {
+          "file": "internal/ai/ai.go",
+          "line": 254,
+          "model": "gpt-4o-2024-08-06"
+        }
+      ],
+      "ambiguous": [],
+      "commit": "bf6aff95ac84e285e7edcd0aff4c3957469e2903"
+    },
+    {
+      "repo": "stripe-samples/checkout-single-subscription",
+      "calls": [
+        {
+          "file": "server/go/server.go",
+          "line": 85,
+          "provider": "stripe"
+        },
+        {
+          "file": "server/go/server.go",
+          "line": 99,
+          "provider": "stripe"
+        },
+        {
+          "file": "server/go/server.go",
+          "line": 113,
+          "provider": "stripe"
+        },
+        {
+          "file": "server/go/server.go",
+          "line": 127,
+          "provider": "stripe"
+        }
+      ],
+      "sent": [],
+      "ambiguous": [],
+      "commit": "19f81b6717c152cfa30911d16604fc7e6edfeefe"
+    },
+    {
+      "repo": "eryajf/kite-desktop",
+      "calls": [
+        {
+          "file": "pkg/ai/anthropic.go",
+          "line": 80,
+          "provider": "anthropic"
+        },
+        {
+          "file": "pkg/ai/openai.go",
+          "line": 76,
+          "provider": "openai"
+        },
+        {
+          "file": "pkg/ai/setup_validation.go",
+          "line": 205,
+          "provider": "openai"
+        },
+        {
+          "file": "pkg/ai/setup_validation.go",
+          "line": 238,
+          "provider": "anthropic"
+        }
+      ],
+      "sent": [
+        {
+          "file": "pkg/model/general_setting.go",
+          "line": 15,
+          "model": "gpt-4o-mini"
+        },
+        {
+          "file": "pkg/model/general_setting.go",
+          "line": 16,
+          "model": "claude-sonnet-4-5"
+        }
+      ],
+      "ambiguous": [],
+      "commit": "f9497303712fcd7cad0bcca8781f3d4f04a6280d"
+    }
+  ]
+}

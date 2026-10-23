@@ -18,6 +18,7 @@ import {
   classifyGhError,
   EXCLUDED_DIRECTORIES,
   EXCLUDED_NAME,
+  LEAKED_SOURCE,
   SCAN_LIMITS,
   SIZE_BUCKETS,
   SOURCE_EXTENSION,
@@ -223,6 +224,7 @@ for (const file of (await readdir(join(HERE, '..', 'docs', 'benchmarks'))).sort(
 const rejected = {
   invalidName,
   alreadyFrozen: 0,
+  leakedSource: 0,
   unreachable: 0,
   noCommit: 0,
   fork: 0,
@@ -237,8 +239,10 @@ const rejected = {
   noModelCall: 0,
 };
 const unique = [...pool.keys()].sort();
-const open = unique.filter((name) => !frozen.has(name));
-rejected.alreadyFrozen = unique.length - open.length;
+const unfrozen = unique.filter((name) => !frozen.has(name));
+rejected.alreadyFrozen = unique.length - unfrozen.length;
+const open = unfrozen.filter((name) => !LEAKED_SOURCE.has(name));
+rejected.leakedSource = unfrozen.length - open.length;
 
 // 4. Metadata and the root manifest, 20 repositories per GraphQL query.
 const metadata = new Map();
@@ -462,6 +466,7 @@ await writeFile(
         `the tree passes Refit's scan limits (${SCAN_LIMITS.files} files, 2 MiB per file, 50 MiB total)`,
         `repository name or topics do not match ${EXCLUDED_NAME.source} (case-insensitive)`,
         'repository is in no other frozen list under docs/benchmarks',
+        'repository is not a known copy of leaked proprietary source (LEAKED_SOURCE)',
         'one level of apps/* and packages/* manifests; deeper nesting not read (D-11)',
       ],
       sortOrder: 'stars desc, full name asc, within the retrievable code-search pool',

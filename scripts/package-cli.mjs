@@ -38,6 +38,7 @@ else {
       'pg',
       'tsx',
       'typescript-compiler',
+      'web-tree-sitter',
       'yaml',
     ]) {
       const installed = JSON.parse(
@@ -58,6 +59,12 @@ else {
       if ((name.endsWith('.ts') || name.endsWith('.json')) && !name.endsWith('.test.ts'))
         await copyFile(join(root, 'pipeline', name), join(stage, 'pipeline', name));
     }
+    // Language tracers and their grammars live in their own directories.
+    for (const language of ['python', 'go'])
+      await cp(join(root, 'pipeline', language), join(stage, 'pipeline', language), {
+        recursive: true,
+        filter: (source) => !source.endsWith('.test.ts'),
+      });
     await cp(join(root, 'pipeline/fixtures'), join(stage, 'pipeline/fixtures'), {
       recursive: true,
     });

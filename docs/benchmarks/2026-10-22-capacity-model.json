@@ -37,25 +37,25 @@
   "inputs": {
     "inventory": {
       "wallSeconds": {
-        "count": 97,
-        "p50": 1.645,
-        "p90": 6.711,
+        "count": 91,
+        "p50": 1.5190000000000001,
+        "p90": 5.5840000000000005,
         "p99": 15.906,
         "max": 15.906
       },
       "cpuSeconds": {
-        "count": 97,
-        "p50": 1.7800000000000002,
-        "p90": 7.29,
+        "count": 91,
+        "p50": 1.7000000000000002,
+        "p90": 6.0600000000000005,
         "p99": 14.35,
         "max": 14.35
       },
       "maxRssBytes": {
-        "count": 97,
-        "p50": 279805952,
-        "p90": 529154048,
-        "p99": 868548608,
-        "max": 868548608
+        "count": 91,
+        "p50": 268894208,
+        "p90": 494747648,
+        "p99": 682033152,
+        "max": 682033152
       }
     },
     "validatedMigrationSeconds": {
@@ -91,9 +91,9 @@
       },
       "totalArchiveBytes": 43894190592
     },
-    "workerPeakGib": 0.81,
+    "workerPeakGib": 0.64,
     "containerGib": 3,
-    "pollCpuSeconds": 7.29
+    "pollCpuSeconds": 6.0600000000000005
   },
   "sizes": [
     {
@@ -105,22 +105,22 @@
       "presetUsd": 4.39,
       "usdPerMonth": 25.39,
       "sustainedCpuPerSecond": 0.125,
-      "memoryHeadroomGib": 0.19,
+      "memoryHeadroomGib": 0.36,
       "jobSeconds": {
-        "inventoryP50": 14.2,
-        "inventoryP90": 58.3,
+        "inventoryP50": 13.6,
+        "inventoryP90": 48.5,
         "migrationP50": 264,
         "migrationP90": 576
       },
       "jobsPerHour": {
-        "inventoryP50": 252,
-        "inventoryP90": 61,
+        "inventoryP50": 264,
+        "inventoryP90": 74,
         "migrationP50": 13,
         "migrationP90": 6
       },
       "usdPerJob": {
-        "inventoryP50": 0.00014,
-        "inventoryP90": 0.00057,
+        "inventoryP50": 0.00013,
+        "inventoryP90": 0.00047,
         "migrationP50": 0.00259,
         "migrationP90": 0.00564
       },
@@ -128,18 +128,18 @@
         "300": {
           "10": {
             "repositories": 30,
-            "machines": 12,
-            "usdPerMonth": 340.68
+            "machines": 10,
+            "usdPerMonth": 283.9
           },
           "50": {
             "repositories": 150,
-            "machines": 59,
-            "usdPerMonth": 1675.01
+            "machines": 49,
+            "usdPerMonth": 1391.11
           },
           "200": {
             "repositories": 600,
-            "machines": 234,
-            "usdPerMonth": 6643.26
+            "machines": 195,
+            "usdPerMonth": 5536.05
           }
         },
         "3600": {
@@ -155,8 +155,8 @@
           },
           "200": {
             "repositories": 600,
-            "machines": 20,
-            "usdPerMonth": 567.8
+            "machines": 17,
+            "usdPerMonth": 482.63
           }
         }
       }
@@ -170,22 +170,22 @@
       "presetUsd": 8.78,
       "usdPerMonth": 50.78,
       "sustainedCpuPerSecond": 0.25,
-      "memoryHeadroomGib": 4.19,
+      "memoryHeadroomGib": 4.36,
       "jobSeconds": {
-        "inventoryP50": 7.1,
-        "inventoryP90": 29.2,
+        "inventoryP50": 6.8,
+        "inventoryP90": 24.2,
         "migrationP50": 132,
         "migrationP90": 288
       },
       "jobsPerHour": {
-        "inventoryP50": 505,
-        "inventoryP90": 123,
+        "inventoryP50": 529,
+        "inventoryP90": 148,
         "migrationP50": 27,
         "migrationP90": 12
       },
       "usdPerJob": {
-        "inventoryP50": 0.00014,
-        "inventoryP90": 0.00057,
+        "inventoryP50": 0.00013,
+        "inventoryP90": 0.00047,
         "migrationP50": 0.00259,
         "migrationP90": 0.00564
       },
@@ -193,18 +193,18 @@
         "300": {
           "10": {
             "repositories": 30,
-            "machines": 6,
-            "usdPerMonth": 322.68
+            "machines": 5,
+            "usdPerMonth": 268.9
           },
           "50": {
             "repositories": 150,
-            "machines": 30,
-            "usdPerMonth": 1613.4
+            "machines": 25,
+            "usdPerMonth": 1344.5
           },
           "200": {
             "repositories": 600,
-            "machines": 117,
-            "usdPerMonth": 6292.26
+            "machines": 98,
+            "usdPerMonth": 5270.44
           }
         },
         "3600": {
@@ -220,8 +220,8 @@
           },
           "200": {
             "repositories": 600,
-            "machines": 10,
-            "usdPerMonth": 537.8
+            "machines": 9,
+            "usdPerMonth": 484.02
           }
         }
       }
@@ -235,22 +235,22 @@
       "presetUsd": 33,
       "usdPerMonth": 69,
       "sustainedCpuPerSecond": 1,
-      "memoryHeadroomGib": 4.19,
+      "memoryHeadroomGib": 4.36,
       "jobSeconds": {
-        "inventoryP50": 1.8,
-        "inventoryP90": 7.3,
+        "inventoryP50": 1.7,
+        "inventoryP90": 6.1,
         "migrationP50": 33,
         "migrationP90": 72
       },
       "jobsPerHour": {
-        "inventoryP50": 2022,
-        "inventoryP90": 493,
+        "inventoryP50": 2117,
+        "inventoryP90": 594,
         "migrationP50": 109,
         "migrationP90": 50
       },
       "usdPerJob": {
         "inventoryP50": 0.00005,
-        "inventoryP90": 0.00019,
+        "inventoryP90": 0.00016,
         "migrationP50": 0.00088,
         "migrationP90": 0.00192
       },
@@ -263,13 +263,13 @@
           },
           "50": {
             "repositories": 150,
-            "machines": 8,
-            "usdPerMonth": 576
+            "machines": 7,
+            "usdPerMonth": 504
           },
           "200": {
             "repositories": 600,
-            "machines": 30,
-            "usdPerMonth": 2160
+            "machines": 25,
+            "usdPerMonth": 1800
           }
         },
         "3600": {
@@ -300,22 +300,22 @@
       "presetUsd": 66,
       "usdPerMonth": 90,
       "sustainedCpuPerSecond": 1,
-      "memoryHeadroomGib": 4.19,
+      "memoryHeadroomGib": 4.36,
       "jobSeconds": {
-        "inventoryP50": 1.8,
-        "inventoryP90": 7.3,
+        "inventoryP50": 1.7,
+        "inventoryP90": 6.1,
         "migrationP50": 33,
         "migrationP90": 72
       },
       "jobsPerHour": {
-        "inventoryP50": 2022,
-        "inventoryP90": 493,
+        "inventoryP50": 2117,
+        "inventoryP90": 594,
         "migrationP50": 109,
         "migrationP90": 50
       },
       "usdPerJob": {
         "inventoryP50": 0.00006,
-        "inventoryP90": 0.00025,
+        "inventoryP90": 0.00021,
         "migrationP50": 0.00115,
         "migrationP90": 0.0025
       },
@@ -328,13 +328,13 @@
           },
           "50": {
             "repositories": 150,
-            "machines": 8,
-            "usdPerMonth": 744
+            "machines": 7,
+            "usdPerMonth": 651
           },
           "200": {
             "repositories": 600,
-            "machines": 30,
-            "usdPerMonth": 2790
+            "machines": 25,
+            "usdPerMonth": 2325
           }
         },
         "3600": {

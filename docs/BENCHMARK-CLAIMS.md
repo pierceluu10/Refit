@@ -32,21 +32,23 @@ The checker fails when a recomputed value differs from what the document says, w
 
 ## Results on 2026-10-22
 
-582 claims cover 1,579 numbers: 1,403 values and 176 ignored numbers that are not claims. The commit this was run at is in the pull request.
+586 claims cover 1,611 numbers: 1,434 values and 177 ignored numbers that are not claims. The commit this was run at is in the pull request.
 
 | Document | Reproduce | Differ | Not checkable |
 |---|---|---|---|
-| BENCHMARKS.md | 324 | 3 | 215 |
+| BENCHMARKS.md | 352 | 0 | 216 |
 | DEADLINE-BENCHMARK.md | 74 | 0 | 239 |
-| READINESS.md (5 checkpoints) | 29 | 0 | 8 |
-| PROVIDER-GOALS.md (3 checklists) | 58 | 0 | 17 |
+| READINESS.md (5 checkpoints) | 30 | 0 | 9 |
+| PROVIDER-GOALS.md (3 checklists) | 61 | 0 | 17 |
 | SHOPIFY-BENCHMARK.md | 93 | 0 | 88 |
 | STRIPE-BENCHMARK.md | 29 | 0 | 226 |
-| **All** | **607** | **3** | **793** |
+| **All** | **639** | **0** | **795** |
 
 Every covered number is in a claim, so nothing is unaccounted for.
 
-### Claims that do not reproduce
+### Claims that did not reproduce, now replaced
+
+The first run found three claims that the committed data did not reproduce. Each document now says the recomputed value, in the replacement wording below.
 
 | Document | Says | Recomputed | Why | Replacement |
 |---|---|---|---|---|
@@ -106,5 +108,5 @@ A proposal for OG9, the CI lane. It is not wired in here.
 ```
 
 - **Trigger.** Pull requests that touch `docs/BENCHMARKS.md`, `docs/DEADLINE-BENCHMARK.md`, `docs/READINESS.md`, `docs/PROVIDER-GOALS.md`, `docs/SHOPIFY-BENCHMARK.md`, `docs/STRIPE-BENCHMARK.md`, `docs/benchmarks/**` or `scripts/benchmark-claims.mjs`. It needs no `npm ci`, network or secrets, and runs in about a second.
-- **Not required at first.** The three claims above fail until PP10 applies the replacements. Once they pass, make the job required, so a number cannot change without its claim.
+- **Required from the start.** The three replaced claims above now reproduce and the checker passes, so the job can be required at once, so a number cannot change without its claim.
 - **New checkpoints.** The READINESS scope names five checkpoints. A new checkpoint is not covered until it is added to `scope`. A later step could cover each new checkpoint automatically.

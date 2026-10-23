@@ -1006,6 +1006,16 @@
       "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-customimagesearch which works both on node.js and browsers"
     },
     {
+      "name": "azure-cognitiveservices-customsearch",
+      "displayName": "Custom Search",
+      "endOfLife": "2023-03-31",
+      "replacement": [
+        "@azure/cognitiveservices-customsearch"
+      ],
+      "latest": "2.0.0",
+      "npmDeprecated": "This package is deprecated in favor of @azure/cognitiveservices-customsearch which works both on node.js and browsers"
+    },
+    {
       "name": "azure-cognitiveservices-customvision-prediction",
       "displayName": "Custom Vision Prediction",
       "endOfLife": "2023-03-31",

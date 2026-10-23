@@ -1,0 +1,159 @@
+{
+  "formatVersion": 1,
+  "labelledAt": "2026-10-22",
+  "method": "Hand labels for the 20 repositories added to the frozen list on 2026-10-22 (the first listing of each is in 2026-10-21-paypal-repos.json under extensions), made before Refit ran on any of them. scripts/paypal-label-candidates.mjs (a plain text search) listed lines that may send a PayPal REST request; the labeller read the code around each and wrote every real request in live (non-test) JS/TS source that sends a request to a PayPal REST API: a fetch, axios, node http or SDK call whose target is a PayPal host or an SDK controller or old-SDK request class. A request is the line of its call (or, for the old SDK, of the `new …Request(` expression); a request built from a base the code leaves to the environment or a config object is labelled when the code shows it is PayPal. Calls to other APIs, PayPal client-side JS SDK components, links and documentation are not requests. A reported request matches a label in the same file within 4 lines; each label and each report matches at most once.",
+  "repos": [
+    {
+      "repo": "AndrewUru/ai-saas",
+      "commit": "3d65c54d93886137edfe6e25b178588af0538775",
+      "requests": [
+        "app/api/paypal/capture-order/route.ts:51",
+        "app/api/paypal/capture-order/route.ts:75",
+        "app/api/paypal/capture-order/route.ts:91",
+        "app/api/paypal/confirm/route.ts:21",
+        "app/api/paypal/confirm/route.ts:68",
+        "app/api/paypal/create-order/route.ts:24",
+        "app/api/paypal/create-order/route.ts:59",
+        "lib/paypal-verify.ts:56",
+        "lib/paypal.ts:14",
+        "lib/paypal.ts:33",
+        "lib/paypal.ts:45"
+      ]
+    },
+    {
+      "repo": "Dyan-Dev/loopi",
+      "commit": "c61515e14d09d9f6dc4ec97c719c6ce5bcc3acd4",
+      "requests": [
+        "src/main/handlers/paypalHandler.ts:17",
+        "src/main/handlers/paypalHandler.ts:38",
+        "src/main/handlers/paypalHandler.ts:68",
+        "src/main/handlers/paypalHandler.ts:87",
+        "src/main/handlers/paypalHandler.ts:111"
+      ]
+    },
+    {
+      "repo": "Mutesa-Cedric/paypal-listen",
+      "commit": "64e53cc2ebfcdc53c06abb8e45e21611ff962f16",
+      "requests": ["src/paypal.ts:24", "src/paypal.ts:41", "src/paypal.ts:61"]
+    },
+    {
+      "repo": "QuangNV23062004/test-monorepo-microservices",
+      "commit": "abf04b7753b821c38132e0d6b2d761dfcab3e576",
+      "requests": []
+    },
+    {
+      "repo": "Sin-Estres-dev/Strezless",
+      "commit": "fd12b5be81b68ae11aa88cf88c6e4d1e99223fb8",
+      "requests": []
+    },
+    {
+      "repo": "cboard-org/cboard-api",
+      "commit": "2a1cd543d0db4c79db60e263521a2ec8c09d45c3",
+      "requests": [
+        "api/helpers/paypal.js:19",
+        "api/helpers/paypal.js:44",
+        "api/helpers/paypal.js:60",
+        "api/helpers/paypal.js:74"
+      ]
+    },
+    {
+      "repo": "daytimedrinkingclub/shipstation",
+      "commit": "c64d95e9215a2bc270756e2fe5494ea555865c00",
+      "requests": ["server/services/paymentService.js:65", "server/services/paymentService.js:96"]
+    },
+    {
+      "repo": "fazt/nextjs-payments",
+      "commit": "41a379fc9fe608a1cdbd6895f0289a3d82c28249",
+      "requests": [
+        "src/libs/paypal.ts:78",
+        "src/libs/paypal.ts:102",
+        "src/app/api/payments/paypal/plans/sync/route.ts:31",
+        "src/app/api/checkout/subscription/cancel/route.ts:20",
+        "src/app/api/checkout/paypal/route.ts:24",
+        "src/app/api/checkout/paypal/capture/route.ts:23",
+        "src/app/api/checkout/paypal/capture/route.ts:32",
+        "src/app/api/checkout/paypal/subscriptions/route.ts:37",
+        "src/app/api/checkout/paypal/subscriptions/activate/route.ts:23"
+      ]
+    },
+    {
+      "repo": "flancer64/teq-agave-paypal",
+      "commit": "7a2facefbe658efba0d910d6bb82fdb72cf2f2f2",
+      "requests": [
+        "src/Back/Web/Handler/A/Api/OrderCapture.js:85",
+        "src/Back/Web/Handler/A/Api/OrderCreate.js:81"
+      ]
+    },
+    {
+      "repo": "freifunkMUC/mastodon-paywall",
+      "commit": "3ae4522d5766818a494ccc621a550c3a44d62e19",
+      "requests": ["lib/paypal.js:17", "lib/paypal.js:42", "lib/paypal.js:62"]
+    },
+    {
+      "repo": "heyvishusri/proshop-v2",
+      "commit": "3de625986c8b5f80c7e17d1fffde8e5ff1703a29",
+      "requests": ["backend/utils/paypal.js:18", "backend/utils/paypal.js:41"]
+    },
+    {
+      "repo": "irzix/whmjs-core",
+      "commit": "e62ccef39b99c7cb79c5f4d8ac8fe21fa9dc4af0",
+      "requests": []
+    },
+    {
+      "repo": "kerkkoh/simple-clothing-store",
+      "commit": "860f621e0235054b5ffd7a5229a85f317557abcb",
+      "requests": ["server.js:91"]
+    },
+    {
+      "repo": "ksom10/YachtingEveryday",
+      "commit": "3bd8f641e66a4e5751d24534710817d3facd27ad",
+      "requests": []
+    },
+    {
+      "repo": "melo-maniac-29/webly.io",
+      "commit": "ba7d4128d09f6f60561420fe6b79a55a779a62fb",
+      "requests": [
+        "app/api/paypal/captureorder/route.js:17",
+        "app/api/paypal/createorder/route.js:17"
+      ]
+    },
+    {
+      "repo": "open-template-hub/payment-server-template",
+      "commit": "de2a69d047c789961b665ad872f44ac5c86d5ac9",
+      "requests": [
+        "app/provider/paypal-payment.provider.ts:40",
+        "app/provider/paypal-payment.provider.ts:89"
+      ]
+    },
+    {
+      "repo": "recabasic/tfc-plex",
+      "commit": "2bf7274713985a0508198352d69da28b2d199ecb",
+      "requests": []
+    },
+    {
+      "repo": "shreyashpatel5506/githubanalyzer",
+      "commit": "29240250fcb307fe436f5e7f4315aca050e64363",
+      "requests": [
+        "app/api/payments/paypal/create-order/route.ts:51",
+        "app/api/payments/paypal/capture/route.ts:36",
+        "app/lib/paypal.ts:21"
+      ]
+    },
+    {
+      "repo": "unredacted/freesocks-control-plane",
+      "commit": "a82dfd1505d937f92218e3359832cf053947d283",
+      "requests": [
+        "convex/lib/processors/paypal.ts:44",
+        "convex/lib/processors/paypal.ts:70",
+        "convex/lib/processors/paypal.ts:110",
+        "convex/lib/processors/paypal.ts:190",
+        "convex/lib/processors/paypal.ts:225"
+      ]
+    },
+    {
+      "repo": "youedd/react-native-paypal-web-payments",
+      "commit": "585c56132fd7f34cf162bc217c573b6b84154808",
+      "requests": ["scripts/createOrder.mjs:4", "scripts/createOrder.mjs:138"]
+    }
+  ]
+}

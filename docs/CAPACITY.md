@@ -8,12 +8,12 @@ The measurements were taken on a laptop, not on Fly or AWS hardware. The per-sta
 
 | What                                                                                                                                                                             | Result                                                                                                                                                                                                     | Raw data                                                                                                                                                                                                        |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Static inventory: `refit deadlines --json` then `refit agents --json` on 100 repositories, 25 from each of the frozen Stripe active, OpenAI app, Anthropic app and Shopify lists | 97 measured; 3 refused by Refit's scan limits in 0.4 s. Per repository: wall **p50 1.6 s**, p90 6.7 s, max 15.9 s; CPU p50 1.8 s, p90 7.3 s, max 14.4 s; peak memory p50 267 MiB, p90 505 MiB, max 828 MiB | [inventory](benchmarks/2026-10-22-capacity-inventory.json)                                                                                                                                                      |
+| Static inventory: `refit deadlines --json` then `refit agents --json` on 94 repositories: 25 from each of the frozen Stripe active, OpenAI app and Shopify lists, and 19 from the Anthropic app list| 91 measured; 3 refused by Refit's scan limits in 0.4 s. Per repository: wall **p50 1.5 s**, p90 5.6 s, max 15.9 s; CPU p50 1.7 s, p90 6.1 s, max 14.4 s; peak memory p50 256 MiB, p90 472 MiB, max 650 MiB | [inventory](benchmarks/2026-10-22-capacity-inventory.json)                                                                                                                                                      |
 | Cold dependency preparation: the 90 bundles of the current recipe (72 npm, 16 pnpm, 2 Yarn) that benchmark runs prepared on this laptop between 2026-10-20 and 2026-10-22        | Install time the package manager printed: **p50 14 s**, p90 33 s, max 67 s. Archive: p50 508 MiB, p90 957 MiB, max 1.3 GiB. Excludes container start and archiving                                         | [preparation](benchmarks/2026-10-22-capacity-preparation.json)                                                                                                                                                  |
 | Validated Stripe migrations from the 2026-10-16 benchmark (`7238e46`, Yarn at `fecd935`)                                                                                         | 74 repositories, end to end (four scans, then `refit run` with preparation, baseline, patched and generated checks): **p50 33 s**, p90 72 s, max 153 s. Dependency cache state was mixed                   | [fresh](benchmarks/2026-10-16-stripe-fixrate-fresh-results.json), [original](benchmarks/2026-10-16-stripe-fixrate-original-results.json), [held out](benchmarks/2026-10-16-stripe-fixrate-heldout-results.json) |
 | Yarn 1 repositories under the 4 GiB profile, same day                                                                                                                            | 3 validated in 147–246 s                                                                                                                                                                                   | [Yarn 4g](benchmarks/2026-10-16-stripe-fixrate-yarn-4g-results.json)                                                                                                                                            |
 
-The inventory ran from a clean pinned worktree at `fda92e5` on an Apple M5 (10 cores, 16 GB, Node 25.8.2), one repository at a time. Other lanes kept the load average at 9.6–13.6, so these times are slower than on an idle machine. Wall time includes Node startup, an upper bound for the in-process scans the worker runs. Five repositories (`OpenCoworkAI/open-cowork`, `yayasoumah/pocket-server`, `babarot/oksskolten`, `vual/lobe-chat-pro`, `backenly/backenly`) are in both AI samples and were measured twice, so the 100 rows are 95 distinct repositories and the 97 measured rows cover 92.
+The inventory ran from a clean pinned worktree at `fda92e5` on an Apple M5 (10 cores, 16 GB, Node 25.8.2), one repository at a time. Other lanes kept the load average at 9.6–13.6, so these times are slower than on an idle machine. Wall time includes Node startup, an upper bound for the in-process scans the worker runs. Five repositories (`OpenCoworkAI/open-cowork`, `yayasoumah/pocket-server`, `babarot/oksskolten`, `vual/lobe-chat-pro`, `backenly/backenly`) are in both AI samples and were measured twice, so the 94 rows are 89 distinct repositories and the 91 measured rows cover 86. Six rows were removed on 2026-10-22 with the 12 repositories of the Anthropic app list that are copies of leaked proprietary Claude Code source, and every number on this page was recomputed without them.
 
 ## Not measured
 
@@ -65,19 +65,19 @@ A job holds the worker for its wall time or, on shared vCPUs once the burst bala
 
 | Size                      | Inventory p50 / p90 | Inventories per hour | Validated migration p50 / p90 | Migrations per hour |
 | ------------------------- | ------------------- | -------------------- | ----------------------------- | ------------------- |
-| `shared-cpu-2x`           | 14 s / 58 s         | 252 / 61             | 264 s / 576 s                 | 13 / 6              |
-| `shared-cpu-4x`           | 7 s / 29 s          | 505 / 123            | 132 s / 288 s                 | 27 / 12             |
-| `performance-1x` or `-2x` | 1.8 s / 7.3 s       | 2,022 / 493          | 33 s / 72 s                   | 109 / 50            |
+| `shared-cpu-2x`           | 14 s / 49 s         | 264 / 74             | 264 s / 576 s                 | 13 / 6              |
+| `shared-cpu-4x`           | 7 s / 24 s          | 529 / 148            | 132 s / 288 s                 | 27 / 12             |
+| `performance-1x` or `-2x` | 1.7 s / 6.1 s       | 2,117 / 594          | 33 s / 72 s                   | 109 / 50            |
 
 The shared rows are the sustained case. A quiet machine bursts at full speed for up to about 500 s of saved balance, but a machine polling every 5 minutes is never quiet.
 
 ### Memory headroom
 
-A validation can grow to its container's 3 GiB. The worker process runs the same scanners as the inventory commands, whose peak was 828 MiB. That leaves:
+A validation can grow to its container's 3 GiB. The worker process runs the same scanners as the inventory commands, whose peak was 650 MiB. That leaves:
 
-- **0.19 GiB on today's 4 GB machine** for `dockerd`, git, the kernel and the page cache. That is no margin: a large repository can push the worker or `dockerd` out of memory during a validation.
+- **0.36 GiB on today's 4 GB machine** for `dockerd`, git, the kernel and the page cache. That is no margin: a large repository can push the worker or `dockerd` out of memory during a validation.
 - **No room for the opt-in 4 GiB profile** (`REFIT_VALIDATION_WORKSPACE=4g`, a 5 GiB container), which the Yarn 1 repositories above need.
-- **4.19 GiB on any 8 GB size.**
+- **4.36 GiB on any 8 GB size.**
 
 ### Job timeout
 
@@ -101,9 +101,9 @@ The worker never idle-stops, so machines are a fixed monthly cost. The per-job f
 
 | Size             | Per inventory, p50 / p90 | Per validated migration, p50 / p90 |
 | ---------------- | ------------------------ | ---------------------------------- |
-| `shared-cpu-2x`  | $0.00014 / $0.00057      | $0.0026 / $0.0056                  |
-| `performance-1x` | $0.00005 / $0.00019      | $0.0009 / $0.0019                  |
-| `performance-2x` | $0.00006 / $0.00025      | $0.0011 / $0.0025                  |
+| `shared-cpu-2x`  | $0.00013 / $0.00047      | $0.0026 / $0.0056                  |
+| `performance-1x` | $0.00005 / $0.00016      | $0.0009 / $0.0019                  |
+| `performance-2x` | $0.00006 / $0.00021      | $0.0011 / $0.0025                  |
 
 On top of machine time:
 
@@ -117,19 +117,19 @@ Assumptions:
 
 - 3 repositories per customer.
 - 2 validated migrations per repository per month, at the p90 time.
-- A poll costs one inventory's p90 CPU time (7.3 s). It runs a full scan, as an inventory does.
+- A poll costs one inventory's p90 CPU time (6.1 s). It runs a full scan, as an inventory does.
 - Machines are planned to be at most 50% busy.
 
 Each row also includes a 20 GB volume per machine.
 
 | Size             | Poll interval | 10 customers            | 50 customers | 200 customers |
 | ---------------- | ------------- | ----------------------- | ------------ | ------------- |
-| `shared-cpu-2x`  | 300 s         | 12 machines, $341/month | 59, $1,675   | 234, $6,643   |
-| `shared-cpu-2x`  | 1 hour        | 1, $28                  | 5, $142      | 20, $568      |
-| `performance-1x` | 300 s         | 2, $144                 | 8, $576      | 30, $2,160    |
+| `shared-cpu-2x`  | 300 s         | 10 machines, $284/month | 49, $1,391   | 195, $5,536   |
+| `shared-cpu-2x`  | 1 hour        | 1, $28                  | 5, $142      | 17, $483      |
+| `performance-1x` | 300 s         | 2, $144                 | 7, $504      | 25, $1,800    |
 | `performance-1x` | 1 hour        | 1, $72                  | 1, $72       | 3, $216       |
 
-**Polling, not migrations, sets the size.** At a 300 s interval each repository costs 12 scans an hour, about 87 CPU seconds, while its migrations average about 0.2 s an hour. The scan is content-addressed (its run id hashes the contract, repository and adapter), so a poll whose repository commit and contract hash both match the last one could skip the scan entirely. That would make a poll cost only its fetches.
+**Polling, not migrations, sets the size.** At a 300 s interval each repository costs 12 scans an hour, about 73 CPU seconds, while its migrations average about 0.2 s an hour. The scan is content-addressed (its run id hashes the contract, repository and adapter), so a poll whose repository commit and contract hash both match the last one could skip the scan entirely. That would make a poll cost only its fetches.
 
 These rows assume jobs spread across machines. Today one machine serves one owner (`REFIT_HOSTED_OWNER`); several machines need the job distribution and isolation PG3 and PG10 are building.
 
@@ -137,10 +137,10 @@ These rows assume jobs spread across machines. Today one machine serves one owne
 
 Today: `shared-cpu-2x` with 4 GB ($25.39/month plus a 20 GB volume). Against the measurements:
 
-- **Memory.** Worst-case headroom is 0.19 GiB, and the 4 GiB profile cannot run at all.
+- **Memory.** Worst-case headroom is 0.36 GiB, and the 4 GiB profile cannot run at all.
 - **CPU.** The sustained quota is 0.125 of a core, so a p90 validated migration holds the worker for about 10 minutes once the burst is spent, instead of 72 s.
 
-**Needs owner decision:** move to `performance-1x` with 8 GB ($69.00/month in iad). It holds a 3 GiB validation container plus the measured worker peak with 4.19 GiB to spare, and runs the sequential worker at full speed.
+**Needs owner decision:** move to `performance-1x` with 8 GB ($69.00/month in iad). It holds a 3 GiB validation container plus the measured worker peak with 4.36 GiB to spare, and runs the sequential worker at full speed.
 
 - `performance-2x` with 8 GB costs $21 more for a second vCPU the worker cannot use today.
 - `shared-cpu-4x` with 8 GB ($50.78) fixes memory but still sustains only a quarter of a core.

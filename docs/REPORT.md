@@ -64,6 +64,8 @@ The markdown is at most 60,000 characters, under GitHub's 65,536-character limit
 | `.evidence[]`, `.more`      | `{ file, line }`, integer                                  | Live evidence locations, and live matches past the scanner's listing limit.                               |
 | `.ignored`                  | boolean                                                    | Accepted by an active ignore entry.                                                                       |
 | `mentions`                  | string[]                                                   | Registry IDs named only outside live code, sorted.                                                        |
+| `outside[]`                 | `{ id, file, line, version, reason }`                      | Counted live matches on docs, example, test-fixture and build-output paths, labelled with the reason. By file. |
+| `ignoredPaths[]`            | `{ id, file, line, version, reason }`                      | Matches on paths `.refit-ignore-paths.json` opts out, with its reason: listed, not counted. By file.      |
 | `models[]`                  | `{ model, provider, calls: [{ file, line, call, test }] }` | Model calls grouped by model; `model` is null when computed. Named models first, sorted.                  |
 | `untracked[]`               | `{ provider, name, hosts: [{ hostname, file, line }] }`    | Hosts of providers with no agent and no registry deadlines.                                               |
 | `next`                      | string                                                     | The next step, as in the markdown.                                                                        |

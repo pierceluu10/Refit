@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Go tracer results",
+  "description": "The Go SDK calls and model sites traced per repository of a frozen list, scored against the labels (pipeline/go/benchmark.ts, docs/GO-TRACER.md). Shape recorded from the committed file on 2026-10-22; refitCommit and dirty are written from 2026-10-22 on.",
+  "type": "object",
+  "required": ["formatVersion", "list", "labels", "checkedAt", "summary", "results"],
+  "properties": {
+    "formatVersion": {
+      "type": "integer"
+    },
+    "list": {
+      "type": "string"
+    },
+    "labels": {
+      "type": "string"
+    },
+    "checkedAt": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "repositories",
+        "scanned",
+        "withCalls",
+        "calls",
+        "stripeCalls",
+        "sites",
+        "stripeModules",
+        "stripeApiVersionsKnown",
+        "labelled"
+      ],
+      "properties": {
+        "repositories": {
+          "type": "integer"
+        },
+        "scanned": {
+          "type": "integer"
+        },
+        "withCalls": {
+          "type": "integer"
+        },
+        "calls": {
+          "type": "integer"
+        },
+        "stripeCalls": {
+          "type": "integer"
+        },
+        "sites": {
+          "type": "integer"
+        },
+        "stripeModules": {
+          "type": "integer"
+        },
+        "stripeApiVersionsKnown": {
+          "type": "integer"
+        },
+        "labelled": {
+          "type": "object",
+          "required": [
+            "linePrecision",
+            "stripeCallRecall",
+            "modelSiteRecall",
+            "modelCallRecall",
+            "counts",
+            "wrong",
+            "missed"
+          ],
+          "properties": {
+            "linePrecision": {
+              "type": "integer"
+            },
+            "stripeCallRecall": {
+              "type": "integer"
+            },
+            "modelSiteRecall": {
+              "type": "number"
+            },
+            "modelCallRecall": {
+              "type": "integer"
+            },
+            "counts": {
+              "type": "object",
+              "required": [
+                "correct",
+                "wrong",
+                "stripeCalls",
+                "stripeTraced",
+                "sent",
+                "sentFound",
+                "modelCalls",
+                "modelCallsTraced"
+              ],
+              "properties": {
+                "correct": {
+                  "type": "integer"
+                },
+                "wrong": {
+                  "type": "integer"
+                },
+                "stripeCalls": {
+                  "type": "integer"
+                },
+                "stripeTraced": {
+                  "type": "integer"
+                },
+                "sent": {
+                  "type": "integer"
+                },
+                "sentFound": {
+                  "type": "integer"
+                },
+                "modelCalls": {
+                  "type": "integer"
+                },
+                "modelCallsTraced": {
+                  "type": "integer"
+                }
+              }
+            },
+            "wrong": {
+              "type": "array"
+            },
+            "missed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit", "calls", "sites", "stops", "modules", "status"],
+        "properties": {
+          "repo": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "calls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "line", "provider", "call", "client"],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "call": {
+                  "type": "string"
+                },
+                "client": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "line", "model"],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "model": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "stops": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "line", "reason"],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "line", "module", "version", "provider", "locked", "apiVersion"],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "module": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "locked": {
+                  "type": "boolean"
+                },
+                "apiVersion": {
+                  "type": ["null", "string"]
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

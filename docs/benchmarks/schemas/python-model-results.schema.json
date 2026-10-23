@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Python model tracer results",
+  "description": "The Python model calls traced per repository of a frozen list (docs/PYTHON-MODELS.md), scored against the labels by pipeline/python/model-benchmark.ts. Shape recorded from the two committed files on 2026-10-22.",
+  "type": "object",
+  "required": ["formatVersion", "list", "labels", "checkedAt", "summary", "results"],
+  "properties": {
+    "formatVersion": {
+      "type": "integer"
+    },
+    "list": {
+      "type": "string"
+    },
+    "labels": {
+      "type": "string"
+    },
+    "checkedAt": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "required": ["repositories", "scanned", "withCalls", "calls", "sites", "stops", "labelled"],
+      "properties": {
+        "repositories": {
+          "type": "integer"
+        },
+        "scanned": {
+          "type": "integer"
+        },
+        "withCalls": {
+          "type": "integer"
+        },
+        "calls": {
+          "type": "integer"
+        },
+        "sites": {
+          "type": "integer"
+        },
+        "stops": {
+          "type": "integer"
+        },
+        "labelled": {
+          "type": "object",
+          "required": [
+            "repositories",
+            "linePrecision",
+            "lineRecall",
+            "callRecall",
+            "counts",
+            "wrong",
+            "missed"
+          ],
+          "properties": {
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["repo", "reported", "correct", "sent", "calls", "callsTraced"],
+                "properties": {
+                  "repo": {
+                    "type": "string"
+                  },
+                  "reported": {
+                    "type": "integer"
+                  },
+                  "correct": {
+                    "type": "integer"
+                  },
+                  "sent": {
+                    "type": "integer"
+                  },
+                  "calls": {
+                    "type": "integer"
+                  },
+                  "callsTraced": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "linePrecision": {
+              "type": "number"
+            },
+            "lineRecall": {
+              "type": "number"
+            },
+            "callRecall": {
+              "type": "number"
+            },
+            "counts": {
+              "type": "object",
+              "required": [
+                "truePositives",
+                "falsePositives",
+                "sent",
+                "labelledCalls",
+                "tracedCalls"
+              ],
+              "properties": {
+                "truePositives": {
+                  "type": "integer"
+                },
+                "falsePositives": {
+                  "type": "integer"
+                },
+                "sent": {
+                  "type": "integer"
+                },
+                "labelledCalls": {
+                  "type": "integer"
+                },
+                "tracedCalls": {
+                  "type": "integer"
+                }
+              }
+            },
+            "wrong": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "missed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit", "calls", "sites", "stops", "status"],
+        "properties": {
+          "repo": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "calls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "line", "provider", "call", "client"],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "call": {
+                  "type": "string"
+                },
+                "client": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "line", "model"],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "model": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "stops": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "line", "reason"],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

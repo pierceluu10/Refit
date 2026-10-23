@@ -3,9 +3,10 @@ import { alertStage, DEFAULT_LEAD_DAYS, timing } from './deadline-alerts.ts';
 import { agentStatus } from './deadline-exposure.ts';
 import { applyDeadlineIgnores } from './deadline-ignores.ts';
 import { daysUntil, type DeadlineRegistry } from './deadline-registry.ts';
-import type { Inventory } from './inventory.ts';
+import type { Inventory, InventoryEvidence, InventoryExposure } from './inventory.ts';
 import { MODEL_CALLS } from './model-retirements.ts';
 import { digest } from './specifications.ts';
+import { IGNORE_PATHS_FILE, OUTSIDE_APPLICATION_CODE } from './workspace-attribution.ts';
 
 export const REPORT_FORMAT_VERSION = 1;
 export const REPORT_MARKER = '<!-- refit-report -->';
@@ -55,6 +56,11 @@ export interface Report {
   }[];
   // Deadlines named only outside live code (tests, comments, catalogs, tokenizers, checks).
   mentions: string[];
+  // Counted live matches on docs, example, test-fixture and build-output paths, with the reason
+  // (owner decision 22): labelled, not excluded.
+  outside: { id: string; file: string; line: number; version: string; reason: string }[];
+  // Matches on paths the repository opts out in IGNORE_PATHS_FILE, with its reason: never counted.
+  ignoredPaths: { id: string; file: string; line: number; version: string; reason: string }[];
   models: {
     model: string | null;
     provider: string;
@@ -195,6 +201,16 @@ export function buildReport(options: {
       ignored: Boolean(decisions.get(exposure.deadline.id)?.ignoredBy.length),
     })),
     mentions: inventory.deadlines.mentions.map((mention) => mention.deadline.id).sort(),
+    outside: placed(
+      exposures,
+      (exposure) => exposure.evidence,
+      (item) => (item.excluded && OUTSIDE_APPLICATION_CODE.has(item.excluded) ? item.excluded : ''),
+    ),
+    ignoredPaths: placed(
+      [...inventory.deadlines.exposures, ...inventory.deadlines.mentions],
+      (exposure) => exposure.ignoredPaths ?? [],
+      (item) => item.ignoreReason ?? '',
+    ),
     models: [...groups.values()].sort(
       (a, b) =>
         Number(a.model === null) - Number(b.model === null) ||
@@ -214,6 +230,27 @@ export function buildReport(options: {
       })),
   };
   return { ...report, next: nextStep(report) };
+}
+
+// Each match a list of exposures picks, with the reason `reason` gives; matches with no reason are
+// left out. Sorted by place.
+function placed(
+  exposures: InventoryExposure[],
+  matches: (exposure: InventoryExposure) => InventoryEvidence[],
+  reason: (item: InventoryEvidence) => string,
+) {
+  return exposures
+    .flatMap((exposure) =>
+      matches(exposure).map((item) => ({
+        id: exposure.deadline.id,
+        file: item.file,
+        line: item.line,
+        version: item.version,
+        reason: reason(item),
+      })),
+    )
+    .filter((item) => item.reason)
+    .sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.id.localeCompare(b.id));
 }
 
 function capabilityText(integration: Report['integrations'][number]) {
@@ -344,6 +381,36 @@ export function renderReport(report: Report) {
       ? [
           '',
           `Named only outside live code (tests, comments, catalogs): ${report.mentions.slice(0, LISTED).map(code).join(', ')}${report.mentions.length > LISTED ? `, and ${report.mentions.length - LISTED} more` : ''}.`,
+        ]
+      : []),
+    ...(report.outside.length
+      ? [
+          '',
+          'Counted, outside application code (docs / example / test fixture / build output). These paths are often deployed, so they count:',
+          '',
+          ...listed(
+            report.outside,
+            LISTED,
+            (item) => [
+              `- ${code(`${item.file}:${item.line}`)} (${item.reason}): ${code(item.version)} for ${code(item.id)}`,
+            ],
+            'matches',
+          ),
+        ]
+      : []),
+    ...(report.ignoredPaths.length
+      ? [
+          '',
+          `Ignored by repository config (${code(IGNORE_PATHS_FILE)}, not counted):`,
+          '',
+          ...listed(
+            report.ignoredPaths,
+            LISTED,
+            (item) => [
+              `- ${code(`${item.file}:${item.line}`)} (${item.reason}): ${code(item.version)} for ${code(item.id)}`,
+            ],
+            'matches',
+          ),
         ]
       : []),
     '',

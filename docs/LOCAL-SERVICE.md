@@ -24,9 +24,9 @@ Each service secret must contain 32–256 letters, digits, underscores or hyphen
 From the Refit checkout, run one startup poll:
 
 ```sh
-cd /Users/pierceluu/Repos/Refit
+cd ~/Repos/Refit
 refit serve --env .env --config examples/local-service.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/local-service-app-0.10-2026-10-14 \
+  --state ~/.refit/evaluations/local-service-app-0.10-2026-10-14 \
   --once --publish-draft
 ```
 
@@ -36,7 +36,7 @@ For continuous monitoring, omit `--once`:
 
 ```sh
 refit serve --env .env --config examples/local-service.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/local-service-app-0.10-2026-10-14 \
+  --state ~/.refit/evaluations/local-service-app-0.10-2026-10-14 \
   --interval 300 --publish-draft
 ```
 
@@ -46,9 +46,9 @@ The service binds **127.0.0.1:8787**. It confirms each configured installation t
 
 ```sh
 REFIT_AI_BUDGET_USD=2 \
-REFIT_AI_BUDGET_DIRECTORY=/Users/pierceluu/.refit/evaluations/2026-10-12 \
+REFIT_AI_BUDGET_DIRECTORY=~/.refit/evaluations/2026-10-12 \
 refit serve --env .env --config examples/local-service.refit.json \
-  --state /Users/pierceluu/.refit/evaluations/local-service-ai-pilot \
+  --state ~/.refit/evaluations/local-service-ai-pilot \
   --ai-patch --repair-attempts 2 --publish-draft
 ```
 
