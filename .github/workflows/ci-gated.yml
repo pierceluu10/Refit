@@ -16,7 +16,8 @@ permissions: {}
 
 concurrency:
   group: ci-gated-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded pull request runs only, so every push to main and every nightly run finishes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   OASDIFF_VERSION: 1.33.0

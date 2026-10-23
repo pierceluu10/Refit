@@ -1,17 +1,20 @@
 # Continuous integration
 
-Two workflows test Refit. Neither uses a repository secret or calls a paid API.
+Three workflows check Refit. Neither uses a repository secret or calls a paid API.
 
-| Workflow       | Runs on                                                                                       | Jobs                                                                              |
-| -------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `ci.yml`       | every pull request and push to `main`                                                         | `Typecheck, format, test and build`, on Node 22 and 24; `Benchmark results files` |
-| `ci-gated.yml` | pushes to `main`, nightly at 06:41 UTC, manual dispatch, and pull requests labelled `full-ci` | oasdiff, Docker, PostgreSQL, real SDK, package (Node 22 and 24)                   |
+| Workflow           | Runs on                                                                                       | Jobs                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `ci.yml`           | every pull request and push to `main`                                                         | `Typecheck, format, test and build`, on Node 22 and 24; `Benchmark results files` |
+| `ci-gated.yml`     | pushes to `main`, nightly at 06:41 UTC, manual dispatch, and pull requests labelled `full-ci` | oasdiff, Docker, PostgreSQL, real SDK, package (Node 22 and 24)                   |
+| `supply-chain.yml` | see [supply chain](SUPPLY-CHAIN.md)                                                           | npm audit gate                                                                    |
 
 The first `ci.yml` job is the check every pull request waits for before merge (`main` has no branch protection, so GitHub does not enforce it). It runs the default suite, where every test that needs Docker, PostgreSQL, oasdiff, a real SDK or the packed CLI is skipped. `ci-gated.yml` runs those tests. On a pull request without the `full-ci` label its jobs are skipped, so pull requests wait no longer than before. Add the label to run them on a pull request; the label triggers a run, and every later push reruns them while the label stays.
 
 `Benchmark results files` runs `node scripts/benchmark-results.mjs --committed`, which checks every committed `docs/benchmarks/*-results.json` against the schema `docs/benchmarks/schemas/files.json` assigns it and exits 1 on any error or unlisted file (see [benchmark harness](BENCHMARK-HARNESS.md)). It uses only Node built-ins, so it skips `npm ci` and finishes in seconds. The default suite runs the same check.
 
-`deadlines-sync.yml` is the daily registry sync. It is described in [API deadlines](DEADLINES.md) and is not a test workflow.
+`registry-sync.yml` is the daily registry sync. It is described in [API deadlines](DEADLINES.md) and is not a test workflow.
+
+GitHub runs `schedule` triggers only from the default branch, so the nightly gated run starts only while `main` is the repository's default branch. Superseded pull request runs are cancelled; runs on `main`, nightly and manual runs are not.
 
 ## Gated jobs
 
@@ -34,7 +37,7 @@ The tests that read `REFIT_BILLING_REPOSITORY` stay out of CI: they need a local
 
 ## Pinning
 
-- Actions are pinned to full commit SHAs, with the release tag in a comment: `actions/checkout` v7.0.1 and `actions/setup-node` v7.1.0. To update one, resolve the new tag with `gh api repos/<owner>/<action>/git/ref/tags/<tag>` (and `git/tags/<sha>` if that returns an annotated tag), then replace the SHA and the comment together.
+- Every workflow pins actions to full commit SHAs, with the release tag in a comment: `actions/checkout` v7.0.1 and `actions/setup-node` v7.1.0. To update one, resolve the new tag with `gh api repos/<owner>/<action>/git/ref/tags/<tag>` (and `git/tags/<sha>` if that returns an annotated tag), then replace the SHA and the comment together.
 - Checkouts keep no credentials (`persist-credentials: false`). Workflows default to no token permissions; each job asks only for `contents: read`.
 - oasdiff is downloaded from its GitHub release and checked with `sha256sum --check` against `OASDIFF_SHA256` before it is installed (`.github/scripts/install-oasdiff.sh`). The version matches the hosted `Dockerfile`. The checksum comes from the release's `checksums.txt`.
 - The validation image and the PostgreSQL service image are pinned by registry digest (`docker buildx imagetools inspect <image>`). Validation runs with `--pull never`, so the job pulls `node@<digest>` and tags it `node:22-alpine`.
@@ -75,3 +78,8 @@ Before pushing a change to them, lint the workflows with [actionlint](https://gi
 ## Tests that leave something behind
 
 Both vitest projects load `pipeline/test/setup.ts`. It fails a test, or a test file's hooks, that leave a running child process, a listening server, a pending referenced timer or an added process listener. The message names what was left. Await the process, close the server, clear the timer or remove the listener in the test's own cleanup.
+
+## Needs owner decision
+
+- `Benchmark results files` runs on every pull request and push, not only under `full-ci`. It is fast and needs nothing installed, but making it always-on is a CI policy choice the owner has not signed off.
+- GitHub Actions is disabled for this repository, so none of these workflows has run on GitHub yet; their jobs were checked locally only.
