@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import {
+  addable,
   addAgents,
   builtInPackage,
   detectProviders,
@@ -13,10 +14,23 @@ import {
 import { parseObject } from './specifications.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
+import type { FindingPlace } from './workspace-attribution.ts';
 
 const USAGE =
-  'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match, with any API version the code pins for a provider that versions its API by header, option or path. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.';
+  'Usage: refit agents [--repository <root>] [--add <agent-id> ...] [--json]\nDetects provider SDKs from package manifests, lockfiles and raw API hostnames, and lists only the agents that match, with any API version the code pins for a provider that versions its API by header, option or path. --add writes an approved agent into .refit.json as a reviewable integration; it does not enroll, activate, download contracts or run code.\nAfter --add: save the contracts it lists, commit, then run refit doctor.';
 const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url));
+
+// The monorepo package and any exclusion, as `[package @acme/web]` or `[example, package demo]`.
+function placeText(item: Partial<FindingPlace>) {
+  const parts = [
+    ...(item.excluded ? [item.excluded] : []),
+    ...(item.workspace && item.workspace.path !== '.'
+      ? [`package ${item.workspace.name ?? item.workspace.path}`]
+      : []),
+  ];
+  return parts.length ? ` [${parts.join(', ')}]` : '';
+}
 
 try {
   const { values } = parseArgs({
@@ -92,13 +106,18 @@ try {
       detected: detections.map((detection) => ({
         id: detection.agent.id,
         name: detection.agent.name,
-        agent: detection.agent.adapter ? 'available' : 'none-yet',
+        agent: addable(detection)
+          ? 'available'
+          : detection.agent.adapter
+            ? 'report-only'
+            : 'none-yet',
         configured:
           configured(detection.agent.packages) ||
           Boolean(result?.added.includes(detection.agent.id)),
         packages: detection.packages,
         hostnames: detection.hostnames,
         ...(detection.apiVersions ? { apiVersions: detection.apiVersions } : {}),
+        requests: detection.requests,
       })),
       added: result?.added ?? [],
       nextSteps: result?.nextSteps ?? [],
@@ -111,9 +130,11 @@ try {
         const evidence = [
           ...entry.packages.map(
             (item) =>
-              `${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}`,
+              `${item.ecosystem ? `${item.ecosystem}:` : ''}${item.name} ${item.version}${item.locked ? ` (locked ${item.locked})` : ''} in ${item.file}${item.line ? `:${item.line}` : ''}${placeText(item)}`,
           ),
-          ...entry.hostnames.map((item) => `${item.hostname} at ${item.file}:${item.line}`),
+          ...entry.hostnames.map(
+            (item) => `${item.hostname} at ${item.file}:${item.line}${placeText(item)}`,
+          ),
           ...(entry.apiVersions ?? []).map(
             (item) =>
               `API version ${item.version} (${item.form}${item.use === 'test' ? ', test' : ''}) at ${item.file}:${item.line}`,
@@ -123,7 +144,9 @@ try {
           ? 'configured'
           : entry.agent === 'available'
             ? `agent available: refit agents --add ${entry.id}`
-            : 'no agent yet';
+            : entry.agent === 'report-only'
+              ? 'report only: detected outside npm'
+              : 'no agent yet';
         lines.push(`${entry.name.padEnd(16)}${status}`, ...evidence.map((item) => `  ${item}`));
       }
       if (report.added.length)
@@ -137,6 +160,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'agents'));
   process.exitCode = 1;
 }

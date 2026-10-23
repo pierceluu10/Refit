@@ -35,6 +35,23 @@ const LOCKFILES = ['npm-shrinkwrap.json', 'package-lock.json', 'pnpm-lock.yaml',
 export const EXCLUDED_NAME =
   /sdk|wrapper|client|langchain|llamaindex|provider|plugin|adapter|framework|boilerplate-generator/i;
 
+// Copies of leaked proprietary Claude Code source, removed from the Anthropic app list on
+// 2026-10-22 (its `removed` field). Lower-cased, as the candidate pool is.
+export const LEAKED_SOURCE = new Set([
+  'andforce/openclaude',
+  'chenqinggang001/claude-code-build',
+  'ddogezd/claudium',
+  'doriandarko/kimi-2-6-code',
+  'fazxes/claude-code',
+  'jrcx7scc/claude-code-source',
+  'kill136/claudecode',
+  'openaisec/miko',
+  'tagoat/claude_code_cli',
+  'txl16095/miniclaude',
+  'wk42worldworld/cybercode',
+  'wyh0626/claude-code-local',
+]);
+
 // GitHub `size:a..b` ranges are inclusive, so adjacent buckets must not share an endpoint.
 // Bucket edges come from GitHub code search trials on 2026-10-21.
 export const SIZE_BUCKETS = {

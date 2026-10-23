@@ -677,7 +677,7 @@ it.skipIf(!DATABASE)(
           approveComment('/refit approve', 8, 'Bot', 'refit-agent[bot]'),
         )
       ).body,
-    ).toMatchObject({ status: 'accepted' });
+    ).toMatchObject({ status: 'ignored' });
     // Approval enrolls the repository; a commit lands while Refit replies, before the job runs, so
     // the job stops for review and the issue shows the new configuration.
     github.onComment = async (body) => {
@@ -740,7 +740,7 @@ it.skipIf(!DATABASE)(
     expect((await deliver(url, 'installation', installation)).status).toBe(202);
     expect(
       (await deliver(url, 'issue_comment', approveComment('/refit approve 0123456789ab', 7))).body,
-    ).toMatchObject({ status: 'accepted' });
+    ).toMatchObject({ status: 'ignored' });
     const registry = await status();
     expect(registry.approvals).toBeUndefined();
     expect(

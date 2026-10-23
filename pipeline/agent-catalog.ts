@@ -1,10 +1,23 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { repositoryApiVersionPins, type ApiVersionPin } from './commerce-api-versions.ts';
+import {
+  matchesPackage,
+  readPackageManifests,
+  type Ecosystem,
+  type PackageInventory,
+} from './package-manifests.ts';
 import { declaredPackageNames, readRepository } from './repository.ts';
 import { parseObject } from './specifications.ts';
+import {
+  nestedLock,
+  placeFinding,
+  readWorkspaceLayout,
+  type FindingPlace,
+} from './workspace-attribution.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+import { contractCommand } from './contract-commands.ts';
 
 const PLACEHOLDER_TEST = /no test specified/;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
@@ -15,10 +28,19 @@ export interface ProviderAgent {
   id: string;
   name: string;
   packages: string[];
+  // Package names in other ecosystems' registries, each checked on that registry (see
+  // docs/benchmarks/2026-10-22-catalog-registry-check.json). `packages` stays npm only.
+  ecosystems?: Partial<Record<Ecosystem, string[]>>;
   hostnames: string[];
   adapter: { builtIn: string } | { file: string } | null;
   guide: string | null;
 }
+
+// The retired legacy (track 1) Azure SDK packages, generated from Microsoft's release data by
+// scripts/azure-sdk-retirements.mjs.
+const AZURE_LEGACY_PACKAGES: string[] = JSON.parse(
+  readFileSync(new URL('../data/azure-sdk-retirements.json', import.meta.url), 'utf8'),
+).packages.map((item: { name: string }) => item.name);
 
 // Source: npm package names and documented API base URLs on each provider's docs, 2026-10-15.
 export const AGENT_CATALOG: ProviderAgent[] = [
@@ -26,6 +48,21 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'stripe',
     name: 'Stripe',
     packages: ['stripe'],
+    ecosystems: {
+      pypi: ['stripe'],
+      go: ['github.com/stripe/stripe-go'],
+      rubygems: ['stripe'],
+      packagist: ['stripe/stripe-php'],
+      maven: [
+        'com.stripe:stripe-java',
+        'com.stripe:stripe-android',
+        'com.stripe:stripeterminal',
+        'com.stripe:stripeterminal-core',
+        'com.stripe:stripeterminal-localmobile',
+      ],
+      nuget: ['Stripe.net'],
+      cargo: ['async-stripe'],
+    },
     hostnames: ['api.stripe.com', 'files.stripe.com', 'connect.stripe.com'],
     adapter: { builtIn: 'stripe' },
     guide: 'docs/STRIPE-PLAN.md',
@@ -34,6 +71,15 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'openai',
     name: 'OpenAI',
     packages: ['openai'],
+    ecosystems: {
+      pypi: ['openai'],
+      go: ['github.com/openai/openai-go', 'github.com/sashabaranov/go-openai'],
+      rubygems: ['openai', 'ruby-openai'],
+      packagist: ['openai-php/client'],
+      maven: ['com.openai:openai-java', 'com.theokanning.openai-gpt3-java:service'],
+      nuget: ['OpenAI'],
+      cargo: ['async-openai'],
+    },
     hostnames: ['api.openai.com'],
     adapter: { file: 'examples/openai.provider.json' },
     guide: 'docs/MULTIPLE-INTEGRATIONS.md',
@@ -42,6 +88,14 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'anthropic',
     name: 'Anthropic',
     packages: ['@anthropic-ai/sdk'],
+    ecosystems: {
+      pypi: ['anthropic'],
+      go: ['github.com/anthropics/anthropic-sdk-go'],
+      rubygems: ['anthropic'],
+      packagist: ['anthropic-ai/sdk'],
+      maven: ['com.anthropic:anthropic-java'],
+      nuget: ['Anthropic', 'Anthropic.SDK'],
+    },
     hostnames: ['api.anthropic.com'],
     adapter: null,
     guide: null,
@@ -53,6 +107,14 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'gemini',
     name: 'Gemini',
     packages: ['@google/genai', '@google/generative-ai'],
+    ecosystems: {
+      pypi: ['google-genai', 'google-generativeai'],
+      go: ['google.golang.org/genai', 'github.com/google/generative-ai-go'],
+      rubygems: ['gemini-ai'],
+      packagist: ['google-gemini-php/client'],
+      maven: ['com.google.genai:google-genai'],
+      nuget: ['Google.GenAI', 'Google_GenerativeAI'],
+    },
     hostnames: ['generativelanguage.googleapis.com'],
     adapter: null,
     guide: null,
@@ -68,6 +130,13 @@ export const AGENT_CATALOG: ProviderAgent[] = [
       '@shopify/shopify-app-express',
       'shopify-api-node',
     ],
+    ecosystems: {
+      pypi: ['ShopifyAPI'],
+      go: ['github.com/bold-commerce/go-shopify'],
+      rubygems: ['shopify_api'],
+      packagist: ['shopify/shopify-api'],
+      nuget: ['ShopifySharp'],
+    },
     hostnames: ['myshopify.com/admin/api'],
     adapter: { builtIn: 'shopify' },
     guide: 'docs/SHOPIFY.md',
@@ -76,6 +145,12 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     id: 'meta-graph',
     name: 'Meta Graph API',
     packages: ['facebook-nodejs-business-sdk'],
+    ecosystems: {
+      pypi: ['facebook-business'],
+      rubygems: ['facebookbusiness'],
+      packagist: ['facebook/php-business-sdk'],
+      maven: ['com.facebook.business.sdk:facebook-java-business-sdk'],
+    },
     hostnames: ['graph.facebook.com'],
     adapter: null,
     guide: null,
@@ -99,34 +174,126 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: 'docs/GITHUB-API-DETECTION.md',
   },
+  // Messaging (docs/MESSAGING-APIS.md). Package names were checked on the npm registry and each
+  // host read from the SDK's own source on 2026-10-22: twilio 6.2.0 (`lib/rest/*Base.js`),
+  // @sendgrid/client 8.1.6, resend 6.34.1, postmark 5.1.0 and mailgun.js 14.1.0 (the EU host from
+  // its README). `sendgrid` and `mailgun-js` are the retired packages npm marks deprecated.
   {
     id: 'twilio',
     name: 'Twilio',
     packages: ['twilio'],
-    hostnames: ['api.twilio.com'],
+    ecosystems: {
+      pypi: ['twilio'],
+      go: ['github.com/twilio/twilio-go'],
+      rubygems: ['twilio-ruby'],
+      packagist: ['twilio/sdk'],
+      maven: ['com.twilio.sdk:twilio'],
+      nuget: ['Twilio', 'Twilio.AspNet.Core', 'Twilio.AspNet.Common', 'Twilio.AspNet.Mvc'],
+    },
+    hostnames: [
+      'accounts.twilio.com',
+      'api.twilio.com',
+      'bulkexports.twilio.com',
+      'chat.twilio.com',
+      'content.twilio.com',
+      'conversations.twilio.com',
+      'events.twilio.com',
+      'flex-api.twilio.com',
+      'frontline-api.twilio.com',
+      'iam.twilio.com',
+      'insights.twilio.com',
+      'intelligence.twilio.com',
+      'ip-messaging.twilio.com',
+      'knowledge.twilio.com',
+      'lookups.twilio.com',
+      'marketplace.twilio.com',
+      'memory.twilio.com',
+      'messaging.twilio.com',
+      'monitor.twilio.com',
+      'notify.twilio.com',
+      'numbers.twilio.com',
+      'oauth.twilio.com',
+      'preview-iam.twilio.com',
+      'preview.twilio.com',
+      'pricing.twilio.com',
+      'proxy.twilio.com',
+      'routes.twilio.com',
+      'serverless.twilio.com',
+      'studio.twilio.com',
+      'supersim.twilio.com',
+      'sync.twilio.com',
+      'taskrouter.twilio.com',
+      'trunking.twilio.com',
+      'trusthub.twilio.com',
+      'verify.twilio.com',
+      'video.twilio.com',
+      'voice.twilio.com',
+      'wireless.twilio.com',
+    ],
     adapter: null,
-    guide: null,
+    guide: 'docs/MESSAGING-APIS.md',
   },
   {
     id: 'sendgrid',
     name: 'SendGrid',
-    packages: ['@sendgrid/mail', '@sendgrid/client'],
-    hostnames: ['api.sendgrid.com'],
+    packages: ['@sendgrid/mail', '@sendgrid/client', 'sendgrid'],
+    ecosystems: {
+      pypi: ['sendgrid'],
+      go: ['github.com/sendgrid/sendgrid-go'],
+      rubygems: ['sendgrid-ruby'],
+      packagist: ['sendgrid/sendgrid'],
+      maven: ['com.sendgrid:sendgrid-java'],
+      nuget: ['SendGrid'],
+    },
+    hostnames: ['api.sendgrid.com', 'api.eu.sendgrid.com'],
     adapter: null,
-    guide: null,
+    guide: 'docs/MESSAGING-APIS.md',
   },
   {
     id: 'resend',
     name: 'Resend',
     packages: ['resend'],
+    ecosystems: {
+      pypi: ['resend'],
+      // resendlabs/resend-go is the module path before the repository moved to resend/.
+      go: ['github.com/resend/resend-go', 'github.com/resendlabs/resend-go'],
+      rubygems: ['resend'],
+      packagist: ['resend/resend-php'],
+      maven: ['com.resend:resend-java'],
+      nuget: ['Resend'],
+      cargo: ['resend-rs'],
+    },
     hostnames: ['api.resend.com'],
     adapter: null,
-    guide: null,
+    guide: 'docs/MESSAGING-APIS.md',
+  },
+  {
+    id: 'postmark',
+    name: 'Postmark',
+    packages: ['postmark'],
+    hostnames: ['api.postmarkapp.com'],
+    adapter: null,
+    guide: 'docs/MESSAGING-APIS.md',
+  },
+  {
+    id: 'mailgun',
+    name: 'Mailgun',
+    packages: ['mailgun.js', 'mailgun-js'],
+    hostnames: ['api.mailgun.net', 'api.eu.mailgun.net'],
+    adapter: null,
+    guide: 'docs/MESSAGING-APIS.md',
   },
   {
     id: 'paypal',
     name: 'PayPal',
     packages: ['@paypal/paypal-server-sdk', '@paypal/checkout-server-sdk'],
+    ecosystems: {
+      pypi: ['paypal-server-sdk'],
+      rubygems: ['paypal-server-sdk'],
+      packagist: ['paypal/paypal-server-sdk'],
+      maven: ['com.paypal.sdk:paypal-server-sdk'],
+      nuget: ['PayPalServerSDK'],
+    },
     hostnames: ['api-m.paypal.com', 'api-m.sandbox.paypal.com'],
     adapter: null,
     guide: null,
@@ -360,16 +527,185 @@ export const AGENT_CATALOG: ProviderAgent[] = [
     adapter: null,
     guide: null,
   },
+  // Data and productivity APIs (FG3): npm package names read from the npm registry and API hosts
+  // from each provider's API reference, 2026-10-22. Detection only; no adapter.
+  {
+    id: 'google-maps',
+    name: 'Google Maps Platform',
+    packages: [
+      '@googlemaps/google-maps-services-js',
+      '@googlemaps/js-api-loader',
+      '@react-google-maps/api',
+      '@vis.gl/react-google-maps',
+    ],
+    hostnames: ['maps.googleapis.com', 'places.googleapis.com', 'routes.googleapis.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'mapbox',
+    name: 'Mapbox',
+    packages: ['mapbox-gl', '@mapbox/mapbox-sdk', '@mapbox/search-js-react'],
+    hostnames: ['api.mapbox.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'algolia',
+    name: 'Algolia',
+    packages: [
+      'algoliasearch',
+      '@algolia/client-search',
+      'instantsearch.js',
+      'react-instantsearch',
+    ],
+    // Subdomains only (`<app>-dsn.algolia.net`): the bare domain names no API request.
+    hostnames: ['.algolia.net', '.algolianet.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'hubspot',
+    name: 'HubSpot',
+    packages: ['@hubspot/api-client'],
+    hostnames: ['api.hubapi.com', 'api.hubspot.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'intercom',
+    name: 'Intercom',
+    packages: ['intercom-client'],
+    hostnames: ['api.intercom.io'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'mailchimp',
+    name: 'Mailchimp',
+    packages: ['@mailchimp/mailchimp_marketing', '@mailchimp/mailchimp_transactional'],
+    hostnames: ['api.mailchimp.com', 'mandrillapp.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'zoom',
+    name: 'Zoom',
+    packages: ['@zoom/meetingsdk', '@zoom/videosdk', '@zoomus/websdk'],
+    hostnames: ['api.zoom.us'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'dropbox',
+    name: 'Dropbox',
+    packages: ['dropbox'],
+    hostnames: ['api.dropboxapi.com', 'content.dropboxapi.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'notion',
+    name: 'Notion',
+    packages: ['@notionhq/client'],
+    hostnames: ['api.notion.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'airtable',
+    name: 'Airtable',
+    packages: ['airtable'],
+    hostnames: ['api.airtable.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'segment',
+    name: 'Segment',
+    packages: ['@segment/analytics-node', '@segment/analytics-next', 'analytics-node'],
+    hostnames: ['api.segment.io'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'sentry',
+    name: 'Sentry',
+    packages: ['@sentry/node', '@sentry/browser', '@sentry/react', '@sentry/nextjs', 'raven-js'],
+    // Sentry's web API is /api/0/; ingest URLs (`o1.ingest.sentry.io/api/<project>/envelope`) are SDK traffic.
+    hostnames: ['sentry.io/api/0/'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'discord',
+    name: 'Discord',
+    packages: ['discord.js', 'discord-api-types'],
+    hostnames: ['discord.com/api', 'discordapp.com/api'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'contentful',
+    name: 'Contentful',
+    packages: ['contentful', 'contentful-management'],
+    hostnames: ['cdn.contentful.com', 'api.contentful.com', 'preview.contentful.com'],
+    adapter: null,
+    guide: null,
+  },
+  {
+    id: 'cloudinary',
+    name: 'Cloudinary',
+    packages: ['cloudinary', '@cloudinary/url-gen', '@cloudinary/react'],
+    hostnames: ['api.cloudinary.com'],
+    adapter: null,
+    guide: null,
+  },
+  // AWS SDK for JavaScript v2, whose support ended on 2025-09-08 (data/deadlines.json). No hostname:
+  // amazonaws.com also appears in S3 asset URLs and CSP lists that use no SDK. v3's per-service
+  // @aws-sdk/client-* packages are listed by scanCloudSdkClients (pipeline/cloud-sdk-clients.ts)
+  // rather than named here one by one.
+  {
+    id: 'aws',
+    name: 'AWS SDK for JavaScript',
+    packages: ['aws-sdk'],
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
+  // Only the retired legacy Azure SDK packages: their end of life is the deadline Refit monitors.
+  {
+    id: 'azure',
+    name: 'Azure SDK (legacy)',
+    packages: AZURE_LEGACY_PACKAGES,
+    hostnames: [],
+    adapter: null,
+    guide: null,
+  },
 ];
 
 const MAX_HOSTNAME_EVIDENCE = 5;
 
 export interface AgentDetection {
   agent: ProviderAgent;
-  packages: { file: string; name: string; version: string; locked: string | null }[];
-  hostnames: { file: string; line: number; hostname: string }[];
+  // `ecosystem` is absent for npm packages, which keep their original shape.
+  packages: ({
+    file: string;
+    name: string;
+    version: string;
+    locked: string | null;
+    ecosystem?: Ecosystem;
+    line?: number;
+  } & Partial<FindingPlace>)[];
+  // `workspace` and `excluded` (pipeline/workspace-attribution.ts) say which package of a monorepo
+  // the evidence is in and whether its path is outside the product, such as an example.
+  hostnames: ({ file: string; line: number; hostname: string } & Partial<FindingPlace>)[];
   // API versions the code pins for providers that version their API by header, option or path.
   apiVersions?: ApiVersionPin[];
+  // Requests the code sends to the provider's hosts through an HTTP client (fetch, axios, got, ky,
+  // undici, node:http(s), superagent), from pipeline/api-hosts.ts: tests, docs, assets and
+  // allowlists are left out, which `hostnames` does not do.
+  requests: { host: string; file: string; line: number; client: string }[];
 }
 
 // A hostname in a line, not as the start of a longer name: `.supabase.co` is in
@@ -390,15 +726,45 @@ function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
   return evidence;
 }
 
-// Reads each catalog provider's manifest declarations and lock evidence, plus raw API hostnames in
-// source, without running repository code or contacting any provider.
+// Direct dependencies in other ecosystems' manifests that are one of the agent's packages.
+export function ecosystemPackages(
+  agent: ProviderAgent,
+  inventory: PackageInventory,
+): AgentDetection['packages'] {
+  const packages: AgentDetection['packages'] = [];
+  for (const dependency of inventory.dependencies) {
+    if (!dependency.direct) continue;
+    const names = agent.ecosystems?.[dependency.ecosystem] ?? [];
+    if (!names.some((name) => matchesPackage(dependency, name))) continue;
+    packages.push({
+      file: dependency.file,
+      name: dependency.name,
+      version: dependency.declared ?? '',
+      locked: dependency.locked,
+      ecosystem: dependency.ecosystem,
+      line: dependency.line,
+    });
+  }
+  return packages;
+}
+
+// Reads each catalog provider's manifest declarations and lock evidence in every supported
+// ecosystem, plus raw API hostnames in JS/TS source, without running repository code or
+// contacting any provider.
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
   const detections: AgentDetection[] = [];
+  const inventory = await readPackageManifests(directory);
+  const layout = await readWorkspaceLayout(directory);
   // Source files are the same whichever package a read resolves, so one read serves every
   // hostname check, and a package is read again only when some manifest declares it.
   const repository: Repository = await readRepository(directory);
   const declared = await declaredPackageNames(directory);
   const pins = repositoryApiVersionPins(repository);
+  // Loaded when needed: api-hosts.ts reads this catalog, and deadline-exposure.ts reads it when
+  // loaded, so a static import would be a cycle.
+  const { detectApiHosts } = await import('./api-hosts.ts');
+  // It throws only where readRepository above already would, or on a malformed shipped host list.
+  const apiHosts = await detectApiHosts(directory, { repository });
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     for (const name of agent.packages) {
@@ -408,20 +774,39 @@ export async function detectProviders(directory: string): Promise<AgentDetection
           file: dependency.file,
           name,
           version: dependency.version,
-          locked: dependency.lock.version,
+          // A nested package's own lockfile when the root's does not cover it.
+          locked: (await nestedLock(repository.root, dependency, name)).version,
         });
     }
+    packages.push(...ecosystemPackages(agent, inventory));
     const hostnames = hostnameEvidence(repository, agent);
     const apiVersions = pins.filter((pin) => pin.provider === agent.id);
-    if (packages.length || hostnames.length || apiVersions.length)
+    const requests = apiHosts.hosts
+      .filter((host) => host.provider?.id === agent.id)
+      .flatMap((host) =>
+        host.calls.map(({ file, line, client }) => ({ host: host.host, file, line, client })),
+      );
+    if (packages.length || hostnames.length || apiVersions.length || requests.length)
       detections.push({
         agent,
-        packages,
-        hostnames,
+        packages: packages.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
+        hostnames: hostnames.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
+        requests,
         ...(apiVersions.length ? { apiVersions } : {}),
       });
   }
   return detections;
+}
+
+// Non-npm manifests are report only (owner decision, 2026-10-22): an agent is addable only with
+// npm package, JS/TS hostname or API version evidence.
+export function addable(detection: AgentDetection) {
+  return Boolean(
+    detection.agent.adapter &&
+    (detection.packages.some((entry) => !entry.ecosystem) ||
+      detection.hostnames.length ||
+      detection.apiVersions?.length),
+  );
 }
 
 // Chooses a scaffold's check: npm test when package.json has a real test script, and dependency
@@ -501,6 +886,10 @@ export function addAgents(options: {
       );
     if (!detection.agent.adapter)
       throw new PipelineInputError(`Refit has no ${detection.agent.name} agent yet.`);
+    if (!addable(detection))
+      throw new PipelineInputError(
+        `${detection.agent.name} was detected only in non-npm manifests, which are report only.`,
+      );
     if (existing.includes(id) || added.includes(id)) continue;
     const adapter = detection.agent.adapter;
     if ('file' in adapter)
@@ -516,17 +905,12 @@ export function addAgents(options: {
     });
     added.push(id);
     nextSteps.push(
-      `Save reviewed ${detection.agent.name} contracts at refit/${id}-before.json and refit/${id}-after.json` +
-        (id === 'stripe'
-          ? ' (refit stripe-snapshot --revision <sha> --output …).'
-          : id === 'shopify'
-            ? ' (refit shopify-snapshot --version <pinned version, or 2026-01 if older> --output … and --version <target>).'
-            : ' (refit source-snapshot …).'),
+      `Save reviewed ${detection.agent.name} contracts: ${contractCommand(id, 'before', `refit/${id}-before.json`)} and ${contractCommand(id, 'after', `refit/${id}-after.json`)}.`,
     );
   }
   if (added.length)
     nextSteps.push(
-      'Review the check command, then run refit doctor. Nothing runs until you approve the configuration with refit enroll.',
+      'Review the check command in .refit.json, commit .refit.json and the contracts, then run refit doctor. The GitHub App runs nothing until you approve the configuration with refit enroll.',
     );
   return {
     configuration: { formatVersion: 2, integrations },

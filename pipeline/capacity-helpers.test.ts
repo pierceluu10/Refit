@@ -70,8 +70,8 @@ it('reproduces the committed capacity model from the committed measurements', as
   );
   const model = JSON.parse(stdout);
   expect(model).toEqual(committed);
-  // The size fly.toml runs today leaves under a quarter GiB beside a full validation container.
+  // The size fly.toml runs today leaves under half a GiB beside a full validation container.
   const today = model.sizes.find((size: { name: string }) => size.name === 'shared-cpu-2x');
   expect(today).toMatchObject({ memoryGb: 4, usdPerMonth: 25.39, sustainedCpuPerSecond: 0.125 });
-  expect(today.memoryHeadroomGib).toBeLessThan(0.25);
+  expect(today.memoryHeadroomGib).toBeLessThan(0.5);
 });

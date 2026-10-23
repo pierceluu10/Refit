@@ -2,6 +2,7 @@ import { parseArgs } from 'node:util';
 import { prepareDependencies } from './dependency-preparation.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
   'Usage: refit prepare --repository <clean-git-directory> --image <existing-local-node-image> [--cache <directory-outside-git>] [--json]';
@@ -59,6 +60,6 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${terminalText(error.message)}`);
+  console.error(cliErrorMessage(error, 'prepare'));
   process.exitCode = 1;
 }

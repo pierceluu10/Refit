@@ -31,6 +31,12 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md"
+    },
+    {
+      "doc": "docs/WORKSPACE-ATTRIBUTION.md",
+      "headings": [
+        "Matches outside application code, recounted (2026-10-22)"
+      ]
     }
   ],
   "claims": [
@@ -1142,7 +1148,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 39 s. Refit's AI spend across all 531 repositories was $0.07.",
+      "quote": "- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 37 s. Refit's AI spend across all 531 repositories was $0.07.",
       "values": [
         {
           "says": "$6.45",
@@ -1190,7 +1196,7 @@
           }
         },
         {
-          "says": "39",
+          "says": "37",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-agent-comparison-results.json"
@@ -4692,10 +4698,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| Due within 7 days | 29 (Shopify `2025-10`, due today) | 51 (OpenAI 2026-10-23 retirements) |",
+      "quote": "| Due within 7 days | 34: 29 on Shopify `2025-10` (due today) and 5 more on OpenAI 2026-10-23 retirements (6 in all) | 51 (OpenAI 2026-10-23 retirements) |",
       "values": [
         {
-          "says": "29",
+          "says": "34",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-16-deadline-fresh-results.json"
@@ -4712,6 +4718,77 @@
                   {
                     "field": "days",
                     "lte": 7
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "29",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-deadline-fresh-results.json"
+            ],
+            "rows": "/sets/shopify-fresh",
+            "where": [
+              {
+                "field": "exposures",
+                "some": [
+                  {
+                    "field": "id",
+                    "equals": "shopify-admin-2025-10"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-deadline-fresh-results.json"
+            ],
+            "rows": "/sets/shopify-fresh",
+            "where": [
+              {
+                "field": "exposures",
+                "some": [
+                  {
+                    "field": "id",
+                    "matches": "^openai-2026-10-23-"
+                  }
+                ]
+              },
+              {
+                "not": {
+                  "field": "exposures",
+                  "some": [
+                    {
+                      "field": "id",
+                      "equals": "shopify-admin-2025-10"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-16-deadline-fresh-results.json"
+            ],
+            "rows": "/sets/shopify-fresh",
+            "where": [
+              {
+                "field": "exposures",
+                "some": [
+                  {
+                    "field": "id",
+                    "matches": "^openai-2026-10-23-"
                   }
                 ]
               }
@@ -4895,7 +4972,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "The version was read for 157 (the other 5 are unversioned), the path and edge for 158, and `fields` for 113.",
+      "quote": "The version was read for 157 (the other 5 are unversioned), the path for 158, the edge for 116, and `fields` for 113.",
       "values": [
         {
           "says": "157",
@@ -4953,14 +5030,29 @@
               {
                 "field": "path",
                 "exists": true
+              }
+            ]
+          }
+        },
+        {
+          "says": "116",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-20-meta-graph-call-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
               },
               {
                 "field": "edge",
                 "exists": true
               }
             ]
-          },
-          "note": "Path alone is known for 158 live calls; path and edge together for fewer."
+          }
         },
         {
           "says": "113",
@@ -5438,15 +5530,15 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "`refit paypal` (review only) was run over a frozen set of **22** repositories from a pinned worktree at `1ec93a8` ([list](benchmarks/2026-10-21-paypal-repos.json), [results](benchmarks/2026-10-21-paypal-results.json)).",
+      "quote": "`refit paypal` (review only) was run over the **22** repositories the frozen set then held, from a pinned worktree at `1ec93a8` ([list](benchmarks/2026-10-21-paypal-repos.json), [results](benchmarks/2026-10-21-paypal-results.json)).",
       "values": [
         {
           "says": "22",
           "query": {
             "results": [
-              "docs/benchmarks/2026-10-21-paypal-repos.json"
+              "docs/benchmarks/2026-10-21-paypal-results.json"
             ],
-            "rows": "/repos",
+            "rows": "/results",
             "where": []
           }
         }
@@ -5454,7 +5546,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "npm search found only 22 such repositories, not the 50 the goal asks for, and **the set is libraries and plugins, not applications.**",
+      "quote": "npm search found only 22 such repositories, not the 50 the goal asks for, and **those 22 are libraries and plugins, not applications.**",
       "values": [
         {
           "says": "22",
@@ -5463,7 +5555,12 @@
               "docs/benchmarks/2026-10-21-paypal-repos.json"
             ],
             "rows": "/repos",
-            "where": []
+            "where": [
+              {
+                "field": "source",
+                "exists": false
+              }
+            ]
           }
         }
       ],
@@ -5471,6 +5568,10 @@
         {
           "token": "50",
           "reason": "The goal's target size, not a measurement."
+        },
+        {
+          "token": "22",
+          "reason": "Names the 22 just counted, not a second measurement."
         }
       ]
     },
@@ -5661,7 +5762,285 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "Two sets of real applications were frozen on 2026-10-21 with `scripts/ai-app-select.mjs`: **100** repositories that declare `openai` ([list](benchmarks/2026-10-21-openai-app-repos.json)) and **50** that declare `@anthropic-ai/sdk` ([list](benchmarks/2026-10-21-anthropic-app-repos.json)).",
+      "quote": "- **Extended set (October 22).** GitHub code search added 20 repositories, mostly applications, so the list now holds 42. A second pass over all 42 at `662bc90` ([results](benchmarks/2026-10-22-paypal-results.json)) scanned 36; 6 exceeded the scan limits. 23 make a live PayPal request, with 135 live requests: 89 `@paypal/paypal-server-sdk` controller calls, 41 raw REST calls and 5 `@paypal/checkout-server-sdk` requests. 114 match a published operation. The 20 added repositories were hand-labelled before the run ([labels](benchmarks/2026-10-22-paypal-labels.json)): 56 requests in 15 of them. The scan reported 43 live requests there and matched 42 labels (recall 75%); the one unmatched report is a base URL constant. The 22 first repositories are not labelled. See [PayPal progress](PAYPAL-PROGRESS.md#benchmark).",
+      "values": [
+        {
+          "says": "20",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "source",
+                "equals": "code-search"
+              }
+            ]
+          }
+        },
+        {
+          "says": "42",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "42",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": []
+          }
+        },
+        {
+          "says": "36",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "status",
+                "equals": "scanned"
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "status",
+                "equals": "not-scanned"
+              }
+            ]
+          }
+        },
+        {
+          "says": "23",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "calls",
+                "some": [
+                  {
+                    "field": "use",
+                    "equals": "live"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "says": "135",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              }
+            ],
+            "flatten": "calls"
+          }
+        },
+        {
+          "says": "89",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              },
+              {
+                "field": "kind",
+                "equals": "server-sdk"
+              }
+            ]
+          }
+        },
+        {
+          "says": "41",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              },
+              {
+                "field": "kind",
+                "equals": "url"
+              }
+            ]
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              },
+              {
+                "field": "kind",
+                "equals": "checkout-sdk"
+              }
+            ]
+          }
+        },
+        {
+          "says": "114",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              },
+              {
+                "field": "operation",
+                "exists": true
+              }
+            ]
+          }
+        },
+        {
+          "says": "20",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-labels.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "56",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-labels.json"
+            ],
+            "rows": "/repos",
+            "where": [],
+            "flatten": "requests"
+          }
+        },
+        {
+          "says": "15",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-labels.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "requests",
+                "nonEmpty": true
+              }
+            ]
+          }
+        },
+        {
+          "says": "43",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-paypal-results.json"
+            ],
+            "rows": "/results",
+            "flatten": "calls",
+            "within": [
+              {
+                "field": "status",
+                "equals": "scanned"
+              },
+              {
+                "field": "repo",
+                "inQuery": {
+                  "results": [
+                    "docs/benchmarks/2026-10-22-paypal-labels.json"
+                  ],
+                  "rows": "/repos",
+                  "field": "repo"
+                }
+              }
+            ],
+            "where": [
+              {
+                "field": "use",
+                "equals": "live"
+              }
+            ]
+          }
+        },
+        {
+          "says": "42",
+          "notCheckable": "Matching reports to labels in the same file within 4 lines, one to one, is done by scripts/paypal-score.mjs, not a claims query; `node scripts/paypal-score.mjs docs/benchmarks/2026-10-22-paypal-results.json` recomputes it from these committed files (42 matched of 56, 43 reported)."
+        },
+        {
+          "says": "75%",
+          "notCheckable": "Matching reports to labels in the same file within 4 lines, one to one, is done by scripts/paypal-score.mjs, not a claims query; `node scripts/paypal-score.mjs docs/benchmarks/2026-10-22-paypal-results.json` recomputes it from these committed files (42 matched of 56, 43 reported)."
+        },
+        {
+          "says": "22",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "source",
+                "exists": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "Two sets of real applications were frozen on 2026-10-21 with `scripts/ai-app-select.mjs`: **100** repositories that declare `openai` ([list](benchmarks/2026-10-21-openai-app-repos.json)) and **38** that declare `@anthropic-ai/sdk` ([list](benchmarks/2026-10-21-anthropic-app-repos.json)).",
       "values": [
         {
           "says": "100",
@@ -5674,7 +6053,7 @@
           }
         },
         {
-          "says": "50",
+          "says": "38",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
@@ -5687,7 +6066,46 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "Neither set fell short of its target. 9 repositories are in both sets.",
+      "quote": "The Anthropic set was frozen at 50; on 2026-10-22 we removed 12 copies of leaked proprietary source (one leaked Claude Code tree), and every number in this section and the next was recomputed on the remaining 38 from the committed per-repository results, without rerunning anything.",
+      "values": [
+        {
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": [
+              "/repos",
+              "/removed/repos"
+            ],
+            "where": []
+          }
+        },
+        {
+          "says": "12",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": "/removed/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "38",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "Neither set fell short of its target when frozen. 9 repositories are in both sets.",
       "values": [
         {
           "says": "9",
@@ -5730,7 +6148,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Runnable checks.** 95 of the 100 OpenAI and 45 of the 50 Anthropic entries have a `test`, `typecheck` or `build` script (`hasChecks`), so later results can be reported for those alone.",
+      "quote": "- **Runnable checks.** 95 of the 100 OpenAI and 37 of the 38 Anthropic entries have a `test`, `typecheck` or `build` script (`hasChecks`), so later results can be reported for those alone.",
       "values": [
         {
           "says": "95",
@@ -5758,7 +6176,7 @@
           }
         },
         {
-          "says": "45",
+          "says": "37",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
@@ -5773,7 +6191,7 @@
           }
         },
         {
-          "says": "50",
+          "says": "38",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
@@ -5786,10 +6204,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "An independent grep for quoted exact registry model IDs found **4,679** candidate locations in the 150 repositories ([labels](benchmarks/2026-10-21-ai-app-labels.json)): 2,428 in TypeScript, 148 in JavaScript, 1 in Python and the rest in JSON, Markdown, YAML and other files, with 11 in generated files.",
+      "quote": "An independent grep for quoted exact registry model IDs found **4,180** candidate locations in the 138 repositories ([labels](benchmarks/2026-10-21-ai-app-labels.json)): 2,053 in TypeScript, 47 in JavaScript, 1 in Python and the rest in JSON, Markdown, YAML and other files, with 11 in generated files.",
       "values": [
         {
-          "says": "4,679",
+          "says": "4,180",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5798,7 +6216,7 @@
           }
         },
         {
-          "says": "150",
+          "says": "138",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5807,7 +6225,7 @@
           }
         },
         {
-          "says": "2,428",
+          "says": "2,053",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5816,7 +6234,7 @@
           }
         },
         {
-          "says": "148",
+          "says": "47",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5846,10 +6264,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "**374** are live (the ID reaches a request), 370 of them JS/TS.",
+      "quote": "**297** are live (the ID reaches a request), 293 of them JS/TS.",
       "values": [
         {
-          "says": "374",
+          "says": "297",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5858,7 +6276,7 @@
           }
         },
         {
-          "says": "370",
+          "says": "293",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5870,10 +6288,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "By `via`: 258 `sdk-text`, 58 `sdk-non-text`, 21 `wrapper:*`, 17 `raw-http` and 20 `other`; the current tracers do not follow `wrapper:*`, `raw-http` or `other` (wrapper tracers are deferred).",
+      "quote": "By `via`: 181 `sdk-text`, 58 `sdk-non-text`, 21 `wrapper:*`, 17 `raw-http` and 20 `other`; the current tracers do not follow `wrapper:*`, `raw-http` or `other` (wrapper tracers are deferred).",
       "values": [
         {
-          "says": "258",
+          "says": "181",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5921,10 +6339,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "The main non-live reasons are tests (1,805), catalogs (1,602), docs (376) and comparisons (217).",
+      "quote": "The main non-live reasons are tests (1,797), catalogs (1,489), docs (355) and comparisons (90).",
       "values": [
         {
-          "says": "1,805",
+          "says": "1,797",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5933,7 +6351,7 @@
           }
         },
         {
-          "says": "1,602",
+          "says": "1,489",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5942,7 +6360,7 @@
           }
         },
         {
-          "says": "376",
+          "says": "355",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5951,7 +6369,7 @@
           }
         },
         {
-          "says": "217",
+          "says": "90",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -5963,7 +6381,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "A seeded random 10% (468 of 4,679 candidates, seed 20261021) was re-read by separate fresh-context agents, one per slice of the sample, that never saw the first labels: `live` agreed on 460 of 468 and `via` on 456 of 468; on the 38 candidates either pass called live, `live` agreed on 30 and `via` on 26.",
+      "quote": "A seeded random 10% (468 of the 4,679 candidates in all 150 repositories, seed 20261021) was re-read by separate fresh-context agents, one per slice of the sample, that never saw the first labels.",
       "values": [
         {
           "says": "10%",
@@ -5981,7 +6399,7 @@
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
             ],
-            "value": "/reread/sampleSize"
+            "value": "/reread/drawnFrom/sampleSize"
           }
         },
         {
@@ -5990,7 +6408,16 @@
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
             ],
-            "value": "/counts/candidates"
+            "value": "/reread/drawnFrom/candidates"
+          }
+        },
+        {
+          "says": "150",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-ai-app-labels.json"
+            ],
+            "value": "/reread/drawnFrom/repositories"
           }
         },
         {
@@ -6001,9 +6428,42 @@
             ],
             "value": "/reread/seed"
           }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "416 of the 468 are in the remaining 138 repositories: `live` agreed on 413 of 416 and `via` on 409 of 416; on the 28 candidates either pass called live, `live` agreed on 25 and `via` on 21.",
+      "values": [
+        {
+          "says": "416",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-ai-app-labels.json"
+            ],
+            "value": "/reread/sampleSize"
+          }
         },
         {
-          "says": "460",
+          "says": "468",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-ai-app-labels.json"
+            ],
+            "value": "/reread/drawnFrom/sampleSize"
+          }
+        },
+        {
+          "says": "138",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-ai-app-labels.json"
+            ],
+            "value": "/counts/repositories"
+          }
+        },
+        {
+          "says": "413",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -6012,7 +6472,7 @@
           }
         },
         {
-          "says": "468",
+          "says": "416",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -6021,7 +6481,7 @@
           }
         },
         {
-          "says": "456",
+          "says": "409",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -6030,7 +6490,7 @@
           }
         },
         {
-          "says": "468",
+          "says": "416",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -6039,25 +6499,25 @@
           }
         },
         {
-          "says": "38",
-          "notCheckable": "Needs labels from both passes joined by key; the committed file keeps only the second pass beside the final labels."
+          "says": "28",
+          "notCheckable": "Needs labels from both passes joined by key, which a query cannot do; recomputed outside the checker from reread.sample and each disagreement's first label."
         },
         {
-          "says": "30",
-          "notCheckable": "Needs labels from both passes joined by key; the committed file keeps only the second pass beside the final labels."
+          "says": "25",
+          "notCheckable": "Needs labels from both passes joined by key, which a query cannot do; recomputed outside the checker from reread.sample and each disagreement's first label."
         },
         {
-          "says": "26",
-          "notCheckable": "Needs labels from both passes joined by key; the committed file keeps only the second pass beside the final labels."
+          "says": "21",
+          "notCheckable": "Needs labels from both passes joined by key, which a query cannot do; recomputed outside the checker from reread.sample and each disagreement's first label."
         }
       ]
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "The 12 disagreements were adjudicated by reading the code again, and 7 labels changed (the counts above include them).",
+      "quote": "The 7 disagreements among them were adjudicated by reading the code again, and 3 labels changed (the counts above include them).",
       "values": [
         {
-          "says": "12",
+          "says": "7",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -6067,7 +6527,7 @@
           }
         },
         {
-          "says": "7",
+          "says": "3",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-ai-app-labels.json"
@@ -6087,19 +6547,14 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| Exposed | 28 | 28 | 32 | 32 |",
+      "quote": "| Exposed | 16 | 16 | 32 | 32 |",
       "values": [
         {
-          "says": "28",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-21-anthropic-app-results.json"
-            ],
-            "value": "/baseline/summary/exposed"
-          }
+          "says": "16",
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
-          "says": "28",
+          "says": "16",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-results.json"
@@ -6133,12 +6588,7 @@
       "values": [
         {
           "says": "2",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-21-anthropic-app-results.json"
-            ],
-            "value": "/baseline/summary/exposedWithReplacement"
-          }
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
           "says": "2",
@@ -6171,19 +6621,14 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| Stopped for review only | 9 | 12 | 17 | 18 |",
+      "quote": "| Stopped for review only | 8 | 11 | 17 | 18 |",
       "values": [
         {
-          "says": "9",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-21-anthropic-app-results.json"
-            ],
-            "value": "/baseline/summary/exposedStoppedOnly"
-          }
+          "says": "8",
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
-          "says": "12",
+          "says": "11",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-results.json"
@@ -6213,10 +6658,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| Every live match explained as unresolved | not reported | 14 | not reported | 11 |",
+      "quote": "| Every live match explained as unresolved | not reported | 3 | not reported | 11 |",
       "values": [
         {
-          "says": "14",
+          "says": "3",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-results.json"
@@ -6237,16 +6682,11 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| No outcome at all | 17 | 0 | 12 | 0 |",
+      "quote": "| No outcome at all | 6 | 0 | 12 | 0 |",
       "values": [
         {
-          "says": "17",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-21-anthropic-app-results.json"
-            ],
-            "value": "/baseline/summary/exposedSilent"
-          }
+          "says": "6",
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
           "says": "0",
@@ -6287,8 +6727,9 @@
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-results.json"
             ],
-            "value": "/baseline/summary/exposedErrored"
-          }
+            "value": "/baseline/summaryBeforeRemoval/exposedErrored"
+          },
+          "note": "None of all 50 errored, so none of the 38."
         },
         {
           "says": "0",
@@ -6321,25 +6762,15 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Silent repositories.** Before, 17 of 28 exposed Anthropic applications and 12 of 32 OpenAI ones ended with no replacement, no stop and no reason.",
+      "quote": "- **Silent repositories.** Before, 6 of 16 exposed Anthropic applications and 12 of 32 OpenAI ones ended with no replacement, no stop and no reason.",
       "values": [
         {
-          "says": "17",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-21-anthropic-app-results.json"
-            ],
-            "value": "/baseline/summary/exposedSilent"
-          }
+          "says": "6",
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
-          "says": "28",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-21-anthropic-app-results.json"
-            ],
-            "value": "/baseline/summary/exposed"
-          }
+          "says": "16",
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
           "says": "12",
@@ -6363,10 +6794,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "Now each live match is a replacement, a stop or an `unresolved` entry that says where the model is written (58 Anthropic and 68 OpenAI entries).",
+      "quote": "Now each live match is a replacement, a stop or an `unresolved` entry that says where the model is written (15 Anthropic and 68 OpenAI entries).",
       "values": [
         {
-          "says": "58",
+          "says": "15",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-results.json"
@@ -6411,14 +6842,43 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Copies.** 12 of the 50 Anthropic applications are copies of one leaked Claude Code source tree. Their exposures are mostly that tree's per-platform model configs, now catalog, plus a few helper returns and a documentation template that stay unresolved (11 unresolved only, 1 stopped). Without them, the 16 distinct exposed applications went from 2 replacements, 8 stops and 6 silent to 2 replacements, 11 stops and 3 unresolved.",
+      "quote": "- **Copies removed.** The Anthropic set first held 50 applications, 12 of them copies of one leaked Claude Code source tree. We removed the 12 copies of leaked proprietary source on 2026-10-22, and the numbers here were recomputed on the remaining 38. The `c084880` column comes from the committed per-repository results. The `fb0143a` run's rows were not committed, so its Anthropic column gives the counts without the copies that were recorded from that run at the time (16 exposed: 2 with a replacement, 8 stopped and 6 silent).",
       "values": [
         {
-          "says": "12",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
+          "says": "50",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": [
+              "/repos",
+              "/removed/repos"
+            ],
+            "where": []
+          }
         },
         {
-          "says": "50",
+          "says": "12",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": "/removed/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "12",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": "/removed/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "38",
           "query": {
             "results": [
               "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
@@ -6428,40 +6888,20 @@
           }
         },
         {
-          "says": "11",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
-        },
-        {
-          "says": "1",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
-        },
-        {
           "says": "16",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
           "says": "2",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
           "says": "8",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
           "says": "6",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
-        },
-        {
-          "says": "2",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
-        },
-        {
-          "says": "11",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
-        },
-        {
-          "says": "3",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         }
       ]
     },
@@ -6501,11 +6941,17 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **No regressions.** No repository lost a replacement or an exposure on either set. Exposures fell only where the deadline scan now lists entries as catalog (the 12 copies and `vual/lobe-chat-pro`).",
+      "quote": "- **No regressions.** No repository lost a replacement or an exposure on either set. Exposures fell only where the deadline scan now lists entries as catalog (`vual/lobe-chat-pro`, and the 12 copies before their removal).",
       "values": [
         {
           "says": "12",
-          "notCheckable": "Which Anthropic applications are copies of one source tree is a judgement, not recorded as data."
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": "/removed/repos",
+            "where": []
+          }
         }
       ]
     },
@@ -10169,16 +10615,11 @@
     },
     {
       "doc": "docs/READINESS.md",
-      "quote": "On the application sets, read only against `main` at `fb0143a`, exposed repositories with no outcome went from 17 to 0 for Anthropic and 12 to 0 for OpenAI; replacements stayed at 2 repositories per set and no repository lost one ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)).",
+      "quote": "On the application sets, read only against `main` at `fb0143a`, exposed repositories with no outcome went from 6 to 0 for Anthropic (38 applications, after we removed 12 copies of leaked proprietary source) and 12 to 0 for OpenAI; replacements stayed at 2 repositories per set and no repository lost one ([benchmarks](BENCHMARKS.md#model-fixes-on-the-application-sets-october-21)).",
       "values": [
         {
-          "says": "17",
-          "query": {
-            "results": [
-              "docs/benchmarks/2026-10-21-anthropic-app-results.json"
-            ],
-            "value": "/baseline/summary/exposedSilent"
-          }
+          "says": "6",
+          "notCheckable": "The fb0143a run's per-repository rows were not committed, so this count without the 12 removed copies cannot be recomputed. It is the count the October 21 lane recorded from that run without the copies (16 exposed: 2 with a replacement, 8 stopped, 6 silent)."
         },
         {
           "says": "0",
@@ -10187,6 +10628,26 @@
               "docs/benchmarks/2026-10-21-anthropic-app-results.json"
             ],
             "value": "/summary/exposedUnexplained"
+          }
+        },
+        {
+          "says": "38",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "12",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+            ],
+            "rows": "/removed/repos",
+            "where": []
           }
         },
         {
@@ -10735,7 +11196,7 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
-      "quote": "| 3 | Deadline entries with `source` and `checkedAt` | Yes | Yes, kept current by `refit deadlines --sync anthropic` |",
+      "quote": "| 3 | Deadline entries with `source` and `checkedAt` | Yes, kept current by `refit deadlines --sync openai` | Yes, kept current by `refit deadlines --sync anthropic` |",
       "values": [],
       "ignore": [
         {
@@ -11718,7 +12179,7 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
-      "quote": "| 3 | Deadline entries with `source` and `checkedAt` | Partly: the old SDK's end of support only; model dates wait for Google's page to be read. Not counted |",
+      "quote": "| 3 | Deadline entries with `source` and `checkedAt` | Partly: the old SDK's end of support; model dates are read by `refit deadlines --sync gemini` and enter with the registry-sync pull request. Not counted |",
       "values": [],
       "ignore": [
         {
@@ -11846,6 +12307,39 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
+      "quote": "The next work, in order: merge the registry-sync pull request that enters the 52 dated models `refit deadlines --sync gemini` read on 2026-10-22; then the owner decisions on replacements and the SDK swap.",
+      "values": [
+        {
+          "says": "52",
+          "query": {
+            "results": [
+              "data/deadlines.json"
+            ],
+            "rows": "/deadlines",
+            "within": [
+              {
+                "field": "provider",
+                "equals": "gemini"
+              },
+              {
+                "field": "kind",
+                "equals": "model"
+              },
+              {
+                "field": "checkedAt",
+                "equals": "2026-10-22"
+              }
+            ],
+            "flatten": "versions",
+            "where": [],
+            "measure": "distinct",
+            "field": ""
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/PROVIDER-GOALS.md",
       "quote": "The same ten items as the OpenAI and Anthropic checklist, worth 10% each.",
       "values": [],
       "ignore": [
@@ -11912,8 +12406,18 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
-      "quote": "| 6 | Frozen benchmark set | Partial: 22 of 50 repositories (npm search found no more) |",
+      "quote": "| 6 | Frozen benchmark set | Partial: 42 of 50 repositories (22 from npm search, 20 from GitHub code search) |",
       "values": [
+        {
+          "says": "42",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": []
+          }
+        },
         {
           "says": "22",
           "query": {
@@ -11921,7 +12425,27 @@
               "docs/benchmarks/2026-10-21-paypal-repos.json"
             ],
             "rows": "/repos",
-            "where": []
+            "where": [
+              {
+                "field": "source",
+                "exists": false
+              }
+            ]
+          }
+        },
+        {
+          "says": "20",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-21-paypal-repos.json"
+            ],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "source",
+                "equals": "code-search"
+              }
+            ]
           }
         }
       ],
@@ -16429,6 +16953,127 @@
         {
           "says": "4",
           "notCheckable": "A timing from a run whose times are not committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/WORKSPACE-ATTRIBUTION.md",
+      "quote": "Owner decision 22 stands, as Furqan confirmed on 2026-10-22: live deadline matches on `docs-site`, `example`, `test-fixture` and `build-output` paths count, labelled. From `d7621ae` until this change they were listed but not counted. The recount below is computed from committed data, not a rerun: the [results](benchmarks/2026-10-22-workspace-uncounted.json) that `scripts/workspace-uncounted.mjs` wrote at `d7621ae` (clean) record, per repository, every deadline a live match names (`countedBefore`) and the deadlines counted at the time (`countedAfter`). None of these repositories commits `.refit-ignore-paths.json`, so the deadlines counted now are exactly `countedBefore`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "22",
+          "reason": "The owner decision's number in the launch checklist, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/WORKSPACE-ATTRIBUTION.md",
+      "quote": "The [exclusion scan](benchmarks/2026-10-22-workspace-exclusions.json) found excluded findings in 4 of the 320 monorepos. The others have no live deadline match on an excluded path, so neither rule changes their counts.",
+      "values": [
+        {
+          "says": "4",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-workspace-exclusions.json"
+            ],
+            "rows": "/results",
+            "where": [
+              {
+                "field": "excluded",
+                "nonEmpty": true
+              }
+            ]
+          }
+        },
+        {
+          "says": "320",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-workspace-exclusions.json"
+            ],
+            "rows": "/results",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/WORKSPACE-ATTRIBUTION.md",
+      "quote": "| 4 repositories with an excluded finding | Deadlines counted as exposures |",
+      "values": [
+        {
+          "says": "4",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-workspace-uncounted.json"
+            ],
+            "rows": "/results",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/WORKSPACE-ATTRIBUTION.md",
+      "quote": "| Listed, not counted (`d7621ae`, superseded) | 7 |",
+      "values": [
+        {
+          "says": "7",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-workspace-uncounted.json"
+            ],
+            "rows": "/results",
+            "where": [],
+            "flatten": "countedAfter"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/WORKSPACE-ATTRIBUTION.md",
+      "quote": "| Counted and labelled (owner decision 22, now) | 10 |",
+      "values": [
+        {
+          "says": "10",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-workspace-uncounted.json"
+            ],
+            "rows": "/results",
+            "where": [],
+            "flatten": "countedBefore"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "22",
+          "reason": "The owner decision's number in the launch checklist, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/WORKSPACE-ATTRIBUTION.md",
+      "quote": "The 4 labelled matches: communisaas/commons `tests/mocks/external-services.ts` (`meta-graph-v18-0`, test-fixture), embedbase `docs/pages/api/qa.ts` (`gpt-4`, docs-site), and LocalRouter `website/src/components/GuardrailApprovalDemo.tsx` (`claude-3-5-sonnet`, docs-site) and `website/src/components/demo/TauriMockSetup.ts` (`gpt-4`, example). Counting them again gives commons back `meta-graph-v18-0` and LocalRouter both of its deadlines. embedbase's `gpt-4` was counted from its other live code either way; its deployed docs site, which calls OpenAI live, is the case decision 22 protects.",
+      "values": [
+        {
+          "says": "4",
+          "query": {
+            "results": [
+              "docs/benchmarks/2026-10-22-workspace-uncounted.json"
+            ],
+            "rows": "/results",
+            "where": [],
+            "flatten": "outside"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "22",
+          "reason": "The owner decision's number in the launch checklist, not a measurement."
         }
       ]
     }

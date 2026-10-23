@@ -3,22 +3,22 @@
   "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
   "provider": "anthropic",
   "ranAt": "2026-10-22T07:43:40.055Z",
-  "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit, read only: nothing installed, run or validated, no provider contacted. 12 of the 50 repositories are copies of one leaked Claude Code source tree (src/utils/model/configs.ts). baseline is the same run on main before the change.",
+  "note": "refit deadlines and refit deadlines --propose-model-fixes at each frozen commit, read only: nothing installed, run or validated, no provider contacted. baseline is the same run on main before the change. On 2026-10-22, 12 repositories were removed from this set because they are copies of leaked proprietary Claude Code source; every count here is over the remaining 38.",
   "summary": {
-    "repositories": 50,
+    "repositories": 38,
     "errors": 0,
     "timedOut": 0,
-    "exposed": 28,
+    "exposed": 16,
     "exposedWithReplacement": 2,
-    "exposedStoppedOnly": 12,
-    "exposedSilent": 14,
+    "exposedStoppedOnly": 11,
+    "exposedSilent": 3,
     "replacements": 3,
-    "stops": 16,
+    "stops": 15,
     "mentionedOnly": 9,
     "exposedErrored": 0,
-    "exposedUnresolvedOnly": 14,
+    "exposedUnresolvedOnly": 3,
     "exposedUnexplained": 0,
-    "unresolved": 58
+    "unresolved": 15
   },
   "results": [
     {
@@ -73,67 +73,6 @@
         "test": 2
       },
       "nonLiveTotal": 4
-    },
-    {
-      "repo": "wk42worldworld/cybercode",
-      "commit": "a43863b90a4ccba6e6f8b6406cf0e2c4df44bc0c",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/shared/webSessionProviders.ts:457",
-            "src/utils/commitAttribution.ts:165",
-            "src/utils/model/model.ts:243"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/shared/webSessionProviders.ts",
-          "line": 457,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 165,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 243,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 12,
-        "check": 8,
-        "test": 8,
-        "comment": 6
-      },
-      "nonLiveTotal": 34
     },
     {
       "repo": "kgoedecke/doop",
@@ -221,58 +160,6 @@
       ],
       "nonLive": {},
       "nonLiveTotal": 0
-    },
-    {
-      "repo": "OpenAisec/Miko",
-      "commit": "85f6ab54577064f42b64095213a5b236d458ba82",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:259"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 259,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 19,
-        "check": 8,
-        "comment": 6
-      },
-      "nonLiveTotal": 33
     },
     {
       "repo": "FerroxLabs/wayland",
@@ -389,58 +276,6 @@
       "nonLiveTotal": 6
     },
     {
-      "repo": "JrCx7scC/claude-code-source",
-      "commit": "431056a3ed6a0826e88cded587b88e5c2d91811c",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:163",
-            "src/utils/model/model.ts:241"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 163,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 241,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "comment": 9,
-        "catalog": 31,
-        "check": 8
-      },
-      "nonLiveTotal": 48
-    },
-    {
       "repo": "Charlie85270/Dorothy",
       "commit": "470b8ac71c51a5f1634672d5b430f190cfb65646",
       "exposures": [
@@ -544,58 +379,6 @@
       "nonLiveTotal": 0
     },
     {
-      "repo": "fazxes/Claude-code",
-      "commit": "0607f147615853e39de908d6a7ddc8356644edc2",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:237"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 88,
-        "comment": 9,
-        "check": 8
-      },
-      "nonLiveTotal": 105
-    },
-    {
       "repo": "AmazingAng/PolyWorld",
       "commit": "9483ddea61043809bcc4515a5ca5816bad6ae192",
       "exposures": [],
@@ -604,144 +387,6 @@
       "unresolved": [],
       "nonLive": {},
       "nonLiveTotal": 0
-    },
-    {
-      "repo": "txl16095/MiniClaude",
-      "commit": "561531ea4567e83bcaaf0aa45c038b5cfda58297",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42",
-            "src/utils/model/configs.ts:13"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-02-19-claude-3-5-haiku",
-          "date": "2026-02-19",
-          "evidence": [
-            "src/utils/model/configs.ts:17"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-02-19-claude-3-7-sonnet",
-          "date": "2026-02-19",
-          "evidence": [
-            "src/utils/model/configs.ts:9"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-06-15-claude-opus-4",
-          "date": "2026-06-15",
-          "evidence": [
-            "src/utils/model/configs.ts:33"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
-          "date": "2026-06-15",
-          "evidence": [
-            "src/utils/model/configs.ts:25"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-08-05-claude-opus-4-1",
-          "date": "2026-08-05",
-          "evidence": [
-            "src/utils/model/configs.ts:37"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/configs.ts:29",
-            "src/utils/model/model.ts:231"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/configs.ts",
-          "line": 13,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is the `firstParty` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/configs.ts",
-          "line": 17,
-          "model": "claude-3-5-haiku-20241022",
-          "to": "claude-haiku-4-5-20251001",
-          "reason": "No traced request sends it as its model; it is the `firstParty` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/configs.ts",
-          "line": 9,
-          "model": "claude-3-7-sonnet-20250219",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is the `firstParty` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/configs.ts",
-          "line": 33,
-          "model": "claude-opus-4-20250514",
-          "to": "claude-opus-4-8",
-          "reason": "No traced request sends it as its model; it is the `firstParty` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/configs.ts",
-          "line": 25,
-          "model": "claude-sonnet-4-20250514",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is the `firstParty` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/configs.ts",
-          "line": 37,
-          "model": "claude-opus-4-1-20250805",
-          "to": "claude-opus-4-8",
-          "reason": "No traced request sends it as its model; it is the `firstParty` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/configs.ts",
-          "line": 29,
-          "model": "claude-sonnet-4-5-20250929",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is the `firstParty` value of an object. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 231,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "comment": 4,
-        "check": 8,
-        "catalog": 3
-      },
-      "nonLiveTotal": 15
     },
     {
       "repo": "inbrainfun/inbrain",
@@ -877,77 +522,6 @@
       "nonLiveTotal": 1
     },
     {
-      "repo": "TaGoat/claude_code_cli",
-      "commit": "66f7740787048a97b44c52c89999839cffe49b76",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
-          "date": "2026-06-15",
-          "evidence": [
-            "scripts/test-auth.ts:14"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:237"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [
-        {
-          "file": "scripts/test-auth.ts",
-          "line": 13,
-          "call": "messages.create",
-          "at": {
-            "file": "scripts/test-auth.ts",
-            "line": 14
-          },
-          "model": "claude-sonnet-4-20250514",
-          "reason": "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to claude-sonnet-5-5."
-        }
-      ],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 12,
-        "check": 8,
-        "comment": 6
-      },
-      "nonLiveTotal": 26
-    },
-    {
       "repo": "backenly/backenly",
       "commit": "b49c50144ce8bda82241b716af067fa826dbeada",
       "exposures": [
@@ -988,58 +562,6 @@
       "nonLiveTotal": 0
     },
     {
-      "repo": "andforce/Openclaude",
-      "commit": "e7fe977dda7e079602bd3cc02ac1edd8ca61a735",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:407"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 407,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 12,
-        "check": 8,
-        "comment": 6
-      },
-      "nonLiveTotal": 26
-    },
-    {
       "repo": "snapetech-org/seerrng",
       "commit": "2bae695931409a5b059afca220d166ffcf31dfc6",
       "exposures": [],
@@ -1048,58 +570,6 @@
       "unresolved": [],
       "nonLive": {},
       "nonLiveTotal": 0
-    },
-    {
-      "repo": "Doriandarko/kimi-2-6-code",
-      "commit": "2735da87b9c1369feb53b06c1840afd2f63f8f1c",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:260"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 260,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 26,
-        "check": 8,
-        "comment": 6
-      },
-      "nonLiveTotal": 40
     },
     {
       "repo": "beatrix-ha/beatrix",
@@ -1432,200 +902,6 @@
       "nonLiveTotal": 2
     },
     {
-      "repo": "kill136/claudecode",
-      "commit": "674f3b5b8826001856314ac9de982e3bdb9ef0b1",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:237"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 12,
-        "check": 8,
-        "comment": 6
-      },
-      "nonLiveTotal": 26
-    },
-    {
-      "repo": "wyh0626/claude-code-local",
-      "commit": "1c10909c9a8d52be964e1554b16294941f9627ff",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:237"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 12,
-        "check": 8,
-        "comment": 6
-      },
-      "nonLiveTotal": 26
-    },
-    {
-      "repo": "DdogezD/claudium",
-      "commit": "403dcc5fd369c75fdc20e1b330829e20b20ce054",
-      "exposures": [
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:139"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 139,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 10,
-        "check": 3,
-        "comment": 4
-      },
-      "nonLiveTotal": 17
-    },
-    {
-      "repo": "chenqinggang001/claude-code-build",
-      "commit": "b9273538ca121f38c4ca8c502bee051f660c12a8",
-      "exposures": [
-        {
-          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
-          "date": "2025-10-28",
-          "evidence": [
-            "src/tools/AgentTool/built-in/statuslineSetup.ts:42"
-          ]
-        },
-        {
-          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
-          "date": "2026-11-30",
-          "evidence": [
-            "src/utils/commitAttribution.ts:161",
-            "src/utils/model/model.ts:237"
-          ]
-        }
-      ],
-      "replacements": [],
-      "stops": [],
-      "unresolved": [
-        {
-          "file": "src/tools/AgentTool/built-in/statuslineSetup.ts",
-          "line": 42,
-          "model": "claude-3-5-sonnet-20241022",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/commitAttribution.ts",
-          "line": 161,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        },
-        {
-          "file": "src/utils/model/model.ts",
-          "line": 237,
-          "model": "claude-sonnet-4-5",
-          "to": "claude-sonnet-5-5",
-          "reason": "No traced request sends it as its model; it is returned from a function. Check where it is used and change it by hand if it reaches the API."
-        }
-      ],
-      "nonLive": {
-        "catalog": 12,
-        "check": 8,
-        "comment": 6
-      },
-      "nonLiveTotal": 26
-    },
-    {
       "repo": "jhmeel/bigfoot",
       "commit": "95f7ffdb29ff49efe321a96c9caa3e5c8c94a1e6",
       "exposures": [],
@@ -1670,7 +946,8 @@
   "refitCommit": "c084880",
   "baseline": {
     "refitCommit": "fb0143a",
-    "summary": {
+    "note": "This run's per-repository rows were not committed, so its summary cannot be recomputed without the 12 removed repositories; summaryBeforeRemoval is over all 50.",
+    "summaryBeforeRemoval": {
       "repositories": 50,
       "errors": 0,
       "timedOut": 0,

@@ -1,0 +1,3313 @@
+{
+ "run": "2026-10-22",
+ "refit": "7b2c86a",
+ "command": "refit deadlines --repository <clone> --json",
+ "note": "The 2026-10-16 fresh sets rescanned with the 2026-10-22 registry, in the format of 2026-10-16-deadline-fresh-results.json. The 2 Shopify and 4 Stripe repositories over the scan limits exceed them on both dates and keep their error rows, so the denominators stay 200 and 381.",
+ "sets": {
+  "shopify-fresh": [
+   {
+    "repo": "Shopify/shopify-app-template-remix",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "kinngh/shopify-nextjs-prisma-app",
+    "exposures": []
+   },
+   {
+    "repo": "Aident-AI/open-cuak",
+    "exposures": [
+     {
+      "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+      "days": -359
+     },
+     {
+      "id": "openai-2027-01-14-gpt-4o-2024-08-06",
+      "days": 84
+     }
+    ]
+   },
+   {
+    "repo": "kinngh/shopify-node-express-mongodb-app",
+    "exposures": []
+   },
+   {
+    "repo": "GeLi2001/shopify-mcp",
+    "exposures": []
+   },
+   {
+    "repo": "nestjs-shopify/nestjs-shopify",
+    "exposures": []
+   },
+   {
+    "repo": "Shopify/shop-chat-agent",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     },
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "drizzle-team/tento",
+    "exposures": []
+   },
+   {
+    "repo": "Crunchyman-ralph/shopify-app-node-monorepo-express-vite",
+    "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+   },
+   {
+    "repo": "djordje-st/tanstack-start-shopify-app-boilerplate",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-07",
+      "days": 267
+     }
+    ]
+   },
+   {
+    "repo": "nestjs-shopify/example-nx-app",
+    "exposures": []
+   },
+   {
+    "repo": "maestrooo/metaobject-repository",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "The-Rapid-Apps/Rapid-CRM",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-07",
+      "days": 267
+     }
+    ]
+   },
+   {
+    "repo": "Shopify/fulfillment-order-sample-app",
+    "exposures": []
+   },
+   {
+    "repo": "callobuzz/cob-shopify-mcp",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-01",
+      "days": 86
+     }
+    ]
+   },
+   {
+    "repo": "mwakidenis/fullstack-ecommerce-nextjs-shopify",
+    "exposures": []
+   },
+   {
+    "repo": "paweljedrzejczyk/shopify-multistore-app-middleware",
+    "exposures": []
+   },
+   {
+    "repo": "Santho-sh/shopify-product-bundler-app",
+    "exposures": []
+   },
+   {
+    "repo": "madoublet/sections-pro-remix-oss",
+    "exposures": []
+   },
+   {
+    "repo": "pranav-kural/products-vectro",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "Shopify/example-admin--action-and-block--react",
+    "exposures": []
+   },
+   {
+    "repo": "mw10013/tanstack-cloudflare-effect-shopify-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-01",
+      "days": 86
+     }
+    ]
+   },
+   {
+    "repo": "Stephnn0/shipping-discounts-shopify-app",
+    "exposures": []
+   },
+   {
+    "repo": "evigauge-org/helix",
+    "exposures": [
+     {
+      "id": "openai-2026-05-12-dall-e-2",
+      "days": -163
+     }
+    ]
+   },
+   {
+    "repo": "sabbir-noyon/wishkit-app-shopify",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "Shopify/editions-dev-2024-workshop-extensibility",
+    "exposures": []
+   },
+   {
+    "repo": "strapi-community/shopify",
+    "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+   },
+   {
+    "repo": "yan-ad/shopify-app-nuxt",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-01",
+      "days": 86
+     }
+    ]
+   },
+   {
+    "repo": "chr33s/shopify-cloudflare-hono-preact-iso-starter",
+    "exposures": []
+   },
+   {
+    "repo": "german-zarate/shopify-node-express-mongodb-app",
+    "exposures": []
+   },
+   {
+    "repo": "grocco/flarify",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-04",
+      "days": -189
+     }
+    ]
+   },
+   {
+    "repo": "hasan-araav/shopify-order-sync",
+    "exposures": []
+   },
+   {
+    "repo": "ShopyOs/metaobjects-orm",
+    "exposures": []
+   },
+   {
+    "repo": "Stephnn0/shopify-bulk-operations-example",
+    "exposures": []
+   },
+   {
+    "repo": "Nuraveda/shopify-agentic-seo-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "psydao/psydao-io",
+    "exposures": []
+   },
+   {
+    "repo": "Rockstar100/web-pixel-tracker",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "samikaran/fullstack-ecommerce-nextjs-shopify",
+    "exposures": []
+   },
+   {
+    "repo": "SankaiAI/iHeard.ai",
+    "exposures": []
+   },
+   {
+    "repo": "Tanaka0127939/Shopify-NodeApp-Starter",
+    "exposures": []
+   },
+   {
+    "repo": "AB-Insightful/ab-insightful",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "codeyogi911/shopify-mcp",
+    "exposures": []
+   },
+   {
+    "repo": "Hujjat/functions-basic",
+    "exposures": []
+   },
+   {
+    "repo": "leaderfrank/Shopify-Custom-Floating-Bar",
+    "exposures": []
+   },
+   {
+    "repo": "META-DREAMER/framepay",
+    "exposures": []
+   },
+   {
+    "repo": "ozzyonfire/shopify-app-next-external",
+    "exposures": []
+   },
+   {
+    "repo": "Shopify/editions-dev-2025-workshop-customer-account",
+    "exposures": []
+   },
+   {
+    "repo": "Shopify/example-admin-action-and-block-preact",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "Shopify/loyalty-extension-example",
+    "exposures": []
+   },
+   {
+    "repo": "Shopify/shopify-react-conf-22-app",
+    "exposures": []
+   },
+   {
+    "repo": "asap-xt/shopify-ai-seo-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "dalenguyen/shopify-remix-qr-app",
+    "exposures": []
+   },
+   {
+    "repo": "dan-gamble/shopify-remix-cloudflare-pages-app",
+    "exposures": []
+   },
+   {
+    "repo": "diegolarraz/shopify-next-supabase-starter",
+    "exposures": []
+   },
+   {
+    "repo": "guqun/reviewmate-public",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-04",
+      "days": -189
+     }
+    ]
+   },
+   {
+    "repo": "kevinjmosley93/the-best-shopify-theme-toolkit",
+    "exposures": []
+   },
+   {
+    "repo": "render-examples/render-shopify-example",
+    "exposures": []
+   },
+   {
+    "repo": "SGFGOV/medusa-plugin-shopify-ts",
+    "exposures": []
+   },
+   {
+    "repo": "shopsavvy/shopify-shopsavvy",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "SnithfferxDS/sioma-backend",
+    "exposures": []
+   },
+   {
+    "repo": "speedcubing-ireland/speedcubingireland.com",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-04",
+      "days": -189
+     }
+    ]
+   },
+   {
+    "repo": "vyuba/BunnyBite",
+    "exposures": []
+   },
+   {
+    "repo": "brunaszarin/spotlight-manager",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "CloudContactAI/ccai-shopify-abandoned-cart",
+    "exposures": []
+   },
+   {
+    "repo": "DimitarZlatev10/Shopify_App",
+    "exposures": []
+   },
+   {
+    "repo": "edvedafi/cardlister",
+    "exposures": []
+   },
+   {
+    "repo": "Greenstand/POS-Shopify-Extension",
+    "exposures": []
+   },
+   {
+    "repo": "Harshthakur24/Shopify_Tenant_Dashboard",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "izuchukwu-eric/email-marketing",
+    "exposures": []
+   },
+   {
+    "repo": "ksyp-7/shopify-theme-app-extension-vite-react",
+    "exposures": []
+   },
+   {
+    "repo": "mathiusj/hot-tricks-from-dev-docs",
+    "exposures": []
+   },
+   {
+    "repo": "mdrahbar21/shopifyApp",
+    "exposures": []
+   },
+   {
+    "repo": "msolorio/shopify-auth-express-middleware",
+    "exposures": []
+   },
+   {
+    "repo": "narayanan13/new-app",
+    "exposures": []
+   },
+   {
+    "repo": "ndrishinski/bulk-update-tags",
+    "exposures": []
+   },
+   {
+    "repo": "rahulitme/Final_Year_Project",
+    "exposures": []
+   },
+   {
+    "repo": "rcisneros138/shopify-sync-app",
+    "exposures": []
+   },
+   {
+    "repo": "saidMounaim/shopify-next",
+    "exposures": []
+   },
+   {
+    "repo": "Shopify/dotdev-workshop-events",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "shoptether/shoptether",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "t-jindai/shopify-app-session-storage-firestore",
+    "exposures": []
+   },
+   {
+    "repo": "t-maypat/xsight",
+    "exposures": []
+   },
+   {
+    "repo": "Timdev0x/Shopify-QR-app",
+    "exposures": []
+   },
+   {
+    "repo": "trigga6006/shopify-mcp-server",
+    "exposures": []
+   },
+   {
+    "repo": "umxr/shopify-product-reviews",
+    "exposures": []
+   },
+   {
+    "repo": "1234-ad/shopify-order-dashboard",
+    "exposures": []
+   },
+   {
+    "repo": "adearriba/shopify-app-session-storage-cosmosdb",
+    "exposures": []
+   },
+   {
+    "repo": "Ahsan-Ah-med/CashOnDeliveryFee",
+    "exposures": []
+   },
+   {
+    "repo": "akashrajeshnair/ecommerce-next",
+    "exposures": []
+   },
+   {
+    "repo": "alirafat2024/25_oct-shopify_functions",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "alucardislit-coder/shopify-stripe-backend",
+    "exposures": []
+   },
+   {
+    "repo": "amm10090/Shopify-API-Project",
+    "exposures": []
+   },
+   {
+    "repo": "andresantos303/FlowShip",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     },
+     {
+      "id": "shopify-admin-2026-04",
+      "days": 176
+     }
+    ]
+   },
+   {
+    "repo": "antho8101/RefSpring",
+    "exposures": []
+   },
+   {
+    "repo": "AntonVasylchenko/shopify-node-app",
+    "exposures": []
+   },
+   {
+    "repo": "apo11oCreed/shopify",
+    "exposures": []
+   },
+   {
+    "repo": "aqzhen/Revu-co2",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "ArseniyX/taskly",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     },
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "arslanramay/shopify-custom-app-boilerplate",
+    "exposures": []
+   },
+   {
+    "repo": "Ascensyo/addlee-now",
+    "exposures": []
+   },
+   {
+    "repo": "ashishSoni1234/wishlist-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "askphill/bulk-update-customer-locale",
+    "exposures": []
+   },
+   {
+    "repo": "atsuki-sakai/shopify-point-app",
+    "exposures": []
+   },
+   {
+    "repo": "avocadomayo/cart-checkout-validation-app",
+    "exposures": []
+   },
+   {
+    "repo": "bangtbtb/shopify-discount",
+    "exposures": []
+   },
+   {
+    "repo": "benzookapi/shopify-gcp-demo",
+    "exposures": []
+   },
+   {
+    "repo": "benzookapi/shopify-remix-app-custom",
+    "exposures": []
+   },
+   {
+    "repo": "BillyND/shopify-uploads",
+    "exposures": []
+   },
+   {
+    "repo": "bosidev/nerd-bundles-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "Bushra-KB/subscriptions-ref-app",
+    "exposures": []
+   },
+   {
+    "repo": "CABlank/referrd-react-app-shopify",
+    "exposures": []
+   },
+   {
+    "repo": "carlosrebelo14-ai/alterpop-importer2",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "chiragramjibhaipatel/sda-project-member-profiles-app",
+    "exposures": []
+   },
+   {
+    "repo": "CJBiohacker/Carlos-Junior-Minirutter",
+    "exposures": []
+   },
+   {
+    "repo": "ColoradaGreis/alfajordemaicena",
+    "exposures": []
+   },
+   {
+    "repo": "cornerstone-report/x-money-shopify",
+    "exposures": []
+   },
+   {
+    "repo": "danyn/shopify-app-rr",
+    "exposures": []
+   },
+   {
+    "repo": "darongmean/shopify-on-cloudflare",
+    "exposures": []
+   },
+   {
+    "repo": "dave1725/xeno-shopify-app",
+    "exposures": []
+   },
+   {
+    "repo": "dcam9586/scout-source2",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "devtruongson/misen_app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "dza59/remix-chat-tutorial",
+    "exposures": []
+   },
+   {
+    "repo": "flwrdev/delivery-scheduler",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     },
+     {
+      "id": "shopify-admin-2026-04",
+      "days": 176
+     }
+    ]
+   },
+   {
+    "repo": "hak193/i-devr-code",
+    "exposures": []
+   },
+   {
+    "repo": "hungds99/sf-remix-app-aws-template",
+    "exposures": []
+   },
+   {
+    "repo": "iamgenesistech-hub/IAGT_AI_VIRAL_ENGINE",
+    "exposures": []
+   },
+   {
+    "repo": "ibabalola89/Unoir_Render",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "iqbal-web/event-tracker-webhook-triggers",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-07",
+      "days": 267
+     }
+    ]
+   },
+   {
+    "repo": "iqbaldp/shopify-promotion-agent",
+    "exposures": []
+   },
+   {
+    "repo": "jadenScali/Aeo-Optimizer",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "jahmedabeer/Shopify-Storefront-AI-agent",
+    "exposures": []
+   },
+   {
+    "repo": "jahnavi2105m/DiaBites",
+    "exposures": []
+   },
+   {
+    "repo": "jamalsoueidan/booking-api",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "jaysontolentino/Shopify-QRCodeGeneratorApp",
+    "exposures": []
+   },
+   {
+    "repo": "JehielL/uchatbot-pluggin-shopify",
+    "exposures": []
+   },
+   {
+    "repo": "Jessdanie94/fabulous-gems-dashboard",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "jgasimli04/marketoracle",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "johnshields/northstar",
+    "exposures": []
+   },
+   {
+    "repo": "kampfire-dev/bulkify",
+    "exposures": []
+   },
+   {
+    "repo": "kellyannclark/subscription-sync",
+    "exposures": []
+   },
+   {
+    "repo": "kwngo/shopify-remix-extensions-with-react",
+    "exposures": []
+   },
+   {
+    "repo": "kyledickey/hansumfella-website",
+    "exposures": []
+   },
+   {
+    "repo": "LazerTechnologies/shopify-app-development-course",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "Leano-Jordan/ZIA-Inventory_Assist_Plugin",
+    "exposures": [
+     {
+      "id": "shopify-admin-2026-10",
+      "days": 359
+     }
+    ]
+   },
+   {
+    "repo": "Liroo/emilievizcano.com",
+    "exposures": []
+   },
+   {
+    "repo": "lisandrophan/designify",
+    "exposures": []
+   },
+   {
+    "repo": "lnmjkessel-code/v13",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "luffytaroZ/Tracker",
+    "exposures": []
+   },
+   {
+    "repo": "lukeclifton/shopify-app-template-remix-cloudflare",
+    "exposures": []
+   },
+   {
+    "repo": "Manuel1996-coder/shoppulseai",
+    "exposures": []
+   },
+   {
+    "repo": "MarlonPerez-01/price-tracker",
+    "exposures": []
+   },
+   {
+    "repo": "mas-iota/shopify-non-embedded",
+    "exposures": []
+   },
+   {
+    "repo": "matheuscpatricio/omafit",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     },
+     {
+      "id": "openai-2026-10-23-gpt-image-1",
+      "days": 1
+     },
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     }
+    ]
+   },
+   {
+    "repo": "meisbobzheng/pinpoint-archive",
+    "exposures": []
+   },
+   {
+    "repo": "miahcodes/mm-savecart",
+    "exposures": []
+   },
+   {
+    "repo": "michaelwang11394/sales-associate",
+    "exposures": [
+     {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "days": -210
+     },
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "mikelaurenzo7-collab/MANUSshopabot",
+    "exposures": [
+     {
+      "id": "meta-graph-v18-0",
+      "days": -269
+     },
+     {
+      "id": "meta-graph-v19-0",
+      "days": -154
+     },
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     },
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     },
+     {
+      "id": "meta-graph-v24-0",
+      "days": 484
+     }
+    ]
+   },
+   {
+    "repo": "Mitakshar15/RemixShopifyApp",
+    "exposures": []
+   },
+   {
+    "repo": "Mohanatheeba/deepa-test-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "mohdfaizanahmed/Shopify_Task",
+    "exposures": []
+   },
+   {
+    "repo": "mssalemi/b-is-for-bundles",
+    "exposures": []
+   },
+   {
+    "repo": "Naqi-Haider/Hype-Counter",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "ndrishinski/popular-products",
+    "exposures": []
+   },
+   {
+    "repo": "neoapollo18/glimpse-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     },
+     {
+      "id": "openai-2026-12-01-gpt-image-1-mini",
+      "days": 40
+     }
+    ]
+   },
+   {
+    "repo": "newideasacct-lab/ai-peacemaker",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "NguyenThoNgocIT/nest-admin",
+    "exposures": []
+   },
+   {
+    "repo": "NINE15Team/Finally-Back-In-Stock",
+    "exposures": []
+   },
+   {
+    "repo": "ntwrk1/test-checkout-app",
+    "exposures": []
+   },
+   {
+    "repo": "Nuraveda/ai-seo-agent",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "omakatse-dev/omakatse",
+    "exposures": []
+   },
+   {
+    "repo": "omniapex-pro/omni-apex-v1",
+    "exposures": []
+   },
+   {
+    "repo": "othman4dev/SEOMASTER",
+    "exposures": []
+   },
+   {
+    "repo": "peterwalker-svg/pos-ui",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "polidario/weeklyhow-remix-app",
+    "exposures": []
+   },
+   {
+    "repo": "Priyadharshini29-M/Combo-page-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "prowebcoder/shopify-learning-app",
+    "exposures": []
+   },
+   {
+    "repo": "R-A-Print-And-Seasonal-Market-LLC/ra-cj-importer",
+    "exposures": []
+   },
+   {
+    "repo": "ra-shopify/product-recommendations",
+    "exposures": []
+   },
+   {
+    "repo": "raj84908/Quantus-Warehouse-javascript",
+    "exposures": []
+   },
+   {
+    "repo": "Rakesh161rausahn/promo-banner-app",
+    "exposures": []
+   },
+   {
+    "repo": "ratul-pointerflow/wishlist",
+    "exposures": []
+   },
+   {
+    "repo": "rrichie551/Quantity-Breaks",
+    "exposures": []
+   },
+   {
+    "repo": "rrichie551/social-media-feed-app",
+    "exposures": []
+   },
+   {
+    "repo": "safwanadnan/shopiflare",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "sahmsec/conversion-app",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "sanjeev744/smart-bundle",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     }
+    ]
+   },
+   {
+    "repo": "sanjeev744/smart-slidecart",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-07",
+      "days": -98
+     },
+     {
+      "id": "shopify-admin-2026-07",
+      "days": 267
+     }
+    ]
+   },
+   {
+    "repo": "sanjeev744/smart-variants-display",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-04",
+      "days": -189
+     }
+    ]
+   },
+   {
+    "repo": "sarim-alis/redemption-solutionsss",
+    "exposures": []
+   },
+   {
+    "repo": "Shabir300/QRCode-generator-react-router-app-v7-shopify",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "shanyewestyall/checkout-offers-shopify-app",
+    "exposures": []
+   },
+   {
+    "repo": "Shopify/example-app--embedded-auth--js",
+    "exposures": []
+   },
+   {
+    "repo": "Shopify/example-app--optional-scopes--remix",
+    "exposures": []
+   },
+   {
+    "repo": "Shopify/example-storefronts--customer-account-api-authentication--javascript",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "Shubham13th/chatbot-app",
+    "exposures": []
+   },
+   {
+    "repo": "shxhid-dev/shxhid-chat-agent",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     },
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   },
+   {
+    "repo": "smwilk/cart-transform-update",
+    "exposures": []
+   },
+   {
+    "repo": "snoryder8019/rw_socket",
+    "exposures": []
+   },
+   {
+    "repo": "sourav-backend-dev/crypto-shopify-app",
+    "exposures": []
+   },
+   {
+    "repo": "tahmidbintaslim/shopify-ucp",
+    "exposures": [
+     {
+      "id": "shopify-admin-2025-10",
+      "days": -6
+     }
+    ]
+   }
+  ],
+  "stripe-fresh": [
+   {
+    "repo": "ElricLiu/AutoGPT-Next-Web",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "hackerai-tech/hackerai",
+    "exposures": []
+   },
+   {
+    "repo": "agnaistic/agnai",
+    "exposures": [
+     {
+      "id": "anthropic-2025-07-21-claude-2",
+      "days": -458
+     },
+     {
+      "id": "anthropic-2025-07-21-claude-3-sonnet",
+      "days": -458
+     },
+     {
+      "id": "openai-2025-07-28-o1-preview",
+      "days": -451
+     },
+     {
+      "id": "openai-2025-10-27-o1-mini",
+      "days": -360
+     },
+     {
+      "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+      "days": -359
+     },
+     {
+      "id": "anthropic-2026-01-05-claude-3-opus",
+      "days": -290
+     },
+     {
+      "id": "openai-2026-02-17-chatgpt-4o-latest",
+      "days": -247
+     },
+     {
+      "id": "anthropic-2026-02-19-claude-3-5-haiku",
+      "days": -245
+     },
+     {
+      "id": "anthropic-2026-02-19-claude-3-7-sonnet",
+      "days": -245
+     },
+     {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "days": -210
+     },
+     {
+      "id": "anthropic-2026-04-20-claude-3-haiku",
+      "days": -185
+     },
+     {
+      "id": "anthropic-2026-06-15-claude-opus-4",
+      "days": -129
+     },
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     },
+     {
+      "id": "openai-2026-09-28-gpt-3-5-turbo-instruct",
+      "days": -24
+     },
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     },
+     {
+      "id": "openai-2027-01-14-gpt-4o-2024-08-06",
+      "days": 84
+     }
+    ]
+   },
+   {
+    "repo": "LubomirGeorgiev/cloudflare-workers-nextjs-saas-template",
+    "exposures": []
+   },
+   {
+    "repo": "joschan21/contentport",
+    "exposures": [
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   {
+    "repo": "techblitzdev/TechBlitz",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     },
+     {
+      "id": "openai-2027-01-14-gpt-4o-2024-08-06",
+      "days": 84
+     }
+    ]
+   },
+   {
+    "repo": "LuqP2/Image-MetaHub",
+    "exposures": []
+   },
+   {
+    "repo": "ski043/ShoeMarshal",
+    "exposures": []
+   },
+   {
+    "repo": "BastidaNicolas/nextauth-prisma-stripe",
+    "exposures": []
+   },
+   {
+    "repo": "getcord/cord",
+    "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+   },
+   {
+    "repo": "zainulabedeen123/Best-Saas-Kit--V2",
+    "exposures": []
+   },
+   {
+    "repo": "samarbadriddin0v/notion-clone",
+    "exposures": []
+   },
+   {
+    "repo": "workos/next-b2b-starter-kit",
+    "exposures": []
+   },
+   {
+    "repo": "RicardoGEsteves/next-digital-marketplace",
+    "exposures": []
+   },
+   {
+    "repo": "krishna-praveen/shipfast-template-1",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "Oustro/ziggy",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "convex/stripe",
+    "exposures": []
+   },
+   {
+    "repo": "thematters/matters-server",
+    "exposures": [
+     {
+      "id": "meta-graph-v18-0",
+      "days": -269
+     }
+    ]
+   },
+   {
+    "repo": "StretchShop/StretchShop",
+    "exposures": []
+   },
+   {
+    "repo": "jakops88-hub/Long-Term-Memory-API",
+    "exposures": []
+   },
+   {
+    "repo": "PansaLegrand/sushi-saas-template",
+    "exposures": []
+   },
+   {
+    "repo": "tarkovtracker-org/TarkovTracker",
+    "exposures": []
+   },
+   {
+    "repo": "megoxv/visionGPT",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "sa902/ship-fast-ts-main",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "joshnuss/sveltekit-saas",
+    "exposures": []
+   },
+   {
+    "repo": "dubbl-org/dubbl",
+    "exposures": []
+   },
+   {
+    "repo": "kulkarniankita/speakeasyai",
+    "exposures": [
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   {
+    "repo": "vignesh-gupta/digibee-marketplace",
+    "exposures": []
+   },
+   {
+    "repo": "kaorii-ako/Shiori-v1",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "NeuralInverse/nmx-infra",
+    "exposures": []
+   },
+   {
+    "repo": "adityayaduvanshi/Full-Stack-Music-Web-App",
+    "exposures": []
+   },
+   {
+    "repo": "airwaylab-app/airwaylab",
+    "exposures": []
+   },
+   {
+    "repo": "daffy0208/ai-dev-standards",
+    "exposures": [
+     {
+      "id": "anthropic-2025-07-21-claude-3-sonnet",
+      "days": -458
+     },
+     {
+      "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+      "days": -359
+     },
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "days": -210
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "nabarvn/documon",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4-1-nano",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "THE-KIPDEV/ultimate-express-starter",
+    "exposures": []
+   },
+   {
+    "repo": "nirholas/crypto-data-aggregator",
+    "exposures": [
+     {
+      "id": "anthropic-2026-04-20-claude-3-haiku",
+      "days": -185
+     }
+    ]
+   },
+   {
+    "repo": "noorjsdivs/tulos_updated",
+    "exposures": []
+   },
+   {
+    "repo": "vukrosic/next14-skool",
+    "exposures": []
+   },
+   {
+    "repo": "HamedBahram/next-ai-chatbot",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "mergn-app/MergN",
+    "exposures": []
+   },
+   {
+    "repo": "Shivamrai15/Spotify-Clone",
+    "exposures": []
+   },
+   {
+    "repo": "noorjsdivs/tulos_yt",
+    "exposures": []
+   },
+   {
+    "repo": "thunderavi/Easy.js_v.3.0.0",
+    "exposures": [
+     {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "days": 39
+     },
+     {
+      "id": "openai-2027-04-01-gpt-5-1",
+      "days": 161
+     }
+    ]
+   },
+   {
+    "repo": "ANURAG-PATHAK/DigitalMali",
+    "exposures": []
+   },
+   {
+    "repo": "helloworld9912/Stripe-Account-Migration",
+    "exposures": []
+   },
+   {
+    "repo": "holy-unblocker/website2",
+    "exposures": []
+   },
+   {
+    "repo": "Molinar-AI/openclaw-business",
+    "exposures": [
+     {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "days": 39
+     }
+    ]
+   },
+   {
+    "repo": "mwakidenis/TicketHub",
+    "exposures": []
+   },
+   {
+    "repo": "mhaowork/warranty-watcher",
+    "exposures": []
+   },
+   {
+    "repo": "tweneboah/nodejs-e-commerce-API-Course",
+    "exposures": []
+   },
+   {
+    "repo": "Hombre2014/Genius",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "TechWithEmmaYT/Social-X-Clone-Course",
+    "exposures": []
+   },
+   {
+    "repo": "nicuk/docsflow",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "baifan1366/project-management-system",
+    "exposures": []
+   },
+   {
+    "repo": "BensonRaro/CanvaClone",
+    "exposures": []
+   },
+   {
+    "repo": "devczero/saas-pdf-analyzer-with-AI-codinzero",
+    "exposures": []
+   },
+   {
+    "repo": "Kevin-Liu-01/Loop",
+    "exposures": []
+   },
+   {
+    "repo": "matheusmartinsviana/sumaristaai",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "Amansingh0807/GenForm",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "DarkInventor/QuotesAI",
+    "exposures": []
+   },
+   {
+    "repo": "KiranRevanna1/taxonomy",
+    "exposures": []
+   },
+   {
+    "repo": "wyvern800/tldkp",
+    "exposures": []
+   },
+   {
+    "repo": "Drago-03/Neural-Nexus",
+    "exposures": []
+   },
+   {
+    "repo": "duggal1/flux-io",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "frogermcs/stripe-ksef",
+    "exposures": []
+   },
+   {
+    "repo": "Gahroot/the-forge",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     }
+    ]
+   },
+   {
+    "repo": "HamzaKhan-HK/Nuro-AI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "Librum-Reader/Librum-Website",
+    "exposures": []
+   },
+   {
+    "repo": "mckaywrigley/takeoff-perplexity-clone-final",
+    "exposures": []
+   },
+   {
+    "repo": "michaelshimeles/guru-catcher",
+    "exposures": []
+   },
+   {
+    "repo": "OwnTube-tv/peertube-plugin-premium-users",
+    "exposures": []
+   },
+   {
+    "repo": "Strata-Labs/BitScript",
+    "exposures": []
+   },
+   {
+    "repo": "abhiya492/ticket-saas-app",
+    "exposures": []
+   },
+   {
+    "repo": "mckaywrigley/takeoff-perplexity-clone-mckay",
+    "exposures": []
+   },
+   {
+    "repo": "MuhammadTanveerAbbas/Clario-ai",
+    "exposures": []
+   },
+   {
+    "repo": "sagar2535/e-commerce-admin",
+    "exposures": []
+   },
+   {
+    "repo": "michaelshimeles/goshenpay-backend",
+    "exposures": []
+   },
+   {
+    "repo": "nirholas/memescope-monday",
+    "exposures": []
+   },
+   {
+    "repo": "SergeySharipov/ai-companion-saas",
+    "exposures": []
+   },
+   {
+    "repo": "SimplerDevelopment/SimplerDevelopment",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     },
+     {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "days": 39
+     },
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   {
+    "repo": "Small-Web-Co/tinypivot",
+    "exposures": [
+     {
+      "id": "anthropic-2026-04-20-claude-3-haiku",
+      "days": -185
+     }
+    ]
+   },
+   {
+    "repo": "SudoKMaar/leaf",
+    "exposures": []
+   },
+   {
+    "repo": "CiphersLab/SaaSPilot",
+    "exposures": []
+   },
+   {
+    "repo": "habibjutt/nextjs_boilerplate",
+    "exposures": []
+   },
+   {
+    "repo": "profullstack/vibe-stack",
+    "exposures": []
+   },
+   {
+    "repo": "danthareja/splitwise_for_ynab",
+    "exposures": []
+   },
+   {
+    "repo": "DhavalDudheliya/DuoLingo_Clone",
+    "exposures": []
+   },
+   {
+    "repo": "HouseOfBetterAuth/nuxt-better-auth-saas",
+    "exposures": []
+   },
+   {
+    "repo": "rohitt-gupta/readifyai",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "samepage-network/samepage.network",
+    "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+   },
+   {
+    "repo": "deniaiapp/deni-ai",
+    "exposures": []
+   },
+   {
+    "repo": "guillermolg00/nextjs-stripe-store",
+    "exposures": []
+   },
+   {
+    "repo": "Harries/startfast-free",
+    "exposures": []
+   },
+   {
+    "repo": "hideokamoto/stripe-testing-mcp-tools",
+    "exposures": []
+   },
+   {
+    "repo": "mickelsamuel/migrationpilot",
+    "exposures": []
+   },
+   {
+    "repo": "anand-mukul/PDFNinja",
+    "exposures": []
+   },
+   {
+    "repo": "DeepRahangdale/Concierge-AI",
+    "exposures": []
+   },
+   {
+    "repo": "gr8monk3ys/link-flame",
+    "exposures": []
+   },
+   {
+    "repo": "miljan-code/gpt-writer",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "palashb01/DocuChat",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "The-SaaS-Factory/Next-14-SaaS-Boilerplate-Pro",
+    "exposures": []
+   },
+   {
+    "repo": "tomsoderlund/login-as-a-service",
+    "exposures": []
+   },
+   {
+    "repo": "zero19124/next-ai-platform",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "hex22a/techwear-shop-nextjs",
+    "exposures": []
+   },
+   {
+    "repo": "mckaywrigley/takeoff-notes-app",
+    "exposures": []
+   },
+   {
+    "repo": "MikPoik/next13-ai-companion",
+    "exposures": []
+   },
+   {
+    "repo": "nathanmcmullendev/ecommerce-react",
+    "exposures": []
+   },
+   {
+    "repo": "thangtran3112/next-marketplace",
+    "exposures": []
+   },
+   {
+    "repo": "ayaadev/peertube-plugin-sell-storage",
+    "exposures": []
+   },
+   {
+    "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+    "exposures": []
+   },
+   {
+    "repo": "enviodev/rescript-stripe",
+    "exposures": []
+   },
+   {
+    "repo": "JensenMPillay/pdfai",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "KyngKai909/nova-editor",
+    "exposures": []
+   },
+   {
+    "repo": "Mangoz1x/GptRewrite",
+    "exposures": []
+   },
+   {
+    "repo": "Run37927/starterKit",
+    "exposures": []
+   },
+   {
+    "repo": "szymontex/donata",
+    "exposures": []
+   },
+   {
+    "repo": "chipsxp/AI-SaaS-Assistant",
+    "exposures": []
+   },
+   {
+    "repo": "devczero/microsaas-thumbnail-previewer",
+    "exposures": []
+   },
+   {
+    "repo": "H-Dodamani/AetherAI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "Honey-Bagel/Milanote-Clone",
+    "exposures": []
+   },
+   {
+    "repo": "miazme/digitalhippo",
+    "exposures": []
+   },
+   {
+    "repo": "Mshandev/Shopnest",
+    "exposures": []
+   },
+   {
+    "repo": "omar99elnemr/Docubot",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "PedroPini/ScaleNext",
+    "exposures": []
+   },
+   {
+    "repo": "Rohit19060/stripe_hono",
+    "exposures": []
+   },
+   {
+    "repo": "SwarnenduG07/ImageMagic",
+    "exposures": []
+   },
+   {
+    "repo": "Topman-14/topmart-admin",
+    "exposures": []
+   },
+   {
+    "repo": "Traviseric/arxmint",
+    "exposures": []
+   },
+   {
+    "repo": "vitalii-honchar/ai-business-founder",
+    "exposures": []
+   },
+   {
+    "repo": "vtempest/API2AI",
+    "exposures": []
+   },
+   {
+    "repo": "YunmeiYe/nextjs-ai-platform",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "AboloreDev/cartella-E-commerce",
+    "exposures": []
+   },
+   {
+    "repo": "Anuradha-Herath/Pinnacle",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "axelker/next-js-dashboard-better-auth-stripe",
+    "exposures": []
+   },
+   {
+    "repo": "ayush00dhyani-star/leadscout-saas",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "openai-2026-10-23-gpt-image-1",
+      "days": 1
+     },
+     {
+      "id": "openai-2026-12-01-gpt-image-1-mini",
+      "days": 40
+     }
+    ]
+   },
+   {
+    "repo": "cdinnison/goal-reminder",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "cyberdreadx/cyberpunk-grok-api",
+    "exposures": []
+   },
+   {
+    "repo": "devczero/saas-pdf-analysis-dev",
+    "exposures": []
+   },
+   {
+    "repo": "doganarif/build-it",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "drewsephski/get2cracked",
+    "exposures": []
+   },
+   {
+    "repo": "enz0rd/quickurl",
+    "exposures": []
+   },
+   {
+    "repo": "gaurangkhera/Kinect",
+    "exposures": []
+   },
+   {
+    "repo": "gitroomhq/postiz-new-support-bot",
+    "exposures": []
+   },
+   {
+    "repo": "internxt/payments-server",
+    "exposures": []
+   },
+   {
+    "repo": "jassibacha/AskPDF",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "jeanchrinot/shipaisaas-starter",
+    "exposures": []
+   },
+   {
+    "repo": "kevinknielsen/superfan-core",
+    "exposures": []
+   },
+   {
+    "repo": "krishvsoni/Scrimble",
+    "exposures": []
+   },
+   {
+    "repo": "mckaywrigley/takeoff-perplexity-clone-starter",
+    "exposures": []
+   },
+   {
+    "repo": "mouhamedanflosse/digitalHome",
+    "exposures": []
+   },
+   {
+    "repo": "nhemnt/slackify",
+    "exposures": []
+   },
+   {
+    "repo": "Openpod/impractical-video",
+    "exposures": []
+   },
+   {
+    "repo": "passion-27/QuotesAI",
+    "exposures": []
+   },
+   {
+    "repo": "ReeceHarding/firebase-next.js-boilerplate",
+    "exposures": []
+   },
+   {
+    "repo": "ruhulamin-programming/E-Learning-Platform",
+    "exposures": []
+   },
+   {
+    "repo": "samiamjidkhan/dota2-helper",
+    "exposures": []
+   },
+   {
+    "repo": "shaoxuan0916/life-slice",
+    "exposures": []
+   },
+   {
+    "repo": "Suhaib3100/online-compiler",
+    "exposures": []
+   },
+   {
+    "repo": "SWE-S26/Backend-Team5",
+    "exposures": []
+   },
+   {
+    "repo": "tatwan/MarkdownMash",
+    "exposures": []
+   },
+   {
+    "repo": "vishalbodkhe531/mern-ecommerce-backend",
+    "exposures": []
+   },
+   {
+    "repo": "xhumaliosmani/ecomWatchUdemy1",
+    "exposures": []
+   },
+   {
+    "repo": "Alfredoeb9/ele",
+    "exposures": []
+   },
+   {
+    "repo": "Anassarwar14/Chat-Nest-AI",
+    "exposures": []
+   },
+   {
+    "repo": "Ankit-Sharma1011/Quill",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "avikalp987/lingo",
+    "exposures": []
+   },
+   {
+    "repo": "avikalp987/quill",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "carlosrobertodevops/lms-platform-v3-fullstack-codewithantonio",
+    "exposures": []
+   },
+   {
+    "repo": "DataRohit/Quill-Document-Chat",
+    "exposures": []
+   },
+   {
+    "repo": "Deepanshu0211/Rocart",
+    "exposures": []
+   },
+   {
+    "repo": "devczero/vid-analyzer-saas",
+    "exposures": []
+   },
+   {
+    "repo": "efegorkemumit/ecommerce-nextjs14",
+    "exposures": []
+   },
+   {
+    "repo": "felmonon/jungian-typology-assessment",
+    "exposures": []
+   },
+   {
+    "repo": "Fivlas/hackhaton-boilerplate",
+    "exposures": []
+   },
+   {
+    "repo": "janwilmake/promptrank1",
+    "exposures": []
+   },
+   {
+    "repo": "Jose-Wernerson/Turbo-Gestor",
+    "exposures": []
+   },
+   {
+    "repo": "Joseyosei/Share-The-Link",
+    "exposures": [
+     {
+      "id": "meta-graph-v18-0",
+      "days": -269
+     },
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     }
+    ]
+   },
+   {
+    "repo": "justmahmoud31/Noon-Clone",
+    "exposures": []
+   },
+   {
+    "repo": "karanchhina/playground0",
+    "exposures": []
+   },
+   {
+    "repo": "kindaiau/kindai-estimating-suite",
+    "exposures": [
+     {
+      "id": "meta-graph-v19-0",
+      "days": -154
+     },
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     },
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   {
+    "repo": "laxmanclo/multi-agent-kit",
+    "exposures": []
+   },
+   {
+    "repo": "LeonardoBMar/workly",
+    "exposures": []
+   },
+   {
+    "repo": "mageshyt/Nextjs-saas-starter",
+    "exposures": []
+   },
+   {
+    "repo": "Md-RonyAhmed/eduTech",
+    "exposures": []
+   },
+   {
+    "repo": "mykha1129/AI-Agent",
+    "exposures": [
+     {
+      "id": "openai-2026-05-12-dall-e-2",
+      "days": -163
+     }
+    ]
+   },
+   {
+    "repo": "nicolas1102/dxter-shark",
+    "exposures": []
+   },
+   {
+    "repo": "notcaliper/Feliactyl",
+    "exposures": []
+   },
+   {
+    "repo": "oMiguelwnl/Borcelle_admin",
+    "exposures": []
+   },
+   {
+    "repo": "peppapig13132/stripemetrics-backend",
+    "exposures": []
+   },
+   {
+    "repo": "pra9711/lexinote",
+    "exposures": []
+   },
+   {
+    "repo": "PramodLakmal/mern-vsms",
+    "exposures": []
+   },
+   {
+    "repo": "proSamik/saas-nextjs-template",
+    "exposures": []
+   },
+   {
+    "repo": "psykat1116/Planit",
+    "exposures": []
+   },
+   {
+    "repo": "psykat1116/Spotify",
+    "exposures": []
+   },
+   {
+    "repo": "puneethkotha/Zapd",
+    "exposures": []
+   },
+   {
+    "repo": "QizarBilal/GreenNode",
+    "exposures": []
+   },
+   {
+    "repo": "QwertyFusion/bookworm",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "R4heem-Orekoya/folio",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "RafaelAquinodev/concurso-fsc-nft",
+    "exposures": []
+   },
+   {
+    "repo": "raumildhandhukia/inboxradarai",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "richardhunghhw/hungrytapirldn.com",
+    "exposures": []
+   },
+   {
+    "repo": "rishabhthakur11/levelup",
+    "exposures": []
+   },
+   {
+    "repo": "ryangustav/lunna-backend",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "Sammindinventory/Saas-Gen-AI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "savka777/TiteL",
+    "exposures": []
+   },
+   {
+    "repo": "shivamm-55/HippoSphere",
+    "exposures": []
+   },
+   {
+    "repo": "spheceo/stoic-platform",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "suzushi-tw/celestialpdf",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "TanZhengYang0912/MyWisata-Malaysia-Tourism-Portal",
+    "exposures": []
+   },
+   {
+    "repo": "vinroger/onellm-frontend",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "VishalRaut2106/HackMate_AI",
+    "exposures": []
+   },
+   {
+    "repo": "Will-404-debug/Katana-Forge",
+    "exposures": []
+   },
+   {
+    "repo": "Yosef-Ali/compasstio-ai",
+    "exposures": []
+   },
+   {
+    "repo": "AAGAM17/Mind",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "abhirupkumar/docwhisperer",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "Addisu87/digital-marketplace",
+    "exposures": []
+   },
+   {
+    "repo": "afdon/music-app",
+    "exposures": []
+   },
+   {
+    "repo": "Ahtasham-ul-haq/Imaginify",
+    "exposures": []
+   },
+   {
+    "repo": "AlefeSk8/Spotify-Clone-Next.js",
+    "exposures": []
+   },
+   {
+    "repo": "Alex-Unnippillil/share-house-portal",
+    "exposures": []
+   },
+   {
+    "repo": "AmanSalman/Ecommerce-Nodejs-Backend",
+    "exposures": []
+   },
+   {
+    "repo": "artschur/classifik",
+    "exposures": []
+   },
+   {
+    "repo": "bhaveshchhimwal/PopIn",
+    "exposures": []
+   },
+   {
+    "repo": "bichsonnhat/cognito",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "BrutalOverkill/AnvitStore",
+    "exposures": []
+   },
+   {
+    "repo": "cavidaga/lnk",
+    "exposures": []
+   },
+   {
+    "repo": "ciaran-finnegan/secret-sharer-server",
+    "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+   },
+   {
+    "repo": "ClinkedIn/Backend",
+    "exposures": []
+   },
+   {
+    "repo": "communisaas/commons",
+    "exposures": [
+     {
+      "id": "meta-graph-v18-0",
+      "days": -269
+     },
+     {
+      "id": "meta-graph-v19-0",
+      "days": -154
+     }
+    ]
+   },
+   {
+    "repo": "cookieMonsterDev/e-commerce-saas",
+    "exposures": []
+   },
+   {
+    "repo": "dheerajcl/Jynx2.0",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "Divith123/Ninja-Drive",
+    "exposures": []
+   },
+   {
+    "repo": "dlackner/charlie_chat",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "draytht/nocarry",
+    "exposures": [
+     {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "days": -129
+     }
+    ]
+   },
+   {
+    "repo": "Edjemoknine/CV-Builder",
+    "exposures": []
+   },
+   {
+    "repo": "eka0789/evofuture",
+    "exposures": []
+   },
+   {
+    "repo": "Emmah-oo/spotify-clone",
+    "exposures": []
+   },
+   {
+    "repo": "emman-tt/tilios-backend",
+    "exposures": []
+   },
+   {
+    "repo": "ensarokumus/tldr-app",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "ericz99/useauro",
+    "exposures": []
+   },
+   {
+    "repo": "Eziox-Development/eziox-web",
+    "exposures": []
+   },
+   {
+    "repo": "fahadguldev/stripe-payment-test-",
+    "exposures": []
+   },
+   {
+    "repo": "felipevega-dev/next13-spotifyclone",
+    "exposures": []
+   },
+   {
+    "repo": "Fx64b/learn",
+    "exposures": []
+   },
+   {
+    "repo": "gazamba/nextjs-saas-ecommerce-admin",
+    "exposures": []
+   },
+   {
+    "repo": "ggallon/type-last",
+    "exposures": []
+   },
+   {
+    "repo": "gjlander/backend-lazypress",
+    "exposures": []
+   },
+   {
+    "repo": "haimatrix99/quiz-me",
+    "exposures": []
+   },
+   {
+    "repo": "HarshKumarraghav/Infinidocs",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "heyitsadityaa/ticketr",
+    "exposures": []
+   },
+   {
+    "repo": "heyzbh/scrapmatic-saas-app",
+    "exposures": []
+   },
+   {
+    "repo": "HUYNHDUCHUNG/course-lms-tutorial",
+    "exposures": []
+   },
+   {
+    "repo": "IncomeStreamSurfer/free-site-example",
+    "exposures": []
+   },
+   {
+    "repo": "InovexSolutions/Kratos",
+    "exposures": []
+   },
+   {
+    "repo": "IramMcFly/kitchen-soft-platform",
+    "exposures": []
+   },
+   {
+    "repo": "its-pratyushpandey/Lumina-Backend",
+    "exposures": []
+   },
+   {
+    "repo": "itw-creative-works/backend-manager",
+    "exposures": [
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     },
+     {
+      "id": "openai-2027-04-01-gpt-5-1",
+      "days": 161
+     }
+    ]
+   },
+   {
+    "repo": "Jackinatox/lake",
+    "exposures": []
+   },
+   {
+    "repo": "JashAgrawal/supreme-toolkit",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "jaykeraliya0/doc-query",
+    "exposures": []
+   },
+   {
+    "repo": "jenish1559/mediaspotV2",
+    "exposures": []
+   },
+   {
+    "repo": "karljuhl/Club_Connect",
+    "exposures": []
+   },
+   {
+    "repo": "kianush00/joyassol-ecommerce",
+    "exposures": []
+   },
+   {
+    "repo": "KovD3v/anthon-2.0",
+    "exposures": [
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     }
+    ]
+   },
+   {
+    "repo": "KPZ231/what-now-chaos",
+    "exposures": []
+   },
+   {
+    "repo": "kronos-999/nuxt-saas-stripe-starter",
+    "exposures": []
+   },
+   {
+    "repo": "ktp-usc/sc-economics",
+    "exposures": []
+   },
+   {
+    "repo": "kubirthan/onlineCart",
+    "exposures": []
+   },
+   {
+    "repo": "kyyril/saas-noteapp",
+    "exposures": []
+   },
+   {
+    "repo": "liamstamper/lamp-bot",
+    "exposures": []
+   },
+   {
+    "repo": "litmajor/mtaa-dao",
+    "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).\n"
+   },
+   {
+    "repo": "LouisMbc/twitter-like",
+    "exposures": []
+   },
+   {
+    "repo": "mahin67580/FoodieFrog",
+    "exposures": []
+   },
+   {
+    "repo": "manuelduenascortes/menuAI",
+    "exposures": []
+   },
+   {
+    "repo": "marketstandard/onix",
+    "exposures": []
+   },
+   {
+    "repo": "MayorEmpror/CARZ",
+    "exposures": []
+   },
+   {
+    "repo": "MeldinRadoncic/TriboAI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "mezaaf/ecommerce",
+    "exposures": []
+   },
+   {
+    "repo": "miroshar-success/SaaS-CV-Creation",
+    "exposures": [
+     {
+      "id": "openai-2026-03-26-gpt-4-0314",
+      "days": -210
+     },
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "molly/citation-needed-backend",
+    "exposures": []
+   },
+   {
+    "repo": "monsterooo/nextjs-starter",
+    "exposures": []
+   },
+   {
+    "repo": "necrydark/gcdb",
+    "exposures": []
+   },
+   {
+    "repo": "Neddie28/Spotify-Clone",
+    "exposures": []
+   },
+   {
+    "repo": "neondatabase/neon-auth-stripe-demo",
+    "exposures": []
+   },
+   {
+    "repo": "nishantharkut/Uproot.AI",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "nishchay-veer/tunehub-next",
+    "exposures": []
+   },
+   {
+    "repo": "Nitish0777/buildInnovation",
+    "exposures": []
+   },
+   {
+    "repo": "nymlCodes/FitnessCafe",
+    "exposures": []
+   },
+   {
+    "repo": "papay0/Ideate.build",
+    "exposures": []
+   },
+   {
+    "repo": "paulchrisluke/quill-nuxsaas",
+    "exposures": []
+   },
+   {
+    "repo": "pjleb90/e-comm-admin",
+    "exposures": []
+   },
+   {
+    "repo": "Prg-Yash/Imaginix",
+    "exposures": []
+   },
+   {
+    "repo": "Princegupta101/SwiftScribe",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "r0ld3x/DocTalk",
+    "exposures": [
+     {
+      "id": "anthropic-2025-07-21-claude-2",
+      "days": -458
+     }
+    ]
+   },
+   {
+    "repo": "RemiMinderAI/RemiMinderAI",
+    "exposures": []
+   },
+   {
+    "repo": "removisionscodefindersplatform-art/RemoVisions-Code-Finders-Platform",
+    "exposures": []
+   },
+   {
+    "repo": "RescuePC/Donation-Link",
+    "exposures": []
+   },
+   {
+    "repo": "RicSala/logo-maker",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "rishabhsingroha/MusicListeningPlatform",
+    "exposures": []
+   },
+   {
+    "repo": "robharding/Quill",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "Sarcovora/quill",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "SeaMossBros/sea-moss-api",
+    "exposures": []
+   },
+   {
+    "repo": "seangray-dev/formail-app",
+    "exposures": []
+   },
+   {
+    "repo": "Seann-Michael/Local-GMB-Booster",
+    "exposures": []
+   },
+   {
+    "repo": "shagunmistry/FlowCraft",
+    "exposures": []
+   },
+   {
+    "repo": "Shefaul-22/AgriFlow",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "skrodrigo/genesis",
+    "exposures": []
+   },
+   {
+    "repo": "Techit-Comma/Comma_Frontend",
+    "exposures": []
+   },
+   {
+    "repo": "tmachnacki/podvex",
+    "exposures": []
+   },
+   {
+    "repo": "TN0123/Schematic",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "days": 39
+     }
+    ]
+   },
+   {
+    "repo": "toidiputS/Club-Youniverse-live",
+    "exposures": []
+   },
+   {
+    "repo": "Ulisses22/stripe-payment-in-nodejs",
+    "exposures": []
+   },
+   {
+    "repo": "UmerGitNinja/Mart-X",
+    "exposures": []
+   },
+   {
+    "repo": "ummarikar/boilerplate-club",
+    "exposures": []
+   },
+   {
+    "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+    "exposures": []
+   },
+   {
+    "repo": "vukrosic/next14-stripe-ecommerce",
+    "exposures": []
+   },
+   {
+    "repo": "vukrosic/nextjs14-simple-ecom",
+    "exposures": []
+   },
+   {
+    "repo": "WalterIt/Better-Auth-Template",
+    "exposures": []
+   },
+   {
+    "repo": "yassine-ahmed/MyBusinessWebsite",
+    "exposures": []
+   },
+   {
+    "repo": "Yudhishthirr/askmypdf",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "yuens1002/artisan-roast",
+    "exposures": []
+   },
+   {
+    "repo": "yuga-hashimoto/ai-tool-navigator",
+    "exposures": []
+   },
+   {
+    "repo": "zaidmukaddam/auth-turbo-repo",
+    "exposures": []
+   },
+   {
+    "repo": "1jmdev/StripeGate",
+    "exposures": []
+   },
+   {
+    "repo": "4lbatr0s/jiro",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     },
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "4NDR3S-01/StyleHub",
+    "exposures": []
+   },
+   {
+    "repo": "4NDR3S-01/TuSuerteEC",
+    "exposures": []
+   },
+   {
+    "repo": "aabhiyann/talkifydocs",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "AadityaShukla01/Simplex",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "Abdul-Rafay-2002/SparkSprint",
+    "exposures": []
+   },
+   {
+    "repo": "ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform",
+    "exposures": []
+   },
+   {
+    "repo": "adamhitzger/financehb",
+    "exposures": []
+   },
+   {
+    "repo": "Adarshagupta/cheatbit-desktop",
+    "exposures": [
+     {
+      "id": "anthropic-2026-02-19-claude-3-7-sonnet",
+      "days": -245
+     },
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   {
+    "repo": "adhamdr1/mazadak-backend",
+    "exposures": []
+   },
+   {
+    "repo": "AdityaMethe03/Natours-app",
+    "exposures": []
+   },
+   {
+    "repo": "ADML003/pix_pro",
+    "exposures": []
+   },
+   {
+    "repo": "adobetoby-maker/app.languagethreshold.com",
+    "exposures": []
+   },
+   {
+    "repo": "ahm0xc/apolloscan",
+    "exposures": []
+   },
+   {
+    "repo": "aiaspiringdeveloper/fastblog",
+    "exposures": [
+     {
+      "id": "openai-2027-02-26-whisper-1",
+      "days": 127
+     }
+    ]
+   },
+   {
+    "repo": "aionarae/amazon-beta",
+    "exposures": []
+   },
+   {
+    "repo": "AjitAdhikari/simple-Hotel-website",
+    "exposures": []
+   },
+   {
+    "repo": "akn3107/whatsapp-store-creator",
+    "exposures": [
+     {
+      "id": "meta-graph-v17-0",
+      "days": -405
+     }
+    ]
+   },
+   {
+    "repo": "AlbanAndrieu/nabla-site-apache",
+    "exposures": []
+   },
+   {
+    "repo": "Alpha-Stark/Evently",
+    "exposures": []
+   },
+   {
+    "repo": "AlphaAnimica/Backend-AlphaAnimica",
+    "exposures": []
+   },
+   {
+    "repo": "aman-gupta21/Hungry-Harvest",
+    "exposures": []
+   },
+   {
+    "repo": "Amarnath0077/industrialstore-main",
+    "exposures": []
+   },
+   {
+    "repo": "Amudhavalli2004/courseacrafter-ai",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "App-4-Dat-LLC/LandLORDER-rp",
+    "exposures": []
+   },
+   {
+    "repo": "ARCPrivus2026/ARCPrivus-AI-Madre",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-image-1",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "Ardione321/prep-ai",
+    "exposures": [
+     {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "days": -326
+     }
+    ]
+   },
+   {
+    "repo": "arebrinkemil/mp3streamer",
+    "exposures": []
+   },
+   {
+    "repo": "aresjinwoo94-cpu/EliteVault",
+    "exposures": [
+     {
+      "id": "meta-graph-v21-0",
+      "days": 91
+     }
+    ]
+   },
+   {
+    "repo": "ArkanaDeck/arcana-marketplace",
+    "exposures": []
+   },
+   {
+    "repo": "Arnoldlarry15/Operant",
+    "exposures": []
+   },
+   {
+    "repo": "arthurwhitlock/twisell-app",
+    "exposures": []
+   },
+   {
+    "repo": "arturoa925/knowitforward",
+    "exposures": []
+   },
+   {
+    "repo": "AshimaSingh0610/SwiftScribe",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "ASQUAREEE/intellico",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-3-5-turbo",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "Auriti-Labs/geo-score",
+    "exposures": []
+   },
+   {
+    "repo": "awalwema/clippilot-shipt",
+    "exposures": [
+     {
+      "id": "openai-2026-10-23-gpt-4",
+      "days": 1
+     }
+    ]
+   },
+   {
+    "repo": "ax958777/Ecommerce",
+    "exposures": []
+   },
+   {
+    "repo": "AzharAli-web/Heaventech-store",
+    "exposures": []
+   },
+   {
+    "repo": "basanta1-github/accessPro_RBAC_App",
+    "exposures": []
+   },
+   {
+    "repo": "batyrkhan9/stripe-ops-agent",
+    "exposures": []
+   },
+   {
+    "repo": "bhuvanbhoge/imaginify",
+    "exposures": []
+   },
+   {
+    "repo": "billychen0894/florist-ecommerce-app",
+    "exposures": []
+   },
+   {
+    "repo": "Blimp-Bot/Rebirth",
+    "exposures": []
+   },
+   {
+    "repo": "brehanderson-cloud/launchpadpoint-website",
+    "exposures": [
+     {
+      "id": "anthropic-2025-10-28-claude-3-5-sonnet",
+      "days": -359
+     }
+    ]
+   },
+   {
+    "repo": "Bridgette013/vvv-dIgitals-done",
+    "exposures": []
+   },
+   {
+    "repo": "BTheCoderr/jackerboxV2",
+    "exposures": []
+   },
+   {
+    "repo": "bxdr-glitch/saas-starter-nextjs",
+    "exposures": []
+   },
+   {
+    "repo": "bytewizard42i/selectConnect_app_pro",
+    "exposures": []
+   },
+   {
+    "repo": "CampusStoresCanada/shipping-label",
+    "exposures": []
+   },
+   {
+    "repo": "CapChris20/Retronix-Wallpapers-Startup",
+    "exposures": []
+   },
+   {
+    "repo": "carlonicora/nestjs-neo4jsonapi",
+    "exposures": []
+   },
+   {
+    "repo": "chaweroty/habittaBackend",
+    "exposures": []
+   },
+   {
+    "repo": "Chivo1530/CHIVITO-AI-DEV",
+    "exposures": []
+   },
+   {
+    "repo": "Chris-26-dev/ecommerce",
+    "exposures": []
+   },
+   {
+    "repo": "chrisgilbert722/vendor-insurance-tracker-v2",
+    "exposures": []
+   }
+  ]
+ }
+}

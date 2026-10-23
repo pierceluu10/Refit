@@ -80,6 +80,11 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   expect(result.files).toContain('pipeline/stripe-sdk-metadata.json');
   expect(result.files).toContain('pipeline/fixtures/stripe-webhooks/provider-price-policy.json');
   expect(result.files).toContain('pipeline/sdk-constructors.ts');
+  expect(result.files).toContain('pipeline/python/models.ts');
+  expect(result.files).toContain('pipeline/python/tree-sitter-python.wasm');
+  expect(result.files).toContain('pipeline/go/tree-sitter-go.wasm');
+  expect(result.files).toContain('data/go-sdks.json');
+  expect(result.files).not.toContain('pipeline/python/models.test.ts');
   expect(result.files).toContain('pipeline/openapi-contracts.ts');
   expect(result.files).toContain('pipeline/provider-request-renames.ts');
   expect(result.files).toContain('pipeline/fixtures/request-renames/provider.json');
@@ -115,6 +120,7 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
     'pg',
     'tsx',
     'typescript-compiler',
+    'web-tree-sitter',
     'yaml',
   ]);
   expect(result.dependencies.tsx).toMatch(/^\d+\.\d+\.\d+/);

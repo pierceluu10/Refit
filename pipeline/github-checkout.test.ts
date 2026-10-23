@@ -231,3 +231,15 @@ it('reconciles an interrupted update only when its recorded new HEAD and clean f
     pendingRevision: null,
   });
 });
+
+it('redacts the installation token and its Basic credential from Git failure messages', async () => {
+  const input = await setup();
+  const basic = Buffer.from('x-access-token:private-read-test-token').toString('base64');
+  // Git echoes the remote it could not read, so a remote naming both forms puts them on stderr.
+  transport.source = join(transport.source, `private-read-test-token-${basic}`);
+  const failure = withGitHubCheckout(input, async () => undefined);
+  await expect(failure).rejects.toThrow(/^Managed Git fetch failed: .*\[redacted\]-\[redacted\]/);
+  const message = await failure.catch((error: Error) => error.message);
+  expect(message).not.toContain('private-read-test-token');
+  expect(message).not.toContain(basic);
+});

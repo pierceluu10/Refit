@@ -1,0 +1,243 @@
+{
+  "formatVersion": 1,
+  "repository": "rohitg00/manim-video-generator",
+  "revision": "9c41982e620bf9dbaac6553197eb2dfafbef90f2",
+  "date": "2026-10-22",
+  "integrations": [
+    {
+      "provider": "openai",
+      "name": "OpenAI",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "openai",
+          "declared": "^4.50.0",
+          "locked": "4.104.0"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "migrate",
+      "apiVersions": []
+    },
+    {
+      "provider": "anthropic",
+      "name": "Anthropic",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "@anthropic-ai/sdk",
+          "declared": "^0.71.2",
+          "locked": "0.71.2"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "model-fixes",
+      "apiVersions": []
+    },
+    {
+      "provider": "gemini",
+      "name": "Gemini",
+      "packages": [
+        {
+          "file": "package.json",
+          "name": "@google/generative-ai",
+          "declared": "^0.21.0",
+          "locked": "0.21.0"
+        }
+      ],
+      "configured": false,
+      "integration": null,
+      "capability": "report-only",
+      "apiVersions": []
+    }
+  ],
+  "deadlines": [
+    {
+      "id": "gemini-2025-11-30-google-generative-ai",
+      "provider": "gemini",
+      "kind": "sdk",
+      "versions": [
+        "@google/generative-ai"
+      ],
+      "date": "2025-11-30",
+      "days": -326,
+      "summary": "Google ends all support for the @google/generative-ai package, including bug fixes, on 2025-11-30 and recommends @google/genai, whose call shapes differ. Google does not say that requests through the old package stop working. The README in its last npm release (0.24.1) gave 2025-08-31; the repository README now gives 2025-11-30.",
+      "replacement": "@google/genai",
+      "source": "https://github.com/google-gemini/deprecated-generative-ai-js/blob/main/README.md",
+      "evidence": [
+        {
+          "file": "package.json",
+          "line": 15
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    },
+    {
+      "id": "anthropic-2026-06-15-claude-sonnet-4",
+      "provider": "anthropic",
+      "kind": "model",
+      "versions": [
+        "claude-sonnet-4-20250514"
+      ],
+      "date": "2026-06-15",
+      "days": -129,
+      "summary": "Anthropic retires claude-sonnet-4-20250514 on the Claude API; requests to a retired model fail.",
+      "replacement": "claude-sonnet-5-5",
+      "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+      "evidence": [
+        {
+          "file": "src/vision/providers/anthropic-vision.ts",
+          "line": 40
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    },
+    {
+      "id": "openai-2026-10-23-gpt-4-1-nano",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4.1-nano"
+      ],
+      "date": "2026-10-23",
+      "days": 1,
+      "summary": "OpenAI shuts down gpt-4.1-nano, gpt-4.1-nano-2025-04-14.",
+      "replacement": "gpt-5.6-luna",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "evidence": [
+        {
+          "file": "src/agents/math-enricher.step.ts",
+          "line": 29
+        },
+        {
+          "file": "src/agents/narrative-composer.step.ts",
+          "line": 19
+        },
+        {
+          "file": "src/agents/prerequisite-explorer.step.ts",
+          "line": 19
+        },
+        {
+          "file": "src/agents/visual-designer.step.ts",
+          "line": 23
+        },
+        {
+          "file": "src/api/refine.step.ts",
+          "line": 92
+        },
+        {
+          "file": "src/services/nlu-classifier.ts",
+          "line": 21
+        },
+        {
+          "file": "src/services/openai-client.ts",
+          "line": 10
+        },
+        {
+          "file": "src/services/prompt-engine.ts",
+          "line": 17
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    },
+    {
+      "id": "anthropic-2026-11-30-claude-sonnet-4-5",
+      "provider": "anthropic",
+      "kind": "model",
+      "versions": [
+        "claude-sonnet-4-5-20250929"
+      ],
+      "date": "2026-11-30",
+      "days": 39,
+      "summary": "Anthropic retires claude-sonnet-4-5-20250929 on the Claude API; requests to a retired model fail. The claude-sonnet-4-5 alias resolves to that snapshot (Claude Sonnet 4.5 model page).",
+      "replacement": "claude-sonnet-5-5",
+      "source": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+      "evidence": [
+        {
+          "file": "src/providers/anthropic-provider.ts",
+          "line": 13
+        }
+      ],
+      "more": 0,
+      "ignored": false
+    }
+  ],
+  "mentions": [],
+  "outside": [],
+  "ignoredPaths": [],
+  "models": [
+    {
+      "model": null,
+      "provider": "anthropic",
+      "calls": [
+        {
+          "file": "src/providers/anthropic-provider.ts",
+          "line": 56,
+          "call": "messages.create",
+          "test": false
+        },
+        {
+          "file": "src/providers/anthropic-provider.ts",
+          "line": 76,
+          "call": "messages.create",
+          "test": false
+        },
+        {
+          "file": "src/providers/anthropic-provider.ts",
+          "line": 118,
+          "call": "messages.create",
+          "test": false
+        }
+      ]
+    },
+    {
+      "model": null,
+      "provider": "openai",
+      "calls": [
+        {
+          "file": "src/providers/deepseek-provider.ts",
+          "line": 57,
+          "call": "chat.completions.create",
+          "test": false
+        },
+        {
+          "file": "src/providers/deepseek-provider.ts",
+          "line": 79,
+          "call": "chat.completions.create",
+          "test": false
+        },
+        {
+          "file": "src/providers/deepseek-provider.ts",
+          "line": 124,
+          "call": "chat.completions.create",
+          "test": false
+        },
+        {
+          "file": "src/providers/openai-provider.ts",
+          "line": 57,
+          "call": "chat.completions.create",
+          "test": false
+        },
+        {
+          "file": "src/providers/openai-provider.ts",
+          "line": 79,
+          "call": "chat.completions.create",
+          "test": false
+        },
+        {
+          "file": "src/providers/openai-provider.ts",
+          "line": 123,
+          "call": "chat.completions.create",
+          "test": false
+        }
+      ]
+    }
+  ],
+  "untracked": [],
+  "next": "Move off `claude-sonnet-4-20250514` now: its sunset was 2026-06-15 (passed 129 days ago). Replacement: `claude-sonnet-5-5`; `refit deadlines --propose-model-fixes` proposes it where the model is a literal in a traced call. 2 more deadlines are past due or within 30 days; see Deadlines."
+}

@@ -29,12 +29,14 @@ const { values } = parseArgs({
     output: { type: 'string', default: 'results.json' },
     resume: { type: 'boolean' },
     'allow-dirty': { type: 'boolean' },
+    // Clone only, so a blind labeller can read the repositories before Refit scans any of them.
+    'clone-only': { type: 'boolean' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.root) {
   console.log(
-    'Usage: node scripts/deadline-benchmark-setup.mjs --root <dir> [--list <repos.json>] [--refit <checkout>] [--output results.json] [--resume] [--allow-dirty]',
+    'Usage: node scripts/deadline-benchmark-setup.mjs --root <dir> [--list <repos.json>] [--refit <checkout>] [--output results.json] [--resume] [--allow-dirty] [--clone-only]',
   );
   process.exit(values.help ? 0 : 1);
 }
@@ -42,6 +44,12 @@ const root = resolve(values.root);
 const refit = join(resolve(values.refit), 'bin', 'refit.mjs');
 const pinned = JSON.parse(await readFile(values.list, 'utf8'));
 await mkdir(join(root, 'repos'), { recursive: true });
+if (values['clone-only']) {
+  for (const entry of pinned.repos)
+    await checkout(entry, join(root, 'repos', entry.repo.replace('/', '__')));
+  console.log(JSON.stringify({ root, cloned: pinned.repos.length }, null, 2));
+  process.exit(0);
+}
 const output = join(root, values.output);
 // The record describes the checkout that scans, which --refit may point elsewhere.
 const { harness, rows: previous } = await openResultsFile(

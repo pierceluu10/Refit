@@ -66,6 +66,8 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     allow: vi.fn(async () => ({ enrolled: [], cancelled: [] })),
     enqueueDue: vi.fn(async () => 0),
     claim: vi.fn(async () => fake.claims.shift() ?? null),
+    // The repository keeps its GitHub ID, so nothing is retired.
+    retire: vi.fn(async () => false),
     // Lease renewal fails while job 2 runs, which must abort it.
     renew: vi.fn(async () => {
       throw new Error(`connection to ${SECRETS.REFIT_DATABASE_URL} terminated`);
@@ -137,7 +139,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
   });
 
   const lines: string[] = [];
-  const { log, notify } = hostedLogging(SECRETS, (line) => lines.push(line));
+  const { log, notify, redact } = hostedLogging(SECRETS, (line) => lines.push(line));
   const directory = await mkdtemp(join(tmpdir(), 'refit-hosted-logging-'));
   cleanups.push(() => rm(directory, { recursive: true, force: true }));
   const controller = new AbortController();
@@ -151,6 +153,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     controlToken: SECRETS.REFIT_SERVICE_TOKEN,
     tenancy: { accounts: ['example'], limits: DEFAULT_TENANCY_LIMITS },
     notify,
+    redact,
     host: '127.0.0.1',
     port: 0,
     intervalSeconds: 30,
