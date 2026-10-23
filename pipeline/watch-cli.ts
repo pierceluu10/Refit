@@ -13,6 +13,7 @@ import { SpecificationUnavailableError } from './network.ts';
 import { validateRepairAttempts } from './validation-options.ts';
 import { normalizeDocumentationSource } from './documentation-sources.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
+import { cliErrorMessage } from './cli-errors.ts';
 
 const DEFAULT_INTERVAL_SECONDS = 300;
 const MINIMUM_INTERVAL_SECONDS = 30;
@@ -206,7 +207,7 @@ try {
   }
 } catch (error) {
   if (!(error instanceof Error)) throw error;
-  console.error(`${error.name}: ${error.message}`);
+  console.error(cliErrorMessage(error, 'watch'));
   process.exitCode = 1;
 }
 

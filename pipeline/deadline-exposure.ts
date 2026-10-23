@@ -1,15 +1,46 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { detectApiHosts, type ApiHostScan } from './api-hosts.ts';
 import { AGENT_CATALOG, builtInPackage } from './agent-catalog.ts';
+import { dataApiContext, dataApiMatches, type DataApiContext } from './data-api-matchers.ts';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
-import { readRepository } from './repository.ts';
+import { cloudflareEndpointUses } from './cloudflare-calls.ts';
+import { githubDeadlineUses } from './github-api-calls.ts';
+import { goModelMatches } from './go/model-reports.ts';
+import { readGoFiles } from './go/syntax.ts';
+import { detectModelHosts, hostDeadlineMatches } from './model-hosts.ts';
+import { modelWrapperSites } from './model-wrappers.ts';
+import { repositoryApiVersionPins } from './commerce-api-versions.ts';
+import { manifestSdkDeclarations } from './package-manifests-deadlines.ts';
+import { pythonModelMatches } from './python/model-uses.ts';
+import { readPythonFiles } from './python/syntax.ts';
+import { isolated, uniqueStops, type TracerStop } from './tree-sitter.ts';
+import { declaredPackageNames, readRepository } from './repository.ts';
+import {
+  featureMatches,
+  installedVersion,
+  literalTextAt,
+  markerInProse,
+  satisfiesRange,
+  sdkTarget,
+} from './sdk-deadlines.ts';
+import { slackMethodUses } from './slack-calls.ts';
+import { TEST_PATH } from './source-paths.ts';
+import {
+  ignoredReason,
+  placeFinding,
+  readWorkspaceLayout,
+  type FindingPlace,
+} from './workspace-attribution.ts';
 import { isObject, parseObject } from './specifications.ts';
+import { PipelineInputError } from './types.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
 export const META_SDK = 'facebook-nodejs-business-sdk';
 const MAX_EVIDENCE = 20;
+const MAX_CONFIGURATION_BYTES = 128 * 1024;
 const MAX_EVIDENCE_TEXT = 160;
 const QUARTER_MONTHS: Record<string, string> = {
   January: '01',
@@ -47,6 +78,13 @@ export interface DeadlineEvidence {
   use: DeadlineUse;
   version: string;
   text: string;
+  // The monorepo package the match is in, and why its path is not product code, if it is not.
+  workspace?: FindingPlace['workspace'];
+  excluded?: FindingPlace['excluded'];
+  // Why the repository's IGNORE_PATHS_FILE opts this path out; set only on `ignoredPaths` matches.
+  ignoreReason?: string;
+  // For a model sent through an AI wrapper SDK, the call that sends it (pipeline/model-wrappers.ts).
+  via?: string;
 }
 
 export interface DeadlineExposure {
@@ -62,13 +100,34 @@ export interface DeadlineExposure {
   // The exact number of non-live matches by use, counted before the limit above. Always set by the
   // scan, and optional only so a hand-built exposure need not repeat it.
   nonLiveCounts?: Partial<Record<DeadlineUse, number>>;
+  // Matches on paths the repository opts out in IGNORE_PATHS_FILE: listed with their
+  // `ignoreReason`, never counted. Set by the scan, and optional only so a hand-built exposure need
+  // not repeat them.
+  ignoredPaths?: DeadlineEvidence[];
+  ignoredPathsMore?: number;
 }
 
+// An exposure as alerts and reports read it: stored inventories drop each match's source line.
+export type ReportedEvidence = Omit<DeadlineEvidence, 'text'> & { text?: string };
+export type ReportedExposure = Omit<DeadlineExposure, 'evidence' | 'nonLive' | 'ignoredPaths'> & {
+  evidence: ReportedEvidence[];
+  nonLive: ReportedEvidence[];
+  ignoredPaths?: ReportedEvidence[];
+};
+
 // Deadlines found in a repository: exposures have live evidence; mentions are deadlines the
-// repository names only outside live code, with `evidence` empty.
+// repository names only outside live code or on paths it opts out (`ignoredPaths`), with
+// `evidence` empty.
 export interface DeadlineScan {
   exposures: DeadlineExposure[];
   mentions: DeadlineExposure[];
+  // Python and Go files or whole languages that could not be read, each with a named reason
+  // (pipeline/tree-sitter.ts). The rest of the scan is unaffected.
+  stops: TracerStop[];
+  // The external HTTP API hosts the repository calls (pipeline/api-hosts.ts), for the inventory.
+  // Absent in a hand-built scan, and `apiHostsError` says why when reading them failed.
+  apiHosts?: ApiHostScan;
+  apiHostsError?: string;
 }
 
 function excerpt(line: string) {
@@ -83,6 +142,7 @@ function sourceMatches(
   shopifyFile: boolean,
   metaFile: boolean,
   models: Map<string, DeadlineEntry['provider']>,
+  dataApi: DataApiContext,
 ) {
   const found: { provider: DeadlineEntry['provider']; version: string; column: number }[] = [];
   const add = (
@@ -115,6 +175,7 @@ function sourceMatches(
   // `tModel` does the same, so the prefixed form names the registry model too.
   for (const match of line.matchAll(/(['"`])models\/([a-z0-9][a-z0-9.-]*)\1/dg))
     if (models.get(match[2]) === 'gemini') add('gemini', match[2], match, 2);
+  found.push(...dataApiMatches(line, dataApi));
   return found;
 }
 
@@ -128,9 +189,7 @@ const CHECK_OPERATORS = new Set([
   ts.SyntaxKind.ExclamationEqualsToken,
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
 ]);
-// Test, spec, story, fixture and example files, by directory or name.
-export const TEST_PATH =
-  /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?|specs?|e2e|cypress|fixtures?|examples?|stories)\/|\.(?:test|spec|e2e|stories|story)\.[cm]?[jt]sx?$/i;
+export { TEST_PATH };
 // Providers whose deadlines retire models rather than API versions. Their matches get every use
 // class below; API-version providers get only comments, tokenizers and prefix checks.
 const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic', 'gemini']);
@@ -138,9 +197,19 @@ const MODEL_PROVIDERS = new Set<DeadlineEntry['provider']>(['openai', 'anthropic
 // model list, which often mixes providers. Router IDs such as `openai/o1` and
 // `anthropic/claude-3-opus` count too. Gemini-shaped IDs count only when the match being
 // classified is a Gemini model, so OpenAI and Anthropic classification is unchanged.
-const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
-const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
-const OPENAI_MODEL =
+export const ANTHROPIC_MODEL = /^(?:anthropic\/)?claude-/;
+export const GEMINI_MODEL = /^(?:google\/|models\/)?gemini-/;
+
+// What counts as a model ID when deciding whether a list of them is a catalog, for a match of
+// `provider`: Gemini IDs count only in Gemini lists, so a mixed list is classified alike in
+// TypeScript and Python.
+export function listModel(models: { has(value: string): boolean }) {
+  const isModel = (value: string) =>
+    models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
+  const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
+  return (provider: string) => (provider === 'gemini' ? isGeminiListModel : isModel);
+}
+export const OPENAI_MODEL =
   /^(?:openai\/)?(?:gpt-|chatgpt-|o\d(?:-|$)|text-(?:davinci|curie|babbage|ada|embedding|moderation)-|(?:davinci|curie|babbage|ada)(?:-|$)|dall-e-|tts-|whisper-|codex-|computer-use-|omni-moderation-|sora-)/;
 const CATALOG_SIZE = 3;
 // Cloud-platform forms of a Claude model ID: Bedrock (`anthropic.claude-…`, optionally with a region
@@ -432,9 +501,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
     if (leaf) ranges.push([node.getStart(source), node.end, node]);
   };
   visit(source);
-  const isModel = (value: string) =>
-    models.has(value) || OPENAI_MODEL.test(value) || ANTHROPIC_MODEL.test(value);
-  const isGeminiListModel = (value: string) => isModel(value) || GEMINI_MODEL.test(value);
+  const isModel = listModel(models);
   return (
     offset: number,
     provider: DeadlineEntry['provider'],
@@ -451,7 +518,7 @@ function tokenUses(path: string, content: string, models: Map<string, unknown>) 
       else {
         const model = MODEL_PROVIDERS.has(provider);
         const use = ts.isStringLiteralLike(node)
-          ? literalUse(node, path, model, provider === 'gemini' ? isGeminiListModel : isModel)
+          ? literalUse(node, path, model, isModel(provider))
           : 'live';
         if (use !== 'live' || !model) return use;
         // An HTML or JSX `<option>` is one choice in a picker.
@@ -489,21 +556,28 @@ export async function scanDeadlines(
   const root = resolve(directory);
   const byVersion = new Map<string, DeadlineEntry>();
   for (const entry of registry.deadlines)
-    for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
+    if (!entry.ecosystem)
+      for (const version of entry.versions) byVersion.set(`${entry.provider}:${version}`, entry);
   const models = new Map(
     registry.deadlines
       .filter((entry) => entry.kind === 'model' && MODEL_PROVIDERS.has(entry.provider))
       .flatMap((entry) => entry.versions.map((version) => [version, entry.provider] as const)),
   );
-  const found = new Map<string, DeadlineExposure>();
+  const found = new Map<
+    string,
+    Required<Pick<DeadlineExposure, 'ignoredPaths' | 'ignoredPathsMore'>> & DeadlineExposure
+  >();
   const seen = new Set<string>();
+  const layout = await readWorkspaceLayout(root);
   const record = (
     provider: string,
     version: string,
     evidence: Omit<DeadlineEvidence, 'version'>,
+    entry?: DeadlineEntry,
   ) => {
-    const deadline = byVersion.get(`${provider}:${version}`);
+    const deadline = entry ?? byVersion.get(`${provider}:${version}`);
     if (!deadline) return;
+    evidence = { ...evidence, ...placeFinding(layout, evidence.file) };
     const exposure = found.get(deadline.id) ?? {
       deadline,
       days: daysUntil(deadline.date, now),
@@ -511,37 +585,141 @@ export async function scanDeadlines(
       more: 0,
       nonLive: [],
       nonLiveMore: 0,
+      ignoredPaths: [],
+      ignoredPathsMore: 0,
     };
     found.set(deadline.id, exposure);
     const key = `${evidence.use === 'live'}\t${evidence.file}\t${evidence.line}\t${version}`;
     if (seen.has(key)) return;
     seen.add(key);
-    if (evidence.use !== 'live') exposure.nonLive.push({ ...evidence, version });
+    // The place is a label only: a live match outside application code still counts (owner
+    // decision 22). Only a path the repository opts out is listed apart and not counted.
+    const ignoreReason = ignoredReason(layout, evidence.file);
+    if (ignoreReason) {
+      if (exposure.ignoredPaths.length < MAX_EVIDENCE)
+        exposure.ignoredPaths.push({ ...evidence, version, ignoreReason });
+      else exposure.ignoredPathsMore += 1;
+    } else if (evidence.use !== 'live') exposure.nonLive.push({ ...evidence, version });
     else if (exposure.evidence.length < MAX_EVIDENCE)
       exposure.evidence.push({ ...evidence, version });
     else exposure.more += 1;
   };
 
+  const features = registry.deadlines
+    .filter((entry) => entry.kind === 'feature')
+    .flatMap((entry) => entry.versions.map((marker) => ({ provider: entry.provider, marker })));
   const repository = await readRepository(root, META_SDK);
+  // Models sent through AI wrapper SDKs: each match names the call that sends it, and gateway or
+  // registry IDs such as `'openai/gpt-4o'`, which the exact match below cannot see, are added.
+  const wrapped = modelWrapperSites(repository);
+  const via = new Map(
+    wrapped.map((site) => [`${site.file}:${site.line}:${site.version}`, site.via]),
+  );
   for (const file of repository.files) {
     const shopifyFile = SHOPIFY_CONTEXT.some((name) => file.content.includes(name));
     const metaFile = META_CONTEXT.some((name) => file.content.includes(name));
+    const dataApi = dataApiContext(file.content);
     let useAt: ReturnType<typeof tokenUses> | undefined;
+    let literalAt: ReturnType<typeof literalTextAt> | undefined;
     let offset = 0;
     for (const [index, line] of file.content.split('\n').entries()) {
-      for (const match of sourceMatches(line, shopifyFile, metaFile, models)) {
+      for (const match of sourceMatches(line, shopifyFile, metaFile, models, dataApi)) {
         useAt ??= tokenUses(file.path, file.content, models);
         record(match.provider, match.version, {
           file: file.path,
           line: index + 1,
           kind: 'source',
           use: useAt(offset + match.column, match.provider, line, match.version),
+          // An Airtable key is a credential: report where it is, never its value.
+          text: excerpt(
+            match.provider === 'airtable' ? line.replace(/key[A-Za-z0-9]{14}/g, 'key…') : line,
+          ),
+          ...(via.has(`${file.path}:${index + 1}:${match.version}`)
+            ? { via: via.get(`${file.path}:${index + 1}:${match.version}`) }
+            : {}),
+        });
+      }
+      // A product that shuts down: each marker in code, with test and example files kept apart and
+      // a variable name inside prose listed as a comment.
+      for (const match of featureMatches(line, features)) {
+        useAt ??= tokenUses(file.path, file.content, models);
+        literalAt ??= literalTextAt(file.path, file.content);
+        const use = markerInProse(match.marker, literalAt(offset + match.column))
+          ? 'comment'
+          : useAt(offset + match.column, match.provider, line, match.marker);
+        record(match.provider, match.marker, {
+          file: file.path,
+          line: index + 1,
+          kind: 'source',
+          use: use === 'live' && TEST_PATH.test(file.path) ? 'test' : use,
           text: excerpt(line),
         });
       }
       offset += line.length + 1;
     }
   }
+  // Python files: quoted registry models only, classified like the TypeScript matches above. A
+  // Python or Go failure is a named stop, never the end of the scan.
+  const stops: TracerStop[] = [];
+  const pythonMatches = await isolated('python', stops, [], async () =>
+    pythonModelMatches(
+      models.size ? await readPythonFiles(root, stops) : [],
+      models,
+      listModel(models),
+      stops,
+    ),
+  );
+  for (const match of pythonMatches)
+    record(match.provider, match.version, {
+      file: match.file,
+      line: match.line,
+      kind: 'source',
+      use: match.use,
+      text: excerpt(match.text),
+    });
+  // Go files: model literals and openai-go and anthropic-sdk-go model constants.
+  const goMatches = await isolated('go', stops, [], async () =>
+    goModelMatches(models.size ? await readGoFiles(root, stops) : [], models, stops),
+  );
+  for (const match of goMatches)
+    record(match.provider, match.version, {
+      file: match.file,
+      line: match.line,
+      kind: 'source',
+      use: match.use,
+      text: excerpt(match.text),
+    });
+  // Models called through Amazon Bedrock, Azure OpenAI or OpenRouter (pipeline/model-hosts.ts).
+  for (const match of hostDeadlineMatches(detectModelHosts(repository), (provider, version) =>
+    byVersion.has(`${provider}:${version}`),
+  ))
+    record(match.provider, match.version, {
+      file: match.site.file,
+      line: match.site.line,
+      kind: 'source',
+      use: TEST_PATH.test(match.site.file) ? 'test' : 'live',
+      text: excerpt(match.text),
+    });
+  for (const site of wrapped)
+    if (site.model !== site.version)
+      record(site.provider, site.version, {
+        file: site.file,
+        line: site.line,
+        kind: 'source',
+        use: TEST_PATH.test(site.file) ? 'test' : 'live',
+        text: site.model,
+        via: site.via,
+      });
+  // API versions pinned by header, SDK option or URL path, for providers that version that way.
+  if (registry.deadlines.some((entry) => entry.kind === 'api-version'))
+    for (const pin of repositoryApiVersionPins(repository))
+      record(pin.provider, pin.version, {
+        file: pin.file,
+        line: pin.line,
+        kind: 'source',
+        use: pin.use,
+        text: pin.text,
+      });
   for (const dependency of repository.dependencies) {
     const version = metaSdkVersion(dependency.version, dependency.lock.version);
     if (version)
@@ -555,19 +733,69 @@ export async function scanDeadlines(
   }
   // A package whose support ended: each manifest that declares it. A repository whose source never
   // names the package is not read a second time. Manifests in test and example paths are not live.
+  // An entry narrowed to a range matches only a release Refit can place in it: the locked version,
+  // or the lowest release a bounded declared range allows.
+  // Each package is read once, and only when a manifest declares it.
+  const declared = await declaredPackageNames(root);
+  const declarations = new Map<string, Promise<Awaited<ReturnType<typeof readRepository>>>>();
   for (const entry of registry.deadlines)
-    if (entry.kind === 'sdk')
-      for (const name of entry.versions) {
+    if (entry.kind === 'sdk' && !entry.ecosystem)
+      for (const version of entry.versions) {
+        const { name, range } = sdkTarget(version);
+        if (declared && !declared.has(name)) continue;
         if (!repository.files.some((file) => file.content.includes(name))) continue;
-        for (const dependency of (await readRepository(root, name)).dependencies)
-          record(entry.provider, name, {
+        if (!declarations.has(name)) declarations.set(name, readRepository(root, name));
+        for (const dependency of (await declarations.get(name)!).dependencies) {
+          const installed = installedVersion(dependency.version, dependency.lock.version);
+          if (range && !(installed && satisfiesRange(installed, range))) continue;
+          record(entry.provider, version, {
             file: dependency.file,
             line: await lineOf(root, dependency.file, `"${name}"`),
             kind: 'dependency',
             use: TEST_PATH.test(dependency.file) ? 'test' : 'live',
-            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}`,
+            text: `${name} ${dependency.lock.version ?? dependency.version}${dependency.lock.version ? ` (locked in ${dependency.lock.file})` : ''} is declared in ${dependency.section}${range ? `, inside ${range}` : ''}`,
           });
+        }
       }
+  // The same for other ecosystems' manifests (pipeline/package-manifests-deadlines.ts).
+  for (const declaration of await manifestSdkDeclarations(root, registry))
+    record(
+      declaration.deadline.provider,
+      declaration.name,
+      {
+        file: declaration.file,
+        line: declaration.line,
+        kind: 'dependency',
+        use: TEST_PATH.test(declaration.file) ? 'test' : 'live',
+        text: declaration.text,
+      },
+      declaration.deadline,
+    );
+  // Retired API methods: each call site that sends one, from the provider's call scanner.
+  if (registry.deadlines.some((entry) => entry.kind === 'method' && entry.provider === 'slack'))
+    for (const use of await slackMethodUses(root, repository))
+      record('slack', use.method, { ...use, kind: 'source' });
+  // Retired endpoints: each request that reaches one, from the provider's call scanner.
+  const endpoints = registry.deadlines.filter(
+    (entry) => entry.kind === 'endpoint' && entry.provider === 'cloudflare',
+  );
+  if (endpoints.length)
+    for (const use of await cloudflareEndpointUses(
+      root,
+      endpoints.flatMap((entry) => entry.versions),
+      repository,
+    ))
+      record('cloudflare', use.version, { ...use, kind: 'source' });
+  // GitHub: pinned X-GitHub-Api-Version headers, requests to removed endpoints and GraphQL fields,
+  // from the GitHub API call scanner.
+  const github = registry.deadlines.filter((entry) => entry.provider === 'github');
+  if (github.length)
+    for (const use of await githubDeadlineUses(
+      root,
+      github.flatMap((entry) => entry.versions),
+      repository,
+    ))
+      record('github', use.version, { ...use, kind: 'source' });
   for (const pin of await configuredApiVersions(root))
     record(pin.provider, pin.version, {
       file: REPOSITORY_CONFIGURATION,
@@ -595,9 +823,17 @@ export async function scanDeadlines(
     exposure.nonLive = rest.slice(0, MAX_EVIDENCE);
     exposure.nonLiveMore = rest.length - exposure.nonLive.length;
   }
+  const hosts: Pick<DeadlineScan, 'apiHosts' | 'apiHostsError'> = {};
+  try {
+    hosts.apiHosts = await detectApiHosts(root, { repository });
+  } catch (error) {
+    hosts.apiHostsError = error instanceof Error ? error.message : String(error);
+  }
   return {
     exposures: all.filter((exposure) => exposure.evidence.length),
     mentions: all.filter((exposure) => !exposure.evidence.length),
+    stops: uniqueStops(stops),
+    ...hosts,
   };
 }
 
@@ -616,13 +852,31 @@ interface ConfiguredIntegration {
   apiVersion: string | null;
 }
 
+// Reads a regular file of the repository, refusing a link anywhere on its path, a path outside the
+// repository and a file over the size cap, so a checkout cannot make Refit read the worker's files.
+async function readRepositoryFile(directory: string, name: string) {
+  const root = await realpath(directory);
+  const path = resolve(root, name);
+  const inside = relative(root, path);
+  if (!inside || inside.startsWith('..') || isAbsolute(inside) || (await realpath(path)) !== path)
+    throw new PipelineInputError(`${name} must be a file inside the repository, not a link.`);
+  const stats = await stat(path);
+  if (!stats.isFile() || stats.size > MAX_CONFIGURATION_BYTES)
+    throw new PipelineInputError(
+      `${name} must be a regular file of at most ${MAX_CONFIGURATION_BYTES / 1024} KiB.`,
+    );
+  return readFile(path, 'utf8');
+}
+
 // Integrations in a committed .refit.json and the catalog agent each adapter covers. A v1 file
 // without providerConfig uses the built-in Stripe adapter. Unreadable adapters are skipped rather
 // than failing the deadline check.
 export async function configuredIntegrations(directory: string): Promise<ConfiguredIntegration[]> {
-  const path = join(directory, REPOSITORY_CONFIGURATION);
-  if (!existsSync(path)) return [];
-  const configuration = parseObject(await readFile(path, 'utf8'), REPOSITORY_CONFIGURATION);
+  if (!existsSync(join(directory, REPOSITORY_CONFIGURATION))) return [];
+  const configuration = parseObject(
+    await readRepositoryFile(directory, REPOSITORY_CONFIGURATION),
+    REPOSITORY_CONFIGURATION,
+  );
   const integrations = (
     configuration.formatVersion === 2 && Array.isArray(configuration.integrations)
       ? configuration.integrations
@@ -634,7 +888,7 @@ export async function configuredIntegrations(directory: string): Promise<Configu
     if (typeof integration.providerConfig === 'string')
       try {
         const adapter = parseObject(
-          await readFile(resolve(directory, integration.providerConfig), 'utf8'),
+          await readRepositoryFile(directory, integration.providerConfig),
           'Provider adapter',
         );
         if (typeof adapter.packageName !== 'string') continue;

@@ -7,6 +7,7 @@ import { afterEach, expect, it } from 'vitest';
 import {
   applyDeadlineIgnores,
   deadlineCheck,
+  parseAllowPastDue,
   parseDeadlineIgnores,
   parseFailWithin,
   readDeadlineIgnores,
@@ -254,6 +255,20 @@ it('fails on live exposures that are past due or inside the window, unless accep
     failing: [],
     ignored: [],
   });
+  // A derived date or a report-only kind is listed but never fails the check.
+  const derived = exposure('derived', -10, ['a.ts']);
+  derived.deadline.derivedDate = true;
+  const endpoint = exposure('endpoint', 2, ['a.ts']);
+  endpoint.deadline.kind = 'endpoint' as DeadlineEntry['kind'];
+  expect(
+    deadlineCheck([derived, endpoint, exposure('past', -40, ['a.ts'])], new Map(), 30),
+  ).toEqual({
+    failWithin: 30,
+    status: 'fail',
+    failing: ['past'],
+    ignored: [],
+  });
+  expect(deadlineCheck([derived, endpoint], new Map(), 30).status).toBe('pass');
   for (const value of ['30', '0', ' 7 ', '3650'])
     expect(parseFailWithin(value)).toBe(Number(value));
   for (const value of ['', '-1', '30d', '1.5', '3651', 'soon', '1e3'])
@@ -299,11 +314,18 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
   });
   const run = (...extra: string[]) =>
     cli(['--repository', root, '--registry', registryPath, ...extra]);
+  // Each CLI start costs about 0.3 s, so runs that see the same files start together.
+  const [report, failing, json, tight, wide] = await Promise.all([
+    run(),
+    run('--fail-within', '30'),
+    run('--fail-within', '30', '--json'),
+    run('--fail-within', '1'),
+    run('--fail-within', '300'),
+  ]);
 
   // Without --fail-within the command only reports.
-  expect((await run()).code).toBe(0);
+  expect(report.code).toBe(0);
 
-  const failing = await run('--fail-within', '30');
   expect(failing.code).toBe(2);
   expect(failing.stdout).toContain(
     'Deadline check failed: 2 live exposures are past due or within 30 days.',
@@ -312,7 +334,6 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
   expect(failing.stdout).toContain('zz-soon-model');
   expect(failing.stdout).not.toMatch(/^ {2}zz-later-model/m);
 
-  const json = await run('--fail-within', '30', '--json');
   expect(json.code).toBe(2);
   expect(JSON.parse(json.stdout).check).toEqual({
     failWithin: 30,
@@ -320,8 +341,8 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
     failing: ['zz-past-model', 'zz-soon-model'],
     ignored: [],
   });
-  expect((await run('--fail-within', '1')).code).toBe(2);
-  expect((await run('--fail-within', '300')).code).toBe(2);
+  expect(tight.code).toBe(2);
+  expect(wide.code).toBe(2);
 
   await writeFile(
     join(root, '.refit-deadlines-ignore.json'),
@@ -334,7 +355,12 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
       ],
     }),
   );
-  const accepted = await run('--fail-within', '30');
+  const strict = await directory({ 'none.json': JSON.stringify({ formatVersion: 1, ignore: [] }) });
+  const [accepted, acceptedOutput, explicit] = await Promise.all([
+    run('--fail-within', '30'),
+    run('--fail-within', '30', '--json'),
+    run('--fail-within', '30', '--ignore-file', join(strict, 'none.json')),
+  ]);
   expect(accepted.code).toBe(0);
   expect(accepted.stdout).toContain(
     'Deadline check passed: no live exposure is past due or within 30 days (2 accepted by .refit-deadlines-ignore.json).',
@@ -344,17 +370,14 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
   expect(accepted.stdout).toContain('unknown      zz-gone is not a registry deadline');
   // The accepted exposures are still reported, not hidden.
   expect(accepted.stdout).toContain('src/ai.ts:1');
-  const acceptedJson = JSON.parse((await run('--fail-within', '30', '--json')).stdout);
+  const acceptedJson = JSON.parse(acceptedOutput.stdout);
   expect(acceptedJson.check.ignored).toEqual(['zz-past-model', 'zz-soon-model']);
   expect(acceptedJson.ignores.expired.map((entry: DeadlineIgnore) => entry.deadline)).toEqual([
     'zz-gone',
   ]);
 
   // A different file can be named explicitly; the default one is then not read.
-  const strict = await directory({ 'none.json': JSON.stringify({ formatVersion: 1, ignore: [] }) });
-  expect((await run('--fail-within', '30', '--ignore-file', join(strict, 'none.json'))).code).toBe(
-    2,
-  );
+  expect(explicit.code).toBe(2);
 
   // Errors fail closed with exit 1: an invalid ignore file, a bad window, a missing explicit file.
   await writeFile(
@@ -364,11 +387,90 @@ it('runs as a CI check end to end: exit 2 on due live exposures, 0 when accepted
       ignore: [{ deadline: 'zz-soon-model', reason: '', until: day(400) }],
     }),
   );
-  const invalid = await run('--fail-within', '30');
+  const [invalid, badWindow, missing] = await Promise.all([
+    run('--fail-within', '30'),
+    run('--fail-within', '30d'),
+    run('--fail-within', '30', '--ignore-file', join(strict, 'missing.json')),
+  ]);
   expect(invalid.code).toBe(1);
   expect(invalid.stderr).toContain('.refit-deadlines-ignore.json is invalid');
-  expect((await run('--fail-within', '30d')).code).toBe(1);
-  expect(
-    (await run('--fail-within', '30', '--ignore-file', join(strict, 'missing.json'))).code,
-  ).toBe(1);
+  expect(badWindow.code).toBe(1);
+  expect(missing.code).toBe(1);
 }, 60_000);
+
+// Owner decision 2026-10-22: a passed deadline keeps failing --fail-within; --allow-past-due turns
+// named passed deadlines into warnings and never touches one that has not passed.
+it('keeps a past-due exposure failing unless --allow-past-due names it, and never an upcoming one', () => {
+  const exposures = [exposure('past', -10, ['a.ts']), exposure('soon', 5, ['a.ts'])];
+  expect(deadlineCheck(exposures, new Map(), 30)).toEqual({
+    failWithin: 30,
+    status: 'fail',
+    failing: ['past', 'soon'],
+    ignored: [],
+  });
+  expect(deadlineCheck([exposures[0]], new Map(), 30, new Set(['past']))).toEqual({
+    failWithin: 30,
+    status: 'pass',
+    failing: [],
+    ignored: [],
+    allowed: ['past'],
+  });
+  // An upcoming deadline is not silenced, and neither is one due today.
+  expect(deadlineCheck(exposures, new Map(), 30, new Set(['past', 'soon']))).toMatchObject({
+    status: 'fail',
+    failing: ['soon'],
+    allowed: ['past'],
+  });
+  expect(
+    deadlineCheck([exposure('today', 0, ['a.ts'])], new Map(), 0, new Set(['today'])).failing,
+  ).toEqual(['today']);
+  expect(parseAllowPastDue(['a,b', ' c '], new Set(['a', 'b', 'c']))).toEqual(
+    new Set(['a', 'b', 'c']),
+  );
+  expect(() => parseAllowPastDue(['a,typo'], new Set(['a']))).toThrow(
+    '--allow-past-due: typo is not a deadline ID in the registry.',
+  );
+  expect(() => parseAllowPastDue([','], new Set(['a']))).toThrow(/takes registry deadline IDs/);
+});
+
+it('explains a past-due Algolia deadline and allows it only by ID', async () => {
+  const root = await directory({
+    'package.json': JSON.stringify({ name: 'app', dependencies: { algoliasearch: '^4.24.0' } }),
+    'src/search.ts': "import algoliasearch from 'algoliasearch';\n",
+  });
+  const run = (...extra: string[]) => cli(['--repository', root, '--fail-within', '0', ...extra]);
+  const [failing, allowed, comma, unknown, alone] = await Promise.all([
+    run(),
+    run('--allow-past-due', 'algolia-javascript-client-v4'),
+    run('--allow-past-due', 'algolia-javascript-client-v4,anthropic-2025-07-21-claude-2', '--json'),
+    run('--allow-past-due', 'algolia-javascript-client-v5'),
+    cli(['--repository', root, '--allow-past-due', 'algolia-javascript-client-v4']),
+  ]);
+  expect(failing.code).toBe(2);
+  expect(failing.stdout).toContain('  algolia-javascript-client-v4  2026-08-14 (');
+  expect(failing.stdout).toContain(
+    '    Passed       on 2026-08-14; this deadline is already in effect',
+  );
+  expect(failing.stdout).toMatch(/ {4}Source {7}https:\/\/\S+/);
+  expect(failing.stdout).toContain('    Upgrade to   algoliasearch 5');
+  expect(failing.stdout).toContain(
+    '    Action       Refit reports this, and the upgrade is manual.',
+  );
+  expect(failing.stdout).not.toContain('draft PR');
+
+  expect(allowed.code).toBe(0);
+  expect(allowed.stdout).toContain(
+    'Deadline check passed with 1 past-due deadline allowed by --allow-past-due: no other live exposure is past due or due today.',
+  );
+  expect(allowed.stdout).toContain('Warning: algolia-javascript-client-v4 passed on 2026-08-14');
+  expect(comma.code).toBe(0);
+  expect(JSON.parse(comma.stdout).check).toMatchObject({
+    status: 'pass',
+    allowed: ['algolia-javascript-client-v4'],
+  });
+
+  expect(unknown.code).toBe(1);
+  expect(unknown.stderr).toContain('algolia-javascript-client-v5 is not a deadline ID');
+  expect(alone.code).toBe(1);
+  expect(alone.stderr).toContain('--allow-past-due only applies with --fail-within');
+});

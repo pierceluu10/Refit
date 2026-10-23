@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { parseArgs, promisify } from 'node:util';
+import { applicationReason } from './deadline-fresh-helpers.mjs';
 
 const execute = promisify(execFile);
 const { values } = parseArgs({
@@ -14,18 +15,24 @@ const { values } = parseArgs({
     seed: { type: 'string', default: 'refit-deadlines-2026-10-15' },
     per: { type: 'string', default: 'openai=7,meta-graph=7,shopify=6' },
     'pushed-since': { type: 'string', default: '2024-01-01' },
+    // A JSON file of { provider, query, language } entries, in place of the built-in queries.
+    queries: { type: 'string' },
+    // Frozen lists (comma-separated) whose repositories may not be drawn again.
+    exclude: { type: 'string' },
+    // Keep only repositories whose root package.json looks like an application, not a library.
+    applications: { type: 'boolean' },
     help: { type: 'boolean' },
   },
 });
 if (values.help || !values.output) {
   console.log(
-    'Usage: node scripts/deadline-benchmark-sample.mjs --output <repos.json> [--frame <frame.json>] [--seed S] [--per openai=7,meta-graph=7,shopify=6]\n--frame reuses a saved search frame (or saves a new one there when the file does not exist).',
+    'Usage: node scripts/deadline-benchmark-sample.mjs --output <repos.json> [--frame <frame.json>] [--seed S] [--per openai=7,meta-graph=7,shopify=6] [--queries <queries.json>] [--exclude <a.json,b.json>] [--applications]\n--frame reuses a saved search frame (or saves a new one there when the file does not exist).',
   );
   process.exit(values.help ? 0 : 1);
 }
 
 // Unquoted terms: GitHub's REST code search drops punctuation inside quotes and returns nothing.
-const QUERIES = [
+const DEFAULT_QUERIES = [
   { provider: 'openai', query: '"gpt-3.5-turbo"', language: 'TypeScript' },
   { provider: 'openai', query: '"gpt-3.5-turbo"', language: 'JavaScript' },
   { provider: 'openai', query: '"gpt-4-turbo"', language: 'TypeScript' },
@@ -37,7 +44,14 @@ const QUERIES = [
   { provider: 'shopify', query: 'admin/api/2025-10', language: 'TypeScript' },
   { provider: 'shopify', query: 'admin/api/2025-10', language: 'JavaScript' },
 ];
+const QUERIES = values.queries
+  ? JSON.parse(await readFile(values.queries, 'utf8'))
+  : DEFAULT_QUERIES;
 const MAX_SIZE_KB = 50 * 1024;
+const excluded = new Set();
+for (const list of values.exclude?.split(',') ?? [])
+  for (const entry of JSON.parse(await readFile(list, 'utf8')).repos ?? [])
+    excluded.add((typeof entry === 'string' ? entry : entry.repo).toLowerCase());
 
 async function gh(args) {
   const { stdout } = await execute('gh', args, { maxBuffer: 64 * 1024 * 1024 });
@@ -120,13 +134,14 @@ for (const provider of Object.keys(quotas)) {
     if (picked >= quotas[provider]) break;
     if (taken.has(repo)) continue;
     taken.add(repo);
-    let reason = null;
+    let reason = excluded.has(repo.toLowerCase()) ? 'in a frozen list' : null;
     let meta;
-    try {
-      meta = await gh(['api', `repos/${repo}`]);
-    } catch {
-      reason = 'unavailable';
-    }
+    if (!reason)
+      try {
+        meta = await gh(['api', `repos/${repo}`]);
+      } catch {
+        reason = 'unavailable';
+      }
     if (!reason && meta.archived) reason = 'archived';
     else if (!reason && meta.fork) reason = 'fork';
     else if (!reason && meta.pushed_at < values['pushed-since'])
@@ -141,6 +156,18 @@ for (const provider of Object.keys(quotas)) {
         (entry) => /(^|\/)package\.json$/.test(entry.path) && !entry.path.includes('node_modules/'),
       );
       if (!manifest) reason = 'no package.json';
+      else if (values.applications) {
+        const root = tree.tree.some((entry) => entry.path === 'package.json');
+        if (!root) reason = 'no root package.json';
+        else {
+          const file = await gh(['api', `repos/${repo}/contents/package.json?ref=${commit}`]);
+          try {
+            reason = applicationReason(JSON.parse(Buffer.from(file.content, 'base64').toString()));
+          } catch {
+            reason = 'unreadable package.json';
+          }
+        }
+      }
     }
     if (reason) {
       rejected.push({ provider, repo, reason });
@@ -172,6 +199,8 @@ await writeFile(
         pushedSince: values['pushed-since'],
         maxSizeMb: 50,
         packageJson: true,
+        ...(values.applications ? { application: true } : {}),
+        ...(values.exclude ? { excludedLists: values.exclude.split(',') } : {}),
       },
       queries: frame.queries.map(({ provider, query, language, hits }) => ({
         provider,

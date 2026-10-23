@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
-import { addAgents, detectProviders } from './agent-catalog.ts';
+import { addable, addAgents, detectProviders } from './agent-catalog.ts';
 import { parseWorkflowConfigurations } from './workflow-configuration.ts';
 
 const execute = promisify(execFile);
@@ -85,6 +85,12 @@ it('scaffolds approved agents, converts a v1 configuration and refuses agents it
     prepareDependencies: true,
     command: ['npm', 'test'],
   });
+  // Exact commands instead of "refit stripe-snapshot --revision <sha> --output …" (FIRST-RUN.md).
+  expect(fresh.nextSteps).toEqual([
+    'Save reviewed Stripe contracts: refit stripe-snapshot --revision <stripe/openapi commit for the API version your code pins> --output refit/stripe-before.json and refit stripe-snapshot --latest --output refit/stripe-after.json.',
+    "Save reviewed OpenAI contracts: refit source-snapshot --provider openai --url <the provider's public OpenAPI URL> --output refit/openai-before.json and refit source-snapshot --provider openai --url <the provider's public OpenAPI URL> --output refit/openai-after.json.",
+    'Review the check command in .refit.json, commit .refit.json and the contracts, then run refit doctor. The GitHub App runs nothing until you approve the configuration with refit enroll.',
+  ]);
   const v1 = {
     formatVersion: 1,
     before: './b.json',
@@ -220,4 +226,26 @@ it('detects both Gemini SDKs and the Gemini API host, with no agent to add', asy
       lockfile: true,
     }),
   ).toThrow('no Gemini agent');
+});
+
+it('reports a provider found only in non-npm manifests and refuses to add it', async () => {
+  const root = await repository({ 'requirements.txt': 'stripe==11.4.0\n' });
+  const detections = await detectProviders(root);
+  const stripe = detections.find((entry) => entry.agent.id === 'stripe');
+  expect(stripe?.packages).toMatchObject([{ name: 'stripe', ecosystem: 'pypi' }]);
+  expect(addable(stripe!)).toBe(false);
+  expect(() =>
+    addAgents({
+      configuration: undefined,
+      v1Id: 'stripe',
+      detections,
+      ids: ['stripe'],
+      testScript: false,
+      lockfile: false,
+    }),
+  ).toThrow('detected only in non-npm manifests, which are report only');
+  const mixed = await detectProviders(
+    await repository({ 'requirements.txt': 'stripe==11.4.0\n', 'package.json': MANIFEST }),
+  );
+  expect(addable(mixed.find((entry) => entry.agent.id === 'stripe')!)).toBe(true);
 });

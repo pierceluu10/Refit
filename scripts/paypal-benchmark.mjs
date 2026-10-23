@@ -41,6 +41,10 @@ if (values.help || !values.root) {
 const root = resolve(values.root);
 const refitRoot = resolve(values.refit);
 const refit = join(refitRoot, 'bin', 'refit.mjs');
+const refitCommit = (await execute('git', ['-C', refitRoot, 'rev-parse', 'HEAD'])).stdout.trim();
+const refitDirty = Boolean(
+  (await execute('git', ['-C', refitRoot, 'status', '--porcelain'])).stdout.trim(),
+);
 const data = JSON.parse(await readFile(join(refitRoot, 'data', 'paypal-requests.json'), 'utf8'));
 const requestClasses = new Set(
   Object.values(data.checkout.requests).flatMap((area) => Object.keys(area)),
@@ -177,6 +181,6 @@ const summary = {
 };
 await writeFile(
   join(root, values.output),
-  `${JSON.stringify({ formatVersion: 1, list: values.list, checkedAt: new Date().toISOString(), summary, results }, null, 2)}\n`,
+  `${JSON.stringify({ formatVersion: 1, list: values.list, refit: { commit: refitCommit, dirty: refitDirty }, checkedAt: new Date().toISOString(), summary, results }, null, 2)}\n`,
 );
 console.log(JSON.stringify(summary, null, 2));

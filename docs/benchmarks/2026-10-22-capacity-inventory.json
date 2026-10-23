@@ -1,0 +1,2089 @@
+{
+  "formatVersion": 1,
+  "measuredAt": "2026-10-22T14:55:08.780Z",
+  "refit": {
+    "commit": "fda92e51e19a9c36f4e34e2763158a0ef26f8af6",
+    "clean": true
+  },
+  "machine": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5",
+    "cpus": 10,
+    "memoryBytes": 17179869184,
+    "node": "v25.8.2",
+    "loadAverageAtStart": [9.58, 8.49, 5.96],
+    "loadAverageAtEnd": [13.63, 9.59, 7.35]
+  },
+  "commands": {
+    "deadlines": "refit deadlines --json --repository <checkout>",
+    "agents": "refit agents --json --repository <checkout>"
+  },
+  "measured": 91,
+  "failed": 3,
+  "summary": {
+    "deadlines": {
+      "wallSeconds": {
+        "count": 91,
+        "p50": 0.5,
+        "p90": 1.002,
+        "p99": 2.111,
+        "max": 2.111
+      },
+      "cpuSeconds": {
+        "count": 91,
+        "p50": 0.6,
+        "p90": 1.18,
+        "p99": 2.4299999999999997,
+        "max": 2.4299999999999997
+      },
+      "maxRssBytes": {
+        "count": 91,
+        "p50": 221396992,
+        "p90": 334413824,
+        "p99": 386727936,
+        "max": 386727936
+      }
+    },
+    "agents": {
+      "wallSeconds": {
+        "count": 91,
+        "p50": 1.044,
+        "p90": 4.655,
+        "p99": 13.942,
+        "max": 13.942
+      },
+      "cpuSeconds": {
+        "count": 91,
+        "p50": 1.07,
+        "p90": 5.08,
+        "p99": 11.92,
+        "max": 11.92
+      },
+      "maxRssBytes": {
+        "count": 91,
+        "p50": 268894208,
+        "p90": 494747648,
+        "p99": 682033152,
+        "max": 682033152
+      }
+    },
+    "inventory": {
+      "wallSeconds": {
+        "count": 91,
+        "p50": 1.5190000000000001,
+        "p90": 5.5840000000000005,
+        "p99": 15.906,
+        "max": 15.906
+      },
+      "cpuSeconds": {
+        "count": 91,
+        "p50": 1.7000000000000002,
+        "p90": 6.0600000000000005,
+        "p99": 14.35,
+        "max": 14.35
+      },
+      "maxRssBytes": {
+        "count": 91,
+        "p50": 268894208,
+        "p90": 494747648,
+        "p99": 682033152,
+        "max": 682033152
+      }
+    }
+  },
+  "rows": [
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "Supercompress/Supercompress",
+      "commit": "cd85db8c2962d6a95bf6ec57ea792e404d4eedf8",
+      "files": 618,
+      "bytes": 31906453,
+      "deadlines": {
+        "wallSeconds": 0.798,
+        "userSeconds": 0.79,
+        "systemSeconds": 0.13,
+        "maxRssBytes": 251379712,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.509,
+        "userSeconds": 0.87,
+        "systemSeconds": 0.45,
+        "maxRssBytes": 294699008,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "streamient/streamient",
+      "commit": "9be116cc1e7f29e18d34d5818286b1cdc36d015b",
+      "files": 723,
+      "bytes": 35661830,
+      "deadlines": {
+        "wallSeconds": 1.064,
+        "userSeconds": 0.95,
+        "systemSeconds": 0.12,
+        "maxRssBytes": 249233408,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 3.698,
+        "userSeconds": 3.6,
+        "systemSeconds": 0.66,
+        "maxRssBytes": 442580992,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "Gnorman-Codes/hire-gnome-ats",
+      "commit": "79b101843fa7541e80bf4f5cdc1e4c93b86bf690",
+      "files": 558,
+      "bytes": 9721798,
+      "deadlines": {
+        "wallSeconds": 0.564,
+        "userSeconds": 0.59,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 222183424,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.502,
+        "userSeconds": 0.91,
+        "systemSeconds": 0.61,
+        "maxRssBytes": 311869440,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "inventashif/hackerai",
+      "commit": "c48bdee0038823339e13ee34a83013fa4f6e4d3d",
+      "files": 1413,
+      "bytes": 12139202,
+      "deadlines": {
+        "wallSeconds": 0.936,
+        "userSeconds": 1.07,
+        "systemSeconds": 0.15,
+        "maxRssBytes": 367853568,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 5.775,
+        "userSeconds": 4.65,
+        "systemSeconds": 1.42,
+        "maxRssBytes": 440713216,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "joannachen-c/design-meetup-web",
+      "commit": "406601a255af23497d49f2e853c6275ccd7fa274",
+      "files": 298,
+      "bytes": 10331998,
+      "deadlines": {
+        "wallSeconds": 0.507,
+        "userSeconds": 0.53,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 218103808,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.869,
+        "userSeconds": 0.63,
+        "systemSeconds": 0.24,
+        "maxRssBytes": 219545600,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "kondax-com/Bocker",
+      "commit": "084bfee71fa441fac8850a11b5ade649e9005bb4",
+      "files": 823,
+      "bytes": 26843221,
+      "deadlines": {
+        "wallSeconds": 0.929,
+        "userSeconds": 1.1,
+        "systemSeconds": 0.14,
+        "maxRssBytes": 361791488,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 4.655,
+        "userSeconds": 4.44,
+        "systemSeconds": 0.92,
+        "maxRssBytes": 468271104,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "meetingmindsexperts/ea-sys",
+      "commit": "1eea54511b17736dc529922acb67b29e88de1b19",
+      "files": 3159,
+      "bytes": 58128936,
+      "deadlines": {
+        "wallSeconds": 1.307,
+        "userSeconds": 1.04,
+        "systemSeconds": 0.23,
+        "maxRssBytes": 371179520,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 6.487,
+        "userSeconds": 2.92,
+        "systemSeconds": 3.2,
+        "maxRssBytes": 682033152,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "niknight1403/CyberSarah-Control-Center",
+      "commit": "4f26e086516bf68e3d70125ae791c8e33aec51aa",
+      "files": 1845,
+      "bytes": 20795255,
+      "deadlines": {
+        "wallSeconds": 0.677,
+        "userSeconds": 0.76,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 275005440,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 2.392,
+        "userSeconds": 1.45,
+        "systemSeconds": 1.14,
+        "maxRssBytes": 494239744,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "papotte/stundenzettel",
+      "commit": "59e0c24e2c6462d738a25a29afa145f2d23c76dd",
+      "files": 467,
+      "bytes": 4164055,
+      "deadlines": {
+        "wallSeconds": 0.515,
+        "userSeconds": 0.52,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 222019584,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.157,
+        "userSeconds": 0.79,
+        "systemSeconds": 0.4,
+        "maxRssBytes": 229097472,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "pappensex/YONI",
+      "commit": "e6490815df0594da698352e2b4f2fdfc86dc9604",
+      "files": 465,
+      "bytes": 1019923,
+      "deadlines": {
+        "wallSeconds": 0.409,
+        "userSeconds": 0.47,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 202964992,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.471,
+        "userSeconds": 0.48,
+        "systemSeconds": 0.09,
+        "maxRssBytes": 217169920,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "projectseven-co-ltd/schedkit",
+      "commit": "ae90b8c488bc7d24f8470d5a05d121ec86d3a38c",
+      "files": 152,
+      "bytes": 2601980,
+      "deadlines": {
+        "wallSeconds": 0.405,
+        "userSeconds": 0.45,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 215826432,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.554,
+        "userSeconds": 0.48,
+        "systemSeconds": 0.11,
+        "maxRssBytes": 218300416,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "qesmsep/noir-crm-dashboard",
+      "commit": "1f59675a9636716b8efc028c9a637c9568e8fb8e",
+      "files": 1275,
+      "bytes": 42015475,
+      "deadlines": {
+        "wallSeconds": 0.575,
+        "userSeconds": 0.63,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 270336000,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.912,
+        "userSeconds": 1.1,
+        "systemSeconds": 0.82,
+        "maxRssBytes": 461258752,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "smj1860/fieldstay",
+      "commit": "23bb223a684856b39763797dec82e6af8bf293cd",
+      "files": 2490,
+      "bytes": 27488663,
+      "deadlines": {
+        "wallSeconds": 1.187,
+        "userSeconds": 1.17,
+        "systemSeconds": 0.2,
+        "maxRssBytes": 366673920,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 6.53,
+        "userSeconds": 4.66,
+        "systemSeconds": 2.15,
+        "maxRssBytes": 532709376,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "tmsteph/3dvr-portal",
+      "commit": "00cb96a75f319c6574c8653ed72475cd3d3161e3",
+      "files": 2640,
+      "bytes": 64905617,
+      "deadlines": {
+        "wallSeconds": 0.38,
+        "userSeconds": 0.41,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 203653120,
+        "exit": 1,
+        "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      },
+      "agents": {
+        "wallSeconds": 0.419,
+        "userSeconds": 0.42,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 198737920,
+        "exit": 1,
+        "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "ACKaraca/draw-or-die",
+      "commit": "d0799c0c74a415ea54bdc03cdc8dcf6c9efb0be9",
+      "files": 408,
+      "bytes": 9901020,
+      "deadlines": {
+        "wallSeconds": 0.538,
+        "userSeconds": 0.54,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 219234304,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.107,
+        "userSeconds": 0.79,
+        "systemSeconds": 0.36,
+        "maxRssBytes": 342179840,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "AdamNPL1/whiteboard-app",
+      "commit": "2e4a99b3cc2d62b5b080d55127612cee050aa4de",
+      "files": 239,
+      "bytes": 20063604,
+      "deadlines": {
+        "wallSeconds": 0.463,
+        "userSeconds": 0.49,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 229113856,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.027,
+        "userSeconds": 0.73,
+        "systemSeconds": 0.32,
+        "maxRssBytes": 297500672,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "affilirank/bizreborn",
+      "commit": "3ecbd888bfd3fc00b8541dc388d4a686adbf920d",
+      "files": 205,
+      "bytes": 34667282,
+      "deadlines": {
+        "wallSeconds": 0.431,
+        "userSeconds": 0.47,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 221396992,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.874,
+        "userSeconds": 0.63,
+        "systemSeconds": 0.26,
+        "maxRssBytes": 290652160,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "amahmood-pci/pci-update",
+      "commit": "a8a19c477ad60e709ee5c7bb2456ab718f5ab637",
+      "files": 141,
+      "bytes": 3202078,
+      "deadlines": {
+        "wallSeconds": 0.383,
+        "userSeconds": 0.43,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 203145216,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.475,
+        "userSeconds": 0.48,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 212664320,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "BeigeTechLA/beige-tech-mobile-web-api-2",
+      "commit": "1e66a463d4a41d0006e21be56252580472ca5812",
+      "files": 461,
+      "bytes": 3292907,
+      "deadlines": {
+        "wallSeconds": 0.68,
+        "userSeconds": 0.72,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 265338880,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 2.716,
+        "userSeconds": 2.69,
+        "systemSeconds": 0.46,
+        "maxRssBytes": 448331776,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "beindigital-products/wedillybird",
+      "commit": "4efeeed8e8d112cdddf9cabfde80003f9dbdfd9a",
+      "files": 956,
+      "bytes": 22886452,
+      "deadlines": {
+        "wallSeconds": 0.675,
+        "userSeconds": 0.84,
+        "systemSeconds": 0.09,
+        "maxRssBytes": 284540928,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 2.809,
+        "userSeconds": 2.56,
+        "systemSeconds": 0.83,
+        "maxRssBytes": 510230528,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "Bizgojo/drivetimetales",
+      "commit": "9cb92abc9adad2b383441a6e215c01d0ee1af29c",
+      "files": 1205,
+      "bytes": 20209745,
+      "deadlines": {
+        "wallSeconds": 0.666,
+        "userSeconds": 0.79,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 279642112,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.993,
+        "userSeconds": 1.25,
+        "systemSeconds": 0.91,
+        "maxRssBytes": 520994816,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "brandbite/brandbite",
+      "commit": "22f3265b033e9d67d6939f1221f1cebd475a2b96",
+      "files": 731,
+      "bytes": 10122948,
+      "deadlines": {
+        "wallSeconds": 0.557,
+        "userSeconds": 0.6,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 268140544,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.854,
+        "userSeconds": 1.1,
+        "systemSeconds": 0.84,
+        "maxRssBytes": 442302464,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "BurrowSoft/solvymed",
+      "commit": "a11f84ae6fa1347282444824f56db3cba9580b7f",
+      "files": 885,
+      "bytes": 13396031,
+      "deadlines": {
+        "wallSeconds": 0.48,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 259489792,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.612,
+        "userSeconds": 1.01,
+        "systemSeconds": 0.73,
+        "maxRssBytes": 398000128,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "CRONANANI/EzanaFinance3",
+      "commit": "4666e5a91486d99956fd81a8728b1c9f1c7ccdd4",
+      "files": 3546,
+      "bytes": 56182329,
+      "deadlines": {
+        "wallSeconds": 0.947,
+        "userSeconds": 0.96,
+        "systemSeconds": 0.19,
+        "maxRssBytes": 373620736,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 4.327,
+        "userSeconds": 2.28,
+        "systemSeconds": 2.37,
+        "maxRssBytes": 565379072,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+      "repo": "daliyevv/TeachTracker",
+      "commit": "59cccc1177949eaa2b591e12cb216310cd7386ff",
+      "files": 65,
+      "bytes": 1135134,
+      "deadlines": {
+        "wallSeconds": 0.358,
+        "userSeconds": 0.42,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 207323136,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.424,
+        "userSeconds": 0.44,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 220938240,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "yetone/cumora",
+      "commit": "60fb5b3e489c0926b0654189cd6a8c6e5430b296",
+      "files": 954,
+      "bytes": 37953093,
+      "deadlines": {
+        "wallSeconds": 0.63,
+        "userSeconds": 0.65,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 277889024,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.348,
+        "userSeconds": 1,
+        "systemSeconds": 0.55,
+        "maxRssBytes": 477626368,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "OpenCoworkAI/open-cowork",
+      "commit": "e94ee2c50239e64ba0e18921e339d49b93dae31f",
+      "files": 665,
+      "bytes": 19918803,
+      "deadlines": {
+        "wallSeconds": 0.464,
+        "userSeconds": 0.53,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 227622912,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.044,
+        "userSeconds": 0.8,
+        "systemSeconds": 0.4,
+        "maxRssBytes": 368623616,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "JohnRiceML/clawport-ui",
+      "commit": "40db84d69b793048a9f738db57fe6e5db9751df3",
+      "files": 219,
+      "bytes": 3829512,
+      "deadlines": {
+        "wallSeconds": 0.392,
+        "userSeconds": 0.47,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 224411648,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.623,
+        "userSeconds": 0.53,
+        "systemSeconds": 0.19,
+        "maxRssBytes": 270860288,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "yayasoumah/pocket-server",
+      "commit": "10854b5ebc2055346c57bf000f86222da1d953fe",
+      "files": 89,
+      "bytes": 502927,
+      "deadlines": {
+        "wallSeconds": 0.36,
+        "userSeconds": 0.44,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 229277696,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.428,
+        "userSeconds": 0.42,
+        "systemSeconds": 0.09,
+        "maxRssBytes": 219873280,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "pdovhomilja/nextcrm-app",
+      "commit": "ade5fcfb8137b6b05ef578cc79a1365a00b3f619",
+      "files": 2031,
+      "bytes": 12152658,
+      "deadlines": {
+        "wallSeconds": 0.751,
+        "userSeconds": 0.95,
+        "systemSeconds": 0.12,
+        "maxRssBytes": 295944192,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 5.486,
+        "userSeconds": 4.45,
+        "systemSeconds": 1.64,
+        "maxRssBytes": 494747648,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "mayfer/dbpill",
+      "commit": "b5b176943f678a1a009cda73236805ebc0c0ae29",
+      "files": 63,
+      "bytes": 1997916,
+      "deadlines": {
+        "wallSeconds": 0.339,
+        "userSeconds": 0.4,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 214925312,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.379,
+        "userSeconds": 0.41,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 222068736,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "babarot/oksskolten",
+      "commit": "8fb6ceed07320b8f85e7fa5bbaebd400af6c4a26",
+      "files": 580,
+      "bytes": 13691768,
+      "deadlines": {
+        "wallSeconds": 0.512,
+        "userSeconds": 0.56,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 225591296,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 2.119,
+        "userSeconds": 1,
+        "systemSeconds": 0.63,
+        "maxRssBytes": 265388032,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "Wing900/ManimCat",
+      "commit": "344187503c5e1ad6041bfbebadec5b68bf24ee2c",
+      "files": 672,
+      "bytes": 52605707,
+      "deadlines": {
+        "wallSeconds": 0.733,
+        "userSeconds": 0.62,
+        "systemSeconds": 0.11,
+        "maxRssBytes": 220119040,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.981,
+        "userSeconds": 1.12,
+        "systemSeconds": 0.84,
+        "maxRssBytes": 295288832,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "rohitg00/manim-video-generator",
+      "commit": "9c41982e620bf9dbaac6553197eb2dfafbef90f2",
+      "files": 220,
+      "bytes": 5853155,
+      "deadlines": {
+        "wallSeconds": 0.605,
+        "userSeconds": 0.6,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 219217920,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.96,
+        "userSeconds": 0.69,
+        "systemSeconds": 0.21,
+        "maxRssBytes": 194560000,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "vual/lobe-chat-pro",
+      "commit": "2a400facaee734beedeb9c93d9977728d626bec2",
+      "files": 5375,
+      "bytes": 85927688,
+      "deadlines": {
+        "wallSeconds": 1.964,
+        "userSeconds": 1.91,
+        "systemSeconds": 0.52,
+        "maxRssBytes": 386727936,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 13.942,
+        "userSeconds": 4.78,
+        "systemSeconds": 7.14,
+        "maxRssBytes": 336379904,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "joeseesun/qiaomu-blog-opensource",
+      "commit": "5d41358f707320c2f56016bf62327eb60d8668b8",
+      "files": 487,
+      "bytes": 9688445,
+      "deadlines": {
+        "wallSeconds": 0.685,
+        "userSeconds": 0.64,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 203014144,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.587,
+        "userSeconds": 1.02,
+        "systemSeconds": 0.56,
+        "maxRssBytes": 279805952,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "glidea/claude-worker-proxy",
+      "commit": "9ef3a881600ba24ce55f9f62fbe2026e165d7148",
+      "files": 17,
+      "bytes": 429981,
+      "deadlines": {
+        "wallSeconds": 0.683,
+        "userSeconds": 0.55,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 201965568,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.497,
+        "userSeconds": 0.51,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 204292096,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "Phala-Network/ai-agent-template-openai",
+      "commit": "30f7abaf1cf17a1e4201e12e25589b704b4ea0e0",
+      "files": 16,
+      "bytes": 164919,
+      "deadlines": {
+        "wallSeconds": 0.49,
+        "userSeconds": 0.52,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 202326016,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.474,
+        "userSeconds": 0.51,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 198524928,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "LangChat/langchat-slides",
+      "commit": "d0ea0bc67a1a3cf2f63e0771cda7e8e848240df5",
+      "files": 132,
+      "bytes": 11123148,
+      "deadlines": {
+        "wallSeconds": 0.527,
+        "userSeconds": 0.59,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 213204992,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.062,
+        "userSeconds": 1.21,
+        "systemSeconds": 0.16,
+        "maxRssBytes": 315015168,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "3cqs-coder/SymBot",
+      "commit": "ab1123e2392e42c1b72cabeb069867276cf9b1bd",
+      "files": 402,
+      "bytes": 6693069,
+      "deadlines": {
+        "wallSeconds": 0.702,
+        "userSeconds": 0.68,
+        "systemSeconds": 0.09,
+        "maxRssBytes": 230752256,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.569,
+        "userSeconds": 0.94,
+        "systemSeconds": 0.54,
+        "maxRssBytes": 363479040,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "NomaDamas/bananatape",
+      "commit": "a6e52b95a01963e5b1b4e9f172cf12dde43e2062",
+      "files": 335,
+      "bytes": 6319962,
+      "deadlines": {
+        "wallSeconds": 0.63,
+        "userSeconds": 0.55,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 193708032,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.114,
+        "userSeconds": 0.74,
+        "systemSeconds": 0.33,
+        "maxRssBytes": 219447296,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "linkcraftstudio/feedlog",
+      "commit": "33a081a8273125f7305c19330e44fe1cceadd114",
+      "files": 691,
+      "bytes": 4822669,
+      "deadlines": {
+        "wallSeconds": 0.773,
+        "userSeconds": 0.87,
+        "systemSeconds": 0.11,
+        "maxRssBytes": 248578048,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 4.443,
+        "userSeconds": 4.22,
+        "systemSeconds": 0.86,
+        "maxRssBytes": 358678528,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "hugodemenez/deltalytix",
+      "commit": "1ed4c7306c0361eaada02919bfd7994735de526b",
+      "files": 1965,
+      "bytes": 49024652,
+      "deadlines": {
+        "wallSeconds": 0.953,
+        "userSeconds": 0.85,
+        "systemSeconds": 0.18,
+        "maxRssBytes": 267730944,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 5.305,
+        "userSeconds": 2.18,
+        "systemSeconds": 2.28,
+        "maxRssBytes": 319832064,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "adrianhajdin/job_pilot",
+      "commit": "788baa5784f94264c33780fd051f9d0b17a68f60",
+      "files": 115,
+      "bytes": 28988359,
+      "deadlines": {
+        "wallSeconds": 0.553,
+        "userSeconds": 0.52,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 179273728,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.692,
+        "userSeconds": 0.59,
+        "systemSeconds": 0.16,
+        "maxRssBytes": 216956928,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "jwangkun/Pi-Multi-Agent",
+      "commit": "d2fef0f30a762ec04eff9d8dde6cd406648955bc",
+      "files": 108,
+      "bytes": 1905741,
+      "deadlines": {
+        "wallSeconds": 0.461,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 216006656,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.728,
+        "userSeconds": 0.62,
+        "systemSeconds": 0.19,
+        "maxRssBytes": 200130560,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "backenly/backenly",
+      "commit": "b49c50144ce8bda82241b716af067fa826dbeada",
+      "files": 2430,
+      "bytes": 56051556,
+      "deadlines": {
+        "wallSeconds": 2.111,
+        "userSeconds": 1.47,
+        "systemSeconds": 0.39,
+        "maxRssBytes": 334413824,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 9.614,
+        "userSeconds": 3.69,
+        "systemSeconds": 4.16,
+        "maxRssBytes": 395182080,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "jsar-project/runtime",
+      "commit": "0ed9b7167a2ec33d389a92cb856392ab5c2b9335",
+      "files": 6157,
+      "bytes": 526040313,
+      "deadlines": {
+        "wallSeconds": 0.752,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 189284352,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.594,
+        "userSeconds": 0.94,
+        "systemSeconds": 0.68,
+        "maxRssBytes": 207962112,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "Vivek-736/Repo-Mind",
+      "commit": "c3accf3969247417aae9e408f009789edea64041",
+      "files": 68,
+      "bytes": 4496259,
+      "deadlines": {
+        "wallSeconds": 0.418,
+        "userSeconds": 0.44,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 209698816,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.45,
+        "userSeconds": 0.46,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 213565440,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "beatrix-ha/beatrix",
+      "commit": "1ae01d3d893a79969c6214078c679793d37ba705",
+      "files": 154,
+      "bytes": 2789131,
+      "deadlines": {
+        "wallSeconds": 0.475,
+        "userSeconds": 0.52,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 218431488,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.537,
+        "userSeconds": 0.49,
+        "systemSeconds": 0.14,
+        "maxRssBytes": 218398720,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "repo": "hridaya423/conductor-tasks",
+      "commit": "97055b3e4f7d42ce314cb4e3a5d57ba84c16ad43",
+      "files": 243,
+      "bytes": 1605426,
+      "deadlines": {
+        "wallSeconds": 0.377,
+        "userSeconds": 0.42,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 210354176,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.497,
+        "userSeconds": 0.47,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 219086848,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "getmaxun/maxun",
+      "commit": "4347a8f96b48e550f5cd1dca8347e250ea554ac0",
+      "files": 301,
+      "bytes": 3425069,
+      "deadlines": {
+        "wallSeconds": 0.492,
+        "userSeconds": 0.58,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 229507072,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.803,
+        "userSeconds": 0.64,
+        "systemSeconds": 0.26,
+        "maxRssBytes": 271826944,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "viperrcrypto/Siftly",
+      "commit": "b25daa45b858f4be096b5c368671c34db4407d8e",
+      "files": 116,
+      "bytes": 1018620,
+      "deadlines": {
+        "wallSeconds": 0.612,
+        "userSeconds": 0.61,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 225804288,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.819,
+        "userSeconds": 0.6,
+        "systemSeconds": 0.19,
+        "maxRssBytes": 197574656,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "OpenCoworkAI/open-cowork",
+      "commit": "e94ee2c50239e64ba0e18921e339d49b93dae31f",
+      "files": 665,
+      "bytes": 19918803,
+      "deadlines": {
+        "wallSeconds": 1.002,
+        "userSeconds": 0.74,
+        "systemSeconds": 0.11,
+        "maxRssBytes": 231096320,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.6,
+        "userSeconds": 0.91,
+        "systemSeconds": 0.55,
+        "maxRssBytes": 317784064,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "kgoedecke/doop",
+      "commit": "0f274ac01b2168c9248424b5e7724d3a8a7c626b",
+      "files": 608,
+      "bytes": 8136183,
+      "deadlines": {
+        "wallSeconds": 0.49,
+        "userSeconds": 0.54,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 224837632,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.29,
+        "userSeconds": 0.8,
+        "systemSeconds": 0.45,
+        "maxRssBytes": 315113472,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "yayasoumah/pocket-server",
+      "commit": "10854b5ebc2055346c57bf000f86222da1d953fe",
+      "files": 89,
+      "bytes": 502927,
+      "deadlines": {
+        "wallSeconds": 0.43,
+        "userSeconds": 0.48,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 228556800,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.533,
+        "userSeconds": 0.48,
+        "systemSeconds": 0.12,
+        "maxRssBytes": 201654272,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "FerroxLabs/wayland",
+      "commit": "4c030c7b01c241df7b6e3535635a970f10d781af",
+      "files": 9138,
+      "bytes": 149513385,
+      "deadlines": {
+        "wallSeconds": 1.952,
+        "userSeconds": 1.7,
+        "systemSeconds": 0.46,
+        "maxRssBytes": 360824832,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 10.117,
+        "userSeconds": 4.23,
+        "systemSeconds": 5.5,
+        "maxRssBytes": 529154048,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "babarot/oksskolten",
+      "commit": "8fb6ceed07320b8f85e7fa5bbaebd400af6c4a26",
+      "files": 580,
+      "bytes": 13691768,
+      "deadlines": {
+        "wallSeconds": 0.579,
+        "userSeconds": 0.56,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 225148928,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.269,
+        "userSeconds": 0.79,
+        "systemSeconds": 0.44,
+        "maxRssBytes": 346341376,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "nextai-translator/raycast-openai-translator",
+      "commit": "13b28b08661a41f0044014f7e705e02b2d63055d",
+      "files": 94,
+      "bytes": 25763512,
+      "deadlines": {
+        "wallSeconds": 0.361,
+        "userSeconds": 0.43,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 203210752,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.417,
+        "userSeconds": 0.43,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 210354176,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "Charlie85270/Dorothy",
+      "commit": "470b8ac71c51a5f1634672d5b430f190cfb65646",
+      "files": 1016,
+      "bytes": 79138555,
+      "deadlines": {
+        "wallSeconds": 0.547,
+        "userSeconds": 0.65,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 266141696,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.302,
+        "userSeconds": 0.88,
+        "systemSeconds": 0.54,
+        "maxRssBytes": 396132352,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "ycode/ycode",
+      "commit": "7de3724bd3e72c98577d14a74f26717ce624bf8a",
+      "files": 1090,
+      "bytes": 16626151,
+      "deadlines": {
+        "wallSeconds": 0.774,
+        "userSeconds": 0.71,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 276365312,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 2.39,
+        "userSeconds": 1.42,
+        "systemSeconds": 1.06,
+        "maxRssBytes": 493109248,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "vual/lobe-chat-pro",
+      "commit": "2a400facaee734beedeb9c93d9977728d626bec2",
+      "files": 5375,
+      "bytes": 85927688,
+      "deadlines": {
+        "wallSeconds": 1.775,
+        "userSeconds": 1.53,
+        "systemSeconds": 0.37,
+        "maxRssBytes": 365084672,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 7.765,
+        "userSeconds": 3.14,
+        "systemSeconds": 4.07,
+        "maxRssBytes": 506068992,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "hyl64/jlcmcp",
+      "commit": "5e53ddaa07e1763de6c1b17a82aafa2cb1476d4b",
+      "files": 33,
+      "bytes": 429102,
+      "deadlines": {
+        "wallSeconds": 0.433,
+        "userSeconds": 0.51,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 205619200,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.629,
+        "userSeconds": 0.58,
+        "systemSeconds": 0.09,
+        "maxRssBytes": 215662592,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "AmazingAng/PolyWorld",
+      "commit": "9483ddea61043809bcc4515a5ca5816bad6ae192",
+      "files": 202,
+      "bytes": 1928450,
+      "deadlines": {
+        "wallSeconds": 0.43,
+        "userSeconds": 0.46,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 218710016,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.912,
+        "userSeconds": 0.64,
+        "systemSeconds": 0.26,
+        "maxRssBytes": 255180800,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "inbrainfun/inbrain",
+      "commit": "5231990fa7b13ab348cf1e03c84dad16aa5614b1",
+      "files": 2512,
+      "bytes": 91397501,
+      "deadlines": {
+        "wallSeconds": 1.065,
+        "userSeconds": 0.99,
+        "systemSeconds": 0.19,
+        "maxRssBytes": 314359808,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 4.102,
+        "userSeconds": 2.17,
+        "systemSeconds": 1.87,
+        "maxRssBytes": 627490816,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "OPBR/build-claude-code",
+      "commit": "f388dceea2aaac418ca2f3be0d4899bee574d5b4",
+      "files": 66,
+      "bytes": 528548,
+      "deadlines": {
+        "wallSeconds": 0.464,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 217055232,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.719,
+        "userSeconds": 0.84,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 265961472,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "Koifman/LUMEN",
+      "commit": "87ad11870352c28f3ad8526a15971bcea45f43db",
+      "files": 426,
+      "bytes": 64377076,
+      "deadlines": {
+        "wallSeconds": 0.391,
+        "userSeconds": 0.47,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 219955200,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.535,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.11,
+        "maxRssBytes": 224985088,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "anxelswanz/astraea-agent",
+      "commit": "2676a3931dd81c2b34fa411444404afb82509081",
+      "files": 408,
+      "bytes": 8233738,
+      "deadlines": {
+        "wallSeconds": 0.514,
+        "userSeconds": 0.55,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 223264768,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.307,
+        "userSeconds": 0.75,
+        "systemSeconds": 0.48,
+        "maxRssBytes": 268894208,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "backenly/backenly",
+      "commit": "b49c50144ce8bda82241b716af067fa826dbeada",
+      "files": 2430,
+      "bytes": 56051556,
+      "deadlines": {
+        "wallSeconds": 1.322,
+        "userSeconds": 1.05,
+        "systemSeconds": 0.21,
+        "maxRssBytes": 373456896,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 4.113,
+        "userSeconds": 2.33,
+        "systemSeconds": 2.05,
+        "maxRssBytes": 593018880,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "repo": "zdenham/anvil",
+      "commit": "4ed2af35ddb0d02c326cb2a1b471f5c99b1702b8",
+      "files": 2758,
+      "bytes": 23653386,
+      "deadlines": {
+        "wallSeconds": 0.728,
+        "userSeconds": 0.81,
+        "systemSeconds": 0.11,
+        "maxRssBytes": 281575424,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 3.498,
+        "userSeconds": 3.14,
+        "systemSeconds": 1.07,
+        "maxRssBytes": 479133696,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "Shopify/shopify-app-template-react-router",
+      "commit": "48b841a7746e1b08d1e6d8793b1208f3096e41d0",
+      "files": 60,
+      "bytes": 133578,
+      "deadlines": {
+        "wallSeconds": 0.387,
+        "userSeconds": 0.45,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 202522624,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.374,
+        "userSeconds": 0.4,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 202063872,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "Shopify/subscriptions-reference-app",
+      "commit": "575a825f9f38aca9b0a1880e0fac10121b572a1c",
+      "files": 1007,
+      "bytes": 3007075,
+      "deadlines": {
+        "wallSeconds": 0.515,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.09,
+        "maxRssBytes": 219332608,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 2.105,
+        "userSeconds": 1.01,
+        "systemSeconds": 1.07,
+        "maxRssBytes": 318783488,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "Shopify/example-app--qr-code--remix",
+      "commit": "6ed425cab13f9e8d1e64dc23de0da6711531650c",
+      "files": 44,
+      "bytes": 278030,
+      "deadlines": {
+        "wallSeconds": 0.381,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 222445568,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.939,
+        "userSeconds": 1.21,
+        "systemSeconds": 0.09,
+        "maxRssBytes": 398147584,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "Hujjat/wishlist-inspire-app",
+      "commit": "684f64f9d21ec1ef1e7ab7f1514a51056ad0ff40",
+      "files": 44,
+      "bytes": 91277,
+      "deadlines": {
+        "wallSeconds": 0.384,
+        "userSeconds": 0.44,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 204570624,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.427,
+        "userSeconds": 0.46,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 202899456,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "gruntlord5/cloudflare-worker-shopifyd1",
+      "commit": "0c8b131fb3d7b4b2cda532347ec2031e93e22b4d",
+      "files": 46,
+      "bytes": 234983,
+      "deadlines": {
+        "wallSeconds": 0.349,
+        "userSeconds": 0.42,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 202653696,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.381,
+        "userSeconds": 0.42,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 209928192,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "celadonworks/pixiehog-app",
+      "commit": "31e9721c88452ed8cd43209d20822195cc1b6c6a",
+      "files": 135,
+      "bytes": 13541880,
+      "deadlines": {
+        "wallSeconds": 0.391,
+        "userSeconds": 0.45,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 206110720,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.606,
+        "userSeconds": 0.54,
+        "systemSeconds": 0.16,
+        "maxRssBytes": 225214464,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "alexandrosk/marketplace-app",
+      "commit": "4643023281797480c9ff805426ed6fbef096cd9c",
+      "files": 143,
+      "bytes": 3731602,
+      "deadlines": {
+        "wallSeconds": 0.5,
+        "userSeconds": 0.67,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 254148608,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 2.555,
+        "userSeconds": 3.02,
+        "systemSeconds": 0.24,
+        "maxRssBytes": 362594304,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "vincaslt/remix-cf-pages-d1-drizzle-shopify-app",
+      "commit": "6558a4cfb32ae81f63809c8f7d06c906a6531298",
+      "files": 119,
+      "bytes": 67822416,
+      "deadlines": {
+        "wallSeconds": 0.337,
+        "userSeconds": 0.39,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 202981376,
+        "exit": 1,
+        "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      },
+      "agents": {
+        "wallSeconds": 0.333,
+        "userSeconds": 0.38,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 195330048,
+        "exit": 1,
+        "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "aaronarrays/shopify-vercel-app",
+      "commit": "41ca20587779dfd0b07a4e184d8d1af69ccb466d",
+      "files": 45,
+      "bytes": 684179,
+      "deadlines": {
+        "wallSeconds": 0.345,
+        "userSeconds": 0.41,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 203374592,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.442,
+        "userSeconds": 0.46,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 225116160,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "intentionull/Shopify-RemixJS-Cloudflare-Workers-Template",
+      "commit": "811df94e7fd9d64ac7cc632284e39521ca48b609",
+      "files": 34,
+      "bytes": 464414,
+      "deadlines": {
+        "wallSeconds": 0.464,
+        "userSeconds": 0.62,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 231784448,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.996,
+        "userSeconds": 2.59,
+        "systemSeconds": 0.11,
+        "maxRssBytes": 430981120,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "IliasHad/shopify-app-template-remix-cloudflare-workers",
+      "commit": "23397cc062b5cf5e3175184f0b1b3212b30095ea",
+      "files": 58,
+      "bytes": 740484,
+      "deadlines": {
+        "wallSeconds": 0.355,
+        "userSeconds": 0.43,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 203112448,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.428,
+        "userSeconds": 0.46,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 221773824,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "marktiddy/Shopify-Remix-Billing-Demo",
+      "commit": "5b0a65f202a1f4a23e8806230433b4616382d0e3",
+      "files": 40,
+      "bytes": 66886,
+      "deadlines": {
+        "wallSeconds": 0.358,
+        "userSeconds": 0.42,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 203014144,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.4,
+        "userSeconds": 0.43,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 200458240,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "Shopify/tutorial-discount-functions-with-remix",
+      "commit": "2baa29e5d021b77f09e53cdd02897142c72fc11e",
+      "files": 121,
+      "bytes": 561800,
+      "deadlines": {
+        "wallSeconds": 0.456,
+        "userSeconds": 0.46,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 205406208,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.569,
+        "userSeconds": 0.52,
+        "systemSeconds": 0.12,
+        "maxRssBytes": 202670080,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "dan-gamble/cloudflare-workers-remix-shopify",
+      "commit": "9a6add645ad99900b15797385d41dedcb142425c",
+      "files": 163,
+      "bytes": 7384631,
+      "deadlines": {
+        "wallSeconds": 0.4,
+        "userSeconds": 0.45,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 202883072,
+        "exit": 1,
+        "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      },
+      "agents": {
+        "wallSeconds": 0.378,
+        "userSeconds": 0.41,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 194396160,
+        "exit": 1,
+        "error": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "Stephnn0/shopify-email-marking-app-example",
+      "commit": "68d143b6f5cc6367bc15ea20c618d56563468522",
+      "files": 44,
+      "bytes": 69604,
+      "deadlines": {
+        "wallSeconds": 0.394,
+        "userSeconds": 0.47,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 202555392,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.436,
+        "userSeconds": 0.48,
+        "systemSeconds": 0.07,
+        "maxRssBytes": 202309632,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "gruntlord5/cloudflare-react-router7-shopify-d1",
+      "commit": "828ad7c9194e946ecaa8e474c54e6e0d03ea4ef5",
+      "files": 35,
+      "bytes": 423337,
+      "deadlines": {
+        "wallSeconds": 0.46,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 202604544,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.383,
+        "userSeconds": 0.41,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 202522624,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "Stephnn0/remix-youtube-tutorial",
+      "commit": "05e0423e28b7b48b561cd9a80554238092ae8504",
+      "files": 49,
+      "bytes": 99459,
+      "deadlines": {
+        "wallSeconds": 0.354,
+        "userSeconds": 0.4,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 202866688,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.393,
+        "userSeconds": 0.41,
+        "systemSeconds": 0.06,
+        "maxRssBytes": 202457088,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "madeburo/GEO-AI-Shopify",
+      "commit": "317d32ac805bf38c1620a086afe187bb3d686c6a",
+      "files": 68,
+      "bytes": 1020020,
+      "deadlines": {
+        "wallSeconds": 0.369,
+        "userSeconds": 0.43,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 205307904,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.483,
+        "userSeconds": 0.48,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 222724096,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "prowebcoder/shopify-app-tutorial",
+      "commit": "89141451b7ab618428f981d21efdb3a567c7f115",
+      "files": 51,
+      "bytes": 89211,
+      "deadlines": {
+        "wallSeconds": 0.355,
+        "userSeconds": 0.41,
+        "systemSeconds": 0.03,
+        "maxRssBytes": 202162176,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.372,
+        "userSeconds": 0.41,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 202473472,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "alexCevi/shopify-metaform-os",
+      "commit": "d90d327098f3bb62299ac2c949db127fb40fd78c",
+      "files": 95,
+      "bytes": 1034412,
+      "deadlines": {
+        "wallSeconds": 0.376,
+        "userSeconds": 0.4,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 204111872,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.54,
+        "userSeconds": 0.45,
+        "systemSeconds": 0.12,
+        "maxRssBytes": 216858624,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "christianmittler/shopify-react-extension",
+      "commit": "f7c7ae3293393c1cb13774a6a808029944235003",
+      "files": 60,
+      "bytes": 268434,
+      "deadlines": {
+        "wallSeconds": 0.438,
+        "userSeconds": 0.44,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 203079680,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.828,
+        "userSeconds": 0.48,
+        "systemSeconds": 0.1,
+        "maxRssBytes": 198656000,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "Lightspace-dev/shopify-remix-app-template",
+      "commit": "01fe63d736ccc49ede0d2c361c8b7a717ca5f9fa",
+      "files": 68,
+      "bytes": 882981,
+      "deadlines": {
+        "wallSeconds": 0.437,
+        "userSeconds": 0.49,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 204095488,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 1.082,
+        "userSeconds": 0.61,
+        "systemSeconds": 0.14,
+        "maxRssBytes": 202801152,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "edmondso006/shopify-remix-i18n-blog-post",
+      "commit": "43bc13ae699b4d419549efab80a2a3f105588f71",
+      "files": 41,
+      "bytes": 604415,
+      "deadlines": {
+        "wallSeconds": 0.415,
+        "userSeconds": 0.46,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 202784768,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.476,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 223150080,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "hookdeck/shopify-festive-notifications",
+      "commit": "a250e19f2eac1a4ba34cc87409d88cacdf264c2d",
+      "files": 52,
+      "bytes": 27943012,
+      "deadlines": {
+        "wallSeconds": 0.481,
+        "userSeconds": 0.51,
+        "systemSeconds": 0.05,
+        "maxRssBytes": 196296704,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.572,
+        "userSeconds": 0.54,
+        "systemSeconds": 0.09,
+        "maxRssBytes": 223821824,
+        "exit": 0
+      }
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "repo": "tomhooker/Post-Purchase-Extension",
+      "commit": "192041bdeabe25a0ea9ced2b9e6aa2385064ce1e",
+      "files": 45,
+      "bytes": 457074,
+      "deadlines": {
+        "wallSeconds": 0.402,
+        "userSeconds": 0.47,
+        "systemSeconds": 0.04,
+        "maxRssBytes": 202735616,
+        "exit": 0
+      },
+      "agents": {
+        "wallSeconds": 0.527,
+        "userSeconds": 0.5,
+        "systemSeconds": 0.08,
+        "maxRssBytes": 208257024,
+        "exit": 0
+      }
+    }
+  ],
+  "removed": {
+    "removedAt": "2026-10-22",
+    "reason": "Rows for repositories that are copies of leaked proprietary Claude Code source were removed with them from the Anthropic app list; the summary is over the remaining rows.",
+    "repos": [
+      "wk42worldworld/cybercode",
+      "OpenAisec/Miko",
+      "JrCx7scC/claude-code-source",
+      "fazxes/Claude-code",
+      "txl16095/MiniClaude",
+      "TaGoat/claude_code_cli"
+    ]
+  }
+}

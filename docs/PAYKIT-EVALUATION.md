@@ -6,7 +6,7 @@ Refit 0.20 was evaluated read-only against [`getpaykit/paykit` at `c7572ff`](htt
 
 The public repository was cloned at a pinned commit with Git hooks disabled. Refit read 388 source files and ran its existing SDK-call coverage analyzer. Dependencies were not installed, application code and tests were not executed, no specifications were changed, and no model, Stripe-server or upstream GitHub write request was made. The target working tree remained clean.
 
-The retained checkout and machine results are at `/Users/pierceluu/.refit/evaluations/paykit-2026-10-14`. The GitHub source commit is authoritative; no branch or PR was created in Paykit.
+The retained checkout and machine results are at `~/.refit/evaluations/paykit-2026-10-14`. The GitHub source commit is authoritative; no branch or PR was created in Paykit.
 
 ## Measured result
 

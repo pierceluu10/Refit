@@ -175,7 +175,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 | The same package also targets Vertex AI ("Gemini Enterprise Agent Platform" in the README) with `enterprise: true, project, location`; the code also accepts `vertexai: true` and calls `{location}-aiplatform.googleapis.com`                       | `@google/genai` 2.30.0 README and `dist/node/index.mjs`                                                                                                                             |
 | `@google/genai` 3.0.0 will change automatic function calling, remove `LiveConnectConfig.generation_config`, `GenerationConfigThinkingConfig` and some `generate_videos` arguments, and need Node.js 22; the README says to pin `< 3.0.0` to avoid it | js-genai README warning                                                                                                                                                             |
 
-**Still unverified: check.** Gemini model retirement dates and replacements, the models list, the changelog and the old-to-new migration guide are on ai.google.dev, which this environment's network policy refused (HTTP 403 from the proxy) on 2026-10-21. A machine-readable contract for the Gemini API, and whether Vertex AI uses the Gemini API's retirement dates, are unverified too.
+**Still unverified: check.** Gemini model retirement dates and replacements, the models list, the changelog and the old-to-new migration guide are on ai.google.dev, which this environment's network policy refused (HTTP 403 from the proxy) on 2026-10-21. The deprecations page itself was reachable on 2026-10-22, and `refit deadlines --sync gemini` reads it ([Registry sync](REGISTRY-SYNC.md)). A machine-readable contract for the Gemini API, and whether Vertex AI uses the Gemini API's retirement dates, are unverified too.
 
 **What breaks for its users.** Model retirements with dates, like OpenAI's (unverified until Google's page is read). The SDK replacement: support for `@google/generative-ai` ended on 2025-11-30, and `@google/genai` has different call shapes, so moving is a code change, not a version bump. A major `@google/genai` 3.0.0 with named removals is announced in its README.
 
@@ -190,7 +190,7 @@ Built-in agent, 531 benchmark repositories, **74 validated fixes of 234 affected
 - Whether Gemini model replacements join `refit deadlines --propose-model-fixes` and `refit serve --model-fixes`. Owner decision #120 covers OpenAI and Anthropic only; Gemini stays report only until then.
 - Whether a package replacement (old SDK → new SDK, different call shapes) is ever automatic. It stays report only.
 - Whether an SDK end-of-support date belongs in the registry. Added here on the task's instruction as `kind: "sdk"`; it makes `refit deadlines --fail-within` exit 2 for a repository that declares and imports `@google/generative-ai`, and an enrolled repository with `--deadline-alerts` gets an issue, although Google has not said the old package stops working.
-- Someone with access to ai.google.dev must read the deprecations page before any Gemini model date enters the registry.
+- Gemini model dates enter the registry only from the deprecations page, through `refit deadlines --sync gemini` and the reviewed registry-sync pull request.
 - No Google credential is needed for any step.
 
 **Effort: M.** Shares the retirement rule with OpenAI and Anthropic; the SDK swap is the new part.
@@ -271,7 +271,7 @@ Ten items per provider, taken from each goal's definition of done, worth 10% eac
 | --- | --------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
 | 1   | Catalog entry                                                         | Yes                                                                         | Yes (`adapter: null`, see its blockers)                 |
 | 2   | Reviewed adapter for the calls real code makes                        | Yes (`chat.completions`, `responses`, `embeddings`)                         | Yes (`messages`)                                        |
-| 3   | Deadline entries with `source` and `checkedAt`                        | Yes                                                                         | Yes, kept current by `refit deadlines --sync anthropic` |
+| 3   | Deadline entries with `source` and `checkedAt`                        | Yes, kept current by `refit deadlines --sync openai`                        | Yes, kept current by `refit deadlines --sync anthropic` |
 | 4   | Deterministic replacement rule with named stops                       | Yes                                                                         | Yes                                                     |
 | 5   | Automatic validated draft pull requests (`refit serve --model-fixes`) | Yes                                                                         | Yes                                                     |
 | 6   | Frozen benchmark set                                                  | Yes, 100 repositories                                                       | Yes, 50 repositories                                    |
@@ -324,21 +324,21 @@ Items 8 and 9 cannot reach their targets on sets of libraries, where models pass
 
 The same ten items as the OpenAI and Anthropic checklist.
 
-| #   | Item                                                                  | Gemini                                                                                                |
-| --- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 1   | Catalog entry                                                         | Yes (`adapter: null`)                                                                                 |
-| 2   | Reviewed adapter for the calls real code makes                        | No: needs a contract source, unverified                                                               |
-| 3   | Deadline entries with `source` and `checkedAt`                        | Partly: the old SDK's end of support only; model dates wait for Google's page to be read. Not counted |
-| 4   | Deterministic replacement rule with named stops                       | No: owner decision (Gemini is report only)                                                            |
-| 5   | Automatic validated draft pull requests (`refit serve --model-fixes`) | No: owner decision #120 covers OpenAI and Anthropic only                                              |
-| 6   | Frozen benchmark set                                                  | Yes, 50 repositories                                                                                  |
-| 7   | Hand-labelled live pins                                               | No: a 72-match sample was reviewed, not labelled                                                      |
-| 8   | At least 90% of labelled pins traced                                  | No                                                                                                    |
-| 9   | At least 70% of affected repositories with runnable checks validated  | No: nothing is affected until model dates exist                                                       |
-| 10  | No wrong fix on hand review                                           | Not applicable: no fixes. Not counted                                                                 |
-|     | **Done**                                                              | **20%**                                                                                               |
+| #   | Item                                                                  | Gemini                                                                                                                                                   |
+| --- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Catalog entry                                                         | Yes (`adapter: null`)                                                                                                                                    |
+| 2   | Reviewed adapter for the calls real code makes                        | No: needs a contract source, unverified                                                                                                                  |
+| 3   | Deadline entries with `source` and `checkedAt`                        | Partly: the old SDK's end of support; model dates are read by `refit deadlines --sync gemini` and enter with the registry-sync pull request. Not counted |
+| 4   | Deterministic replacement rule with named stops                       | No: owner decision (Gemini is report only)                                                                                                               |
+| 5   | Automatic validated draft pull requests (`refit serve --model-fixes`) | No: owner decision #120 covers OpenAI and Anthropic only                                                                                                 |
+| 6   | Frozen benchmark set                                                  | Yes, 50 repositories                                                                                                                                     |
+| 7   | Hand-labelled live pins                                               | No: a 72-match sample was reviewed, not labelled                                                                                                         |
+| 8   | At least 90% of labelled pins traced                                  | No                                                                                                                                                       |
+| 9   | At least 70% of affected repositories with runnable checks validated  | No: nothing is affected until model dates exist                                                                                                          |
+| 10  | No wrong fix on hand review                                           | Not applicable: no fixes. Not counted                                                                                                                    |
+|     | **Done**                                                              | **20%**                                                                                                                                                  |
 
-The next work, in order: read Google's deprecations page from an environment that can reach ai.google.dev and enter the dated retirements; then a `refit deadlines --sync gemini` against that page's real layout; then the owner decisions on replacements and the SDK swap.
+The next work, in order: merge the registry-sync pull request that enters the 52 dated models `refit deadlines --sync gemini` read on 2026-10-22; then the owner decisions on replacements and the SDK swap.
 
 ## PayPal: progress checklist (2026-10-21)
 
@@ -351,7 +351,7 @@ The same ten items as the OpenAI and Anthropic checklist, worth 10% each.
 | 3   | Deadline entries with `source` and `checkedAt`                       | No. No dated end of support found on a page readable from here                                       |
 | 4   | Deterministic replacement rule with named stops                      | No. The SDK replacement is an owner decision                                                         |
 | 5   | Automatic validated draft pull requests                              | No                                                                                                   |
-| 6   | Frozen benchmark set                                                 | Partial: 22 of 50 repositories (npm search found no more)                                            |
+| 6   | Frozen benchmark set                                                 | Partial: 42 of 50 repositories (22 from npm search, 20 from GitHub code search)                     |
 | 7   | Hand-labelled live requests                                          | Partial: all 90 reported requests reviewed; missed calls are counted by a text heuristic, not labels |
 | 8   | At least 90% of likely SDK calls traced                              | No: 82 of 92 (89%) in scanned repositories                                                           |
 | 9   | At least 70% of affected repositories with runnable checks validated | No: no fix is proposed                                                                               |

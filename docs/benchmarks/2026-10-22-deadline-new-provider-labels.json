@@ -1,0 +1,1105 @@
+{
+ "formatVersion": 1,
+ "labeller": "the AI agent (Claude) running lane OG8, not a human; see docs/DEADLINE-BENCHMARK-2026-10-22.md",
+ "labelledAt": "2026-10-22",
+ "list": "docs/benchmarks/2026-10-16-deadline-repos.json",
+ "blind": false,
+ "categories": {
+  "live": "a pin in a live call path: a request argument, a default, a setting fallback or a dependency the production code imports",
+  "catalog": "one entry in a model list, picker, type union, price or context table, remap, preset the user picks, or codegen config",
+  "test": "tests, mocks, fixtures, examples, demos, docs, seed data and maintenance or build scripts",
+  "comment": "inside a comment",
+  "other": "matches but selects nothing at the provider: checks, regular expressions, help or UI text, placeholders, tokenizer arguments, records, declared-but-unused dependencies, import lines of an SDK labelled at its manifest, and IDs sent to another host"
+ },
+ "labels": [
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/06-configuration-patterns.ts",
+   "line": 113,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/06-configuration-patterns.ts",
+   "line": 133,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/06-configuration-patterns.ts",
+   "line": 245,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/07-reasoning-models.ts",
+   "line": 41,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/07-reasoning-models.ts",
+   "line": 63,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/07-reasoning-models.ts",
+   "line": 150,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/10-usage-tracking.ts",
+   "line": 89,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/11-mutate-headers.ts",
+   "line": 38,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "examples/utils.ts",
+   "line": 12,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/factory.ts",
+   "line": 74,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/factory.ts",
+   "line": 231,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 112,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 113,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 114,
+   "version": "claude-3-7-sonnet-20250219",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 115,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 116,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 117,
+   "version": "claude-3-5-sonnet-20240620",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 118,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 119,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 120,
+   "version": "claude-3-sonnet-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 121,
+   "version": "claude-2.1",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/models.ts",
+   "line": 122,
+   "version": "claude-2.0",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "provider model list"
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/providers/proxy.ts",
+   "line": 45,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "src/types.ts",
+   "line": 304,
+   "version": "claude-3-5-sonnet-20240620",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/factory.test.ts",
+   "line": 17,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/factory.test.ts",
+   "line": 71,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/factory.test.ts",
+   "line": 163,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/factory.test.ts",
+   "line": 188,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/factory.test.ts",
+   "line": 224,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/factory.test.ts",
+   "line": 254,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/helpers/anthropicChunks.ts",
+   "line": 18,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/providers/anthropic.test.ts",
+   "line": 18,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/providers/anthropic.test.ts",
+   "line": 50,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/providers/provider-edge-cases.test.ts",
+   "line": 26,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/providers/proxy.test.ts",
+   "line": 28,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/providers/reasoning.test.ts",
+   "line": 63,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/providers/reasoning.test.ts",
+   "line": 94,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/providers/reasoning.test.ts",
+   "line": 120,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/smoke/providers.test.ts",
+   "line": 36,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/smoke/providers.test.ts",
+   "line": 36,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/smoke/providers.test.ts",
+   "line": 36,
+   "version": "claude-3-7-sonnet-20250219",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "chinmaymk/aikit",
+   "file": "tests/smoke/usage-tracking-generation.test.ts",
+   "line": 36,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "codextde/textchecker",
+   "file": "src/types/index.ts",
+   "line": 77,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model picker list"
+  },
+  {
+   "repo": "codextde/textchecker",
+   "file": "src/types/index.ts",
+   "line": 79,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model picker list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/commands/definitions/model.ts",
+   "line": 15,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model command list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/commands/definitions/model.ts",
+   "line": 16,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model command list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/commands/definitions/model.ts",
+   "line": 17,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model command list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/commands/definitions/model.ts",
+   "line": 18,
+   "version": "claude-3-sonnet-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model command list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/commands/definitions/model.ts",
+   "line": 19,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model command list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/core/agent.ts",
+   "line": 464,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "live",
+   "note": "Anthropic request body model when the configured name has a slash"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/ui/components/input-overlays/ModelSelector.tsx",
+   "line": 27,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model selector options"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/ui/components/input-overlays/ModelSelector.tsx",
+   "line": 28,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model selector options"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/ui/components/input-overlays/ModelSelector.tsx",
+   "line": 29,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model selector options"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/ui/components/input-overlays/ModelSelector.tsx",
+   "line": 30,
+   "version": "claude-3-sonnet-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model selector options"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/ui/components/input-overlays/ModelSelector.tsx",
+   "line": 31,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model selector options"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/utils/anthropic-models.ts",
+   "line": 24,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/utils/anthropic-models.ts",
+   "line": 25,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/utils/anthropic-models.ts",
+   "line": 26,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/utils/anthropic-models.ts",
+   "line": 27,
+   "version": "claude-3-sonnet-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model list"
+  },
+  {
+   "repo": "hervekom37/Ani-Code-CLI",
+   "file": "src/utils/anthropic-models.ts",
+   "line": 28,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model list"
+  },
+  {
+   "repo": "AQComputerKing/protoforge",
+   "file": "src/types/ai.ts",
+   "line": 41,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model picker list"
+  },
+  {
+   "repo": "AQComputerKing/protoforge",
+   "file": "src/types/ai.ts",
+   "line": 42,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model picker list"
+  },
+  {
+   "repo": "AQComputerKing/protoforge",
+   "file": "src/types/ai.ts",
+   "line": 43,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model picker list"
+  },
+  {
+   "repo": "PactInteractive/dbchat",
+   "file": "shared.ts",
+   "line": 95,
+   "version": "claude-3-7-sonnet-20250219",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "PactInteractive/dbchat",
+   "file": "shared.ts",
+   "line": 96,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/client/platforms/anthropic.ts",
+   "line": 359,
+   "version": "claude-instant-1.2",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/client/platforms/anthropic.ts",
+   "line": 364,
+   "version": "claude-2.0",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/client/platforms/anthropic.ts",
+   "line": 369,
+   "version": "claude-2.1",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/client/platforms/anthropic.ts",
+   "line": 374,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/client/platforms/anthropic.ts",
+   "line": 379,
+   "version": "claude-3-sonnet-20240229",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/client/platforms/anthropic.ts",
+   "line": 384,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 523,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "other",
+   "note": "regular expression for vision exclusion"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 601,
+   "version": "claude-instant-1.2",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 602,
+   "version": "claude-2.0",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 603,
+   "version": "claude-2.1",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 604,
+   "version": "claude-3-sonnet-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 605,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 607,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 608,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 610,
+   "version": "claude-3-5-sonnet-20240620",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 611,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 613,
+   "version": "claude-3-7-sonnet-20250219",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 615,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 616,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 760,
+   "version": "claude-3-7-sonnet-20250219",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 773,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "app/constant.ts",
+   "line": 774,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "Anthropic model lists"
+  },
+  {
+   "repo": "vual/ChatGPT-Next-Web-Pro",
+   "file": "test/vision-model-checker.test.ts",
+   "line": 36,
+   "version": "claude-3-5-haiku-20241022",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "zebbern/repolens",
+   "file": "providers/__tests__/api-keys-provider.test.ts",
+   "line": 32,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "zebbern/repolens",
+   "file": "providers/__tests__/api-keys-provider.test.ts",
+   "line": 34,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "zebbern/repolens",
+   "file": "providers/__tests__/api-keys-provider.test.ts",
+   "line": 103,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "zebbern/repolens",
+   "file": "providers/__tests__/api-keys-provider.test.ts",
+   "line": 104,
+   "version": "claude-3-haiku-20240307",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "zebbern/repolens",
+   "file": "providers/__tests__/api-keys-provider.test.ts",
+   "line": 109,
+   "version": "claude-3-opus-20240229",
+   "provider": "anthropic",
+   "label": "test",
+   "note": ""
+  },
+  {
+   "repo": "Ramtx/Bouno",
+   "file": "src/agent/config.ts",
+   "line": 28,
+   "version": "claude-sonnet-4-5",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model catalog entry marked recommended, not the default"
+  },
+  {
+   "repo": "Ramtx/Bouno",
+   "file": "src/shared/settings.ts",
+   "line": 68,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "live",
+   "note": "DEFAULT_SETTINGS model for the anthropic provider"
+  },
+  {
+   "repo": "Ramtx/Bouno",
+   "file": "src/storage/types.ts",
+   "line": 23,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": "trailing e.g. comment"
+  },
+  {
+   "repo": "Ramtx/Bouno",
+   "file": "src/ui/components/settings/ProviderTab.tsx",
+   "line": 386,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "other",
+   "note": "input placeholder"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/cli/args.ts",
+   "line": 26,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "live",
+   "note": "getDefaultModel for Anthropic"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/commands/model.ts",
+   "line": 111,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "other",
+   "note": "help text"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/core/context.ts",
+   "line": 10,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "context window table"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/core/context.ts",
+   "line": 11,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "context window table"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/core/models.ts",
+   "line": 6,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "alias map, small-model remap and alias help list"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/core/models.ts",
+   "line": 7,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "alias map, small-model remap and alias help list"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/core/models.ts",
+   "line": 24,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "alias map, small-model remap and alias help list"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/core/models.ts",
+   "line": 25,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "alias map, small-model remap and alias help list"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/core/models.ts",
+   "line": 35,
+   "version": "claude-opus-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "alias map, small-model remap and alias help list"
+  },
+  {
+   "repo": "fahd09/openharness",
+   "file": "src/core/models.ts",
+   "line": 36,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "alias map, small-model remap and alias help list"
+  },
+  {
+   "repo": "bayradion/rabbitmap",
+   "file": "main.js",
+   "line": 53,
+   "version": "claude-sonnet-4-5",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model list"
+  },
+  {
+   "repo": "bayradion/rabbitmap",
+   "file": "main.ts",
+   "line": 82,
+   "version": "claude-sonnet-4-5",
+   "provider": "anthropic",
+   "label": "catalog",
+   "note": "model list"
+  },
+  {
+   "repo": "khatrikrish630/new-fb-ai-agent",
+   "file": "index.js",
+   "line": 37,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "live",
+   "note": "messages.create"
+  },
+  {
+   "repo": "LakshAgrawal28/CreatorOS",
+   "file": "package.json",
+   "line": 14,
+   "version": "@google/generative-ai",
+   "provider": "gemini",
+   "label": "live",
+   "note": "dependency imported by src/app/api/creator/assistant/route.ts"
+  },
+  {
+   "repo": "LakshAgrawal28/CreatorOS",
+   "file": "src/app/api/creator/assistant/route.ts",
+   "line": 2,
+   "version": "@google/generative-ai",
+   "provider": "gemini",
+   "label": "other",
+   "note": "import line; an SDK deadline is labelled at its manifest line"
+  },
+  {
+   "repo": "LakshAgrawal28/CreatorOS",
+   "file": "src/app/api/creator/studio/generate/route.ts",
+   "line": 2,
+   "version": "@google/generative-ai",
+   "provider": "gemini",
+   "label": "other",
+   "note": "import line; an SDK deadline is labelled at its manifest line"
+  },
+  {
+   "repo": "LakshAgrawal28/CreatorOS",
+   "file": "src/utils/embeddings.ts",
+   "line": 1,
+   "version": "@google/generative-ai",
+   "provider": "gemini",
+   "label": "other",
+   "note": "import line; an SDK deadline is labelled at its manifest line"
+  },
+  {
+   "repo": "integratedotdev/typescript-sdk",
+   "file": "src/ai/anthropic.ts",
+   "line": 118,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "integratedotdev/typescript-sdk",
+   "file": "src/ai/anthropic.ts",
+   "line": 133,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "integratedotdev/typescript-sdk",
+   "file": "src/ai/anthropic.ts",
+   "line": 240,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "integratedotdev/typescript-sdk",
+   "file": "src/ai/anthropic.ts",
+   "line": 373,
+   "version": "claude-3-5-sonnet-20241022",
+   "provider": "anthropic",
+   "label": "comment",
+   "note": ""
+  },
+  {
+   "repo": "cdolan04/gc-ai-demo",
+   "file": "app/routes/api.chat.ts",
+   "line": 71,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "live",
+   "note": "@ai-sdk/anthropic model"
+  },
+  {
+   "repo": "abaziqendrim435-lang/rootx.app",
+   "file": "lib/ai-providers.ts",
+   "line": 183,
+   "version": "claude-sonnet-4-20250514",
+   "provider": "anthropic",
+   "label": "live",
+   "note": "fetch to the Anthropic Messages API"
+  },
+  {
+   "repo": "chamath-shanaka/heurista-demo",
+   "file": "package.json",
+   "line": 12,
+   "version": "@google/generative-ai",
+   "provider": "gemini",
+   "label": "other",
+   "note": "declared but never imported"
+  }
+ ]
+}

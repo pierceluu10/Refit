@@ -1,0 +1,1660 @@
+{
+  "formatVersion": 1,
+  "note": "AI wrapper SDK sample for docs/MODEL-WRAPPERS.md: one ai-app-select.mjs run per wrapper, merged in this order.",
+  "lists": [
+    {
+      "formatVersion": 1,
+      "provider": "ai-sdk-openai",
+      "sdk": "@ai-sdk/openai",
+      "selectedAt": "2026-10-22T09:26:07.022Z",
+      "cutoff": "frozen commit committedDate >= 2025-10-21",
+      "method": "GitHub code search through gh api (queries below), pool deduplicated by lower-cased full_name, repositories in other frozen lists removed, metadata through GraphQL, candidates ranked by stars then checked in that order until 25 pass. Exposure to retiring models is never consulted.",
+      "queries": [
+        {
+          "query": "\"@ai-sdk/openai\" filename:package.json extension:json path:/ size:<1500",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"@ai-sdk/openai\" filename:package.json extension:json path:/ size:1500..2999",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"@ai-sdk/openai\" filename:package.json extension:json path:/ size:>=3000",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@ai-sdk/openai'\" language:TypeScript path:app",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@ai-sdk/openai'\" language:TypeScript path:src",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@ai-sdk/openai'\" language:TypeScript path:lib",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@ai-sdk/openai'\" language:TypeScript path:server",
+          "pages": 3,
+          "collected": 300
+        }
+      ],
+      "bucketing": "root package.json search split by exclusive size: ranges (inclusive endpoints never shared); source-import search split by path:; results deduplicated by lower-cased full_name before ranking",
+      "filters": [
+        "dedupe by lower-cased full_name before ranking (D-19)",
+        "not a fork and not archived",
+        "recency by frozen-commit committedDate >= 2025-10-21 (D-12); pushedAt recorded only",
+        "the root manifest, or one apps/* or packages/* manifest (first 40 in path order), declares @ai-sdk/openai in dependencies",
+        "that manifest is private, or has no main/exports/bin/files, or the tree has an app marker (next.config.*, vite.config.*, wrangler.toml, app/, pages/, src/app/, src/pages/), or it depends on express, fastify, hono or koa",
+        "a non-test source file imports the SDK and makes a model call (chat.completions, responses, messages, images, audio, embeddings)",
+        "the tree passes Refit's scan limits (10000 files, 2 MiB per file, 50 MiB total)",
+        "repository name or topics do not match sdk|wrapper|client|langchain|llamaindex|provider|plugin|adapter|framework|boilerplate-generator (case-insensitive)",
+        "repository is in no other frozen list under docs/benchmarks",
+        "one level of apps/* and packages/* manifests; deeper nesting not read (D-11)"
+      ],
+      "sortOrder": "stars desc, full name asc, within the retrievable code-search pool",
+      "excludedLists": [
+        {
+          "file": "2026-10-14-sdk-repos.json",
+          "count": 45
+        },
+        {
+          "file": "2026-10-14-stripe-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-15-deadline-pilot-repos.json",
+          "count": 20
+        },
+        {
+          "file": "2026-10-15-stripe-heldout-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-deadline-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-16-shopify-fresh-repos.json",
+          "count": 200
+        },
+        {
+          "file": "2026-10-16-shopify-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-stripe-active-repos.json",
+          "count": 66
+        },
+        {
+          "file": "2026-10-16-stripe-fresh-repos.json",
+          "count": 381
+        },
+        {
+          "file": "2026-10-20-anthropic-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-20-openai-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-21-gemini-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-21-paypal-repos.json",
+          "count": 22
+        }
+      ],
+      "poolSize": 1836,
+      "duplicatesRemoved": 264,
+      "deeperManifestsNotRead": 57,
+      "rejected": {
+        "invalidName": 0,
+        "alreadyFrozen": 12,
+        "unreachable": 0,
+        "noCommit": 0,
+        "fork": 0,
+        "archived": 0,
+        "old": 748,
+        "excludedName": 66,
+        "scanLimits": 3,
+        "badManifest": 0,
+        "noDependency": 10,
+        "library": 7,
+        "checkoutFailed": 0,
+        "noModelCall": 22
+      },
+      "shortfall": null,
+      "selected": 25,
+      "kept": 25
+    },
+    {
+      "formatVersion": 1,
+      "provider": "ai-sdk-anthropic",
+      "sdk": "@ai-sdk/anthropic",
+      "selectedAt": "2026-10-22T09:35:39.266Z",
+      "cutoff": "frozen commit committedDate >= 2025-10-21",
+      "method": "GitHub code search through gh api (queries below), pool deduplicated by lower-cased full_name, repositories in other frozen lists removed, metadata through GraphQL, candidates ranked by stars then checked in that order until 12 pass. Exposure to retiring models is never consulted.",
+      "queries": [
+        {
+          "query": "\"@ai-sdk/anthropic\" filename:package.json extension:json path:/ size:<1500",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"@ai-sdk/anthropic\" filename:package.json extension:json path:/ size:1500..2999",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"@ai-sdk/anthropic\" filename:package.json extension:json path:/ size:>=3000",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@ai-sdk/anthropic'\" language:TypeScript path:app",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@ai-sdk/anthropic'\" language:TypeScript path:src",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@ai-sdk/anthropic'\" language:TypeScript path:lib",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@ai-sdk/anthropic'\" language:TypeScript path:server",
+          "pages": 2,
+          "collected": 153
+        }
+      ],
+      "bucketing": "root package.json search split by exclusive size: ranges (inclusive endpoints never shared); source-import search split by path:; results deduplicated by lower-cased full_name before ranking",
+      "filters": [
+        "dedupe by lower-cased full_name before ranking (D-19)",
+        "not a fork and not archived",
+        "recency by frozen-commit committedDate >= 2025-10-21 (D-12); pushedAt recorded only",
+        "the root manifest, or one apps/* or packages/* manifest (first 40 in path order), declares @ai-sdk/anthropic in dependencies",
+        "that manifest is private, or has no main/exports/bin/files, or the tree has an app marker (next.config.*, vite.config.*, wrangler.toml, app/, pages/, src/app/, src/pages/), or it depends on express, fastify, hono or koa",
+        "a non-test source file imports the SDK and makes a model call (chat.completions, responses, messages, images, audio, embeddings)",
+        "the tree passes Refit's scan limits (10000 files, 2 MiB per file, 50 MiB total)",
+        "repository name or topics do not match sdk|wrapper|client|langchain|llamaindex|provider|plugin|adapter|framework|boilerplate-generator (case-insensitive)",
+        "repository is in no other frozen list under docs/benchmarks",
+        "one level of apps/* and packages/* manifests; deeper nesting not read (D-11)"
+      ],
+      "sortOrder": "stars desc, full name asc, within the retrievable code-search pool",
+      "excludedLists": [
+        {
+          "file": "2026-10-14-sdk-repos.json",
+          "count": 45
+        },
+        {
+          "file": "2026-10-14-stripe-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-15-deadline-pilot-repos.json",
+          "count": 20
+        },
+        {
+          "file": "2026-10-15-stripe-heldout-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-deadline-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-16-shopify-fresh-repos.json",
+          "count": 200
+        },
+        {
+          "file": "2026-10-16-shopify-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-stripe-active-repos.json",
+          "count": 66
+        },
+        {
+          "file": "2026-10-16-stripe-fresh-repos.json",
+          "count": 381
+        },
+        {
+          "file": "2026-10-20-anthropic-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-20-openai-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-21-gemini-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-21-paypal-repos.json",
+          "count": 22
+        }
+      ],
+      "poolSize": 1612,
+      "duplicatesRemoved": 341,
+      "deeperManifestsNotRead": 51,
+      "rejected": {
+        "invalidName": 0,
+        "alreadyFrozen": 9,
+        "unreachable": 0,
+        "noCommit": 0,
+        "fork": 0,
+        "archived": 0,
+        "old": 462,
+        "excludedName": 74,
+        "scanLimits": 5,
+        "badManifest": 0,
+        "noDependency": 10,
+        "library": 5,
+        "checkoutFailed": 0,
+        "noModelCall": 10
+      },
+      "shortfall": null,
+      "selected": 12,
+      "kept": 5
+    },
+    {
+      "formatVersion": 1,
+      "provider": "langchain-openai",
+      "sdk": "@langchain/openai",
+      "selectedAt": "2026-10-22T09:45:18.793Z",
+      "cutoff": "frozen commit committedDate >= 2025-10-21",
+      "method": "GitHub code search through gh api (queries below), pool deduplicated by lower-cased full_name, repositories in other frozen lists removed, metadata through GraphQL, candidates ranked by stars then checked in that order until 15 pass. Exposure to retiring models is never consulted.",
+      "queries": [
+        {
+          "query": "\"@langchain/openai\" filename:package.json extension:json path:/ size:<1500",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"@langchain/openai\" filename:package.json extension:json path:/ size:1500..2999",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"@langchain/openai\" filename:package.json extension:json path:/ size:>=3000",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@langchain/openai'\" language:TypeScript path:app",
+          "pages": 3,
+          "collected": 277
+        },
+        {
+          "query": "\"from '@langchain/openai'\" language:TypeScript path:src",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@langchain/openai'\" language:TypeScript path:lib",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@langchain/openai'\" language:TypeScript path:server",
+          "pages": 3,
+          "collected": 300
+        }
+      ],
+      "bucketing": "root package.json search split by exclusive size: ranges (inclusive endpoints never shared); source-import search split by path:; results deduplicated by lower-cased full_name before ranking",
+      "filters": [
+        "dedupe by lower-cased full_name before ranking (D-19)",
+        "not a fork and not archived",
+        "recency by frozen-commit committedDate >= 2025-10-21 (D-12); pushedAt recorded only",
+        "the root manifest, or one apps/* or packages/* manifest (first 40 in path order), declares @langchain/openai in dependencies",
+        "that manifest is private, or has no main/exports/bin/files, or the tree has an app marker (next.config.*, vite.config.*, wrangler.toml, app/, pages/, src/app/, src/pages/), or it depends on express, fastify, hono or koa",
+        "a non-test source file imports the SDK and makes a model call (chat.completions, responses, messages, images, audio, embeddings)",
+        "the tree passes Refit's scan limits (10000 files, 2 MiB per file, 50 MiB total)",
+        "repository name or topics do not match sdk|wrapper|client|langchain|llamaindex|provider|plugin|adapter|framework|boilerplate-generator (case-insensitive)",
+        "repository is in no other frozen list under docs/benchmarks",
+        "one level of apps/* and packages/* manifests; deeper nesting not read (D-11)"
+      ],
+      "sortOrder": "stars desc, full name asc, within the retrievable code-search pool",
+      "excludedLists": [
+        {
+          "file": "2026-10-14-sdk-repos.json",
+          "count": 45
+        },
+        {
+          "file": "2026-10-14-stripe-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-15-deadline-pilot-repos.json",
+          "count": 20
+        },
+        {
+          "file": "2026-10-15-stripe-heldout-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-deadline-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-16-shopify-fresh-repos.json",
+          "count": 200
+        },
+        {
+          "file": "2026-10-16-shopify-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-stripe-active-repos.json",
+          "count": 66
+        },
+        {
+          "file": "2026-10-16-stripe-fresh-repos.json",
+          "count": 381
+        },
+        {
+          "file": "2026-10-20-anthropic-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-20-openai-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-21-gemini-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-21-paypal-repos.json",
+          "count": 22
+        }
+      ],
+      "poolSize": 1586,
+      "duplicatesRemoved": 491,
+      "deeperManifestsNotRead": 5,
+      "rejected": {
+        "invalidName": 0,
+        "alreadyFrozen": 10,
+        "unreachable": 0,
+        "noCommit": 0,
+        "fork": 0,
+        "archived": 0,
+        "old": 807,
+        "excludedName": 95,
+        "scanLimits": 4,
+        "badManifest": 0,
+        "noDependency": 4,
+        "library": 8,
+        "checkoutFailed": 0,
+        "noModelCall": 7
+      },
+      "shortfall": null,
+      "selected": 15,
+      "kept": 15
+    },
+    {
+      "formatVersion": 1,
+      "provider": "langchain-anthropic",
+      "sdk": "@langchain/anthropic",
+      "selectedAt": "2026-10-22T09:48:30.182Z",
+      "cutoff": "frozen commit committedDate >= 2025-10-21",
+      "method": "GitHub code search through gh api (queries below), pool deduplicated by lower-cased full_name, repositories in other frozen lists removed, metadata through GraphQL, candidates ranked by stars then checked in that order until 8 pass. Exposure to retiring models is never consulted.",
+      "queries": [
+        {
+          "query": "\"@langchain/anthropic\" filename:package.json extension:json path:/ size:<1500",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"@langchain/anthropic\" filename:package.json extension:json path:/ size:1500..2999",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"@langchain/anthropic\" filename:package.json extension:json path:/ size:>=3000",
+          "pages": 3,
+          "collected": 299
+        },
+        {
+          "query": "\"from '@langchain/anthropic'\" language:TypeScript path:app",
+          "pages": 1,
+          "collected": 18
+        },
+        {
+          "query": "\"from '@langchain/anthropic'\" language:TypeScript path:src",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"from '@langchain/anthropic'\" language:TypeScript path:lib",
+          "pages": 1,
+          "collected": 48
+        },
+        {
+          "query": "\"from '@langchain/anthropic'\" language:TypeScript path:server",
+          "pages": 1,
+          "collected": 43
+        }
+      ],
+      "bucketing": "root package.json search split by exclusive size: ranges (inclusive endpoints never shared); source-import search split by path:; results deduplicated by lower-cased full_name before ranking",
+      "filters": [
+        "dedupe by lower-cased full_name before ranking (D-19)",
+        "not a fork and not archived",
+        "recency by frozen-commit committedDate >= 2025-10-21 (D-12); pushedAt recorded only",
+        "the root manifest, or one apps/* or packages/* manifest (first 40 in path order), declares @langchain/anthropic in dependencies",
+        "that manifest is private, or has no main/exports/bin/files, or the tree has an app marker (next.config.*, vite.config.*, wrangler.toml, app/, pages/, src/app/, src/pages/), or it depends on express, fastify, hono or koa",
+        "a non-test source file imports the SDK and makes a model call (chat.completions, responses, messages, images, audio, embeddings)",
+        "the tree passes Refit's scan limits (10000 files, 2 MiB per file, 50 MiB total)",
+        "repository name or topics do not match sdk|wrapper|client|langchain|llamaindex|provider|plugin|adapter|framework|boilerplate-generator (case-insensitive)",
+        "repository is in no other frozen list under docs/benchmarks",
+        "one level of apps/* and packages/* manifests; deeper nesting not read (D-11)"
+      ],
+      "sortOrder": "stars desc, full name asc, within the retrievable code-search pool",
+      "excludedLists": [
+        {
+          "file": "2026-10-14-sdk-repos.json",
+          "count": 45
+        },
+        {
+          "file": "2026-10-14-stripe-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-15-deadline-pilot-repos.json",
+          "count": 20
+        },
+        {
+          "file": "2026-10-15-stripe-heldout-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-deadline-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-16-shopify-fresh-repos.json",
+          "count": 200
+        },
+        {
+          "file": "2026-10-16-shopify-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-stripe-active-repos.json",
+          "count": 66
+        },
+        {
+          "file": "2026-10-16-stripe-fresh-repos.json",
+          "count": 381
+        },
+        {
+          "file": "2026-10-20-anthropic-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-20-openai-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-21-gemini-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-21-paypal-repos.json",
+          "count": 22
+        }
+      ],
+      "poolSize": 1069,
+      "duplicatesRemoved": 239,
+      "deeperManifestsNotRead": 0,
+      "rejected": {
+        "invalidName": 0,
+        "alreadyFrozen": 1,
+        "unreachable": 0,
+        "noCommit": 0,
+        "fork": 0,
+        "archived": 0,
+        "old": 422,
+        "excludedName": 91,
+        "scanLimits": 1,
+        "badManifest": 0,
+        "noDependency": 1,
+        "library": 6,
+        "checkoutFailed": 2,
+        "noModelCall": 1
+      },
+      "shortfall": null,
+      "selected": 8,
+      "kept": 6
+    },
+    {
+      "formatVersion": 1,
+      "provider": "llamaindex",
+      "sdk": "llamaindex",
+      "selectedAt": "2026-10-22T09:39:24.599Z",
+      "cutoff": "frozen commit committedDate >= 2025-10-21",
+      "method": "GitHub code search through gh api (queries below), pool deduplicated by lower-cased full_name, repositories in other frozen lists removed, metadata through GraphQL, candidates ranked by stars then checked in that order until 10 pass. Exposure to retiring models is never consulted.",
+      "queries": [
+        {
+          "query": "\"llamaindex\" filename:package.json extension:json path:/ size:<1500",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"llamaindex\" filename:package.json extension:json path:/ size:1500..2999",
+          "pages": 3,
+          "collected": 300
+        },
+        {
+          "query": "\"llamaindex\" filename:package.json extension:json path:/ size:>=3000",
+          "pages": 2,
+          "collected": 150
+        },
+        {
+          "query": "\"from 'llamaindex'\" language:TypeScript path:app",
+          "pages": 1,
+          "collected": 42
+        },
+        {
+          "query": "\"from 'llamaindex'\" language:TypeScript path:src",
+          "pages": 3,
+          "collected": 235
+        },
+        {
+          "query": "\"from 'llamaindex'\" language:TypeScript path:lib",
+          "pages": 1,
+          "collected": 17
+        },
+        {
+          "query": "\"from 'llamaindex'\" language:TypeScript path:server",
+          "pages": 1,
+          "collected": 7
+        }
+      ],
+      "bucketing": "root package.json search split by exclusive size: ranges (inclusive endpoints never shared); source-import search split by path:; results deduplicated by lower-cased full_name before ranking",
+      "filters": [
+        "dedupe by lower-cased full_name before ranking (D-19)",
+        "not a fork and not archived",
+        "recency by frozen-commit committedDate >= 2025-10-21 (D-12); pushedAt recorded only",
+        "the root manifest, or one apps/* or packages/* manifest (first 40 in path order), declares llamaindex in dependencies",
+        "that manifest is private, or has no main/exports/bin/files, or the tree has an app marker (next.config.*, vite.config.*, wrangler.toml, app/, pages/, src/app/, src/pages/), or it depends on express, fastify, hono or koa",
+        "a non-test source file imports the SDK and makes a model call (chat.completions, responses, messages, images, audio, embeddings)",
+        "the tree passes Refit's scan limits (10000 files, 2 MiB per file, 50 MiB total)",
+        "repository name or topics do not match sdk|wrapper|client|langchain|llamaindex|provider|plugin|adapter|framework|boilerplate-generator (case-insensitive)",
+        "repository is in no other frozen list under docs/benchmarks",
+        "one level of apps/* and packages/* manifests; deeper nesting not read (D-11)"
+      ],
+      "sortOrder": "stars desc, full name asc, within the retrievable code-search pool",
+      "excludedLists": [
+        {
+          "file": "2026-10-14-sdk-repos.json",
+          "count": 45
+        },
+        {
+          "file": "2026-10-14-stripe-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-15-deadline-pilot-repos.json",
+          "count": 20
+        },
+        {
+          "file": "2026-10-15-stripe-heldout-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-deadline-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-16-shopify-fresh-repos.json",
+          "count": 200
+        },
+        {
+          "file": "2026-10-16-shopify-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-16-stripe-active-repos.json",
+          "count": 66
+        },
+        {
+          "file": "2026-10-16-stripe-fresh-repos.json",
+          "count": 381
+        },
+        {
+          "file": "2026-10-20-anthropic-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-20-openai-repos.json",
+          "count": 100
+        },
+        {
+          "file": "2026-10-21-gemini-repos.json",
+          "count": 50
+        },
+        {
+          "file": "2026-10-21-paypal-repos.json",
+          "count": 22
+        }
+      ],
+      "poolSize": 779,
+      "duplicatesRemoved": 272,
+      "deeperManifestsNotRead": 54,
+      "rejected": {
+        "invalidName": 0,
+        "alreadyFrozen": 3,
+        "unreachable": 0,
+        "noCommit": 0,
+        "fork": 0,
+        "archived": 0,
+        "old": 445,
+        "excludedName": 37,
+        "scanLimits": 3,
+        "badManifest": 0,
+        "noDependency": 43,
+        "library": 1,
+        "checkoutFailed": 0,
+        "noModelCall": 17
+      },
+      "shortfall": null,
+      "selected": 10,
+      "kept": 10
+    }
+  ],
+  "repos": [
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "THU-MAIC/OpenMAIC",
+      "commit": "b305df7e2abf0ce7dd3ac261ce40fdbbe39ed6d2",
+      "committedAt": "2026-10-22T08:11:08Z",
+      "pushedAt": "2026-10-22T09:25:05Z",
+      "stars": 41250,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "eval/pbl-v2-planner/runner.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "firecrawl/open-lovable",
+      "commit": "806b8072f28afea11fa2b028cac1449eff74c511",
+      "committedAt": "2026-10-09T09:33:07Z",
+      "pushedAt": "2026-10-09T09:33:07Z",
+      "stars": 28774,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "app/api/analyze-edit-intent/route.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "leon-ai/leon",
+      "commit": "16b126f91b9fde2a7b939c283143fcc00a600887",
+      "committedAt": "2026-10-22T00:07:17Z",
+      "pushedAt": "2026-10-22T07:23:42Z",
+      "stars": 17596,
+      "reason": {
+        "manifest": "package.json",
+        "app": "no-publish-fields",
+        "modelCall": "tools/search_web/hosted/src/nodejs/hosted-tool.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "zaidmukaddam/scira",
+      "commit": "e1692f5bdec7ec3f6482a24e0c6cf9b483d810f9",
+      "committedAt": "2026-08-12T22:28:57Z",
+      "pushedAt": "2026-08-12T22:28:59Z",
+      "stars": 11903,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "ai/providers.ts"
+      },
+      "hasChecks": true,
+      "manager": null,
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "e2b-dev/fragments",
+      "commit": "3b11c7fcd4dcc37b2f1effde35960cf6ec4bd3c7",
+      "committedAt": "2026-10-13T19:26:25Z",
+      "pushedAt": "2026-10-20T18:15:31Z",
+      "stars": 6397,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "lib/morph.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "shfshanyue/Daily-Question",
+      "commit": "710fb4ae0b6cb6432679567b31deb1649567b3fd",
+      "committedAt": "2026-03-27T07:13:10Z",
+      "pushedAt": "2026-06-23T12:08:03Z",
+      "stars": 5148,
+      "reason": {
+        "manifest": "package.json",
+        "app": "no-publish-fields",
+        "modelCall": "lib/tag.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "0xsline/OpenChatCut",
+      "commit": "7fa4b7903e7ebecf832a36249f0c0c755200cc17",
+      "committedAt": "2026-10-21T13:08:55Z",
+      "pushedAt": "2026-10-21T13:09:03Z",
+      "stars": 2604,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "server/agent-runs/model.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "leerob/next-music-player",
+      "commit": "ec42b530f2c69637aa1078870e909aed912f1903",
+      "committedAt": "2026-07-16T18:40:07Z",
+      "pushedAt": "2026-07-16T18:40:07Z",
+      "stars": 834,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "lib/db/enhance-metadata.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "halo-dev/upage",
+      "commit": "f5bb335f726fa27758f2544f1bcfeaf7fa755aef",
+      "committedAt": "2026-09-23T09:15:51Z",
+      "pushedAt": "2026-09-23T09:15:52Z",
+      "stars": 555,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "app/.server/modules/llm/base-provider.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "alibey-10/formcn",
+      "commit": "04857f53e727d6a6b000ece77359ba5ddcc762b5",
+      "committedAt": "2026-08-29T11:41:47Z",
+      "pushedAt": "2026-08-29T11:41:55Z",
+      "stars": 494,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/routes/api/generate.ts"
+      },
+      "hasChecks": true,
+      "manager": null,
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "SpectrAI-Initiative/InnoClaw",
+      "commit": "67231f373deac3db29f685985a5632b6c0eb0f08",
+      "committedAt": "2026-07-14T02:04:55Z",
+      "pushedAt": "2026-08-10T01:16:33Z",
+      "stars": 399,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/lib/ai/provider.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "inboundemail/inbound",
+      "commit": "af685523949875ca1fb27660181d3ff0c5a20595",
+      "committedAt": "2026-10-22T05:34:26Z",
+      "pushedAt": "2026-10-22T05:34:27Z",
+      "stars": 359,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "lib/ai/provider.ts"
+      },
+      "hasChecks": true,
+      "manager": null,
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "teelaitila/deep-research-mcp",
+      "commit": "11c39bef317463cc8c118d76c0473c6c953144dd",
+      "committedAt": "2026-01-28T10:48:17Z",
+      "pushedAt": "2026-01-28T10:48:24Z",
+      "stars": 323,
+      "reason": {
+        "manifest": "package.json",
+        "app": "server:express",
+        "modelCall": "src/ai/providers.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "MkThingsHQ/mkdirs",
+      "commit": "5ba423d494f82135b4177252b238e0a1f148618c",
+      "committedAt": "2026-08-09T23:02:56Z",
+      "pushedAt": "2026-08-09T23:03:01Z",
+      "stars": 292,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/actions/fetch-website.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "ask-the-hive/the-hive",
+      "commit": "d35c326d1520ce88d6879a22e9c9aef3366375c9",
+      "committedAt": "2026-03-04T23:57:54Z",
+      "pushedAt": "2026-03-04T23:57:54Z",
+      "stars": 200,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "ai/base-knowledge/actions/get-knowledge/function.ts"
+      },
+      "hasChecks": true,
+      "manager": "yarn",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "shenpeiheng/ai-smart-draw",
+      "commit": "ad43749a612f417d019720dbb227d62011e56303",
+      "committedAt": "2026-06-03T02:40:14Z",
+      "pushedAt": "2026-06-05T06:38:48Z",
+      "stars": 175,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "lib/ai-providers.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "esinecan/skynet-agent",
+      "commit": "0e7d1f46bc8e07be616774947dfc9f0a6408b64f",
+      "committedAt": "2026-04-24T04:50:13Z",
+      "pushedAt": "2026-04-24T04:50:14Z",
+      "stars": 135,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/lib/llm-service.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "kalil0321/stapply",
+      "commit": "5bb7a07bb15ff0baf40693367fb193af6bca25d9",
+      "committedAt": "2026-05-13T09:42:03Z",
+      "pushedAt": "2026-05-13T09:42:03Z",
+      "stars": 107,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/app/api/local-applications/[id]/route.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "grillsdev/grills",
+      "commit": "dce96be6b12ede3a9ff5b8ea555aa16d42f859b9",
+      "committedAt": "2025-11-15T09:48:01Z",
+      "pushedAt": "2025-11-15T09:48:06Z",
+      "stars": 104,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/app/api/completion/route.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "nilenso/context-viewer",
+      "commit": "d776680798bde244671498f6f58da003a30fe91a",
+      "committedAt": "2026-07-01T17:31:32Z",
+      "pushedAt": "2026-09-28T18:24:29Z",
+      "stars": 90,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/ai-summary.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "andrelandgraf/aileen",
+      "commit": "35e8d58e1eb411771213f901c878cae227e7a1a7",
+      "committedAt": "2025-11-11T17:09:10Z",
+      "pushedAt": "2025-11-11T17:09:14Z",
+      "stars": 81,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/mastra/agents/codegenAgent.ts"
+      },
+      "hasChecks": true,
+      "manager": null,
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "zbrave/vcompose",
+      "commit": "be6c09348c22a3ee4493259b15d499c0615ca055",
+      "committedAt": "2026-03-29T15:48:01Z",
+      "pushedAt": "2026-03-29T15:48:03Z",
+      "stars": 81,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/lib/ai/ai-provider.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "thediymaker/slurm-node-dashboard",
+      "commit": "d655bc1a45da689f2ff7342bd3ab92835c489be7",
+      "committedAt": "2026-10-21T18:07:29Z",
+      "pushedAt": "2026-10-21T18:07:54Z",
+      "stars": 80,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "actions/actions.tsx"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "ctxinf/webpage-summary",
+      "commit": "80cb0ffb57935aef15c4d8e047d2930f6f84c711",
+      "committedAt": "2026-10-20T15:00:55Z",
+      "pushedAt": "2026-10-20T15:01:04Z",
+      "stars": 70,
+      "reason": {
+        "manifest": "package.json",
+        "app": "no-publish-fields",
+        "modelCall": "lib/model-provider.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-openai",
+      "repo": "PBHAHAHA/Nuxt_Mkdirs",
+      "commit": "7148fd86b3b79b55089965200e076902eec39a62",
+      "committedAt": "2025-12-20T00:55:10Z",
+      "pushedAt": "2025-12-20T00:55:11Z",
+      "stars": 68,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "server/utils/ai.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-openai"
+    },
+    {
+      "provider": "ai-sdk-anthropic",
+      "repo": "convex/chef",
+      "commit": "d8a6cb6a6f226133fdc63ed5f59d04cacb9b06cc",
+      "committedAt": "2026-03-13T21:57:38Z",
+      "pushedAt": "2026-10-14T17:55:53Z",
+      "stars": 4600,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "app/lib/.server/llm/provider.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "ai-sdk-anthropic"
+    },
+    {
+      "provider": "ai-sdk-anthropic",
+      "repo": "hotovo/aider-desk",
+      "commit": "ca4001e8a4dcc71d0e68b9e17c85f34bb33d4f06",
+      "committedAt": "2026-10-22T07:15:25Z",
+      "pushedAt": "2026-10-22T07:15:26Z",
+      "stars": 1460,
+      "reason": {
+        "manifest": "package.json",
+        "app": "marker:vite.config.server.ts",
+        "modelCall": "src/main/models/providers/opencode-go.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-anthropic"
+    },
+    {
+      "provider": "ai-sdk-anthropic",
+      "repo": "ryokun6/ryos",
+      "commit": "f44f638d11d0fcb9258d23a3126eccf6b7626d99",
+      "committedAt": "2026-10-22T08:55:06Z",
+      "pushedAt": "2026-10-22T08:55:06Z",
+      "stars": 1271,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "api/_utils/_aiModels.ts"
+      },
+      "hasChecks": true,
+      "manager": null,
+      "wrapper": "ai-sdk-anthropic"
+    },
+    {
+      "provider": "ai-sdk-anthropic",
+      "repo": "tinykit-studio/tinykit",
+      "commit": "617db3416af227451e18de1f84394888679cf766",
+      "committedAt": "2026-01-09T05:55:01Z",
+      "pushedAt": "2026-10-22T06:35:31Z",
+      "stars": 525,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/lib/ai/sdk-agent.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-anthropic"
+    },
+    {
+      "provider": "ai-sdk-anthropic",
+      "repo": "ElectricCodeGuy/SupabaseAuthWithSSR",
+      "commit": "355c56ea09c16f3ae5a069718130b50945d1f580",
+      "committedAt": "2026-10-07T13:38:50Z",
+      "pushedAt": "2026-10-07T13:38:56Z",
+      "stars": 397,
+      "reason": {
+        "manifest": "package.json",
+        "app": "no-publish-fields",
+        "modelCall": "app/api/chat/chatHelpers.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "ai-sdk-anthropic"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "getopenscreen/openscreen",
+      "commit": "d8bf2d8138cc2ce2c6542549853260f716cb8fb6",
+      "committedAt": "2026-10-21T12:08:20Z",
+      "pushedAt": "2026-10-21T13:24:45Z",
+      "stars": 4761,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "electron/ai-edition/deep-agent/chat-model.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "allweonedev/presentation-ai",
+      "commit": "43fe74abd5676dbbea52b8cd66c43fb3b931b5c1",
+      "committedAt": "2026-06-05T05:57:37Z",
+      "pushedAt": "2026-06-05T05:57:37Z",
+      "stars": 3055,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/lib/model-picker.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "langchain-ai/social-media-agent",
+      "commit": "389b5b8795b727ced2e11645fa82c1d58b794ba7",
+      "committedAt": "2026-10-21T15:46:42Z",
+      "pushedAt": "2026-10-21T15:46:45Z",
+      "stars": 2930,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/agents/curate-data/nodes/tweets/group-tweets-by-content.ts"
+      },
+      "hasChecks": true,
+      "manager": "yarn",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "DimiMikadze/orca",
+      "commit": "36d9eda88584304c6b78fafb965f5fa6595ae725",
+      "committedAt": "2026-05-18T15:18:51Z",
+      "pushedAt": "2026-10-22T02:32:49Z",
+      "stars": 1311,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "orca-ai/analysis-agent.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "lak7/devildev",
+      "commit": "c4f8a63e68e7ce325a4a161bf095ea877440329c",
+      "committedAt": "2026-03-26T09:36:38Z",
+      "pushedAt": "2026-03-26T09:36:43Z",
+      "stars": 611,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "actions/agentsFlow.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "fsiaonma/elpis",
+      "commit": "d5c0ddd8a7d33bdb03db715fc23392fda8e9f913",
+      "committedAt": "2026-09-29T07:26:33Z",
+      "pushedAt": "2026-09-29T07:28:32Z",
+      "stars": 590,
+      "reason": {
+        "manifest": "package.json",
+        "app": "marker:app/",
+        "modelCall": "app/ai/runtime/internal/load-llm-config.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "unbody-io/unbody",
+      "commit": "5111b53759fb337f12f51d73b1269ba03395b13d",
+      "committedAt": "2026-04-14T11:27:15Z",
+      "pushedAt": "2026-04-14T11:27:16Z",
+      "stars": 523,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/plugins/plugin-enhancer-structured-output-generator/plugin.ts"
+      },
+      "hasChecks": true,
+      "manager": "yarn",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "xinnian999/vue-form-craft",
+      "commit": "b98ee7196f3a03a63acdaf1d0ad525feb9b0d939",
+      "committedAt": "2026-09-29T02:55:16Z",
+      "pushedAt": "2026-09-29T02:56:51Z",
+      "stars": 459,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "play/src/utils/ai.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "codemie-ai/codemie-code",
+      "commit": "ecab0a11e214b75e804883e2ab1622e724c91954",
+      "committedAt": "2026-10-21T11:21:03Z",
+      "pushedAt": "2026-10-22T07:05:38Z",
+      "stars": 299,
+      "reason": {
+        "manifest": "package.json",
+        "app": "server:express",
+        "modelCall": "src/hooks/prompt-executor.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "wjszxli/AiAllSupport",
+      "commit": "c0ccc9a96c005148c856b277c0d435a24e77eece",
+      "committedAt": "2026-08-31T06:44:51Z",
+      "pushedAt": "2026-08-31T06:45:03Z",
+      "stars": 214,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/langchain/providers/OpenAiLangChainProvider.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "34892002/bilibili-mcp-js",
+      "commit": "3537650dc180a1dfb7421d8c34bda40a97f6c2d0",
+      "committedAt": "2026-03-30T01:18:25Z",
+      "pushedAt": "2026-03-30T01:18:26Z",
+      "stars": 194,
+      "reason": {
+        "manifest": "package.json",
+        "app": "server:express",
+        "modelCall": "example.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "SATYAM-PRATIBHAN/arcmindAI",
+      "commit": "7c26d5b13d95a24c816e62061071e6bba9f190c3",
+      "committedAt": "2026-10-19T09:58:57Z",
+      "pushedAt": "2026-10-19T10:00:00Z",
+      "stars": 164,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "lib/ai/helperClient.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "fazer-ai/agents",
+      "commit": "c880f55767aaac3903c5ad7f7d36933799651760",
+      "committedAt": "2026-10-22T03:12:14Z",
+      "pushedAt": "2026-10-22T04:04:19Z",
+      "stars": 122,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/graph/models.ts"
+      },
+      "hasChecks": true,
+      "manager": null,
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "KasarLabs/snak",
+      "commit": "ec30c554c0b37281d282c04f99e05e92434acf63",
+      "committedAt": "2025-10-30T16:19:04Z",
+      "pushedAt": "2025-10-31T13:57:14Z",
+      "stars": 96,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "packages/agent/src/agents/studio/studio-graph.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-openai",
+      "repo": "vizhub-studio/vzcode",
+      "commit": "127ca2583113848c543d853bf90302b26ca6fbe1",
+      "committedAt": "2026-10-20T14:29:46Z",
+      "pushedAt": "2026-10-20T16:50:08Z",
+      "stars": 92,
+      "reason": {
+        "manifest": "package.json",
+        "app": "marker:vite.config.js",
+        "modelCall": "src/server/handleAICopilot.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "langchain-openai"
+    },
+    {
+      "provider": "langchain-anthropic",
+      "repo": "OpenHealthForAll/open-health",
+      "commit": "095fdc7a958ec71aa7fc9ad8a2114ecec9714e0d",
+      "committedAt": "2026-01-06T07:07:25Z",
+      "pushedAt": "2026-01-06T07:07:25Z",
+      "stars": 3965,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/app/api/chat-rooms/[id]/messages/route.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "langchain-anthropic"
+    },
+    {
+      "provider": "langchain-anthropic",
+      "repo": "sugarforever/chat-ollama",
+      "commit": "96c3ce50c3ba4ec3b19f126f50c035f84183f9fc",
+      "committedAt": "2026-09-11T00:14:16Z",
+      "pushedAt": "2026-09-13T15:54:32Z",
+      "stars": 3519,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "server/utils/models.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "langchain-anthropic"
+    },
+    {
+      "provider": "langchain-anthropic",
+      "repo": "ryoiki-tokuiten/Deepthink",
+      "commit": "3a35ff0de83799de8c87599e3c20924aea43c10c",
+      "committedAt": "2026-10-20T12:06:33Z",
+      "pushedAt": "2026-10-20T12:55:00Z",
+      "stars": 739,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "Core/LangGraphToolRuntime.ts"
+      },
+      "hasChecks": true,
+      "manager": null,
+      "wrapper": "langchain-anthropic"
+    },
+    {
+      "provider": "langchain-anthropic",
+      "repo": "masslight/ottehr",
+      "commit": "1a71baf264f4f061ba92fd507ba645b26a3c03bc",
+      "committedAt": "2026-10-21T12:42:58Z",
+      "pushedAt": "2026-10-22T07:07:24Z",
+      "stars": 341,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "packages/zambdas/src/ehr/easy-chart-shared/model.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "langchain-anthropic"
+    },
+    {
+      "provider": "langchain-anthropic",
+      "repo": "mingchen666/Reviva",
+      "commit": "43d2e4c8877a9b72b8d8e48c265eba5401ccfa66",
+      "committedAt": "2026-10-22T05:55:34Z",
+      "pushedAt": "2026-10-22T05:58:37Z",
+      "stars": 292,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "electron/agents/ContextCompressor.js"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "langchain-anthropic"
+    },
+    {
+      "provider": "langchain-anthropic",
+      "repo": "jinm29/ai-healthcare-app",
+      "commit": "21ebc5ce089fd641148a383760f4b45f05394960",
+      "committedAt": "2026-09-14T07:54:04Z",
+      "pushedAt": "2026-09-14T07:54:08Z",
+      "stars": 149,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/app/api/chat-rooms/[id]/messages/route.ts"
+      },
+      "hasChecks": true,
+      "manager": null,
+      "wrapper": "langchain-anthropic"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "run-llama/chat-ui",
+      "commit": "a514498830d514a880e9f9a9abbebbd3880a4c4a",
+      "committedAt": "2025-12-16T22:42:29Z",
+      "pushedAt": "2025-12-16T22:42:29Z",
+      "stars": 597,
+      "reason": {
+        "manifest": "apps/web/package.json",
+        "app": "private",
+        "modelCall": "apps/web/app/api/chat/route.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "workspace": "apps/web",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "run-llama/flow-maker",
+      "commit": "4e68a47bcb03d5e8340a3792c67f2ec8c40512d9",
+      "committedAt": "2025-12-16T22:33:48Z",
+      "pushedAt": "2025-12-16T22:33:48Z",
+      "stars": 211,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/lib/llm-utils.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "run-llama/llama-slides",
+      "commit": "0eb34a78f2afcce73f47a804629a59bbf7659b28",
+      "committedAt": "2025-12-16T22:45:44Z",
+      "pushedAt": "2025-12-16T22:45:44Z",
+      "stars": 128,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/app/api/format/route.js"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "Azure-Samples/llama-index-javascript",
+      "commit": "b2a11f3952d6ee93efd345718104036f960f2037",
+      "committedAt": "2026-09-29T09:42:17Z",
+      "pushedAt": "2026-10-21T11:21:24Z",
+      "stars": 76,
+      "reason": {
+        "manifest": "package.json",
+        "app": "no-publish-fields",
+        "modelCall": "app/api/chat/engine/provider.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "run-llama/newsletter-generator",
+      "commit": "682e62e3a22929d66e164128f364a32c466e2ac5",
+      "committedAt": "2026-03-09T17:09:17Z",
+      "pushedAt": "2026-03-09T17:09:17Z",
+      "stars": 65,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/app/api/twitter/route.js"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "botextractai/ai-web-agent-rag",
+      "commit": "05b63e86c73c719dd5d59d776adfe309356cec01",
+      "committedAt": "2026-10-21T12:25:47Z",
+      "pushedAt": "2026-10-21T12:25:48Z",
+      "stars": 8,
+      "reason": {
+        "manifest": "package.json",
+        "app": "no-publish-fields",
+        "modelCall": "app/api/chat/route.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "harmonicabot/harmonica-web-app",
+      "commit": "6b57ef8d7031a99e8977ec5a2e7556647fb3a1b2",
+      "committedAt": "2026-04-12T15:54:52Z",
+      "pushedAt": "2026-10-22T02:01:30Z",
+      "stars": 7,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/lib/modelConfig.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "auth0-samples/auth0-task-vantage",
+      "commit": "13973069ea2d3d07160e507464acf470d40fb89d",
+      "committedAt": "2025-12-10T22:52:09Z",
+      "pushedAt": "2025-12-11T13:58:21Z",
+      "stars": 4,
+      "reason": {
+        "manifest": "package.json",
+        "app": "server:hono",
+        "modelCall": "src/agent/agent.js"
+      },
+      "hasChecks": false,
+      "manager": "npm",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "gong9/rag-era",
+      "commit": "a5fc25d3848b1f712ebfbe142330c0a3a04fade4",
+      "committedAt": "2025-12-17T07:48:57Z",
+      "pushedAt": "2025-12-17T07:49:02Z",
+      "stars": 3,
+      "reason": {
+        "manifest": "package.json",
+        "app": "private",
+        "modelCall": "src/lib/eval-generator.ts"
+      },
+      "hasChecks": true,
+      "manager": "pnpm",
+      "wrapper": "llamaindex"
+    },
+    {
+      "provider": "llamaindex",
+      "repo": "repkam09/telegram-gpt-bot",
+      "commit": "c4ac3a792933e336f5410dd5e1087e755e5907ff",
+      "committedAt": "2026-09-18T19:20:43Z",
+      "pushedAt": "2026-09-18T19:20:46Z",
+      "stars": 3,
+      "reason": {
+        "manifest": "package.json",
+        "app": "server:express",
+        "modelCall": "src/tools/FetchWebpageContent.ts"
+      },
+      "hasChecks": true,
+      "manager": "npm",
+      "wrapper": "llamaindex"
+    }
+  ]
+}

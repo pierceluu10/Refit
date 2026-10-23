@@ -134,38 +134,55 @@ it('executes selected CLI scans from outside the checkout without mixing provide
   expect((await readWorkflowConfiguration(config, 'catalog')).providerConfig).toBe(
     join(fixture, 'catalog/provider.json'),
   );
-  for (const integration of ['stripe', 'catalog']) {
-    const output = join(root, `${integration}-run`);
-    await expect(
-      execute(
-        process.execPath,
-        [
+  // The three runs write separate outputs, so they start together; each CLI start costs about 0.3 s.
+  await Promise.all([
+    ...['stripe', 'catalog'].map(async (integration) => {
+      const output = join(root, `${integration}-run`);
+      await expect(
+        execute(
+          process.execPath,
+          [
+            bin,
+            'run',
+            '--repository',
+            join(fixture, 'repository'),
+            '--config',
+            config,
+            '--integration',
+            integration,
+            '--output',
+            output,
+            '--json',
+          ],
+          { cwd: tmpdir() },
+        ),
+      ).rejects.toMatchObject({ code: 2 });
+      const manifest = JSON.parse(await readFile(join(output, 'manifest.json'), 'utf8'));
+      const scan = JSON.parse(await readFile(join(output, 'scan.json'), 'utf8'));
+      expect(manifest).toMatchObject({ integration, status: 'needs-review', stage: 'scan' });
+      expect(scan.provider).toBe(integration === 'stripe' ? 'stripe' : 'catalog-example');
+      expect(manifest.files.some(({ path }: { path: string }) => path === 'report.json')).toBe(
+        false,
+      );
+    }),
+    (async () => {
+      await expect(
+        execute(process.execPath, [
           bin,
           'run',
-          '--repository',
-          join(fixture, 'repository'),
           '--config',
           config,
-          '--integration',
-          integration,
           '--output',
-          output,
-          '--json',
-        ],
-        { cwd: tmpdir() },
-      ),
-    ).rejects.toMatchObject({ code: 2 });
-    const manifest = JSON.parse(await readFile(join(output, 'manifest.json'), 'utf8'));
-    const scan = JSON.parse(await readFile(join(output, 'scan.json'), 'utf8'));
-    expect(manifest).toMatchObject({ integration, status: 'needs-review', stage: 'scan' });
-    expect(scan.provider).toBe(integration === 'stripe' ? 'stripe' : 'catalog-example');
-    expect(manifest.files.some(({ path }: { path: string }) => path === 'report.json')).toBe(false);
-  }
-  await expect(
-    execute(process.execPath, [bin, 'run', '--config', config, '--output', join(root, 'missing')]),
-  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Choose --integration') });
-  await expect(readFile(join(root, 'missing/manifest.json'))).rejects.toMatchObject({
-    code: 'ENOENT',
-  });
+          join(root, 'missing'),
+        ]),
+      ).rejects.toMatchObject({
+        code: 1,
+        stderr: expect.stringContaining('integrations; choose one with --integration:'),
+      });
+      await expect(readFile(join(root, 'missing/manifest.json'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    })(),
+  ]);
   // Starts the CLI several times; loaded runners can exceed the default 5s timeout.
 }, 30_000);

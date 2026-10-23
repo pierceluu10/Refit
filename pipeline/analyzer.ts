@@ -16,6 +16,12 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import { removedParameterProperty, requestPropertyEdit } from './request-migration.ts';
+import { requestMoveEdit } from './stripe-request-moves.ts';
+import {
+  INVOICE_PREVIEW_RULE,
+  invoicePreviewEdits,
+  type InvoicePreviewMove,
+} from './stripe-invoice-preview.ts';
 import {
   CARD_PAYMENT_METHOD_RULE,
   LISTED_PAYMENT_METHODS_RULE,
@@ -36,6 +42,12 @@ import {
   INVOICE_PRICE_ID_HELPER,
   INVOICE_PRICE_ID_HELPER_RULE,
   invoicePriceIdHelperEdit,
+  COUPON_ID_HELPER,
+  COUPON_ID_HELPER_RULE,
+  couponIdHelperEdit,
+  PRODUCT_FEATURES_HELPER,
+  PRODUCT_FEATURES_HELPER_RULE,
+  productFeaturesHelperEdit,
   CHECKOUT_SHIPPING_HELPER,
   CHECKOUT_SHIPPING_HELPER_RULE,
   checkoutShippingHelperEdit,
@@ -234,7 +246,8 @@ export function analyzeRepository(
   // For review-only callers: also trace the SDK package where the importing file's tsconfig or
   // jsconfig is unverified, so a caller can report those calls for review instead of missing
   // them. Analyses that can lead to edits keep the default, which treats them as unknown imports.
-  options: { traceUnverifiedPackageImports?: boolean } = {},
+  // `invoicePreview`: the contract-checked move of Stripe's removed upcoming invoice call.
+  options: { traceUnverifiedPackageImports?: boolean; invoicePreview?: InvoicePreviewMove } = {},
 ) {
   const { sources, resolution, program, checker } = analysisProgram(repository);
   const findings: Finding[] = [];
@@ -975,6 +988,24 @@ export function analyzeRepository(
               new Set(methods).size === methods.length
             ? LISTED_PAYMENT_METHODS_RULE
             : undefined;
+      // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
+      // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
+      const moved =
+        confirmed &&
+        removal.move &&
+        !rule &&
+        (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))
+          ? requestMoveEdit(property, removal.move)
+          : undefined;
+      if (moved && 'replacement' in moved)
+        edits.push({
+          file: location(property).file,
+          start: moved.start,
+          end: moved.end,
+          replacement: moved.replacement,
+          changeId: removal.id,
+          rule: moved.rule,
+        });
       if (confirmed && removal.cardReplacement && rule && ts.isPropertyAssignment(property)) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
         edits.push({
@@ -994,7 +1025,42 @@ export function analyzeRepository(
         requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
         ...helperEvidence(call.client),
         reason:
-          'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.',
+          moved && 'reason' in moved
+            ? `The target API version no longer accepts this request parameter. ${moved.reason}`
+            : 'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.',
+      });
+    }
+    // Stripe's removed upcoming invoice call (stripe-invoice-preview.ts). It stops for review
+    // unless run.ts keeps the createPreview edit, which then covers the finding.
+    if (
+      options.invoicePreview &&
+      provider.packageName === STRIPE.packageName &&
+      call.resource === 'invoices' &&
+      call.method === 'retrieveUpcoming' &&
+      ts.isPropertyAccessExpression(node.expression)
+    ) {
+      const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
+      const planned = confirmed ? invoicePreviewEdits(node, options.invoicePreview) : undefined;
+      if (Array.isArray(planned))
+        for (const edit of planned)
+          edits.push({
+            file: location(node).file,
+            ...edit,
+            changeId: INVOICE_PREVIEW_RULE,
+            rule: INVOICE_PREVIEW_RULE,
+          });
+      const reason =
+        planned && !Array.isArray(planned)
+          ? planned.reason
+          : 'Stripe 2025-03-31.basil removed the upcoming invoice API (invoices.retrieveUpcoming) in favour of invoices.createPreview; this call needs review.';
+      findings.push({
+        ...location(node.expression.name),
+        changeId: INVOICE_PREVIEW_RULE,
+        expression: 'invoices.retrieveUpcoming',
+        confidence: confirmed ? 'confirmed' : 'review',
+        ...helperEvidence(call.client),
+        contractReview: reason,
+        reason,
       });
     }
   }
@@ -1226,6 +1292,28 @@ export function analyzeRepository(
       (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
     ) {
       const edit = invoicePriceIdHelperEdit(node, location(node).file, change.id);
+      if (edit && addEdit(edit)) return edit.rule;
+    }
+    // `promotionCode.coupon.id` and `discount.coupon.id`: the coupon moved under `promotion`/`source`.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      (change.schema === 'promotion_code' || change.schema === 'discount') &&
+      change.property === 'coupon' &&
+      !propertyMoves.some((move) => move.schema === change.schema && move.removed === 'coupon') &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+    ) {
+      const edit = couponIdHelperEdit(node, location(node).file, change.id);
+      if (edit && addEdit(edit)) return edit.rule;
+    }
+    // Product `features` was renamed `marketing_features`, the same list.
+    if (
+      provider.packageName === STRIPE.packageName &&
+      change.schema === 'product' &&
+      change.property === 'features' &&
+      !propertyMoves.some((move) => move.schema === 'product' && move.removed === 'features') &&
+      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+    ) {
+      const edit = productFeaturesHelperEdit(node, location(node).file, change.id);
       if (edit && addEdit(edit)) return edit.rule;
     }
     // Checkout Session shipping details moved under `collected_information`.
@@ -1583,7 +1671,9 @@ export function analyzeRepository(
                 ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE ||
                 migration === INVOICE_SUBSCRIPTION_HELPER_RULE ||
                 migration === INVOICE_PRICE_ID_HELPER_RULE ||
-                migration === CHECKOUT_SHIPPING_HELPER_RULE
+                migration === CHECKOUT_SHIPPING_HELPER_RULE ||
+                migration === COUPON_ID_HELPER_RULE ||
+                migration === PRODUCT_FEATURES_HELPER_RULE
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -1719,6 +1809,8 @@ export function analyzeRepository(
     INVOICE_SUBSCRIPTION_HELPER,
     INVOICE_PRICE_ID_HELPER,
     CHECKOUT_SHIPPING_HELPER,
+    COUPON_ID_HELPER,
+    PRODUCT_FEATURES_HELPER,
   ] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
@@ -1752,6 +1844,8 @@ export function analyzeRepository(
         INVOICE_SUBSCRIPTION_HELPER_RULE,
         INVOICE_PRICE_ID_HELPER_RULE,
         CHECKOUT_SHIPPING_HELPER_RULE,
+        COUPON_ID_HELPER_RULE,
+        PRODUCT_FEATURES_HELPER_RULE,
       ] as const
     ).find((rule) => edits.some((edit) => edit.rule === rule))!;
     const directories = helperFiles.map((file) => posix.dirname(file).split('/'));

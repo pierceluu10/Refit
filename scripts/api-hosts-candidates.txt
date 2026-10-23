@@ -1,0 +1,417 @@
+# Candidate API hosts for data/api-hosts.json, read by scripts/api-hosts-verify.mjs.
+# One per line: host | provider | docs URL | optional further pages to try.
+# Procedure (docs/API-HOSTS.md): (1) the untracked hosts found most often in the frozen 60-repository
+# sample, then (2) the documented API base URL of widely used providers, grouped below. A line only
+# reaches the shipped list when a fetched page contains the host (see the verify script).
+# Left out on purpose, because another lane owns the provider's catalog entry: Stripe, OpenAI,
+# Anthropic, Gemini, Shopify, Meta, Twilio, SendGrid, Resend, PayPal, Plaid, Square, Braintree, Adyen,
+# Paddle, Lemon Squeezy, Shippo, EasyPost, Lob, Coinbase Commerce, Google Maps Platform, Mapbox,
+# Algolia, HubSpot, Intercom, Mailchimp, Zoom, Dropbox, Notion, Airtable, Segment, Sentry, Discord,
+# Contentful, Cloudinary, Postmark, Mailgun, Slack, Cloudflare, Auth0, Clerk, Firebase, Supabase,
+# GitHub, AWS, Azure OpenAI, Bedrock, OpenRouter, Vertex AI.
+
+# Found in the frozen sample
+api.telegram.org | Telegram Bot API | https://core.telegram.org/bots/api
+api.spotify.com | Spotify | https://developer.spotify.com/documentation/web-api
+accounts.spotify.com | Spotify | https://developer.spotify.com/documentation/web-api/tutorials/client-credentials-flow
+api.elevenlabs.io | ElevenLabs | https://elevenlabs.io/docs/api-reference/introduction
+lrclib.net | LRCLIB | https://lrclib.net/docs
+api.coingecko.com | CoinGecko | https://docs.coingecko.com/reference/introduction
+api.open-meteo.com | Open-Meteo | https://open-meteo.com/en/docs
+geocoding-api.open-meteo.com | Open-Meteo | https://open-meteo.com/en/docs/geocoding-api
+archive-api.open-meteo.com | Open-Meteo | https://open-meteo.com/en/docs/historical-weather-api
+api.weather.gov | National Weather Service | https://www.weather.gov/documentation/services-web-api
+ip-api.com | ip-api | https://ip-api.com/docs/api:json
+wttr.in | wttr.in | https://github.com/chubin/wttr.in
+api.binance.com | Binance | https://developers.binance.com/docs/binance-spot-api-docs/rest-api/general-api-information
+fapi.binance.com | Binance | https://developers.binance.com/docs/derivatives/usds-margined-futures/general-info
+api.bybit.com | Bybit | https://bybit-exchange.github.io/docs/v5/intro
+api.dexscreener.com | DEX Screener | https://docs.dexscreener.com/api/reference
+api.mainnet-beta.solana.com | Solana | https://solana.com/docs/rpc
+api.the-odds-api.com | The Odds API | https://the-odds-api.com/liveapi/guides/v4/
+api.stlouisfed.org | FRED | https://fred.stlouisfed.org/docs/api/fred/
+api.alternative.me | Alternative.me | https://alternative.me/crypto/fear-and-greed-index/#api
+api.search.brave.com | Brave Search | https://api-dashboard.search.brave.com/app/documentation
+api.cohere.ai | Cohere | https://docs.cohere.com/reference/about
+api.cohere.com | Cohere | https://docs.cohere.com/reference/about
+api.together.xyz | Together AI | https://docs.together.ai/reference/chat-completions-1
+api.groq.com | Groq | https://console.groq.com/docs/api-reference
+api.fireworks.ai | Fireworks AI | https://docs.fireworks.ai/api-reference/introduction
+api.elections.kalshi.com | Kalshi | https://docs.kalshi.com/getting_started/quick_start_market_data
+clob.polymarket.com | Polymarket | https://docs.polymarket.com/
+gamma-api.polymarket.com | Polymarket | https://docs.polymarket.com/developers/gamma-markets-api/overview
+data-api.polymarket.com | Polymarket | https://docs.polymarket.com/developers/misc-endpoints/data-api-activity
+api.manifold.markets | Manifold | https://docs.manifold.markets/api
+www.metaculus.com | Metaculus | https://www.metaculus.com/api/
+www.predictit.org | PredictIt | https://www.predictit.org/api/marketdata/all/
+oauth2.googleapis.com | Google OAuth 2.0 | https://developers.google.com/identity/protocols/oauth2
+login.microsoftonline.com | Microsoft identity platform | https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow
+graph.microsoft.com | Microsoft Graph | https://learn.microsoft.com/en-us/graph/overview
+api.x.com | X API | https://docs.x.com/x-api/introduction
+api.twitter.com | X API | https://developer.x.com/en/docs/x-api
+www.reddit.com | Reddit | https://www.reddit.com/dev/api/
+oauth.reddit.com | Reddit | https://www.reddit.com/dev/api/
+registry.npmjs.org | npm registry | https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md
+api.npmjs.org | npm downloads | https://github.com/npm/registry/blob/main/docs/download-counts.md
+opentdb.com | Open Trivia Database | https://opentdb.com/api_config.php
+some-random-api.com | Some Random API | https://some-random-api.com/docs
+is.gd | is.gd | https://is.gd/apishorteningreference.php
+covid19.mathdro.id | COVID-19 API | https://github.com/mathdroid/covid-19-api
+api.mcsrvstat.us | Minecraft Server Status | https://api.mcsrvstat.us/
+uselessfacts.jsph.pl | Useless Facts | https://uselessfacts.jsph.pl/
+www.anagramica.com | Anagramica | http://www.anagramica.com/api
+api.cas.chat | Combot Anti-Spam | https://cas.chat/api
+api.proxyscrape.com | ProxyScrape | https://docs.proxyscrape.com/
+query1.finance.yahoo.com | Yahoo Finance | https://finance.yahoo.com/
+api.neynar.com | Neynar | https://docs.neynar.com/reference/quickstart
+api.1inch.com | 1inch | https://portal.1inch.dev/documentation/overview
+api.odos.xyz | Odos | https://docs.odos.xyz/
+api.jup.ag | Jupiter | https://station.jup.ag/docs/apis/swap-api
+quote-api.jup.ag | Jupiter | https://station.jup.ag/docs/apis/swap-api
+price.jup.ag | Jupiter | https://station.jup.ag/docs/apis/price-api
+public-api.birdeye.so | Birdeye | https://docs.birdeye.so/
+api.wormholescan.io | Wormholescan | https://docs.wormholescan.io/
+api.gopluslabs.io | GoPlus Security | https://docs.gopluslabs.io/
+api.nft.storage | NFT.Storage | https://nft.storage/docs/
+api.betfair.com | Betfair | https://developer.betfair.com/exchange-api/
+api.smarkets.com | Smarkets | https://docs.smarkets.com/
+api.line.me | LINE | https://developers.line.biz/en/reference/messaging-api/
+api-data.line.me | LINE | https://developers.line.biz/en/reference/messaging-api/
+open.feishu.cn | Feishu Open Platform | https://open.feishu.cn/document/server-docs/api-call-guide/calling-process/overview
+openspeech.bytedance.com | Volcengine Speech | https://www.volcengine.com/docs/6561/80816
+dashscope.aliyuncs.com | Alibaba DashScope | https://help.aliyun.com/zh/model-studio/
+cn.bing.com | Bing | https://www.bing.com/
+api.openweathermap.org | OpenWeatherMap | https://openweathermap.org/api
+api.rango.exchange | Rango Exchange | https://docs.rango.exchange/
+api.blockchair.com | Blockchair | https://blockchair.com/api/docs
+api.blockcypher.com | BlockCypher | https://www.blockcypher.com/dev/bitcoin/
+blockchain.info | Blockchain.com | https://www.blockchain.com/explorer/api
+api.coindesk.com | CoinDesk | https://www.coindesk.com/coindesk-api
+api.ipstack.com | ipstack | https://ipstack.com/documentation
+purge.jsdelivr.net | jsDelivr | https://www.jsdelivr.com/documentation
+suggestqueries.google.com | Google Suggest | https://www.google.com/
+
+# Weather, location and time
+api.weatherapi.com | WeatherAPI | https://www.weatherapi.com/docs/
+nominatim.openstreetmap.org | OpenStreetMap Nominatim | https://nominatim.org/release-docs/latest/api/Search/
+overpass-api.de | Overpass API | https://wiki.openstreetmap.org/wiki/Overpass_API
+api.ipify.org | ipify | https://www.ipify.org/
+ipapi.co | ipapi | https://ipapi.co/api/
+ipinfo.io | IPinfo | https://ipinfo.io/developers
+api.ipgeolocation.io | IPGeolocation | https://ipgeolocation.io/documentation.html
+restcountries.com | REST Countries | https://restcountries.com/
+api.worldbank.org | World Bank | https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation
+api.nasa.gov | NASA Open APIs | https://api.nasa.gov/
+api.spacexdata.com | SpaceX API | https://github.com/r-spacex/SpaceX-API/blob/master/docs/README.md
+worldtimeapi.org | World Time API | https://worldtimeapi.org/
+api.sunrise-sunset.org | Sunrise Sunset | https://sunrise-sunset.org/api
+api.tomorrow.io | Tomorrow.io | https://docs.tomorrow.io/reference/welcome
+api.meteomatics.com | Meteomatics | https://www.meteomatics.com/en/api/getting-started/
+api.opencagedata.com | OpenCage | https://opencagedata.com/api
+api.geoapify.com | Geoapify | https://apidocs.geoapify.com/
+api.tomtom.com | TomTom | https://developer.tomtom.com/
+router.project-osrm.org | OSRM | https://project-osrm.org/docs/v5.24.0/api/
+api.openrouteservice.org | openrouteservice | https://openrouteservice.org/dev/#/api-docs
+*.hereapi.com | HERE | https://www.here.com/docs
+
+# Finance, crypto and markets
+pro-api.coinmarketcap.com | CoinMarketCap | https://coinmarketcap.com/api/documentation/v1/
+api.kraken.com | Kraken | https://docs.kraken.com/api/
+api.etherscan.io | Etherscan | https://docs.etherscan.io/
+api.coincap.io | CoinCap | https://docs.coincap.io/
+min-api.cryptocompare.com | CryptoCompare | https://min-api.cryptocompare.com/documentation
+api.opensea.io | OpenSea | https://docs.opensea.io/reference/api-overview
+*.g.alchemy.com | Alchemy | https://docs.alchemy.com/reference/api-overview
+*.infura.io | Infura | https://docs.metamask.io/services/
+api.thegraph.com | The Graph | https://thegraph.com/docs/en/
+api.polygon.io | Polygon.io | https://polygon.io/docs
+finnhub.io | Finnhub | https://finnhub.io/docs/api
+www.alphavantage.co | Alpha Vantage | https://www.alphavantage.co/documentation/
+api.twelvedata.com | Twelve Data | https://twelvedata.com/docs
+financialmodelingprep.com | Financial Modeling Prep | https://site.financialmodelingprep.com/developer/docs
+v6.exchangerate-api.com | ExchangeRate-API | https://www.exchangerate-api.com/docs/overview
+api.frankfurter.app | Frankfurter | https://frankfurter.dev/
+openexchangerates.org | Open Exchange Rates | https://docs.openexchangerates.org/
+api.exchangeratesapi.io | Exchange Rates API | https://exchangeratesapi.io/documentation/
+api.coinpaprika.com | Coinpaprika | https://api.coinpaprika.com/
+api.llama.fi | DefiLlama | https://api-docs.defillama.com/
+coins.llama.fi | DefiLlama | https://api-docs.defillama.com/
+deep-index.moralis.io | Moralis | https://docs.moralis.com/web3-data-api/evm/reference/wallet-api
+api.covalenthq.com | Covalent | https://goldrush.dev/docs/api-reference
+mempool.space | mempool.space | https://mempool.space/docs/api/rest
+api.kucoin.com | KuCoin | https://www.kucoin.com/docs/beginners/introduction
+api.mexc.com | MEXC | https://www.mexc.com/api-docs/spot-v3/introduction
+api.alpaca.markets | Alpaca | https://docs.alpaca.markets/
+paper-api.alpaca.markets | Alpaca | https://docs.alpaca.markets/
+api.tradier.com | Tradier | https://documentation.tradier.com/
+api.helius.xyz | Helius | https://docs.helius.dev/
+api.pinata.cloud | Pinata | https://docs.pinata.cloud/
+api.razorpay.com | Razorpay | https://razorpay.com/docs/api/
+api.paystack.co | Paystack | https://paystack.com/docs/api/
+api.flutterwave.com | Flutterwave | https://developer.flutterwave.com/
+api.mollie.com | Mollie | https://docs.mollie.com/reference/overview
+api.checkout.com | Checkout.com | https://www.checkout.com/docs/developer-resources/api/api-reference
+api.klarna.com | Klarna | https://docs.klarna.com/
+api.wise.com | Wise | https://docs.wise.com/api-docs
+api.gocardless.com | GoCardless | https://developer.gocardless.com/api-reference
+*.chargebee.com | Chargebee | https://apidocs.chargebee.com/docs/api
+api.mercadopago.com | Mercado Pago | https://www.mercadopago.com/developers/en/reference
+api.xendit.co | Xendit | https://developers.xendit.co/api-reference/
+api.truelayer.com | TrueLayer | https://docs.truelayer.com/
+api.xero.com | Xero | https://developer.xero.com/documentation/
+quickbooks.api.intuit.com | QuickBooks Online | https://developer.intuit.com/app/developer/qbo/docs/develop
+api.docusign.net | DocuSign | https://developers.docusign.com/docs/esign-rest-api/
+
+# AI, speech and search
+api.mistral.ai | Mistral AI | https://docs.mistral.ai/api/
+api.perplexity.ai | Perplexity | https://docs.perplexity.ai/api-reference/chat-completions-post
+api.deepseek.com | DeepSeek | https://api-docs.deepseek.com/
+api.x.ai | xAI | https://docs.x.ai/docs/overview
+api.replicate.com | Replicate | https://replicate.com/docs/reference/http
+api-inference.huggingface.co | Hugging Face | https://huggingface.co/docs/api-inference/index
+huggingface.co | Hugging Face Hub | https://huggingface.co/docs/hub/api
+router.huggingface.co | Hugging Face | https://huggingface.co/docs/inference-providers/index
+api.assemblyai.com | AssemblyAI | https://www.assemblyai.com/docs/api-reference/overview
+api.deepgram.com | Deepgram | https://developers.deepgram.com/reference/deepgram-api-overview
+api.stability.ai | Stability AI | https://platform.stability.ai/docs/api-reference
+api.voyageai.com | Voyage AI | https://docs.voyageai.com/reference/embeddings-api
+r.jina.ai | Jina Reader | https://jina.ai/reader/
+api.tavily.com | Tavily | https://docs.tavily.com/documentation/api-reference/introduction
+api.exa.ai | Exa | https://docs.exa.ai/reference/getting-started
+google.serper.dev | Serper | https://serper.dev/
+serpapi.com | SerpApi | https://serpapi.com/search-api
+api.firecrawl.dev | Firecrawl | https://docs.firecrawl.dev/api-reference/introduction
+api.smith.langchain.com | LangSmith | https://docs.smith.langchain.com/
+cloud.langfuse.com | Langfuse | https://langfuse.com/docs/api-and-data-platform/features/public-api
+api.pinecone.io | Pinecone | https://docs.pinecone.io/reference/api/introduction
+*.pinecone.io | Pinecone | https://docs.pinecone.io/reference/api/introduction
+api.vapi.ai | Vapi | https://docs.vapi.ai/api-reference/
+api.heygen.com | HeyGen | https://docs.heygen.com/reference/overview
+api.d-id.com | D-ID | https://docs.d-id.com/reference/get-started
+api.lumalabs.ai | Luma AI | https://docs.lumalabs.ai/
+api.runwayml.com | Runway | https://docs.dev.runwayml.com/
+api.cerebras.ai | Cerebras | https://inference-docs.cerebras.ai/api-reference/chat-completions
+api.sambanova.ai | SambaNova | https://docs.sambanova.ai/cloud/api-reference
+api.ai21.com | AI21 Labs | https://docs.ai21.com/reference/
+api.moonshot.cn | Moonshot AI | https://platform.moonshot.cn/docs
+open.bigmodel.cn | Zhipu AI | https://open.bigmodel.cn/dev/api
+api.siliconflow.cn | SiliconFlow | https://docs.siliconflow.cn/
+api.minimax.chat | MiniMax | https://platform.minimaxi.com/document/Fast%20access
+qianfan.baidubce.com | Baidu Qianfan | https://cloud.baidu.com/doc/WENXINWORKSHOP/index.html
+
+# Social, messaging and content
+open.tiktokapis.com | TikTok | https://developers.tiktok.com/doc/overview
+api.pinterest.com | Pinterest | https://developers.pinterest.com/docs/api/v5/
+bsky.social | Bluesky | https://docs.bsky.app/docs/api/at-protocol-xrpc-api
+public.api.bsky.app | Bluesky | https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed
+api.linkedin.com | LinkedIn | https://learn.microsoft.com/en-us/linkedin/
+api.twitch.tv | Twitch | https://dev.twitch.tv/docs/api/
+id.twitch.tv | Twitch | https://dev.twitch.tv/docs/authentication/
+api.vk.com | VK | https://dev.vk.com/en/api/overview
+kapi.kakao.com | Kakao | https://developers.kakao.com/docs/latest/en/rest-api/
+api.weixin.qq.com | WeChat | https://developers.weixin.qq.com/doc/offiaccount/en/Getting_Started/Overview.html
+open.larksuite.com | Lark Open Platform | https://open.larksuite.com/document
+oapi.dingtalk.com | DingTalk | https://open.dingtalk.com/document/
+openapi.zalo.me | Zalo | https://developers.zalo.me/docs/official-account/
+api.medium.com | Medium | https://github.com/Medium/medium-api-docs
+gql.hashnode.com | Hashnode | https://apidocs.hashnode.com/
+dev.to | DEV | https://developers.forem.com/api/v1
+public-api.wordpress.com | WordPress.com | https://developer.wordpress.com/docs/api/
+api.stackexchange.com | Stack Exchange | https://api.stackexchange.com/docs
+*.wikipedia.org | Wikipedia | https://www.mediawiki.org/wiki/API:Main_page
+api.wikimedia.org | Wikimedia | https://api.wikimedia.org/wiki/Main_Page
+newsapi.org | NewsAPI | https://newsapi.org/docs
+api.nytimes.com | New York Times | https://developer.nytimes.com/apis
+content.guardianapis.com | The Guardian | https://open-platform.theguardian.com/documentation/
+api.unsplash.com | Unsplash | https://unsplash.com/documentation
+api.pexels.com | Pexels | https://www.pexels.com/api/documentation/
+pixabay.com | Pixabay | https://pixabay.com/api/docs/
+api.giphy.com | Giphy | https://developers.giphy.com/docs/api
+api.imgur.com | Imgur | https://apidocs.imgur.com/
+api.deezer.com | Deezer | https://developers.deezer.com/api
+ws.audioscrobbler.com | Last.fm | https://www.last.fm/api
+api.genius.com | Genius | https://docs.genius.com/
+musicbrainz.org | MusicBrainz | https://musicbrainz.org/doc/MusicBrainz_API
+api.themoviedb.org | TMDB | https://developer.themoviedb.org/docs/getting-started
+www.omdbapi.com | OMDb API | https://www.omdbapi.com/
+graphql.anilist.co | AniList | https://docs.anilist.co/
+api.jikan.moe | Jikan | https://docs.api.jikan.moe/
+pokeapi.co | PokeAPI | https://pokeapi.co/docs/v2
+api.rawg.io | RAWG | https://rawg.io/apidocs
+api.igdb.com | IGDB | https://api-docs.igdb.com/
+api.steampowered.com | Steam Web API | https://steamcommunity.com/dev
+openlibrary.org | Open Library | https://openlibrary.org/developers/api
+api.dictionaryapi.dev | Free Dictionary API | https://dictionaryapi.dev/
+api.themealdb.com | TheMealDB | https://www.themealdb.com/api.php
+www.thecocktaildb.com | TheCocktailDB | https://www.thecocktaildb.com/api.php
+api.vimeo.com | Vimeo | https://developer.vimeo.com/api/reference
+api.mux.com | Mux | https://docs.mux.com/api-reference
+api.sanity.io | Sanity | https://www.sanity.io/docs/http-reference
+apicdn.sanity.io | Sanity | https://www.sanity.io/docs/http-reference/query
+graphql.datocms.com | DatoCMS | https://www.datocms.com/docs/content-delivery-api
+api.storyblok.com | Storyblok | https://www.storyblok.com/docs/api/content-delivery/v2
+api.webflow.com | Webflow | https://developers.webflow.com/data/reference/rest-introduction
+api.bigcommerce.com | BigCommerce | https://developer.bigcommerce.com/docs/rest-catalog
+api.squarespace.com | Squarespace | https://developers.squarespace.com/commerce-apis/overview
+api.ebay.com | eBay | https://developer.ebay.com/api-docs/static/ebay-rest-landing.html
+openapi.etsy.com | Etsy | https://developers.etsy.com/documentation/
+api.mercadolibre.com | Mercado Libre | https://developers.mercadolibre.com/en_us/api-docs
+api.printful.com | Printful | https://developers.printful.com/docs/
+api.printify.com | Printify | https://developers.printify.com/
+api.gumroad.com | Gumroad | https://app.gumroad.com/api
+ssapi.shipstation.com | ShipStation | https://www.shipstation.com/docs/api/
+api.shipengine.com | ShipEngine | https://www.shipengine.com/docs/
+apis.fedex.com | FedEx | https://developer.fedex.com/api/en-us/home.html
+onlinetools.ups.com | UPS | https://developer.ups.com/api/reference
+api-eu.dhl.com | DHL | https://developer.dhl.com/api-reference
+
+# Developer tools, hosting and observability
+gitlab.com | GitLab | https://docs.gitlab.com/api/rest/
+api.bitbucket.org | Bitbucket Cloud | https://developer.atlassian.com/cloud/bitbucket/rest/intro/
+api.vercel.com | Vercel | https://vercel.com/docs/rest-api
+api.netlify.com | Netlify | https://docs.netlify.com/api/get-started/
+api.heroku.com | Heroku | https://devcenter.heroku.com/articles/platform-api-reference
+api.digitalocean.com | DigitalOcean | https://docs.digitalocean.com/reference/api/
+api.linode.com | Linode | https://techdocs.akamai.com/linode-api/reference/api
+api.fly.io | Fly.io | https://fly.io/docs/machines/api/
+api.machines.dev | Fly.io Machines | https://fly.io/docs/machines/api/
+api.render.com | Render | https://api-docs.render.com/
+backboard.railway.app | Railway | https://docs.railway.com/reference/public-api
+hub.docker.com | Docker Hub | https://docs.docker.com/reference/api/hub/latest/
+pypi.org | PyPI | https://docs.pypi.org/api/
+crates.io | crates.io | https://crates.io/data-access
+rubygems.org | RubyGems | https://guides.rubygems.org/rubygems-org-api/
+api.nuget.org | NuGet | https://learn.microsoft.com/en-us/nuget/api/overview
+search.maven.org | Maven Central | https://central.sonatype.org/search/rest-api-guide/
+proxy.golang.org | Go module proxy | https://go.dev/ref/mod#goproxy-protocol
+api.snyk.io | Snyk | https://docs.snyk.io/snyk-api
+api.codecov.io | Codecov | https://docs.codecov.com/reference/overview
+api.buildkite.com | Buildkite | https://buildkite.com/docs/apis/rest-api
+api.osv.dev | OSV | https://google.github.io/osv.dev/api/
+api.deps.dev | deps.dev | https://docs.deps.dev/api/v3/
+services.nvd.nist.gov | NVD | https://nvd.nist.gov/developers/vulnerabilities
+api.datadoghq.com | Datadog | https://docs.datadoghq.com/api/latest/
+*.datadoghq.com | Datadog | https://docs.datadoghq.com/api/latest/
+api.newrelic.com | New Relic | https://docs.newrelic.com/docs/apis/intro-apis/introduction-new-relic-apis/
+api.pagerduty.com | PagerDuty | https://developer.pagerduty.com/api-reference/
+api.statuspage.io | Statuspage | https://developer.statuspage.io/
+api.launchdarkly.com | LaunchDarkly | https://apidocs.launchdarkly.com/
+api.rollbar.com | Rollbar | https://docs.rollbar.com/reference/getting-started-1
+api.bugsnag.com | Bugsnag | https://bugsnagapiv2.docs.apiary.io/
+api.honeybadger.io | Honeybadger | https://docs.honeybadger.io/api/
+api.axiom.co | Axiom | https://axiom.co/docs/restapi/introduction
+api.mixpanel.com | Mixpanel | https://developer.mixpanel.com/reference/overview
+api.amplitude.com | Amplitude | https://amplitude.com/docs/apis/analytics/http-v2
+us.i.posthog.com | PostHog | https://posthog.com/docs/api
+eu.i.posthog.com | PostHog | https://posthog.com/docs/api
+app.posthog.com | PostHog | https://posthog.com/docs/api
+api.plausible.io | Plausible | https://plausible.io/docs/stats-api
+api.upstash.com | Upstash | https://upstash.com/docs/devops/developer-api/introduction
+*.upstash.io | Upstash | https://upstash.com/docs/redis/features/restapi
+api.neon.tech | Neon | https://api-docs.neon.tech/reference/getting-started-with-neon-api
+api.planetscale.com | PlanetScale | https://api-docs.planetscale.com/
+api.turso.tech | Turso | https://docs.turso.tech/api-reference/introduction
+cloud.mongodb.com | MongoDB Atlas | https://www.mongodb.com/docs/atlas/api/
+api.trigger.dev | Trigger.dev | https://trigger.dev/docs/management/overview
+api.svix.com | Svix | https://api.svix.com/docs
+api.knock.app | Knock | https://docs.knock.app/reference
+api.courier.com | Courier | https://www.courier.com/docs/reference/
+api.novu.co | Novu | https://docs.novu.co/api-reference/overview
+api.onesignal.com | OneSignal | https://documentation.onesignal.com/reference/rest-api-overview
+exp.host | Expo Push | https://docs.expo.dev/push-notifications/sending-notifications/
+api.expo.dev | Expo | https://docs.expo.dev/eas/
+rest.ably.io | Ably | https://ably.com/docs/api/rest-api
+*.stream-io-api.com | Stream | https://getstream.io/chat/docs/rest/
+api.sendbird.com | Sendbird | https://sendbird.com/docs/chat/platform-api/v3/prepare-to-use-api
+hooks.zapier.com | Zapier | https://help.zapier.com/hc/en-us/articles/8496288690317-Trigger-Zaps-from-webhooks
+hook.eu1.make.com | Make | https://www.make.com/en/help/tools/webhooks
+maker.ifttt.com | IFTTT | https://ifttt.com/maker_webhooks
+api.ngrok.com | ngrok | https://ngrok.com/docs/api/
+api.apify.com | Apify | https://docs.apify.com/api/v2
+app.scrapingbee.com | ScrapingBee | https://www.scrapingbee.com/documentation/
+api.zenrows.com | ZenRows | https://docs.zenrows.com/universal-scraper-api/api-reference
+api.screenshotone.com | ScreenshotOne | https://screenshotone.com/docs/
+api.browserless.io | Browserless | https://docs.browserless.io/
+api.dub.co | Dub | https://dub.co/docs/api-reference/introduction
+api.bit.ly | Bitly | https://dev.bitly.com/
+api.tinyurl.com | TinyURL | https://tinyurl.com/app/dev
+api.cal.com | Cal.com | https://cal.com/docs/api-reference/v2/introduction
+
+# Business, productivity and email
+api.linear.app | Linear | https://linear.app/developers/graphql
+api.atlassian.com | Atlassian | https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/
+*.atlassian.net | Atlassian Cloud | https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/
+app.asana.com | Asana | https://developers.asana.com/reference/rest-api-reference
+api.trello.com | Trello | https://developer.atlassian.com/cloud/trello/rest/api-group-actions/
+api.monday.com | monday.com | https://developer.monday.com/api-reference/docs
+api.clickup.com | ClickUp | https://developer.clickup.com/reference
+api.todoist.com | Todoist | https://developer.todoist.com/api/v1/
+api.figma.com | Figma | https://www.figma.com/developers/api
+api.calendly.com | Calendly | https://developer.calendly.com/api-docs
+api.typeform.com | Typeform | https://www.typeform.com/developers/get-started/
+api.coda.io | Coda | https://coda.io/developers/apis/v1
+api.smartsheet.com | Smartsheet | https://developers.smartsheet.com/api/smartsheet
+api.harvestapp.com | Harvest | https://help.getharvest.com/api-v2/
+api.track.toggl.com | Toggl Track | https://engineering.toggl.com/docs/
+api.clockify.me | Clockify | https://docs.clockify.me/
+api.wakatime.com | WakaTime | https://wakatime.com/developers
+readwise.io | Readwise | https://readwise.io/api_deets
+api.raindrop.io | Raindrop.io | https://developer.raindrop.io/
+api.pipedrive.com | Pipedrive | https://developers.pipedrive.com/docs/api/v1
+*.zendesk.com | Zendesk | https://developer.zendesk.com/api-reference/
+*.freshdesk.com | Freshdesk | https://developers.freshdesk.com/api/
+api.helpscout.net | Help Scout | https://developer.helpscout.com/
+api.close.com | Close | https://developer.close.com/
+api.attio.com | Attio | https://developers.attio.com/reference
+www.zohoapis.com | Zoho | https://www.zoho.com/crm/developer/docs/api/v7/
+api.pandadoc.com | PandaDoc | https://developers.pandadoc.com/reference/about
+*.salesforce.com | Salesforce | https://developer.salesforce.com/docs/apis
+*.okta.com | Okta | https://developer.okta.com/docs/api/
+api.workos.com | WorkOS | https://workos.com/docs/reference
+api.stytch.com | Stytch | https://stytch.com/docs/api
+api.brevo.com | Brevo | https://developers.brevo.com/reference/getting-started-1
+api.mailjet.com | Mailjet | https://dev.mailjet.com/email/reference/
+api.sparkpost.com | SparkPost | https://developers.sparkpost.com/api/
+connect.mailerlite.com | MailerLite | https://developers.mailerlite.com/docs/
+api.kit.com | Kit | https://developers.kit.com/
+api.beehiiv.com | beehiiv | https://developers.beehiiv.com/
+app.loops.so | Loops | https://loops.so/docs/api-reference/intro
+api.useplunk.com | Plunk | https://docs.useplunk.com/api-reference/introduction
+rest.nexmo.com | Vonage | https://developer.vonage.com/en/api
+api.vonage.com | Vonage | https://developer.vonage.com/en/api
+api.messagebird.com | MessageBird | https://developers.messagebird.com/api/
+api.plivo.com | Plivo | https://www.plivo.com/docs/
+api.telnyx.com | Telnyx | https://developers.telnyx.com/api/overview
+api.hunter.io | Hunter | https://hunter.io/api-documentation
+api.apollo.io | Apollo.io | https://docs.apollo.io/reference/
+haveibeenpwned.com | Have I Been Pwned | https://haveibeenpwned.com/API/v3
+www.virustotal.com | VirusTotal | https://docs.virustotal.com/reference/overview
+api.shodan.io | Shodan | https://developer.shodan.io/api
+api.hcaptcha.com | hCaptcha | https://docs.hcaptcha.com/
+api.census.gov | US Census Bureau | https://www.census.gov/data/developers/guidance/api-user-guide.html
+api.congress.gov | Congress.gov | https://api.congress.gov/
+api.usaspending.gov | USAspending | https://api.usaspending.gov/
+api.fda.gov | openFDA | https://open.fda.gov/apis/
+api.crossref.org | Crossref | https://www.crossref.org/documentation/retrieve-metadata/rest-api/
+api.openalex.org | OpenAlex | https://docs.openalex.org/
+export.arxiv.org | arXiv | https://info.arxiv.org/help/api/index.html
+api.semanticscholar.org | Semantic Scholar | https://api.semanticscholar.org/api-docs/
+eutils.ncbi.nlm.nih.gov | NCBI E-utilities | https://www.ncbi.nlm.nih.gov/books/NBK25497/
+api.zotero.org | Zotero | https://www.zotero.org/support/dev/web_api/v3/start
+api.spoonacular.com | Spoonacular | https://spoonacular.com/food-api/docs
+api.edamam.com | Edamam | https://developer.edamam.com/
+api.fitbit.com | Fitbit | https://dev.fitbit.com/build/reference/web-api/
+api.ouraring.com | Oura | https://cloud.ouraring.com/v2/docs
+www.strava.com | Strava | https://developers.strava.com/docs/reference/
+api.football-data.org | football-data.org | https://www.football-data.org/documentation/quickstart
+v3.football.api-sports.io | API-Football | https://www.api-football.com/documentation-v3
+opensky-network.org | OpenSky Network | https://openskynetwork.github.io/opensky-api/rest.html
+jsonplaceholder.typicode.com | JSONPlaceholder | https://jsonplaceholder.typicode.com/
+reqres.in | ReqRes | https://reqres.in/
+dummyjson.com | DummyJSON | https://dummyjson.com/docs
+fakestoreapi.com | Fake Store API | https://fakestoreapi.com/docs
+httpbin.org | httpbin | https://httpbin.org/
+catfact.ninja | Cat Facts | https://catfact.ninja/
+api.thecatapi.com | The Cat API | https://developers.thecatapi.com/
+api.thedogapi.com | The Dog API | https://thedogapi.com/
+dog.ceo | Dog CEO | https://dog.ceo/dog-api/documentation

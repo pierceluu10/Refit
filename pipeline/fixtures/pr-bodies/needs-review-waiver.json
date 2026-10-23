@@ -1,0 +1,373 @@
+{
+  "formatVersion": 1,
+  "provider": "stripe-full",
+  "adapter": {
+    "id": "stripe-full",
+    "packageName": "stripe",
+    "defaultImport": true,
+    "namedExport": "Stripe",
+    "operations": [
+      {
+        "resource": "billingPortal.sessions",
+        "method": "create",
+        "schema": "billing_portal.session",
+        "operationId": "PostBillingPortalSessions"
+      },
+      {
+        "resource": "checkout.sessions",
+        "method": "create",
+        "schema": "checkout.session",
+        "operationId": "PostCheckoutSessions"
+      },
+      {
+        "resource": "subscriptions",
+        "method": "retrieve",
+        "schema": "subscription",
+        "operationId": "GetSubscriptionsSubscriptionExposedId"
+      }
+    ],
+    "constructorCalls": true,
+    "apiVersion": {
+      "constructorArgument": 1,
+      "property": "apiVersion",
+      "requestArguments": [1, 2]
+    }
+  },
+  "runId": "f87feb0a19dc400c870378992e9d67bd6597189dd1ee38c4208c878cfbe8a1b1",
+  "apiVersion": {
+    "application": "2023-08-16",
+    "before": "2023-08-16",
+    "after": "2026-09-30.endive",
+    "applicability": "matches-before",
+    "reason": "Application API version 2023-08-16 matches the before contract.",
+    "policy": "operator-pin",
+    "source": {
+      "status": "verified",
+      "declarations": [
+        {
+          "file": "lib/stripe.js",
+          "line": 13,
+          "column": 23,
+          "kind": "constructor",
+          "value": "2023-08-16",
+          "status": "literal",
+          "reason": "Literal SDK constructor API-version option."
+        },
+        {
+          "file": "app/api/stripe/route.js",
+          "line": 32,
+          "column": 35,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "app/api/stripe/route.js",
+          "line": 40,
+          "column": 33,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "app/api/webhook/route.js",
+          "line": 44,
+          "column": 36,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "app/api/webhook/route.js",
+          "line": 69,
+          "column": 40,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        }
+      ],
+      "reason": "All supported SDK constructor declarations and request overrides match the operator pin under the recorded adapter mapping."
+    }
+  },
+  "findings": [
+    {
+      "file": "app/api/stripe/route.js",
+      "line": 42,
+      "column": 7,
+      "changeId": "request-parameter:PostCheckoutSessions.payment_method_types",
+      "expression": "checkout.sessions.create argument[0].payment_method_types",
+      "confidence": "confirmed",
+      "reason": "The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior."
+    },
+    {
+      "file": "app/api/webhook/route.js",
+      "line": 58,
+      "column": 45,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "confirmed",
+      "subscriptionPeriod": {
+        "rareCase": "item-in-code",
+        "selection": "items.data[0]"
+      },
+      "reason": "Removed field read on a statically traced stripe-full subscription response."
+    },
+    {
+      "file": "app/api/webhook/route.js",
+      "line": 70,
+      "column": 17,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "webhook": {
+        "eventTypes": ["invoice_payment_succeeded"],
+        "origin": {
+          "file": "app/api/webhook/route.js",
+          "line": 26,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "app/api/webhook/route.js",
+      "line": 70,
+      "column": 17,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "webhook": {
+        "eventTypes": ["invoice_payment_succeeded"],
+        "origin": {
+          "file": "app/api/webhook/route.js",
+          "line": 26,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "app/api/webhook/route.js",
+      "line": 75,
+      "column": 191,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "confirmed",
+      "subscriptionPeriod": {
+        "rareCase": "item-in-code",
+        "selection": "items.data[0]"
+      },
+      "reason": "Removed field read on a statically traced stripe-full subscription response."
+    }
+  ],
+  "operationChanges": [],
+  "patch": {
+    "generator": "deterministic",
+    "summary": "Move removed Stripe field reads to their documented new locations, replace payment_method_types: ['card'] with allowed_payment_method_types, and update the pinned Stripe API version.",
+    "status": "proposed",
+    "edits": 6,
+    "unresolvedFindings": 2,
+    "diff": "diff --git \"a/app/api/stripe/route.js\" \"b/app/api/stripe/route.js\"\n--- \"a/app/api/stripe/route.js\"\n+++ \"b/app/api/stripe/route.js\"\n@@ -1,73 +1,73 @@\n-import { auth, currentUser } from \"@clerk/nextjs\";\n-import { NextResponse } from \"next/server\";\n-import tribodb from \"@/postgresql/connectDB\";\n-import { stripe } from \"@/lib/stripe\";\n-import { absoluteUrl } from \"@/lib/utils\";\n-\n-// Create a setting URL\n-const settingsUrl = absoluteUrl(\"/settings\");\n-\n-export async function GET() {\n-  try {\n-    const { userId } = auth();\n-    // Get the userId and User obj from Clerk\n-    const user = await currentUser();\n-\n-    // If the user is not logged in, send Unauthorized\n-    if (!userId || !user) {\n-      return new NextResponse(\"Unauthorized\", { status: 401 });\n-    }\n-\n-    // Find the user subscription based on current user id\n-    const userSubscription = await tribodb.query(\n-      `SELECT stripeCustomerId FROM usersubscription WHERE userId = $1`,\n-      [user.id]\n-    );\n-\n-\n-    \n-\n-    // If user is subscribed, send a redirect to the settings page\n-    if (userSubscription.rows.length > 0 && userSubscription.rows[0].stripeCustomerId) {\n-      const stripeSession = await stripe.billingPortal.sessions.create({\n-        customer: userSubscription.rows[0].stripeCustomerId,\n-        return_url: settingsUrl,\n-      });\n-      return new NextResponse(JSON.stringify({ url: stripeSession.url }));\n-    }\n-\n-    // If user is not subscribed, send a redirect to the checkout page\n-    const stripeSession = await stripe.checkout.sessions.create({\n-      mode: \"subscription\",\n-      payment_method_types: [\"card\"],\n-      billing_address_collection: \"auto\",\n-      line_items: [\n-        {\n-          price_data: {\n-            currency: \"usd\",\n-            product_data: {\n-              name: \"TriboAI Pro\",\n-              description: \"Unlimited access to TriboAI Pro\",\n-            },\n-            unit_amount: 799,\n-            recurring: {\n-              interval: \"month\",\n-            },\n-          },\n-          quantity: 1,\n-        },\n-      ],\n-      metadata: {\n-        userId: userId,\n-      },\n-      success_url: settingsUrl,\n-      cancel_url: settingsUrl,\n-      customer_email: user.emailAddresses[0].emailAddress,\n-    });\n-\n-    return new NextResponse(JSON.stringify({ url: stripeSession.url }));\n-  } catch (error) {\n-    console.log(\"STRIPE_ERROR: \", error.message);\n-    return new NextResponse(\"Internal Error\", { status: 500 });\n-  }\n-}\n+import { auth, currentUser } from \"@clerk/nextjs\";\n+import { NextResponse } from \"next/server\";\n+import tribodb from \"@/postgresql/connectDB\";\n+import { stripe } from \"@/lib/stripe\";\n+import { absoluteUrl } from \"@/lib/utils\";\n+\n+// Create a setting URL\n+const settingsUrl = absoluteUrl(\"/settings\");\n+\n+export async function GET() {\n+  try {\n+    const { userId } = auth();\n+    // Get the userId and User obj from Clerk\n+    const user = await currentUser();\n+\n+    // If the user is not logged in, send Unauthorized\n+    if (!userId || !user) {\n+      return new NextResponse(\"Unauthorized\", { status: 401 });\n+    }\n+\n+    // Find the user subscription based on current user id\n+    const userSubscription = await tribodb.query(\n+      `SELECT stripeCustomerId FROM usersubscription WHERE userId = $1`,\n+      [user.id]\n+    );\n+\n+\n+    \n+\n+    // If user is subscribed, send a redirect to the settings page\n+    if (userSubscription.rows.length > 0 && userSubscription.rows[0].stripeCustomerId) {\n+      const stripeSession = await stripe.billingPortal.sessions.create({\n+        customer: userSubscription.rows[0].stripeCustomerId,\n+        return_url: settingsUrl,\n+      });\n+      return new NextResponse(JSON.stringify({ url: stripeSession.url }));\n+    }\n+\n+    // If user is not subscribed, send a redirect to the checkout page\n+    const stripeSession = await stripe.checkout.sessions.create({\n+      mode: \"subscription\",\n+      allowed_payment_method_types: [\"card\"],\n+      billing_address_collection: \"auto\",\n+      line_items: [\n+        {\n+          price_data: {\n+            currency: \"usd\",\n+            product_data: {\n+              name: \"TriboAI Pro\",\n+              description: \"Unlimited access to TriboAI Pro\",\n+            },\n+            unit_amount: 799,\n+            recurring: {\n+              interval: \"month\",\n+            },\n+          },\n+          quantity: 1,\n+        },\n+      ],\n+      metadata: {\n+        userId: userId,\n+      },\n+      success_url: settingsUrl,\n+      cancel_url: settingsUrl,\n+      customer_email: user.emailAddresses[0].emailAddress,\n+    });\n+\n+    return new NextResponse(JSON.stringify({ url: stripeSession.url }));\n+  } catch (error) {\n+    console.log(\"STRIPE_ERROR: \", error.message);\n+    return new NextResponse(\"Internal Error\", { status: 500 });\n+  }\n+}\ndiff --git \"a/app/api/webhook/route.js\" \"b/app/api/webhook/route.js\"\n--- \"a/app/api/webhook/route.js\"\n+++ \"b/app/api/webhook/route.js\"\n@@ -1,82 +1,83 @@\n-import { headers } from \"next/headers\";\n-import { NextResponse } from \"next/server\";\n-import Stripe from \"stripe\";\n-import tribodb from \"@/postgresql/connectDB\";\n-\n-import { stripe } from \"@/lib/stripe\";\n-\n- \n-\n-\n-export async function POST(req) {\n-\n-\n-    \n-    \n-    \n-        \n-    const body = await req.text();\n-    const signature = headers().get('Stripe-Signature').trim();\n-\n-\n-    let event;\n-\n-    try{\n-\n-        event = stripe.webhooks.constructEvent(\n-            body,\n-             signature,\n-             process.env.STRIPE_WEBHOOK_SECRET,\n-              );\n-\n-\n-    }catch(err){\n-        console.log(\"WEBHOOK_ERROR: \", err.message);\n-        return new NextResponse(`Webhook Error ${err.message}`, {\n-            \n-            status: 400 });\n-    }\n-\n-    const session = event.data.object;\n-\n-    // Handle the checkout.session.completed event\n-    if (event.type === 'checkout.session.completed') {\n-        const subscription = await stripe.subscriptions.retrieve(session.subscription);\n-\n-        if(!session?.metadata?.userId){\n-            return new NextResponse(\"UserId is required \", { status: 400 });\n-        }\n-        console.log(\"EVENT \", event.data)\n-\n-         // Extract necessary data\n-    const userId = session.metadata.userId;\n-    const name = session.customer_details.name;\n-    const email = session.customer_details.email;\n-    const stripeCustomerId = subscription.customer;\n-    const stripeSubscriptionId = subscription.id;\n-    const stripePriceId = subscription.items.data[0].price.id;\n-    const stripeCurrentPeriodEnd = new Date(subscription.current_period_end * 1000)\n-\n-        // Add the user subscription to the database\n-        await tribodb.query(`INSERT INTO usersubscription (userId, name, email, stripeCustomerId, stripeSubscriptionId, stripePriceId, stripeCurrentPeriodEnd) \n-    VALUES ($1, $2, $3, $4, $5, $6, $7)`, \n-    [userId, name, email, stripeCustomerId, stripeSubscriptionId, stripePriceId, stripeCurrentPeriodEnd]);\n-\n-console.log(\"Checkout session completed: \", email);\n-    }\n-\n-        if(event.type === \"invoice_payment_succeeded\"){\n-            const subscription = await stripe.subscriptions.retrieve(\n-                session.subscription\n-            );\n-\n-            \n-\n-            await tribodb.query(`UPDATE usersubscription SET stripePriceId = $1, stripeCurrentPeriodEnd = $2 WHERE stripeSubscriptionId = $3`, [subscription.items.data[0].price.id, new Date(subscription.current_period_end * 1000), subscription.id]);\n-            console.log(\"INVOICE PAYMENT SUCCEEDED: \", event.data.object.customer_details.email);\n-\n-\n-        }           \n-\n-        return new NextResponse( session, { status: 200 })\n-}\n\\ No newline at end of file\n+import { headers } from \"next/headers\";\n+import { NextResponse } from \"next/server\";\n+import Stripe from \"stripe\";\n+import tribodb from \"@/postgresql/connectDB\";\n+\n+import { stripe } from \"@/lib/stripe\";\n+import { getSubscriptionPeriodEnd } from './stripe-subscription-period.js';\n+\n+ \n+\n+\n+export async function POST(req) {\n+\n+\n+    \n+    \n+    \n+        \n+    const body = await req.text();\n+    const signature = headers().get('Stripe-Signature').trim();\n+\n+\n+    let event;\n+\n+    try{\n+\n+        event = stripe.webhooks.constructEvent(\n+            body,\n+             signature,\n+             process.env.STRIPE_WEBHOOK_SECRET,\n+              );\n+\n+\n+    }catch(err){\n+        console.log(\"WEBHOOK_ERROR: \", err.message);\n+        return new NextResponse(`Webhook Error ${err.message}`, {\n+            \n+            status: 400 });\n+    }\n+\n+    const session = event.data.object;\n+\n+    // Handle the checkout.session.completed event\n+    if (event.type === 'checkout.session.completed') {\n+        const subscription = await stripe.subscriptions.retrieve(session.subscription);\n+\n+        if(!session?.metadata?.userId){\n+            return new NextResponse(\"UserId is required \", { status: 400 });\n+        }\n+        console.log(\"EVENT \", event.data)\n+\n+         // Extract necessary data\n+    const userId = session.metadata.userId;\n+    const name = session.customer_details.name;\n+    const email = session.customer_details.email;\n+    const stripeCustomerId = subscription.customer;\n+    const stripeSubscriptionId = subscription.id;\n+    const stripePriceId = subscription.items.data[0].price.id;\n+    const stripeCurrentPeriodEnd = new Date((getSubscriptionPeriodEnd(subscription, (items) => items[0])) * 1000)\n+\n+        // Add the user subscription to the database\n+        await tribodb.query(`INSERT INTO usersubscription (userId, name, email, stripeCustomerId, stripeSubscriptionId, stripePriceId, stripeCurrentPeriodEnd) \n+    VALUES ($1, $2, $3, $4, $5, $6, $7)`, \n+    [userId, name, email, stripeCustomerId, stripeSubscriptionId, stripePriceId, stripeCurrentPeriodEnd]);\n+\n+console.log(\"Checkout session completed: \", email);\n+    }\n+\n+        if(event.type === \"invoice_payment_succeeded\"){\n+            const subscription = await stripe.subscriptions.retrieve(\n+                session.subscription\n+            );\n+\n+            \n+\n+            await tribodb.query(`UPDATE usersubscription SET stripePriceId = $1, stripeCurrentPeriodEnd = $2 WHERE stripeSubscriptionId = $3`, [subscription.items.data[0].price.id, new Date((getSubscriptionPeriodEnd(subscription, (items) => items[0])) * 1000), subscription.id]);\n+            console.log(\"INVOICE PAYMENT SUCCEEDED: \", event.data.object.customer_details.email);\n+\n+\n+        }           \n+\n+        return new NextResponse( session, { status: 200 })\n+}\n\\ No newline at end of file\ndiff --git \"a/lib/stripe.js\" \"b/lib/stripe.js\"\n--- \"a/lib/stripe.js\"\n+++ \"b/lib/stripe.js\"\n@@ -1,15 +1,15 @@\n-import Stripe from 'stripe';\n-\n-// Create a Stripe client.import Stripe from 'stripe';\n-\n-let stripeSecretKey = '';\n-\n-if (process.env.NODE_ENV === 'production') {\n-    stripeSecretKey = process.env.STRIPE_SECRET_KEY;\n-} else {\n-    stripeSecretKey = process.env.STRIPE_SECRET_KEY_TEST;\n-}\n-\n-export const stripe = new Stripe(stripeSecretKey, {\n-    apiVersion: '2023-08-16'\n-});\n+import Stripe from 'stripe';\n+\n+// Create a Stripe client.import Stripe from 'stripe';\n+\n+let stripeSecretKey = '';\n+\n+if (process.env.NODE_ENV === 'production') {\n+    stripeSecretKey = process.env.STRIPE_SECRET_KEY;\n+} else {\n+    stripeSecretKey = process.env.STRIPE_SECRET_KEY_TEST;\n+}\n+\n+export const stripe = new Stripe(stripeSecretKey, {\n+    apiVersion: '2026-09-30.endive'\n+});\ndiff --git \"a/app/api/webhook/stripe-subscription-period.js\" \"b/app/api/webhook/stripe-subscription-period.js\"\nnew file mode 100644\n--- /dev/null\n+++ \"b/app/api/webhook/stripe-subscription-period.js\"\n@@ -0,0 +1,47 @@\n+function subscriptionPeriod(subscription, field, planItem) {\n+  const legacy = Reflect.get(subscription, field);\n+  if (typeof legacy === 'number') return legacy;\n+  const list = Reflect.get(subscription, 'items');\n+  const data = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n+  const items = (Array.isArray(data) ? data : []).filter(\n+    (item) => typeof item === 'object' && item !== null,\n+  );\n+  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n+  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n+  const value = chosen ? Reflect.get(chosen, field) : undefined;\n+  return typeof value === 'number' ? value : undefined;\n+}\n+\n+export function getSubscriptionPeriodStart(subscription, planItem) {\n+  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n+}\n+\n+export function getSubscriptionPeriodEnd(subscription, planItem) {\n+  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n+}\n+\n+// The old top-level field when present (old-version payloads), otherwise the new location.\n+export function getInvoiceSubscription(invoice) {\n+  const legacy = Reflect.get(invoice, 'subscription');\n+  const parent = Reflect.get(invoice, 'parent');\n+  const details =\n+    parent && typeof parent === 'object' ? Reflect.get(parent, 'subscription_details') : undefined;\n+  const moved =\n+    details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;\n+  return (legacy !== undefined ? legacy : (moved ?? null));\n+}\n+\n+// The old Price object's ID when present (old-version payloads), otherwise the price at\n+// pricing.price_details: an ID, or a Price when expanded.\n+export function getInvoicePriceId(line) {\n+  const legacy = Reflect.get(line, 'price');\n+  const pricing = legacy === undefined ? Reflect.get(line, 'pricing') : undefined;\n+  const details =\n+    pricing && typeof pricing === 'object' && Reflect.get(pricing, 'type') === 'price_details'\n+      ? Reflect.get(pricing, 'price_details')\n+      : undefined;\n+  const price =\n+    legacy !== undefined ? legacy : details && typeof details === 'object' ? Reflect.get(details, 'price') : undefined;\n+  const id = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;\n+  return typeof id === 'string' ? id : undefined;\n+}\n",
+    "validation": "passed",
+    "warnings": [
+      "Subscription periods are read through a generated helper: the old subscription-level field when present (old-version events), otherwise the period every item shares, otherwise the item the application already selects or the configured price policy. Webhook endpoints are not changed.",
+      "payment_method_types: ['card'] becomes allowed_payment_method_types: ['card'] under the owner-approved policy. In 2026-09-30.endive it filters the payment methods Stripe finds eligible instead of listing them, so keep cards enabled in the Stripe Dashboard or the payment method configuration this account uses.",
+      "The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.",
+      "Patch contains source code. Review it for sensitive content before sharing."
+    ],
+    "source": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end",
+    "ruleEdits": [
+      {
+        "file": "app/api/stripe/route.js",
+        "start": 1402,
+        "end": 1422,
+        "replacement": "allowed_payment_method_types",
+        "changeId": "request-parameter:PostCheckoutSessions.payment_method_types",
+        "rule": "stripe-card-allowed-payment-method-types"
+      },
+      {
+        "file": "app/api/webhook/route.js",
+        "start": 1523,
+        "end": 1554,
+        "replacement": "(getSubscriptionPeriodEnd(subscription, (items) => items[0]))",
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "rule": "stripe-subscription-periods-helper"
+      },
+      {
+        "file": "app/api/webhook/route.js",
+        "start": 2370,
+        "end": 2401,
+        "replacement": "(getSubscriptionPeriodEnd(subscription, (items) => items[0]))",
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "rule": "stripe-subscription-periods-helper"
+      },
+      {
+        "file": "app/api/webhook/stripe-subscription-period.js",
+        "start": 0,
+        "end": 0,
+        "replacement": "function subscriptionPeriod(subscription, field, planItem) {\n  const legacy = Reflect.get(subscription, field);\n  if (typeof legacy === 'number') return legacy;\n  const list = Reflect.get(subscription, 'items');\n  const data = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n  const items = (Array.isArray(data) ? data : []).filter(\n    (item) => typeof item === 'object' && item !== null,\n  );\n  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n  const value = chosen ? Reflect.get(chosen, field) : undefined;\n  return typeof value === 'number' ? value : undefined;\n}\n\nexport function getSubscriptionPeriodStart(subscription, planItem) {\n  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n}\n\nexport function getSubscriptionPeriodEnd(subscription, planItem) {\n  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n}\n\n// The old top-level field when present (old-version payloads), otherwise the new location.\nexport function getInvoiceSubscription(invoice) {\n  const legacy = Reflect.get(invoice, 'subscription');\n  const parent = Reflect.get(invoice, 'parent');\n  const details =\n    parent && typeof parent === 'object' ? Reflect.get(parent, 'subscription_details') : undefined;\n  const moved =\n    details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;\n  return (legacy !== undefined ? legacy : (moved ?? null));\n}\n\n// The old Price object's ID when present (old-version payloads), otherwise the price at\n// pricing.price_details: an ID, or a Price when expanded.\nexport function getInvoicePriceId(line) {\n  const legacy = Reflect.get(line, 'price');\n  const pricing = legacy === undefined ? Reflect.get(line, 'pricing') : undefined;\n  const details =\n    pricing && typeof pricing === 'object' && Reflect.get(pricing, 'type') === 'price_details'\n      ? Reflect.get(pricing, 'price_details')\n      : undefined;\n  const price =\n    legacy !== undefined ? legacy : details && typeof details === 'object' ? Reflect.get(details, 'price') : undefined;\n  const id = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;\n  return typeof id === 'string' ? id : undefined;\n}\n",
+        "changeId": "stripe-subscription-period-helper",
+        "rule": "stripe-subscription-periods-helper"
+      },
+      {
+        "file": "app/api/webhook/route.js",
+        "start": 198,
+        "end": 198,
+        "replacement": "\nimport { getSubscriptionPeriodEnd } from './stripe-subscription-period.js';",
+        "changeId": "stripe-subscription-period-helper",
+        "rule": "stripe-subscription-periods-helper"
+      },
+      {
+        "file": "lib/stripe.js",
+        "start": 350,
+        "end": 360,
+        "replacement": "2026-09-30.endive",
+        "changeId": "stripe-api-version",
+        "rule": "stripe-api-version"
+      }
+    ]
+  },
+  "validation": {
+    "status": "passed",
+    "revision": "48d5b9a124d3ec8b9b2cf9528575b707d12348d8",
+    "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+    "environment": {
+      "formatVersion": 1,
+      "kind": "refit-npm-environment",
+      "signature": "c24c96728e60c70355e3a9e097c278edc71da22a0184beb24c6413fd880b7e23",
+      "recipeVersion": 4,
+      "image": "sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+      "packageHash": "f1004f2093bb997b284f1b2d16eaf0e0e1b14cf20b36de8a3b931006cf9ca3c3",
+      "lockHash": "4dd5cd1504a86212b3a080fbf86dcd68fb2bb12040e5d18e9738b37e874dd8ed",
+      "packages": 635,
+      "manager": "npm",
+      "nodeVersion": "v22.23.3",
+      "npmVersion": "10.9.9",
+      "archiveHash": "a7624408ab31f725094c7184b21183f0855d72deca6bd9d945914fbaf42303b7",
+      "archiveBytes": 532354560,
+      "installation": {
+        "network": "bridge",
+        "lifecycleScripts": false,
+        "registry": "https://registry.npmjs.org",
+        "timeoutMs": 300000,
+        "workspace": "2g",
+        "memory": "3g"
+      },
+      "validation": {
+        "network": "none"
+      },
+      "reused": true
+    },
+    "command": ["node", "-e", "0"],
+    "baselineCommand": ["node", "-e", "0"],
+    "archiveHash": "a4650971b72b5bca3f426d01c620704af0b3e2067435bd9916149d8d7491b915",
+    "patchHash": "c0aebcfdf045c6dab3eae8aa9476d92a5715c8668ae81a5e77515b87dff9dfa2",
+    "baseline": {
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "patched": {
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "generated": {
+      "engine": "stripe-mock",
+      "image": "sha256:aeb96b83e87a893d2ac005e363ac01ffa6e59a5ad85b49c155dfc9129de02e78",
+      "binaryHash": "a14f5b5e15c6fa21c3c399438c6e5f47f0c7732ec882a3e0e775c309d96c1a5c",
+      "inputs": {
+        "before": {
+          "contract": "dd73c77161a468d1b664a93f06be666e0e687e289b504805a841cb2422114182",
+          "fixtures": "d0e1d11af4bb7c4c6030b4a6e7e4d48af898491152cf79816b844f2aaf34f4c0"
+        },
+        "after": {
+          "contract": "7cff4cc46d0654101a36a3302f7544640f5f73e4f3cad6f264f0e23c19fa1776",
+          "fixtures": "e6822f7ee6fd71bdde6228537368aafcfb7191109340fe119d9aca27c6e9396d"
+        }
+      },
+      "entryPoints": [
+        {
+          "file": "app/api/stripe/route.js",
+          "name": "GET",
+          "parameters": 0
+        },
+        {
+          "file": "app/api/webhook/route.js",
+          "name": "POST",
+          "parameters": 1
+        }
+      ],
+      "uncoveredFindings": 0,
+      "notRunnable": [
+        {
+          "id": "app/api/stripe/route.js#GET",
+          "error": "Error: Cannot find module '/workspace/node_modules/next/server' imported from /workspace/app/api/stripe/route.js\nDid you mean to import \"next/server.js\"?"
+        },
+        {
+          "id": "app/api/webhook/route.js#POST",
+          "error": "Error: Cannot find module '/workspace/node_modules/next/headers' imported from /workspace/app/api/webhook/route.js\nDid you mean to import \"next/headers.js\"?"
+        }
+      ],
+      "regressions": [],
+      "baseline": {
+        "status": "passed",
+        "exitCode": 0,
+        "stdout": "REFIT_GENERATED_RESULT={\"id\":\"app/api/stripe/route.js#GET\",\"ok\":false,\"error\":\"Error: Cannot find module '/workspace/node_modules/next/server' imported from /workspace/app/api/stripe/route.js\\nDid you mean to import \\\"next/server.js\\\"?\"}\nREFIT_GENERATED_RESULT={\"id\":\"app/api/webhook/route.js#POST\",\"ok\":false,\"error\":\"Error: Cannot find module '/workspace/node_modules/next/headers' imported from /workspace/app/api/webhook/route.js\\nDid you mean to import \\\"next/headers.js\\\"?\"}\n",
+        "stderr": "(node:1) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/app/api/stripe/route.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /workspace/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+      },
+      "patched": {
+        "status": "passed",
+        "exitCode": 0,
+        "stdout": "REFIT_GENERATED_RESULT={\"id\":\"app/api/stripe/route.js#GET\",\"ok\":false,\"error\":\"Error: Cannot find module '/workspace/node_modules/next/server' imported from /workspace/app/api/stripe/route.js\\nDid you mean to import \\\"next/server.js\\\"?\"}\nREFIT_GENERATED_RESULT={\"id\":\"app/api/webhook/route.js#POST\",\"ok\":false,\"error\":\"Error: Cannot find module '/workspace/node_modules/next/headers' imported from /workspace/app/api/webhook/route.js\\nDid you mean to import \\\"next/headers.js\\\"?\"}\n",
+        "stderr": "(node:1) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/app/api/stripe/route.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /workspace/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+      },
+      "claim": "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests."
+    },
+    "attempts": [],
+    "repair": {
+      "limit": 1,
+      "requested": 0,
+      "stopReason": "not-needed-or-disabled",
+      "error": null
+    },
+    "limits": {
+      "timeoutMs": 120000,
+      "outputBytes": 1048576,
+      "network": "none",
+      "workspace": "2g",
+      "memory": "3g"
+    },
+    "publishable": false,
+    "reason": "Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review."
+  },
+  "changes": [
+    {
+      "id": "eefe4ea32b74e64919fbc645",
+      "schema": "invoice",
+      "property": "subscription",
+      "pointer": "/components/schemas/invoice/properties/subscription"
+    },
+    {
+      "id": "e57f26ccd809b93316d0a9aa",
+      "schema": "invoiceitem",
+      "property": "subscription",
+      "pointer": "/components/schemas/invoiceitem/properties/subscription"
+    },
+    {
+      "id": "1b1240130d2bdc263d4cb66a",
+      "schema": "subscription",
+      "property": "current_period_end",
+      "pointer": "/components/schemas/subscription/properties/current_period_end"
+    }
+  ],
+  "storedResult": "refit-stripe-fresh/run-6d4f38a-c/repos/MeldinRadoncic__TriboAI/run/report.json"
+}

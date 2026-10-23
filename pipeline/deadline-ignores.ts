@@ -1,7 +1,7 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import type { DeadlineExposure } from './deadline-exposure.ts';
-import { daysUntil } from './deadline-registry.ts';
+import type { ReportedExposure } from './deadline-exposure.ts';
+import { daysUntil, reportOnly } from './deadline-registry.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -161,7 +161,7 @@ export interface IgnoreDecision {
 // its live evidence is covered: a repository-wide entry covers everything, and path-scoped entries
 // must cover every listed file and cannot vouch for matches past the listing limit.
 export function applyDeadlineIgnores(
-  exposures: DeadlineExposure[],
+  exposures: ReportedExposure[],
   ignores: DeadlineIgnore[],
   knownDeadlines: ReadonlySet<string>,
   now: Date,
@@ -211,14 +211,23 @@ export function parseFailWithin(value: string) {
 }
 
 // The CI decision: a live exposure fails when its deadline is today, past or within the window,
-// unless a reviewed ignore accepts it.
+// unless a reviewed ignore accepts it. A deadline that has already passed keeps failing (owner
+// decision, 2026-10-22) unless `allowPastDue` names it (`--allow-past-due`), which turns it into a
+// warning. That never applies to a deadline that has not passed yet.
 export function deadlineCheck(
-  exposures: DeadlineExposure[],
+  exposures: ReportedExposure[],
   decisions: ReadonlyMap<string, IgnoreDecision>,
   failWithin: number,
+  allowPastDue: ReadonlySet<string> = new Set(),
 ) {
-  const due = exposures.filter((exposure) => exposure.days <= failWithin);
-  const failing = due.filter((exposure) => !decisions.get(exposure.deadline.id)?.ignoredBy.length);
+  const due = exposures.filter(
+    (exposure) => exposure.days <= failWithin && !reportOnly(exposure.deadline),
+  );
+  const open = due.filter((exposure) => !decisions.get(exposure.deadline.id)?.ignoredBy.length);
+  const allowed = open.filter(
+    (exposure) => exposure.days < 0 && allowPastDue.has(exposure.deadline.id),
+  );
+  const failing = open.filter((exposure) => !allowed.includes(exposure));
   return {
     failWithin,
     status: failing.length ? ('fail' as const) : ('pass' as const),
@@ -226,5 +235,23 @@ export function deadlineCheck(
     ignored: due
       .filter((exposure) => decisions.get(exposure.deadline.id)?.ignoredBy.length)
       .map((exposure) => exposure.deadline.id),
+    // Past-due exposures --allow-past-due turned into warnings; left out when there are none.
+    ...(allowed.length ? { allowed: allowed.map((exposure) => exposure.deadline.id) } : {}),
   };
+}
+
+// `--allow-past-due a --allow-past-due b,c` as registry IDs. An ID the registry does not have is an
+// error, so a typo never silences nothing quietly.
+export function parseAllowPastDue(values: string[], known: ReadonlySet<string>) {
+  const ids = values.flatMap((value) => value.split(',')).map((id) => id.trim());
+  if (ids.some((id) => !id))
+    throw new PipelineInputError(
+      '--allow-past-due takes registry deadline IDs, such as algolia-javascript-client-v4.',
+    );
+  const unknown = ids.filter((id) => !known.has(id));
+  if (unknown.length)
+    throw new PipelineInputError(
+      `--allow-past-due: ${unknown.join(', ')} ${unknown.length === 1 ? 'is not a deadline ID' : 'are not deadline IDs'} in the registry. \`refit deadlines --json\` lists the IDs.`,
+    );
+  return new Set(ids);
 }

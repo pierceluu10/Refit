@@ -1,13 +1,29 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
+import {
+  checkoutError,
+  classifyRow,
+  finishedRow,
+  json,
+  openRunDirectory,
+  startRun,
+} from '../scripts/benchmark-harness.mjs';
+import { assertResults } from '../scripts/benchmark-results.mjs';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
 import { lockedShopifyApi } from './shopify-pipeline.ts';
-import { enumFromVersion, latestApiVersion, sdkHasEnumMember } from './shopify-versions.ts';
+import { SHOPIFY_API, SHOPIFY_SDK_MAJORS } from './shopify-sdk-upgrade.ts';
+import {
+  enumFromVersion,
+  latestApiVersion,
+  SHOPIFY_API_ENUM_SINCE,
+  sdkHasEnumMember,
+} from './shopify-versions.ts';
 import { PipelineInputError } from './types.ts';
 
 // Benchmark runs never send Slack notices.
@@ -16,8 +32,9 @@ delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--list <frozen.json>] [--validate] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate] [--sdk-upgrade] [--limit N] [--concurrency N]';
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
+const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
@@ -30,14 +47,19 @@ const { values } = parseArgs({
     output: { type: 'string' },
     list: { type: 'string' },
     validate: { type: 'boolean' },
+    'sdk-upgrade': { type: 'boolean' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
+    // Continue an interrupted run in the same --output; see docs/BENCHMARK-HARNESS.md.
+    resume: { type: 'boolean' },
+    'allow-dirty': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 const root = resolve(values.root);
 const output = resolve(values.output);
-const pinned = JSON.parse(await readFile(values.list ?? PINNED, 'utf8')) as {
+const list = values.list ?? PINNED;
+const pinned = JSON.parse(await readFile(list, 'utf8')) as {
   repos: { repo: string; stars: number; commit: string }[];
   schemas: { versions: { version: string }[] };
 };
@@ -45,7 +67,24 @@ const pinned = JSON.parse(await readFile(values.list ?? PINNED, 'utf8')) as {
 const versions = pinned.schemas.versions.map((entry) => entry.version).sort();
 const repos = pinned.repos.slice(0, values.limit ? Number(values.limit) : undefined);
 const snapshot = (version: string) => join(root, 'snapshots', `${version}.json`);
-await mkdir(output);
+const { rows: previous } = await openRunDirectory(
+  output,
+  await startRun({
+    format: 'shopify-results',
+    refitRoot: fileURLToPath(new URL('..', import.meta.url)),
+    list: { path: list, file: list },
+    options: {
+      validate: values.validate,
+      sdkUpgrade: values['sdk-upgrade'],
+      limit: values.limit,
+      concurrency: values.concurrency,
+    },
+    environment: ['REFIT_VALIDATION_WORKSPACE', 'REFIT_DEPENDENCY_TIMEOUT_SECONDS'],
+    ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
+    allowDirty: values['allow-dirty'],
+  }),
+  { resume: values.resume },
+);
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
 
@@ -61,6 +100,12 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   results[index] = result;
   const log = (stage: string) =>
     console.error(`[${index + 1}/${repos.length}] ${entry.repo}: ${stage}`);
+  const checkout = await checkoutError(directory, entry.commit);
+  if (checkout) {
+    result.infrastructure = { kind: 'clone', message: checkout };
+    log(`clone failure: ${checkout}`);
+    return;
+  }
   const manifest = JSON.parse(
     await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
   );
@@ -86,15 +131,24 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const enumPinned = scan.versions.some(
     (pin) => pin.kind === 'enum' && !CODEGEN_CONFIG.test(pin.file),
   );
+  const upgrade = Boolean(values['sdk-upgrade']);
+  // With --sdk-upgrade, LATEST_API_VERSION and the enum can name what the upgraded SDK's major has.
+  const sdkNames = (version: string) => {
+    const member = enumFromVersion(version)!;
+    return Boolean(
+      (sdk && sdkHasEnumMember(sdk, member)) ||
+      (upgrade &&
+        SHOPIFY_API_ENUM_SINCE[member]?.startsWith(`${SHOPIFY_SDK_MAJORS[SHOPIFY_API]}.`)),
+    );
+  };
+  const sdkLimited = enumPinned || (upgrade && Boolean(latest));
   // The before contract is what Shopify serves for the pin; the target is the newest pinned schema
   // the code can name: any version for strings and URLs, members the locked SDK has for the enum.
   const before =
     pins.length === 1
       ? ([...versions].reverse().find((version) => version <= pins[0]) ?? versions[0])
       : versions[0];
-  const reachable = versions.filter(
-    (version) => !enumPinned || (sdk && sdkHasEnumMember(sdk, enumFromVersion(version)!)),
-  );
+  const reachable = versions.filter((version) => !sdkLimited || sdkNames(version));
   const after = reachable.at(-1);
   Object.assign(result, {
     packageName,
@@ -133,6 +187,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
       before: snapshot(before),
       after: snapshot(target),
       proposePatch: true,
+      shopifySdkUpgrade: upgrade,
     })) as unknown as {
       status: string;
       findings: {
@@ -143,7 +198,13 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         contractReview?: string;
         changeId: string;
       }[];
-      patch: { status: string; reason?: string; diff?: string; warnings?: string[] };
+      patch: {
+        status: string;
+        reason?: string;
+        diff?: string;
+        warnings?: string[];
+        shopifySdkUpgrade?: unknown;
+      };
       shopify: { deprecated: string[] };
       apiVersion: { applicability: string };
     };
@@ -169,6 +230,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         review: finding.contractReview,
       })),
     };
+    if (report.patch.shopifySdkUpgrade) result.sdkUpgrade = report.patch.shopifySdkUpgrade;
     if (report.patch.diff) await writeFile(join(work, 'proposal.patch'), report.patch.diff);
     if (report.patch.status !== 'proposed') {
       // Pinned to the newest schema Refit has: nothing to move, whatever else the scan reports.
@@ -209,7 +271,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const config = join(work, 'run.json');
   await writeFile(
     config,
-    `${JSON.stringify({ formatVersion: 1, repository: directory, before: snapshot(before), after: snapshot(target), image: 'node:22-alpine', prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}) }, null, 2)}\n`,
+    `${JSON.stringify({ formatVersion: 1, repository: directory, before: snapshot(before), after: snapshot(target), image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}) }, null, 2)}\n`,
   );
   const bundle = join(work, 'run');
   try {
@@ -224,6 +286,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         bundle,
         '--quiet',
         '--json',
+        ...(upgrade ? ['--shopify-sdk-upgrade'] : []),
       ],
       { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
     );
@@ -253,12 +316,26 @@ await Promise.all(
   Array.from({ length: Math.min(concurrency, repos.length) }, async () => {
     while (next < repos.length) {
       const index = next++;
+      const entry = repos[index];
+      if (finishedRow(previous[index], entry)) {
+        results[index] = previous[index]!;
+        console.error(`[${index + 1}/${repos.length}] ${entry.repo}: finished before resuming`);
+        continue;
+      }
+      // Evidence an interrupted attempt left for this repository is replaced, not mixed in.
+      if (previous.length)
+        await rm(join(output, 'repos', entry.repo.replace('/', '__')), {
+          recursive: true,
+          force: true,
+        });
       const started = Date.now();
-      await benchmark(repos[index], index);
+      await benchmark(entry, index);
       results[index].seconds = Math.round((Date.now() - started) / 1000);
-      await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+      Object.assign(results[index], classifyRow('shopify-results', results[index]));
+      await writeFile(join(output, 'results.json'), json(results));
     }
   }),
 );
-await writeFile(join(output, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
+assertResults('shopify-results', results);
+await writeFile(join(output, 'results.json'), json(results));
 console.log(`Results: ${join(output, 'results.json')}`);

@@ -174,21 +174,6 @@
     },
     {
       "provider": "anthropic",
-      "repo": "wk42worldworld/cybercode",
-      "commit": "a43863b90a4ccba6e6f8b6406cf0e2c4df44bc0c",
-      "committedAt": "2026-10-06T13:41:24Z",
-      "pushedAt": "2026-10-06T13:41:30Z",
-      "stars": 1029,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/localRecoveryCli.ts"
-      },
-      "hasChecks": false,
-      "manager": "npm"
-    },
-    {
-      "provider": "anthropic",
       "repo": "kgoedecke/doop",
       "commit": "0f274ac01b2168c9248424b5e7724d3a8a7c626b",
       "committedAt": "2026-10-19T05:34:22Z",
@@ -216,21 +201,6 @@
       },
       "hasChecks": true,
       "manager": "npm"
-    },
-    {
-      "provider": "anthropic",
-      "repo": "OpenAisec/Miko",
-      "commit": "85f6ab54577064f42b64095213a5b236d458ba82",
-      "committedAt": "2026-08-06T03:59:01Z",
-      "pushedAt": "2026-08-06T03:59:15Z",
-      "stars": 832,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/localRecoveryCli.ts"
-      },
-      "hasChecks": false,
-      "manager": null
     },
     {
       "provider": "anthropic",
@@ -276,21 +246,6 @@
       },
       "hasChecks": true,
       "manager": "npm"
-    },
-    {
-      "provider": "anthropic",
-      "repo": "JrCx7scC/claude-code-source",
-      "commit": "431056a3ed6a0826e88cded587b88e5c2d91811c",
-      "committedAt": "2026-04-03T12:49:47Z",
-      "pushedAt": "2026-04-03T12:49:51Z",
-      "stars": 376,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": false,
-      "manager": null
     },
     {
       "provider": "anthropic",
@@ -354,21 +309,6 @@
     },
     {
       "provider": "anthropic",
-      "repo": "fazxes/Claude-code",
-      "commit": "0607f147615853e39de908d6a7ddc8356644edc2",
-      "committedAt": "2026-04-03T21:00:19Z",
-      "pushedAt": "2026-04-03T21:00:23Z",
-      "stars": 245,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": true,
-      "manager": null
-    },
-    {
-      "provider": "anthropic",
       "repo": "AmazingAng/PolyWorld",
       "commit": "9483ddea61043809bcc4515a5ca5816bad6ae192",
       "committedAt": "2026-03-27T13:43:48Z",
@@ -381,21 +321,6 @@
       },
       "hasChecks": true,
       "manager": "npm"
-    },
-    {
-      "provider": "anthropic",
-      "repo": "txl16095/MiniClaude",
-      "commit": "561531ea4567e83bcaaf0aa45c038b5cfda58297",
-      "committedAt": "2026-05-18T04:19:06Z",
-      "pushedAt": "2026-05-18T04:19:06Z",
-      "stars": 170,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": true,
-      "manager": null
     },
     {
       "provider": "anthropic",
@@ -459,21 +384,6 @@
     },
     {
       "provider": "anthropic",
-      "repo": "TaGoat/claude_code_cli",
-      "commit": "66f7740787048a97b44c52c89999839cffe49b76",
-      "committedAt": "2026-04-01T13:58:10Z",
-      "pushedAt": "2026-04-01T14:03:22Z",
-      "stars": 104,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "scripts/test-auth.ts"
-      },
-      "hasChecks": true,
-      "manager": "npm"
-    },
-    {
-      "provider": "anthropic",
       "repo": "backenly/backenly",
       "commit": "b49c50144ce8bda82241b716af067fa826dbeada",
       "committedAt": "2026-10-20T19:31:30Z",
@@ -504,21 +414,6 @@
     },
     {
       "provider": "anthropic",
-      "repo": "andforce/Openclaude",
-      "commit": "e7fe977dda7e079602bd3cc02ac1edd8ca61a735",
-      "committedAt": "2026-08-03T05:32:24Z",
-      "pushedAt": "2026-08-03T05:32:48Z",
-      "stars": 87,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": true,
-      "manager": "pnpm"
-    },
-    {
-      "provider": "anthropic",
       "repo": "snapetech-org/seerrng",
       "commit": "2bae695931409a5b059afca220d166ffcf31dfc6",
       "committedAt": "2026-10-20T21:14:44Z",
@@ -531,21 +426,6 @@
       },
       "hasChecks": true,
       "manager": "pnpm"
-    },
-    {
-      "provider": "anthropic",
-      "repo": "Doriandarko/kimi-2-6-code",
-      "commit": "2735da87b9c1369feb53b06c1840afd2f63f8f1c",
-      "committedAt": "2026-04-20T20:03:27Z",
-      "pushedAt": "2026-04-20T20:03:28Z",
-      "stars": 80,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": true,
-      "manager": null
     },
     {
       "provider": "anthropic",
@@ -789,66 +669,6 @@
     },
     {
       "provider": "anthropic",
-      "repo": "kill136/claudecode",
-      "commit": "674f3b5b8826001856314ac9de982e3bdb9ef0b1",
-      "committedAt": "2026-04-02T03:13:52Z",
-      "pushedAt": "2026-04-02T03:13:52Z",
-      "stars": 44,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": true,
-      "manager": null
-    },
-    {
-      "provider": "anthropic",
-      "repo": "wyh0626/claude-code-local",
-      "commit": "1c10909c9a8d52be964e1554b16294941f9627ff",
-      "committedAt": "2026-04-01T02:43:24Z",
-      "pushedAt": "2026-04-01T02:43:35Z",
-      "stars": 39,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": false,
-      "manager": null
-    },
-    {
-      "provider": "anthropic",
-      "repo": "DdogezD/claudium",
-      "commit": "403dcc5fd369c75fdc20e1b330829e20b20ce054",
-      "committedAt": "2026-10-15T22:48:39Z",
-      "pushedAt": "2026-10-15T22:48:39Z",
-      "stars": 37,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": true,
-      "manager": null
-    },
-    {
-      "provider": "anthropic",
-      "repo": "chenqinggang001/claude-code-build",
-      "commit": "b9273538ca121f38c4ca8c502bee051f660c12a8",
-      "committedAt": "2026-04-03T02:41:00Z",
-      "pushedAt": "2026-04-03T02:45:27Z",
-      "stars": 37,
-      "reason": {
-        "manifest": "package.json",
-        "app": "private",
-        "modelCall": "src/services/api/claude.ts"
-      },
-      "hasChecks": true,
-      "manager": null
-    },
-    {
-      "provider": "anthropic",
       "repo": "jhmeel/bigfoot",
       "commit": "95f7ffdb29ff49efe321a96c9caa3e5c8c94a1e6",
       "committedAt": "2026-10-11T08:30:58Z",
@@ -877,5 +697,23 @@
       "hasChecks": true,
       "manager": "npm"
     }
-  ]
+  ],
+  "removed": {
+    "removedAt": "2026-10-22",
+    "reason": "copies of leaked proprietary Claude Code source (one shared src/ tree); selection would now reject them (scripts/ai-app-select.mjs LEAKED_SOURCE)",
+    "repos": [
+      "wk42worldworld/cybercode",
+      "OpenAisec/Miko",
+      "JrCx7scC/claude-code-source",
+      "fazxes/Claude-code",
+      "txl16095/MiniClaude",
+      "TaGoat/claude_code_cli",
+      "andforce/Openclaude",
+      "Doriandarko/kimi-2-6-code",
+      "kill136/claudecode",
+      "wyh0626/claude-code-local",
+      "DdogezD/claudium",
+      "chenqinggang001/claude-code-build"
+    ]
+  }
 }

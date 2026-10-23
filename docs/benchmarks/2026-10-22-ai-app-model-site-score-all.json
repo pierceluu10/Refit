@@ -1,0 +1,1903 @@
+{
+  "refit": {
+    "commit": "af3f5e40754cb30cbdcb368e984cfbaa2ffc2869",
+    "clean": true
+  },
+  "registry": "data/deadlines.json",
+  "sets": {
+    "openai": {
+      "set": "openai",
+      "repositories": 100,
+      "errored": [],
+      "labelledSites": 407,
+      "registrySites": 85,
+      "nonRegistrySites": 322,
+      "compatibleSites": 57,
+      "precision": {
+        "k": 82,
+        "n": 132,
+        "rate": 62.1,
+        "low": 53.6,
+        "high": 69.9
+      },
+      "recall": {
+        "k": 82,
+        "n": 85,
+        "rate": 96.5,
+        "low": 90.1,
+        "high": 98.8
+      },
+      "recallAllSites": {
+        "k": 82,
+        "n": 407,
+        "rate": 20.1,
+        "low": 16.5,
+        "high": 24.3
+      },
+      "negativeFileFalsePositives": 1,
+      "truePositives": [
+        {
+          "repo": "breck7/ScrollHub",
+          "file": "Agents.js",
+          "line": 116,
+          "model": "claude-3-5-sonnet-20241022",
+          "provider": "anthropic",
+          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "backenly/backenly",
+          "file": "lib/services/ai-functions/integration-context.ts",
+          "line": 397,
+          "model": "claude-3-5-haiku-20241022",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-02-19-claude-3-5-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "sanidhyy/meet-ai",
+          "file": "src/app/api/webhook/stream/route.ts",
+          "line": 87,
+          "model": "gpt-4o-realtime-preview",
+          "provider": "openai",
+          "deadline": "openai-2026-05-07-gpt-4o-realtime-preview",
+          "negativeFile": false
+        },
+        {
+          "repo": "sanidhyy/meet-ai",
+          "file": "src/app/api/webhook/stream/route.ts",
+          "line": 218,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "keegandonley/dalle-3-ui",
+          "file": "src/components/Prompt/index.tsx",
+          "line": 21,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "aeromechanic000/minecraft-ai",
+          "file": "src/models/claude.js",
+          "line": 33,
+          "model": "claude-3-sonnet-20240229",
+          "provider": "anthropic",
+          "deadline": "anthropic-2025-07-21-claude-3-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "aeromechanic000/minecraft-ai",
+          "file": "src/models/gpt.js",
+          "line": 26,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "aeromechanic000/minecraft-ai",
+          "file": "src/server/monitor_server.js",
+          "line": 1060,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "YiZhanSuDaShui/GoofishCredentialsBot",
+          "file": "src/db/settings.repository.ts",
+          "line": 58,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "YiZhanSuDaShui/GoofishCredentialsBot",
+          "file": "src/services/ai.service.ts",
+          "line": 133,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "YiZhanSuDaShui/GoofishCredentialsBot",
+          "file": "src/services/ai.service.ts",
+          "line": 175,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "YiZhanSuDaShui/GoofishCredentialsBot",
+          "file": "src/services/ai.service.ts",
+          "line": 216,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/api/modules/keyChecker.ts",
+          "line": 283,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "jahani-moghaddam/AI-Substitle-Translator",
+          "file": "src/components/subtitleGenerator.tsx",
+          "line": 120,
+          "model": "claude-3-7-sonnet-20250219",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-02-19-claude-3-7-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/config/modelProviders/anthropic.ts",
+          "line": 98,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/services/textToImage.ts",
+          "line": 17,
+          "model": "dall-e-3",
+          "provider": "openai",
+          "deadline": "openai-2026-05-12-dall-e-2",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/store/image/slices/generationConfig/initialState.ts",
+          "line": 13,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/store/palette/initialState.ts",
+          "line": 18,
+          "model": "gpt-image-1.5",
+          "provider": "openai",
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "packages/const/src/settings/tts.ts",
+          "line": 6,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "packages/const/src/settings/tts.ts",
+          "line": 5,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "Jay-Bosco/GoofishCredentialsBot",
+          "file": "src/db/settings.repository.ts",
+          "line": 58,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "Jay-Bosco/GoofishCredentialsBot",
+          "file": "src/services/ai.service.ts",
+          "line": 133,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "Jay-Bosco/GoofishCredentialsBot",
+          "file": "src/services/ai.service.ts",
+          "line": 175,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "Jay-Bosco/GoofishCredentialsBot",
+          "file": "src/services/ai.service.ts",
+          "line": 216,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "lrzy8/Goofish",
+          "file": "src/db/settings.repository.ts",
+          "line": 80,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "lrzy8/Goofish",
+          "file": "src/services/ai.service.ts",
+          "line": 133,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "lrzy8/Goofish",
+          "file": "src/services/ai.service.ts",
+          "line": 175,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "lrzy8/Goofish",
+          "file": "src/services/ai.service.ts",
+          "line": 216,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "LinkIt-Company/Linkit-Backend",
+          "file": "src/infrastructure/ai/ai.constant.ts",
+          "line": 2,
+          "model": "gpt-4o-mini-2024-07-18",
+          "provider": "openai",
+          "deadline": "openai-2027-01-14-gpt-4o-2024-08-06",
+          "negativeFile": false
+        },
+        {
+          "repo": "Aimagine-life/Betsy",
+          "file": "src/channels/telegram/voice.ts",
+          "line": 92,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/app/api/ai/cv-parse/route.ts",
+          "line": 72,
+          "model": "gpt-4-turbo-preview",
+          "provider": "openai",
+          "deadline": "openai-2026-03-26-gpt-4-0314",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/ai/enrichment-pipeline.ts",
+          "line": 251,
+          "model": "gpt-4-1106-preview",
+          "provider": "openai",
+          "deadline": "openai-2026-03-26-gpt-4-0314",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/app/api/ai/email-analysis/route.ts",
+          "line": 91,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/openai.ts",
+          "line": 105,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/openai.ts",
+          "line": 173,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/openai.ts",
+          "line": 235,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/openai.ts",
+          "line": 404,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/app/api/ai/enhance-skills/route.ts",
+          "line": 35,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/app/api/projects/parse-email/route.ts",
+          "line": 31,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/app/api/projects/parse-email/route.ts",
+          "line": 441,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/ai/competence-enrichment.ts",
+          "line": 721,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/ai/competence-enrichment.ts",
+          "line": 792,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/ai/competence-enrichment.ts",
+          "line": 863,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/lib/services/assessment.ts",
+          "line": 51,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "zer0-A1/Emineon",
+          "file": "src/app/api/ai/transcribe/route.ts",
+          "line": 35,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "ayuer/OptionFinder",
+          "file": "src/services/AIService.ts",
+          "line": 229,
+          "model": "claude-3-5-sonnet-20240620",
+          "provider": "anthropic",
+          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "ananddtyagi/Sora-Studio",
+          "file": "app/api/images/generate/route.ts",
+          "line": 27,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/vision/providers/anthropic-vision.ts",
+          "line": 40,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/agents/math-enricher.step.ts",
+          "line": 29,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/agents/narrative-composer.step.ts",
+          "line": 19,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/agents/prerequisite-explorer.step.ts",
+          "line": 19,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/agents/visual-designer.step.ts",
+          "line": 23,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/api/refine.step.ts",
+          "line": 92,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/services/nlu-classifier.ts",
+          "line": 21,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/services/openai-client.ts",
+          "line": 10,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/services/prompt-engine.ts",
+          "line": 17,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "rohitg00/manim-video-generator",
+          "file": "src/providers/anthropic-provider.ts",
+          "line": 13,
+          "model": "claude-sonnet-4-5-20250929",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "kirill-markin/chatgpt-telegram-bot-telegraf",
+          "file": "src/openAIFunctions.ts",
+          "line": 502,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "hugodemenez/deltalytix",
+          "file": "app/api/ai/format-trades/route.ts",
+          "line": 30,
+          "model": "gpt-4o-mini-2024-07-18",
+          "provider": "openai",
+          "deadline": "openai-2027-01-14-gpt-4o-2024-08-06",
+          "negativeFile": false
+        },
+        {
+          "repo": "hugodemenez/deltalytix",
+          "file": "app/api/ai/transcribe/route.ts",
+          "line": 32,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "hyunwookshin/iodine",
+          "file": "server/src/routes/meeting.ts",
+          "line": 25,
+          "model": "gpt-4o-realtime-preview",
+          "provider": "openai",
+          "deadline": "openai-2026-05-07-gpt-4o-realtime-preview",
+          "negativeFile": false
+        },
+        {
+          "repo": "hyunwookshin/iodine",
+          "file": "server/src/routes/tts.ts",
+          "line": 109,
+          "model": "tts-1-hd",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "hyunwookshin/iodine",
+          "file": "server/src/routes/stt.ts",
+          "line": 29,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "masnwilliams/better404",
+          "file": "src/app/api/v1/recommendations/route.ts",
+          "line": 68,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "masnwilliams/better404",
+          "file": "src/lib/kernel-app/index.ts",
+          "line": 202,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "beatrix-ha/beatrix",
+          "file": "server/anthropic.ts",
+          "line": 47,
+          "model": "claude-3-7-sonnet-20250219",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-02-19-claude-3-7-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "beatrix-ha/beatrix",
+          "file": "server/openai.ts",
+          "line": 56,
+          "model": "gpt-4-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "ShinChven/remix-studio",
+          "file": "server/assistant/assistant-runner.ts",
+          "line": 338,
+          "model": "gpt-5.4-nano",
+          "provider": "openai",
+          "deadline": "openai-2027-04-01-gpt-5-4-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/anthropic/streaming.ts",
+          "line": 127,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/providers/anthropic/adapter.ts",
+          "line": 45,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/anthropic/anthropic.ts",
+          "line": 80,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/anthropic/anthropic.ts",
+          "line": 274,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/anthropic/anthropic.ts",
+          "line": 720,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/core/title.ts",
+          "line": 21,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "app/account/settings/tokens/actions.ts",
+          "line": 22,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "app/article/actions/summarize.ts",
+          "line": 40,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "app/article/actions/translate.ts",
+          "line": 50,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "components/tts-button.tsx",
+          "line": 132,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "components/tts-button.tsx",
+          "line": 133,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "asilbek2706/ai-writer",
+          "file": "src/utils/apenai.ts",
+          "line": 40,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "Langdock/assignment",
+          "file": "app/actions/openai.ts",
+          "line": 13,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "austineckman/CraftingComputer",
+          "file": "server/routes/admin-quest-generator.ts",
+          "line": 268,
+          "model": "dall-e-3",
+          "provider": "openai",
+          "deadline": "openai-2026-05-12-dall-e-2",
+          "negativeFile": false
+        }
+      ],
+      "falsePositives": [
+        {
+          "repo": "keegandonley/dalle-3-ui",
+          "file": "src/components/Prompt/index.tsx",
+          "line": 95,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "YiZhanSuDaShui/GoofishCredentialsBot",
+          "file": "frontend/src/app/views/system-setting/system-setting.component.ts",
+          "line": 26,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/api/dev/testApi.ts",
+          "line": 162,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/api/dev/testOpenAISdk.ts",
+          "line": 224,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/api/dev/testWs.ts",
+          "line": 41,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/api/dev/testWs.ts",
+          "line": 49,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/api/dev/removeModelFromProviders.ts",
+          "line": 19,
+          "model": "chatgpt-image-latest",
+          "provider": "openai",
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/api/modules/modelUpdater.ts",
+          "line": 920,
+          "model": "gpt-4o-mini-transcribe",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/api/modules/modelUpdater.ts",
+          "line": 923,
+          "model": "gpt-4o-transcribe",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/langgraph-control-plane/src/workflow.ts",
+          "line": 3116,
+          "model": "gpt-4o-mini-transcribe",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "AnyVM-Tech/AnyGPT",
+          "file": "apps/langgraph-control-plane/src/workflow.ts",
+          "line": 3119,
+          "model": "gpt-4o-transcribe",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "badhri17/GhazelleChat",
+          "file": "lib/models/registry.ts",
+          "line": 3,
+          "model": "gpt-5-mini-2025-08-07",
+          "provider": "openai",
+          "deadline": "openai-2026-12-11-gpt-5-mini-2025-08-07",
+          "negativeFile": false
+        },
+        {
+          "repo": "badhri17/GhazelleChat",
+          "file": "server/db/seed.ts",
+          "line": 71,
+          "model": "gpt-5-mini-2025-08-07",
+          "provider": "openai",
+          "deadline": "openai-2026-12-11-gpt-5-mini-2025-08-07",
+          "negativeFile": false
+        },
+        {
+          "repo": "LocalRouter/LocalRouter",
+          "file": "website/src/components/GuardrailApprovalDemo.tsx",
+          "line": 36,
+          "model": "claude-3-5-sonnet-20241022",
+          "provider": "anthropic",
+          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "LocalRouter/LocalRouter",
+          "file": "website/src/components/demo/TauriMockSetup.ts",
+          "line": 5279,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "MisonL/visual-journal",
+          "file": "src/components/editing-form.tsx",
+          "line": 1455,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "MisonL/visual-journal",
+          "file": "src/components/generation-form.tsx",
+          "line": 1021,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "MisonL/visual-journal",
+          "file": "src/components/editing-form.tsx",
+          "line": 1454,
+          "model": "gpt-image-1.5",
+          "provider": "openai",
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "negativeFile": false
+        },
+        {
+          "repo": "MisonL/visual-journal",
+          "file": "src/components/editing-form.tsx",
+          "line": 1456,
+          "model": "gpt-image-1-mini",
+          "provider": "openai",
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "negativeFile": false
+        },
+        {
+          "repo": "MisonL/visual-journal",
+          "file": "src/components/generation-form.tsx",
+          "line": 1020,
+          "model": "gpt-image-1.5",
+          "provider": "openai",
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "negativeFile": false
+        },
+        {
+          "repo": "MisonL/visual-journal",
+          "file": "src/components/generation-form.tsx",
+          "line": 1022,
+          "model": "gpt-image-1-mini",
+          "provider": "openai",
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": ".i18nrc.js",
+          "line": 28,
+          "model": "chatgpt-4o-latest",
+          "provider": "openai",
+          "deadline": "openai-2026-02-17-chatgpt-4o-latest",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "packages/model-bank/src/aiModels/azure.ts",
+          "line": 1215,
+          "model": "dall-e-3",
+          "provider": "openai",
+          "deadline": "openai-2026-05-12-dall-e-2",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/store/session/slices/session/action.ts",
+          "line": 271,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "packages/model-bank/src/aiModels/azure.ts",
+          "line": 1201,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 12,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 16,
+          "model": "tts-1-hd",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 23,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 24,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "Jay-Bosco/GoofishCredentialsBot",
+          "file": "frontend/src/app/views/system-setting/system-setting.component.ts",
+          "line": 26,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "LeafYeeXYZ/PsychPen",
+          "file": "src/components/data/ConfigAI.tsx",
+          "line": 264,
+          "model": "gpt-5.1",
+          "provider": "openai",
+          "deadline": "openai-2027-04-01-gpt-5-1",
+          "negativeFile": true
+        },
+        {
+          "repo": "lrzy8/Goofish",
+          "file": "frontend/src/app/views/system-setting/system-setting.component.ts",
+          "line": 30,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "CHARM-BDF/charmonator",
+          "file": "lib/config.mjs",
+          "line": 214,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "CHARM-BDF/charmonator",
+          "file": "scripts/generate-example-config.js",
+          "line": 52,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "CHARM-BDF/charmonator",
+          "file": "lib/config.mjs",
+          "line": 215,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "CHARM-BDF/charmonator",
+          "file": "public/script.js",
+          "line": 118,
+          "model": "o1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "thereactfoundation/react.foundation",
+          "file": "scripts/generate-collection-images.mjs",
+          "line": 338,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "Emanuele-Sgroi/emanuelesgroi.com",
+          "file": "src/components/DiscussionsPage/DiscussionSideBar.js",
+          "line": 184,
+          "model": "o1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "projectshft/mini-rag",
+          "file": "app/scripts/upload-training-data.ts",
+          "line": 69,
+          "model": "gpt-4o-mini-2024-07-18",
+          "provider": "openai",
+          "deadline": "openai-2027-01-14-gpt-4o-2024-08-06",
+          "negativeFile": false
+        },
+        {
+          "repo": "kirill-markin/chatgpt-telegram-bot-telegraf",
+          "file": "src/utils/encodingUtils.ts",
+          "line": 3,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "kirill-markin/chatgpt-telegram-bot-telegraf",
+          "file": "src/utils/encodingUtils.ts",
+          "line": 14,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "kirill-markin/chatgpt-telegram-bot-telegraf",
+          "file": "src/database/database.ts",
+          "line": 362,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "hyunwookshin/iodine",
+          "file": "client/src/components/right/CodingAssistant.tsx",
+          "line": 22,
+          "model": "tts-1-hd",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "beatrix-ha/beatrix",
+          "file": "server/anthropic.ts",
+          "line": 25,
+          "model": "claude-3-7-sonnet-20250219",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-02-19-claude-3-7-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "beatrix-ha/beatrix",
+          "file": "server/openai.ts",
+          "line": 29,
+          "model": "gpt-4-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "membranehq/ai-agent-example",
+          "file": "other-examples/claude-sdk.ts",
+          "line": 26,
+          "model": "claude-3-5-sonnet-20241022",
+          "provider": "anthropic",
+          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "app/account/settings/text-to-speech/page.tsx",
+          "line": 102,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "app/account/settings/text-to-speech/page.tsx",
+          "line": 155,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "app/account/settings/text-to-speech/page.tsx",
+          "line": 479,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "JaleelB/readium-x",
+          "file": "app/account/settings/text-to-speech/page.tsx",
+          "line": 479,
+          "model": "tts-1-hd",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        }
+      ],
+      "compatibleHits": [
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/config/modelProviders/aihubmix.ts",
+          "line": 6,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        },
+        {
+          "repo": "JohnRiceML/clawport-ui",
+          "file": "app/api/tts/route.ts",
+          "line": 18,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "JohnRiceML/clawport-ui",
+          "file": "app/api/transcribe/route.ts",
+          "line": 21,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        }
+      ],
+      "falseNegatives": [
+        {
+          "repo": "badhri17/GhazelleChat",
+          "file": "lib/models/registry.ts",
+          "line": 27,
+          "model": "gpt-5-mini-2025-08-07",
+          "provider": "openai",
+          "via": "indirect",
+          "registry": true,
+          "notes": "apiModel of the DEFAULT_MODEL_ID catalog entry"
+        },
+        {
+          "repo": "joeseesun/qiaomu-blog-opensource",
+          "file": "lib/ai-image-provider-presets.ts",
+          "line": 35,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "via": "indirect",
+          "registry": true,
+          "notes": "OpenAI image preset default; remainder"
+        },
+        {
+          "repo": "kaieye/Livo",
+          "file": "src/shared/types/ai.ts",
+          "line": 190,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "via": "indirect",
+          "registry": true,
+          "notes": "first Anthropic model, chosen when the agent switches provider; remainder"
+        }
+      ],
+      "beyondLimit": []
+    },
+    "anthropic": {
+      "set": "anthropic",
+      "repositories": 38,
+      "errored": [],
+      "labelledSites": 218,
+      "registrySites": 44,
+      "nonRegistrySites": 174,
+      "compatibleSites": 10,
+      "precision": {
+        "k": 42,
+        "n": 59,
+        "rate": 71.2,
+        "low": 58.6,
+        "high": 81.2
+      },
+      "recall": {
+        "k": 42,
+        "n": 44,
+        "rate": 95.5,
+        "low": 84.9,
+        "high": 98.7
+      },
+      "recallAllSites": {
+        "k": 42,
+        "n": 218,
+        "rate": 19.3,
+        "low": 14.6,
+        "high": 25
+      },
+      "negativeFileFalsePositives": 0,
+      "truePositives": [
+        {
+          "repo": "nextai-translator/raycast-openai-translator",
+          "file": "src/providers/claude/config.ts",
+          "line": 6,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "nextai-translator/raycast-openai-translator",
+          "file": "src/providers/openai/config.ts",
+          "line": 8,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/config/modelProviders/anthropic.ts",
+          "line": 98,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/services/textToImage.ts",
+          "line": 17,
+          "model": "dall-e-3",
+          "provider": "openai",
+          "deadline": "openai-2026-05-12-dall-e-2",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/store/image/slices/generationConfig/initialState.ts",
+          "line": 13,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/store/palette/initialState.ts",
+          "line": 18,
+          "model": "gpt-image-1.5",
+          "provider": "openai",
+          "deadline": "openai-2026-12-01-gpt-image-1-mini",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "packages/const/src/settings/tts.ts",
+          "line": 6,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "packages/const/src/settings/tts.ts",
+          "line": 5,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "Charlie85270/Dorothy",
+          "file": "src/app/api/generate-zone/route.ts",
+          "line": 311,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/anthropic/streaming.ts",
+          "line": 127,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/providers/anthropic/adapter.ts",
+          "line": 45,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/anthropic/anthropic.ts",
+          "line": 80,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/anthropic/anthropic.ts",
+          "line": 274,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/anthropic/anthropic.ts",
+          "line": 720,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "yayasoumah/pocket-server",
+          "file": "src/agent/core/title.ts",
+          "line": 21,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "backenly/backenly",
+          "file": "lib/services/ai-functions/integration-context.ts",
+          "line": 397,
+          "model": "claude-3-5-haiku-20241022",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-02-19-claude-3-5-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "Ganeshp000/prochame",
+          "file": "src/main/TranscriptionService.js",
+          "line": 33,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "seongsu-kang/tycono",
+          "file": "packages/server/src/api/src/engine/llm-adapter.ts",
+          "line": 89,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "vibeforge1111/vibeship-idearalph",
+          "file": "src/lib/server/claude.ts",
+          "line": 45,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "vibeforge1111/vibeship-idearalph",
+          "file": "src/lib/server/claude.ts",
+          "line": 78,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "inbrainfun/inbrain",
+          "file": "src/core/transcription.ts",
+          "line": 114,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "Koifman/LUMEN",
+          "file": "src/lib/llm/providers/anthropic.ts",
+          "line": 127,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "Koifman/LUMEN",
+          "file": "src/lib/llm/providers/anthropic.ts",
+          "line": 152,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "Koifman/LUMEN",
+          "file": "src/lib/llm/providers/anthropic.ts",
+          "line": 13,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "Koifman/LUMEN",
+          "file": "src/lib/llm/providers/anthropic.ts",
+          "line": 262,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "Koifman/LUMEN",
+          "file": "src/lib/llm/providers/openai.ts",
+          "line": 14,
+          "model": "gpt-5.1",
+          "provider": "openai",
+          "deadline": "openai-2027-04-01-gpt-5-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "Koifman/LUMEN",
+          "file": "src/lib/llm/providers/openai.ts",
+          "line": 171,
+          "model": "gpt-5.1",
+          "provider": "openai",
+          "deadline": "openai-2027-04-01-gpt-5-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "ranxi2001/OfferPilot",
+          "file": "src/app.ts",
+          "line": 154,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "ranxi2001/OfferPilot",
+          "file": "src/query-engine/providers/claude.ts",
+          "line": 9,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "beatrix-ha/beatrix",
+          "file": "server/anthropic.ts",
+          "line": 47,
+          "model": "claude-3-7-sonnet-20250219",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-02-19-claude-3-7-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "beatrix-ha/beatrix",
+          "file": "server/openai.ts",
+          "line": 56,
+          "model": "gpt-4-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "breck7/ScrollHub",
+          "file": "Agents.js",
+          "line": 116,
+          "model": "claude-3-5-sonnet-20241022",
+          "provider": "anthropic",
+          "deadline": "anthropic-2025-10-28-claude-3-5-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "hyl64/jlcmcp",
+          "file": "src/agent.ts",
+          "line": 423,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "FerroxLabs/wayland",
+          "file": "src/common/utils/protocolDetector.ts",
+          "line": 265,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "FerroxLabs/wayland",
+          "file": "src/process/bridge/modelBridge.ts",
+          "line": 1345,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "FerroxLabs/wayland",
+          "file": "src/common/api/AnthropicRotatingClient.ts",
+          "line": 76,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "FerroxLabs/wayland",
+          "file": "src/common/api/OpenAI2AnthropicConverter.ts",
+          "line": 100,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "FerroxLabs/wayland",
+          "file": "src/common/voice/speechToTextConfig.ts",
+          "line": 38,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "FerroxLabs/wayland",
+          "file": "src/process/bridge/services/SpeechToTextService.ts",
+          "line": 44,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "freshfriedfish/claude-tokenizer",
+          "file": "app/api/route.ts",
+          "line": 18,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "OPBR/build-claude-code",
+          "file": "src/core/agent-loop.ts",
+          "line": 31,
+          "model": "claude-sonnet-4-20250514",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-06-15-claude-sonnet-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "getmaxun/maxun",
+          "file": "server/src/workflow-management/classes/DocumentInterpreter.ts",
+          "line": 1478,
+          "model": "claude-3-5-haiku-20241022",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-02-19-claude-3-5-haiku",
+          "negativeFile": false
+        }
+      ],
+      "falsePositives": [
+        {
+          "repo": "nextai-translator/raycast-openai-translator",
+          "file": "src/providers/claude/config.ts",
+          "line": 7,
+          "model": "claude-3-haiku-20240307",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-04-20-claude-3-haiku",
+          "negativeFile": false
+        },
+        {
+          "repo": "nextai-translator/raycast-openai-translator",
+          "file": "src/providers/openai/config.ts",
+          "line": 9,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": ".i18nrc.js",
+          "line": 28,
+          "model": "chatgpt-4o-latest",
+          "provider": "openai",
+          "deadline": "openai-2026-02-17-chatgpt-4o-latest",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "packages/model-bank/src/aiModels/azure.ts",
+          "line": 1215,
+          "model": "dall-e-3",
+          "provider": "openai",
+          "deadline": "openai-2026-05-12-dall-e-2",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/store/session/slices/session/action.ts",
+          "line": 271,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "packages/model-bank/src/aiModels/azure.ts",
+          "line": 1201,
+          "model": "gpt-image-1",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-image-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 12,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 16,
+          "model": "tts-1-hd",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 23,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/app/[variants]/(main)/settings/tts/features/const.tsx",
+          "line": 24,
+          "model": "whisper-1",
+          "provider": "openai",
+          "deadline": "openai-2027-02-26-whisper-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "seongsu-kang/tycono",
+          "file": "packages/server/src/api/src/routes/execute.ts",
+          "line": 903,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "seongsu-kang/tycono",
+          "file": "packages/server/src/api/src/routes/execute.ts",
+          "line": 1272,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-11-30-claude-sonnet-4-5",
+          "negativeFile": false
+        },
+        {
+          "repo": "viperrcrypto/Siftly",
+          "file": "lib/vision-analyzer.ts",
+          "line": 68,
+          "model": "gpt-4",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        },
+        {
+          "repo": "inbrainfun/inbrain",
+          "file": "recipes/agent-voice/code/server.mjs",
+          "line": 47,
+          "model": "gpt-4o-realtime-preview",
+          "provider": "openai",
+          "deadline": "openai-2026-05-07-gpt-4o-realtime-preview",
+          "negativeFile": false
+        },
+        {
+          "repo": "inbrainfun/inbrain",
+          "file": "recipes/agent-voice/code/pipeline.mjs",
+          "line": 303,
+          "model": "tts-1",
+          "provider": "openai",
+          "deadline": "openai-2027-01-06-tts-1",
+          "negativeFile": false
+        },
+        {
+          "repo": "beatrix-ha/beatrix",
+          "file": "server/anthropic.ts",
+          "line": 25,
+          "model": "claude-3-7-sonnet-20250219",
+          "provider": "anthropic",
+          "deadline": "anthropic-2026-02-19-claude-3-7-sonnet",
+          "negativeFile": false
+        },
+        {
+          "repo": "beatrix-ha/beatrix",
+          "file": "server/openai.ts",
+          "line": 29,
+          "model": "gpt-4-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4",
+          "negativeFile": false
+        }
+      ],
+      "compatibleHits": [
+        {
+          "repo": "nextai-translator/raycast-openai-translator",
+          "file": "src/providers/raycast/index.ts",
+          "line": 7,
+          "model": "gpt-3.5-turbo",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-3-5-turbo",
+          "negativeFile": false
+        },
+        {
+          "repo": "vual/lobe-chat-pro",
+          "file": "src/config/modelProviders/aihubmix.ts",
+          "line": 6,
+          "model": "gpt-4.1-nano",
+          "provider": "openai",
+          "deadline": "openai-2026-10-23-gpt-4-1-nano",
+          "negativeFile": false
+        }
+      ],
+      "falseNegatives": [
+        {
+          "repo": "Koifman/LUMEN",
+          "file": "src/lib/llm/llmService.ts",
+          "line": 55,
+          "model": "gpt-5.1",
+          "provider": "openai",
+          "via": "indirect",
+          "registry": true,
+          "notes": "provider preset default; remainder"
+        },
+        {
+          "repo": "Koifman/LUMEN",
+          "file": "src/lib/llm/llmService.ts",
+          "line": 65,
+          "model": "claude-sonnet-4-5",
+          "provider": "anthropic",
+          "via": "indirect",
+          "registry": true,
+          "notes": "provider preset default; remainder"
+        }
+      ],
+      "beyondLimit": []
+    }
+  }
+}

@@ -66,12 +66,6 @@ it('runs a root profile with no path flags and retains distinct private evidence
 
 it('uses --repository from elsewhere and derives an explicitly selected root configuration repository', async () => {
   const sample = await setup();
-  expect((await sample.evidence(['--repository', sample.app], sample.root)).manifest.status).toBe(
-    'needs-review',
-  );
-  expect((await sample.evidence(['--config', sample.path], sample.root)).manifest.status).toBe(
-    'needs-review',
-  );
   const external = join(sample.root, 'operator.json');
   await writeFile(
     external,
@@ -81,10 +75,17 @@ it('uses --repository from elsewhere and derives an explicitly selected root con
       after: join(sample.app, 'before.json'),
     }),
   );
-  await expect(sample.run(['--config', external], sample.root)).rejects.toMatchObject({
-    code: 1,
-    stderr: expect.stringContaining('Missing run inputs'),
-  });
+  // Each run writes its own evidence directory, so they start together; a CLI start costs about 0.3 s.
+  const [fromRepository, fromConfig] = await Promise.all([
+    sample.evidence(['--repository', sample.app], sample.root),
+    sample.evidence(['--config', sample.path], sample.root),
+    expect(sample.run(['--config', external], sample.root)).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining('Missing run inputs'),
+    }),
+  ]);
+  expect(fromRepository.manifest.status).toBe('needs-review');
+  expect(fromConfig.manifest.status).toBe('needs-review');
 });
 
 it('requires an explicit integration choice and retains it in automatic evidence', async () => {
@@ -102,9 +103,22 @@ it('requires an explicit integration choice and retains it in automatic evidence
   );
   await expect(sample.run()).rejects.toMatchObject({
     code: 1,
-    stderr: expect.stringContaining('Choose --integration from: stripe, secondary'),
+    stderr: expect.stringContaining(
+      'This configuration has 2 integrations; choose one with --integration: stripe, secondary.',
+    ),
   });
   expect((await sample.evidence(['--integration', 'stripe'])).manifest.integration).toBe('stripe');
+});
+
+it('selects the only integration of a collection without --integration', async () => {
+  // refit agents --add writes a one-integration collection; the next command should just work.
+  const sample = await setup();
+  const { formatVersion: _format, ...profile } = sample.configuration;
+  await writeFile(
+    sample.path,
+    JSON.stringify({ formatVersion: 2, integrations: [{ id: 'stripe', ...profile }] }),
+  );
+  expect((await sample.evidence()).manifest.integration).toBe('stripe');
 });
 
 it('honors explicit output and refuses an existing directory', async () => {
@@ -122,7 +136,9 @@ it('explains a missing profile and refuses implicit repository redirection befor
   await rm(sample.path);
   await expect(sample.run()).rejects.toMatchObject({
     code: 1,
-    stderr: expect.stringContaining('Run refit doctor for setup diagnostics'),
+    stderr: expect.stringContaining(
+      'Run refit agents to see which provider agents apply and refit agents --add <id> to write one',
+    ),
   });
   await writeFile(sample.path, JSON.stringify({ ...sample.configuration, repository: '..' }));
   await expect(sample.run()).rejects.toMatchObject({

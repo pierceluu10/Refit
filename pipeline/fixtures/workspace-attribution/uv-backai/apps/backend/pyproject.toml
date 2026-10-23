@@ -1,0 +1,20 @@
+# Fixture: copied from https://github.com/Agent-Field/backai/blob/bc547a2ce9ac50cc727d444b811bfc33037e462d/apps/backend/pyproject.toml
+[project]
+name = "af-stack-backend"
+version = "0.0.1"
+description = "AF Stack backend application — agents, handlers, jobs, crons. Per-deployment user code."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "af-stack",
+]
+
+# This member exists to satisfy the uv workspace and host per-deployment user
+# code (agents, handlers, jobs, crons). It is NOT a distributable package, so we
+# mark it virtual — uv won't try to build an (empty) wheel for it, which would
+# abort `uv sync --all-packages`. Forks may add their own user code here.
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+af-stack = { workspace = true }

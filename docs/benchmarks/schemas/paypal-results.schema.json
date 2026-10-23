@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PayPal request detection benchmark results",
+  "description": "Written by scripts/paypal-benchmark.mjs (Furqan's lanes own it): the PayPal requests `refit paypal` lists per repository, and the text-heuristic calls it missed.",
+  "type": "object",
+  "required": ["formatVersion", "list", "checkedAt", "summary", "results"],
+  "properties": {
+    "formatVersion": {
+      "const": 1
+    },
+    "list": {
+      "type": "string"
+    },
+    "checkedAt": {
+      "$ref": "common.schema.json#/$defs/time"
+    },
+    "summary": {
+      "type": "object"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "commit", "package", "declared", "status", "likelySdkCalls"],
+        "properties": {
+          "repo": {
+            "$ref": "common.schema.json#/$defs/repo"
+          },
+          "commit": {
+            "$ref": "common.schema.json#/$defs/commit"
+          },
+          "package": {
+            "type": ["string", "null"]
+          },
+          "declared": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string"
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/call"
+            }
+          },
+          "likelySdkCalls": {
+            "$ref": "common.schema.json#/$defs/count"
+          },
+          "traced": {
+            "$ref": "common.schema.json#/$defs/count"
+          },
+          "missed": {
+            "type": "array"
+          },
+          "warnings": {
+            "type": "array"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "refit": {
+      "type": "object",
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": {
+          "$ref": "common.schema.json#/$defs/commit"
+        },
+        "dirty": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "call": {
+      "type": "object",
+      "$ref": "common.schema.json#/$defs/location",
+      "required": ["kind", "use", "hosts", "notes", "unknown"],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "use": {
+          "type": "string"
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array"
+        },
+        "unknown": {
+          "type": "array"
+        }
+      }
+    }
+  }
+}
