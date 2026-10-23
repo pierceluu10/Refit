@@ -7,7 +7,22 @@ PP10 keeps this file current through the night. It tracks what stands between `m
 - **No PR yet**: the lane has not pushed.
 - **Blocked** or **Needs owner decision**: copied from the lane PR or found in review, with its reason.
 
-Last pass: 2026-10-22 14:50 EDT (pass 11, after the owner-authorized merge chain). Base: `main` at `a7a31a8`. Reviews are PR comments; each names the commit it reviewed.
+Last pass: 2026-10-22 22:30 EDT (final). Base: `main` at `0632790`. Reviews are PR comments; each names the commit it reviewed. The sections after **What launch still needs** are the night's record and are not updated further.
+
+## Final state
+
+- **50 of the 53 PRs open this morning are handled.** Merged by the owner-authorized merge sessions (hosted, validation, registry and models tracks), by Furqan (#215, #193, #198, #191, #207, #210, #218 and his follow-ups #231 to #236), or closed as superseded (#140, #142, #144). Each merge comment says what was fixed first.
+- **Still open:** #172 (skipped: AI-made labels need a human spot check before they back precision claims), #229 (no-AI benchmark baseline at `7b2c86a`, to be replaced by a rerun on current `main`), and this PR.
+- **Evidence:** every merge passed local typecheck, format check, the full test suite with Postgres, and build. GitHub Actions is disabled, and the Docker-, oasdiff- and SDK-gated suites have not run on the merged `main`.
+- **PP10 spot checks after merging** (each against the PR's final commits): inventories store paths and match counts only (#170, #221); the approved validation image is kept (#199); new hosted features, the parameter table (#150), the Shopify SDK upgrade (#225), the second sandbox (#212) and repository generators (#186) are off or removed; mined Stripe rules are review only (#201); lifecycle handling is off, deliveries are never pruned and approvals do not follow renames (#200); derived-date and new-kind deadlines are report only (#230, #232); matches outside application code count again by default (#236 after #198); non-npm detections are report only (#193).
+
+## What launch still needs
+
+1. **Gated suites and a benchmark rerun on current `main`:** the Docker, oasdiff and SDK suites once, and the no-AI benchmark compared with #229.
+2. **Accepting outside accounts:** a global AI cap (not built), job machines switched on (Fly job app and scoped token), approval issues (App Issues permission and Setup URL), then a manual allowlist in `REFIT_HOSTED_ACCOUNTS`.
+3. **A hosted end-to-end run on real code:** forks of a few frozen-set repositories enrolled in the owner's account, with draft PRs on the forks only.
+4. **Before going public:** personal emails in commit history; confirm the #234 cleanup and #183's audit items.
+5. **Known defects:** `--propose-model-fixes` runs out of memory on one large repository; `pipeline/stripe-benchmark-cli.test.ts` fails intermittently.
 
 ## Landed on main during the night
 
