@@ -112,6 +112,12 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
         file.includes('.test.') || file.startsWith('src/') || file.startsWith('node_modules/'),
     ),
   ).toBe(false);
+  // Benchmark data and AI evaluation records are not read at runtime and quote third-party code.
+  expect(
+    result.files.filter(
+      (file) => file.startsWith('docs/benchmarks/') || file.startsWith('docs/ai-evals/'),
+    ),
+  ).toEqual([]);
   expect(Object.keys(result.dependencies).sort()).toEqual([
     'diff',
     'fast-xml-parser',
@@ -129,6 +135,29 @@ it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencie
   const metadata = JSON.parse(extracted.stdout);
   expect(metadata.bin.refit).toBe('bin/refit.mjs');
   expect(metadata.private).toBe(true);
+  expect(metadata.license).toBe('MIT');
+  // The shrinkwrap pins the runtime tree to exactly what this repository's lockfile tested.
+  expect(result.files).toContain('npm-shrinkwrap.json');
+  const shrinkwrap = JSON.parse(
+    (await execute('tar', ['-xOf', result.archive, 'package/npm-shrinkwrap.json'])).stdout,
+  ) as { packages: Record<string, { version?: string; integrity?: string; dev?: boolean }> };
+  const lock = JSON.parse(await readFile(resolve('package-lock.json'), 'utf8')) as {
+    packages: Record<string, { version?: string; integrity?: string }>;
+  };
+  const locked = new Map(
+    Object.entries(lock.packages).map(([path, entry]) => [
+      `${path.split('node_modules/').at(-1)}@${entry.version}`,
+      entry.integrity,
+    ]),
+  );
+  const pinned = Object.entries(shrinkwrap.packages).filter(([path]) => path);
+  expect(pinned.length).toBeGreaterThan(Object.keys(result.dependencies).length);
+  for (const [path, entry] of pinned) {
+    expect(entry.dev, path).toBeUndefined();
+    expect(locked.get(`${path.split('node_modules/').at(-1)}@${entry.version}`), path).toBe(
+      entry.integrity,
+    );
+  }
   expect(metadata.scripts).toBeUndefined();
   const readme = await execute('tar', ['-xOf', result.archive, 'package/README.md']);
   expect(readme.stdout).toBe(await readFile(resolve('README.md'), 'utf8'));
