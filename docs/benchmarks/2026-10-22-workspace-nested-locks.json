@@ -15,6 +15,15 @@
   "nested": 89,
   "lockedBefore": 6,
   "lockedAfter": 74,
+  "removed": {
+    "removedAt": "2026-10-22",
+    "reason": "OpenAisec/Miko, TaGoat/claude_code_cli and wk42worldworld/cybercode, copies of leaked proprietary Claude Code source, were removed from the Anthropic app list after this run. The run kept no per-repository totals, so repositories, declarations, nested, lockedBefore and lockedAfter still include them; none of the three has a resolved entry.",
+    "repos": [
+      "OpenAisec/Miko",
+      "TaGoat/claude_code_cli",
+      "wk42worldworld/cybercode"
+    ]
+  },
   "resolved": [
     {
       "repository": "AAGAM17/Mind",

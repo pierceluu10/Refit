@@ -438,87 +438,6 @@
     },
     {
       "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
-      "repo": "wk42worldworld/cybercode",
-      "commit": "a43863b90a4ccba6e6f8b6406cf0e2c4df44bc0c",
-      "fetchMs": 14747,
-      "checkout": {
-        "files": 3701,
-        "bytes": 160698676
-      },
-      "scanMs": 73765,
-      "status": "complete",
-      "summary": {
-        "providers": ["openai", "anthropic", "gemini"],
-        "deadlines": [
-          {
-            "id": "anthropic-2025-10-28-claude-3-5-sonnet",
-            "date": "2025-10-28",
-            "live": 2
-          },
-          {
-            "id": "anthropic-2026-02-19-claude-3-5-haiku",
-            "date": "2026-02-19",
-            "live": 1
-          },
-          {
-            "id": "anthropic-2026-02-19-claude-3-7-sonnet",
-            "date": "2026-02-19",
-            "live": 1
-          },
-          {
-            "id": "anthropic-2026-06-15-claude-opus-4",
-            "date": "2026-06-15",
-            "live": 1
-          },
-          {
-            "id": "anthropic-2026-06-15-claude-sonnet-4",
-            "date": "2026-06-15",
-            "live": 1
-          },
-          {
-            "id": "anthropic-2026-08-05-claude-opus-4-1",
-            "date": "2026-08-05",
-            "live": 1
-          },
-          {
-            "id": "openai-2026-10-23-gpt-4",
-            "date": "2026-10-23",
-            "live": 3
-          },
-          {
-            "id": "anthropic-2026-11-30-claude-sonnet-4-5",
-            "date": "2026-11-30",
-            "live": 5
-          },
-          {
-            "id": "openai-2026-12-01-gpt-image-1-mini",
-            "date": "2026-12-01",
-            "live": 2
-          },
-          {
-            "id": "openai-2027-01-06-tts-1",
-            "date": "2027-01-06",
-            "live": 1
-          },
-          {
-            "id": "openai-2027-02-26-whisper-1",
-            "date": "2027-02-26",
-            "live": 1
-          }
-        ],
-        "mentions": [
-          "openai-2026-07-23-gpt-5-chat-latest",
-          "openai-2026-10-23-gpt-image-1",
-          "openai-2026-12-11-gpt-5-2025-08-07"
-        ],
-        "apiVersions": [],
-        "models": [],
-        "modelCalls": 2
-      },
-      "nonLiveModels": 0
-    },
-    {
-      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
       "repo": "kgoedecke/doop",
       "commit": "0f274ac01b2168c9248424b5e7724d3a8a7c626b",
       "fetchMs": 1229,
@@ -573,72 +492,6 @@
         "apiVersions": [],
         "models": ["claude-sonnet-4-5"],
         "modelCalls": 1
-      },
-      "nonLiveModels": 0
-    },
-    {
-      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
-      "repo": "OpenAisec/Miko",
-      "commit": "85f6ab54577064f42b64095213a5b236d458ba82",
-      "fetchMs": 13062,
-      "checkout": {
-        "files": 4345,
-        "bytes": 299656645
-      },
-      "scanMs": 52439,
-      "status": "complete",
-      "summary": {
-        "providers": ["openai", "anthropic"],
-        "deadlines": [
-          {
-            "id": "anthropic-2025-10-28-claude-3-5-sonnet",
-            "date": "2025-10-28",
-            "live": 3
-          },
-          {
-            "id": "anthropic-2026-02-19-claude-3-5-haiku",
-            "date": "2026-02-19",
-            "live": 2
-          },
-          {
-            "id": "anthropic-2026-02-19-claude-3-7-sonnet",
-            "date": "2026-02-19",
-            "live": 2
-          },
-          {
-            "id": "anthropic-2026-06-15-claude-opus-4",
-            "date": "2026-06-15",
-            "live": 2
-          },
-          {
-            "id": "anthropic-2026-06-15-claude-sonnet-4",
-            "date": "2026-06-15",
-            "live": 2
-          },
-          {
-            "id": "anthropic-2026-08-05-claude-opus-4-1",
-            "date": "2026-08-05",
-            "live": 2
-          },
-          {
-            "id": "anthropic-2026-11-30-claude-sonnet-4-5",
-            "date": "2026-11-30",
-            "live": 5
-          },
-          {
-            "id": "openai-2027-04-01-gpt-5-1",
-            "date": "2027-04-01",
-            "live": 8
-          }
-        ],
-        "mentions": [
-          "openai-2026-07-23-gpt-5-1-codex-mini",
-          "openai-2026-07-23-gpt-5-chat-latest",
-          "openai-2027-04-01-gpt-5-4-nano"
-        ],
-        "apiVersions": [],
-        "models": [],
-        "modelCalls": 2
       },
       "nonLiveModels": 0
     },
@@ -1033,5 +886,10 @@
       },
       "nonLiveModels": 0
     }
-  ]
+  ],
+  "removed": {
+    "removedAt": "2026-10-22",
+    "reason": "Rows for repositories that are copies of leaked proprietary Claude Code source were removed with them from the Anthropic app list.",
+    "repos": ["wk42worldworld/cybercode", "OpenAisec/Miko"]
+  }
 }

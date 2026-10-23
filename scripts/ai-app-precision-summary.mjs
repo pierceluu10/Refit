@@ -94,7 +94,9 @@ export function validateSiteLabels(labels) {
   }
   for (const set of SETS) {
     const negatives = (labels.negatives ?? []).filter((n) => n.set === set);
-    if (negatives.length < 30)
+    // Negatives later removed with their repositories (`removed`) were still drawn and labelled.
+    const removed = labels.removed?.negatives?.[set] ?? 0;
+    if (negatives.length + removed < 30)
       problems.push(`${set}: ${negatives.length} negative files, at least 30 needed`);
     for (const n of negatives) {
       if (!inSample(set, n.repo))

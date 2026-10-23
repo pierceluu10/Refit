@@ -30,7 +30,9 @@ How the two scanners use them:
 
 ## Measurement (2026-10-22)
 
-**Monorepos in the frozen sets.** `scripts/workspace-monorepos.mjs` fetched the trees of all 922 repositories in the Stripe (100, 50, 381), Shopify (50, 200) and AI-app (100, 50) frozen sets at their frozen commits. 326 are monorepos ([list](benchmarks/2026-10-22-workspace-monorepos.json)):
+On 2026-10-22, 12 repositories were removed from the Anthropic app set because they are copies of leaked proprietary Claude Code source. The numbers in this section were recomputed on the remaining 38 from the committed per-repository results; nothing was rerun.
+
+**Monorepos in the frozen sets.** `scripts/workspace-monorepos.mjs` fetched the trees of all 910 repositories in the Stripe (100, 50, 381), Shopify (50, 200) and AI-app (100, 38) frozen sets at their frozen commits. 320 are monorepos ([list](benchmarks/2026-10-22-workspace-monorepos.json)):
 
 | Signal | Monorepos |
 |---|---:|
@@ -38,7 +40,7 @@ How the two scanners use them:
 | `pnpm-workspace.yaml` | 58 |
 | `turbo.json` | 6 |
 | `nx.json` | 2 |
-| More than one `package.json` (with or without the above) | 201 |
+| More than one `package.json` (with or without the above) | 195 |
 
 **Blind labels.** 20 monorepos were labelled before Refit ran on them ([labels](benchmarks/2026-10-22-workspace-labels.json), `scripts/workspace-sample.mjs`, seed 20261022): 10 with declared workspaces and 10 with only nested `package.json` files. Each was labelled from `scripts/workspace-label-candidates.mjs`, which imports no pipeline code. That covers 204 files: every `package.json` that declares a catalog SDK and every JS/TS file naming a provider host, model ID or API version. Each file gets its enclosing package and a category (product, test, or an exclusion reason). 133 of the 204 sit outside the root package. `pipeline/workspace-attribution-score.ts` scores them, with its own test.
 
@@ -55,11 +57,11 @@ The after row is from `d7026fe`, before `015fe7a` added `setup.py`, `setup.cfg` 
 - **No product finding was lost** (94 before, 94 after).
 - **Exclusion accuracy is not measured.** The 204 labelled units are 200 product, 4 test and 0 excluded, and neither run placed a labelled finding on an excluded path, so these runs say nothing about how well the exclusion rules pick out non-product code.
 
-**Excluded paths across all 326 monorepos** at `f4e587d` ([scan](benchmarks/2026-10-22-workspace-exclusions.json)): 1,496 findings, 311 of them outside the root package. Refit placed 11 findings, in 5 repositories, on excluded paths: 5 `example`, 4 `docs-site` and 2 `test-fixture`. Before attribution, every one of these counted as live. All 11 were looked at by hand (not blind) and match the rules above, but no per-finding verdicts were committed, so that check is unrecorded. Two of them are worth a reviewer's look: embedbase's `docs/` is a deployed docs site whose `docs/pages/api/qa.ts` calls OpenAI live. It is excluded by rule, but a customer might still want that exposure. Six repositories exceed the repository reader's existing scan limits (10,000 files) and were not scanned.
+**Excluded paths across all 320 monorepos** at `f4e587d` ([scan](benchmarks/2026-10-22-workspace-exclusions.json)): 1,396 findings, 301 of them outside the root package. Refit placed 10 findings, in 4 repositories, on excluded paths: 5 `example`, 3 `docs-site` and 2 `test-fixture`. Before attribution, every one of these counted as live. All 10 were looked at by hand (not blind) and match the rules above, but no per-finding verdicts were committed, so that check is unrecorded. Two of them are worth a reviewer's look: embedbase's `docs/` is a deployed docs site whose `docs/pages/api/qa.ts` calls OpenAI live. It is excluded by rule, but a customer might still want that exposure. Six repositories exceed the repository reader's existing scan limits (10,000 files) and were not scanned.
 
-**Nested lockfiles** ([counts](benchmarks/2026-10-22-workspace-nested-locks.json)): 94 monorepos have a lockfile below the root; 2 of them (getcord/cord, litmajor/mtaa-dao) exceeded the repository reader's scan limits and were not counted. The other 92 hold 89 catalog SDK declarations in nested `package.json` files. Before, the root lockfile alone locked 6 of them; with per-package lockfiles, 74 are locked. That run is unpinned: the script did not check each checkout's commit or record Refit's commit and dirty state (it does now), so 6 → 74 is not tied to a Refit commit. Three were checked against their lockfiles by hand: Hungry-Harvest `backend` stripe 19.1.0, RefSpring `functions` 14.25.0 and ShipGenAI `ai-travel-studio` 22.2.0.
+**Nested lockfiles** ([counts](benchmarks/2026-10-22-workspace-nested-locks.json)): 94 monorepos had a lockfile below the root when this ran, 91 after the removal described above, and the counts in this paragraph still include the other 3 because the run kept no per-repository totals (none of the 3 has a resolved entry); 2 of them (getcord/cord, litmajor/mtaa-dao) exceeded the repository reader's scan limits and were not counted. The other 92 hold 89 catalog SDK declarations in nested `package.json` files. Before, the root lockfile alone locked 6 of them; with per-package lockfiles, 74 are locked. That run is unpinned: the script did not check each checkout's commit or record Refit's commit and dirty state (it does now), so 6 → 74 is not tied to a Refit commit. Three were checked against their lockfiles by hand: Hungry-Harvest `backend` stripe 19.1.0, RefSpring `functions` 14.25.0 and ShipGenAI `ai-travel-studio` 22.2.0.
 
-**What this means.** In these sets, monorepos are common (35%), and attribution moves 311 findings from an implied root to their real package. Findings on excluded paths are rare: 11 of 1,496, because the repository reader already skips `node_modules`, `dist`, `build`, `.next` and `coverage`, and the deadline scanner already marks tests. The larger practical gain is nested-lockfile versions (6 → 74, unpinned).
+**What this means.** In these sets, monorepos are common (35%), and attribution moves 301 findings from an implied root to their real package. Findings on excluded paths are rare: 10 of 1,396, because the repository reader already skips `node_modules`, `dist`, `build`, `.next` and `coverage`, and the deadline scanner already marks tests. The larger practical gain is nested-lockfile versions (6 → 74, unpinned).
 
 ## Python, Rust and Go monorepos
 
@@ -78,11 +80,11 @@ node scripts/workspace-nested-locks.mjs --list docs/benchmarks/2026-10-22-worksp
 
 `workspace-monorepos.mjs` fetches trees only. Check each repository out at its frozen commit (`git -C <dir> checkout --detach <commit>`) before running the scans.
 
-**Not counting matches outside application code** ([before and after](benchmarks/2026-10-22-workspace-uncounted.json), `scripts/workspace-uncounted.mjs`, at `d7621ae`, clean). The exclusion scan above found excluded findings in 5 of the 326 monorepos; the other 321 had no live deadline match on an excluded path at `f4e587d`, so the decision does not change their counts (they were not rerun). The 5 were checked out again at their frozen commits:
+**Not counting matches outside application code** ([before and after](benchmarks/2026-10-22-workspace-uncounted.json), `scripts/workspace-uncounted.mjs`, at `d7621ae`, clean). The exclusion scan above found excluded findings in 4 of the 320 monorepos; the other 316 had no live deadline match on an excluded path at `f4e587d`, so the decision does not change their counts (they were not rerun). The 4 were checked out again at their frozen commits:
 
-| 5 repositories with an excluded finding | Deadlines counted as exposures |
+| 4 repositories with an excluded finding | Deadlines counted as exposures |
 |---|---:|
-| Before (any live match counts) | 19 |
-| After (matches outside application code listed, not counted) | 16 |
+| Before (any live match counts) | 10 |
+| After (matches outside application code listed, not counted) | 7 |
 
 4 matches moved to the "not counted" list: communisaas/commons `tests/mocks/external-services.ts` (`meta-graph-v18-0`, test-fixture), embedbase `docs/pages/api/qa.ts` (`gpt-4`, docs-site; still counted from its other live code), and LocalRouter `website/src/components/GuardrailApprovalDemo.tsx` (`claude-3-5-sonnet`, docs-site) and `website/src/components/demo/TauriMockSetup.ts` (`gpt-4`, example). So commons loses one exposure and LocalRouter both of its two. embedbase's `docs/` is a deployed docs site that calls OpenAI live; its owner would add `docs` to `.refit-application-paths.json` to count it. The "before" column is computed from the same run (every live match, wherever it is), not from an older commit.
