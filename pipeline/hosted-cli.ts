@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import type { Pool } from 'pg';
+import { aiBudgetLimit } from './ai-budget.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { flyMachines } from './fly-machines.ts';
 import { githubAppConfiguration } from './github-app.ts';
@@ -43,7 +44,7 @@ const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] 
        refit hosted receipt <job>
        refit hosted targets
        refit hosted health
-Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_ACCOUNTS, the comma-separated GitHub accounts whose installations may enroll (default: REFIT_HOSTED_OWNER alone). Other accounts' installations are recorded as not allowed and nothing is cloned. Each installation runs one job at a time, at most REFIT_HOSTED_DAILY_JOBS (default 1440) jobs and REFIT_HOSTED_DAILY_INVENTORIES (default 500) inventories per UTC day. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation in PostgreSQL.
+Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_ACCOUNTS, the comma-separated GitHub accounts whose installations may enroll (default: REFIT_HOSTED_OWNER alone). Other accounts' installations are recorded as not allowed and nothing is cloned. Each installation runs one job at a time, at most REFIT_HOSTED_DAILY_JOBS (default 1440) jobs and REFIT_HOSTED_DAILY_INVENTORIES (default 500) inventories per UTC day. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation in PostgreSQL, and one ledger across all installations capped at REFIT_HOSTED_AI_BUDGET_USD (default: REFIT_AI_BUDGET_USD).
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
@@ -354,6 +355,10 @@ try {
         alerts: hostedAlerts(process.env) ?? undefined,
         reports: hostedReports(process.env),
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
+        aiTotalUsd:
+          process.env.REFIT_HOSTED_AI_BUDGET_USD === undefined
+            ? undefined
+            : aiBudgetLimit(process.env.REFIT_HOSTED_AI_BUDGET_USD, 'REFIT_HOSTED_AI_BUDGET_USD'),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
         contact: hostedContact(process.env.REFIT_HOSTED_CONTACT),

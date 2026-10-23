@@ -535,6 +535,67 @@ it.skipIf(!DATABASE)(
 );
 
 it.skipIf(!DATABASE)(
+  'caps AI spend across all installations with one total ledger',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(pool, tenancy(['first', 'second']));
+    await install(store, 1, 'first', []);
+    await install(store, 2, 'second', []);
+    const directory = await temporaryDirectory();
+    // Each installation could hold two $0.019182 reservations; the total holds three.
+    const reserve = (installationId: number) =>
+      reserveAiBudget(
+        {
+          directory,
+          limitUsd: 0.05,
+          ledger: store.aiLedger(installationId),
+          parent: { directory, limitUsd: 0.06, ledger: store.aiTotalLedger() },
+        },
+        MODEL,
+        1000,
+        4096,
+      );
+    const settle = await reserve(1);
+    await reserve(1);
+    await reserve(2);
+    await expect(reserve(2)).rejects.toThrow('AI budget exhausted');
+    const ledgers = async () =>
+      (
+        await pool.query(
+          'SELECT installation_id::int AS id, state FROM refit_ai_ledgers ORDER BY installation_id',
+        )
+      ).rows.map((row) => [
+        row.id,
+        row.state.spentNano,
+        Object.keys(row.state.reservations).length,
+      ]);
+    // The refused request left no reservation in the second installation's own ledger.
+    expect(await ledgers()).toEqual([
+      [1, 0, 2],
+      [2, 0, 1],
+    ]);
+    await settle(
+      {
+        inputTokens: 1000,
+        cachedInputTokens: 0,
+        cacheWriteInputTokens: 0,
+        outputTokens: 100,
+        reasoningTokens: 0,
+      },
+      MODEL,
+    );
+    const total = await pool.query('SELECT state FROM refit_ai_total_ledger');
+    expect(total.rows).toHaveLength(1);
+    expect(total.rows[0].state).toMatchObject({ limitNano: 60_000_000, spentNano: 1_200_000 });
+    expect(Object.keys(total.rows[0].state.reservations)).toHaveLength(2);
+    expect((await ledgers())[0]).toEqual([1, 1_200_000, 1]);
+    // Settling freed room in the total, so the second installation can reserve again.
+    await reserve(2);
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
   'lists installations, their allow state and today’s usage with refit hosted accounts',
   async () => {
     const pool = await database();

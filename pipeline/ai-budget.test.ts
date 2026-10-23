@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   aiBudgetConfiguration,
+  aiBudgetLimit,
   reserveAiBudget,
   responseUsage,
   usageCostUsd,
@@ -140,6 +141,33 @@ it('serializes competing reservations and fails closed on unpriced models or cha
   expect(aiBudgetConfiguration({ REFIT_AI_BUDGET_DIRECTORY: '' }).directory).not.toBe(
     process.cwd(),
   );
+});
+
+it('reserves and settles every request against a parent budget too, and releases its own reservation when the parent refuses', async () => {
+  // Each reservation of 1,000 input and 4,096 output tokens holds $0.019182.
+  const parent = await budget(0.03);
+  const first = { ...(await budget()), parent };
+  const second = { ...(await budget()), parent };
+  const settle = await reserveAiBudget(first, MODEL, 1000, 4096);
+  // The parent holds one request, so the second budget's own allowance does not matter.
+  await expect(reserveAiBudget(second, MODEL, 1000, 4096)).rejects.toThrow(/budget exhausted/);
+  const state = async (directory: string) =>
+    JSON.parse(await readFile(join(directory, 'budget.json'), 'utf8'));
+  expect((await state(second.directory)).reservations).toEqual({});
+  const usage = {
+    inputTokens: 1000,
+    cachedInputTokens: 0,
+    cacheWriteInputTokens: 0,
+    outputTokens: 100,
+    reasoningTokens: 0,
+  };
+  expect(await settle(usage, MODEL)).toEqual({ costUsd: 0.0012, spentUsd: 0.0012, limitUsd: 0.2 });
+  for (const directory of [first.directory, parent.directory])
+    expect(await state(directory)).toMatchObject({ spentNano: 1_200_000, reservations: {} });
+  expect(() => aiBudgetLimit('0', 'REFIT_HOSTED_AI_BUDGET_USD')).toThrow(
+    'REFIT_HOSTED_AI_BUDGET_USD must be greater than zero and at most 1000.',
+  );
+  expect(() => aiBudgetLimit(undefined, 'REFIT_HOSTED_AI_BUDGET_USD')).toThrow(/greater than zero/);
 });
 
 it('prices gpt-5.6-luna and its dated snapshots, and refuses a response from a differently priced model', async () => {

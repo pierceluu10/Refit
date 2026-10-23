@@ -94,8 +94,11 @@ export async function runHostedService(options: {
   controlToken: string;
   // Allowed accounts and per-installation caps; other accounts' installations never enroll.
   tenancy: HostedTenancy;
-  // Each installation gets its own PostgreSQL ledger, capped at the same limit.
+  // Each installation gets its own PostgreSQL ledger, capped at the same limit, and every request
+  // also reserves against one ledger across all installations, capped at aiTotalUsd (default: the
+  // per-installation limit).
   aiPatch?: AiOptions;
+  aiTotalUsd?: number;
   repairAttempts?: number;
   publishDraft?: boolean;
   // Where customers ask for data deletion and report security issues (REFIT_HOSTED_CONTACT).
@@ -360,6 +363,11 @@ export async function runHostedService(options: {
                       'budget.json',
                     ),
                   ),
+                  parent: {
+                    ...options.aiPatch.budget,
+                    limitUsd: options.aiTotalUsd ?? options.aiPatch.budget.limitUsd,
+                    ledger: store.aiTotalLedger(),
+                  },
                 },
               }),
             },
