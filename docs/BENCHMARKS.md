@@ -10,15 +10,15 @@ Every number here comes from real public repositories, frozen before the run tha
 
 ## Summary (Refit 0.38.0)
 
-| Set | Repositories | Affected | Validated fixes | Main stop |
-|---|---|---|---|---|
-| Stripe, fresh (frozen 2026-10-16) | **381** | 171 (45%) | **5** | 148 send the `payment_method_types` parameter endive removed |
-| Stripe, original | 100 | 40 | 4 | 27 send `payment_method_types` |
-| Stripe, held out | 50 | 23 | 1 | 18 send `payment_method_types` |
-| Shopify, fresh (frozen 2026-10-16) | **200** | 170 with Admin usage | **6** (13 patched) | 44 need an SDK upgrade, 32 use REST |
-| Shopify, original | 50 | 46 with Admin usage | 1 | 15 need an SDK upgrade |
-| API deadlines, labelled | 100 (32 labelled) | 28 of 32 exposed | n/a | Detection only |
-| API deadlines, fresh sets | 581 | 127 exposed | n/a | Detection only |
+| Set                                | Repositories      | Affected             | Validated fixes    | Main stop                                                    |
+| ---------------------------------- | ----------------- | -------------------- | ------------------ | ------------------------------------------------------------ |
+| Stripe, fresh (frozen 2026-10-16)  | **381**           | 171 (45%)            | **5**              | 148 send the `payment_method_types` parameter endive removed |
+| Stripe, original                   | 100               | 40                   | 4                  | 27 send `payment_method_types`                               |
+| Stripe, held out                   | 50                | 23                   | 1                  | 18 send `payment_method_types`                               |
+| Shopify, fresh (frozen 2026-10-16) | **200**           | 170 with Admin usage | **6** (13 patched) | 44 need an SDK upgrade, 32 use REST                          |
+| Shopify, original                  | 50                | 46 with Admin usage  | 1                  | 15 need an SDK upgrade                                       |
+| API deadlines, labelled            | 100 (32 labelled) | 28 of 32 exposed     | n/a                | Detection only                                               |
+| API deadlines, fresh sets          | 581               | 127 exposed          | n/a                | Detection only                                               |
 
 - **531 Stripe and 250 Shopify repositories in all; 17 validated fixes** (10 Stripe, 7 Shopify). All 17 were reviewed by hand. None was wrong. 2 are partial: one leaves the version for a person to move, and one does not upgrade the package.
 - **One owner decision now blocks most Stripe automation.** Of 234 affected Stripe repositories across the three sets, **193 (82%)** send `payment_method_types`, which `2026-09-30.endive` removed from Checkout Session, PaymentIntent and SetupIntent creation. Refit stops for review, as decided on 2026-10-16. A reviewed replacement policy would let Refit continue past this stop for those repositories.
@@ -32,15 +32,15 @@ Question: where Refit stopped, does a model-driven agent fix the break instead? 
 
 The agent is not Claude. The local Claude CLI login was invalid, so the run used the OpenAI key already in `.env`. `--agent claude` reruns it after `claude auth login`.
 
-| Outcome | Repositories |
-|---|---|
-| Refused at dependency preparation (same gate as Refit; agent not run) | 23 |
-| Agent patched, then preparation refused (first pass, before the preflight) | 2 |
-| Repository's own checks fail or cannot run unpatched | 5 |
-| Regression caught by validation | 2 |
-| **Passed validation** | **8** |
-| … **correct** | **1** |
-| … wrong | 7 |
+| Outcome                                                                    | Repositories |
+| -------------------------------------------------------------------------- | ------------ |
+| Refused at dependency preparation (same gate as Refit; agent not run)      | 23           |
+| Agent patched, then preparation refused (first pass, before the preflight) | 2            |
+| Repository's own checks fail or cannot run unpatched                       | 5            |
+| Regression caught by validation                                            | 2            |
+| **Passed validation**                                                      | **8**        |
+| … **correct**                                                              | **1**        |
+| … wrong                                                                    | 7            |
 
 - **Every wrong patch fails the same way: it deletes `payment_method_types`.** It deleted the parameter in 14 of its 17 patches and replaced it once. `sammorrispb/nextgen-academy` became `allowed_payment_method_types: ['card']`, which is the owner's card rule and the one correct patch. Deleting the parameter typechecks and passes tests, but Stripe then offers dynamic payment methods, so a card-only checkout changes behaviour silently. In `geallenboy/ai-saas-template` it also deleted a computed list the caller chose. Refit stops on exactly this.
 - **Apart from that parameter, the agent's edits were right.** In all 7 wrong patches, the response-field moves were correct, as were the pins:
@@ -49,6 +49,7 @@ The agent is not Claude. The local Claude CLI login was invalid, so the run used
   - `shipping_details` reads moved to `collected_information`.
 
   These went past four of Refit's stops: two type-check regressions (`Kanba-co/kanba`, `iggy-tech/product-hunt-clone-final`), one unresolved `shipping_details` finding (`abressiddique/AbresStore-Admin`) and one validation error (`utsavkrishnatra/pdf_answers`). Deterministic rules for those cases would have produced the same edits without the parameter risk.
+
 - **The environment limits both approaches equally.** 25 of 40 never reached validation because the repository's dependencies cannot be prepared offline (pnpm settings, private registries, size). A model does not change that.
 - **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 37 s. Refit's AI spend across all 531 repositories was $0.07.
 - **Caveats.**
@@ -61,15 +62,15 @@ The agent is not Claude. The local Claude CLI login was invalid, so the run used
 
 No owner decision changed. The stripe-node upgrade now covers root pnpm v9 and Yarn 1 projects and npm lockfiles in any standard formatting, and the benchmark validates Yarn roots ([checkpoint](READINESS.md), [dependency guide](DEPENDENCIES.md#stripe-node-upgrade-in-a-patch)). The same 531 repositories were rerun from pinned worktrees at `7238e46`; Yarn repositories were rerun at `fecd935`, which only lets the harness validate them. Per-repository outcomes: [fresh](benchmarks/2026-10-16-stripe-fixrate-fresh-results.json), [original](benchmarks/2026-10-16-stripe-fixrate-original-results.json), [held out](benchmarks/2026-10-16-stripe-fixrate-heldout-results.json).
 
-| | Original 100 | Held-out 50 | Fresh 381 | All 531 |
-|---|---|---|---|---|
-| Affected | 40 | 23 | 171 | 234 |
-| Validated before (`6d02116`) | 11 | 7 | 35 | 53 |
-| **Validated now** | **13** | **9** | **52** | **74** |
-| Stopped: `payment_method_types` outside the card rule | 11 | 8 | 63 | 82 |
-| Refused at validation preparation | 7 | 2 | 29 | 38 |
-| Regression caught by validation | 3 | 1 | 8 | 12 |
-| Other stops (declared types, invalid source, no checks, AI declined, failing baseline) | 6 | 3 | 19 | 28 |
+|                                                                                        | Original 100 | Held-out 50 | Fresh 381 | All 531 |
+| -------------------------------------------------------------------------------------- | ------------ | ----------- | --------- | ------- |
+| Affected                                                                               | 40           | 23          | 171       | 234     |
+| Validated before (`6d02116`)                                                           | 11           | 7           | 35        | 53      |
+| **Validated now**                                                                      | **13**       | **9**       | **52**    | **74**  |
+| Stopped: `payment_method_types` outside the card rule                                  | 11           | 8           | 63        | 82      |
+| Refused at validation preparation                                                      | 7            | 2           | 29        | 38      |
+| Regression caught by validation                                                        | 3            | 1           | 8         | 12      |
+| Other stops (declared types, invalid source, no checks, AI declined, failing baseline) | 6            | 3           | 19        | 28      |
 
 - **71 of the 74 are deterministic; three are AI repairs, each read in full.** `akn3107/whatsapp-store-creator` and `brendansudol/punchlines-ai` are correct. In punchlines-ai the period helper takes `(items) => items[0]` from the deterministic rule, because the same function already stores `subscription.items.data[0].price.id`. `ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform` also wraps a Checkout Session's `subscription`, which Stripe kept, in the Invoice helper; that returns the same value, but the edit is unnecessary. A model edit that adds its own item choice now stops for review (`e47b8ab`); none of these three did.
 - **The new upgrades were checked against the package managers, not only against `tsc`.** pnpm re-resolved 30 of 32 upgraded lockfiles byte for byte (the other two carry drift already in the repository); Yarn 1 accepted 12 of 13 with `--frozen-lockfile` (the thirteenth was already stale). Every validated fix also installed its patched lockfile frozen in offline Docker.
@@ -85,16 +86,16 @@ The fresh set skews toward old, idle code: 38% pin a 2022–2023 API version, an
 - **Criteria.** Not archived or a fork; under 50 MB; a default-branch commit in the 90 days before 2026-10-16 by at least two human authors (bots excluded); a GitHub Actions workflow; `stripe` in the root `package.json`; exactly one root lockfile. 72 qualified; 3,996 had no commit in 90 days and 799 had one human author.
 - **Kept.** 66 after dropping repositories already on endive (3), with no derivable API version (2) or that could not be cloned (1). 14 are owned by organisations. 46 of 66 pin a 2025–2026 API version.
 
-| Outcome | Repositories |
-|---|---|
-| No mapped Stripe SDK call found | 32 |
-| Not affected | 22 |
-| **Affected** | **11** |
-| … stopped: `payment_method_types` outside the card rule | 6 |
-| … refused at validation preparation (registry URL, lockfile, size) | 3 |
-| … stopped: unparseable source files | 2 |
-| … validated | 0 |
-| Over scan limits | 1 |
+| Outcome                                                            | Repositories |
+| ------------------------------------------------------------------ | ------------ |
+| No mapped Stripe SDK call found                                    | 32           |
+| Not affected                                                       | 22           |
+| **Affected**                                                       | **11**       |
+| … stopped: `payment_method_types` outside the card rule            | 6            |
+| … refused at validation preparation (registry URL, lockfile, size) | 3            |
+| … stopped: unparseable source files                                | 2            |
+| … validated                                                        | 0            |
+| Over scan limits                                                   | 1            |
 
 - **Active code breaks less.** 17% are affected, against 45% of the fresh set, because recent pins are closer to the target. The breaking reads are the same ones: `subscription.current_period_end` (5), `invoice.subscription` (4), `subscription.current_period_start` (3).
 - **Tracing is the gap.** In 32 repositories Refit found 518 likely Stripe SDK calls and traced none; overall it traced 661 of 1,895 (35%, against 51% on the fresh set). At least 18 of the 32 create the client in a lazy factory, `getStripe()` assigning a module-level `let` on first use, which Refit does not follow. Until it does, "not affected" here means little. (Factory tracing landed on October 17; see [the rescan](#lazy-stripe-clients-on-the-active-teams-set-october-21).)
@@ -103,11 +104,11 @@ The fresh set skews toward old, idle code: 38% pin a 2022–2023 API version, an
 
 The October 16 run traced no calls in 32 of the 66 active-team repositories, and at least 18 of them use a lazy `getStripe()` factory. Factory tracing landed on October 17, after that run. To see what was left, the 10 of those 32 with the most likely Stripe calls were rescanned at their frozen commits with `npm run benchmark:coverage`. It reads source only: no install, no Docker, no model call.
 
-| | Traced of 355 likely calls | Repositories at zero |
-|---|---|---|
-| October 16 run (0.38.0) | 0 | 10 |
-| `main` at `b67ff09` | 247 (70%) | 0 |
-| Plus dynamically imported factories | **280 (79%)** | 0 |
+|                                     | Traced of 355 likely calls | Repositories at zero |
+| ----------------------------------- | -------------------------- | -------------------- |
+| October 16 run (0.38.0)             | 0                          | 10                   |
+| `main` at `b67ff09`                 | 247 (70%)                  | 0                    |
+| Plus dynamically imported factories | **280 (79%)**              | 0                    |
 
 Most remaining factory misses were a factory loaded with `await import()`, which the analyzer could not follow (`const { getStripe } = await import('@/lib/stripe')`, `(await import('./stripeClient')).getStripeClient()`). Following them added 33 calls in 4 repositories; `joannachen-c/design-meetup-web` went from 15/24 to 24/24. Still untraced: a per-organization cache with expiry (`meetingmindsexperts/ea-sys`, 13 calls), injectable overrides (`options.stripe || getStripe()`), destructured clients and parameters. These are coverage numbers, not fixes: nothing was validated, and the other 56 repositories were not rescanned.
 
@@ -115,21 +116,21 @@ Most remaining factory misses were a factory loaded with `await import()`, which
 
 All 66 active-team repositories were rescanned at their frozen commits from a pinned worktree of `fix/comparison-escape` (`cc426fe`: `main` plus [#151](https://github.com/pierceluu10/Refit/pull/151)), read-only with `npm run benchmark:stripe` and no `--validate`. Every affected repository was then run through the workflow with `--validate` (5 while #151 was unmerged, the other 16 from `main` at `5482423`), in offline Docker (`node:22-alpine`, dependencies installed with lifecycle scripts off, checks with no network).
 
-| Outcome | October 16 | October 21 |
-|---|---|---|
-| Traced of likely Stripe calls | 661 of 1,895 (35%) | **1,346 of 1,887 (71%)** |
-| No mapped Stripe SDK call found | 32 | 4 |
-| Not affected | 22 | 40 |
-| **Affected** | **11** | **21** |
-| … stopped: sends a removed request parameter | | 10 |
-| … refused or failed at dependency preparation | | 4 |
-| … stopped: committed source over the 50 MiB validation archive | | 2 |
-| … checks passed, untraced read left unchanged: `[Needs review]` draft | | 1 |
-| … checks did not finish | | 1 |
-| … stopped: unparseable source files | | 1 |
-| … stopped: helper client needs review | | 1 |
-| … **validated** | 0 | **1** |
-| Unreadable | 1 | 1 |
+| Outcome                                                               | October 16         | October 21               |
+| --------------------------------------------------------------------- | ------------------ | ------------------------ |
+| Traced of likely Stripe calls                                         | 661 of 1,895 (35%) | **1,346 of 1,887 (71%)** |
+| No mapped Stripe SDK call found                                       | 32                 | 4                        |
+| Not affected                                                          | 22                 | 40                       |
+| **Affected**                                                          | **11**             | **21**                   |
+| … stopped: sends a removed request parameter                          |                    | 10                       |
+| … refused or failed at dependency preparation                         |                    | 4                        |
+| … stopped: committed source over the 50 MiB validation archive        |                    | 2                        |
+| … checks passed, untraced read left unchanged: `[Needs review]` draft |                    | 1                        |
+| … checks did not finish                                               |                    | 1                        |
+| … stopped: unparseable source files                                   |                    | 1                        |
+| … stopped: helper client needs review                                 |                    | 1                        |
+| … **validated**                                                       | 0                  | **1**                    |
+| Unreadable                                                            | 1                  | 1                        |
 
 - **First fix.** `RISHIE2006/Signl` (Next.js, npm) sends `payment_method_types: ['card']` on Checkout Session creation and pins `2025-03-31.basil`. The deterministic card rule renamed it to `allowed_payment_method_types`, moved the pin to `2026-09-30.endive` and upgraded stripe-node 22.2.2 to 23.0.0: four one-line changes, reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)). It is published as a draft PR by Refit Agent on a fork in `refit-dev`; the upstream repository was not touched.
 - **Weak checks on that fix.** The benchmark picks `npm test`, but both of Signl's tests import `better-sqlite3`, whose native binding is never built (lifecycle scripts are off and the image has no compiler), so the original code failed. Neither test touches Stripe. The fix was validated with `npm run lint` instead, chosen by the operator, as an approved `.refit.json` check would be. Refit's generated stripe-mock check could not load the route alone (`@clerk/nextjs` fails under plain Node), so no Stripe request was exercised. The PR says both.
@@ -166,20 +167,20 @@ All 43 card-rule fixes were checked against their diffs. 40 passed `tsc` with no
 
 The run used the full pipeline: deterministic rules, AI patches on `gpt-5.6-luna` behind a fresh $5 ledger, and offline Docker validation with generated `stripe-mock` checks. The final run used pinned worktrees at `6733a99`, split across three processes. An earlier run at `61670ab` gave the same outcome for 381 of 381 repositories.
 
-| Outcome | Repositories |
-|---|---|
-| Not affected: no confirmed break on a traced call | 129 |
-| No mapped Stripe method, or no Stripe SDK call found | 77 |
-| Repository exceeds scan limits | 4 |
-| **Affected** | **171** |
-| … stopped: sends the removed `payment_method_types` request parameter | **148** |
-| … stopped: declared Stripe types without traced provenance, or a conflicting SDK pin | 5 |
-| … stopped: an invalid source file (a stray brace, an unescaped quote, an unterminated literal; each checked by hand) | 4 |
-| … repository refused for validation (tracked `node_modules`, a lockfile over 20,000 records) | 3 |
-| … AI evidence over the 64 KiB limit, or AI declined | 3 |
-| … proposed, no preparable checks | 2 |
-| … validation regression: an AI patch introduced type errors; caught, not proposed | 1 |
-| … **validated** | **5** |
+| Outcome                                                                                                              | Repositories |
+| -------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Not affected: no confirmed break on a traced call                                                                    | 129          |
+| No mapped Stripe method, or no Stripe SDK call found                                                                 | 77           |
+| Repository exceeds scan limits                                                                                       | 4            |
+| **Affected**                                                                                                         | **171**      |
+| … stopped: sends the removed `payment_method_types` request parameter                                                | **148**      |
+| … stopped: declared Stripe types without traced provenance, or a conflicting SDK pin                                 | 5            |
+| … stopped: an invalid source file (a stray brace, an unescaped quote, an unterminated literal; each checked by hand) | 4            |
+| … repository refused for validation (tracked `node_modules`, a lockfile over 20,000 records)                         | 3            |
+| … AI evidence over the 64 KiB limit, or AI declined                                                                  | 3            |
+| … proposed, no preparable checks                                                                                     | 2            |
+| … validation regression: an AI patch introduced type errors; caught, not proposed                                    | 1            |
+| … **validated**                                                                                                      | **5**        |
 
 - **Confirmed breaking reads:** 514 in 171 repositories. The most common are `subscription.current_period_end` (91 repositories), `invoice.subscription` (71) and `subscription.current_period_start` (22). Refit traced 2,165 of 4,216 likely Stripe SDK calls (51%).
 - **Validated fixes.** All 5 are deterministic and were reviewed by hand ([`fix-reviews.json`](benchmarks/fix-reviews.json)). Each is published as a draft PR by Refit Agent on a fork in `refit-dev`; upstream repositories were not touched: [goal-reminder#1](https://github.com/refit-dev/goal-reminder/pull/1), [formail-app#1](https://github.com/refit-dev/formail-app/pull/1), [podvex#1](https://github.com/refit-dev/podvex/pull/1), [onellm-frontend#1](https://github.com/refit-dev/onellm-frontend/pull/1) and [vibe-stack#1](https://github.com/refit-dev/vibe-stack/pull/1).
@@ -194,12 +195,12 @@ The run used the full pipeline: deterministic rules, AI patches on `gpt-5.6-luna
 
 Both sets were rerun at `5f94ab4`.
 
-| | Original 100 | Held-out 50 |
-|---|---|---|
-| Affected | 40 | 23 |
-| Validated | 4 | 1 |
-| Stopped: `payment_method_types` | 27 | 18 |
-| Same outcome as the previous run (`e4692cc`) | 100/100 | 50/50 |
+|                                              | Original 100 | Held-out 50 |
+| -------------------------------------------- | ------------ | ----------- |
+| Affected                                     | 40           | 23          |
+| Validated                                    | 4            | 1           |
+| Stopped: `payment_method_types`              | 27           | 18          |
+| Same outcome as the previous run (`e4692cc`) | 100/100      | 50/50       |
 
 The 5 validated fixes are the 5 published, hand-reviewed drafts in the [Stripe benchmark](STRIPE-BENCHMARK.md#published-drafts-and-hand-review). Earlier history (labels, recall and precision, the self-maintaining pipeline, the held-out AI run) is there too.
 
@@ -207,19 +208,19 @@ The 5 validated fixes are the 5 published, hand-reviewed drafts in the [Stripe b
 
 Shopify Admin GraphQL migrations are deterministic, and no AI is used. Details are in the [Shopify benchmark](SHOPIFY-BENCHMARK.md).
 
-| Refit `0b5480b`, October 20 (validation counts from October 16) | Original 50 | Fresh 200 |
-|---|---|---|
-| Patched (version pins moved; every document proven on the target) | 1 | **13** |
-| … validated in offline Docker | 1 | **6** |
-| Already current, or on the newest version the SDK can name | 6 | 1 |
-| Stopped: SDK upgrade needed | 15 | 44 |
-| Stopped: REST Admin calls | 6 | 32 |
-| Stopped: runtime-built, unfollowable or raw GraphQL document | 6 | 32 |
-| Stopped: **query already fails on every served version** | 5 | **24** |
-| Stopped: dynamic, missing or conflicting pin | 7 | 22 |
-| Other (no Admin usage, unparseable document, over scan limits) | 4 | 32 |
-| Traced Admin documents | 350 (was 255, then 336) | 644 (was 628) |
-| Repeat run at the same commit | 50/50 | 200/200 |
+| Refit `0b5480b`, October 20 (validation counts from October 16)   | Original 50             | Fresh 200     |
+| ----------------------------------------------------------------- | ----------------------- | ------------- |
+| Patched (version pins moved; every document proven on the target) | 1                       | **13**        |
+| … validated in offline Docker                                     | 1                       | **6**         |
+| Already current, or on the newest version the SDK can name        | 6                       | 1             |
+| Stopped: SDK upgrade needed                                       | 15                      | 44            |
+| Stopped: REST Admin calls                                         | 6                       | 32            |
+| Stopped: runtime-built, unfollowable or raw GraphQL document      | 6                       | 32            |
+| Stopped: **query already fails on every served version**          | 5                       | **24**        |
+| Stopped: dynamic, missing or conflicting pin                      | 7                       | 22            |
+| Other (no Admin usage, unparseable document, over scan limits)    | 4                       | 32            |
+| Traced Admin documents                                            | 350 (was 255, then 336) | 644 (was 628) |
+| Repeat run at the same commit                                     | 50/50                   | 200/200       |
 
 - **Helper tracing** raised traced documents on the original 50 from 255 to 336, and halved unreadable ones (55 → 27), with no outcome changes. It reads default exports, Remix `./shopify.server` imports and helper parameters.
 - **Callback and closure tracing** (October 20) follows helpers through callbacks, closure factories, re-exports and constant arrays: unread Admin calls fell from 90 to 76 across both sets, and one more already-broken query was found (`Shop.brand`, a Storefront-only field sent to Admin). The original column's REST and pin rows also include the fresh-set REST fixes made after its first run.
@@ -234,12 +235,12 @@ The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 reposit
 
 `refit deadlines` was also run, unlabelled, over both fresh sets ([results](benchmarks/2026-10-16-deadline-fresh-results.json)):
 
-| | Fresh Shopify 200 | Fresh Stripe 381 |
-|---|---|---|
-| Live exposure to a registry deadline | 62 (31%) | 65 (17%) |
-| Past due | 22 | 9 |
-| Due within 7 days | 34: 29 on Shopify `2025-10` (due today) and 5 more on OpenAI 2026-10-23 retirements (6 in all) | 51 (OpenAI 2026-10-23 retirements) |
-| Most common | `shopify-admin-2025-10` (29), `-2025-07` (15) | `gpt-3.5-turbo` (35), `gpt-4` (15) |
+|                                      | Fresh Shopify 200                                                                              | Fresh Stripe 381                   |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Live exposure to a registry deadline | 62 (31%)                                                                                       | 65 (17%)                           |
+| Past due                             | 22                                                                                             | 9                                  |
+| Due within 7 days                    | 34: 29 on Shopify `2025-10` (due today) and 5 more on OpenAI 2026-10-23 retirements (6 in all) | 51 (OpenAI 2026-10-23 retirements) |
+| Most common                          | `shopify-admin-2025-10` (29), `-2025-07` (15)                                                  | `gpt-3.5-turbo` (35), `gpt-4` (15) |
 
 These counts are a lower bound for Shopify: the registry starts at `2025-04`, and many apps pin older versions.
 
@@ -253,23 +254,23 @@ Review-only version moves to v25.0 on the same 33 repositories ([results](benchm
 
 50 repositories frozen by `scripts/ai-sdk-select.mjs --provider gemini` ([list](benchmarks/2026-10-21-gemini-repos.json)): npm packages whose latest manifest declares `@google/genai` (44) or `@google/generative-ai` (6) in `dependencies`. As with the OpenAI and Anthropic sets, GitHub code search was unavailable, so **these are almost all libraries**: provider plugins, agent frameworks, model routers and MCP servers, not applications. Seven are forks or copies of one coding-agent codebase (`earendil-works/pi` and its derivatives). `scripts/gemini-benchmark.mjs` ran `refit deadlines` at each frozen commit, from the working tree at `40a8e2a` with no pipeline changes during the run ([results](benchmarks/2026-10-21-gemini-results.json)). Files were read only; nothing was installed or run, and no Google endpoint was contacted.
 
-| | Result |
-|---|---|
-| Not scanned (over the 50 MiB or 128-configuration scan limits) | 6 |
-| Declare the old `@google/generative-ai` | 6, all scanned |
-| Exposed to its end of support (2025-11-30) | **6 of 6**: 7 live manifest lines and 1 in `examples/`, listed as test; all 8 are real declarations on hand review (one is a `devDependencies` entry) |
-| Exposed to a Gemini model retirement | none possible: the registry has no Gemini model dates |
+|                                                                | Result                                                                                                                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Not scanned (over the 50 MiB or 128-configuration scan limits) | 6                                                                                                                                                     |
+| Declare the old `@google/generative-ai`                        | 6, all scanned                                                                                                                                        |
+| Exposed to its end of support (2025-11-30)                     | **6 of 6**: 7 live manifest lines and 1 in `examples/`, listed as test; all 8 are real declarations on hand review (one is a `devDependencies` entry) |
+| Exposed to a Gemini model retirement                           | none possible: the registry has no Gemini model dates                                                                                                 |
 
 **Classification census.** The registry has no Gemini model dates, so each repository was scanned a second time against a throwaway registry that lists every quoted `gemini-*` string in its source under a placeholder date. It measures how the matcher classifies Gemini IDs, not exposure:
 
-| Use | Matches |
-|---|---|
-| live | 505 in 39 repositories |
-| catalog | 779 |
-| test | 3,180 |
-| check | 180 |
-| comment | 152 |
-| beyond the 20-per-ID evidence cap, not listed | 1,448 |
+| Use                                           | Matches                |
+| --------------------------------------------- | ---------------------- |
+| live                                          | 505 in 39 repositories |
+| catalog                                       | 779                    |
+| test                                          | 3,180                  |
+| check                                         | 180                    |
+| comment                                       | 152                    |
+| beyond the 20-per-ID evidence cap, not listed | 1,448                  |
 
 Only 74 of the 505 live matches sit in a file that imports either Gemini SDK; libraries keep model IDs in defaults, configuration and provider tables that reach the SDK through their own layers. The first two live matches of each repository (72) were read in context ([review](benchmarks/2026-10-21-gemini-live-review.json)): 5 are not model IDs (a package import, format tags, a gate name, a Chrome built-in model) and matched only because the census lists every `gemini-*` string. Of the other 67, **50 (75%) are live pins**, close to OpenAI's 83% line precision. The 17 others are object-shaped and generated model catalogs (7), test code under paths the rules do not know, `system_test/` and `__testfixtures__/` (4), help or documentation strings (2), a validator, a two-entry list, an `includes()` receiver and a template string in a `.test.ts` file. The last one comes from a classification gap for every provider: only plain string tokens get the test class, so a model in a template string in a test file counts as live. It is reported, not changed, because fixing it lowers live counts for OpenAI and Anthropic too. The review is one reviewer's single AI-assisted pass, not a labelled set.
 
@@ -303,14 +304,14 @@ An independent grep for quoted exact registry model IDs found **4,180** candidat
 
 `scripts/ai-model-benchmark.mjs` ran `refit deadlines` and `refit deadlines --propose-model-fixes` at each frozen commit of both application sets, once on `main` (`fb0143a`) and once with the tracing and reporting changes in [the October 22 checkpoint](READINESS.md) merged onto it (`c084880`). Files were read only: nothing was installed, run or validated, and no provider was contacted, so these are proposals, not validated fixes. Results: [Anthropic](benchmarks/2026-10-21-anthropic-app-results.json), [OpenAI](benchmarks/2026-10-21-openai-app-results.json); each file keeps the `main` summary as `baseline`.
 
-| Repositories with a live exposure | Anthropic before | Anthropic after | OpenAI before | OpenAI after |
-|---|---|---|---|---|
-| Exposed | 16 | 16 | 32 | 32 |
-| With a proposed replacement | 2 | 2 | 2 | 2 |
-| Stopped for review only | 8 | 11 | 17 | 18 |
-| Every live match explained as unresolved | not reported | 3 | not reported | 11 |
-| No outcome at all | 6 | 0 | 12 | 0 |
-| Scanner error | 0 | 0 | 1 | 1 |
+| Repositories with a live exposure        | Anthropic before | Anthropic after | OpenAI before | OpenAI after |
+| ---------------------------------------- | ---------------- | --------------- | ------------- | ------------ |
+| Exposed                                  | 16               | 16              | 32            | 32           |
+| With a proposed replacement              | 2                | 2               | 2             | 2            |
+| Stopped for review only                  | 8                | 11              | 17            | 18           |
+| Every live match explained as unresolved | not reported     | 3               | not reported  | 11           |
+| No outcome at all                        | 6                | 0               | 12            | 0            |
+| Scanner error                            | 0                | 0               | 1             | 1            |
 
 - **Silent repositories.** Before, 6 of 16 exposed Anthropic applications and 12 of 32 OpenAI ones ended with no replacement, no stop and no reason. Now each live match is a replacement, a stop or an `unresolved` entry that says where the model is written (15 Anthropic and 68 OpenAI entries). The OpenAI scanner error is `austineckman/CraftingComputer`, which crashes the scanner process on `main` too, so it has no proposal at all.
 - **Replacements did not move.** Since [#147](https://github.com/pierceluu10/Refit/pull/147) added stops on `main`, both sets propose 3 replacements in 2 repositories, before and after. On these sets this change adds stops and explanations and edits nothing new.
@@ -320,15 +321,15 @@ An independent grep for quoted exact registry model IDs found **4,180** candidat
 
 ## Speed and cost
 
-| Measure | Result |
-|---|---|
-| Stripe benchmark, per repository (4 scans: coverage, shipped adapter, full adapter, full diff) | median **4 s**, p90 17 s, max 324 s |
-| Shopify benchmark, scanning 200 apps | **134 s** of CPU, 0.7 s per app |
-| `refit deadlines`, per repository | **0.4–0.5 s** (581 repositories in 259 s) |
-| `refit run` with Docker validation, cold dependency cache | 46 s (`x-money-shopify`, `tsc`) |
-| Same run, warm dependency cache | **22 s**: preparation reuses the archive keyed by lockfile hash |
-| AI spend, every Stripe run in this release (531 repositories, fresh ledger) | **$0.02** |
-| AI spend per call | $0.002–0.006 on `gpt-5.6-luna` |
+| Measure                                                                                        | Result                                                          |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Stripe benchmark, per repository (4 scans: coverage, shipped adapter, full adapter, full diff) | median **4 s**, p90 17 s, max 324 s                             |
+| Shopify benchmark, scanning 200 apps                                                           | **134 s** of CPU, 0.7 s per app                                 |
+| `refit deadlines`, per repository                                                              | **0.4–0.5 s** (581 repositories in 259 s)                       |
+| `refit run` with Docker validation, cold dependency cache                                      | 46 s (`x-money-shopify`, `tsc`)                                 |
+| Same run, warm dependency cache                                                                | **22 s**: preparation reuses the archive keyed by lockfile hash |
+| AI spend, every Stripe run in this release (531 repositories, fresh ledger)                    | **$0.02**                                                       |
+| AI spend per call                                                                              | $0.002–0.006 on `gpt-5.6-luna`                                  |
 
 - **Scanning time grows with repository size, not Stripe usage.** In `hackerai-tech/hackerai` (1,605 files), 88% of the time is TypeScript symbol resolution across files. Restricting analysis to files import-connected to SDK usage saved under 30%, because a Next.js app's files nearly all import one another. That change was not kept, since every repository-wide safety check would need re-proving.
 - **The Stripe benchmark scans serially in one process.** `--concurrency` only overlaps validation, so large lists are split with `--offset` and `--limit` across processes. Three processes cut the 381-repository run from about 90 minutes to 22.
@@ -339,6 +340,22 @@ An independent grep for quoted exact registry model IDs found **4,180** candidat
 - **Rule.** The shared `TEST_PATH` and the Go and Python tracers' test paths now also treat end-to-end and system test directories as tests, by whole directory segment: `system_test(s)/`, `integration_test(s)/`, `acceptance_test(s)/`, `functional_test(s)/`, `smoke_test(s)/`, `e2e_test(s)/` (with `_`, `-` or nothing before `test`) and `tests-e2e/`. Test files keep the `test` use, as before, so owner decision 22 (docs, examples, fixtures and build output still count) is unchanged. `playwright/` and a bare `integration/` were left out: on the frozen sets both name application code in some repositories (`src/targets/playwright/`, `src/integrations/shopify.js`).
 - **Gemini.** `scripts/gemini-benchmark.mjs` ran once from main `3182b66` and once with the widened paths ([recount](benchmarks/2026-10-22-test-paths-recount.json)). Live-class precision went from 34/59 (57.6%) to 34/50 (68.0%); recall stayed 34/39 (87.2%). 9 matches changed use, all `system_test/` lines in `googleapis/nodejs-vertexai` labelled not sent, so repositories with a Gemini exposure went from 27 to 26. Live matches went from 439 to 430. No labelled sent pin was lost.
 - **Other sets.** A listing of every frozen repository's files at its recorded commit found the newly matched directories only in test harnesses (for example `integration-tests/`, `e2e-tests/`, `system-test/`), and no labelled live site in any benchmark sits in one. The one recorded live site that moves is a v2 client in `jagregory/cognito-local`'s `integration-tests/aws-sdk/setup.ts`, an unlabelled Vitest harness ([Cloud SDK](CLOUD-SDK-EOL.md)). Sets whose results keep only aggregates (API hosts, the fresh deadline sets) have no frozen repository with such a directory, so they are unchanged.
+
+## Before and after the overnight merges (October 22)
+
+Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).
+
+| Set                                  | `7b2c86a` | `7360e3c` |
+| ------------------------------------ | --------- | --------- |
+| Stripe held-out: affected            | 24        | 24        |
+| Stripe held-out: validated           | 9         | 9         |
+| Shopify original: traced documents   | 350       | 350       |
+| Shopify original: stopped for review | 39        | 39        |
+
+- **No repository changed outcome.** `node scripts/stripe-benchmark-compare.mjs` on the two Stripe files finds 0 outcome changes. On Shopify every repository's outcome, traced documents, target and scan status match.
+- **The same Shopify fix.** `samirjabib/shopify-apps-convex-template` is the 1 patched repository in both runs, validated by `npm test`.
+- **Shopify schemas.** All four served Admin schemas differ from the SHA-256 pinned in the frozen list, so the setup script refuses fresh ones. Both runs used the same schemas, saved on October 22. They compare runs with each other, not with the pinned introspection.
+- **Not measured:** AI patches, publication, the other Stripe sets, and the new features the merges added, which are mostly off by default. An unchanged score shows the merges did not break these repositories; it does not measure what they add.
 
 ## What these benchmarks do not show
 

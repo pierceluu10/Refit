@@ -1,0 +1,27 @@
+{
+  "formatVersion": 1,
+  "format": "stripe-results",
+  "refit": {
+    "commit": "7360e3c3344f54a5cb6c22dc3d510752558b4260",
+    "source": "git",
+    "dirty": null,
+    "allowDirty": false
+  },
+  "list": {
+    "path": "selected.json",
+    "sha256": "2ea01252b750dc0155c6240549623d536eaf15fb0c1af58ad84ec4a33a3c67e4"
+  },
+  "options": {
+    "validate": true
+  },
+  "node": "v25.8.2",
+  "docker": {
+    "version": "29.8.2",
+    "image": "node:22-alpine",
+    "imageId": "sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914",
+    "repoDigests": [
+      "node@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914"
+    ]
+  },
+  "startedAt": "2026-10-23T03:41:48.558Z"
+}
