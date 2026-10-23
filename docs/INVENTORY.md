@@ -58,7 +58,7 @@ The inventory JSON (`formatVersion: 1`) has these fields:
 - `ignores`: the committed `.refit-deadlines-ignore.json` (see [API deadlines](DEADLINES.md)) as parsed `entries`, so monitoring can honour them without a checkout. An invalid file keeps its `error` and no entries: it accepts nothing.
 - `models`: OpenAI and Anthropic text-generation calls traced by Refit's analyzer (the calls model fixes cover: chat completions, responses and messages), with the `model` when it is a string literal in the call (null when computed) and `test` for test and fixture files. Embeddings, image, audio and Gemini calls are not listed, and models set through constants or helpers show as null.
 
-`GET /status` lists every row with a `summary` in place of the full inventory: provider IDs, exposed deadline IDs with their date and live-evidence count, mentioned deadline IDs, Stripe API versions, literal models outside tests and the number of model calls. `refit hosted inventory` prints the full row.
+`GET /status` lists every row with a `summary` in place of the full inventory: provider IDs, exposed deadline IDs with their date and live-evidence count, mentioned deadline IDs, Stripe API versions, literal models outside tests and the number of model calls. `/status?target=<id>` lists only that target's repository. `refit hosted inventory` prints the full row.
 
 ## Sample: 28 frozen list entries, 25 repositories
 

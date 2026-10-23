@@ -153,8 +153,20 @@ export async function openHostedStore(
           );
         return { status: 'duplicate' as const, ...none };
       }
+      // Approval commands answer a replayed comment as a duplicate by its comment ID.
       if (change.kind === 'issue_comment')
         return { status: await recordApprovalCommand(client, change), ...none };
+      // The signature covers the body but not the delivery GUID, and GitHub redelivers under the
+      // original GUID, so a known body under a new GUID is a replay.
+      const { rowCount: replayed } = await client.query(
+        'SELECT 1 FROM refit_deliveries WHERE hash = $1 AND id <> $2 LIMIT 1',
+        [hash, delivery],
+      );
+      if (replayed)
+        throw new WebhookInputError(
+          409,
+          'This payload was already accepted under another delivery GUID; refusing a replay.',
+        );
       if (change.kind === 'repository' || change.kind === 'account') {
         const allowed = tenancy.accounts.includes(change.owner);
         const plan = await followLifecycle(client, change, allowed);

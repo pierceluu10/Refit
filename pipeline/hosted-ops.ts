@@ -31,11 +31,13 @@ const SECRET_PATTERNS: [RegExp, string][] = [
     /-----BEGIN [A-Z ]*PRIVATE KEY-----(?:[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----|[\s\S]*)/g,
     REDACTED,
   ],
-  [/\b(?:gh[opsu]_|github_pat_)[A-Za-z0-9_]{20,}/g, REDACTED],
+  [/\b(?:gh[opsur]_|github_pat_)[A-Za-z0-9_]{20,}/g, REDACTED],
   [/\bsk-[A-Za-z0-9_-]{20,}/g, REDACTED],
   [/https:\/\/hooks\.slack\.com\/services\/\S+/g, REDACTED],
   [/(\/\/[^/\s:@]+:)[^@\s/]+@/g, `$1${REDACTED}@`],
-  [/\b(Bearer|Basic) [A-Za-z0-9._~+/-]+=*/g, `$1 ${REDACTED}`],
+  [/(Authorization:\s*token\s+)[^\s"',;]+/gi, `$1${REDACTED}`],
+  // Short words after Bearer or Basic are ordinary text, not credentials.
+  [/\b(Bearer|Basic) [A-Za-z0-9._~+/-]{16,}=*/g, `$1 ${REDACTED}`],
 ];
 // The six tables the worker creates on boot; there is no recorded schema version yet.
 const TABLES = [
@@ -61,6 +63,8 @@ export function hostedRedactor(env: NodeJS.ProcessEnv) {
     const value = env[name]?.trim();
     if (!value) continue;
     secrets.add(value);
+    // A secret may reach a message base64-encoded, as in an HTTP Basic header.
+    secrets.add(Buffer.from(value).toString('base64'));
     // Each line of a multi-line secret such as a PEM key is redacted on its own.
     for (const line of value.split('\n')) secrets.add(line.trim());
     if (name === 'REFIT_DATABASE_URL' && URL.canParse(value)) {

@@ -27,7 +27,12 @@ import {
   runHostedTarget,
   runJobMachine,
 } from './hosted-runner.ts';
-import { failedJobNotifier, filterHostedStatus, type HostedLogContext } from './hosted-ops.ts';
+import {
+  failedJobNotifier,
+  filterHostedStatus,
+  hostedRedactor,
+  type HostedLogContext,
+} from './hosted-ops.ts';
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
@@ -160,6 +165,25 @@ export async function runHostedService(options: {
   if (!Number.isInteger(lease) || lease < MIN_LEASE_SECONDS)
     throw new PipelineInputError(`Worker leases must be at least ${MIN_LEASE_SECONDS} seconds.`);
   const worker = options.worker ?? `${hostname()}:${process.pid}`;
+  // Logs, stored receipts and error responses never carry a credential, whatever produced the text.
+  // `refit hosted serve` passes a redactor built from its whole environment; otherwise the
+  // service's own secrets are redacted.
+  const redact =
+    options.redact ??
+    hostedRedactor({
+      REFIT_WEBHOOK_SECRET: options.webhookSecret,
+      REFIT_SERVICE_TOKEN: options.controlToken,
+      OPENAI_API_KEY: options.aiPatch?.apiKey,
+      REFIT_DATABASE_URL: options.database.options?.connectionString,
+    });
+  const redactReceipt = <Receipt extends { message: string | null }>(receipt: Receipt) => ({
+    ...receipt,
+    message: receipt.message && redact(receipt.message),
+  });
+  const onProgress: typeof options.onProgress =
+    options.onProgress &&
+    ((message: string, context?: HostedLogContext) =>
+      options.onProgress?.(redact(message), context));
   options.signal.throwIfAborted();
   const root = resolve(options.directory);
   await standaloneStateDirectory(root);
@@ -189,7 +213,7 @@ export async function runHostedService(options: {
   };
   let outage = OUTAGE_RETRY_MS;
   const unavailable = async (error: Error) => {
-    options.onProgress?.(
+    onProgress?.(
       `PostgreSQL is unavailable (${error.message}); retrying in ${outage / MILLISECONDS_PER_SECOND} s.`,
     );
     await pause(outage);
@@ -202,7 +226,7 @@ export async function runHostedService(options: {
         const store = await openHostedStore(options.database, options.tenancy);
         const allowed = await store.allow();
         if (allowed.enrolled.length || allowed.cancelled.length)
-          options.onProgress?.(
+          onProgress?.(
             `Allowed accounts ${options.tenancy.accounts.join(', ')}: enrolled ${allowed.enrolled.length}, cancelled ${allowed.cancelled.length} targets.`,
           );
         return store;
@@ -237,10 +261,10 @@ export async function runHostedService(options: {
         machines,
         (job) => channel.has(job) || (leases.has(job) && leases.get(job) !== worker),
       ))
-        options.onProgress?.(`Destroyed orphaned job machine ${id}.`);
+        onProgress?.(`Destroyed orphaned job machine ${id}.`);
     } catch (error) {
       if (!(error instanceof FlyMachinesError)) throw error;
-      options.onProgress?.(`Job machine reaper failed: ${error.message}`);
+      onProgress?.(`Job machine reaper failed: ${error.message}`);
     }
   };
 
@@ -250,7 +274,7 @@ export async function runHostedService(options: {
     options.signal.addEventListener('abort', abort, { once: true });
     running.set(job, controller);
     const progress = (message: string, level?: 'error') =>
-      options.onProgress?.(message, {
+      onProgress?.(message, {
         job,
         target: target.id,
         installation: target.installationId,
@@ -344,7 +368,7 @@ export async function runHostedService(options: {
             notify: options.notify,
             onProgress: progress,
           });
-      await store.finish(job, worker, outcome.status, outcome.receipt);
+      await store.finish(job, worker, outcome.status, redactReceipt(outcome.receipt));
       // The receipt carries the error name from both runners, so a job machine's refusal counts too.
       if (options.approvalIssues && outcome.receipt.message?.startsWith('RepositoryApprovalError:'))
         await approvals.changed(target.repository);
@@ -352,7 +376,7 @@ export async function runHostedService(options: {
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       const outcome = failedOutcome(error, controller.signal.aborted);
-      await store.finish(job, worker, outcome.status, outcome.receipt);
+      await store.finish(job, worker, outcome.status, redactReceipt(outcome.receipt));
       progress(`${error.name}: ${error.message}`, 'error');
     } finally {
       clearInterval(renewal);
@@ -364,7 +388,7 @@ export async function runHostedService(options: {
   // A read-only inventory of an installed repository, approved or not; it never enrolls anything.
   const runInventory = async (claimed: InventoryClaim) => {
     const progress = (message: string) =>
-      options.onProgress?.(`[inventory ${claimed.repository}] ${message}`);
+      onProgress?.(`[inventory ${claimed.repository}] ${message}`);
     const started = Date.now();
     try {
       const registry = await loadDeadlineRegistry(options.registry, now());
@@ -414,7 +438,7 @@ export async function runHostedService(options: {
       return await loadDeadlineRegistry(options.registry, now());
     } catch (error) {
       if (!(error instanceof Error)) throw error;
-      options.onProgress?.(`Deadline monitoring skipped: ${error.name}: ${error.message}`);
+      onProgress?.(`Deadline monitoring skipped: ${error.name}: ${error.message}`);
       return null;
     }
   };
@@ -436,9 +460,9 @@ export async function runHostedService(options: {
         const context: HostedLogContext = { level: 'error' };
         const handler = router(request, response, context).catch((error: unknown) => {
           if (error instanceof WebhookInputError)
-            respond(response, error.status, { error: error.message });
+            respond(response, error.status, { error: redact(error.message) });
           else {
-            options.onProgress?.(
+            onProgress?.(
               `${address.label} processing failed: ${error instanceof Error ? error.message : 'Unknown storage failure.'}`,
               context,
             );
@@ -588,7 +612,7 @@ export async function runHostedService(options: {
         timeoutSeconds: options.jobMachines.timeoutSeconds ?? JOB_TIMEOUT_SECONDS,
         pollSeconds: options.jobMachines.pollSeconds ?? JOB_POLL_SECONDS,
       };
-      options.onProgress?.(`Job channel listening at ${jobs.callback}; jobs run on Fly Machines.`);
+      onProgress?.(`Job channel listening at ${jobs.callback}; jobs run on Fly Machines.`);
     }
     options.onReady?.(`http://${host}:${address.port}`);
     while (!options.signal.aborted) {
@@ -605,26 +629,24 @@ export async function runHostedService(options: {
             onCancelled: (jobs) => {
               for (const job of jobs) running.get(job)?.abort();
             },
-            onProgress: options.onProgress,
+            onProgress,
           });
         await store.enqueueDue(interval);
         if (options.purgeUninstalled) {
           const purged = await purgeUninstalled(options.database, directory);
           if (purged.targets.length)
-            options.onProgress?.(
+            onProgress?.(
               `Deleted ${purged.targets.length} target(s) and ${purged.jobs} job(s) of installation(s) ${purged.installations.join(', ')}, uninstalled more than the grace period ago.`,
             );
           for (const { target, reason } of purged.kept)
-            options.onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
+            onProgress?.(`[${target}] Kept after the grace period: ${reason}`);
         }
         await inventories.requestMissing();
         const registry = (options.alerts || options.reports) && (await monitoringRegistry());
         if (registry) {
           const due = await requestRescans({ monitoring, inventories, registry, now: now() });
           for (const item of due)
-            options.onProgress?.(
-              `[monitoring ${item.repository}] Inventory requested (${item.reason}).`,
-            );
+            onProgress?.(`[monitoring ${item.repository}] Inventory requested (${item.reason}).`);
         }
         // Inventories are short and read-only, so a queued one goes before the next validation job.
         while (!options.signal.aborted) {
@@ -652,7 +674,7 @@ export async function runHostedService(options: {
             leadDays: options.alerts.leadDays,
             digest: options.alerts.digest,
             signal: options.signal,
-            onProgress: options.onProgress,
+            onProgress,
           });
         if (registry && options.reports && !options.signal.aborted)
           await syncReportIssues({
