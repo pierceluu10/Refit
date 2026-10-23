@@ -52,6 +52,9 @@ export interface AiBudget {
   prices?: AiPrices;
   // Replaces budget.json under directory, for example with one PostgreSQL row per installation.
   ledger?: AiLedger;
+  // A second allowance every request also reserves and settles against, such as the hosted
+  // worker's cap across all installations.
+  parent?: AiBudget;
 }
 
 function fileLedger(directory: string): AiLedger {
@@ -69,12 +72,21 @@ export interface AiOptions {
   budget?: AiBudget;
 }
 
-export function aiBudgetConfiguration(environment: Record<string, string | undefined>): AiBudget {
-  const limitUsd = Number(environment.REFIT_AI_BUDGET_USD ?? DEFAULT_BUDGET_USD);
+export function aiBudgetLimit(value: string | undefined, name: string, fallback?: number) {
+  const limitUsd = Number(value ?? fallback);
   if (!Number.isFinite(limitUsd) || limitUsd <= 0 || limitUsd > MAX_BUDGET_USD)
     throw new PipelineInputError(
-      `REFIT_AI_BUDGET_USD must be greater than zero and at most ${MAX_BUDGET_USD}.`,
+      `${name} must be greater than zero and at most ${MAX_BUDGET_USD}.`,
     );
+  return limitUsd;
+}
+
+export function aiBudgetConfiguration(environment: Record<string, string | undefined>): AiBudget {
+  const limitUsd = aiBudgetLimit(
+    environment.REFIT_AI_BUDGET_USD,
+    'REFIT_AI_BUDGET_USD',
+    DEFAULT_BUDGET_USD,
+  );
   const values = [
     environment.REFIT_AI_INPUT_USD_PER_MILLION,
     environment.REFIT_AI_CACHED_INPUT_USD_PER_MILLION,
@@ -171,12 +183,17 @@ function pricesFor(model: string, budget: AiBudget) {
   return prices;
 }
 
+type AiSettlement = (
+  usage: AiUsage | null,
+  responseModel: string,
+) => Promise<{ costUsd: number; spentUsd: number; limitUsd: number }>;
+
 export async function reserveAiBudget(
   budget: AiBudget,
   model: string,
   inputTokens: number,
   maximumOutputTokens: number,
-) {
+): Promise<AiSettlement> {
   const prices = pricesFor(model, budget);
   const limitNano = Math.floor(budget.limitUsd * NANO_USD_PER_USD);
   const maximumNano = Math.ceil(
@@ -225,7 +242,19 @@ export async function reserveAiBudget(
     state.reservations[id] = maximumNano;
     return state;
   });
-  return async (usage: AiUsage | null, responseModel: string) => {
+  let settleParent: AiSettlement | undefined;
+  if (budget.parent)
+    try {
+      settleParent = await reserveAiBudget(budget.parent, model, inputTokens, maximumOutputTokens);
+    } catch (error) {
+      await ledger.update((stored) => {
+        const state = load(stored);
+        delete state.reservations[id];
+        return state;
+      });
+      throw error;
+    }
+  const settle: AiSettlement = async (usage, responseModel) => {
     if (!usage)
       throw new PipelineInputError(
         'OpenAI usage is unavailable; the maximum request reservation remains charged against the budget.',
@@ -255,5 +284,15 @@ export async function reserveAiBudget(
       spentUsd: spentNano / NANO_USD_PER_USD,
       limitUsd: budget.limitUsd,
     };
+  };
+  return async (usage, responseModel) => {
+    // Both ledgers record the usage even when one of them refuses it.
+    const [own, parent] = await Promise.allSettled([
+      settle(usage, responseModel),
+      settleParent?.(usage, responseModel),
+    ]);
+    if (own.status === 'rejected') throw own.reason;
+    if (parent.status === 'rejected') throw parent.reason;
+    return own.value;
   };
 }

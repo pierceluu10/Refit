@@ -297,6 +297,20 @@ ALTER TABLE refit_reports
     up: (client) =>
       client.query('CREATE INDEX IF NOT EXISTS refit_deliveries_hash ON refit_deliveries (hash)'),
   },
+  {
+    version: 10,
+    name: 'AI ledger across installations',
+    // One row: the spend of every installation together, capped by REFIT_HOSTED_AI_BUDGET_USD.
+    up: (client) =>
+      client.query(`
+CREATE TABLE IF NOT EXISTS refit_ai_total_ledger (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  state jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE refit_ai_total_ledger ENABLE ROW LEVEL SECURITY;
+`),
+  },
 ];
 
 // Reads the applied versions without creating anything. `unknown` lists versions a newer worker

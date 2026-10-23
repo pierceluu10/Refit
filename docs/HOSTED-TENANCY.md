@@ -41,7 +41,7 @@ Each wait is at most 120 seconds, with at most two retries. A longer wait, such 
 
 ## AI budget per installation
 
-With `--ai-patch`, each installation's ledger is one row in `refit_ai_ledgers`, keyed by installation ID and capped at `REFIT_AI_BUDGET_USD`. Reservations take a row lock, so concurrent requests cannot overspend one ledger. One installation's reservations never touch another's. Earlier workers kept a file per installation (`installation-<id>/budget.json` under `REFIT_AI_BUDGET_DIRECTORY`). On first use, that file is imported, so recorded spend carries over. Local `refit run` keeps its file ledger.
+With `--ai-patch`, each installation's ledger is one row in `refit_ai_ledgers`, keyed by installation ID and capped at `REFIT_AI_BUDGET_USD`. Reservations take a row lock, so concurrent requests cannot overspend one ledger. One installation's reservations never touch another installation's own ledger. Every request also reserves against `refit_ai_total_ledger`, a single row capped at `REFIT_HOSTED_AI_BUDGET_USD` (default: `REFIT_AI_BUDGET_USD`, so total spend never exceeds one installation's allowance unless the operator raises it). A request is sent only when both ledgers have room; when the total refuses it, the installation's reservation is released, and settlement records the usage in both. As with every ledger, changing the cap after spend is recorded refuses further requests until the ledger is inspected. Earlier workers kept a file per installation (`installation-<id>/budget.json` under `REFIT_AI_BUDGET_DIRECTORY`). On first use, that file is imported, so recorded spend carries over. Local `refit run` keeps its file ledger.
 
 ## What is isolated today, and what is not
 

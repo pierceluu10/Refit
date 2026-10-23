@@ -553,6 +553,22 @@ export async function openHostedStore(
       }),
   });
 
+  // The ledger every installation's AI requests also reserve against.
+  const aiTotalLedger = (): AiLedger => ({
+    update: (change) =>
+      transaction(pool, async (client) => {
+        await client.query(
+          'INSERT INTO refit_ai_total_ledger DEFAULT VALUES ON CONFLICT DO NOTHING',
+        );
+        const { rows } = await client.query<{ state: Record<string, unknown> | null }>(
+          'SELECT state FROM refit_ai_total_ledger FOR UPDATE',
+        );
+        await client.query('UPDATE refit_ai_total_ledger SET state = $1, updated_at = now()', [
+          change(rows[0].state ?? undefined),
+        ]);
+      }),
+  });
+
   // Running jobs whose lease is still live, with the worker holding each.
   const leases = async () =>
     new Map(
@@ -634,6 +650,7 @@ export async function openHostedStore(
     allow,
     reserveInventory,
     aiLedger,
+    aiTotalLedger,
     leases,
   };
 }
