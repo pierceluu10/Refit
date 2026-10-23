@@ -220,6 +220,10 @@
       "format": "python-model-results",
       "predates": []
     },
+    "2026-10-22-shopify-baseline-results.json": {
+      "format": "shopify-results",
+      "predates": ["/*/outcomeClass"]
+    },
     "2026-10-22-shopify-rest-results.json": {
       "format": "shopify-rest-results",
       "predates": []
@@ -236,8 +240,20 @@
       "format": "slack-results",
       "predates": []
     },
+    "2026-10-22-stripe-heldout-baseline-results.json": {
+      "format": "stripe-results",
+      "predates": ["/*/outcomeClass"]
+    },
     "2026-10-22-upstream-replay-results.json": {
       "format": "upstream-replay-results",
+      "predates": []
+    },
+    "2026-10-23-shopify-rerun-results.json": {
+      "format": "shopify-results",
+      "predates": []
+    },
+    "2026-10-23-stripe-heldout-rerun-results.json": {
+      "format": "stripe-results",
       "predates": []
     }
   }
