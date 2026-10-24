@@ -23,14 +23,14 @@ afterAll(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
-it('defines 50 tuning cases and 34 held-out cases on separate resources', () => {
+it('defines 53 tuning cases and 36 held-out cases on separate resources', () => {
   const count = (set: 'tuning' | 'held-out', category: string) =>
     evalCases(set).filter((testCase) => testCase.category === category).length;
-  expect(evalCases('tuning')).toHaveLength(50);
-  expect(evalCases('held-out')).toHaveLength(34);
-  expect(new Set(cases.map((testCase) => testCase.id)).size).toBe(84);
-  expect(['fix', 'decline', 'ambiguous'].map((c) => count('tuning', c))).toEqual([26, 21, 3]);
-  expect(['fix', 'decline', 'ambiguous'].map((c) => count('held-out', c))).toEqual([18, 14, 2]);
+  expect(evalCases('tuning')).toHaveLength(53);
+  expect(evalCases('held-out')).toHaveLength(36);
+  expect(new Set(cases.map((testCase) => testCase.id)).size).toBe(89);
+  expect(['fix', 'decline', 'ambiguous'].map((c) => count('tuning', c))).toEqual([26, 24, 3]);
+  expect(['fix', 'decline', 'ambiguous'].map((c) => count('held-out', c))).toEqual([18, 16, 2]);
   const tuningResources = new Set(evalCases('tuning').map((testCase) => testCase.resource));
   expect(evalCases('held-out').some((testCase) => tuningResources.has(testCase.resource))).toBe(
     false,

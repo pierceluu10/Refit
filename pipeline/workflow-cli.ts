@@ -103,6 +103,9 @@ try {
       throw new PipelineInputError(
         '--github, --base, --github-app and --supersede-drafts require --publish-draft.',
       );
+    // A token cannot tell Refit's drafts from a person's, so it never closes one.
+    if (values['supersede-drafts'] && !values['github-app'])
+      throw new PipelineInputError('--supersede-drafts requires --github-app.');
     const specificationOverride =
       values.after !== undefined || values['latest-stripe'] !== undefined;
     const slack = slackNotifier(process.env);

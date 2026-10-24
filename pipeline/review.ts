@@ -574,19 +574,28 @@ export function createReviewArtifacts(
   const helperFiles = changedFiles(patch.diff).filter((file) => !file.before);
   const keyChanges = changedFiles(patch.diff).map((file) => {
     const fields = migratedFields(file.path);
+    const pages = pagesFor(file.path);
+    const cited = pages.length ? ` ${plainText(provider)} documents it: ${pages.join(', ')}.` : '';
+    const usage = [
+      ...(fields.length
+        ? [`Migrates reads of ${summaryList(fields)} to the documented new locations.`]
+        : []),
+      ...(cardFiles.has(file.path)
+        ? [
+            `Sends ${code('allowed_payment_method_types')} in place of the removed ${code('payment_method_types')}.`,
+          ]
+        : []),
+    ];
+    // A rule edit no sentence above names, such as a moved request, still gets one, so the
+    // provider page cites that edit and not the pin move after it.
+    if (pages.length && !usage.length)
+      usage.push(`Updates ${plainText(provider)} requests for the new contract.`);
     const what = shopify
-      ? `Moves the pinned Admin API version to ${plainText(after)}.`
+      ? `Moves the pinned Admin API version to ${plainText(after)}.${cited}`
       : !file.before
-        ? 'Adds the generated helper that reads the removed fields under either API version.'
+        ? `Adds the generated helper that reads the removed fields under either API version.${cited}`
         : [
-            ...(fields.length
-              ? [`Migrates reads of ${summaryList(fields)} to the documented new locations.`]
-              : []),
-            ...(cardFiles.has(file.path)
-              ? [
-                  `Sends ${code('allowed_payment_method_types')} in place of the removed ${code('payment_method_types')}.`,
-                ]
-              : []),
+            ...(usage.length ? [`${usage.join(' ')}${cited}`] : []),
             ...(movesPin(file)
               ? [`Moves the pinned API version from ${code(pinFrom!)} to ${code(pinTo!)}.`]
               : []),
@@ -596,8 +605,7 @@ export function createReviewArtifacts(
                 ]
               : []),
           ].join(' ') || `Updates ${plainText(provider)} API usage for the new contract.`;
-    const pages = pagesFor(file.path);
-    return `- ${code(file.path)}: ${what}${pages.length ? ` ${plainText(provider)} documents it: ${pages.join(', ')}.` : ''}`;
+    return `- ${code(file.path)}: ${what}`;
   });
   const breaking = shopify
     ? [
