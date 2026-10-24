@@ -109,6 +109,7 @@ it.each([
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}', apiVersion: '${CHANGED}' });`,
   `const options = () => ({ apiVersion: '${ORIGINAL}' }); const stripe = new Stripe('test', options());`,
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); stripe._api.version = '${CHANGED}';`,
+  `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); expose(stripe);`,
   `Stripe.prototype.request = customRequest; const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' });`,
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.paymentIntents.retrieve('id', runtimeOptions);`,
   `const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.paymentIntents.retrieve(...args);`,
@@ -130,6 +131,18 @@ it.each([
     ).toBe('unknown');
   },
 );
+
+it.each([
+  ['setApiVersion', `stripe.setApiVersion('${CHANGED}');`],
+  ['a write to the private API field', `(stripe as any)._api.version = '${CHANGED}';`],
+  ['a raw Stripe-Version header', `send({ headers: { 'Stripe-Version': '${CHANGED}' } });`],
+])('leaves a traced literal pin unknown when the repository has %s', (_case, code) => {
+  const source = `${prefix} const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.customers.list();`;
+  expect(evidence(source).source.status).toBe('verified');
+  expect(evidence(source, STRIPE, [{ path: 'other.ts', content: code }]).source.status).toBe(
+    'unknown',
+  );
+});
 
 it('does not use a shadowing parameter or a similarly named imported SDK as version evidence', () => {
   expect(
@@ -195,8 +208,7 @@ it('verifies a client created inside a handler passed to a framework call and us
   expect(result.source.declarations[0]).toMatchObject({ kind: 'constructor', status: 'literal' });
 });
 
-it('keeps the literal of a client that escapes when nothing else can set its version', () => {
-  // stripe-node fixes the version at construction: an escaped client still sends this literal.
+it('still refuses a handler-local client that escapes through a call or a returned function', () => {
   for (const escape of ['register(stripe);', 'return () => stripe;'])
     expect(
       evidence(`${prefix}
@@ -206,29 +218,7 @@ it('keeps the literal of a client that escapes when nothing else can set its ver
             ${escape}
           },
         });`).source.status,
-    ).toBe('verified');
-  expect(
-    evidence(
-      `${prefix} const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); expose(stripe);`,
-    ).source.status,
-  ).toBe('verified');
-});
-
-it.each([
-  ['a per-request override outside a traced call', `send(stripe, { apiVersion: '${CHANGED}' });`],
-  ['setApiVersion', `stripe.setApiVersion('${CHANGED}');`],
-  [
-    'setApiVersion on a traced client',
-    `stripe.setApiVersion('${CHANGED}'); await stripe.customers.list();`,
-  ],
-  ['a write to the private API field', `stripe._api.version = '${CHANGED}';`],
-  ['a raw Stripe-Version header', `send(stripe, { headers: { 'Stripe-Version': '${CHANGED}' } });`],
-  ['a direct mutation of the client', 'stripe.config = {}; expose(stripe);'],
-])('still refuses an escaped client when the repository has %s', (_case, code) => {
-  expect(
-    evidence(`${prefix} const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); ${code}`)
-      .source.status,
-  ).toBe('unknown');
+    ).toBe('unknown');
 });
 
 it('trusts a client created inside a callback passed to an unknown function, but not one it leaks or mutates', () => {
@@ -243,12 +233,11 @@ it('trusts a client created inside a callback passed to an unknown function, but
       return (await stripe.paymentIntents.retrieve('id')).id;
     } });`),
   ).toEqual(['literal']);
-  // An outer client returned from the callback reaches the unknown caller, which cannot change
-  // the version it was constructed with.
+  // An outer client returned from the callback reaches the unknown caller.
   expect(
     statuses(`const stripe = new Stripe('k', { apiVersion: '${ORIGINAL}' });
     export const pay = action({ handler: () => stripe });`),
-  ).toEqual(['literal']);
+  ).toEqual(['unknown']);
   // An outer client mutated inside the callback.
   expect(
     statuses(`const stripe = new Stripe('k', { apiVersion: '${ORIGINAL}' });
