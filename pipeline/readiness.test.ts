@@ -169,7 +169,7 @@ it('passes the API-version check for a version the service already watches, as a
   expect(await versionCheck(['2'])).toMatchObject({
     status: 'passed',
     action: null,
-    detail: expect.stringContaining('The code declares 2, which this service already watches from'),
+    detail: expect.stringContaining('The code declares 2, which this service already watches'),
   });
 });
 

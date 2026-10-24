@@ -50,13 +50,16 @@ Nothing affected means no pull request, comment or issue. A run whose code alrea
 
 When a watcher (`refit watch`, `refit serve` and the hosted worker) sees that state for the first time, it records the target as its new baseline (`state.baseline` and `snapshots/<hash>.baseline.json` in the watch state). The next release is then compared with that target, using the target as the API version, so the customer gets one draft per release and nothing in between. The advance needs all of these:
 
-- every SDK client Refit can read sends the target version;
+- every SDK client Refit can read sends the target version as a literal `apiVersion`. A client that sends none, and so uses the SDK's or the account's default, never counts, so its baseline never advances;
 - Refit finds no use of what the target breaks, including reads it cannot trace;
+- every breaking change outside the migration rules is a removed response field Refit searched the code for and found no read of, such as one the merged draft migrated. Any other (a newly required request parameter, say) still stops for review;
 - no source file was skipped.
 
-Until the next release, later commits are quiet: the watcher reports the target as already processed (`up-to-date`) and runs nothing. A pin someone moved without migrating the code, or a read Refit cannot trace, still stops for review and leaves the draft open. For an approved repository, the enrollment check accepts a client pin equal to the watcher's last captured target or its advanced baseline (`watchedApiVersions()` in `pipeline/watch.ts`), so the merged pin no longer blocks the next poll. Any other pin still stops there. The committed `.refit.json`, baseline and approval stay as they are.
+After the advance, the next run compares with the target under the `source-verified` policy: nobody attested the target as a pin, so the code's own literal declarations must match it on every poll.
 
-A new release that arrives before the watcher sees the merged code is compared with the old baseline, and stops for review on the pin. Retry the target once the merge is on the base branch.
+Until the contract changes, later commits are quiet: the watcher reports the target as already processed (`up-to-date`) and runs nothing. A contract update that keeps the target's version (Stripe publishes these between releases) is compared with the advanced baseline like any other: with nothing affected, each new commit then stops as `needs-review`, before any AI or validation. A pin someone moved without migrating the code, or a read Refit cannot trace, still stops for review and leaves the draft open. For an approved repository, the enrollment check accepts a client pin equal to the watcher's last captured target or its advanced baseline (`watchedApiVersions()` in `pipeline/watch.ts`), so the merged pin no longer blocks the next poll. Any other pin still stops there. The committed `.refit.json`, baseline and approval stay as they are.
+
+A new release that arrives before the watcher sees the merged code is compared with the old baseline, and stops for review on the pin. A retry does not recover it: the watcher then accepts only the newer release's version, not the merged one. Until someone moves the committed baseline and `apiVersion` in `.refit.json` to the merged version (an approved target then needs a new approval), every poll stops there.
 
 Tests: `pipeline/draft-lifecycle.test.ts` (closing a resolved draft), `pipeline/watch.test.ts` (the advance, carried over to a job machine) and `pipeline/repository-enrollment.test.ts` (the accepted pin).
 

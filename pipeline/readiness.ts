@@ -477,7 +477,7 @@ export async function inspectRepositoryReadiness(options: {
       id: 'api-version',
       title: 'Application API version',
       status: versionPassed ? 'passed' : 'blocked',
-      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}${watched ? ` The code declares ${watched}, which this service already watches from, so the next poll continues from it.` : ''}`,
+      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}${watched ? ` The code declares ${watched}, which this service already watches, so this check passes; the next poll decides whether the code reached that target.` : ''}`,
       action: versionPassed
         ? null
         : evidence.apiVersion.application === null && evidence.apiVersion.before
