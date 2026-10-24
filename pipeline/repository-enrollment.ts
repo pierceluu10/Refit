@@ -534,6 +534,15 @@ export async function loadApprovedRepository(options: {
     });
   }
   if (enrollment.fingerprint !== options.approval.fingerprint) {
+    // Nothing generated is committed, so name the move instead of files the person never wrote.
+    if (enrollment.generated) {
+      const { apiVersion, target } = enrollment.generated;
+      throw new RepositoryApprovalError(
+        apiVersion.value === target
+          ? `Your code now sends Stripe API version ${target}, the newest Refit has a contract for, so there is nothing to move.`
+          : `The configuration Refit generates for this repository changed since it was approved: your code now sends Stripe API version ${apiVersion.value}, moving to ${target}. Approve again to run that move.`,
+      );
+    }
     const changed = enrollment.files
       .filter(
         (file) =>

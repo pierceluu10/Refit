@@ -1,4 +1,4 @@
-import { lstat } from 'node:fs/promises';
+import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { declaresVersion } from './api-version.ts';
 import { readCommittedRepository } from './committed-repository.ts';
@@ -20,9 +20,11 @@ import {
 import { contractCommand } from './contract-commands.ts';
 import { DEFAULT_CONTRACTS_DIRECTORY, readStripeContract } from './enrollment-contracts.ts';
 import {
+  generatedVersionCheck,
   proposalContent,
   proposalSummary,
   proposeStripeConfiguration,
+  unreadableExtendsReason,
   type StripeProposal,
 } from './enrollment-proposal.ts';
 
@@ -57,6 +59,8 @@ export interface ReadinessReport {
   checks: ReadinessCheck[];
   // Present when no .refit.json is committed and doctor checked the generated configuration.
   generated?: Pick<StripeProposal, 'apiVersion' | 'target' | 'checks' | 'configuration'>;
+  // Present when no .refit.json is committed and doctor stopped before checking a generated one.
+  missing?: true;
   sdkCoverage: {
     observedCalls: number;
     mappedCalls: number;
@@ -274,6 +278,7 @@ export async function inspectRepositoryReadiness(options: {
         )
       : undefined;
   if (generated && !generated.workflow) {
+    report.missing = true;
     // Every blocker at once, so a repository that also has, say, a submodule hears it now.
     const snapshot = await committedRepositoryCheck(dirname(configurationPath));
     if (snapshot.check.status === 'blocked') report.checks.push(snapshot.check);
@@ -429,15 +434,37 @@ export async function inspectRepositoryReadiness(options: {
           : `Webhook subscription-period reads accept both the old and the new payload shape, so the endpoint version can change separately. ${evidence.findings.some((finding) => finding.subscriptionPeriod?.rareCase === 'flagged') ? 'Subscriptions with items on different billing periods are not handled; set stripeSubscriptionPeriods to choose which item counts.' : 'Items on different billing periods use the item the application already selects or the configured price policy.'} Runtime checks have not run.`,
         action: null,
       });
-    if (evidence.sourceResolution.status === 'review')
+    if (evidence.sourceResolution.status === 'review') {
+      // The scan read these paths under its size limits, from the same directory.
+      const unreadable = unreadableExtendsReason(
+        await Promise.all(
+          (evidence.repository.configurations ?? []).map(async ({ path }) => ({
+            path,
+            content: await readFile(join(repository, path), 'utf8'),
+          })),
+        ),
+      );
+      const warnings = evidence.sourceResolution.warnings.filter(
+        (warning) => !unreadable?.files.some((file) => warning.startsWith(`${file}:`)),
+      );
       report.checks.push({
         id: 'source-resolution',
         title: 'Shared client resolution',
         status: 'blocked',
-        detail: evidence.sourceResolution.warnings.join(' '),
+        detail: [
+          ...(unreadable
+            ? [
+                `Refit cannot verify how imports resolve, because ${unreadable.named}, so it stops at clients shared between files.`,
+              ]
+            : []),
+          ...warnings,
+        ].join(' '),
         action:
-          'Resolve the repository tsconfig/jsconfig aliases and local extends inputs, then inspect the affected client usage before activation.',
+          unreadable && !warnings.length
+            ? unreadable.action
+            : 'Resolve the repository tsconfig/jsconfig aliases and local extends inputs, then inspect the affected client usage before activation.',
       });
+    }
     scan.check.detail = `${evidence.repository.scannedFiles} source files inspected; adapter contracts resolved. ${workflow.latestStripe ? 'Latest Stripe source was not fetched; only the baseline was inspected.' : 'Both supplied contracts were inspected.'}`;
     const watched =
       evidence.apiVersion.applicability === 'matches-before'
@@ -450,7 +477,7 @@ export async function inspectRepositoryReadiness(options: {
       id: 'api-version',
       title: 'Application API version',
       status: versionPassed ? 'passed' : 'blocked',
-      detail: `${evidence.apiVersion.reason} ${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.${watched ? ` The code declares ${watched}, which this service already watches from, so the next poll continues from it.` : ''}`,
+      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}${watched ? ` The code declares ${watched}, which this service already watches from, so the next poll continues from it.` : ''}`,
       action: versionPassed
         ? null
         : evidence.apiVersion.application === null && evidence.apiVersion.before
@@ -548,9 +575,8 @@ export async function inspectRepositoryReadiness(options: {
         id: 'sdk-version',
         title: 'Recorded SDK version',
         status: 'review',
-        detail: `${unknownLocks.length} SDK declaration${unknownLocks.length === 1 ? '' : 's'} lack a resolved supported npm, pnpm or yarn lockfile version.`,
-        action:
-          'Review the actual installed SDK version and replacement method availability; dependency declarations alone are not installation evidence.',
+        detail: `Refit cannot tell which ${evidence.adapter.packageName} release ${unknownLocks.map((dependency) => `${dependency.file} (${dependency.version})`).join(', ')} install${unknownLocks.length === 1 ? 's' : ''}: ${[...new Set(unknownLocks.map((dependency) => dependency.lock.reason))].join(' ')}`,
+        action: `Check which ${evidence.adapter.packageName} release you install before merging a migration: a declared range is not the installed release, and a migration may use methods only newer releases have.`,
       });
   }
   if (workflow.prepareDependencies && snapshot.value) {
