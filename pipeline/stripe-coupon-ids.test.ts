@@ -137,7 +137,7 @@ export const discountCoupon = (discount: Stripe.Discount) => discount.coupon.id;
   expect(result.findings[2].reason).toMatch(/needs that expand or a coupons\.retrieve call/);
 });
 
-it('leaves coupon reads for review even when the target contract has both new locations', async () => {
+it('keeps coupon ID reads only when the target contract has both new locations', async () => {
   const report = async (moved: boolean) => {
     const root = await mkdtemp(join(tmpdir(), 'refit-coupon-ids-'));
     roots.push(root);
@@ -178,9 +178,13 @@ export async function couponOf(id) {
       proposePatch: true,
     });
   };
-  // Owner decision (2026-10-22): the mined coupon helper rule stays review-only.
-  for (const moved of [true, false]) {
-    const result = await report(moved);
-    expect('diff' in result.patch ? result.patch.diff : '').not.toContain('getCouponId');
-  }
+  // Owner decision (2026-10-24, overnight sign-off): the helper edit is kept when the target
+  // contract has promotion.coupon and source.coupon, and the read stops for review otherwise.
+  const moved = await report(true);
+  expect('diff' in moved.patch ? moved.patch.diff : '').toContain(
+    'return (getCouponId(promoCode));',
+  );
+  const missing = await report(false);
+  expect('diff' in missing.patch ? missing.patch.diff : '').not.toContain('getCouponId');
+  expect(missing.findings).toEqual([expect.objectContaining({ confidence: 'confirmed' })]);
 });

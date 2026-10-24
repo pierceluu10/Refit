@@ -15,7 +15,11 @@ import { componentReference, isObject, resolvableComponentSchema } from './speci
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
-import { removedParameterProperty, requestPropertyEdit } from './request-migration.ts';
+import {
+  removedParameterProperty,
+  requestPropertyEdit,
+  untracedRemovedParameters,
+} from './request-migration.ts';
 import { requestMoveEdit } from './stripe-request-moves.ts';
 import {
   INVOICE_PREVIEW_RULE,
@@ -1064,6 +1068,22 @@ export function analyzeRepository(
       });
     }
   }
+  // A removed parameter set outside every traced SDK body stops for review (request-migration.ts).
+  for (const { property, removal } of untracedRemovedParameters(
+    nodes,
+    requestParameterRemovals,
+    sdkCall,
+    (node) => location(node).file,
+  ))
+    findings.push({
+      ...location(property),
+      changeId: removal.id,
+      expression: `${removal.parameter} outside a traced SDK request body`,
+      confidence: 'review',
+      requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
+      reason:
+        'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
+    });
   for (const node of nodes) {
     const operation = responseCall(node);
     if (!operation || !ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression))
@@ -1260,14 +1280,16 @@ export function analyzeRepository(
       }
     }
     // Same for invoice.subscription, unless the code expands it (the expand path moved too) or the
-    // adapter configures its own move.
+    // adapter configures its own move. Webhook payloads are never expanded ("Objects sent in events
+    // are always in their minimal form", https://docs.stripe.com/expand, read 2026-10-24), so an
+    // expand elsewhere does not hold back a webhook read.
     if (
       provider.packageName === STRIPE.packageName &&
       change.schema === 'invoice' &&
       change.property === 'subscription' &&
-      !expandsField('subscription') &&
       !propertyMoves.some((move) => move.schema === 'invoice' && move.removed === 'subscription') &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+      (webhooks?.origin(receiver) ||
+        (!expandsField('subscription') && (provenance === 'declared-type' || provenance === 'sdk')))
     ) {
       const planned = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
       // Reads sharing a hoisted local plan the same declaration; it is added once.

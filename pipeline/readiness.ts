@@ -4,16 +4,34 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
 import { preparationStop } from './preparation-stops.ts';
+import type { BreakingOperationImpact } from './provider-operations.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
 import { migrationReviewReason } from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
-import { readWorkflowConfiguration, REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
+import {
+  parseWorkflowConfiguration,
+  readWorkflowConfiguration,
+  REPOSITORY_CONFIGURATION,
+} from './workflow-configuration.ts';
 import { contractCommand } from './contract-commands.ts';
+import { DEFAULT_CONTRACTS_DIRECTORY, readStripeContract } from './enrollment-contracts.ts';
+import {
+  proposalContent,
+  proposalSummary,
+  proposeStripeConfiguration,
+  type StripeProposal,
+} from './enrollment-proposal.ts';
 
 const MAX_UNMAPPED_EXAMPLES = 3;
+// How many called operations the migration-coverage detail names before "and N more".
+const MAX_NAMED_OPERATIONS = 3;
+const SUBMODULE = /^Validation does not accept submodules;/;
+const GENERATED_TITLE = 'Generated configuration';
+// Stops that mean the repository has no Stripe code to generate a configuration for.
+const NOT_STRIPE = new Set(['no-package-json', 'no-stripe-dependency']);
 const FILE_ERROR_CODES = ['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM'];
 
 export interface ReadinessCheck {
@@ -36,6 +54,8 @@ export interface ReadinessReport {
   image: string | null;
   currentSourceChecked: boolean;
   checks: ReadinessCheck[];
+  // Present when no .refit.json is committed and doctor checked the generated configuration.
+  generated?: Pick<StripeProposal, 'apiVersion' | 'target' | 'checks' | 'configuration'>;
   sdkCoverage: {
     observedCalls: number;
     mappedCalls: number;
@@ -91,10 +111,126 @@ async function inspectCheck<T>(
   }
 }
 
+// What Refit cannot migrate, in one sentence: how many changes, between which versions, and the
+// operations the code calls with one call site each.
+function migrationCoverageDetail(
+  changes: number,
+  impacts: BreakingOperationImpact[],
+  apiVersion: { before: string | null; after: string | null },
+) {
+  const count = changes || impacts.reduce((total, impact) => total + impact.changes.length, 0);
+  const versions =
+    apiVersion.before && apiVersion.after && apiVersion.before !== apiVersion.after
+      ? ` from API version ${apiVersion.before} to ${apiVersion.after}`
+      : '';
+  const operations = impacts.slice(0, MAX_NAMED_OPERATIONS).map((impact) => {
+    const call = impact.usages[0];
+    return `${impact.httpMethod.toUpperCase()} ${impact.path}${call ? ` at ${call.file}:${call.line}` : ''}`;
+  });
+  const more = impacts.length - operations.length;
+  return `The contracts list ${count} breaking change${count === 1 ? '' : 's'}${versions} that no Refit rule migrates${
+    impacts.length
+      ? `, including changes to ${impacts.length} operation${impacts.length === 1 ? '' : 's'} the code calls: ${operations.join(', ')}${more ? ` and ${more} more` : ''}`
+      : ''
+  }.`;
+}
+
+// Each method Refit does not map, at its first call, so the person knows which calls to check.
+function unmappedCallsDetail(
+  packageName: string,
+  calls: number,
+  unmapped: { resource: string; method: string; file: string; line: number }[],
+) {
+  const methods = unmapped.filter(
+    (call, index) =>
+      unmapped.findIndex(
+        (other) => other.resource === call.resource && other.method === call.method,
+      ) === index,
+  );
+  const named = methods
+    .slice(0, MAX_UNMAPPED_EXAMPLES)
+    .map((call) => `${call.resource}.${call.method} at ${call.file}:${call.line}`);
+  const more = methods.length - named.length;
+  return `Refit traced ${calls} ${packageName} API call${calls === 1 ? '' : 's'}, and it maps none of their methods to an operation in the contracts: ${named.join(', ')}${more ? ` and ${more} more` : ''}.`;
+}
+
+async function committedRepositoryCheck(repository: string) {
+  const snapshot = await inspectCheck(
+    'repository',
+    'Committed repository',
+    'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
+    () => readCommittedRepository(repository),
+  );
+  if (snapshot.value)
+    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.`;
+  else if (SUBMODULE.test(snapshot.check.detail))
+    snapshot.check.action =
+      "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.";
+  return snapshot;
+}
+
+// What doctor checks in a repository that commits no .refit.json: the configuration enrollment
+// generates for it, read from the saved contracts, or why there is none. A repository without
+// Stripe keeps the guidance to add an agent.
+async function generatedWorkflow(directory: string, contracts: string) {
+  const { proposal, stops } = await proposeStripeConfiguration(directory);
+  if (!proposal) {
+    const stripe = !stops.some((stop) => NOT_STRIPE.has(stop.id));
+    return {
+      workflow: null,
+      checks: stripe
+        ? stops.map((stop): ReadinessCheck => ({
+            ...stop,
+            title: GENERATED_TITLE,
+            status: 'blocked',
+          }))
+        : [
+            {
+              id: 'configuration',
+              title: 'Workflow configuration',
+              status: 'blocked' as const,
+              detail: `No ${REPOSITORY_CONFIGURATION} in ${directory} yet, and Refit found no Stripe package to generate one for.`,
+              action: `Run refit agents to see which provider agents apply, then refit agents --add <id> to write ${REPOSITORY_CONFIGURATION}.`,
+            },
+          ],
+    };
+  }
+  const versions = [...new Set([proposal.apiVersion.value, proposal.target])];
+  const unsaved: string[] = [];
+  for (const version of versions)
+    await readStripeContract(contracts, version).catch((error: unknown) => {
+      if (!(error instanceof PipelineInputError)) throw error;
+      unsaved.push(version);
+    });
+  if (unsaved.length)
+    return {
+      workflow: null,
+      checks: [
+        {
+          id: 'contracts',
+          title: 'Stripe contracts',
+          status: 'blocked' as const,
+          detail: `The generated configuration compares Stripe API versions ${versions.join(' and ')}, and ${unsaved.join(' and ')} ${unsaved.length === 1 ? 'is' : 'are'} not saved in ${contracts} yet.`,
+          action: `Run refit stripe-snapshot ${unsaved.map((version) => `--version ${version}`).join(' ')}, then refit doctor again.`,
+        },
+      ],
+    };
+  return {
+    workflow: {
+      proposal,
+      content: proposalContent(proposal),
+      // Relative contract paths in the generated file resolve inside the contracts directory.
+      path: join(resolve(contracts), REPOSITORY_CONFIGURATION),
+    },
+    checks: [],
+  };
+}
+
 export async function inspectRepositoryReadiness(options: {
   repository?: string;
   config?: string;
   integration?: string;
+  contracts?: string;
 }): Promise<ReadinessReport> {
   const configurationPath = options.config
     ? resolve(options.config)
@@ -122,25 +258,35 @@ export async function inspectRepositoryReadiness(options: {
     () => false,
     (error: unknown) => hasErrorCode(error, 'ENOENT') || hasErrorCode(error, 'ENOTDIR'),
   );
-  if (missing) {
-    const repositoryExists = await lstat(dirname(configurationPath)).then(
-      () => true,
-      () => false,
-    );
+  const repositoryExists = await lstat(dirname(configurationPath)).then(
+    () => true,
+    () => false,
+  );
+  const generated =
+    missing && !options.config && repositoryExists
+      ? await generatedWorkflow(
+          dirname(configurationPath),
+          options.contracts ?? DEFAULT_CONTRACTS_DIRECTORY,
+        )
+      : undefined;
+  if (generated && !generated.workflow) {
+    // Every blocker at once, so a repository that also has, say, a submodule hears it now.
+    const snapshot = await committedRepositoryCheck(dirname(configurationPath));
+    if (snapshot.check.status === 'blocked') report.checks.push(snapshot.check);
+    report.checks.push(...generated.checks);
+    return report;
+  }
+  if (missing && !generated) {
     report.checks.push({
       id: 'configuration',
       title: 'Workflow configuration',
       status: 'blocked',
       detail: options.config
         ? `${configurationPath} does not exist.`
-        : repositoryExists
-          ? `No ${REPOSITORY_CONFIGURATION} in ${dirname(configurationPath)} yet.`
-          : `${dirname(configurationPath)} does not exist.`,
+        : `${dirname(configurationPath)} does not exist.`,
       action: options.config
         ? `Check the --config path, or omit --config to use the repository's ${REPOSITORY_CONFIGURATION}.`
-        : repositoryExists
-          ? `Run refit agents to see which provider agents apply, then refit agents --add <id> to write ${REPOSITORY_CONFIGURATION}.`
-          : 'Check the --repository path, or run refit doctor from inside the repository.',
+        : 'Check the --repository path, or run refit doctor from inside the repository.',
     });
     return report;
   }
@@ -148,7 +294,14 @@ export async function inspectRepositoryReadiness(options: {
     'configuration',
     'Workflow configuration',
     `Supply --config with a valid workflow file, or commit ${REPOSITORY_CONFIGURATION} in the repository root.`,
-    () => readWorkflowConfiguration(configurationPath, options.integration),
+    async () =>
+      generated?.workflow
+        ? parseWorkflowConfiguration(
+            generated.workflow.content,
+            generated.workflow.path,
+            options.integration,
+          )
+        : readWorkflowConfiguration(configurationPath, options.integration),
   );
   report.checks.push(configuration.check);
   const choice = /choose one with --integration: ([^,.]+)/.exec(configuration.check.detail);
@@ -157,7 +310,16 @@ export async function inspectRepositoryReadiness(options: {
   if (!configuration.value) return report;
   const workflow = configuration.value;
   if (workflow.integration) report.integration = workflow.integration;
-  configuration.check.detail = 'Workflow fields and check command arrays are valid.';
+  configuration.check.detail = generated?.workflow
+    ? proposalSummary(generated.workflow.proposal)
+    : 'Workflow fields and check command arrays are valid.';
+  if (generated?.workflow)
+    report.generated = {
+      apiVersion: generated.workflow.proposal.apiVersion,
+      target: generated.workflow.proposal.target,
+      checks: generated.workflow.proposal.checks,
+      configuration: generated.workflow.proposal.configuration,
+    };
   const repository =
     options.repository ??
     workflow.repository ??
@@ -174,12 +336,7 @@ export async function inspectRepositoryReadiness(options: {
   }
   report.repository = resolve(repository);
   const [snapshot, scan, image] = await Promise.all([
-    inspectCheck(
-      'repository',
-      'Committed repository',
-      'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
-      () => readCommittedRepository(repository),
-    ),
+    committedRepositoryCheck(repository),
     inspectCheck(
       'analysis',
       'Contracts and adapter',
@@ -225,7 +382,6 @@ export async function inspectRepositoryReadiness(options: {
   if (snapshot.value) {
     report.repository = snapshot.value.directory;
     report.revision = snapshot.value.revision;
-    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.`;
   }
   if (scan.value) {
     const evidence = scan.value;
@@ -313,10 +469,13 @@ export async function inspectRepositoryReadiness(options: {
         id: 'migration-coverage',
         title: 'Supported migration coverage',
         status: 'blocked',
-        detail:
-          'The supplied contracts contain unresolved breaking changes without a supported migration rule.',
+        detail: migrationCoverageDetail(
+          unsupportedChanges.length,
+          evidence.operationImpacts,
+          evidence.apiVersion,
+        ),
         action:
-          'Run refit run --human to list them. Refit has no automatic migration for these changes, so they need a manual migration or a reviewed adapter rule before validation.',
+          'Run refit run --human to see each change and where the code reaches it, and migrate those calls by hand. Refit has no reviewed rule for these changes, so it stops before validation.',
       });
     if (evidence.specificationDiff.engine === 'direct-properties')
       report.checks.push({
@@ -357,9 +516,16 @@ export async function inspectRepositoryReadiness(options: {
       id: 'sdk-coverage',
       title: 'SDK call mapping',
       status: missingMappings ? 'blocked' : unmapped.length ? 'review' : 'passed',
-      detail: `${mappedCalls} of ${operationCalls.length} observed SDK API calls have configured mappings. ${helpers.size ? `${helpers.size} local webhook signature constructor${helpers.size === 1 ? '' : 's'} recognized; incoming version and policy require separate review. ` : ''}${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
+      detail:
+        !operationCalls.length && !helpers.size
+          ? `Refit traced no ${evidence.adapter.packageName} API call in this code, so it cannot tell what the migration changes. Calls made inside another library, or through a client Refit cannot follow, are not counted.`
+          : missingMappings
+            ? unmappedCallsDetail(evidence.adapter.packageName, operationCalls.length, unmapped)
+            : `${mappedCalls} of ${operationCalls.length} observed SDK API calls have configured mappings. ${helpers.size ? `${helpers.size} local webhook signature constructor${helpers.size === 1 ? '' : 's'} recognized; incoming version and policy require separate review. ` : ''}${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
       action: missingMappings
-        ? 'Confirm the SDK constructor/import mapping and supported client pattern, then inspect scan evidence before attempting a migration.'
+        ? !operationCalls.length
+          ? `If the code reaches ${evidence.adapter.packageName} only through another library, upgrade that library instead. Otherwise run refit run --human to see which clients Refit found, and call the API through one it can follow.`
+          : `Check these calls against the ${evidence.adapter.packageName} changes${evidence.apiVersion.before && evidence.apiVersion.after ? ` from ${evidence.apiVersion.before} to ${evidence.apiVersion.after}` : ''} by hand. Refit cannot tell what the migration changes for a method it does not map, so it stops before validation.`
         : unmapped.length
           ? 'Review unmapped methods against provider documentation and add verified adapter mappings where supported.'
           : null,
@@ -387,9 +553,15 @@ export async function inspectRepositoryReadiness(options: {
     if (dependencies.value) {
       const workspaces = Object.keys(dependencies.value.inputs.workspaceHashes ?? {}).length;
       dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records${workspaces ? ` and ${workspaces} committed workspace manifests` : ''} passed preparation input checks. Installation and engine compatibility were not tested.`;
-    } else if (dependencies.check.status === 'blocked')
+    } else if (dependencies.check.status === 'blocked') {
       dependencies.check.action =
         preparationStop(dependencies.check.detail)?.action ?? dependencies.check.action;
+      if (report.generated) {
+        // The generated file names its contracts relative to itself, so they are committed with it.
+        const versions = [...new Set([report.generated.apiVersion.value, report.generated.target])];
+        dependencies.check.action += ` This repository commits no ${REPOSITORY_CONFIGURATION}: to change its settings, commit the generated one first (refit doctor --json prints it as generated.configuration) together with the contracts it names: run refit stripe-snapshot ${versions.map((version) => `--version ${version}`).join(' ')} --contracts . in the repository and commit refit/.`;
+      }
+    }
     report.checks.push(dependencies.check);
   } else if (!workflow.prepareDependencies)
     report.checks.push({

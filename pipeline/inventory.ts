@@ -305,7 +305,12 @@ export async function inventoryDirectory(
   }
 }
 
-async function defaultRevision(app: GitHubAppConfiguration, repository: string, base: string) {
+// The commit a branch points at, read through the GitHub API without fetching it.
+export async function defaultRevision(
+  app: GitHubAppConfiguration,
+  repository: string,
+  base: string,
+) {
   const { token } = await authenticateGitHubRead(app, repository);
   let reference;
   try {

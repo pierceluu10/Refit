@@ -477,15 +477,88 @@ it('leaves a typeof-narrowed invoice.subscription unresolved when the receiver c
   expect(report.patch).toMatchObject({ unresolvedFindings: 3 });
 });
 
-it('leaves invoice.subscription unresolved when it is expanded', async () => {
+it('leaves an SDK invoice.subscription unresolved when it is expanded', async () => {
+  const report = await run(`export async function owner(id: string) {
+  const invoice = await stripe.invoices.retrieve(id, { expand: ['subscription'] });
+  return invoice.subscription;
+}`);
+  expect(report.findings).toMatchObject([{ expression: '.subscription', confidence: 'confirmed' }]);
+  expect(report.findings[0].webhook).toBeUndefined();
+  expect(report.patch).toMatchObject({ status: 'unsupported' });
+});
+
+// Stripe never expands event payloads, so an expand elsewhere in the code does not hold a webhook
+// read back. The SDK read beside it still stays.
+it('reads a webhook invoice.subscription through the helper when other code expands it', async () => {
   const report = await run(
     `${mixed}
-export const paid = (id: string) => stripe.invoices.retrieve(id, { expand: ['subscription'] });`,
+export const paid = (id: string) => stripe.invoices.retrieve(id, { expand: ['subscription'] });
+export const owner = async (id: string) => (await paid(id)).subscription;`,
   );
-  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
-  expect(diff).toContain('+    return invoice.subscription;');
-  expect(migrationReviewReason(report)).toMatch(/incoming API-version/);
+  expect(diff).toContain('+    return (getInvoiceSubscription(invoice));');
+  expect(diff).not.toContain('getInvoiceSubscription(await');
+  expect(report.findings.find((finding) => finding.webhook)).toMatchObject({
+    webhook: { migration: { rule: 'stripe-invoice-subscription-helper' } },
+  });
+  expect(migrationReviewReason(report, true, true)).toBeUndefined();
+});
+
+// manu14357/smartdoc src/app/api/webhooks/stripe/route.ts at 9041f9b: the payload is cast once,
+// before the event-type branches, and the repository's Tailwind config has an `expand` keyframe.
+it('reads a webhook invoice.subscription cast before its event branch, beside an unrelated expand', async () => {
+  const report =
+    await run(`export const theme = { keyframes: { expand: { from: { opacity: 0 } } } };
+export async function hook(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  const session = event.data.object as Stripe.Checkout.Session;
+  if (event.type === 'invoice.payment_succeeded') {
+    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+    return subscription.id;
+  }
+}`);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain(
+    '+    const subscription = await stripe.subscriptions.retrieve((getInvoiceSubscription(session)) as string);',
+  );
+});
+
+// brunobola-portfolio/GitHub-Repo-Manager server/routes/stripe-webhooks.js at 982052f: several
+// switch cases read invoice.subscription, and another file has an `expand` identifier.
+it('reads webhook invoice.subscription in each switch case beside an unrelated expand', async () => {
+  const report = await run(`export const toggleBranchExpand = { expand: true };
+export async function hook(body: string, signature: string, db: { run(id: unknown): void }) {
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  } catch {
+    return 400;
+  }
+  switch (event.type) {
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object;
+      if (invoice.subscription) {
+        db.run(invoice.subscription);
+      }
+      break;
+    }
+    case 'invoice.paid': {
+      const invoice = event.data.object;
+      if (invoice.subscription) db.run(invoice.subscription);
+      break;
+    }
+  }
+  return 200;
+}`);
+  const reads = report.findings.filter((finding) => finding.webhook);
+  expect(reads).toHaveLength(4);
+  expect(
+    reads.every(
+      (finding) => finding.webhook?.migration?.rule === 'stripe-invoice-subscription-helper',
+    ),
+  ).toBe(true);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
 });
 
 async function run(
