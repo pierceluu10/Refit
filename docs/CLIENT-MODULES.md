@@ -55,11 +55,37 @@ The factory may be a function declaration or a `const` arrow or function express
 
 An `async` factory counts when every call to it is awaited at once (`const stripe = await getStripe()`, `(await getStripe()).customers.create(...)`), including one that awaits its key before filling a lazy holder. If any call stores, returns or passes the promise, or calls it optionally, the whole factory stays a review case. A factory also stays a review case when it is a generator, returns anything else on any path, is reassigned, or its holder is written any other way (destructuring, `++`, a non-client value).
 
+## Types and re-exported names
+
+A client module often exports types, and names it re-exports from other modules, beside the client. An importer that takes only those does not unlink the client from its other importers:
+
+```ts
+// client.ts
+import Stripe from 'stripe';
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-02-24.acacia',
+});
+export type Plan = 'monthly' | 'annual';
+export { PLAN_LIMIT } from './limits';
+
+// Each of these importers keeps `stripe` linked everywhere else:
+import type { Plan } from './client.js';
+import { type Plan, stripe } from './client.js';
+import { Plan } from './client.js'; // a type, without the `type` keyword
+import { PLAN_LIMIT } from './client.js';
+```
+
+- `import type` and `import { type … }` never take a module value.
+- A name imported without `type` counts as a type only when the TypeScript checker finds no value behind it: an interface, a type alias, or a namespace that holds only types. Declarations merge, so a type that shares its name with a `const`, `let`, function, class, enum or a namespace with values (`namespace` or `declare namespace`) is a value, as is a destructured export such as `export const { client } = clients`. Importing one of those marks the module escaping, like any other name the module does not export as a supported client.
+- A name the module re-exports with `export { name } from './other.js'` is the other module's binding. It links to that module's export when it is a supported one; otherwise the other module, not this one, is marked escaping. Importing a name the module re-exports from a package that is not scanned marks this module escaping.
+
+Re-exporting a client still marks the client module escaping, so barrels stay review cases: `export { stripe } from './client.js'`, `export { default as stripe } from './client.js'` and `export * from './client.js'` expose the client to importers Refit does not follow.
+
 ## Boundaries
 
 Only scanned source files are resolved. Relative imports and supported repository `paths`/`baseUrl` mappings share the same graph. Exact paths, unique extensionless file/index paths and unambiguous `.js` → `.ts`, `.mjs` → `.mts` and `.cjs` → `.cts` paths are supported. Ambiguous source/output pairs are refused. See [configured aliases and runtime boundaries](SOURCE-ALIASES.md).
 
-Clients and constructor aliases must be immutable. Static CommonJS exports must be unambiguous top-level assignments to unshadowed globals; literal export objects may contain only supported identifier bindings. Namespace imports, re-exports, spreads, accessors, computed exports, changing the export object, shadowed or exposed loaders, unconfigured or unresolved aliases, dynamic imports and factory wrappers outside the shapes above remain review cases. Refit does not reproduce a bundler's module interop or a package's export map.
+Clients and constructor aliases must be immutable. Static CommonJS exports must be unambiguous top-level assignments to unshadowed globals; literal export objects may contain only supported identifier bindings. Namespace imports, re-exports of a client (see above), spreads, accessors, computed exports, changing the export object, shadowed or exposed loaders, unconfigured or unresolved aliases, dynamic imports and factory wrappers outside the shapes above remain review cases. Refit does not reproduce a bundler's module interop or a package's export map.
 
 A confirmed finding means the usage was traced under the recorded adapter, not that arbitrary application behavior is proven. Strict source-version policy still requires resolvable matching options. Checks must exercise the application's intended contracts.
 

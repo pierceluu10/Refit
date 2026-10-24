@@ -425,6 +425,25 @@ it.each([
   ['a type imported without the type keyword', "import { BillingInterval } from './client';"],
   ['a re-exported constant', "import { MAX_SELF_SERVE_PROPERTIES } from './client';"],
   ['a function', "import { isPlatformPriceId } from './client';"],
+  // akn3107/whatsapp-store-creator takes a function and a type alias from the module that builds
+  // its client in one clause, without `type`.
+  [
+    'a function and a type without the type keyword',
+    "import { isPlatformPriceId, BillingInterval } from './client';",
+  ],
+  // Ankit-Sharma1011/Quill and Princegupta101/SwiftScribe import a client module's function as a
+  // type; Eziox-Development/eziox-web and papay0/Ideate.build import its type aliases with `type`.
+  [
+    'a function as a type',
+    "import type { isPlatformPriceId } from './client';\ntype Check = ReturnType<typeof isPlatformPriceId>;",
+  ],
+  ['a type with import type', "import type { BillingInterval } from './client';"],
+  // papay0/Ideate.build, guillermolg00/nextjs-stripe-store and beindigital-products/wedillybird
+  // import the client module's values and an inline `type` name in one clause.
+  [
+    'an inline type beside a value',
+    "import { isPlatformPriceId, type BillingInterval } from './client';",
+  ],
 ])('keeps an ESM client traced when another importer takes %s', (_name, other) => {
   const result = analyze({
     'brackets.ts': 'export const MAX_SELF_SERVE_PROPERTIES = 5;',
@@ -433,28 +452,89 @@ it.each([
     'history.ts': `import { billing } from './client';\n${read}`,
   });
   expect(result.findings).toMatchObject([{ file: 'history.ts', confidence: 'confirmed' }]);
+  expect(result.edits).toHaveLength(1);
 });
 
-it('traces a client re-exported by name through another module', () => {
+it('keeps the importing module linked when a re-exported name reaches another module', () => {
   const result = analyze({
-    'client.ts': `${esmClient}\nexport const billing = client;`,
-    'index.ts': "export { billing } from './client';",
-    'history.ts': `import { billing } from './index';\n${read}`,
+    'audit.ts': `import Stripe from 'stripe'; export const audit = new Stripe('test', ${options});`,
+    'audit-history.ts': `import { audit as billing } from './audit';\n${read}`,
+    'client.ts': `${esmClient}\nexport const billing = client;\nexport { audit } from './audit';`,
+    'core-billing.ts':
+      "import { audit } from './client';\naudit.paymentIntents.retrieve = replacement;",
+    'history.ts': `import { billing } from './client';\n${read}`,
   });
-  // Re-exporting already exposes the client module, so this stays review, as before.
-  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+  // The mutated client is audit.ts's, re-exported through client.ts; only it stops for review.
+  expect(result.findings).toMatchObject([
+    { file: 'audit-history.ts', confidence: 'review' },
+    { file: 'history.ts', confidence: 'confirmed' },
+  ]);
+  expect(result.edits).toMatchObject([{ file: 'history.ts' }]);
 });
 
 it.each([
-  ['a name the module does not export', "import { missing } from './client';"],
-  ['a type that shares its name with a mutable value', "import { Shared } from './client';"],
-  ['a namespace import', "import * as everything from './client';"],
-])('still unlinks the ESM client when another importer takes %s', (_name, other) => {
+  ['a name the module does not export', '', "import { missing } from './client';"],
+  [
+    'a type that shares its name with a mutable value',
+    'export type Shared = string;\nexport let Shared = 1;',
+    "import { Shared } from './client';",
+  ],
+  ['a namespace import', '', "import * as everything from './client';"],
+  // A type merged with a namespace that holds a value, or a destructured export, is a value: P5's
+  // counterexamples monkeypatched the client through each of them.
+  [
+    'an interface merged with a namespace',
+    'export interface Box { id: string }\nexport namespace Box { export const inner = client; }',
+    "import { Box } from './client';\nBox.inner.paymentIntents.retrieve = replacement;",
+  ],
+  [
+    'an interface merged with a declared namespace',
+    'export interface Box { id: string }\nexport declare namespace Box { const inner: typeof client; }',
+    "import { Box } from './client';\nBox.inner.paymentIntents.retrieve = replacement;",
+  ],
+  [
+    'an interface merged with a destructured export',
+    'export interface inner { id: string }\nexport const { inner } = { inner: client };',
+    "import { inner } from './client';\ninner.paymentIntents.retrieve = replacement;",
+  ],
+  [
+    'a name re-exported from an unscanned package',
+    "export { Stripe } from 'stripe';",
+    "import { Stripe } from './client';\nStripe.prototype.request = replacement;",
+  ],
+])('still unlinks the ESM client when another importer takes %s', (_name, exported, other) => {
   const result = analyze({
     'brackets.ts': 'export const MAX_SELF_SERVE_PROPERTIES = 5;',
-    'client.ts': `${fieldstayClient}\nexport type Shared = string;\nexport let Shared = 1;`,
+    'client.ts': `${fieldstayClient}\n${exported}`,
     'core-billing.ts': `${other}\nexport const seen = 1;`,
     'history.ts': `import { billing } from './client';\n${read}`,
   });
   expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+  expect(result.edits).toEqual([]);
+  // The client module escapes, so its constructor no longer declares a verified version.
+  expect(result.apiVersionDeclarations.find((entry) => entry.kind === 'constructor')?.status).toBe(
+    'unknown',
+  );
+});
+
+// Barrels expose the client module to importers Refit does not follow, so they stay review:
+// named re-exports as in marketstandard/onix and profullstack/vibe-stack, default re-exports as in
+// nabarvn/documon and nirholas/crypto-data-aggregator, and `export *` as in kondax-com/Bocker and
+// pretzelai/stripe-no-webhooks.
+it.each([
+  ['a named re-export', "export { billing } from './client';", 'export const billing = client;'],
+  [
+    'a default re-export',
+    "export { default as billing } from './client';",
+    'export default client;',
+  ],
+  ['export *', "export * from './client';", 'export const billing = client;'],
+])('keeps a client reached through %s for review', (_name, barrel, exported) => {
+  const result = analyze({
+    'client.ts': `${esmClient}\n${exported}`,
+    'index.ts': barrel,
+    'history.ts': `import { billing } from './index';\n${read}`,
+  });
+  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+  expect(result.edits).toEqual([]);
 });

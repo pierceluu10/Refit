@@ -257,34 +257,14 @@ export function sourceBindings(
       current = current.parent;
     if (!exportRoots.has(current)) escapingSources.add(node.getSourceFile().fileName);
   }
-  // Names a module exports that cannot be one of its own values: an exported interface or type
-  // alias with no value of that name, and `export { name } from './other'`, whose value belongs
-  // to the other module. Importing them exposes nothing of this module.
-  const typeNames = new Map<string, Set<string>>();
-  const valueNames = new Map<string, Set<string>>();
+  // `export { name } from './other'` re-exports the other module's binding, not one of this
+  // module's values, so importing it exposes nothing of this module.
   const reexports = new Map<string, Map<string, { file?: string; name: string }>>();
-  const record = (map: Map<string, Set<string>>, file: string, name: string) =>
-    map.set(file, (map.get(file) ?? new Set()).add(name));
+  const sources = new Map<string, ts.SourceFile>();
   for (const node of nodes) {
+    if (ts.isSourceFile(node)) sources.set(node.fileName, node);
     if (!node.parent || !ts.isSourceFile(node.parent)) continue;
     const file = node.getSourceFile().fileName;
-    const exported =
-      ts.canHaveModifiers(node) &&
-      Boolean(ts.getModifiers(node)?.some((entry) => entry.kind === ts.SyntaxKind.ExportKeyword));
-    if (exported && (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node))) {
-      record(typeNames, file, node.name.text);
-    } else if (exported && ts.isVariableStatement(node)) {
-      for (const entry of node.declarationList.declarations)
-        if (ts.isIdentifier(entry.name)) record(valueNames, file, entry.name.text);
-    } else if (
-      exported &&
-      (ts.isFunctionDeclaration(node) ||
-        ts.isClassDeclaration(node) ||
-        ts.isEnumDeclaration(node)) &&
-      node.name
-    ) {
-      record(valueNames, file, node.name.text);
-    }
     if (
       ts.isExportDeclaration(node) &&
       !node.isTypeOnly &&
@@ -304,6 +284,16 @@ export function sourceBindings(
       reexports.set(file, entries);
     }
   }
+  // An exported name with no runtime value (an interface, a type alias, a namespace of types
+  // only) exposes nothing. The checker merges declarations, so a type that shares its name with
+  // a variable, function, class, enum or instantiated namespace, even an ambient one, is a value.
+  const typeOnlyExport = (file: string, name: string) => {
+    const module = sources.has(file) ? symbol(sources.get(file)!) : undefined;
+    let entry = module && checker.tryGetMemberInModuleExports(name, module);
+    // An unresolved alias is the checker's unknown symbol, which counts as a value.
+    if (entry && entry.flags & ts.SymbolFlags.Alias) entry = checker.getAliasedSymbol(entry);
+    return Boolean(entry && !(entry.flags & ts.SymbolFlags.Value));
+  };
   function bind(
     name: ts.Identifier,
     file: string,
@@ -314,14 +304,7 @@ export function sourceBindings(
       formats.get(file) === kind && !escapingSources.has(file) && exports.get(file)?.get(exported);
     const local = symbol(name);
     if (target && local) aliases.set(local, target);
-    else if (
-      kind === 'esm' &&
-      exported !== null &&
-      typeNames.get(file)?.has(exported) &&
-      !valueNames.get(file)?.has(exported) &&
-      !reexports.get(file)?.has(exported)
-    )
-      return;
+    else if (kind === 'esm' && exported !== null && typeOnlyExport(file, exported)) return;
     else if (kind === 'esm' && exported !== null && reexports.get(file)?.has(exported)) {
       // `export { stripe } from './client'`: the same binding as the other module's export.
       const other = reexports.get(file)!.get(exported)!;
