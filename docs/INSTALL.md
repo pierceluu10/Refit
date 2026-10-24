@@ -91,6 +91,7 @@ Doctor gives each reason in one sentence with the place in your code, then the f
 | `api-version-several` | Clients or requests send more than one API version; Refit moves one at a time. | Use the same `apiVersion` everywhere. |
 | `api-version-account-default`, `stripe-not-locked` | A client sets no `apiVersion`, and Refit cannot tell which default it sends. | Set `apiVersion` at the place doctor names, or commit your lockfile. |
 | `api-version-no-contract` | Refit has no contract for your API version. | Move to the target yourself, or commit a `.refit.json` with contracts for your version. |
+| `source-does-not-parse` | A file that imports `stripe` has a syntax error, so Refit cannot read its calls or API version. | Fix the syntax error in the file doctor names and commit it. |
 | `no-stripe-client` | Refit found no `new Stripe(...)` client it can follow. | Create the client with `new Stripe(secretKey, { apiVersion })` in your server code. |
 | `workspace-package` | `stripe` is declared only in a workspace package, and checks run from the root. | Commit a `.refit.json` whose checks run that package's tests from the root. |
 | `migration-coverage` | The contracts list breaking changes on operations your code calls that no Refit rule migrates. | Migrate the calls doctor names by hand; `refit run --human` lists each change. |
