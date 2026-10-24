@@ -145,6 +145,139 @@ function referencedArrayItemSchema(
   return arrayItemSchema(schemas, definition.properties[property]);
 }
 
+// The component schemas a property path (`items`, `data`, an index) can end on when it starts at
+// any component schema, or undefined when some step cannot be resolved (a free-form object such
+// as `metadata` or `event.data.object`, or an unresolvable reference), so nothing is excluded.
+const schemaIndexes = new WeakMap<
+  Record<string, unknown>,
+  {
+    components: Map<unknown, string>;
+    starts: unknown[];
+    paths: Map<string, Set<string> | undefined>;
+  }
+>();
+function schemaIndex(schemas: Record<string, unknown>) {
+  const cached = schemaIndexes.get(schemas);
+  if (cached) return cached;
+  // The receiver may be any object in the API: a component, or an inline object inside one.
+  const starts: unknown[] = [];
+  const visited = new Set<unknown>();
+  const collect = (node: unknown) => {
+    if (!isObject(node) || visited.has(node)) return;
+    visited.add(node);
+    starts.push(node);
+    if (isObject(node.properties)) Object.values(node.properties).forEach(collect);
+    collect(node.items);
+    collect(node.additionalProperties);
+    for (const key of ['anyOf', 'oneOf', 'allOf'])
+      if (Array.isArray(node[key])) (node[key] as unknown[]).forEach(collect);
+  };
+  Object.values(schemas).forEach(collect);
+  const index = {
+    components: new Map<unknown, string>(
+      Object.entries(schemas).map(([name, definition]) => [definition, name]),
+    ),
+    starts,
+    paths: new Map<string, Set<string> | undefined>(),
+  };
+  schemaIndexes.set(schemas, index);
+  return index;
+}
+function componentsReachedBy(schemas: Record<string, unknown>, path: (string | number)[]) {
+  const { components, starts, paths } = schemaIndex(schemas);
+  const key = JSON.stringify(path);
+  if (paths.has(key)) return paths.get(key);
+  // The schema nodes a value may have: references resolved, `anyOf`/`oneOf` branches expanded.
+  const expand = (node: unknown, seen = new Set<string>()): unknown[] | undefined => {
+    if (!isObject(node)) return [];
+    const name = componentReference(node.$ref);
+    if (name !== undefined) {
+      if (seen.has(name)) return [];
+      const definition = schemas[name];
+      if (!isObject(definition)) return undefined;
+      // A component that is itself a reference or a union stands for what it resolves to.
+      return definition.$ref !== undefined ||
+        ['anyOf', 'oneOf', 'allOf'].some((key) => key in definition)
+        ? expand(definition, new Set([...seen, name]))
+        : [definition];
+    }
+    if (node.$ref !== undefined || 'allOf' in node) return undefined;
+    const branches = node.anyOf ?? node.oneOf;
+    if (Array.isArray(branches)) {
+      const all: unknown[] = [];
+      for (const branch of branches) {
+        const found = expand(branch, seen);
+        if (!found) return undefined;
+        all.push(...found);
+      }
+      return all;
+    }
+    return [node];
+  };
+  const targets = new Set<string>();
+  let unknown = false;
+  for (const definition of starts) {
+    let current: unknown[] = [definition];
+    for (const [index, step] of path.entries()) {
+      const next: unknown[] = [];
+      for (const node of current) {
+        if (!isObject(node)) continue;
+        if (typeof step === 'number') {
+          if (node.type === 'array') next.push(node.items);
+          else if (node.type === undefined && !isObject(node.properties) && index > 0)
+            unknown = true;
+          continue;
+        }
+        // A primitive has no such property. A free-form object read part way along the path may be
+        // any object; at the start it is one of the objects walked anyway.
+        if (node.type !== undefined && node.type !== 'object') continue;
+        if (isObject(node.properties) && Object.hasOwn(node.properties, step))
+          next.push(node.properties[step]);
+        else if (isObject(node.additionalProperties)) next.push(node.additionalProperties);
+        else if (!isObject(node.properties) && node.additionalProperties !== false && index > 0)
+          unknown = true;
+      }
+      current = [];
+      for (const node of next) {
+        const found = expand(node);
+        if (!found) unknown = true;
+        else current.push(...found);
+      }
+      if (unknown || !current.length) break;
+    }
+    if (unknown) break;
+    // A path that ends on a free-form object (`event.data.object`) may end on any object.
+    if (
+      current.some(
+        (node) =>
+          isObject(node) &&
+          (node.type === undefined || node.type === 'object') &&
+          !isObject(node.properties) &&
+          node.additionalProperties !== false,
+      )
+    ) {
+      unknown = true;
+      break;
+    }
+    for (const node of current) {
+      const component = components.get(node);
+      if (component !== undefined) targets.add(component);
+    }
+  }
+  const result = unknown ? undefined : targets;
+  paths.set(key, result);
+  return result;
+}
+
+// A removal of a component's own field, as `findRemovedProperties` records it (or `/<property>`).
+function topLevelRemoval(change: Removal) {
+  const escape = (text: string) => text.replaceAll('~', '~0').replaceAll('/', '~1');
+  return [
+    `/components/schemas/${escape(change.schema)}/properties/${escape(change.property)}`,
+    `/${escape(change.property)}`,
+  ].includes(change.pointer);
+}
+
 function numericArrayIndex(expression: ts.Expression) {
   if (!ts.isNumericLiteral(expression)) return false;
   const index = Number(expression.text);
@@ -1574,6 +1707,32 @@ export function analyzeRepository(
         arrayItemForExpression(node.expression.expression) !== undefined,
     );
   }
+  // The components the receiver's property path can reach from any schema, when it has one.
+  function receiverPath(expression: ts.Expression) {
+    const path: (string | number)[] = [];
+    let current = expression;
+    while (true) {
+      if (
+        ts.isParenthesizedExpression(current) ||
+        ts.isNonNullExpression(current) ||
+        ts.isAsExpression(current) ||
+        ts.isTypeAssertionExpression(current) ||
+        ts.isSatisfiesExpression(current)
+      )
+        current = current.expression;
+      else if (ts.isPropertyAccessExpression(current) && ts.isIdentifier(current.name)) {
+        path.unshift(current.name.text);
+        current = current.expression;
+      } else if (ts.isElementAccessExpression(current)) {
+        const argument = current.argumentExpression;
+        if (ts.isStringLiteral(argument)) path.unshift(argument.text);
+        else if (numericArrayIndex(argument)) path.unshift(0);
+        else return undefined;
+        current = current.expression;
+      } else break;
+    }
+    return path.length ? componentsReachedBy(schemaDefinitions, path) : undefined;
+  }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     if (
       property !== undefined &&
@@ -1596,10 +1755,23 @@ export function analyzeRepository(
     const sourceClient =
       provenance && 'call' in provenance ? sdkCall(provenance.call)?.client : undefined;
     const classClient = sourceClient && classBindings!.client(sourceClient);
+    // `subscription.items.data[0]`: the path an untracked receiver is read through. When no
+    // Stripe schema reaches the changed object by that path, the read is not on that object.
+    const reached =
+      tracked || provenance || webhook || !Object.keys(schemaDefinitions).length
+        ? undefined
+        : receiverPath(receiver);
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
       if (!tracked && !providerDetected) continue;
+      // Only for a field of the component itself; a removal inside one of its inline objects is
+      // not on any component a path ends on.
+      if (reached && topLevelRemoval(change)) {
+        const changed =
+          resolvableComponentSchema(schemaDefinitions, change.schema) ?? change.schema;
+        if (!reached.has(changed)) continue;
+      }
       // Unresolved Stripe receivers are flagged only where files work with Stripe; if none are
       // identifiable, every same-named read stays flagged.
       if (!tracked && stripeTypes && stripeFiles.size && !stripeFiles.has(node.getSourceFile()))
