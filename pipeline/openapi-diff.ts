@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import type { ProviderAdapter } from './providers.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import { isRemovedOperationChange } from './openapi-operations.ts';
+import { PASSING_REACH } from './operation-reach.ts';
 import { PipelineInputError } from './types.ts';
 import type { Removal, Finding, Location } from './types.ts';
 import {
@@ -164,6 +165,8 @@ export function unmappedBreakingChanges(
       isObject(entry) &&
       Number(entry.level) >= 2 &&
       !unreachable(entry) &&
+      // Traced code does not reach what changed, or a kept rule edit handles it (operation-reach.ts).
+      !PASSING_REACH.has(entry.reach) &&
       !isHandledOperationRemoval(entry, operationChanges) &&
       !isHandledRequestRename(entry, requestChanges) &&
       !(
