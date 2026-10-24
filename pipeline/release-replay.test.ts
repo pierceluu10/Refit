@@ -178,7 +178,7 @@ export const checkout = () =>
 
 // The approved target as `refit serve` polls it, with the newest contract Stripe has published as
 // the watcher's source.
-async function service() {
+async function service(settings: { supersedeDrafts?: boolean } = {}) {
   const approval = await customer();
   const latest = join(root, 'stripe-latest.json');
   const target = {
@@ -202,6 +202,7 @@ async function service() {
           signal: new AbortController().signal,
           repairAttempts: 0,
           publishDraft: true,
+          ...settings,
         }),
       );
       console.log(`poll: ${result.status}: ${result.message}`);
@@ -305,34 +306,45 @@ it('opens one draft per Stripe release, advances after each merge and stays quie
   quiet();
 }, 60_000);
 
-it('replaces an unmerged draft with one cumulative draft when the next release lands first', async () => {
-  const { publish, poll, baseline } = await service();
-  await publish('after', BASIL, 'payment_method_types');
-  expect(await poll()).toMatchObject({ status: 'draft-created' });
+it.each([
+  ['leaves the older draft open by default', false],
+  ['closes the older draft with --supersede-drafts', true],
+])(
+  'opens one cumulative draft when the next release lands first, and %s',
+  async (_case, supersedeDrafts) => {
+    const { publish, poll, baseline } = await service({ supersedeDrafts });
+    await publish('after', BASIL, 'payment_method_types');
+    expect(await poll()).toMatchObject({ status: 'draft-created' });
 
-  // Endive lands before the customer merges basil's draft: one draft takes the code from acacia
-  // to endive, and the basil draft is closed with a link to it.
-  await publish('after', ENDIVE, 'allowed_payment_method_types');
-  expect(await poll()).toMatchObject({ status: 'draft-created' });
-  expect(pulls()).toEqual([
-    { number: 1, state: 'closed', merged: false },
-    { number: 2, state: 'open', merged: false },
-  ]);
-  expect(github.comments(REPOSITORY)).toEqual([
-    {
-      issue: 1,
-      user: 'refit-acceptance[bot]',
-      body: `Superseded by #2. Refit keeps one draft per integration and updates it in place; that draft migrates this code to ${ENDIVE} on the current \`main\`.`,
-    },
-  ]);
-  const cumulative = await draftDiff(github.pulls(REPOSITORY)[1]);
-  expect(cumulative).toContain(`apiVersion: '${ENDIVE}'`);
-  expect(cumulative).toContain('getInvoiceSubscription(invoice)');
-  expect(cumulative).toContain("allowed_payment_method_types: ['card']");
+    // Endive lands before the customer merges basil's draft: one draft takes the code from acacia
+    // to endive. Superseding is off by default (owner decision, 2026-10-24); with it, the basil
+    // draft is closed with a link to the new one.
+    await publish('after', ENDIVE, 'allowed_payment_method_types');
+    expect(await poll()).toMatchObject({ status: 'draft-created' });
+    expect(pulls()).toEqual([
+      { number: 1, state: supersedeDrafts ? 'closed' : 'open', merged: false },
+      { number: 2, state: 'open', merged: false },
+    ]);
+    const superseded = supersedeDrafts
+      ? [
+          {
+            issue: 1,
+            user: 'refit-acceptance[bot]',
+            body: `Superseded by #2. Refit keeps one draft per integration and updates it in place; that draft migrates this code to ${ENDIVE} on the current \`main\`.\n\n<!-- refit-superseded -->`,
+          },
+        ]
+      : [];
+    expect(github.comments(REPOSITORY)).toEqual(superseded);
+    const cumulative = await draftDiff(github.pulls(REPOSITORY)[1]);
+    expect(cumulative).toContain(`apiVersion: '${ENDIVE}'`);
+    expect(cumulative).toContain('getInvoiceSubscription(invoice)');
+    expect(cumulative).toContain("allowed_payment_method_types: ['card']");
 
-  await github.merge(REPOSITORY, 2, 'squash');
-  expect(await poll()).toMatchObject({ status: 'up-to-date' });
-  expect(await baseline()).toBe(ENDIVE);
-  expect(github.comments(REPOSITORY)).toHaveLength(1);
-  expect(issues()).toBe(0);
-}, 60_000);
+    await github.merge(REPOSITORY, 2, 'squash');
+    expect(await poll()).toMatchObject({ status: 'up-to-date' });
+    expect(await baseline()).toBe(ENDIVE);
+    expect(github.comments(REPOSITORY)).toEqual(superseded);
+    expect(issues()).toBe(0);
+  },
+  60_000,
+);
