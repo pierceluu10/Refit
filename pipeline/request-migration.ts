@@ -1,6 +1,11 @@
 import ts from 'typescript-compiler';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
-import type { RequestParameterRemoval } from './request-removals.ts';
+import {
+  CARD_PAYMENT_METHOD_RULE,
+  LISTED_PAYMENT_METHODS_RULE,
+  MOVED_PAYMENT_METHODS_RULE,
+  type RequestParameterRemoval,
+} from './request-removals.ts';
 import { TEST_PATH } from './source-paths.ts';
 
 function propertyName(name: ts.PropertyName) {
@@ -128,15 +133,48 @@ export function movablePaymentMethods(
   return !inPerson(value, 0);
 }
 
+type PaymentMethodRule =
+  | typeof CARD_PAYMENT_METHOD_RULE
+  | typeof LISTED_PAYMENT_METHODS_RULE
+  | typeof MOVED_PAYMENT_METHODS_RULE;
+
+// The rule that renames a `payment_method_types` property of a creation call body: an exact
+// `['card']`; with keep-listed, a literal list of `card` plus other distinct methods or any other
+// movable expression. Never one whose body already sends the replacement.
+export function paymentMethodRule(
+  property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
+  options: { keepListed?: boolean; checker?: ts.TypeChecker },
+): PaymentMethodRule | undefined {
+  if (sendsSibling(property, 'allowed_payment_method_types')) return undefined;
+  const methods =
+    ts.isPropertyAssignment(property) &&
+    ts.isArrayLiteralExpression(property.initializer) &&
+    property.initializer.elements.every(ts.isStringLiteralLike)
+      ? property.initializer.elements.map((element) => (element as ts.StringLiteralLike).text)
+      : undefined;
+  if (methods?.length === 1 && methods[0] === 'card') return CARD_PAYMENT_METHOD_RULE;
+  if (!options.keepListed || !options.checker) return undefined;
+  if (
+    methods &&
+    methods.length > 1 &&
+    methods.includes('card') &&
+    !methods.some((method) => IN_PERSON_METHODS.has(method)) &&
+    new Set(methods).size === methods.length
+  )
+    return LISTED_PAYMENT_METHODS_RULE;
+  return movablePaymentMethods(property, options.checker) ? MOVED_PAYMENT_METHODS_RULE : undefined;
+}
+
 // Object-literal keys spelling the removed `payment_method_types` outside every traced SDK call
 // body. A body built in a variable, assembled by a wrapper or sent by an untraced client still
 // sends it once the pin moves, so each one stops for review (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
 // Only top-level body keys count: a nested `payment_settings.payment_method_types` is still valid
 // on subscriptions and invoices. Test files send no production request, and an object value is a
 // schema definition such as Mongoose's `{ type: [String] }`, never a payment method list.
-// `rename` marks an exact `['card']` in a local variable that only reaches confirmed SDK calls of
-// the operations whose removal has the owner-approved card replacement: the same site as a
-// direct `create({ payment_method_types: ['card'] })`, so the card rule can rename it.
+// `rule` marks a value in a local variable that only reaches confirmed SDK calls of the operations
+// whose removal has the owner-approved replacement: the same site as a direct
+// `create({ payment_method_types: … })`, so the rule a direct body would get renames it (an exact
+// `['card']`, or with keep-listed a literal list with card or a movable expression).
 export function untracedRemovedParameters(
   nodes: ts.Node[],
   removals: RequestParameterRemoval[],
@@ -144,6 +182,7 @@ export function untracedRemovedParameters(
     call: ts.CallExpression,
   ) => { resource: string; method: string; confirmed: boolean } | undefined,
   file: (node: ts.Node) => string,
+  checker?: ts.TypeChecker,
 ) {
   const removed = new Map(
     removals.filter((removal) => removal.cardReplacement).map((entry) => [entry.parameter, entry]),
@@ -163,7 +202,8 @@ export function untracedRemovedParameters(
     ts.isCallExpression(node.parent) && node.parent.arguments.includes(node as ts.Expression);
   // The traced SDK calls a local, non-exported variable is passed to, when every other use is a
   // property access that is not the parameter itself; undefined when any use is anything else.
-  const localCalls = (object: ts.Expression, parameter: string) => {
+  // `write` is an assignment of the parameter onto the variable, which is the site itself.
+  const localCalls = (object: ts.Expression, parameter: string, write?: ts.Node) => {
     let value: ts.Node = object;
     while (
       ts.isParenthesizedExpression(value.parent) ||
@@ -198,7 +238,7 @@ export function untracedRemovedParameters(
           local =
             ts.isPropertyAccessExpression(parent) &&
             parent.expression === node &&
-            parent.name.text !== parameter;
+            (parent.name.text !== parameter || parent === write);
       } else ts.forEachChild(node, visit);
     };
     const scope = declaration.parent.parent.parent;
@@ -206,18 +246,36 @@ export function untracedRemovedParameters(
     visit(ts.isCaseClause(scope) || ts.isDefaultClause(scope) ? scope.parent : scope);
     return local ? calls : undefined;
   };
-  const cardOnly = (node: ts.ObjectLiteralElementLike) =>
-    ts.isPropertyAssignment(node) &&
-    ts.isArrayLiteralExpression(node.initializer) &&
-    node.initializer.elements.length === 1 &&
-    ts.isStringLiteralLike(node.initializer.elements[0]) &&
-    node.initializer.elements[0].text === 'card';
   const sites: {
-    property: ts.ObjectLiteralElementLike;
+    property: ts.Node;
     removal: RequestParameterRemoval;
-    rename?: true;
+    rule?: PaymentMethodRule;
   }[] = [];
   for (const node of nodes) {
+    // `params.payment_method_types = …` onto a local body: never renamed, and a stop unless that
+    // body only reaches calls that still accept the parameter.
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isPropertyAccessExpression(node.left) &&
+      ts.isIdentifier(node.left.expression) &&
+      removed.has(node.left.name.text) &&
+      !TEST_PATH.test(file(node))
+    ) {
+      const removal = removed.get(node.left.name.text)!;
+      const declaration = checker?.getSymbolAtLocation(node.left.expression)?.valueDeclaration;
+      let body =
+        declaration && ts.isVariableDeclaration(declaration) ? declaration.initializer : undefined;
+      while (body && (ts.isParenthesizedExpression(body) || ts.isAsExpression(body)))
+        body = body.expression;
+      const calls =
+        body && ts.isObjectLiteralExpression(body)
+          ? localCalls(body, removal.parameter, node.left)
+          : undefined;
+      if (calls?.every((call) => !removalFor(removal.parameter, call))) continue;
+      sites.push({ property: node.left, removal });
+      continue;
+    }
     if (!(ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node))) continue;
     const name = propertyName(node.name);
     const removal = name === undefined ? undefined : removed.get(name);
@@ -235,11 +293,15 @@ export function untracedRemovedParameters(
     // Only SDK calls that still accept the parameter, such as `stripe.paymentLinks.create(params)`.
     if (calls?.every((call) => !removalFor(removal.parameter, call))) continue;
     const targets = calls?.map((call) => removalFor(removal.parameter, call));
-    const rename =
-      cardOnly(node) &&
+    const rule =
       targets?.every((target) => target?.cardReplacement) &&
-      calls!.every((call) => sdkOperation(call)!.confirmed);
-    sites.push({ property: node, removal: targets?.[0] ?? removal, ...(rename ? { rename } : {}) });
+      calls!.every((call) => sdkOperation(call)!.confirmed)
+        ? paymentMethodRule(node, {
+            keepListed: targets.every((target) => target?.keepListed),
+            checker,
+          })
+        : undefined;
+    sites.push({ property: node, removal: targets?.[0] ?? removal, ...(rule ? { rule } : {}) });
   }
   return sites;
 }

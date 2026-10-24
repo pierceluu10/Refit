@@ -589,25 +589,76 @@ it('keeps stopping on a body that already sends allowed_payment_method_types', a
   expect(report.findings.some((finding) => finding.requestParameter)).toBe(true);
 });
 
-it('keeps stopping on a computed list set outside the creation call', async () => {
+// Shaped like two Push 279 repositories: a Checkout body built in a local `sessionConfig` with a
+// computed list (geallenboy/ai-saas-template), and a typed SetupIntent params const with a list
+// from the request (qesmsep/noir-crm-dashboard).
+it('moves a computed list in a local body that only the creation call receives', async () => {
   const report = await run(
     {
       'checkout.js': `import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
-const methods = ['card', 'paypal'];
-export const checkout = () => {
-  const params = { mode: 'payment', payment_method_types: methods };
+export async function checkout(customerId, paymentMethods) {
+  const sessionConfig = {
+    customer: customerId,
+    payment_method_types: paymentMethods,
+    mode: 'payment',
+  };
+  sessionConfig.metadata = { source: 'app' };
+  return stripe.checkout.sessions.create(sessionConfig);
+}
+`,
+    },
+    true,
+    true,
+  );
+  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain('+    allowed_payment_method_types: paymentMethods,');
+  expect(report.patch.warnings).toContain(movedPaymentMethodWarning('paymentMethods'));
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+it.each([
+  [
+    'a body a helper returns',
+    `const params = (methods) => ({ mode: 'payment', payment_method_types: methods });
+export const checkout = (methods) => stripe.checkout.sessions.create(params(methods));`,
+  ],
+  [
+    'a list assigned onto the body',
+    `export const checkout = (methods) => {
+  const params = { mode: 'payment' };
+  params.payment_method_types = methods;
   return stripe.checkout.sessions.create(params);
-};
+};`,
+  ],
+  [
+    'an exported body',
+    `export const params = { mode: 'payment', payment_method_types: ['card', 'paypal'] };
+export const checkout = () => stripe.checkout.sessions.create(params);`,
+  ],
+  [
+    'a body that reaches another call too',
+    `export const checkout = (methods) => {
+  const params = { mode: 'payment', payment_method_types: methods };
+  log(params);
+  return stripe.checkout.sessions.create(params);
+};`,
+  ],
+])('keeps stopping on %s', async (_shape, code) => {
+  const report = await run(
+    {
+      'checkout.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+const log = console.log;
+${code}
 `,
     },
     true,
     true,
   );
   expect(report.patch).toMatchObject({ status: 'not-generated' });
-  expect(report.findings.some((finding) => finding.requestParameter)).toBe(true);
 });
-
 it('keeps the stop when another client sets a version the patch cannot move', async () => {
   const report = await run({
     'pinned.js': checkout("['card']"),
@@ -814,4 +865,26 @@ it('says which client keeps the card rename from riding with the pin', async () 
       ),
     },
   ]);
+});
+
+// An assignment onto a body was invisible: the card rule moved the pin while it still sent the
+// removed parameter. A Payment Links body still accepts it, as in a migration script that copies
+// `link.payment_method_types` onto `createPaymentLinkParams` (helloworld9912/Stripe-Account-Migration).
+it('stops on a list assigned onto a Checkout body and leaves one assigned onto a Payment Links body', async () => {
+  const assigned = (call: string) => ({
+    'checkout.js': `${checkout("['card']")}export async function other(link) {
+  const params = { line_items: [] };
+  params.payment_method_types = link.payment_method_types;
+  return stripe.${call}(params);
+}
+`,
+  });
+  const stopped = await run(assigned('checkout.sessions.create'));
+  expect(stopped.patch).toMatchObject({ status: 'not-generated' });
+  expect(
+    stopped.findings.filter((finding) => finding.requestParameter).map((finding) => finding.line),
+  ).toEqual([6]);
+  const links = await run(assigned('paymentLinks.create'));
+  expect(links.patch).toMatchObject({ status: 'proposed' });
+  expect(links.findings.filter((finding) => finding.requestParameter)).toEqual([]);
 });
