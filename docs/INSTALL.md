@@ -60,7 +60,7 @@ Try it before installing, in a clean checkout, with the Refit CLI:
 refit doctor
 refit stripe-snapshot --version <your API version> --version 2026-09-30.endive
 refit doctor
-refit enroll --github <owner>/<repo> --base main
+refit enroll --repository . --github <owner>/<repo> --base main
 ```
 
 The first `refit doctor` names the exact `stripe-snapshot` command, or what stops Refit from generating a configuration. The second gives the verdict on the generated configuration. `refit enroll` prints it for review (labelled "Generated") and writes nothing. `refit doctor --json` prints the generated file as `generated.configuration`: commit it as `.refit.json` to change a setting.
@@ -82,7 +82,7 @@ On October 24, 2026, Refit ran on 60 Stripe repositories sampled from its four b
 
 - **35 got a complete configuration.** In all 35 its API version matched the one the benchmark selection had found independently. Before this change none did: each needed a hand-written `.refit.json` with an `apiVersion` and two saved contracts.
 - **None was ready for validation yet.** Refit compares the full contracts, and in all 35 it found breaking changes, on operations the code calls, that no Refit rule migrates (`migration-coverage` below).
-- **The other 25 stopped before a configuration:** an `apiVersion` that is not a string literal (6), no tests and no TypeScript (6), no lockfile (6), a tsconfig `extends` Refit does not read, which hides every client (4, and 1 more counted under no tests), no client at all (1), `stripe` declared only in a project the root lockfile does not install (1), and the scan limit (1).
+- **The other 25 stopped before a configuration:** an `apiVersion` Refit cannot trace to one version, or a request whose parameters it cannot read (6), no tests and no TypeScript (6), no lockfile (6), a tsconfig `extends` Refit does not read, which hides every client (4, and 1 more counted under no tests), no client at all (1), `stripe` declared only in a project the root lockfile does not install (1), and the scan limit (1).
 
 On the 38 repositories Refit's operator runs on the hosted service, 29 got a configuration with no edits. The other 9 had no tests and no TypeScript (7) or no lockfile (2).
 
@@ -95,7 +95,7 @@ Doctor gives each reason in one sentence with the place in your code, then the f
 | `contracts` | The two Stripe contracts are not saved on this machine. | Run the `refit stripe-snapshot` command doctor prints. |
 | `no-lockfile` | Refit installs dependencies only from a committed lockfile. | Run `npm install`, `pnpm install` or `yarn install` once and commit the lockfile. |
 | `no-checks` | No `test` script and no TypeScript, so nothing would show that a change still works. | Add a `test` script, or a `tsconfig.json` with `typescript` in `devDependencies`. |
-| `api-version-unreadable` | An `apiVersion` is computed, read from the environment or passed in from elsewhere. | Write it as a string literal at the place doctor names, or commit a `.refit.json` that sets it. |
+| `api-version-unreadable` | An `apiVersion` or a client's options are computed, read from the environment or passed in from elsewhere, or a request passes parameters Refit cannot read. Doctor quotes the code. | Write the `apiVersion` as a string literal at the place doctor names, or commit a `.refit.json` that sets it. If a request's parameters set no `apiVersion`, commit a `.refit.json` with the version doctor names. |
 | `api-version-several` | Clients or requests send more than one API version; Refit moves one at a time. | Use the same `apiVersion` everywhere. |
 | `api-version-account-default`, `stripe-not-locked` | A client sets no `apiVersion`, and Refit cannot tell which default it sends. | Set `apiVersion` at the place doctor names, or commit your lockfile. |
 | `api-version-no-contract` | Refit has no contract for your API version. | Move to the target yourself, or commit a `.refit.json` with contracts for your version. |
