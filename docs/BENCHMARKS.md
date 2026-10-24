@@ -395,6 +395,7 @@ OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run
 npm run benchmark:shopify -- --root <dir> --list <list> --output <run> --validate
 node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
 node scripts/aws-benchmark.mjs launch --run <id> --total N --shards K --market on-demand -- '<command with {offset} {limit}>'   # see AWS-BENCHMARKS.md
+gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<full-sha> -f count=N -f size=1   # see GITHUB-BENCHMARKS.md
 node scripts/paypal-benchmark.mjs --root <dir> --refit <worktree> --list docs/benchmarks/2026-10-21-paypal-repos.json
 node scripts/ai-app-select.mjs --provider openai --work <cache> --root <checkouts> --output <openai-list.json>
 node scripts/ai-app-select.mjs --provider anthropic --work <cache> --root <checkouts> --output <anthropic-list.json>
