@@ -248,16 +248,17 @@ export function declaredApiVersions(options: {
       return { status: 'unknown', value: null };
     }
   }
+  const mutationNodes = options.mutationNodes.filter((node) => {
+    if (options.creation(node) || options.sdkCall(node)) return false;
+    if (ts.isPropertyAssignment(node)) {
+      const value = resolve(node.initializer);
+      if (value && (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)))
+        return false;
+    }
+    return true;
+  });
   unsafe = unsafeBindings(
-    options.mutationNodes.filter((node) => {
-      if (options.creation(node) || options.sdkCall(node)) return false;
-      if (ts.isPropertyAssignment(node)) {
-        const value = resolve(node.initializer);
-        if (value && (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)))
-          return false;
-      }
-      return true;
-    }),
+    mutationNodes,
     checker,
     clients,
     new Map(),
@@ -268,6 +269,20 @@ export function declaredApiVersions(options: {
     undefined,
     options.references,
   );
+  // Clients written to directly (assignment targets, delete, mutating methods), escaped or not.
+  const mutated = unsafeBindings(
+    mutationNodes,
+    checker,
+    clients,
+    new Map(),
+    canonical,
+    new Set(),
+    undefined,
+    undefined,
+    undefined,
+    options.references,
+    false,
+  );
   const declarations: ApiVersionDeclaration[] = [];
   const literalSpan = (node: ts.Expression, value: string) =>
     options.literals?.push({
@@ -276,6 +291,60 @@ export function declaredApiVersions(options: {
       end: node.getEnd() - 1,
       value,
     });
+  // stripe-node fixes a client's API version when the client is constructed; only
+  // `setApiVersion`, a write to its private `_api`, a raw `Stripe-Version` header or a per-request
+  // override changes what it sends later. So a constructor whose client escapes the trace (an
+  // export, a lazy `??=` getter, a class field) keeps its resolved version when the repository
+  // spells none of those: no escape hatch, and every `apiVersion` key sits in a constructor's
+  // version option or in a traced SDK call's arguments, which are checked here.
+  // An escape hatch anywhere leaves every Stripe constructor's version unknown, traced or not.
+  const hatch =
+    options.provider.packageName === 'stripe' &&
+    nodes.some(
+      (node) =>
+        ts.isSourceFile(node) &&
+        /setApiVersion|_setApiField|\b_api\b|_requestSender|Stripe-Version/i.test(node.text),
+    );
+  const sealed = (() => {
+    if (options.provider.packageName !== 'stripe' || hatch) return false;
+    const key = mapping.property.split('.').at(-1)!;
+    const checked: { file: ts.SourceFile; start: number; end: number }[] = [];
+    const versionValues = new Set<ts.Node>();
+    for (const node of nodes) {
+      const creation = options.creation(node);
+      const call = ts.isCallExpression(node) && options.sdkCall(node) ? node : undefined;
+      const span = creation ?? call;
+      if (span?.arguments)
+        checked.push({
+          file: span.getSourceFile(),
+          start: span.arguments.pos,
+          end: span.arguments.end,
+        });
+      const value = creation && version(creation.arguments?.[mapping.constructorArgument]).node;
+      if (value) versionValues.add(value);
+    }
+    return nodes.every((node) => {
+      const name =
+        ts.isPropertyAssignment(node) ||
+        ts.isShorthandPropertyAssignment(node) ||
+        ts.isPropertyAccessExpression(node)
+          ? node.name
+          : ts.isElementAccessExpression(node)
+            ? node.argumentExpression
+            : undefined;
+      if (!name || !(ts.isIdentifier(name) || ts.isStringLiteralLike(name)) || name.text !== key)
+        return true;
+      if (ts.isPropertyAssignment(node)) {
+        const value = resolve(node.initializer);
+        if (value && versionValues.has(value)) return true;
+      }
+      const start = node.getStart();
+      return checked.some(
+        (span) =>
+          span.file === node.getSourceFile() && span.start <= start && node.getEnd() <= span.end,
+      );
+    });
+  })();
   for (const node of nodes) {
     const creation = options.creation(node);
     if (creation) {
@@ -284,9 +353,10 @@ export function declaredApiVersions(options: {
       const uncertain =
         creation.arguments?.some(ts.isSpreadElement) ||
         unsafe.has(options.constructorBinding(creation)!) ||
-        !binding ||
-        !clients.has(binding) ||
-        unsafe.has(binding);
+        hatch ||
+        (sealed
+          ? Boolean(binding && mutated.has(binding))
+          : !binding || !clients.has(binding) || unsafe.has(binding));
       if (result.node && !uncertain) literalSpan(result.node, result.value!);
       declarations.push({
         ...location(node),
