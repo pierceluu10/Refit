@@ -115,7 +115,8 @@ export function sourceLiterals(options: {
           if (
             (ELEMENT_METHODS.has(outer.name.text) || COPY_METHODS.has(outer.name.text)) &&
             !accessed(call) &&
-            !returned(call)
+            !returned(call) &&
+            !(ELEMENT_METHODS.has(outer.name.text) && bound(call))
           )
             return false;
           const callback = call.arguments[0] && unwrap(call.arguments[0]);
@@ -149,6 +150,46 @@ export function sourceLiterals(options: {
       (references.get(binding) ?? []).every(
         (reference) => reference === name || accessed(reference),
       ),
+    );
+  }
+  // `const plan = isSubscribed ? PLANS.find(…) : null`: an element held by a constant that is only
+  // read through its properties or spread into a copy, like `...PLANS[0]`.
+  function bound(value: ts.Expression) {
+    let current = value;
+    for (;;) {
+      const parent = current.parent;
+      if (
+        ts.isParenthesizedExpression(parent) ||
+        ts.isNonNullExpression(parent) ||
+        ts.isAsExpression(parent) ||
+        (ts.isConditionalExpression(parent) && parent.condition !== current) ||
+        (ts.isBinaryExpression(parent) &&
+          [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+            parent.operatorToken.kind,
+          ))
+      )
+        current = parent;
+      else break;
+    }
+    const declaration = current.parent;
+    if (
+      !ts.isVariableDeclaration(declaration) ||
+      declaration.initializer !== current ||
+      !ts.isIdentifier(declaration.name) ||
+      !ts.isVariableDeclarationList(declaration.parent) ||
+      !(declaration.parent.flags & ts.NodeFlags.Const) ||
+      shorthand.has(declaration.name.text)
+    )
+      return false;
+    const binding = symbol(declaration.name);
+    return Boolean(
+      binding &&
+      (references.get(binding) ?? []).every((reference) => {
+        if (reference === declaration.name || accessed(reference)) return true;
+        let read: ts.Node = reference;
+        while (ts.isParenthesizedExpression(read.parent)) read = read.parent;
+        return ts.isSpreadAssignment(read.parent) || ts.isSpreadElement(read.parent);
+      }),
     );
   }
   // The value is returned: directly, as a conditional's branch or in a returned object literal.
