@@ -138,4 +138,4 @@ Refit traced these usages to Stripe objects but no rule changed them, so the mig
 
 <!-- refit-migration:3dd7b2df0020f2414ace0f8f56181e93996b3a2f5b8ca7f8063f50ec33fbac44 -->
 
-<!-- refit-evidence "runId": "e657899d75bd444af4cc0889f15c63f8cf1a935a0135e4fb7ab945f78035d9b9", "patchHash": "f5e7b6b81d47c27c8ecd4d4ce55fd9dcaf42b712a0adc84985c70c1329464b6b" -->
+<!-- refit-evidence "runId": "e657899d75bd444af4cc0889f15c63f8cf1a935a0135e4fb7ab945f78035d9b9", "patchHash": "f5e7b6b81d47c27c8ecd4d4ce55fd9dcaf42b712a0adc84985c70c1329464b6b", "refit": "<release>" -->
