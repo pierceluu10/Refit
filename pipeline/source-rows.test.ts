@@ -270,3 +270,139 @@ it('keeps row reads for review when an import of the client name does not resolv
     }),
   ).toContain('api/checkout.ts:21');
 });
+
+// TechWithEmmaYT/Social-X-Clone-Course lib/prismadb.ts and app/api/webhook/route.ts: the model
+// accessor `prisma.subscription` was reported as a removed `invoiceitem.subscription` read.
+const socialClient = `import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+
+export const prisma = globalForPrisma.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;`;
+const socialWebhook = `import Stripe from "stripe";
+import { prisma } from "../lib/prismadb";
+const stripe = new Stripe("key", { apiVersion: "2023-10-16" });
+export async function POST(session: Stripe.Checkout.Session) {
+  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  await prisma.subscription.create({
+    data: {
+      stripeSubscriptionId: subscription.id,
+      stripePriceId: subscription.items.data[0].price.id,
+    },
+  });
+}`;
+const subscriptionChange = {
+  id: 'invoiceitem-subscription',
+  schema: 'invoiceitem',
+  property: 'subscription',
+  pointer: '/subscription',
+};
+function subscriptionReviews(files: Record<string, string>) {
+  const repository: Repository = {
+    root: '/rows-fixture',
+    files: Object.entries(files).map(([path, content]) => ({ path, content })),
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  return analyzeRepository(repository, [subscriptionChange], STRIPE)
+    .findings.filter((finding) => finding.confidence === 'review')
+    .map((finding) => `${finding.file}:${finding.line}`);
+}
+
+it('proves a Prisma model accessor is not a Stripe read (TechWithEmmaYT/Social-X-Clone-Course)', () => {
+  expect(
+    subscriptionReviews({ 'lib/prismadb.ts': socialClient, 'api/webhook.ts': socialWebhook }),
+  ).toEqual([]);
+});
+
+it('keeps the accessor for review when the client is passed to a library (PrismaAdapter)', () => {
+  expect(
+    subscriptionReviews({
+      'lib/prismadb.ts': socialClient,
+      'api/webhook.ts': socialWebhook,
+      'lib/auth.ts': `import { PrismaAdapter } from "@next-auth/prisma-adapter";\nimport { prisma } from "./prismadb";\nexport const adapter = PrismaAdapter(prisma);`,
+    }),
+  ).toContain('api/webhook.ts:6');
+});
+
+it('keeps a same-named read on a Stripe value for review beside a proven client', () => {
+  expect(
+    subscriptionReviews({
+      'lib/prismadb.ts': socialClient,
+      'api/webhook.ts': `${socialWebhook}\nexport const read = (line: any) => line.subscription;`,
+    }),
+  ).toEqual(['api/webhook.ts:13']);
+});
+
+it('keeps the accessor for review when the global holder caches another value', () => {
+  expect(
+    subscriptionReviews({
+      'lib/prismadb.ts': `${socialClient}\ndeclare const item: any;\nglobalForPrisma.prisma = item;`,
+      'api/webhook.ts': socialWebhook,
+    }),
+  ).toContain('api/webhook.ts:6');
+});
+
+// krishvsoni/Scrimble app/lib/db.ts, Prisma's documented Next.js singleton.
+it('proves a client made by a singleton factory (krishvsoni/Scrimble)', () => {
+  const client = `import { PrismaClient } from "@prisma/client";
+
+const prismaClientSingleton = () => {
+  return new PrismaClient();
+};
+
+declare global {
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+}
+
+const prisma = globalThis.prisma ?? prismaClientSingleton();
+
+export default prisma;
+
+if (process.env.NODE_ENV !== "production") globalThis.prisma = prisma;`;
+  const webhook = socialWebhook.replace(
+    'import { prisma } from "../lib/prismadb";',
+    'import prisma from "../lib/prismadb";',
+  );
+  expect(subscriptionReviews({ 'lib/prismadb.ts': client, 'api/webhook.ts': webhook })).toEqual([]);
+  const extended = client.replace(
+    'return new PrismaClient();',
+    'return new PrismaClient().$extends({});',
+  );
+  expect(subscriptionReviews({ 'lib/prismadb.ts': extended, 'api/webhook.ts': webhook })).toContain(
+    'api/webhook.ts:6',
+  );
+});
+
+// kyyril/saas-noteapp lib/db.ts types the global with an ambient declaration.
+it('proves a client cached on a global typed by declare const (kyyril/saas-noteapp)', () => {
+  const client = `import { PrismaClient } from "@prisma/client";
+
+const prismaClientSingleton = () => {
+  return new PrismaClient();
+};
+
+declare const globalThis: {
+  prismaGlobal: ReturnType<typeof prismaClientSingleton>;
+} & typeof global;
+
+const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
+
+export default prisma;
+
+if (process.env.NODE_ENV !== "production") globalThis.prismaGlobal = prisma;`;
+  const webhook = socialWebhook.replace(
+    'import { prisma } from "../lib/prismadb";',
+    'import prisma from "../lib/prismadb";',
+  );
+  expect(subscriptionReviews({ 'lib/prismadb.ts': client, 'api/webhook.ts': webhook })).toEqual([]);
+  const shadowed = client.replace(
+    'declare const globalThis: {',
+    'const globalThis: any = {}; type Unused = {',
+  );
+  expect(subscriptionReviews({ 'lib/prismadb.ts': shadowed, 'api/webhook.ts': webhook })).toContain(
+    'api/webhook.ts:6',
+  );
+});

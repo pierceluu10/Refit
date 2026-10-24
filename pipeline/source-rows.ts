@@ -17,10 +17,10 @@ const ROW_CALLBACKS = new Set(['forEach', 'map', 'some', 'every', 'find', 'findI
 const ROW_ELEMENTS = new Set(['find', 'at']);
 const GLOBALS = new Set(['globalThis', 'global']);
 
-// Rows a Prisma client returns: `const course = await db.course.findUnique(…)`, an element of a
-// `findMany` result reached through `find`, `at`, an index, `for…of` or a callback, or a row a
-// `$transaction` client returns. Prisma builds them from database columns, so a read on one is
-// never a read of a Stripe object. As strict as proving it is one:
+// A Prisma client and the rows it returns are not Stripe objects. `prisma.subscription` is a
+// model, not a field; rows (`const course = await db.course.findUnique(…)`, an element of a
+// `findMany` list reached through `find`, `at`, an index, `for…of` or a callback, or a row a
+// `$transaction` client returns) are built from database columns. As strict as proving it is one:
 // - the client is a `const` created by `new PrismaClient(…)` imported from `@prisma/client`, or a
 //   `globalThis` cache of it (`globalThis.prisma || new PrismaClient()`) that nothing else writes;
 // - the client is only ever used through its properties (never passed, aliased or given `$use`
@@ -188,13 +188,36 @@ export function sourceRows(options: {
     const current = unwrap(expression);
     if (!ts.isIdentifier(current)) return false;
     const binding = symbol(current);
-    if (GLOBALS.has(current.text) && !binding?.valueDeclaration) return true;
+    // `declare const globalThis: { prisma: … }` only types the global: it emits nothing.
+    const ambient = binding?.valueDeclaration;
+    if (
+      GLOBALS.has(current.text) &&
+      (!ambient ||
+        (ts.isVariableDeclaration(ambient) &&
+          !ambient.initializer &&
+          ts.isVariableStatement(ambient.parent.parent) &&
+          Boolean(
+            ambient.parent.parent.modifiers?.some(
+              (modifier) => modifier.kind === ts.SyntaxKind.DeclareKeyword,
+            ),
+          )))
+    )
+      return true;
     const declaration = constant(binding?.valueDeclaration);
     return Boolean(
       binding &&
       declaration?.initializer &&
       globalObject(declaration.initializer) &&
-      uses(binding)?.every((reference) => declared(reference) || receiver(reference)),
+      // Writes through it are the cache writes `cache` checks.
+      uses(binding)?.every((reference) => {
+        const current = climb(reference);
+        const parent = current.parent;
+        return (
+          declared(reference) ||
+          ((ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) &&
+            parent.expression === current)
+        );
+      }),
     );
   }
   // Every `globalThis.NAME` in the source is the cache read or `globalThis.NAME = client`.
@@ -220,6 +243,38 @@ export function sourceRows(options: {
       );
     }
   }
+  // `new PrismaClient(…)`, or `prismaClientSingleton()`: a call of a constant function whose only
+  // statement returns it.
+  function created(node: ts.Expression): boolean {
+    if (ts.isNewExpression(node)) return prismaClass(unwrap(node.expression));
+    if (!ts.isCallExpression(node) || node.arguments.length || !ts.isIdentifier(node.expression))
+      return false;
+    const declaration = symbol(node.expression)?.valueDeclaration;
+    const initializer = constant(declaration)?.initializer;
+    const factory =
+      declaration && ts.isFunctionDeclaration(declaration)
+        ? declaration
+        : initializer && unwrap(initializer);
+    if (
+      !factory ||
+      !(
+        ts.isFunctionDeclaration(factory) ||
+        ts.isArrowFunction(factory) ||
+        ts.isFunctionExpression(factory)
+      ) ||
+      !factory.body
+    )
+      return false;
+    const [statement, ...rest] = ts.isBlock(factory.body) ? factory.body.statements : [];
+    const value = !ts.isBlock(factory.body)
+      ? factory.body
+      : !rest.length && statement && ts.isReturnStatement(statement)
+        ? statement.expression
+        : undefined;
+    return Boolean(
+      value && ts.isNewExpression(unwrap(value)) && created(unwrap(value) as ts.NewExpression),
+    );
+  }
   // A Prisma client constant, or the client a `$transaction` callback receives.
   function client(expression: ts.Expression): boolean {
     const current = unwrap(expression);
@@ -232,8 +287,6 @@ export function sourceRows(options: {
     if (!declaration?.initializer) return false;
     return clients(binding, () => {
       const value = unwrap(declaration.initializer!);
-      const created = (node: ts.Expression) =>
-        ts.isNewExpression(node) && prismaClass(unwrap(node.expression));
       let read: ts.PropertyAccessExpression | undefined;
       if (!created(value)) {
         if (
@@ -424,5 +477,6 @@ export function sourceRows(options: {
       list(call.expression.expression),
     );
   }
-  return { row };
+  // The client itself (`prisma.subscription` is a model, not a Stripe field), or one of its rows.
+  return { row: (expression: ts.Expression) => client(expression) || row(expression) };
 }
