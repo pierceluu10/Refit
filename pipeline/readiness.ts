@@ -58,6 +58,8 @@ export interface ReadinessReport {
   checks: ReadinessCheck[];
   // Present when no .refit.json is committed and doctor checked the generated configuration.
   generated?: Pick<StripeProposal, 'apiVersion' | 'target' | 'checks' | 'configuration'>;
+  // Present when no .refit.json is committed and doctor stopped before checking a generated one.
+  missing?: true;
   sdkCoverage: {
     observedCalls: number;
     mappedCalls: number;
@@ -272,6 +274,7 @@ export async function inspectRepositoryReadiness(options: {
         )
       : undefined;
   if (generated && !generated.workflow) {
+    report.missing = true;
     // Every blocker at once, so a repository that also has, say, a submodule hears it now.
     const snapshot = await committedRepositoryCheck(dirname(configurationPath));
     if (snapshot.check.status === 'blocked') report.checks.push(snapshot.check);

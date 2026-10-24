@@ -88,6 +88,9 @@ it('sends a new user to refit agents when the repository has no .refit.json', as
   expect(lines[1]).toBe(
     'Next: Run refit agents to see which provider agents apply, then refit agents --add <id> to write .refit.json.',
   );
+  // Before: "Configuration  <app>/.refit.json", a file that does not exist.
+  expect(lines[3]).toBe('Configuration  this repository commits no .refit.json');
+  expect(report).toMatchObject({ missing: true, configuration: join(app, '.refit.json') });
   expect(lines.at(-1)).toBe(
     'Doctor only reads files: it runs no code, installs and downloads nothing, and the configuration is not approved or activated. Passing checks permit a validation attempt, not proof the migration is correct. Only bounded ESM/CommonJS client patterns and configured SDK mappings are inspected, so other usage can remain undetected; SDK/API-version rollout and effective account versions still need review.',
   );
