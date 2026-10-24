@@ -4,7 +4,11 @@ import { dirname, join } from 'node:path';
 import ts from 'typescript-compiler';
 import { scaffoldChecks } from './agent-catalog.ts';
 import { analyzeRepository } from './analyzer.ts';
-import { validateApiVersion, type ApiVersionDeclaration } from './api-version.ts';
+import {
+  validateApiVersion,
+  type ApiVersionDeclaration,
+  type ApiVersionSource,
+} from './api-version.ts';
 import {
   latestStripeContract,
   stripeContractFile,
@@ -169,18 +173,29 @@ function unreadableExtends(configurations: Repository['files']) {
   });
 }
 
+// The reason and fix a person reads when a tsconfig `extends` Refit does not read is why it stops.
+export function unreadableExtendsReason(configurations: Repository['files']) {
+  const unreadable = unreadableExtends(configurations);
+  if (!unreadable.length) return null;
+  return {
+    files: unreadable.map(({ file }) => file),
+    named: `${listed(unreadable.map(({ file, parent }) => `${file} extends ${parent}`))}, which Refit does not read`,
+    action: `Nothing in your code needs to change: Refit reads only committed tsconfig files that an extends names by a relative path, so it stops here until it can read ${listed([...new Set(unreadable.map(({ parent }) => parent))])}.`,
+  };
+}
+
 function applicationVersion(
   declarations: ApiVersionDeclaration[],
   repository: Repository,
 ): { value: string; source: string } | EnrollmentStop {
   const owner = stripeOwner(repository.dependencies);
-  const unreadable = unreadableExtends(repository.configurations ?? []);
+  const unreadable = unreadableExtendsReason(repository.configurations ?? []);
   if (!declarations.some((declaration) => declaration.kind === 'constructor'))
-    return unreadable.length
+    return unreadable
       ? {
           id: 'source-resolution',
-          detail: `Refit found no Stripe client it can follow, because ${listed(unreadable.map(({ file, parent }) => `${file} extends ${parent}`))}, which Refit does not read, so it cannot tell how imports resolve.`,
-          action: `Nothing in your code needs to change: Refit reads only committed tsconfig files that an extends names by a relative path, so it stops here until it can read ${listed([...new Set(unreadable.map(({ parent }) => parent))])}.`,
+          detail: `Refit found no Stripe client it can follow, because ${unreadable.named}, so it cannot tell how imports resolve.`,
+          action: unreadable.action,
         }
       : {
           id: 'no-stripe-client',
@@ -401,6 +416,16 @@ export async function proposeStripeConfiguration(directory: string) {
     },
   };
   return { proposal, stops };
+}
+
+// How Refit checked the code against a generated configuration's version, which nobody pinned by
+// hand, so the operator-pin wording of committed configurations does not apply.
+export function generatedVersionCheck(source: ApiVersionSource) {
+  if (source.status === 'verified')
+    return 'Every Stripe client and request override Refit traced sends it.';
+  if (source.status === 'unknown')
+    return 'Refit could not read it at every client or request; check by hand the places the generated configuration names.';
+  return source.reason;
 }
 
 // One sentence a person reads before approving or running a generated configuration.
