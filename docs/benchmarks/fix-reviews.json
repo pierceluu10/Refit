@@ -281,6 +281,21 @@
         "upgradeComplete": "yes: stripe-node 20.4.1 to 23.0.0; the lockfile integrity matches npm.",
         "wouldMerge": "yes, after running checkout once in test mode."
       }
+    },
+    {
+      "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40083004053 at 0de24bf (F5 slice 1, #278); patch reproduced with refit scan --propose-patch from that run's adapter and contracts at commit 982052f",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: the 13 webhook invoice.subscription reads in server/routes/stripe-webhooks.js (invoice.payment_failed and invoice.paid cases) call getInvoiceSubscription(invoice), which returns invoice.subscription when present and otherwise parent.subscription_details.subscription, the replacement the basil changelog names (docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects). The two customer.subscription.updated period reads call getSubscriptionPeriodEnd/Start(sub, (items) => items[0]), as on main before this slice.",
+        "bothVersions": "yes: the helpers read the old field first. The repository's own normaliseStripeEventShape(event) already copies parent.subscription_details.subscription into invoice.subscription, so on new-shape events the helper returns the same value; on old-shape events it returns the original field.",
+        "nothingUnrelated": "yes: the reads, one import, the generated server/routes/stripe-subscription-period.js and the apiVersion literal in server/lib/stripe.js (2024-12-18.acacia to 2026-09-30.endive).",
+        "pleaseCheck": "Validation ended validation-failed on the repository's tests in both the before (40077373087) and after runs, so this patch is not a validated fix. 47 findings stay unresolved, including two charge reads at review confidence, so a draft would be [Needs review]. Replay one invoice.paid event of each shape in test mode.",
+        "upgradeComplete": "not needed for the webhook reads; the JavaScript client's literal pin moves without a stripe-node upgrade, which is the existing rule for JavaScript.",
+        "wouldMerge": "not yet: the failing checks and the 47 unresolved findings come first."
+      }
     }
   ]
 }
