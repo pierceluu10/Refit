@@ -201,7 +201,7 @@ it('explains removed coupon parameters that keep stopping', () => {
   expect(REMOVED_PARAMETER_NOTES.promotion_code).toMatch(/customers have no replacement/);
 });
 
-it('leaves a removed request parameter for review instead of moving it', async () => {
+async function promotionReport(file: string) {
   const root = await mkdtemp(join(tmpdir(), 'refit-promotion-codes-'));
   directories.push(root);
   const repository = join(root, 'repository');
@@ -211,7 +211,7 @@ it('leaves a removed request parameter for review instead of moving it', async (
     JSON.stringify({ dependencies: { stripe: '18.1.1' } }),
   );
   await writeFile(
-    join(repository, 'promotion.js'),
+    join(repository, file),
     `import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2025-08-27.basil' });
 export const create = (coupon) => stripe.promotionCodes.create({ code: 'SPRING', coupon });
@@ -230,15 +230,30 @@ export const create = (coupon) => stripe.promotionCodes.create({ code: 'SPRING',
       apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
     }),
   );
-  const report = await runPipeline({
+  return runPipeline({
     repository,
     ...files,
     providerConfig,
     apiVersion: '2025-08-27.basil',
     proposePatch: true,
   });
-  // Owner decision (2026-10-22): mined request moves stay review-only.
+}
+
+it('moves the promotion code coupon with the pin in a JavaScript project', async () => {
+  const report = await promotionReport('promotion.js');
+  // Owner decision (2026-10-24, overnight sign-off): the move rides with the endive pin. A
+  // JavaScript client with an explicit pin needs no stripe-node upgrade to send it.
   const diff = 'diff' in report.patch ? report.patch.diff : '';
-  expect(diff).not.toContain("promotion: { type: 'coupon'");
+  expect(diff).toContain(
+    "stripe.promotionCodes.create({ code: 'SPRING', promotion: { type: 'coupon', coupon: coupon } })",
+  );
+  expect(diff).toContain("apiVersion: '2026-09-30.endive'");
+  expect(report.findings[0].requestParameter).toBeUndefined();
+});
+
+it('keeps the promotion code coupon for review in TypeScript without the stripe-node upgrade', async () => {
+  // No lockfile, so the upgrade whose types accept promotion cannot be prepared.
+  const report = await promotionReport('promotion.ts');
+  expect('diff' in report.patch ? report.patch.diff : '').not.toContain('promotion: {');
   expect(report.findings[0].requestParameter).toBeDefined();
 });

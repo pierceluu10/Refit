@@ -1,0 +1,224 @@
+{
+  "formatVersion": 1,
+  "source": "https://github.com/stripe/openapi",
+  "checkedAt": "2026-10-24",
+  "versions": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174",
+      "commit": "91252fd53681c2c884f7462d6c6ec2b0f449261b",
+      "sha256": "1a553002accff6d7094f31bb4009a6209f7599713111ff08b803486bfe035a05",
+      "bytes": 4990745
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208",
+      "commit": "90fbe90142a179784ad987a54b7b164beb4a4763",
+      "sha256": "9093e33fe53a75b3b99c041b95a585ccd98c15617254bfb303ba0fd800b1df52",
+      "bytes": 4653771
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466",
+      "commit": "a8128872e10cb76710f648c15f1ac0705835cee8",
+      "sha256": "dd73c77161a468d1b664a93f06be666e0e687e289b504805a841cb2422114182",
+      "bytes": 5013553
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603",
+      "commit": "fda9183b15a40339b11399a25f3bc6e698acd953",
+      "sha256": "20ad0c262d4d372fea8234d119cc28791b1525d0ee952d6728e9ac9dcfb2ae37",
+      "bytes": 5329997
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940",
+      "commit": "bd0b83cc6403e6e84abe356de382a7e89c7bdf68",
+      "sha256": "577212ceb67361ca254e164029ef1c51da75cbaf29e2973af3c4349657980deb",
+      "bytes": 6001046
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095",
+      "commit": "1292c69a463253e8a75fa22ea6404287c2573a6b",
+      "sha256": "544dca7224a0abfef4b5eb77aaac30ad1eeb24d15e0be423a40b05a3761cfddc",
+      "bytes": 6289115
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268",
+      "commit": "d5c0875f9c7bda6824c65f4bd658378004c4c5bf",
+      "sha256": "fcdd6d72b65e0d7eb934d71cf7909693567c288758e2b5df955ca01611809151",
+      "bytes": 6508689
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319",
+      "commit": "02dbd538387bb5385730d870f0579e4e4c2181c3",
+      "sha256": "33103c93fb8cc4a83e1111b53117b3fe53eab88b94f5d5cfdd0e9b470ed4493c",
+      "bytes": 6680351
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347",
+      "commit": "b2893a015b95f318b434dee51cbaa968c3694714",
+      "sha256": "770c004954b1e4f8d55eb2ff592390b54779bed4150ba07e6a4cab2624b7d6da",
+      "bytes": 6707617
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412",
+      "commit": "f0a1a3ef6a1f0deb7ddeb7ff8a65d36283477c5a",
+      "sha256": "46de54073359ee0a38e7fb37ea7582d503defd5b45465a8eb812bb104670e3f9",
+      "bytes": 6765192
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455",
+      "commit": "d157c2e946b078c996be4bee7411b12d45f89c19",
+      "sha256": "b8a91ebdacb7fc8b8717c837b1ff0a7f48f7146084124f8be479fc9010015dd8",
+      "bytes": 6807299
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505",
+      "commit": "5c3d9081b4237de06dee3f6a6307a3dfe81b6c0f",
+      "sha256": "1199cc3c55746cb73b7be5c67b6e41f9b30b6ac428ca6c6d5ac904fa0f7b6acd",
+      "bytes": 6823874
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642",
+      "commit": "e732b866bb585e1d6470cfbc64cff42ee7ef2200",
+      "sha256": "5582327458972d9128a7a5f6e824d5fec72c1b934c6b5972b7e6e3e4ed1bbfaa",
+      "bytes": 6756997
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719",
+      "commit": "1ac40c1c3b0cbcc5409862e6a9901a9c131718b4",
+      "sha256": "9a22ca25ad2f2f92499bf0d7a2af780dcac3c9e1801d2ebfc1a16b6e6ec1c7da",
+      "bytes": 6810620
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773",
+      "commit": "6c7b45018fdeb279042e6f74c5141efe1e90b3d6",
+      "sha256": "2df8ec106d35fe6f0a9695a4b0ac4033cc63ec8ac3f49108fa6ba83a029eaae8",
+      "bytes": 6891787
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819",
+      "commit": "1729cb1360263b054abb3c5146548630a86fb68c",
+      "sha256": "c55f77e7fe6a49149b4318c58191d22eed77f7c62650bd8a8db174dfe6b8ed1f",
+      "bytes": 6967587
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868",
+      "commit": "805a9b8cc62f35d2673b28c34ca5fa27d0650b8b",
+      "sha256": "c4dc6dbe947e8e9987bb305ba304e6872f5566fcf5c8ea78c28cf5ebd4017e7d",
+      "bytes": 7011489
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932",
+      "commit": "fc45b3d36c1ef1a98feddef419c662b5c5d44112",
+      "sha256": "7b79777e9bbdf01a378bdf2747833f6b0982f8af945a21eb76f70ab584bdda42",
+      "bytes": 7051265
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031",
+      "commit": "d04a0cd5b031ca18f04d4d7160cf1f78a0c43f93",
+      "sha256": "20e0363d60832a0a77795736c124f997b4b24804a4bee14c3dc1b21ab4a058fd",
+      "bytes": 7133682
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104",
+      "commit": "4f00ce723dae01285f73ee9e6e538b37a8861bff",
+      "sha256": "4f9b7631e3070845f9ed9febb9984c044b7141e07532d88b1d07c2b5f0e89495",
+      "bytes": 7362568
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124",
+      "commit": "6eb80f73076095a21d533ffbc516a3b5a7e107ed",
+      "sha256": "50bcf1f9e61e94e4d2555c79622460f927518eb7825f2f320369cdcef3a29856",
+      "bytes": 7395277
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133",
+      "commit": "14a40f813acc3a6a8f75bf80b2c06955f5d574d7",
+      "sha256": "c9446de5c88680685748b33d3bd0b759c0dd66ea08c781d374fb92e71f21a320",
+      "bytes": 7513027
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160",
+      "commit": "c7a5c25e3437cdb1427905e7e09b500617259cde",
+      "sha256": "cf859d5a7d248c94d34528ffd5a21c9988e64dcf5ec4e52a2deae0a9dabc4868",
+      "bytes": 7566006
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186",
+      "commit": "da3eadb239b437b59cdf3459768bc2a6672165f6",
+      "sha256": "9d681f6248d786481d69030cabdf30722b2a65e30fec89f37d59b7f8fa9c5d68",
+      "bytes": 7598844
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206",
+      "commit": "06d3a8e079ee87557e55098cb367099648239f91",
+      "sha256": "8c89b982e5198bc7ac34eb1c5aec5d732b0f2c8e857553dbd40d1b0fc80f2aba",
+      "bytes": 7663569
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252",
+      "commit": "a51278629f39105a8617427d254d7f46f9f6d59a",
+      "sha256": "6f7c5c122b98ccca6218b3980cbbf48773ffd40dc2fc9a09c4783143b9261915",
+      "bytes": 7753660
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277",
+      "commit": "6cd824bebf9c00d95033913e72931cdeb51247df",
+      "sha256": "7c7b7b0c3b02c899fb3a0301d99b8489b9e5f7bfd2ca699994b459abc09914e8",
+      "bytes": 7830636
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324",
+      "commit": "f4ac6d9a7f40730f7f50c8c1d76c27f80178e4f5",
+      "sha256": "e24a26de4188fd64dec4c043d5d3726277fdcb07556a493ea481c305b0a223d8",
+      "bytes": 7866866
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349",
+      "commit": "af5309cae53e5f666f9686dfed306d6d3b5fdc67",
+      "sha256": "3653ad45bbec54fcbe461c541c908355b715018bdf455a0e11b27bedb2cbdee5",
+      "bytes": 7967776
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442",
+      "commit": "30d3391cc09a0f67ad29bee002f570811b19e1da",
+      "sha256": "f0e0fc8fffbffda45bf5f3df59846443c1d47a3cfcbfae232eedf4743124ebee",
+      "bytes": 8028700
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526",
+      "commit": "ce576d4f145edeef361a64d9d51b2153e3696b0b",
+      "sha256": "7cff4cc46d0654101a36a3302f7544640f5f73e4f3cad6f264f0e23c19fa1776",
+      "bytes": 8317513
+    }
+  ]
+}
