@@ -298,13 +298,7 @@ async function noteBaseMoved(
   if (comparison.status === 'ahead' || comparison.status === 'identical') return;
   const number = pullUrl(pull, options).number;
   const marker = `${BASE_MOVED_MARKER} ${revision} -->`;
-  const own = (await comments(request, number)).find(
-    (comment) =>
-      isObject(comment.user) &&
-      comment.user.login === authentication?.publisher.login &&
-      typeof comment.body === 'string' &&
-      comment.body.includes(BASE_MOVED_MARKER),
-  );
+  const own = await ownComment(request, number, authentication, BASE_MOVED_MARKER);
   if (typeof own?.body === 'string' && own.body.includes(marker)) return;
   const body = `\`${options.base}\` has moved to \`${short(revision)}\` since this draft was last updated, and the draft branch has commits Refit did not write. Refit force-pushes only over its own last commit, so it left the branch as it is. ${needs} To update the draft, merge \`${options.base}\` into this branch and resolve any conflicts; the check results in the description ran on the earlier base.\n\n${marker}`;
   if (own) await request('PATCH', `/issues/comments/${Number(own.id)}`, { body });
@@ -593,13 +587,26 @@ async function noteReplacedCommit(
   });
 }
 
-async function comments(request: Session['request'], number: number) {
+// Refit's own comment on a pull request that carries `marker`.
+async function ownComment(
+  request: Session['request'],
+  number: number,
+  authentication: Session['authentication'],
+  marker: string,
+) {
   const list = await request('GET', `/issues/${number}/comments?per_page=100`);
   if (!Array.isArray(list) || list.length >= 100)
     throw new PipelineInputError(
       'Draft comment search is incomplete; inspect the pull request before retrying.',
     );
-  return list.filter(isObject);
+  return list.find(
+    (comment): comment is Record<string, unknown> =>
+      isObject(comment) &&
+      isObject(comment.user) &&
+      comment.user.login === authentication?.publisher.login &&
+      typeof comment.body === 'string' &&
+      comment.body.includes(marker),
+  );
 }
 
 // Closes the publisher's other open drafts on this base that this draft replaces, each with a
@@ -638,14 +645,7 @@ async function closeSuperseded(
       continue;
     const other = pullUrl(pull, options).number;
     if (!(await ownHead(pull, sha(pull.head.sha), request, authentication))) continue;
-    const closedBefore = (await comments(request, other)).some(
-      (comment) =>
-        isObject(comment.user) &&
-        comment.user.login === authentication?.publisher.login &&
-        typeof comment.body === 'string' &&
-        comment.body.includes(SUPERSEDED_MARKER),
-    );
-    if (closedBefore) continue;
+    if (await ownComment(request, other, authentication, SUPERSEDED_MARKER)) continue;
     await request('POST', `/issues/${other}/comments`, {
       body: `Superseded by #${number}. ${supersedes.note}\n\n${SUPERSEDED_MARKER}`,
     });
