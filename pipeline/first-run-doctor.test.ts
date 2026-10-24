@@ -77,7 +77,7 @@ it('sends a new user to refit agents when the repository has no .refit.json', as
       id: 'configuration',
       title: 'Workflow configuration',
       status: 'blocked',
-      detail: `No .refit.json in ${app} yet.`,
+      detail: `No .refit.json in ${app} yet, and Refit found no Stripe package to generate one for.`,
       action:
         'Run refit agents to see which provider agents apply, then refit agents --add <id> to write .refit.json.',
     },
