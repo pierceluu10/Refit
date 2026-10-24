@@ -148,6 +148,31 @@ it('aggregates dirty Git, API-version and Docker setup failures with actionable 
   ).toBe(true);
 });
 
+it('passes the API-version check for a version the service already watches, as after a merged draft', async () => {
+  const sample = await setup();
+  const providerPath = join(sample.repository, 'provider.json');
+  const provider = JSON.parse(await readFile(providerPath, 'utf8'));
+  provider.apiVersion = { constructorArgument: 0, property: 'apiVersion', requestArguments: [] };
+  await writeFile(providerPath, JSON.stringify(provider));
+  // The committed configuration still pins 1; the merged draft moved the client to 2.
+  await writeFile(
+    join(sample.repository, 'src/client.ts'),
+    "import { Catalog } from '@example/catalog'; export const catalog = new Catalog({ apiVersion: '2' });",
+  );
+  await commit(sample.repository);
+  const versionCheck = async (acceptedApiVersions?: string[]) =>
+    (
+      await inspectRepositoryReadiness({ repository: sample.repository, acceptedApiVersions })
+    ).checks.find((check) => check.id === 'api-version');
+  expect(await versionCheck()).toMatchObject({ status: 'blocked' });
+  expect(await versionCheck(['3'])).toMatchObject({ status: 'blocked' });
+  expect(await versionCheck(['2'])).toMatchObject({
+    status: 'passed',
+    action: null,
+    detail: expect.stringContaining('The code declares 2, which this service already watches from'),
+  });
+});
+
 it('accepts version-tolerant webhook period reads without a price policy', async () => {
   const sample = await setup();
   const webhook = resolve('pipeline/fixtures/stripe-webhooks');

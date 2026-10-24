@@ -50,7 +50,11 @@ function contract(version: string, fields: string[]) {
 }
 
 // A benchmark-shaped repository, contract pair and adapter, as the harness writes them.
-async function benchmarkInputs(parameters: string, sameContract = false) {
+async function benchmarkInputs(
+  parameters: string,
+  sameContract = false,
+  pin = '2026-08-26.dahlia',
+) {
   const root = await mkdtemp(join(tmpdir(), 'refit-benchmark-workflow-'));
   directories.push(root);
   const repository = join(root, 'repository');
@@ -62,7 +66,7 @@ async function benchmarkInputs(parameters: string, sameContract = false) {
   await writeFile(
     join(repository, 'checkout.js'),
     `import Stripe from 'stripe';
-const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '${pin}' });
 export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription'${parameters ? `, ${parameters}` : ''} });
 `,
   );
@@ -159,6 +163,19 @@ it.each([
     expect(fetcher).not.toHaveBeenCalled();
   },
 );
+
+it('leaves code already on the target to refit run, which reports it up to date', async () => {
+  const { root, ...inputs } = await benchmarkInputs('', false, '2026-09-30.endive');
+  expect(await workflowScanStop(inputs, false, false)).toBeUndefined();
+  const { manifest } = await runWorkflow({
+    ...inputs,
+    output: join(root, 'run'),
+    image: 'node:22-alpine',
+    command: ['npm', 'test'],
+  });
+  expect(manifest).toMatchObject({ status: 'up-to-date', stage: 'scan' });
+  expect(validateMigration).not.toHaveBeenCalled();
+});
 
 it('leaves a scan that fails to refit run', async () => {
   const { root, ...inputs } = await benchmarkInputs("payment_method_types: ['card']");
