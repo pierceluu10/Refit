@@ -52,16 +52,11 @@ it('refuses an AI patch that deletes payment_method_types from a SetupIntent', (
     ...versions('app/api/create-setup-intent/route.ts', SETUP_INTENT, after),
     STRIPE,
   );
+  // The dropped value `['card']` is inside the dropped key, so only the key is reported.
   expect(dropped).toEqual([
     {
       call: 'setupIntents.create',
       path: 'payment_method_types',
-      line: 7,
-      file: 'app/api/create-setup-intent/route.ts',
-    },
-    {
-      call: 'setupIntents.create',
-      path: "payment_method_types[]='card'",
       line: 7,
       file: 'app/api/create-setup-intent/route.ts',
     },
@@ -78,10 +73,31 @@ it('refuses an AI rename of payment_method_types, which only the reviewed card r
     ...versions('app/api/create-setup-intent/route.ts', SETUP_INTENT, after),
     STRIPE,
   );
-  expect(dropped.map((entry) => entry.path)).toEqual([
-    'payment_method_types',
-    "payment_method_types[]='card'",
+  expect(dropped.map((entry) => entry.path)).toEqual(['payment_method_types']);
+});
+
+it('refuses an AI patch that changes a literal a request sends, but not its quote style', () => {
+  const changed = replaced(SETUP_INTENT, "usage: 'off_session',", "usage: 'on_session',");
+  expect(
+    droppedRequestPaths(
+      ...versions('app/api/create-setup-intent/route.ts', SETUP_INTENT, changed),
+      STRIPE,
+    ),
+  ).toEqual([
+    {
+      call: 'setupIntents.create',
+      path: "usage='off_session'",
+      line: 8,
+      file: 'app/api/create-setup-intent/route.ts',
+    },
   ]);
+  const requoted = replaced(SETUP_INTENT, "usage: 'off_session',", 'usage: "off_session",');
+  expect(
+    droppedRequestPaths(
+      ...versions('app/api/create-setup-intent/route.ts', SETUP_INTENT, requoted),
+      STRIPE,
+    ),
+  ).toEqual([]);
 });
 
 it("does not charge the rules' own card rename to the AI", () => {
@@ -186,7 +202,7 @@ it('refuses an AI patch that drops a spread or a later argument of a request', (
   const after = replaced(before, '{ charge, ...extra }, { idempotencyKey: key }', '{ charge }');
   expect(
     droppedRequestPaths(...versions('refund.ts', before, after), STRIPE).map((entry) => entry.path),
-  ).toEqual(['...extra', 'argument 2', 'argument 2.idempotencyKey']);
+  ).toEqual(['...extra', 'argument 2']);
 });
 
 const COUPON = `import Stripe from 'stripe'

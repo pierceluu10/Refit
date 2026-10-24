@@ -191,7 +191,7 @@ On real repositories the wrong AI patches that validated mostly broke an owner p
 
 | Policy | Refused when the AI's code… | Real diff it comes from |
 |---|---|---|
-| Never drop or replace a request parameter | no longer sends a key, nested key, spread, argument or array string that a traced SDK call sent. The body can be inline or a `const` declared once in the file. Reordering, reformatting and added keys pass | `Bizgojo/drivetimetales` and `geallenboy/ai-saas-template` deleted `payment_method_types`; `Sanjdcool/ApanStack-Newsletter` replaced the expand path `latest_invoice.payment_intent` |
+| Never drop or replace a request parameter | no longer sends a key, nested key, spread, argument or literal value (string, number, boolean or null, also inside arrays) that a traced SDK call sent. The body can be inline or a `const` declared once in the file. Reordering, reformatting and added keys pass | `Bizgojo/drivetimetales` and `geallenboy/ai-saas-template` deleted `payment_method_types`; `Sanjdcool/ApanStack-Newsletter` replaced the expand path `latest_invoice.payment_intent` |
 | No type-only workarounds | has more `any` types, `as unknown as` assertions, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck` or `eslint-disable` comments | `kondax-com/Bocker` read `discounts` through `as unknown as { discounts?: unknown[] }` |
 | Choosing a subscription item is a reviewed policy | reads a billing period from `items.data[0]`, `.at()` or `.find()` more often, directly or through a variable or destructuring | `JiantaoFu/insightly` stored `items.data[0]` in a variable and read `current_period_end` from it; `kondax-com/Bocker` read `items.data[0]!.current_period_start` |
 | Webhook reads keep both shapes | rewrote a webhook or `declaredType` finding without still reading the removed field from the same receiver (or a variable assigned from it in the edit) by property, string key, `Reflect.get`, destructuring or a generated version-tolerant helper | `abressiddique/AbresStore-Admin` moved `session.shipping_details` to `session.collected_information.shipping_details` only |
@@ -199,7 +199,7 @@ On real repositories the wrong AI patches that validated mostly broke an owner p
 
 The instructions now state these policies, and the type-error instructions no longer tell the model to remove parameters the new types reject. A first AI patch that is refused ends the run like rules 1–5 (`refit run` saves the evidence, and the AI patch scorer counts it as `review-stop`). A refused repair records `repair-error`. Tests: `pipeline/ai-patch-policies.test.ts` (one per real diff above) and `pipeline/ai-patches.test.ts`.
 
-Known gaps: a changed literal value (other than array strings) is not compared; a body passed to the call through a parameter or an import is not resolved; an invented field the after contract does not define still depends on validation and review.
+Known gaps: a changed non-literal value, such as a different variable, is not compared; a body passed to the call through a parameter or an import is not resolved; an invented field the after contract does not define still depends on validation and review.
 
 ## Known limitations
 

@@ -77,7 +77,7 @@ Preserve the intended list behavior, and explain pagination, expansion and added
 evidence.addedProperties lists properties the after contract adds to schemas with removed fields. They are candidates, not proven replacements: use one only when its name, type and description plainly carry the same meaning as the removed field; otherwise return zero edits and state the uncertainty.
 Never substitute an unrelated existing field, such as an identifier, for a removed field.
 Owner policies; Refit refuses a proposal that breaks one:
-- Never remove, rename or replace a request parameter, argument or expand path the code sends, even when the contract removed it or the new SDK types reject it. Leave it unchanged and state it as an uncertainty. For Stripe payment_method_types, only Refit's reviewed card rule moves it.
+- Never remove, rename or replace a request parameter, argument, literal value or expand path the code sends, even when the contract removed it or the new SDK types reject it. Leave it unchanged and state it as an uncertainty. For Stripe payment_method_types, only Refit's reviewed card rule moves it.
 - Never choose one subscription item or list element, such as items.data[0], to stand in for a value the removed field held for the whole object.
 - Never silence type errors with any, as unknown as, @ts-ignore, @ts-expect-error or eslint-disable comments.
 - Change only what the cited findings need.
@@ -85,7 +85,7 @@ Return zero edits when context is insufficient. API-version applicability is unk
 Do not assume the code is safe because a finding disappears. Human review remains required.`;
 export const TYPE_ERROR_CHANGE = 'type-error';
 const TYPE_ERROR_INSTRUCTIONS = `
-Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: match the new type shapes and correct invalid literals. A request parameter the new types reject is a review item, not a migration: never rename or remove it. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. An edit citing a type-error finding must lie within the statement or member containing its reported position; when the cause is elsewhere, such as a type declared in another statement or file, leave that error and state it as an uncertainty. Keep values in the request objects they were sent in, such as metadata.`;
+Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: match the new type shapes and correct invalid literals outside request bodies. A request parameter or value the new types reject is a review item, not a migration: never rename, remove or change it. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. An edit citing a type-error finding must lie within the statement or member containing its reported position; when the cause is elsewhere, such as a type declared in another statement or file, leave that error and state it as an uncertainty. Keep values in the request objects they were sent in, such as metadata.`;
 const WEBHOOK_INSTRUCTIONS = `
 Findings with webhook evidence read a signed webhook payload; findings with declaredType evidence read a value known only from its Stripe type, which is often a webhook payload passed into a helper. A webhook payload is rendered in the webhook endpoint's own API version, which can be older or newer than the SDK's, so the same code receives both shapes. Each replacement for such a finding must work for both: read the removed field with Reflect.get(object, 'field_name') when it is present (old version), otherwise the new location (new version), and keep the original result when neither exists. Do not drop the old-shape read.`;
 const VENDOR_NOTE_INSTRUCTIONS = `
@@ -534,7 +534,7 @@ export async function proposeAiPatch(
   const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider);
   if (dropped.length)
     throw new PipelineInputError(
-      `AI patch drops ${dropped.map((entry) => `${entry.path} from ${entry.call} (${entry.file}:${entry.line})`).join(', ')}; removing or replacing what a request sends changes its behavior, so it stops for review.`,
+      `AI patch drops or changes ${dropped.map((entry) => `${entry.path} from ${entry.call} (${entry.file}:${entry.line})`).join(', ')}; removing or replacing what a request sends changes its behavior, so it stops for review.`,
     );
   const escapes = addedTypeEscapes(ruleBase, modified, aiFiles);
   if (escapes.length)

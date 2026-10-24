@@ -604,7 +604,7 @@ it('stops a type-error fix that drops the request parameter the new types reject
   const { repository, report, findings, findingId } = await typeErrorFixture();
   respond([{ ...TRIAL_EDIT, replacement: 'metadata,', findingId }]);
   await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
-    'AI patch drops subscription_data.trial_from_plan from checkout.sessions.create (checkout.ts:7); removing or replacing what a request sends changes its behavior, so it stops for review.',
+    'AI patch drops or changes subscription_data.trial_from_plan from checkout.sessions.create (checkout.ts:7); removing or replacing what a request sends changes its behavior, so it stops for review.',
   );
   // A policy stop gets no corrected request.
   expect(fetch).toHaveBeenCalledTimes(1);

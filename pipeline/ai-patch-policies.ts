@@ -163,8 +163,8 @@ interface RequestPath {
 }
 
 // What each traced SDK call sends: its arguments, the property names of object-literal arguments,
-// nested and inside arrays (`line_items[].price`), spreads, and string elements of arrays
-// (`expand[]='data.customer'`). Values other than array strings are not compared.
+// nested and inside arrays (`line_items[].price`), spreads, and literal values (`mode='payment'`,
+// `expand[]='data.customer'`). Other values, such as variables, are not compared.
 function requestPaths(
   repository: Repository,
   path: string,
@@ -204,7 +204,18 @@ function requestPaths(
         paths.push({ call: name, path: value, line: lineOf(source, at) });
       const sent = (expression: ts.Expression, prefix: string) => {
         const value = unwrap(expression);
-        if (ts.isObjectLiteralExpression(value))
+        const literal = ts.isStringLiteralLike(value)
+          ? `'${value.text}'`
+          : ts.isNumericLiteral(value) ||
+              [
+                ts.SyntaxKind.TrueKeyword,
+                ts.SyntaxKind.FalseKeyword,
+                ts.SyntaxKind.NullKeyword,
+              ].includes(value.kind)
+            ? value.getText(source)
+            : undefined;
+        if (literal) add(`${prefix || 'argument 1'}=${literal}`, value);
+        else if (ts.isObjectLiteralExpression(value))
           for (const property of value.properties) {
             if (ts.isSpreadAssignment(property)) {
               add(`${prefix}...${property.expression.getText(source)}`, property);
@@ -221,9 +232,7 @@ function requestPaths(
             if (ts.isPropertyAssignment(property)) sent(property.initializer, keyPath);
           }
         else if (ts.isArrayLiteralExpression(value))
-          for (const element of value.elements)
-            if (ts.isStringLiteralLike(element)) add(`${prefix}[]='${element.text}'`, element);
-            else sent(element, `${prefix}[]`);
+          for (const element of value.elements) sent(element, `${prefix}[]`);
       };
       node.arguments.forEach((argument, index) => {
         add(`argument ${index + 1}`, argument);
@@ -240,8 +249,10 @@ function requestPaths(
   return paths;
 }
 
-// Request parameters and arguments a traced SDK call sends in the rules' code and no longer sends
-// in the AI's code, counted per file and method so moved or reordered calls still match.
+// Request parameters, arguments and literal values a traced SDK call sends in the rules' code and
+// no longer sends in the AI's code, counted per file and method so moved or reordered calls still
+// match. A dropped path inside another dropped path, such as the value of a dropped key, is left
+// out of the result.
 export function droppedRequestPaths(
   before: Repository,
   after: Repository,
@@ -261,7 +272,18 @@ export function droppedRequestPaths(
       else dropped.push({ ...sent, file });
     }
   }
-  return dropped;
+  return dropped.filter(
+    (entry) =>
+      !dropped.some(
+        (outer) =>
+          outer !== entry &&
+          outer.file === entry.file &&
+          outer.call === entry.call &&
+          entry.path.length > outer.path.length &&
+          entry.path.startsWith(outer.path) &&
+          '=.['.includes(entry.path[outer.path.length]),
+      ),
+  );
 }
 
 // Type-only escapes: `any` types, `as unknown as` double assertions and comments that turn checks
