@@ -1,7 +1,7 @@
 {
   "frozenAt": "2026-10-24",
-  "purpose": "O2 preparation: the dependency-size refusals, measured on the default 2g and the opt-in 4g validation profile.",
-  "criteria": "Repositories of subsets/o2-checkable.json whose preparation run 40077373087 (main fc4dc00 code) refused because the dependency archive exceeded 1 GiB or the 2g workspace ran out of space (ENOSPC).",
+  "purpose": "O2 preparation: the size refusals, measured on the default 2g and the opt-in 4g validation profile.",
+  "criteria": "Repositories of subsets/o2-checkable.json whose preparation run 40077373087 (main fc4dc00 code) refused because the dependency archive exceeded 1 GiB, the 2g workspace ran out of space (ENOSPC) or the committed source exceeded 50 MiB.",
   "specs": [
     {
       "version": "2022-08-01",
@@ -234,6 +234,15 @@
       "packageManager": "npm"
     },
     {
+      "repo": "Traviseric/arxmint",
+      "stars": 5,
+      "commit": "57ff097ca08ddb0310b4f9068b28ccc28787959a",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.0.0",
+      "packageManager": "npm"
+    },
+    {
       "repo": "drewsephski/get2cracked",
       "stars": 4,
       "commit": "338539dd627e3a4a69dc2ad665cead9614e29107",
@@ -270,6 +279,15 @@
       "packageManager": "yarn"
     },
     {
+      "repo": "Eziox-Development/eziox-web",
+      "stars": 2,
+      "commit": "1b42f1e2b2fa6729c402409c3aa52c8e67071cff",
+      "before": "2026-01-28.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.3.1",
+      "packageManager": "npm"
+    },
+    {
       "repo": "shagunmistry/FlowCraft",
       "stars": 2,
       "commit": "ae2e307c4e725bde23e9829d8d1bc97946338c8d",
@@ -277,6 +295,15 @@
       "beforeSource": "SDK version",
       "stripeDependency": "^14.23.0",
       "packageManager": "pnpm"
+    },
+    {
+      "repo": "Shefaul-22/AgriFlow",
+      "stars": 2,
+      "commit": "4a7741c0a599faac110cbe7cf48b57a0f3bfd04a",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.1",
+      "packageManager": "npm"
     },
     {
       "repo": "yassine-ahmed/MyBusinessWebsite",
@@ -304,6 +331,17 @@
       "beforeSource": "apiVersion pin",
       "stripeDependency": "^16.12.0",
       "packageManager": "npm"
+    },
+    {
+      "repo": "CRONANANI/EzanaFinance3",
+      "stars": 0,
+      "commit": "4666e5a91486d99956fd81a8728b1c9f1c7ccdd4",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1"
     },
     {
       "repo": "Evolvededen/niore-platform",
