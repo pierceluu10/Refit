@@ -101,7 +101,14 @@ export function unchangedReceipt(
     receipt.readiness !== 'ready-for-validation'
   )
     return null;
-  return { ...receipt, unchangedSince: receipt.unchangedSince ?? previous.job };
+  if (receipt.unchangedSince) return receipt;
+  // The CLI prints the message, so it says which job did the work rather than repeating its claim.
+  return {
+    ...receipt,
+    message:
+      `Reused the receipt of job ${previous.job}: same commit, approval and worker build, so nothing ran. ${receipt.message ?? ''}`.trim(),
+    unchangedSince: previous.job,
+  };
 }
 
 // Runs one hosted job in this process. The in-VM worker and every job machine share it.

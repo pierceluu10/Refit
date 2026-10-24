@@ -404,7 +404,11 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE)(
     console.log(progress.join('\n'));
     expect(second.jobs[1]).toMatchObject({
       status: 'finished',
-      receipt: { ...ran, unchangedSince: Number(first.jobs[0].id) },
+      receipt: {
+        ...ran,
+        message: `Reused the receipt of job ${first.jobs[0].id}: same commit, approval and worker build, so nothing ran. ${ran.message}`,
+        unchangedSince: Number(first.jobs[0].id),
+      },
     });
     // The fake GitHub API answers the branch-head read from its own bare repository.
     expect(transport.calls.filter((call) => !call.args[1]?.includes('refit-fake-github-'))).toEqual(
