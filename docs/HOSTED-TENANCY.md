@@ -73,4 +73,4 @@ The AI ledger is now in PostgreSQL. A job machine without database credentials t
 - **Add the first customer account.** Set `REFIT_HOSTED_ACCOUNTS=<owner>,<customer>` with `fly secrets set` and restart the worker. Until per-job machines exist, this puts the customer's code on the shared machine described above. Options:
   - (a) wait for PG3's job machines;
   - (b) accept the shared machine for one trusted pilot, with `--ai-patch` and `--publish-draft` decided separately.
-- **Cap defaults.** This lane chose 1440 jobs and 500 inventories per installation per UTC day. Neither is measured against real customer traffic.
+- **Cap defaults.** This lane chose 1440 jobs and 500 inventories per installation per UTC day. Neither is measured against real customer traffic. Since the overnight-3 receipt reuse (#252), a scheduled poll that reuses an unchanged receipt gives its job back, so the job cap no longer bounds how many polls, and so GitHub API reads (an installation token, the repository and its base branch head), an installation makes per day.

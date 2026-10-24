@@ -525,14 +525,17 @@ it('reuses a receipt only for a finished, ready job on the same commit, approval
     liveContract: false,
   };
   const previous = { job: 7, status: 'finished', receipt };
-  expect(unchangedReceipt(previous, current)).toEqual({ ...receipt, unchangedSince: 7 });
-  // A chain of reused receipts keeps pointing at the job that did the work.
-  expect(
-    unchangedReceipt(
-      { job: 9, status: 'finished', receipt: { ...receipt, unchangedSince: 7 } },
-      current,
-    ),
-  ).toEqual({ ...receipt, unchangedSince: 7 });
+  const reused = {
+    ...receipt,
+    message:
+      'Reused the receipt of job 7: same commit, approval and worker build, so nothing ran. Operation changes need review.',
+    unchangedSince: 7,
+  };
+  expect(unchangedReceipt(previous, current)).toEqual(reused);
+  // A chain of reused receipts keeps pointing at the job that did the work, without repeating it.
+  expect(unchangedReceipt({ job: 9, status: 'finished', receipt: reused }, current)).toEqual(
+    reused,
+  );
   const runs = [
     null,
     { ...previous, receipt: null },
