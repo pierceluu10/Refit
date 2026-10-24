@@ -45,3 +45,7 @@ The merged `results.json` reads like a single-process run, so `scripts/stripe-be
 - A run holds at most 256 shards (GitHub's matrix limit); raise `size` for longer lists. About 20 jobs run at once on the free plan; the rest queue.
 - A shard times out after 300 minutes. Runners are 4-vCPU Linux machines, so validation times differ from a laptop or EC2; compare outcomes, not seconds, across environments.
 - Changing the workflow is a push to `refit-dev/refit-bench`. A run uses the workflow as it was when dispatched.
+
+## Checked
+
+On October 24, run `40067644474` at `502b8c0` ran the first 5 repositories of `2026-10-16-stripe-fresh-repos.json`, one per shard, in 7 minutes end to end. The slowest shard, `hackerai-tech/hackerai`, took 333 seconds in the benchmark; the others took 8 to 91 seconds. Setup before the benchmark took about 20 seconds per shard. The `jq` merge above produced one `results.json` with all 5 rows.
