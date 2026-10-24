@@ -135,6 +135,25 @@ function migrationCoverageDetail(
   }.`;
 }
 
+// Each method Refit does not map, at its first call, so the person knows which calls to check.
+function unmappedCallsDetail(
+  packageName: string,
+  calls: number,
+  unmapped: { resource: string; method: string; file: string; line: number }[],
+) {
+  const methods = unmapped.filter(
+    (call, index) =>
+      unmapped.findIndex(
+        (other) => other.resource === call.resource && other.method === call.method,
+      ) === index,
+  );
+  const named = methods
+    .slice(0, MAX_UNMAPPED_EXAMPLES)
+    .map((call) => `${call.resource}.${call.method} at ${call.file}:${call.line}`);
+  const more = methods.length - named.length;
+  return `Refit traced ${calls} ${packageName} API call${calls === 1 ? '' : 's'}, and it maps none of their methods to an operation in the contracts: ${named.join(', ')}${more ? ` and ${more} more` : ''}.`;
+}
+
 async function committedRepositoryCheck(repository: string) {
   const snapshot = await inspectCheck(
     'repository',
@@ -500,11 +519,13 @@ export async function inspectRepositoryReadiness(options: {
       detail:
         !operationCalls.length && !helpers.size
           ? `Refit traced no ${evidence.adapter.packageName} API call in this code, so it cannot tell what the migration changes. Calls made inside another library, or through a client Refit cannot follow, are not counted.`
-          : `${mappedCalls} of ${operationCalls.length} observed SDK API calls have configured mappings. ${helpers.size ? `${helpers.size} local webhook signature constructor${helpers.size === 1 ? '' : 's'} recognized; incoming version and policy require separate review. ` : ''}${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
+          : missingMappings
+            ? unmappedCallsDetail(evidence.adapter.packageName, operationCalls.length, unmapped)
+            : `${mappedCalls} of ${operationCalls.length} observed SDK API calls have configured mappings. ${helpers.size ? `${helpers.size} local webhook signature constructor${helpers.size === 1 ? '' : 's'} recognized; incoming version and policy require separate review. ` : ''}${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
       action: missingMappings
         ? !operationCalls.length
           ? `If the code reaches ${evidence.adapter.packageName} only through another library, upgrade that library instead. Otherwise run refit run --human to see which clients Refit found, and call the API through one it can follow.`
-          : 'Confirm the SDK constructor/import mapping and supported client pattern, then inspect scan evidence before attempting a migration.'
+          : `Check these calls against the ${evidence.adapter.packageName} changes${evidence.apiVersion.before && evidence.apiVersion.after ? ` from ${evidence.apiVersion.before} to ${evidence.apiVersion.after}` : ''} by hand. Refit cannot tell what the migration changes for a method it does not map, so it stops before validation.`
         : unmapped.length
           ? 'Review unmapped methods against provider documentation and add verified adapter mappings where supported.'
           : null,

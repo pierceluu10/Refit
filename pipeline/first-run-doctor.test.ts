@@ -309,6 +309,53 @@ export const auth = betterAuth({ plugins: [stripe({ stripeClient })] })
   });
 });
 
+it('names each method Refit does not map, at its first call, when it maps none', async () => {
+  const app = await repository();
+  await mkdir(join(app, 'refit'), { recursive: true });
+  await mkdir(join(app, 'app/api/payment'), { recursive: true });
+  const files = {
+    'package.json': JSON.stringify({ dependencies: { stripe: '14.25.0' } }),
+    // michaelshimeles/guru-catcher app/api/payment/route.ts, cut to its Stripe calls.
+    'app/api/payment/route.ts': `import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("param");
+
+  // Initialize Stripe
+  const stripe = new Stripe(id!, {
+    apiVersion: "2026-08-26.dahlia", // Use the latest API version
+  });
+
+  const invoices = await stripe.invoices.list({ status: "open", limit: 100 });
+  const more = await stripe.invoices.list({ status: "draft", limit: 100 });
+  const subscriptionSchedules = await stripe.subscriptionSchedules.list({ limit: 100 });
+  return NextResponse.json([...invoices.data, ...more.data, ...subscriptionSchedules.data]);
+}
+`,
+    'refit/stripe-before.json': JSON.stringify(checkoutContract('2026-08-26.dahlia', ['mode'])),
+    'refit/stripe-after.json': JSON.stringify(checkoutContract('2026-09-30.endive', ['mode'])),
+    'refit/stripe.provider.json': JSON.stringify(checkoutProvider),
+    '.refit.json': JSON.stringify(stripeConfiguration),
+  };
+  for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
+  await commit(app);
+  const report = await inspectRepositoryReadiness({ repository: app });
+  // Before: "0 of 3 observed SDK API calls have configured mappings. Unmapped calls are outside
+  // automatic coverage." and "Confirm the SDK constructor/import mapping and supported client
+  // pattern, then inspect scan evidence before attempting a migration."
+  expect(report.checks.find((check) => check.id === 'sdk-coverage')).toEqual({
+    id: 'sdk-coverage',
+    title: 'SDK call mapping',
+    status: 'blocked',
+    detail:
+      'Refit traced 3 stripe API calls, and it maps none of their methods to an operation in the contracts: invoices.list at app/api/payment/route.ts:13, subscriptionSchedules.list at app/api/payment/route.ts:15.',
+    action:
+      'Check these calls against the stripe changes from 2026-08-26.dahlia to 2026-09-30.endive by hand. Refit cannot tell what the migration changes for a method it does not map, so it stops before validation.',
+  });
+});
+
 it('tells the person to commit or remove a submodule, not to commit or stash files', async () => {
   const app = await repository({ formatVersion: 2, integrations: [integration('catalog')] });
   await execute('git', [
