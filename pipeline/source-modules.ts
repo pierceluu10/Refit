@@ -257,6 +257,53 @@ export function sourceBindings(
       current = current.parent;
     if (!exportRoots.has(current)) escapingSources.add(node.getSourceFile().fileName);
   }
+  // Names a module exports that cannot be one of its own values: an exported interface or type
+  // alias with no value of that name, and `export { name } from './other'`, whose value belongs
+  // to the other module. Importing them exposes nothing of this module.
+  const typeNames = new Map<string, Set<string>>();
+  const valueNames = new Map<string, Set<string>>();
+  const reexports = new Map<string, Map<string, { file?: string; name: string }>>();
+  const record = (map: Map<string, Set<string>>, file: string, name: string) =>
+    map.set(file, (map.get(file) ?? new Set()).add(name));
+  for (const node of nodes) {
+    if (!node.parent || !ts.isSourceFile(node.parent)) continue;
+    const file = node.getSourceFile().fileName;
+    const exported =
+      ts.canHaveModifiers(node) &&
+      Boolean(ts.getModifiers(node)?.some((entry) => entry.kind === ts.SyntaxKind.ExportKeyword));
+    if (exported && (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node))) {
+      record(typeNames, file, node.name.text);
+    } else if (exported && ts.isVariableStatement(node)) {
+      for (const entry of node.declarationList.declarations)
+        if (ts.isIdentifier(entry.name)) record(valueNames, file, entry.name.text);
+    } else if (
+      exported &&
+      (ts.isFunctionDeclaration(node) ||
+        ts.isClassDeclaration(node) ||
+        ts.isEnumDeclaration(node)) &&
+      node.name
+    ) {
+      record(valueNames, file, node.name.text);
+    }
+    if (
+      ts.isExportDeclaration(node) &&
+      !node.isTypeOnly &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      node.exportClause &&
+      ts.isNamedExports(node.exportClause)
+    ) {
+      const target = resolveImport(node.moduleSpecifier.text, file);
+      const entries = reexports.get(file) ?? new Map<string, { file?: string; name: string }>();
+      for (const element of node.exportClause.elements)
+        if (!element.isTypeOnly)
+          entries.set(element.name.text, {
+            file: target,
+            name: (element.propertyName ?? element.name).text,
+          });
+      reexports.set(file, entries);
+    }
+  }
   function bind(
     name: ts.Identifier,
     file: string,
@@ -267,7 +314,25 @@ export function sourceBindings(
       formats.get(file) === kind && !escapingSources.has(file) && exports.get(file)?.get(exported);
     const local = symbol(name);
     if (target && local) aliases.set(local, target);
-    else escapingSources.add(file);
+    else if (
+      kind === 'esm' &&
+      exported !== null &&
+      typeNames.get(file)?.has(exported) &&
+      !valueNames.get(file)?.has(exported) &&
+      !reexports.get(file)?.has(exported)
+    )
+      return;
+    else if (kind === 'esm' && exported !== null && reexports.get(file)?.has(exported)) {
+      // `export { stripe } from './client'`: the same binding as the other module's export.
+      const other = reexports.get(file)!.get(exported)!;
+      const original =
+        other.file &&
+        formats.get(other.file) === 'esm' &&
+        !escapingSources.has(other.file) &&
+        exports.get(other.file)?.get(other.name);
+      if (original && local) aliases.set(local, original);
+      else escapingSources.add(other.file ?? file);
+    } else escapingSources.add(file);
   }
   for (const node of nodes) {
     const containingFile = node.getSourceFile().fileName;

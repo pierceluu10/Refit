@@ -412,3 +412,49 @@ it('does not guess a mixed local ESM/CommonJS export module', () => {
     }).edits,
   ).toEqual([]);
 });
+
+// smj1860/fieldstay lib/stripe/client.ts exports the client beside a type and a re-exported
+// constant; importers that take only those must not unlink the client from its other importers.
+const fieldstayClient = `${esmClient}
+export const billing = client;
+export type BillingInterval = 'monthly' | 'annual';
+export function isPlatformPriceId(id: string) { return id.startsWith('price_'); }
+export { MAX_SELF_SERVE_PROPERTIES } from './brackets';`;
+
+it.each([
+  ['a type imported without the type keyword', "import { BillingInterval } from './client';"],
+  ['a re-exported constant', "import { MAX_SELF_SERVE_PROPERTIES } from './client';"],
+  ['a function', "import { isPlatformPriceId } from './client';"],
+])('keeps an ESM client traced when another importer takes %s', (_name, other) => {
+  const result = analyze({
+    'brackets.ts': 'export const MAX_SELF_SERVE_PROPERTIES = 5;',
+    'client.ts': fieldstayClient,
+    'core-billing.ts': `${other}\nexport const seen = 1;`,
+    'history.ts': `import { billing } from './client';\n${read}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'history.ts', confidence: 'confirmed' }]);
+});
+
+it('traces a client re-exported by name through another module', () => {
+  const result = analyze({
+    'client.ts': `${esmClient}\nexport const billing = client;`,
+    'index.ts': "export { billing } from './client';",
+    'history.ts': `import { billing } from './index';\n${read}`,
+  });
+  // Re-exporting already exposes the client module, so this stays review, as before.
+  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+});
+
+it.each([
+  ['a name the module does not export', "import { missing } from './client';"],
+  ['a type that shares its name with a mutable value', "import { Shared } from './client';"],
+  ['a namespace import', "import * as everything from './client';"],
+])('still unlinks the ESM client when another importer takes %s', (_name, other) => {
+  const result = analyze({
+    'brackets.ts': 'export const MAX_SELF_SERVE_PROPERTIES = 5;',
+    'client.ts': `${fieldstayClient}\nexport type Shared = string;\nexport let Shared = 1;`,
+    'core-billing.ts': `${other}\nexport const seen = 1;`,
+    'history.ts': `import { billing } from './client';\n${read}`,
+  });
+  expect(result.findings).toMatchObject([{ confidence: 'review' }]);
+});
