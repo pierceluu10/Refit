@@ -1,7 +1,8 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
+import { stripeContractFile, stripeContractVersion } from './enrollment-contracts.ts';
 import { gitEnvironment } from './git-environment.ts';
 import {
   approveRepositoryEnrollment,
@@ -10,7 +11,8 @@ import {
 } from './repository-enrollment.ts';
 import { pollServiceTarget } from './service-worker.ts';
 import { runLocalService } from './local-service.ts';
-import { readServiceConfiguration } from './service-configuration.ts';
+import { readServiceConfiguration, type ServiceTarget } from './service-configuration.ts';
+import { stripeSpecificationUrl } from './specifications.ts';
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
 import { verifyArtifacts } from './verification.ts';
 import * as watch from './watch.ts';
@@ -68,6 +70,19 @@ const fixture = resolve('pipeline/fixtures/endpoint-replacement');
 const APP = { appId: '123', privateKeyFile: 'unused-test-key' };
 const WEBHOOK_SECRET = 'webhook-secret-for-approved-profile-tests-123';
 const CONTROL_TOKEN = 'control-secret-for-approved-profile-tests-456';
+// Real Stripe contracts are 7 MB each, so the approved generated configuration runs only against a
+// saved directory: REFIT_STRIPE_CONTRACTS=~/.refit/contracts after refit stripe-snapshot --version
+// 2026-04-22.dahlia --version 2026-09-30.endive.
+const SAVED_CONTRACTS = process.env.REFIT_STRIPE_CONTRACTS;
+const GENERATED_VERSIONS = ['2026-04-22.dahlia', '2026-09-30.endive'];
+// The client Ankit-Sharma1011/Quill's src/lib/stripe.ts, as in the P3 enrollment sample.
+const GENERATED_CLIENT = `import Stripe from "stripe";
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+  apiVersion: "2026-04-22.dahlia",
+  typescript: true,
+});
+`;
 
 afterEach(async () => {
   vi.unstubAllGlobals();
@@ -155,6 +170,56 @@ async function setup() {
       signal: new AbortController().signal,
       repairAttempts: 0,
     },
+  };
+}
+
+// A repository that commits no .refit.json, so the worker runs the configuration Refit generates.
+async function setupGenerated() {
+  const root = await mkdtemp(join(tmpdir(), 'refit-generated-app-'));
+  roots.push(root);
+  transport.source = join(root, 'source');
+  await mkdir(join(transport.source, 'src/lib'), { recursive: true });
+  await writeFile(
+    join(transport.source, 'package.json'),
+    JSON.stringify({
+      name: 'app',
+      scripts: { test: 'vitest run' },
+      dependencies: { stripe: '^22.1.1' },
+    }),
+  );
+  await writeFile(
+    join(transport.source, 'package-lock.json'),
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        '': { dependencies: { stripe: '^22.1.1' } },
+        'node_modules/stripe': { version: '22.1.1' },
+      },
+    }),
+  );
+  await writeFile(join(transport.source, 'src/lib/stripe.ts'), GENERATED_CLIENT);
+  await transport.native!(['init', '--quiet', '--initial-branch=main'], transport.source);
+  await commit();
+  return {
+    root,
+    contracts: join(root, 'contracts'),
+    input: {
+      app: APP,
+      stateDirectory: join(root, 'worker'),
+      signal: new AbortController().signal,
+      repairAttempts: 0,
+    },
+  };
+}
+
+function generatedTarget(approval: ServiceTarget['approval'] & object): ServiceTarget {
+  return {
+    id: 'generated',
+    integration: 'stripe',
+    repository: 'example/application',
+    base: 'main',
+    documentationSources: [],
+    approval,
   };
 }
 
@@ -319,6 +384,118 @@ it('loads reviewed inputs from a native App-managed checkout and reuses the work
   ).toBe(true);
   expect(globalThis.fetch).not.toHaveBeenCalled();
 });
+
+it('downloads no Stripe contract for a repository that commits its .refit.json', async () => {
+  const sample = await setup();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => {
+      throw new Error('No contract download expected');
+    }),
+  );
+  const contracts = join(sample.root, 'contracts');
+  expect((await pollServiceTarget({ ...sample.input, contracts })).status).toBe('processed');
+  expect(globalThis.fetch).not.toHaveBeenCalled();
+  await expect(readdir(contracts)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+it('stops a generated configuration whose contracts cannot be downloaded before loading the approval', async () => {
+  const sample = await setupGenerated();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('unavailable', { status: 503 })),
+  );
+  const worker = vi.spyOn(watch, 'watchOnce');
+  // The approval is never read: the download fails first.
+  const target = generatedTarget({
+    formatVersion: 2,
+    kind: 'refit-repository-approval',
+    repository: 'example/application',
+    base: 'main',
+    fingerprint: 'f'.repeat(64),
+    files: [],
+    reviewedRevision: transport.head,
+    approvedAt: '2026-10-24T00:00:00.000Z',
+  });
+  await expect(
+    pollServiceTarget({ ...sample.input, target, contracts: sample.contracts }),
+  ).rejects.toThrow('The specification source returned HTTP 503.');
+  expect(worker).not.toHaveBeenCalled();
+  await expect(readdir(sample.contracts)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+it.skipIf(!SAVED_CONTRACTS)(
+  "downloads the generated configuration's contracts once, loads its approval and runs from the saved files",
+  async () => {
+    const sample = await setupGenerated();
+    const enrollment = await inspectRepositoryEnrollment({
+      repository: transport.source,
+      github: 'example/application',
+      base: 'main',
+      contracts: SAVED_CONTRACTS,
+    });
+    const { approval } = await approveRepositoryEnrollment({
+      enrollment,
+      fingerprint: enrollment.fingerprint,
+      output: join(sample.root, 'approval.json'),
+    });
+    // The pinned stripe/openapi commits, served from the saved snapshots instead of GitHub.
+    const served = new Map(
+      await Promise.all(
+        GENERATED_VERSIONS.map(async (version) => {
+          const saved = join(SAVED_CONTRACTS!, stripeContractFile(version));
+          const { content } = JSON.parse(await readFile(saved, 'utf8')) as { content: string };
+          return [stripeSpecificationUrl(stripeContractVersion(version)!.commit), content] as const;
+        }),
+      ),
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const content = served.get(url);
+        if (content === undefined) throw new Error(`Unexpected request to ${url}`);
+        return new Response(content);
+      }),
+    );
+    const input = {
+      ...sample.input,
+      target: generatedTarget(approval),
+      contracts: sample.contracts,
+    };
+    // The hosted worker runs refit doctor first. The approval loads and the contracts check passes;
+    // this two-file fixture still lacks an installed SDK, so doctor stops before scanning.
+    const hosted = await pollServiceTarget({ ...input, inspectReadiness: true });
+    expect(vi.mocked(globalThis.fetch).mock.calls.map(([url]) => url)).toEqual([...served.keys()]);
+    expect((await readdir(join(sample.contracts, 'refit'))).sort()).toEqual(
+      GENERATED_VERSIONS.map((version) => stripeContractFile(version).slice('refit/'.length)),
+    );
+    if (hosted.status !== 'readiness-blocked')
+      throw new Error(`Expected doctor to stop, got ${hosted.status}`);
+    const checks = new Map(hosted.readiness.checks.map((check) => [check.id, check.status]));
+    expect(checks.get('configuration')).toBe('passed');
+    expect(checks.has('contracts')).toBe(false);
+    // Without doctor the job compares against the saved target contract, a file that cannot change.
+    const worker = vi.spyOn(watch, 'watchOnce').mockResolvedValue({
+      status: 'already-processed',
+      provider: 'stripe',
+      jobKey: 'generated',
+      sourceHash: stripeContractVersion(GENERATED_VERSIONS[1])!.sha256,
+      previousStatus: 'needs-review',
+      output: null,
+    });
+    await pollServiceTarget(input);
+    expect(worker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: {
+          kind: 'file',
+          path: join(sample.contracts, stripeContractFile(GENERATED_VERSIONS[1])),
+        },
+      }),
+    );
+    // The second poll read the saved, checked files and downloaded nothing.
+    expect(globalThis.fetch).toHaveBeenCalledTimes(GENERATED_VERSIONS.length);
+  },
+);
 
 it('blocks changed commands before source polling, paid generation, validation or publication', async () => {
   const sample = await setup();

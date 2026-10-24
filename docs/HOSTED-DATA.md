@@ -22,7 +22,7 @@ Every table has row-level security enabled and no policies, so Supabase's Data A
 | `refit_jobs`                      | poll of a target                                 | Target, `status` (`queued`, `running`, `finished`, `failed`, `cancelled`), lease owner and expiry, attempt count, operator `retry` flag, creation and finish times, and the receipt as JSON: status, evidence path, message, checked-out revision, `refit doctor` status, approval fingerprint, a digest of the worker build and settings, whether the contract is fetched from upstream and, for a reused receipt, the job it repeats (`unchangedSince`). |
 | `refit_worker_pause`              | pause, at most one                               | When `refit hosted pause` was run. While the row exists no worker claims a job.                                                                                                                                                                                                                                                                                                                                                                            |
 
-The state directory holds `targets/<target id>/`: `github/` is the App-managed checkout and `runs/` the evidence of each job (manifests, patches, logs). Receipts point into `runs/`.
+The state directory holds `targets/<target id>/`: `github/` is the App-managed checkout and `runs/` the evidence of each job (manifests, patches, logs). Receipts point into `runs/`. `contracts/refit/stripe-<version>.json` holds the pinned Stripe contracts that generated configurations compare, shared by every target and checked against `data/stripe-openapi-versions.json` on each read.
 
 ## Retention
 
