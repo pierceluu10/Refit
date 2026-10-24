@@ -1,6 +1,6 @@
 # Deterministic Stripe rules mined from stops
 
-What still stops Refit on the four committed Stripe benchmark sets (fresh 381, original 100, held-out 50, active 66), which of those stops a deterministic rule can remove, and the rules this branch built. **Owner decision (2026-10-22): no new automatic Stripe edits.** All four rules below are disabled: Refit keeps their detection and reviewer notes, and every site they would edit stops for review. Every Stripe fact below comes from a changelog page or OpenAPI document that was read for this work, on 2026-10-22.
+What still stops Refit on the four committed Stripe benchmark sets (fresh 381, original 100, held-out 50, active 66), which of those stops a deterministic rule can remove, and the rules this branch built. **Owner decision (2026-10-24, overnight sign-off; supersedes the 2026-10-22 decision that disabled them):** the four rules below are automatic, under the conditions each section names. The evidence is in `docs/overnight/F4.md`. Every Stripe fact below comes from a changelog page or OpenAPI document that was read for this work on 2026-10-22, and those pages were re-read on 2026-10-24.
 
 ## What stops Refit, ranked
 
@@ -32,15 +32,15 @@ These scans are not backed by a committed results file. Repositories with a conf
 | `payment_method_types` on `paymentIntents.create` | 12 | 12 | Owner decision |
 | `payment_method_types` on `setupIntents.create` | 5 | 8 | Owner decision |
 | `coupon` on `subscriptions.update` | 2 | 3 | Rejected (below) |
-| `coupon` on `promotionCodes.create` | 2 | 2 | Built, review only |
+| `coupon` on `promotionCodes.create` | 2 | 2 | Built, automatic with the pin |
 
 | Removed field read, without a rule today | Repositories | Rule material? |
 |---|---|---|
 | `invoice.payment_intent` | 5 | Rejected (below) |
 | `line_item.type` | 3 | Rejected: already a documented stop |
 | `subscription.discount`, `charge.invoice`, `payment_intent.invoice` | 2 each | Rejected (below) |
-| `promotion_code.coupon`, `discount.coupon` | 1 each | Built, review only (ID reads) |
-| `product.features` | 1 | Built, review only |
+| `promotion_code.coupon`, `discount.coupon` | 1 each | Built, automatic (ID reads) |
+| `product.features` | 1 | Built, automatic |
 | `product_feature.name` | 1 | No: a schema-name artefact. In 2023-10-16 `product_feature` was the marketing feature; from 2024-04-10 the name means the Entitlements object |
 | `invoice.subscription_details`, `invoice.paid`, `invoice.tax`, `line_item.proration`, `invoice.charge` | 1 each | Rejected: no equivalent field |
 
@@ -50,9 +50,9 @@ One break was missing from every list above, because Refit did not see it: `invo
 - stripe-node names the method by hand, so the `GET /v1/invoices/upcoming` path never maps to it.
 - 5 repositories that start before basil call it: `internxt/payments-server`, `ReeceHarding/firebase-next.js-boilerplate`, `yuga-hashimoto/ai-tool-navigator`, `kondax-com/Bocker` and `EngMajdSayedTaha/reelspy`. These were found by searching every clone for the call.
 
-## Built rules (review only)
+## Built rules
 
-None of these edits is applied: `pipeline/run.ts` keeps no edit for any of the four rules, so each site stays a finding for review. The descriptions record what the disabled rules would change, for a later owner decision.
+`pipeline/run.ts` keeps these edits under the conditions below; anywhere else, the site stays a finding for review with its reason.
 
 | Rule | Change | Stripe source |
 |---|---|---|
@@ -77,7 +77,7 @@ All four follow the existing rule style:
 - An optional call.
 - Promotion code parameters built in a variable. These are not traced; see [the fresh-set misses](STRIPE-FRESH-RECALL.md#misses-ranked-by-cause).
 
-**Rollout.** Disabled. It was built to ride with the endive pin and, for TypeScript, the stripe-node upgrade, like the owner-approved card rename.
+**Rollout.** Automatic, under the card rename's conditions: the patch moves every client's pin to the target and, for TypeScript or an SDK-pinned version, the stripe-node upgrade is prepared first. Otherwise the parameter keeps stopping. The product `features` request rename follows the same conditions; the coupon ID and product features read helpers read either API version and need only the target contract's new locations.
 
 ### `stripe-coupon-id-helper`
 
@@ -117,11 +117,11 @@ All four follow the existing rule style:
 - Spreads.
 - Calls that send both `subscription_details` and `subscription_*`.
 
-**Rollout.** stripe-node's published type definitions have `createPreview` from 15.6.0 on: it is absent in 15.1.0 and every earlier tarball read for the [fresh-set labels](STRIPE-FRESH-RECALL.md). The rewrite would need the stripe-node upgrade in any language; it is disabled.
+**Rollout.** stripe-node's published type definitions have `createPreview` from 15.6.0 on: it is absent in 15.1.0 and every earlier tarball read for the [fresh-set labels](STRIPE-FRESH-RECALL.md). So the rewrite is kept only when the stripe-node upgrade is prepared, **in any language**, and the upgrade is added to the patch. Without it, the call keeps stopping.
 
 ## Measurement
 
-This measurement was taken with the rules enabled, before the owner decision disabled them. It is not backed by a committed results file, and on `main` none of these patches is proposed.
+This measurement was taken on 2026-10-22 with the rules enabled. It is not backed by a committed results file. The 2026-10-24 before/after on GitHub Actions is in `docs/overnight/F4.md`.
 
 **Setup.** The 9 repositories with a site for one of the rules, at their pinned commits:
 - `main` at `7b2c86a` ("before") against this branch at `0c287f0` ("after");

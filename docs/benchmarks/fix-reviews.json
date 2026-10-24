@@ -326,6 +326,111 @@
         "upgradeComplete": "not needed for the webhook reads; the JavaScript client's literal pin moves without a stripe-node upgrade, which is the existing rule for JavaScript.",
         "wouldMerge": "not yet: the failing checks and the 47 unresolved findings come first."
       }
+    },
+    {
+      "repo": "boristenkes/shop.co",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40082113216 at 1b230db (F4 slice 1, #262); patch reproduced with refit scan --propose-patch from that run's adapter and contracts",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: promotionCodes.create in features/coupon/actions/create.ts:67 sends coupon: stripeCoupon.id, the ID returned by stripe.coupons.create two statements above; it moves to promotion: { type: 'coupon', coupon: stripeCoupon.id }, as the clover polymorphic-coupon page documents. payment_method_types: ['card'] in features/orders/actions/create.ts:90 takes the owner-approved card rule.",
+        "bothVersions": "not needed: the only client (lib/stripe.ts) moves its apiVersion literal from 2025-04-30.basil to 2026-09-30.endive in the same patch, and promotion codes are created, not read from webhooks.",
+        "nothingUnrelated": "yes: two request edits, one apiVersion literal, the stripe dependency and its pnpm lockfile entries (stripe 23.0.0 drops its qs dependency).",
+        "pleaseCheck": "tsc --noEmit passed before and after in offline Docker: the run reached the generated checks, which run only when both pass (pipeline/validation.ts:1190), and those failed with a missing stripe/stripe-mock image (infrastructure). Six review findings on the app's own couponValidation.coupon (features/orders/actions/create.ts:83-84) stay unresolved, so the draft would be [Needs review]. Create one promotion code in test mode.",
+        "upgradeComplete": "yes: stripe-node 18.1.1 to 23.0.0 in package.json and pnpm-lock.yaml, with the registry's integrity.",
+        "wouldMerge": "yes, after creating a promotion code once in test mode."
+      }
+    },
+    {
+      "repo": "noorjsdivs/tulos_yt",
+      "pullRequest": "https://github.com/pierceluu10/Refit/pull/280",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: [\"card\"] becomes allowed_payment_method_types: [\"card\"] in the local sessionPayload body that only checkout.sessions.create receives (owner card rule, docs/STRIPE-PAYMENT-METHOD-TYPES.md; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions read 2026-10-24). The body's other uses only add customer or customer_email.",
+        "bothVersions": "yes: a request parameter, sent only at the pinned version; the endive pin moves in the same patch.",
+        "nothingUnrelated": "yes: the renamed key, the apiVersion literal, and stripe in package.json and the lockfile.",
+        "pleaseCheck": "4 untraced .price reads, all correctly left unchanged: item.product.price is the app's Sanity product, and item.price on Checkout line items still exists in endive (the item schema keeps price). So the draft is [Needs review] for false alarms only.",
+        "upgradeComplete": "yes: apiVersion 2024-12-18.acacia to 2026-09-30.endive in lib/stripe.ts; stripe ^17.5.0 to ^23.0.0.",
+        "wouldMerge": "yes, once the reviewer confirms cards stay enabled in the Dashboard."
+      },
+      "evidence": "Actions run 40086095351 at 9dbf25a (subsets/f2-untraced-sites.json); the patch was regenerated locally at 9dbf25a with runPipeline (fullAdapter, proposePatch) because the stripe-mock workflow error dropped it from the artifact, and read in full with git diff --ignore-cr-at-eol. Actions: baseline and patched checks passed; only the generated stripe-mock check errored on the missing image."
+    },
+    {
+      "repo": "mezaaf/ecommerce",
+      "pullRequest": "https://github.com/pierceluu10/Refit/pull/280",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: [\"card\"] becomes allowed_payment_method_types: [\"card\"] in the local sessionPayload body that only checkout.sessions.create receives (owner card rule, docs/STRIPE-PAYMENT-METHOD-TYPES.md; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions read 2026-10-24). The body's other uses only add customer or customer_email.",
+        "bothVersions": "yes: a request parameter, sent only at the pinned version; the endive pin moves in the same patch.",
+        "nothingUnrelated": "yes: the renamed key, the apiVersion literal, and stripe in package.json and the lockfile.",
+        "pleaseCheck": "4 untraced .price reads, all correctly left unchanged: item.product.price is the app's Sanity product, and item.price on Checkout line items still exists in endive (the item schema keeps price). So the draft is [Needs review] for false alarms only.",
+        "upgradeComplete": "yes: apiVersion 2024-12-18.acacia to 2026-09-30.endive; stripe ^17.5.0 to ^23.0.0.",
+        "wouldMerge": "yes, once the reviewer confirms cards stay enabled in the Dashboard."
+      },
+      "evidence": "Actions run 40086095351 at 9dbf25a (subsets/f2-untraced-sites.json); the patch was regenerated locally at 9dbf25a with runPipeline (fullAdapter, proposePatch) because the stripe-mock workflow error dropped it from the artifact, and read in full with git diff --ignore-cr-at-eol. Actions: baseline and patched checks passed; only the generated stripe-mock check errored."
+    },
+    {
+      "repo": "AzharAli-web/Heaventech-store",
+      "pullRequest": "https://github.com/pierceluu10/Refit/pull/280",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: [\"card\"] becomes allowed_payment_method_types: [\"card\"] in the local sessionPayload body that only checkout.sessions.create receives (owner card rule, docs/STRIPE-PAYMENT-METHOD-TYPES.md; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions read 2026-10-24). The body's other uses only add customer or customer_email.",
+        "bothVersions": "yes: a request parameter, sent only at the pinned version; the endive pin moves in the same patch.",
+        "nothingUnrelated": "yes: the renamed key, the apiVersion literal, and stripe in package.json and the lockfile.",
+        "pleaseCheck": "none.",
+        "upgradeComplete": "yes: apiVersion 2025-03-31.basil to 2026-09-30.endive; stripe ^20.3.0 to ^23.0.0.",
+        "wouldMerge": "yes, once the reviewer confirms cards stay enabled in the Dashboard."
+      },
+      "evidence": "Actions run 40086095351 at 9dbf25a (subsets/f2-untraced-sites.json); the patch was regenerated locally at 9dbf25a with runPipeline (fullAdapter, proposePatch) because the stripe-mock workflow error dropped it from the artifact, and read in full with git diff --ignore-cr-at-eol. Actions: baseline and patched checks passed; only the generated stripe-mock check errored."
+    },
+    {
+      "repo": "kianush00/joyassol-ecommerce",
+      "pullRequest": "https://github.com/pierceluu10/Refit/pull/280",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: [\"card\"] becomes allowed_payment_method_types: [\"card\"] in the local sessionPayload body that only checkout.sessions.create receives (owner card rule, docs/STRIPE-PAYMENT-METHOD-TYPES.md; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions read 2026-10-24). The body's other uses only add customer or customer_email.",
+        "bothVersions": "yes: a request parameter, sent only at the pinned version; the endive pin moves in the same patch.",
+        "nothingUnrelated": "yes: the renamed key, the apiVersion literal, and stripe in package.json and the lockfile.",
+        "pleaseCheck": "none.",
+        "upgradeComplete": "yes: apiVersion 2025-11-17.clover to 2026-09-30.endive; stripe ^22.1.1 to ^23.0.0.",
+        "wouldMerge": "yes, once the reviewer confirms cards stay enabled in the Dashboard."
+      },
+      "evidence": "Actions run 40086095351 at 9dbf25a (subsets/f2-untraced-sites.json); the patch was regenerated locally at 9dbf25a with runPipeline (fullAdapter, proposePatch) because the stripe-mock workflow error dropped it from the artifact, and read in full with git diff --ignore-cr-at-eol. Actions: baseline and patched checks passed; only the generated stripe-mock check errored."
+    },
+    {
+      "repo": "AboloreDev/cartella-E-commerce",
+      "pullRequest": "https://github.com/pierceluu10/Refit/pull/280",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: [\"card\"] becomes allowed_payment_method_types: [\"card\"] in the local sessionPayload body that only checkout.sessions.create receives (owner card rule, docs/STRIPE-PAYMENT-METHOD-TYPES.md; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions read 2026-10-24). The body's other uses only add customer or customer_email.",
+        "bothVersions": "yes: a request parameter, sent only at the pinned version; the endive pin moves in the same patch.",
+        "nothingUnrelated": "yes: the renamed key, the apiVersion literal, and stripe in package.json and the lockfile.",
+        "pleaseCheck": "none.",
+        "upgradeComplete": "yes: apiVersion 2025-05-28.basil to 2026-09-30.endive; stripe ^18.2.0 to ^23.0.0.",
+        "wouldMerge": "yes, once the reviewer confirms cards stay enabled in the Dashboard; not validated (npm dependency preparation failed with EUSAGE on Actions)."
+      },
+      "evidence": "Actions run 40086095351 at 9dbf25a (subsets/f2-untraced-sites.json); the patch was regenerated locally at 9dbf25a with runPipeline (fullAdapter, proposePatch) because the stripe-mock workflow error dropped it from the artifact, and read in full with git diff --ignore-cr-at-eol. Actions: npm dependency preparation failed (EUSAGE), so no check ran."
+    },
+    {
+      "repo": "4NDR3S-01/StyleHub",
+      "pullRequest": "https://github.com/pierceluu10/Refit/pull/280",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the variable body sessionData in src/app/api/create-stripe-session/route.ts:91 and two direct Checkout bodies (src/app/api/stripe/checkout-session.ts, src/app/api/stripe/checkout-session/route.ts) rename payment_method_types: ['card'] to allowed_payment_method_types. On main the variable site stayed and the pin moved, so main's patch would have been rejected with a 400; this slice makes the patch complete.",
+        "bothVersions": "yes: a request parameter, sent only at the pinned version; the endive pin moves in the same patch.",
+        "nothingUnrelated": "yes: the renamed key, the apiVersion literal, and stripe in package.json and the lockfile.",
+        "pleaseCheck": "none.",
+        "upgradeComplete": "yes: all ten apiVersion '2025-07-30.basil' literals to 2026-09-30.endive; stripe ^18.4.0 to ^23.0.0.",
+        "wouldMerge": "not as validated evidence: the repository's own baseline check fails on Actions, so the patch is not proposed."
+      },
+      "evidence": "Actions run 40086095351 at 9dbf25a (subsets/f2-untraced-sites.json); the patch was regenerated locally at 9dbf25a with runPipeline (fullAdapter, proposePatch) because the stripe-mock workflow error dropped it from the artifact, and read in full with git diff --ignore-cr-at-eol. Actions: validation-baseline-failed, as on main."
     }
   ]
 }
