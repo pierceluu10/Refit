@@ -115,6 +115,7 @@ export async function pollServiceTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  supersedeDrafts?: boolean;
   retry?: boolean;
   // Runs refit doctor on the approved checkout first; blocked setup stops before scanning.
   inspectReadiness?: boolean;
@@ -130,7 +131,10 @@ export async function pollServiceTarget(options: {
     aiPatch: options.aiPatch,
     repairAttempts: options.repairAttempts,
     publication: options.publishDraft
-      ? publicationConfiguration(target.repository, target.base, undefined, options.app)
+      ? {
+          ...publicationConfiguration(target.repository, target.base, undefined, options.app),
+          ...(options.supersedeDrafts ? { supersedeDrafts: true } : {}),
+        }
       : undefined,
     ...(options.notify ? { notify: { send: options.notify, repository: target.repository } } : {}),
   };
@@ -159,12 +163,13 @@ export async function pollServiceTarget(options: {
     async (checkout) => {
       if (options.contracts) await saveGeneratedContracts(checkout.directory, options.contracts);
       options.signal.throwIfAborted();
+      const acceptedApiVersions = await watchedApiVersions(options.stateDirectory);
       const profile = await loadApprovedRepository({
         repository: checkout.directory,
         approval: target.approval,
         integration: target.integration,
         stateDirectory: options.stateDirectory,
-        acceptedApiVersions: await watchedApiVersions(options.stateDirectory),
+        acceptedApiVersions,
         contracts: options.contracts,
       });
       options.signal.throwIfAborted();
@@ -176,6 +181,7 @@ export async function pollServiceTarget(options: {
             repository: checkout.directory,
             integration: target.integration,
             contracts: options.contracts,
+            acceptedApiVersions,
           })
         : undefined;
       options.signal.throwIfAborted();
