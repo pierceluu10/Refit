@@ -49,14 +49,15 @@ Sent when `REFIT_SLACK_WEBHOOK_URL` is set and a job ends `failed`, at most once
 1. `refit hosted receipt <n>` and read the message.
 2. Fix the cause, then [retry](#retry-a-job).
 
-| Outcome and message                                                              | Meaning and fix                                                                                                                       |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `interrupted`                                                                    | The worker stopped mid-job (deploy, restart, `fly secrets set`, lease renewal failure). Retry.                                        |
-| `error: Worker lease expired repeatedly…`                                        | Three workers in a row died holding this job: usually the Machine ran out of memory or crashed. Check `fly logs` for OOM, then retry. |
-| `error: PipelineInputError: Repository now belongs to another App installation.` | The repository moved. Check the installation in GitHub before retrying.                                                               |
-| `error: … Configured repository is unavailable, archived, disabled …`            | The App lost access or the repository was archived. Nothing to retry until access returns.                                            |
-| `error: Managed Git … failed: …`                                                 | Fetching the repository failed (GitHub outage, revoked access). Retry once GitHub is reachable.                                       |
-| any other `error`                                                                | A pipeline failure. The evidence directory holds the details.                                                                         |
+| Outcome and message                                                              | Meaning and fix                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `interrupted`                                                                    | The worker stopped mid-job (deploy, restart, `fly secrets set`, lease renewal failure), before or during the workflow. Retry. `Job exceeded the 3600-second job timeout` means the job ran an hour; check `fly logs` for `CPU throttled:` before retrying it. |
+| `error: Worker lease expired repeatedly…`                                        | Three workers in a row died holding this job: usually the Machine ran out of memory or crashed. Check `fly logs` for OOM, then retry.                                                                                                                         |
+| `error: PipelineInputError: Repository now belongs to another App installation.` | The repository moved. Check the installation in GitHub before retrying.                                                                                                                                                                                       |
+| `error: … Configured repository is unavailable, archived, disabled …`            | The App lost access or the repository was archived. Nothing to retry until access returns.                                                                                                                                                                    |
+| `error: Managed Git … failed: …`                                                 | Fetching the repository failed (GitHub outage, revoked access). Retry once GitHub is reachable.                                                                                                                                                               |
+| `error: Workflow failed during <stage>. … <ErrorName>: …`                        | The workflow stopped on an error in that stage, for example a dependency timeout or a Docker failure; the receipt ends with the error. The evidence directory keeps what completed.                                                                           |
+| any other `error`                                                                | A pipeline failure. The evidence directory holds the details.                                                                                                                                                                                                 |
 
 `needs-review` and `validation-failed` are not failures: the job finished and the receipt says what to review. They never send this notice. The workflow's own notices (draft PR ready, regression, publication failed partway) arrive as in `refit serve`; see [Slack notifications](SLACK.md).
 
@@ -75,12 +76,14 @@ The worker process is not listening. `fly status` and `fly logs`: a crash loop s
 
 ### Error log lines
 
-| `message` starts with          | Meaning                                                                                                                                                          |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Webhook processing failed:`   | A signed delivery was not stored and GitHub got a 500. Fix the cause (usually the database), then redeliver it from the App's Advanced → Recent Deliveries page. |
-| `Lease renewal failed:`        | The worker could not reach the database while a job ran; the job was stopped and will be `interrupted`.                                                          |
-| `Slack notification not sent:` | The Slack webhook failed or timed out. Jobs are unaffected.                                                                                                      |
-| `<ErrorName>: …` with a `job`  | That job failed; its receipt has the same message.                                                                                                               |
+| `message` starts with                       | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Webhook processing failed:`                | A signed delivery was not stored and GitHub got a 500. Fix the cause (usually the database), then redeliver it from the App's Advanced → Recent Deliveries page.                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `Lease renewal failed:`                     | The worker could not reach the database while a job ran; the job was stopped and will be `interrupted`.                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `Receipt not stored:` with a `job`          | This worker lost the job's lease before storing its result: another worker reclaimed the job, or it failed after repeated lease expiry. The line keeps the dropped result; `refit hosted receipt <n>` shows what was stored instead.                                                                                                                                                                                                                                                                                                                                 |
+| `Slack notification not sent:`              | The Slack webhook failed or timed out. Jobs are unaffected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `CPU throttled:` with a `job`               | The host took at least a quarter of the machine's CPU time while that job ran (steal, from `/proc/stat`; jobs of 30 s or more). Shared vCPUs fall to their quota once the burst balance is spent, and installs and checks then hit their time limits. `refit hosted receipt <n>` shows the job's `CPU steal`. While full runs are queued, `fly scale vm performance-2x --memory 4096 -a refit-hosted` (**live**; it restarts the machine, so do it when no job runs), retry the jobs that stopped on a time limit, and scale back to the `fly.toml` size afterwards. |
+| `error: …` or `interrupted: …` with a `job` | That job failed; its receipt has the same message.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 `Lease lost or job cancelled; stopping.` (info) means the repository or installation was removed, or another worker reclaimed the job. GitHub shows 401 for deliveries signed with an old webhook secret and 409 for a reused delivery id with a different body; neither changes state.
 
@@ -89,10 +92,10 @@ The worker process is not listening. `fly status` and `fly logs`: a crash loop s
 **Live.** Deploy from a clean checkout of the commit being shipped.
 
 1. Run the hosted tests against a local PostgreSQL ([Hosted onboarding](HOSTED-ONBOARDING.md#implemented-single-tenant-hosted-worker)) and `npm test`.
-2. [Drain](#drain-the-worker): check that no job is running.
+2. [Drain](#drain-the-worker): `refit hosted pause`, then wait until no job is running.
 3. `fly deploy -a refit-hosted`. Fly builds the image from `Dockerfile`, replaces the Machine and keeps the volume.
 4. Verify: `curl https://refit-hosted.fly.dev/health`, `fly status`, then `fly ssh console -C "refit hosted health"`.
-5. Retry any job the deploy interrupted (`refit hosted jobs --status failed`).
+5. `fly ssh console -a refit-hosted -C "refit hosted resume"`, then retry any job the deploy interrupted (`refit hosted jobs --status failed`).
 
 ## Roll back to the previous image
 
@@ -105,6 +108,10 @@ fly deploy -a refit-hosted --image registry.fly.io/refit-hosted:deployment-<id>
 
 Then verify as after a deploy. The worker only adds tables and columns on boot, so an older image runs against a schema a newer one created. A rollback never undoes database rows.
 
+## Unchanged polls
+
+A scheduled poll first reads the base branch head through the GitHub API. If it, the approval fingerprint and the worker build match the target's last finished job, and that job's doctor result was ready and its contracts are committed files, the worker stores the earlier receipt with `unchangedSince: <job>` and logs `<status>: unchanged since job <job> at <revision>; nothing ran.` The job does not count against `REFIT_HOSTED_DAILY_JOBS`. A push to the base branch, a new approval or a deploy (a new `FLY_IMAGE_REF`) makes the next poll run in full; so does a change to `--ai-patch`, `OPENAI_MODEL`, `--repair-attempts` or `--publish-draft`. To rerun a target without any of those, [retry](#retry-a-job) it. Without `FLY_IMAGE_REF` (a local `refit hosted serve`), every poll runs.
+
 ## Retry a job
 
 **Live, and may spend.** A failed or interrupted result stays cached for its commit until an operator retries it.
@@ -115,17 +122,35 @@ fly ssh console -a refit-hosted -C "refit hosted retry --target <id>"
 
 It queues one fresh attempt, or marks the already-queued job as a retry. It refuses while the target has a running job and for a target that is not enrolled. Approval and access gates still apply. With `--ai-patch` in `REFIT_HOSTED_FLAGS`, a retried job can spend the installation's AI budget, and with `--publish-draft` it can open a draft PR.
 
+## Change the AI cap
+
+Each installation's ledger and the ledger across installations store the limit they were created with. A worker whose `REFIT_AI_BUDGET_USD` or `REFIT_HOSTED_AI_BUDGET_USD` differs from the stored limit refuses every AI request (`AI budget state is invalid or its configured limit changed`), so changing a cap takes three steps, run when no job runs:
+
+```sh
+fly ssh console -a refit-hosted -C "refit hosted ai-budget"   # read-only: limit, spend and open reservations per ledger
+fly secrets set -a refit-hosted --stage REFIT_AI_BUDGET_USD=10 REFIT_HOSTED_AI_BUDGET_USD=10
+fly ssh console -a refit-hosted -C "refit hosted ai-budget --limit 10 --total-limit 10"
+fly machine restart -a refit-hosted
+```
+
+**Live, and may spend.** `--limit` and `--total-limit` move every recorded installation's ledger and the shared one to the new limit and keep their recorded spend; an earlier worker's file ledger under `REFIT_AI_BUDGET_DIRECTORY` is imported first. They refuse while a job runs. A secret overrides the `fly.toml` value of the same name ([Fly configuration](https://docs.fly.io/reference/configuration)). Between the ledger change and the restart the old worker refuses AI requests, which fails closed. To return to the `fly.toml` value, move the ledgers back, then `fly secrets unset -a refit-hosted --stage REFIT_AI_BUDGET_USD` and restart.
+
+Open reservations are requests that reserved their maximum cost and never settled, for example because the job failed after the request was sent. They still count against the limit.
+
 ## Drain the worker
 
-There is no drain switch. On `SIGTERM` or `SIGINT` the worker stops claiming jobs, aborts the running job (stored as `interrupted`, which needs a retry) and exits. Fly allows 5 seconds (`kill_timeout`) before killing it, enough to store the receipt but not to finish a validation.
+`refit hosted pause` stops every worker from starting jobs until `refit hosted resume`, across deploys and restarts. Running jobs finish, queued jobs wait, and webhooks are still recorded and queue jobs. The worker logs `Paused since <time>; no job starts until refit hosted resume.` and `/status` shows `paused`.
 
-To stop without interrupting work:
+```sh
+fly ssh console -a refit-hosted -C "refit hosted pause"
+fly ssh console -a refit-hosted -C "refit hosted jobs --status running"   # repeat until it lists nothing
+fly deploy -a refit-hosted                                                # or restart, scale, set secrets
+fly ssh console -a refit-hosted -C "refit hosted resume"
+```
 
-1. `fly ssh console -C "refit hosted jobs --status running"`. Repeat until it lists nothing. A scheduled poll that finds nothing new is short; a job that validates can take most of an hour.
-2. Deploy, restart or stop right away: enrolled targets are queued again every 5 minutes.
-3. If a job started in between, it is `interrupted`. [Retry](#retry-a-job) it.
+Without a pause, a stop still lets a short job finish. On the first `SIGINT` or `SIGTERM`, the worker stops claiming and exits once its running job finishes. Fly sends `SIGINT`, waits `kill_timeout` (300 seconds in `fly.toml`, Fly's maximum), then sends `SIGTERM`. The worker treats that second signal as a stop: it aborts the job, stores its receipt (`interrupted`, or `error` when the abort lands inside validation) and exits. Either needs a [retry](#retry-a-job). A scheduled poll on an unchanged target takes about a second, and a job that validates can take most of an hour, so pause before any deploy while a validation runs.
 
-To stop new work entirely, `fly machine stop -a refit-hosted` (**live**). Webhook deliveries fail while it is stopped; GitHub shows them as failed, and you can redeliver them after `fly machine start`.
+To stop new work and the machine, `fly machine stop -a refit-hosted` (**live**). Webhook deliveries fail while it is stopped; GitHub shows them as failed, and you can redeliver them after `fly machine start`.
 
 ## Rotate each secret
 
