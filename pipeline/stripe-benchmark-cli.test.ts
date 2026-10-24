@@ -167,7 +167,7 @@ it('records the run, classifies clone failures, orders rows and resumes the same
   });
   expect(rows[2]).toMatchObject({ read: 'ok', mappedMethods: 0, outcomeClass: 'repository' });
   const summary = await readFile(join(first, 'summary.md'), 'utf8');
-  expect(summary).toContain('Repositories: 2. Affected: 1.');
+  expect(summary).toContain('Repositories: 2. Affected in either mode: 1.');
   expect(summary).toContain(
     '| acme/broken | clone | the directory is not a checkout with a commit of its own (the fetch failed) |',
   );
