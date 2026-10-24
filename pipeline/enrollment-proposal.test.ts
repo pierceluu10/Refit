@@ -204,12 +204,232 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       {
         id: 'api-version-unreadable',
         detail:
-          'Refit cannot tell which Stripe API version the client at lib/stripe.ts:7 uses: its apiVersion is not a string literal Refit can read.',
+          "Refit cannot tell which Stripe API version the client at lib/stripe.ts:7 uses: its apiVersion is process.env.STRIPE_API_VERSION || '2023-10-16', which Refit cannot trace to one version.",
         action:
           "Write the apiVersion at lib/stripe.ts:7 as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).",
       },
     ],
   });
+});
+
+it('names the options a client is created with when Refit cannot read them', async () => {
+  const cases: { files: Record<string, string>; at: string; unread: string }[] = [
+    {
+      // hex22a/techwear-shop-nextjs app/lib/stripe.ts, app/lib/config.ts and app/lib/stripe.test.ts,
+      // whose require('./stripe') is what keeps the tracer from following the client.
+      files: {
+        'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./*'] } } }),
+        'app/lib/stripe.test.ts': `import { STRIPE_CONFIG } from '@/app/lib/config';
+
+describe('stripe', () => {
+  test('constructor', () => {
+    const expectedStripeConfig = STRIPE_CONFIG;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const actualStripe: typeof module = require('./stripe').stripe;
+    expect(actualStripe).toBeDefined();
+    expect(expectedStripeConfig).toBeDefined();
+  });
+});
+`,
+        'app/lib/stripe.ts': `import Stripe from "stripe";
+import { STRIPE_CONFIG } from './config';
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, STRIPE_CONFIG);
+`,
+        'app/lib/config.ts': `import { Stripe } from 'stripe';
+
+export const STRIPE_CONFIG: Stripe.StripeConfig = {
+  // https://github.com/stripe/stripe-node#configuration
+  apiVersion: '2025-11-17.clover',
+  appInfo: {
+    name: 'techwear-shop-demo',
+    url: 'https://techwear-shop-nextjs.vercel.app/',
+  },
+};
+`,
+      },
+      at: 'app/lib/stripe.ts:4',
+      unread: 'its options are STRIPE_CONFIG, which Refit cannot trace to an apiVersion',
+    },
+    {
+      // ahmedaliofficial/latest-nestjs-stripe lib/utils/stripe.utils.ts
+      files: {
+        'lib/utils/stripe.utils.ts': `import Stripe from 'stripe'
+import { StripeClient } from './stripe.interface'
+import { OPTIONS_TYPE } from './stripe.module-definition'
+
+export function createStripeClient({
+  apiKey,
+  config
+}: typeof OPTIONS_TYPE): StripeClient {
+  const client = new Stripe(apiKey, config)
+  return client
+}
+`,
+      },
+      at: 'lib/utils/stripe.utils.ts:9',
+      unread: 'its options are config, which Refit cannot trace to an apiVersion',
+    },
+    {
+      // wevm/curl.md src/api.ts
+      files: {
+        'src/api.ts': `import Stripe from 'stripe'
+import * as StripeUtils from '#lib/stripe.ts'
+
+export async function paymentMethods(c: any, customer: string) {
+  const stripe = new Stripe(
+    c.env.STRIPE_SECRET_KEY,
+    StripeUtils.stripeOptions(c.env.STRIPE_API_URL),
+  )
+  return stripe.paymentMethods.list({ customer, type: 'card' })
+}
+`,
+      },
+      at: 'src/api.ts:5',
+      unread:
+        'its options are StripeUtils.stripeOptions(c.env.STRIPE_API_URL), which Refit cannot trace to an apiVersion',
+    },
+  ];
+  for (const sample of cases) {
+    const root = await repository({
+      'package.json': manifest('^20.0.0', TESTS),
+      'package-lock.json': npmLock('20.0.0'),
+      ...sample.files,
+    });
+    expect((await proposeStripeConfiguration(root)).stops).toEqual([
+      {
+        id: 'api-version-unreadable',
+        detail: `Refit cannot tell which Stripe API version the client at ${sample.at} uses: ${sample.unread}.`,
+        action: `Write the apiVersion at ${sample.at} as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).`,
+      },
+    ]);
+  }
+});
+
+it('names the request argument it cannot read, with the version every client sends', async () => {
+  // BeigeTechLA/beige-tech-mobile-web-api-2 src/services/payment.service.js
+  const root = await repository({
+    'package.json': manifest('^12.18.0', TESTS),
+    'package-lock.json': npmLock('12.18.0'),
+    'src/services/payment.service.js': `const config = require("../config/config");
+const stripe = require("stripe")(config.stripe.secretKey);
+
+const updatePayment = async (paymentId, updateObject) => {
+  const updatedPayment = await Payment.findByIdAndUpdate(paymentId, updateObject, { new: true }).exec();
+  if (updatedPayment) {
+    const updatedPaymentIntent = await stripe.paymentIntents.update(
+      updatedPayment.intent_id,
+      updateObject
+    );
+    return updatedPaymentIntent;
+  }
+};
+
+module.exports = { updatePayment };
+`,
+  });
+  expect((await proposeStripeConfiguration(root)).stops).toEqual([
+    {
+      id: 'api-version-unreadable',
+      detail:
+        'Refit cannot tell which Stripe API version the request at src/services/payment.service.js:7 uses: it passes updateObject, and Refit cannot tell whether that sets apiVersion.',
+      action:
+        'If updateObject sets no apiVersion, commit a .refit.json that sets "apiVersion": "2022-11-15", the version your clients send (docs/REPOSITORY-SETUP.md).',
+    },
+  ]);
+});
+
+it('reports an unreadable request together with clients and requests on different versions', async () => {
+  // deniaiapp/deni-ai: stripe-node 23 clients with no apiVersion, checkout requests pinned to dahlia,
+  // and a portal tool that passes computed parameters.
+  const root = await repository({
+    'package.json': manifest('^23.0.0', TESTS),
+    'package-lock.json': npmLock('23.0.0'),
+    'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./src/*'] } } }),
+    'src/lib/stripe.ts': `import Stripe from "stripe";
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY ?? "";
+
+export const stripe = new Stripe(stripeSecretKey);
+`,
+    'src/lib/stripe-checkout.ts': `import type Stripe from "stripe";
+
+export const customCheckoutRequestOptions: Stripe.RequestOptions = {
+  apiVersion: "2026-03-25.dahlia",
+};
+`,
+    'src/server/api/routers/billing.ts': `import { stripe } from "@/lib/stripe";
+import { customCheckoutRequestOptions } from "@/lib/stripe-checkout";
+
+export async function checkoutSession(checkoutSessionId: string) {
+  const session = await stripe.checkout.sessions.retrieve(
+    checkoutSessionId,
+    {},
+    customCheckoutRequestOptions,
+  );
+  return session;
+}
+`,
+    'tools/stripe-portal-setup.ts': `import Stripe from "stripe";
+
+const secret = process.env.STRIPE_SECRET_KEY ?? "";
+const stripe = new Stripe(secret);
+
+function portalConfigurationParams(): Stripe.BillingPortal.ConfigurationCreateParams {
+  return { name: "Deni AI (plan changes in app)", features: {} };
+}
+
+async function setup(existing?: { id: string }) {
+  const params = portalConfigurationParams();
+  const configuration = existing
+    ? await stripe.billingPortal.configurations.update(existing.id, params)
+    : await stripe.billingPortal.configurations.create(params);
+  return configuration;
+}
+
+void setup();
+`,
+  });
+  expect((await proposeStripeConfiguration(root)).stops).toEqual([
+    {
+      id: 'api-version-unreadable',
+      detail:
+        'Refit cannot tell which Stripe API version the request at tools/stripe-portal-setup.ts:13 uses: it passes params, and Refit cannot tell whether that sets apiVersion.',
+      action:
+        'If params sets no apiVersion, commit a .refit.json that sets the version your clients send (docs/REPOSITORY-SETUP.md).',
+    },
+    {
+      id: 'api-version-several',
+      detail:
+        "This repository sends more than one Stripe API version (2026-03-25.dahlia at src/server/api/routers/billing.ts:5; stripe-node 23.0.0's default 2026-09-30.endive at src/lib/stripe.ts:5, tools/stripe-portal-setup.ts:4), and Refit moves one version at a time.",
+      action:
+        'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
+    },
+  ]);
+});
+
+it('keeps the literal fix for a request that sets apiVersion from a variable', async () => {
+  // Constructed: no repository in the sample sets a request apiVersion this way.
+  const root = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'package-lock.json': npmLock('22.1.1'),
+    'src/lib/stripe.ts': QUILL,
+    'src/customers.ts': `import { stripe } from './lib/stripe';
+
+export function createCustomer(email: string, version: string) {
+  return stripe.customers.create({ email }, { apiVersion: version });
+}
+`,
+  });
+  expect((await proposeStripeConfiguration(root)).stops).toEqual([
+    {
+      id: 'api-version-unreadable',
+      detail:
+        'Refit cannot tell which Stripe API version the request at src/customers.ts:4 uses: it sets apiVersion: version, which Refit cannot trace to one version.',
+      action:
+        "Write the request's apiVersion at src/customers.ts:4 as a string literal, or remove it so the request uses the client's version, or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).",
+    },
+  ]);
 });
 
 it('stops when clients send different versions, naming each', async () => {
