@@ -556,8 +556,11 @@ export async function inspectRepositoryReadiness(options: {
     } else if (dependencies.check.status === 'blocked') {
       dependencies.check.action =
         preparationStop(dependencies.check.detail)?.action ?? dependencies.check.action;
-      if (report.generated)
-        dependencies.check.action += ` This repository commits no ${REPOSITORY_CONFIGURATION}: to change its settings, commit the generated one first (refit doctor --json prints it as generated.configuration).`;
+      if (report.generated) {
+        // The generated file names its contracts relative to itself, so they are committed with it.
+        const versions = [...new Set([report.generated.apiVersion.value, report.generated.target])];
+        dependencies.check.action += ` This repository commits no ${REPOSITORY_CONFIGURATION}: to change its settings, commit the generated one first (refit doctor --json prints it as generated.configuration) together with the contracts it names: run refit stripe-snapshot ${versions.map((version) => `--version ${version}`).join(' ')} --contracts . in the repository and commit refit/.`;
+      }
     }
     report.checks.push(dependencies.check);
   } else if (!workflow.prepareDependencies)

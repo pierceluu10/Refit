@@ -223,7 +223,7 @@ it.skipIf(!SAVED)(
     const dependencies = report.checks.find((check) => check.id === 'dependencies');
     expect(dependencies?.status).toBe('blocked');
     expect(dependencies?.action).toMatch(
-      /^Make the change the message names in the repository and commit it, or: In \.refit\.json, .* This repository commits no \.refit\.json: to change its settings, commit the generated one first \(refit doctor --json prints it as generated\.configuration\)\.$/,
+      /^Make the change the message names in the repository and commit it, or: In \.refit\.json, .* This repository commits no \.refit\.json: to change its settings, commit the generated one first \(refit doctor --json prints it as generated\.configuration\) together with the contracts it names: run refit stripe-snapshot --version \S+ --version \S+ --contracts \. in the repository and commit refit\/\.$/,
     );
   },
 );
