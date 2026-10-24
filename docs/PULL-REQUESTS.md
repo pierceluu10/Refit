@@ -55,7 +55,9 @@ When a watcher (`refit watch`, `refit serve` and the hosted worker) sees that st
 
 Until the next release, later commits are quiet: the watcher reports the target as already processed (`up-to-date`) and runs nothing. A pin someone moved without migrating the code, or a read Refit cannot trace, still stops for review and leaves the draft open. For an approved repository, the enrollment check accepts a client pin equal to the watcher's last captured target or its advanced baseline (`watchedApiVersions()` in `pipeline/watch.ts`), so the merged pin no longer blocks the next poll. Any other pin still stops there. The committed `.refit.json`, baseline and approval stay as they are.
 
-A new release that arrives before the watcher sees the merged code is compared with the old baseline, and stops for review on the pin. Retry the target once the merge is on the base branch.
+A new Stripe API version is a new target, even when the changes Refit maps are the same. If Refit's draft for the previous version is still open, the next release replaces it with one cumulative draft from the code's current version, and the older draft is closed with `Superseded by #N`. One exception has no automatic path: the newer release stops for review or fails its checks, so the older draft stays open, and someone merges that older draft. The code then sends a version that is neither the baseline nor the watcher's target, and enrollment stops on the pin. Approve a configuration whose baseline is the merged version.
+
+Tests: `pipeline/release-replay.test.ts` replays two releases through an approved `refit serve` target against simulated GitHub. Acacia → basil → endive use Stripe's published invoice excerpts and Checkout bodies shaped like Stripe's, with validation simulated by applying the real patch. It checks one draft per release, the advance after each merge, quiet polls in between, and one cumulative draft when the next release lands before a merge.
 
 Tests: `pipeline/draft-lifecycle.test.ts` (closing a resolved draft), `pipeline/watch.test.ts` (the advance, carried over to a job machine) and `pipeline/repository-enrollment.test.ts` (the accepted pin).
 
