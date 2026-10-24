@@ -115,6 +115,7 @@ export async function pollServiceTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  supersedeDrafts?: boolean;
   retry?: boolean;
   // Runs refit doctor on the approved checkout first; blocked setup stops before scanning.
   inspectReadiness?: boolean;
@@ -130,7 +131,10 @@ export async function pollServiceTarget(options: {
     aiPatch: options.aiPatch,
     repairAttempts: options.repairAttempts,
     publication: options.publishDraft
-      ? publicationConfiguration(target.repository, target.base, undefined, options.app)
+      ? {
+          ...publicationConfiguration(target.repository, target.base, undefined, options.app),
+          ...(options.supersedeDrafts ? { supersedeDrafts: true } : {}),
+        }
       : undefined,
     ...(options.notify ? { notify: { send: options.notify, repository: target.repository } } : {}),
   };
