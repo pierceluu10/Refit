@@ -925,27 +925,20 @@ export function analyzeRepository(
     if (!ts.isCallExpression(node)) continue;
     const call = sdkCall(node);
     if (!call) continue;
-    // Literal `expand` entries that walk through a removed field (stripe-expand-paths.ts) stop the
-    // run like a removed request parameter.
+    // Literal `expand` entries that walk through a removed field (stripe-expand-paths.ts) are
+    // findings no rule edits, so a patch keeps them unresolved and never publishes as validated.
     const expanded = provider.packageName === STRIPE.packageName ? responseCall(node) : undefined;
     if (expanded)
-      for (const hit of removedExpandPaths(node, expanded.schema, changes, schemaDefinitions)) {
-        const reason = removedExpandReason(hit);
+      for (const hit of removedExpandPaths(node, expanded.schema, changes, schemaDefinitions))
         findings.push({
           ...location(hit.node),
           changeId: hit.removal.id,
           expression: `${call.resource}.${call.method} expand '${hit.path}'`,
           confidence:
             !unsafe.has(clientBinding(call.client)!) && !call.optional ? 'confirmed' : 'review',
-          requestParameter: {
-            operationId: expanded.operationId ?? `${call.resource}.${call.method}`,
-            parameter: 'expand',
-          },
           ...helperEvidence(call.client),
-          contractReview: reason,
-          reason,
+          reason: removedExpandReason(hit),
         });
-      }
     for (const rule of requestPropertyRenames.filter(
       (entry) => entry.resource === call.resource && entry.method === call.method,
     )) {

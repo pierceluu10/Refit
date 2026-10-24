@@ -482,7 +482,8 @@ it('leaves invoice.subscription unresolved when it is expanded', async () => {
     `${mixed}
 export const paid = (id: string) => stripe.invoices.retrieve(id, { expand: ['subscription'] });`,
   );
-  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
+  // The read and the expand entry, which names the removed field (stripe-expand-paths.ts).
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 2 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain('+    return invoice.subscription;');
   expect(migrationReviewReason(report)).toMatch(/incoming API-version/);

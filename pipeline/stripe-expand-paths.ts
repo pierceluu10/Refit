@@ -8,7 +8,7 @@ import type { Removal } from './types.ts';
 // Expandable (https://docs.stripe.com/expand, read 2026-10-24), and basil's page moves this exact
 // expand to `confirmation_secret`
 // (https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices).
-// No offline check sees it, because only Stripe evaluates the request, so the call stops.
+// No offline check sees it, because only Stripe evaluates the request, so it stays unresolved.
 
 export interface RemovedExpandPath {
   node: ts.StringLiteralLike;
@@ -84,5 +84,5 @@ export function removedExpandPaths(
 export function removedExpandReason(hit: RemovedExpandPath) {
   const field = `${hit.removal.schema}.${hit.removal.property}`;
   const moved = STRIPE_MOVE_REVIEW[field];
-  return `This call expands '${hit.path}', but the target API version removed ${field}. Stripe expands only properties its API reference marks Expandable (https://docs.stripe.com/expand), and no offline check can show how Stripe answers this request on the new version, so moving the API version stops here.${moved ? ` ${moved}` : ''}`;
+  return `This call expands '${hit.path}', but the target API version removed ${field}. Stripe expands only properties its API reference marks Expandable (https://docs.stripe.com/expand), and no offline check can show how Stripe answers this request on the new version, so this read of the response cannot be migrated automatically and stays for review.${moved ? ` ${moved}` : ''}`;
 }

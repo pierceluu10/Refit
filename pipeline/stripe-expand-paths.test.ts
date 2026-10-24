@@ -1,6 +1,5 @@
 import { expect, it } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
-import { migrationReviewReason } from './migration-review.ts';
 import { STRIPE } from './providers.ts';
 import { findRemovedProperties } from './specifications.ts';
 
@@ -74,7 +73,7 @@ function analyze(content: string) {
   );
 }
 
-it('stops on literal expand paths through a removed field, from real benchmark snippets', () => {
+it('reports literal expand paths through a removed field, from real benchmark snippets', () => {
   // Ardione321/prep-ai backend/controller/payment.controller.ts:19-23 and 4NDR3S-01/TuSuerteEC
   // src/app/api/webhooks/stripe/route.ts:338, with a Checkout expand that still exists.
   const { findings, edits } = analyze(`import Stripe from 'stripe';
@@ -95,24 +94,16 @@ export async function session(id: string) {
 }
 `);
   expect(edits).toEqual([]);
-  const expands = findings.filter((finding) => finding.requestParameter?.parameter === 'expand');
+  const expands = findings.filter((finding) => finding.expression.includes(' expand '));
   expect(expands.map(({ line, expression, confidence }) => [line, expression, confidence])).toEqual(
     [
       [7, "subscriptions.create expand 'latest_invoice.payment_intent'", 'confirmed'],
       [12, "invoices.retrieve expand 'subscription'", 'confirmed'],
     ],
   );
-  expect(expands[0].requestParameter).toEqual({
-    operationId: 'PostSubscriptions',
-    parameter: 'expand',
-  });
   expect(expands[0].reason).toMatch(/removed invoice\.payment_intent/);
   // The documented client-secret replacement is named for the person who must decide.
   expect(expands[0].reason).toMatch(/confirmation_secret\.client_secret/);
-  // The run stops before any patch, AI or publication.
-  expect(
-    migrationReviewReason({ findings, skippedFiles: [], adapter: provider }, true, true, false),
-  ).toBeTruthy();
 });
 
 it('ignores dynamic expands, unknown paths and other providers', () => {
@@ -123,7 +114,5 @@ export const a = () => stripe.subscriptions.create({ customer: 'c', expand: fiel
 export const b = () => stripe.subscriptions.create({ customer: 'c', expand: ['latest_invoice.unknown.payment_intent'] });
 export const c = () => stripe.subscriptions.create({ customer: 'c', expand: ['latest_invoice'] });
 `);
-  expect(findings.filter((finding) => finding.requestParameter?.parameter === 'expand')).toEqual(
-    [],
-  );
+  expect(findings.filter((finding) => finding.expression.includes(' expand '))).toEqual([]);
 });
