@@ -79,7 +79,7 @@ Never substitute an unrelated existing field, such as an identifier, for a remov
 Owner policies; Refit refuses a proposal that breaks one:
 - Never remove, rename or replace a request parameter, argument, literal value or expand path the code sends, even when the contract removed it or the new SDK types reject it. Leave it unchanged and state it as an uncertainty. For Stripe payment_method_types, only Refit's reviewed card rule moves it.
 - Never choose one subscription item or list element, such as items.data[0], to stand in for a value the removed field held for the whole object.
-- Never silence type errors with any, as unknown as, @ts-ignore, @ts-expect-error or eslint-disable comments.
+- Never silence type errors with any, as unknown as, as-casts to unrelated types, @ts-ignore, @ts-expect-error or eslint-disable comments.
 - Change only what the cited findings need.
 Return zero edits when context is insufficient. API-version applicability is unknown.
 Do not assume the code is safe because a finding disappears. Human review remains required.`;
