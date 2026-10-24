@@ -105,6 +105,10 @@ fly deploy -a refit-hosted --image registry.fly.io/refit-hosted:deployment-<id>
 
 Then verify as after a deploy. The worker only adds tables and columns on boot, so an older image runs against a schema a newer one created. A rollback never undoes database rows.
 
+## Unchanged polls
+
+A scheduled poll first reads the base branch head through the GitHub API. If it, the approval fingerprint and the worker build match the target's last finished job, and that job's doctor result was ready and its contracts are committed files, the worker stores the earlier receipt with `unchangedSince: <job>` and logs `<status>: unchanged since job <job> at <revision>; nothing ran.` The job does not count against `REFIT_HOSTED_DAILY_JOBS`. A push to the base branch, a new approval or a deploy (a new `FLY_IMAGE_REF`) makes the next poll run in full; so does a change to `--ai-patch`, `OPENAI_MODEL`, `--repair-attempts` or `--publish-draft`. To rerun a target without any of those, [retry](#retry-a-job) it. Without `FLY_IMAGE_REF` (a local `refit hosted serve`), every poll runs.
+
 ## Retry a job
 
 **Live, and may spend.** A failed or interrupted result stays cached for its commit until an operator retries it.
@@ -121,7 +125,7 @@ There is no drain switch. On `SIGTERM` or `SIGINT` the worker stops claiming job
 
 To stop without interrupting work:
 
-1. `fly ssh console -C "refit hosted jobs --status running"`. Repeat until it lists nothing. A scheduled poll that finds nothing new is short; a job that validates can take most of an hour.
+1. `fly ssh console -C "refit hosted jobs --status running"`. Repeat until it lists nothing. A scheduled poll on an unchanged target takes about a second; a job that validates can take most of an hour.
 2. Deploy, restart or stop right away: enrolled targets are queued again every 5 minutes.
 3. If a job started in between, it is `interrupted`. [Retry](#retry-a-job) it.
 
