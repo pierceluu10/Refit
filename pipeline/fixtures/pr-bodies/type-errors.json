@@ -42,10 +42,7 @@
     "apiVersion": {
       "constructorArgument": 1,
       "property": "apiVersion",
-      "requestArguments": [
-        1,
-        2
-      ]
+      "requestArguments": [1, 2]
     }
   },
   "runId": "104527037b7cbe8867b5c1cfec5b5c49d9ffc3dcde8cdfa9ad9fdff1b3853a26",
@@ -192,16 +189,11 @@
     "sources": [
       {
         "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions",
-        "files": [
-          "app/api/create-checkout-session/route.ts"
-        ]
+        "files": ["app/api/create-checkout-session/route.ts"]
       },
       {
         "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end",
-        "files": [
-          "libs/supabaseAdmin.ts",
-          "libs/stripe-subscription-period.ts"
-        ]
+        "files": ["libs/supabaseAdmin.ts", "libs/stripe-subscription-period.ts"]
       }
     ],
     "unresolvedSites": [
@@ -298,26 +290,8 @@
       },
       "reused": false
     },
-    "command": [
-      "npx",
-      "--no-install",
-      "tsc",
-      "--noEmit",
-      "--pretty",
-      "false",
-      "-p",
-      "."
-    ],
-    "baselineCommand": [
-      "npx",
-      "--no-install",
-      "tsc",
-      "--noEmit",
-      "--pretty",
-      "false",
-      "-p",
-      "."
-    ],
+    "command": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
+    "baselineCommand": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
     "compareTypeErrors": true,
     "archiveHash": "4720daa1be0ee0eb6730ce3d525bc92b1effdb03ac8a9d96d29d4f6c100389cc",
     "patchHash": "f4063a1fbb645a1b4632cc0e5f98b4bacf8864ab1372840bd4916224f4a27c1b",

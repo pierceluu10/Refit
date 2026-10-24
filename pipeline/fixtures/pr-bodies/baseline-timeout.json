@@ -66,10 +66,7 @@
     "apiVersion": {
       "constructorArgument": 1,
       "property": "apiVersion",
-      "requestArguments": [
-        1,
-        2
-      ]
+      "requestArguments": [1, 2]
     }
   },
   "runId": "291e49f1a4074cce80ccf73c1f552adba76a69296c48331e5d738769a7ee4b8b",
@@ -467,9 +464,7 @@
           "rule": "stripe-subscription-periods-helper"
         },
         "schema": "subscription",
-        "eventTypes": [
-          "customer.subscription.updated"
-        ],
+        "eventTypes": ["customer.subscription.updated"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -495,9 +490,7 @@
           "rule": "stripe-subscription-periods-helper"
         },
         "schema": "subscription",
-        "eventTypes": [
-          "customer.subscription.updated"
-        ],
+        "eventTypes": ["customer.subscription.updated"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -515,10 +508,7 @@
       "expression": ".charge",
       "confidence": "review",
       "webhook": {
-        "eventTypes": [
-          "charge.dispute.created",
-          "charge.refunded"
-        ],
+        "eventTypes": ["charge.dispute.created", "charge.refunded"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -592,9 +582,7 @@
       "expression": ".charge",
       "confidence": "review",
       "webhook": {
-        "eventTypes": [
-          "charge.dispute.closed"
-        ],
+        "eventTypes": ["charge.dispute.closed"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -669,9 +657,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.payment_failed"
-        ],
+        "eventTypes": ["invoice.payment_failed"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -690,9 +676,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.payment_failed"
-        ],
+        "eventTypes": ["invoice.payment_failed"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -711,9 +695,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -732,9 +714,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -753,9 +733,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -774,9 +752,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -795,9 +771,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -816,9 +790,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -837,9 +809,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -858,9 +828,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -879,9 +847,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -900,9 +866,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -921,9 +885,7 @@
       "confidence": "confirmed",
       "webhook": {
         "schema": "invoice",
-        "eventTypes": [
-          "invoice.paid"
-        ],
+        "eventTypes": ["invoice.paid"],
         "origin": {
           "file": "server/routes/stripe-webhooks.js",
           "line": 83,
@@ -1051,10 +1013,7 @@
     "sources": [
       {
         "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end",
-        "files": [
-          "server/routes/stripe-webhooks.js",
-          "server/routes/stripe-subscription-period.js"
-        ]
+        "files": ["server/routes/stripe-webhooks.js", "server/routes/stripe-subscription-period.js"]
       }
     ],
     "unresolvedSites": [
@@ -1558,14 +1517,8 @@
       },
       "reused": false
     },
-    "command": [
-      "npm",
-      "test"
-    ],
-    "baselineCommand": [
-      "npm",
-      "test"
-    ],
+    "command": ["npm", "test"],
+    "baselineCommand": ["npm", "test"],
     "archiveHash": "a195926f96c8d682c746eb1119d9ace2b4d84babafcd9953df377b8e99e30961",
     "patchHash": "dd2d0482f3343a111c85bfeabf25e41d3631ed4976bf71f9fef8d9e766e79d3a",
     "baseline": {

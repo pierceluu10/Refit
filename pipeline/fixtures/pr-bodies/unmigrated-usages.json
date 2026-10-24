@@ -24,10 +24,7 @@
     "apiVersion": {
       "constructorArgument": 1,
       "property": "apiVersion",
-      "requestArguments": [
-        1,
-        2
-      ]
+      "requestArguments": [1, 2]
     }
   },
   "runId": "e657899d75bd444af4cc0889f15c63f8cf1a935a0135e4fb7ab945f78035d9b9",
@@ -179,9 +176,7 @@
     "sources": [
       {
         "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions",
-        "files": [
-          "app/api/stripe/checkout/route.ts"
-        ]
+        "files": ["app/api/stripe/checkout/route.ts"]
       },
       {
         "url": "https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects",
@@ -291,26 +286,8 @@
       },
       "reused": false
     },
-    "command": [
-      "npx",
-      "--no-install",
-      "tsc",
-      "--noEmit",
-      "--pretty",
-      "false",
-      "-p",
-      "."
-    ],
-    "baselineCommand": [
-      "npx",
-      "--no-install",
-      "tsc",
-      "--noEmit",
-      "--pretty",
-      "false",
-      "-p",
-      "."
-    ],
+    "command": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
+    "baselineCommand": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
     "compareTypeErrors": true,
     "archiveHash": "539217669c7f2ca5affb05ad1a2a6f6ee6befd75b28ca5c7e992404b1b2cb986",
     "patchHash": "f5e7b6b81d47c27c8ecd4d4ce55fd9dcaf42b712a0adc84985c70c1329464b6b",
