@@ -168,3 +168,12 @@ it.each([
     reviewLines({ 'lib/stripe.ts': `${client}\ndeclare const item: any;\n${source}` }).length,
   ).toBeGreaterThan(0);
 });
+
+it('keeps plan reads for review when an import of the same name cannot be resolved', () => {
+  expect(
+    reviewLines({
+      'config/stripe.ts': `${client}\n${plans}\nexport const current = PLANS.find((plan) => plan.name === "Pro")?.price;`,
+      'lib/sync.ts': `import { PLANS } from '@/config/stripe';\ndeclare const item: any;\nPLANS.push(item);`,
+    }),
+  ).toContain('config/stripe.ts:31');
+});

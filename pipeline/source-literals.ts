@@ -53,42 +53,57 @@ export function sourceLiterals(options: {
       ? unwrap(node.expression)
       : node;
   const references = new Map<ts.Symbol, ts.Identifier[]>();
+  // Names used where they resolve to no declaration in the scanned source: an import Refit could
+  // not resolve, a global, `require(…).NAME`. A constant of that name may be changed there unseen.
+  const unresolved = new Set<string>();
   for (const node of nodes) {
     if (!ts.isIdentifier(node)) continue;
     const binding = symbol(node);
     if (binding) references.set(binding, [...(references.get(binding) ?? []), node]);
+    const declaration = binding?.declarations?.[0];
+    if (
+      !declaration ||
+      ts.isImportSpecifier(declaration) ||
+      ts.isImportClause(declaration) ||
+      ts.isNamespaceImport(declaration) ||
+      ts.isImportEqualsDeclaration(declaration) ||
+      ts.isBindingElement(declaration)
+    )
+      unresolved.add(node.text);
   }
   const untouched = new Map<ts.Symbol, boolean>();
   // Every reference only reads the constant.
   function readOnly(binding: ts.Symbol) {
     if (untouched.has(binding)) return untouched.get(binding)!;
     untouched.set(binding, false);
-    const result = (references.get(binding) ?? []).every((reference) => {
-      const parent = reference.parent;
-      if (
-        (ts.isVariableDeclaration(parent) && parent.name === reference) ||
-        ts.isImportSpecifier(parent) ||
-        ts.isImportClause(parent) ||
-        ts.isExportSpecifier(parent)
-      )
-        return true;
-      let read: ts.Expression = reference;
-      while (ts.isParenthesizedExpression(read.parent) || ts.isNonNullExpression(read.parent))
-        read = read.parent;
-      const outer = read.parent;
-      if (ts.isForOfStatement(outer) && outer.expression === read) return true;
-      // `X.property`, `X[index]`, or `X.find(…)` and the other read-only methods.
-      if (
-        !(ts.isPropertyAccessExpression(outer) && outer.expression === read) &&
-        !(ts.isElementAccessExpression(outer) && outer.expression === read)
-      )
-        return false;
-      if (ts.isPropertyAccessExpression(outer) && ts.isCallExpression(outer.parent)) {
-        if (outer.parent.expression !== outer) return false;
-        if (!READ_METHODS.has(outer.name.text)) return false;
-      }
-      return !written(outer);
-    });
+    const result =
+      !unresolved.has(binding.name) &&
+      (references.get(binding) ?? []).every((reference) => {
+        const parent = reference.parent;
+        if (
+          (ts.isVariableDeclaration(parent) && parent.name === reference) ||
+          ts.isImportSpecifier(parent) ||
+          ts.isImportClause(parent) ||
+          ts.isExportSpecifier(parent)
+        )
+          return true;
+        let read: ts.Expression = reference;
+        while (ts.isParenthesizedExpression(read.parent) || ts.isNonNullExpression(read.parent))
+          read = read.parent;
+        const outer = read.parent;
+        if (ts.isForOfStatement(outer) && outer.expression === read) return true;
+        // `X.property`, `X[index]`, or `X.find(…)` and the other read-only methods.
+        if (
+          !(ts.isPropertyAccessExpression(outer) && outer.expression === read) &&
+          !(ts.isElementAccessExpression(outer) && outer.expression === read)
+        )
+          return false;
+        if (ts.isPropertyAccessExpression(outer) && ts.isCallExpression(outer.parent)) {
+          if (outer.parent.expression !== outer) return false;
+          if (!READ_METHODS.has(outer.name.text)) return false;
+        }
+        return !written(outer);
+      });
     untouched.set(binding, result);
     return result;
   }
