@@ -15,7 +15,11 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DEPENDENCY_TREE_CHECK, prepareDependencies } from './dependency-preparation.ts';
+import {
+  DEPENDENCY_TREE_CHECK,
+  GLIBC_PACKAGE_PRUNE,
+  prepareDependencies,
+} from './dependency-preparation.ts';
 import {
   dockerSandboxArguments,
   removeDockerContainer,
@@ -546,4 +550,73 @@ it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile'
     if (previous === undefined) delete process.env.REFIT_VALIDATION_WORKSPACE;
     else process.env.REFIT_VALIDATION_WORKSPACE = previous;
   }
+});
+
+it('removes glibc-only native packages npm installed on a musl image, and nothing else', async () => {
+  // nizzyabi/nizzy-starter at 66afada: its lockfile records no libc, so npm ci on node:22-alpine
+  // installed @next/swc and @swc/core for both libcs (253 of 1205 MiB), twice for react-email's Next.
+  const root = await mkdtemp(join(tmpdir(), 'refit-glibc-prune-test-'));
+  roots.push(root);
+  const manifests: Record<string, object> = {
+    'node_modules/@next/swc-linux-x64-gnu': {
+      name: '@next/swc-linux-x64-gnu',
+      os: ['linux'],
+      cpu: ['x64'],
+      libc: ['glibc'],
+    },
+    'node_modules/@next/swc-linux-x64-musl': {
+      name: '@next/swc-linux-x64-musl',
+      os: ['linux'],
+      cpu: ['x64'],
+      libc: ['musl'],
+    },
+    'node_modules/@swc/core-linux-x64-gnu': { name: '@swc/core-linux-x64-gnu', libc: ['glibc'] },
+    'node_modules/react-email/node_modules/@next/swc-linux-x64-gnu': {
+      name: '@next/swc-linux-x64-gnu',
+      libc: ['glibc'],
+    },
+    'node_modules/react-email/node_modules/next': { name: 'next', bin: { next: 'dist/bin/next' } },
+    'node_modules/not-musl': { name: 'not-musl', libc: ['!musl'] },
+    'node_modules/not-glibc': { name: 'not-glibc', libc: ['!glibc'] },
+    'node_modules/glibc-tool': { name: 'glibc-tool', libc: ['glibc'], bin: 'cli.js' },
+    'node_modules/stripe': { name: 'stripe', version: '17.7.0' },
+  };
+  for (const [directory, manifest] of Object.entries(manifests)) {
+    await mkdir(join(root, directory), { recursive: true });
+    await writeFile(join(root, directory, 'package.json'), JSON.stringify(manifest));
+  }
+  await mkdir(join(root, 'node_modules', 'broken'));
+  await writeFile(join(root, 'node_modules', 'broken', 'package.json'), '{');
+  const { stderr } = await execute(
+    process.execPath,
+    ['--input-type=module', '-e', GLIBC_PACKAGE_PRUNE],
+    { cwd: root },
+  );
+  console.log(stderr);
+  expect(stderr).toContain('REFIT_PRUNED_GLIBC_PACKAGES=4');
+  const remaining = async (directory: string) =>
+    stat(join(root, directory)).then(
+      () => true,
+      () => false,
+    );
+  const kept = Object.fromEntries(
+    await Promise.all(
+      [...Object.keys(manifests), 'node_modules/broken'].map(async (directory) => [
+        directory,
+        await remaining(directory),
+      ]),
+    ),
+  );
+  expect(kept).toEqual({
+    'node_modules/@next/swc-linux-x64-gnu': false,
+    'node_modules/@next/swc-linux-x64-musl': true,
+    'node_modules/@swc/core-linux-x64-gnu': false,
+    'node_modules/react-email/node_modules/@next/swc-linux-x64-gnu': false,
+    'node_modules/react-email/node_modules/next': true,
+    'node_modules/not-musl': false,
+    'node_modules/not-glibc': true,
+    'node_modules/glibc-tool': true,
+    'node_modules/stripe': true,
+    'node_modules/broken': true,
+  });
 });
