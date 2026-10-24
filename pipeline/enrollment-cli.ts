@@ -9,7 +9,7 @@ import { terminalText } from './workflow-presentation.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
-  'Usage: refit enroll --repository <clean-git-root> --github owner/repository --base main [--json]\nApprove after review: add --approve <exact-fingerprint> --output <new-receipt-outside-git.json>\nReads the committed root .refit.json, baseline and adapter without running app code, installing dependencies, contacting GitHub or requesting AI. Inspect the settings and files before approval. A receipt does not grant GitHub access, run a worker or enable AI/publication.';
+  'Usage: refit enroll --repository <clean-git-root> --github owner/repository --base main [--json]\nApprove after review: add --approve <exact-fingerprint> --output <new-receipt-outside-git.json>\nReads the committed root .refit.json, baseline and adapter without running app code, installing dependencies, contacting GitHub or requesting AI. With no .refit.json committed, it reviews the Stripe configuration Refit generates from the code, read with the contracts refit stripe-snapshot --version saved. Inspect the settings and files before approval. A receipt does not grant GitHub access, run a worker or enable AI/publication.';
 
 try {
   const { values } = parseArgs({

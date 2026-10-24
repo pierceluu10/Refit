@@ -17,6 +17,17 @@ refit enroll --repository ~/Repos/refit-billing-demo \
 
 This requires the reviewed configuration to exist in that checkout. The command prints the workflow settings, input files, reviewed commit and a full fingerprint. It does not execute the app, contact GitHub, install dependencies or request AI. `--json` produces a review record for automation or archiving. Review the commands, image, version pin, baseline and adapter files before approval. A fingerprint identifies the exact reviewed bytes; it does not establish their safety or migration semantics.
 
+## A repository with no `.refit.json`
+
+For a Stripe app on npm, pnpm or Yarn that commits no `.refit.json`, `refit enroll` reviews the configuration Refit generates from the code: the API version the code sends, contracts from Refit's pinned table and the repository's own checks ([how it is chosen](INSTALL.md#a-repository-with-no-refitjson)). Save the two contracts first; `refit doctor` prints the exact command:
+
+```sh
+refit stripe-snapshot --version <api-version> --version 2026-09-30.endive
+refit enroll --repository ~/Repos/app --github owner/app --base main
+```
+
+The review labels the configuration "Generated", lists the generated `.refit.json` and the saved before contract as its inputs, and fingerprints them exactly like committed files. Approval follows the same steps below. The fingerprint changes when the code's API version changes or Refit's table gains a newer target, and the worker then stops as `needs-review` until a new approval. If Refit cannot generate a configuration, enroll refuses with each reason and its fix; `refit doctor` reports them too. The service worker and approval issues do not generate configurations yet; until they do, commit one.
+
 ## Retain approval outside Git
 
 After review, rerun the same command with the **full fingerprint it printed**:
