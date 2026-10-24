@@ -461,7 +461,51 @@ export const checkout = (line_items) =>
 `;
 
 it.each([
-  ['in a variable the call receives', { 'checkout.js': builtInVariable }, 'checkout.js', 8],
+  [
+    'in a variable the call receives, with PayPal',
+    { 'checkout.js': builtInVariable.replace('["card"]', '["card", "paypal"]') },
+    'checkout.js',
+    8,
+  ],
+  [
+    'in a variable a wrapper receives',
+    {
+      'checkout.js': builtInVariable.replace(
+        'stripe.checkout.sessions.create(sessionPayload)',
+        'send(sessionPayload)',
+      ),
+    },
+    'checkout.js',
+    8,
+  ],
+  [
+    'in a variable that also reaches Payment Links',
+    {
+      'checkout.js': builtInVariable.replace(
+        'return session.url;',
+        'await stripe.paymentLinks.create(sessionPayload);\n  return session.url;',
+      ),
+    },
+    'checkout.js',
+    8,
+  ],
+  [
+    'in a function-scoped var',
+    { 'checkout.js': builtInVariable.replace('const sessionPayload', 'var sessionPayload') },
+    'checkout.js',
+    8,
+  ],
+  [
+    'in a variable whose list is reassigned',
+    {
+      'checkout.js': builtInVariable.replace(
+        'if (customerId) {',
+        "sessionPayload.payment_method_types = ['card', 'paypal'];\n  if (customerId) {",
+      ),
+    },
+    'checkout.js',
+    8,
+  ],
   [
     'in an exported config spread into the call',
     { 'checkout.js': spreadConfig, 'config.js': exportedConfig },
@@ -530,5 +574,17 @@ it('leaves a variable that only reaches an SDK call still accepting the paramete
 `,
   });
   expect(report.patch).toMatchObject({ status: 'proposed' });
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+it('renames an exact card list in a local body that only the Checkout call receives', async () => {
+  const report = await run({ 'checkout.js': builtInVariable });
+  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain('+    allowed_payment_method_types: ["card"],');
+  expect(report.patch.diff).toContain(
+    "+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-09-30.endive' });",
+  );
+  expect(report.patch.warnings).toContain(CARD_PAYMENT_METHOD_WARNING);
   expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
 });

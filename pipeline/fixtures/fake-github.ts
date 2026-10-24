@@ -29,6 +29,8 @@ const BOT_LOGIN = `${APP_SLUG}[bot]`;
 const BOT_ID = 7000;
 const CUSTOMER = { name: 'Customer', email: 'customer@example.test' };
 const PERSON = /^\w+ (.*) <([^>]*)> (\d+) [+-]\d{4}$/;
+const PERSON_LOGIN = 'customer';
+const COMPARE_PATH = /^\/compare\/([a-f0-9]{40})\.\.\.([a-f0-9]{40})$/;
 // Fixture Git commands ignore the developer's configuration; pushes into the bare remotes are local.
 const FIXTURE_GIT = {
   PATH: process.env.PATH,
@@ -84,6 +86,9 @@ export interface FakePull {
   state: 'open' | 'closed';
   merged: boolean;
   user: string;
+  // Who last closed or merged it, as GET …/issues/{number} reports in closed_by.
+  closedBy?: string;
+  reviews?: { user: string; commit: string }[];
 }
 
 interface IssuedToken {
@@ -136,6 +141,9 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
   const writes: { method: string; path: string; body: Record<string, unknown> }[] = [];
   const fetches: { repository: string; installation: number }[] = [];
   const deliveries = new Map<string, { event: string; body: string }>();
+  // Runs once, just before the next matching request is handled: a person acting between two of
+  // Refit's requests.
+  const interceptions: { method: string; path: string; action: () => Promise<void> }[] = [];
   let nextRepositoryId = FIRST_REPOSITORY_ID;
 
   function repository(owner: string, name: string) {
@@ -378,6 +386,40 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
     return pull;
   }
 
+  // GraphQL's updateRefs: every update's beforeOid is checked before any ref moves, so a lease
+  // either holds for all of them or none moves.
+  async function updateRefs(request: Record<string, unknown>, authorization?: string) {
+    const variables = request.variables as {
+      repositoryId: string;
+      refUpdates: { name: string; beforeOid?: string; afterOid: string; force?: boolean }[];
+    };
+    if (!String(request.query).includes('updateRefs'))
+      throw new Reply(400, 'Only the updateRefs mutation is simulated');
+    const target = [...repositories.values()].find(
+      (candidate) => `R_${candidate.id}` === variables.repositoryId,
+    );
+    if (!target)
+      return { data: { updateRefs: null }, errors: [{ message: 'Could not resolve to a node' }] };
+    authenticateInstallation(bearer(authorization), target, 'contents', 'write');
+    for (const update of variables.refUpdates) {
+      const branch = update.name.replace(/^refs\/heads\//, '');
+      const current = await branchTip(target, branch);
+      const refused =
+        !update.name.startsWith('refs/heads/') ||
+        !current ||
+        (update.beforeOid !== undefined && update.beforeOid !== current) ||
+        (!update.force && !(await isAncestor(target, current, update.afterOid)));
+      if (refused)
+        return {
+          data: { updateRefs: null },
+          errors: [{ message: `${update.name} does not point to ${update.beforeOid}` }],
+        };
+    }
+    for (const update of variables.refUpdates)
+      await moveBranch(target, update.name.replace(/^refs\/heads\//, ''), update.afterOid);
+    return { data: { updateRefs: { clientMutationId: null } } };
+  }
+
   async function api(
     method: string,
     path: string,
@@ -428,6 +470,8 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
         },
       ];
     }
+    if (method === 'POST' && path === '/graphql')
+      return [200, await updateRefs(json(body), authorization)];
     const match = REPOSITORY_PATH.exec(path);
     if (!match) throw new Reply(404, 'Not Found');
     const target = repository(match[1], match[2]);
@@ -453,6 +497,7 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
         200,
         {
           id: target.id,
+          node_id: `R_${target.id}`,
           full_name: target.fullName,
           private: true,
           archived: target.archived,
@@ -559,13 +604,51 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
       const request = json(body);
       if (typeof request.title === 'string') pull.title = request.title;
       if (typeof request.body === 'string') pull.body = request.body;
-      if (request.state === 'closed') pull.state = 'closed';
+      if (request.state === 'closed') Object.assign(pull, { state: 'closed', closedBy: BOT_LOGIN });
       if (request.state === 'open') {
         if (pull.merged || !(await branchTip(target, pull.head)))
           throw new Reply(422, 'Validation Failed: state cannot be changed');
         pull.state = 'open';
       }
       return [200, await pullRecord(target, pull, true)];
+    }
+    const comparison = COMPARE_PATH.exec(rest);
+    if (method === 'GET' && comparison) {
+      authenticateInstallation(token, target, 'contents', 'read');
+      const [, base, head] = comparison;
+      const status =
+        base === head
+          ? 'identical'
+          : (await isAncestor(target, base, head))
+            ? 'ahead'
+            : (await isAncestor(target, head, base))
+              ? 'behind'
+              : 'diverged';
+      return [200, { status }];
+    }
+    const reviews = /^\/pulls\/(\d+)\/reviews$/.exec(rest);
+    if (method === 'GET' && reviews) {
+      authenticateInstallation(token, target, 'pull_requests', 'read');
+      const pull = pullOf(target, Number(reviews[1]));
+      return [
+        200,
+        (pull.reviews ?? []).map((review, index) => ({
+          id: index + 1,
+          user: { login: review.user },
+          state: 'COMMENTED',
+          commit_id: review.commit,
+        })),
+      ];
+    }
+    const comment = /^\/issues\/comments\/(\d+)$/.exec(rest);
+    if (method === 'PATCH' && comment) {
+      const existing = target.comments[Number(comment[1]) - 1];
+      if (!existing) throw new Reply(404, 'Not Found');
+      authenticateInstallation(token, target, 'pull_requests', 'write');
+      if (existing.user !== BOT_LOGIN)
+        throw new Reply(403, 'Resource not accessible by integration');
+      existing.body = String(json(body).body);
+      return [200, { id: Number(comment[1]), body: existing.body }];
     }
     const permission = /^\/collaborators\/([^/]+)\/permission$/.exec(rest);
     if (method === 'GET' && permission) {
@@ -576,18 +659,37 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
     }
     const issue = /^\/issues(?:\/(\d+)(\/comments)?)?$/.exec(rest);
     // A pull request's conversation is its issue; pull request access may read and comment on it.
-    if (issue?.[2] && method === 'GET' && target.pulls.has(Number(issue[1]))) {
+    if (issue?.[1] && method === 'GET' && target.pulls.has(Number(issue[1]))) {
       authenticateInstallation(token, target, 'pull_requests', 'read');
+      const pull = pullOf(target, Number(issue[1]));
+      if (!issue[2])
+        return [
+          200,
+          {
+            number: pull.number,
+            state: pull.state,
+            closed_by: pull.closedBy ? { login: pull.closedBy } : null,
+            pull_request: { url: `${ISSUE_URL}/${target.fullName}/pull/${pull.number}` },
+          },
+        ];
       return [
         200,
         target.comments
-          .filter((comment) => comment.issue === Number(issue[1]))
-          .slice(0, Number(query.get('per_page') ?? 30))
-          .map((comment, index) => ({
-            id: index + 1,
-            body: comment.body,
-            user: { login: comment.user, type: comment.user === BOT_LOGIN ? 'Bot' : 'User' },
-          })),
+          .flatMap((comment, index) =>
+            comment.issue === pull.number
+              ? [
+                  {
+                    id: index + 1,
+                    body: comment.body,
+                    user: {
+                      login: comment.user,
+                      type: comment.user === BOT_LOGIN ? 'Bot' : 'User',
+                    },
+                  },
+                ]
+              : [],
+          )
+          .slice(0, Number(query.get('per_page') ?? 30)),
       ];
     }
     if (issue?.[2] && method === 'POST' && target.pulls.has(Number(issue[1]))) {
@@ -686,6 +788,10 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
     let parsed: Record<string, unknown> | undefined;
     try {
       const body = await readBody(request);
+      const interception = interceptions.findIndex(
+        (entry) => entry.method === method && entry.path === url.pathname,
+      );
+      if (interception >= 0) await interceptions.splice(interception, 1)[0].action();
       if (!url.pathname.startsWith('/git/') && body.length) parsed = json(body);
       if (url.pathname.startsWith('/git/')) status = await serveGit(request, response, url, body);
       else {
@@ -847,15 +953,45 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
         author: CUSTOMER,
       });
       await git(target, ['update-ref', `refs/heads/${pull.base}`, merged.sha]);
-      Object.assign(pull, { state: 'closed', merged: true, headSha: head });
+      Object.assign(pull, { state: 'closed', merged: true, headSha: head, closedBy: PERSON_LOGIN });
       return merged.sha;
     },
     // A person closes a pull request without merging it, or reopens it.
     closePull(fullName: string, number: number) {
-      pullOf(repositories.get(fullName.toLowerCase())!, number).state = 'closed';
+      Object.assign(pullOf(repositories.get(fullName.toLowerCase())!, number), {
+        state: 'closed',
+        closedBy: PERSON_LOGIN,
+      });
     },
     reopenPull(fullName: string, number: number) {
       pullOf(repositories.get(fullName.toLowerCase())!, number).state = 'open';
+    },
+    // A person reviews the pull request's current head.
+    review(fullName: string, number: number) {
+      const pull = pullOf(repositories.get(fullName.toLowerCase())!, number);
+      pull.reviews = [...(pull.reviews ?? []), { user: PERSON_LOGIN, commit: pull.headSha }];
+    },
+    // A person opens a pull request from an existing branch.
+    async openPull(fullName: string, head: string, base: string) {
+      const target = repositories.get(fullName.toLowerCase())!;
+      const pull: FakePull = {
+        number: target.next++,
+        title: 'A person opened this',
+        body: '',
+        head,
+        base,
+        baseSha: await revision(target, base),
+        headSha: await revision(target, head),
+        draft: false,
+        state: 'open',
+        merged: false,
+        user: PERSON_LOGIN,
+      };
+      target.pulls.set(pull.number, pull);
+      return pull.number;
+    },
+    beforeNext(method: string, path: string, action: () => Promise<void>) {
+      interceptions.push({ method, path, action });
     },
     // A person pushes the source's HEAD to a branch, as a customer adding commits to a draft does.
     async pushBranch(fullName: string, branch: string, source: string) {

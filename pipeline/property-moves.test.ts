@@ -238,10 +238,12 @@ it('leaves an expandable move for review when a request expands the old field', 
       `stripe.invoices.retrieve(id, { expand: ${expand} })`,
     ).replace('export async', `const fields = ['subscription'];\n\nexport async`);
     const report = await runPipeline(await inputs(source));
+    // A literal `expand: ['subscription']` is itself unresolved: the target no longer has the
+    // field (stripe-expand-paths.ts). `data.` paths and variables are not followed.
     expect(report.patch, expand).toMatchObject({
       status: 'unsupported',
       edits: 0,
-      unresolvedFindings: 1,
+      unresolvedFindings: expand === "['subscription']" ? 2 : 1,
     });
   }
 });
@@ -273,9 +275,10 @@ it('moves an expandable field whose new location holds only its ID string, unles
     'stripe.invoices.retrieve(id)',
     "stripe.invoices.retrieve(id, { expand: ['subscription'] })",
   );
+  // The read and the expand entry, which names the removed field (stripe-expand-paths.ts).
   expect((await runPipeline(await inputs(expanded, narrowed))).patch).toMatchObject({
     status: 'unsupported',
-    unresolvedFindings: 1,
+    unresolvedFindings: 2,
   });
 });
 

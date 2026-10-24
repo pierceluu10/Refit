@@ -1,5 +1,6 @@
 import { lstat } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
+import { declaresVersion } from './api-version.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
@@ -231,6 +232,9 @@ export async function inspectRepositoryReadiness(options: {
   config?: string;
   integration?: string;
   contracts?: string;
+  // Versions the service already watches this target from, such as a merged Refit draft's target.
+  // Code that declares one passes the API-version check, as it passes the approval check.
+  acceptedApiVersions?: string[];
 }): Promise<ReadinessReport> {
   const configurationPath = options.config
     ? resolve(options.config)
@@ -435,17 +439,23 @@ export async function inspectRepositoryReadiness(options: {
           'Resolve the repository tsconfig/jsconfig aliases and local extends inputs, then inspect the affected client usage before activation.',
       });
     scan.check.detail = `${evidence.repository.scannedFiles} source files inspected; adapter contracts resolved. ${workflow.latestStripe ? 'Latest Stripe source was not fetched; only the baseline was inspected.' : 'Both supplied contracts were inspected.'}`;
+    const watched =
+      evidence.apiVersion.applicability === 'matches-before'
+        ? undefined
+        : options.acceptedApiVersions?.find((version) =>
+            declaresVersion(evidence.apiVersion.source, version),
+          );
+    const versionPassed = evidence.apiVersion.applicability === 'matches-before' || watched;
     report.checks.push({
       id: 'api-version',
       title: 'Application API version',
-      status: evidence.apiVersion.applicability === 'matches-before' ? 'passed' : 'blocked',
-      detail: `${evidence.apiVersion.reason} ${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`,
-      action:
-        evidence.apiVersion.applicability === 'matches-before'
-          ? null
-          : evidence.apiVersion.application === null && evidence.apiVersion.before
-            ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
-            : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
+      status: versionPassed ? 'passed' : 'blocked',
+      detail: `${evidence.apiVersion.reason} ${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.${watched ? ` The code declares ${watched}, which this service already watches from, so the next poll continues from it.` : ''}`,
+      action: versionPassed
+        ? null
+        : evidence.apiVersion.application === null && evidence.apiVersion.before
+          ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
+          : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
     });
     if (workflow.latestStripe && !evidence.provenance.before)
       report.checks.push({
