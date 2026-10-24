@@ -129,19 +129,24 @@ it('logs a throttled job at error level and stores each job’s CPU steal in its
 });
 
 it('stores the receipt without CPU steal when /proc/stat cannot be read', async () => {
-  fake.claims = [job(3)];
+  // Job 3 cannot read /proc/stat at the start, job 4 only at the end.
+  fake.claims = [job(3), job(4)];
   const denied = Object.assign(new Error("EACCES: permission denied, open '/proc/stat'"), {
     code: 'EACCES',
   });
-  vi.mocked(readCpuTimes).mockRejectedValueOnce(denied).mockRejectedValueOnce(denied);
-  const { finished, lines } = await runJobs(1);
+  vi.mocked(readCpuTimes)
+    .mockRejectedValueOnce(denied)
+    .mockResolvedValueOnce({ steal: 100, total: 5000 })
+    .mockRejectedValueOnce(denied);
+  const { finished, lines } = await runJobs(2);
 
   console.log(JSON.stringify(lines, null, 2));
   expect(finished.map(([id, , status, receipt]) => [id, status, receipt])).toEqual([
     [3, 'finished', expect.not.objectContaining({ cpuSteal: expect.anything() })],
+    [4, 'finished', expect.not.objectContaining({ cpuSteal: expect.anything() })],
   ]);
   expect(lines.filter((line) => line.message.startsWith('CPU steal not measured:'))).toEqual([
     expect.objectContaining({ job: 3, level: 'error' }),
-    expect.objectContaining({ job: 3, level: 'error' }),
+    expect.objectContaining({ job: 4, level: 'error' }),
   ]);
 });
