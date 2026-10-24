@@ -326,6 +326,21 @@
         "upgradeComplete": "not needed for the webhook reads; the JavaScript client's literal pin moves without a stripe-node upgrade, which is the existing rule for JavaScript.",
         "wouldMerge": "not yet: the failing checks and the 47 unresolved findings come first."
       }
+    },
+    {
+      "repo": "boristenkes/shop.co",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40082113216 at 1b230db (F4 slice 1, #262); patch reproduced with refit scan --propose-patch from that run's adapter and contracts",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: promotionCodes.create in features/coupon/actions/create.ts:67 sends coupon: stripeCoupon.id, the ID returned by stripe.coupons.create two statements above; it moves to promotion: { type: 'coupon', coupon: stripeCoupon.id }, as the clover polymorphic-coupon page documents. payment_method_types: ['card'] in features/orders/actions/create.ts:90 takes the owner-approved card rule.",
+        "bothVersions": "not needed: the only client (lib/stripe.ts) moves its apiVersion literal from 2025-04-30.basil to 2026-09-30.endive in the same patch, and promotion codes are created, not read from webhooks.",
+        "nothingUnrelated": "yes: two request edits, one apiVersion literal, the stripe dependency and its pnpm lockfile entries (stripe 23.0.0 drops its qs dependency).",
+        "pleaseCheck": "tsc --noEmit passed before and after in offline Docker: the run reached the generated checks, which run only when both pass (pipeline/validation.ts:1190), and those failed with a missing stripe/stripe-mock image (infrastructure). Six review findings on the app's own couponValidation.coupon (features/orders/actions/create.ts:83-84) stay unresolved, so the draft would be [Needs review]. Create one promotion code in test mode.",
+        "upgradeComplete": "yes: stripe-node 18.1.1 to 23.0.0 in package.json and pnpm-lock.yaml, with the registry's integrity.",
+        "wouldMerge": "yes, after creating a promotion code once in test mode."
+      }
     }
   ]
 }
