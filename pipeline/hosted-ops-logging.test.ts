@@ -66,6 +66,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     allow: vi.fn(async () => ({ enrolled: [], cancelled: [] })),
     enqueueDue: vi.fn(async () => 0),
     claim: vi.fn(async () => fake.claims.shift() ?? null),
+    paused: vi.fn(async () => null),
     // The repository keeps its GitHub ID, so nothing is retired.
     retire: vi.fn(async () => false),
     // Lease renewal fails while job 2 runs, which must abort it.
@@ -202,6 +203,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     targets: [{ id: TARGET.id, installationId: '456', repository: TARGET.repository }],
     jobs: [{ targetId: TARGET.id }],
     inventories: [],
+    paused: null,
   });
   expect((await status('')).status).toBe(200);
   // A target's view reads only its repository's inventory; the full view reads every one.
