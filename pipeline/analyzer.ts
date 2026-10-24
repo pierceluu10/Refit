@@ -6,6 +6,7 @@ import { declaredApiVersions } from './declared-api-versions.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
+import { sourceLiterals } from './source-literals.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
 import { factoryClients, proxyClient } from './factory-clients.ts';
@@ -58,6 +59,7 @@ import {
   type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
 import { STRIPE_MOVE_REVIEW } from './stripe-field-moves.ts';
+import { removedExpandPaths, removedExpandReason } from './stripe-expand-paths.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -311,6 +313,7 @@ export function analyzeRepository(
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) =>
     modules.member(node) ?? canonical(checker.getSymbolAtLocation(node));
+  const literals = sourceLiterals({ nodes, symbol });
   const stripeTypes =
     provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
@@ -928,6 +931,20 @@ export function analyzeRepository(
     if (!ts.isCallExpression(node)) continue;
     const call = sdkCall(node);
     if (!call) continue;
+    // Literal `expand` entries that walk through a removed field (stripe-expand-paths.ts) are
+    // findings no rule edits, so a patch keeps them unresolved and never publishes as validated.
+    const expanded = provider.packageName === STRIPE.packageName ? responseCall(node) : undefined;
+    if (expanded)
+      for (const hit of removedExpandPaths(node, expanded.schema, changes, schemaDefinitions))
+        findings.push({
+          ...location(hit.node),
+          changeId: hit.removal.id,
+          expression: `${call.resource}.${call.method} expand '${hit.path}'`,
+          confidence:
+            !unsafe.has(clientBinding(call.client)!) && !call.optional ? 'confirmed' : 'review',
+          ...helperEvidence(call.client),
+          reason: removedExpandReason(hit),
+        });
     for (const rule of requestPropertyRenames.filter(
       (entry) => entry.resource === call.resource && entry.method === call.method,
     )) {
@@ -1068,22 +1085,45 @@ export function analyzeRepository(
       });
     }
   }
-  // A removed parameter set outside every traced SDK body stops for review (request-migration.ts).
-  for (const { property, removal } of untracedRemovedParameters(
+  // A removed parameter set outside every traced SDK body stops for review, unless it is an exact
+  // `['card']` in a local body only confirmed card-rule calls receive (request-migration.ts).
+  for (const { property, removal, rename } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
-    sdkCall,
+    (node) => {
+      const call = sdkCall(node);
+      return (
+        call && {
+          resource: call.resource,
+          method: call.method,
+          confirmed: !unsafe.has(clientBinding(call.client)!) && !call.optional,
+        }
+      );
+    },
     (node) => location(node).file,
-  ))
+  )) {
+    if (rename && ts.isPropertyAssignment(property)) {
+      const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
+      edits.push({
+        file: location(property).file,
+        start: property.name.getStart(),
+        end: property.name.getEnd(),
+        replacement: `${quote}${removal.cardReplacement}${quote}`,
+        changeId: removal.id,
+        rule: CARD_PAYMENT_METHOD_RULE,
+      });
+    }
     findings.push({
       ...location(property),
       changeId: removal.id,
-      expression: `${removal.parameter} outside a traced SDK request body`,
-      confidence: 'review',
+      expression: `${removal.parameter} ${rename ? 'in a local request body' : 'outside a traced SDK request body'}`,
+      confidence: rename ? 'confirmed' : 'review',
       requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
-      reason:
-        'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
+      reason: rename
+        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved card rule covers.'
+        : 'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
     });
+  }
   for (const node of nodes) {
     const operation = responseCall(node);
     if (!operation || !ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression))
@@ -1608,6 +1648,8 @@ export function analyzeRepository(
     const tracked = schema !== undefined;
     const webhook = webhooks?.origin(receiver);
     const provenance = sourceEvidence(receiver);
+    // An object the application writes as a literal (`PLANS.find(…).price`) is not a Stripe object.
+    if (!tracked && !provenance && !webhook && literals.literalObject(receiver)) return;
     const declaredType =
       provenance?.kind === 'declared-type' ||
       (provenance?.kind === 'unmapped-sdk' && Boolean(stripeTypes?.expressionSchema(receiver)));

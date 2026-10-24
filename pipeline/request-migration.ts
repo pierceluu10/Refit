@@ -73,32 +73,36 @@ export function removedParameterProperty(
 // Only top-level body keys count: a nested `payment_settings.payment_method_types` is still valid
 // on subscriptions and invoices. Test files send no production request, and an object value is a
 // schema definition such as Mongoose's `{ type: [String] }`, never a payment method list.
+// `rename` marks an exact `['card']` in a local variable that only reaches confirmed SDK calls of
+// the operations whose removal has the owner-approved card replacement: the same site as a
+// direct `create({ payment_method_types: ['card'] })`, so the card rule can rename it.
 export function untracedRemovedParameters(
   nodes: ts.Node[],
   removals: RequestParameterRemoval[],
-  sdkOperation: (call: ts.CallExpression) => { resource: string; method: string } | undefined,
+  sdkOperation: (
+    call: ts.CallExpression,
+  ) => { resource: string; method: string; confirmed: boolean } | undefined,
   file: (node: ts.Node) => string,
 ) {
   const removed = new Map(
     removals.filter((removal) => removal.cardReplacement).map((entry) => [entry.parameter, entry]),
   );
-  const removing = (parameter: string, call: ts.CallExpression) => {
+  const removalFor = (parameter: string, call: ts.CallExpression) => {
     const operation = sdkOperation(call);
-    return (
-      !operation ||
-      removals.some(
-        (entry) =>
-          entry.parameter === parameter &&
-          entry.resource === operation.resource &&
-          entry.method === operation.method,
-      )
-    );
+    return operation
+      ? removals.find(
+          (entry) =>
+            entry.parameter === parameter &&
+            entry.resource === operation.resource &&
+            entry.method === operation.method,
+        )
+      : undefined;
   };
   const argument = (node: ts.Node) =>
     ts.isCallExpression(node.parent) && node.parent.arguments.includes(node as ts.Expression);
-  // A local variable whose every use is a property access or a direct argument of a traced SDK
-  // call that still accepts the parameter, such as `stripe.paymentLinks.create(params)`.
-  const keptLocally = (object: ts.Expression, parameter: string) => {
+  // The traced SDK calls a local, non-exported variable is passed to, when every other use is a
+  // property access that is not the parameter itself; undefined when any use is anything else.
+  const localCalls = (object: ts.Expression, parameter: string) => {
     let value: ts.Node = object;
     while (
       ts.isParenthesizedExpression(value.parent) ||
@@ -112,29 +116,46 @@ export function untracedRemovedParameters(
       declaration.initializer !== value ||
       !ts.isIdentifier(declaration.name) ||
       !ts.isVariableDeclarationList(declaration.parent) ||
+      // `var` is function-scoped, so its uses can sit outside the enclosing block.
+      !(declaration.parent.flags & ts.NodeFlags.BlockScoped) ||
       !ts.isVariableStatement(declaration.parent.parent) ||
       declaration.parent.parent.modifiers?.some(
         (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
       )
     )
-      return false;
+      return undefined;
     const name = declaration.name.text;
-    let kept = true;
+    const calls: ts.CallExpression[] = [];
+    let local = true;
     const visit = (node: ts.Node): void => {
-      if (!kept) return;
+      if (!local) return;
       if (ts.isIdentifier(node) && node.text === name && node !== declaration.name) {
         const parent = node.parent;
-        kept =
-          (ts.isPropertyAccessExpression(parent) &&
+        if (argument(node) && sdkOperation(parent as ts.CallExpression))
+          calls.push(parent as ts.CallExpression);
+        else
+          local =
+            ts.isPropertyAccessExpression(parent) &&
             parent.expression === node &&
-            parent.name.text !== parameter) ||
-          (argument(node) && !removing(parameter, parent as ts.CallExpression));
+            parent.name.text !== parameter;
       } else ts.forEachChild(node, visit);
     };
-    visit(declaration.parent.parent.parent);
-    return kept;
+    const scope = declaration.parent.parent.parent;
+    // A `case` clause's declarations are in scope for every clause of its switch.
+    visit(ts.isCaseClause(scope) || ts.isDefaultClause(scope) ? scope.parent : scope);
+    return local ? calls : undefined;
   };
-  const sites: { property: ts.ObjectLiteralElementLike; removal: RequestParameterRemoval }[] = [];
+  const cardOnly = (node: ts.ObjectLiteralElementLike) =>
+    ts.isPropertyAssignment(node) &&
+    ts.isArrayLiteralExpression(node.initializer) &&
+    node.initializer.elements.length === 1 &&
+    ts.isStringLiteralLike(node.initializer.elements[0]) &&
+    node.initializer.elements[0].text === 'card';
+  const sites: {
+    property: ts.ObjectLiteralElementLike;
+    removal: RequestParameterRemoval;
+    rename?: true;
+  }[] = [];
   for (const node of nodes) {
     if (!(ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node))) continue;
     const name = propertyName(node.name);
@@ -146,11 +167,18 @@ export function untracedRemovedParameters(
       ts.isPropertyAssignment(node.parent.parent) ||
       // A traced SDK body is checked against its own operation by the analyzer.
       (argument(node.parent) && sdkOperation(node.parent.parent as ts.CallExpression)) ||
-      keptLocally(node.parent, removal.parameter) ||
       TEST_PATH.test(file(node))
     )
       continue;
-    sites.push({ property: node, removal });
+    const calls = localCalls(node.parent, removal.parameter);
+    // Only SDK calls that still accept the parameter, such as `stripe.paymentLinks.create(params)`.
+    if (calls?.every((call) => !removalFor(removal.parameter, call))) continue;
+    const targets = calls?.map((call) => removalFor(removal.parameter, call));
+    const rename =
+      cardOnly(node) &&
+      targets?.every((target) => target?.cardReplacement) &&
+      calls!.every((call) => sdkOperation(call)!.confirmed);
+    sites.push({ property: node, removal: targets?.[0] ?? removal, ...(rename ? { rename } : {}) });
   }
   return sites;
 }
