@@ -10,13 +10,14 @@ const TOKENS_PER_MILLION = 1_000_000;
 const DEFAULT_BUDGET_USD = 1;
 const MAX_BUDGET_USD = 1000;
 // Standard short-context text-token prices per million, from official OpenAI documentation
-// (gpt-5.4-mini verified 2026-10-12, gpt-5.6-luna 2026-10-15, gpt-5.6-terra and gpt-5.6-sol 2026-10-21 at
+// (gpt-5.4-mini verified 2026-10-12, gpt-5.6-luna 2026-10-15, gpt-5.6-terra and gpt-5.6-sol 2026-10-21, gpt-6.1-sol 2026-10-24 at
 // https://developers.openai.com/api/docs/pricing). OpenAI bills cache writes as input.
 const MODEL_PRICES: Record<string, AiPrices> = {
   'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, cacheWrite: 0.75, output: 4.5 },
   'gpt-5.6-luna': { input: 0.2, cachedInput: 0.02, cacheWrite: 0.2, output: 1.2 },
   'gpt-5.6-terra': { input: 2, cachedInput: 0.2, cacheWrite: 2, output: 12 },
   'gpt-5.6-sol': { input: 4, cachedInput: 0.4, cacheWrite: 4, output: 20 },
+  'gpt-6.1-sol': { input: 2, cachedInput: 0.1, cacheWrite: 2, output: 10 },
 };
 // Responses report a dated snapshot of the configured model, such as gpt-5.4-mini-2026-03-17.
 const SNAPSHOT = /-\d{4}-\d{2}-\d{2}$/;
