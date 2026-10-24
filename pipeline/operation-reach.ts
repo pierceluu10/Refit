@@ -11,6 +11,10 @@ import type { Finding, Removal, Repository } from './types.ts';
 // every traced use).
 export type Reach = 'reached' | 'unknown' | 'unused' | 'compatible' | 'handled';
 export const PASSING_REACH = new Set<unknown>(['unused', 'compatible', 'handled']);
+export const RESPONSE_REMOVALS = new Set([
+  'response-required-property-removed',
+  'response-optional-property-removed',
+]);
 export interface ChangeReach {
   reach: Reach;
   reachReason: string;
@@ -221,6 +225,8 @@ export interface ReachContext {
   // removed-field reads: confirmed where traced code reads it, review where an untraced read of
   // the same name may.
   readFindings: (removals: Removal[]) => Finding[];
+  // Removed fields Refit's own rules analyze: their findings decide whether the removal stops.
+  removals: Removal[];
   // Whether a kept rule edit rewrites the source at this offset.
   edited: (file: string, offset: number) => boolean;
 }
@@ -363,20 +369,28 @@ export function annotateReach(changes: Record<string, unknown>[], context: Reach
             reachReason:
               'The changed response property is not a property of a named Stripe object.',
           }
-        : confirmed
+        : RESPONSE_REMOVALS.has(id) &&
+            context.removals.some(
+              (removal) => removal.schema === owner.schema && removal.property === owner.property,
+            )
           ? {
-              reach: 'reached',
-              reachReason: `${confirmed.file}:${confirmed.line} reads \`${owner.schema}.${owner.property}\`.`,
+              reach: 'handled',
+              reachReason: `Refit's removed-field analysis covers \`${owner.schema}.${owner.property}\`; its findings decide this removal.`,
             }
-          : reads.length
+          : confirmed
             ? {
-                reach: 'unknown',
-                reachReason: `${reads[0].file}:${reads[0].line} reads \`${owner.property}\` on an object Refit cannot trace.`,
+                reach: 'reached',
+                reachReason: `${confirmed.file}:${confirmed.line} reads \`${owner.schema}.${owner.property}\`.`,
               }
-            : {
-                reach: 'unused',
-                reachReason: `No code reads \`${owner.schema}.${owner.property}\`.`,
-              };
+            : reads.length
+              ? {
+                  reach: 'unknown',
+                  reachReason: `${reads[0].file}:${reads[0].line} reads \`${owner.property}\` on an object Refit cannot trace.`,
+                }
+              : {
+                  reach: 'unused',
+                  reachReason: `No code reads \`${owner.schema}.${owner.property}\`.`,
+                };
     } else
       reach = { reach: 'unknown', reachReason: `Refit has no reach rule for \`${id}\` changes.` };
     Object.assign(change, reach);

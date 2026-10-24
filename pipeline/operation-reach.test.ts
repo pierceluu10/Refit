@@ -3,7 +3,7 @@ import { analyzeRepository } from './analyzer.ts';
 import { annotateReach, responsePropertyOwner } from './operation-reach.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
-import type { Repository } from './types.ts';
+import type { Removal, Repository } from './types.ts';
 
 // The shape of Stripe's spec3.json for the operations and objects below (stripe/openapi v2026
 // tags): Checkout Session creation, its line items, and the error body every operation returns.
@@ -107,6 +107,7 @@ function reach(
   changes: Record<string, unknown>[],
   untraced: string[] = [],
   edited: (file: string, offset: number) => boolean = () => false,
+  removals: Removal[] = [],
 ) {
   const repository: Repository = {
     root: '/application',
@@ -125,6 +126,7 @@ function reach(
     untracedCalls: () => untraced,
     readFindings: (removals) => analyzeRepository(repository, removals, provider, schemas).findings,
     edited,
+    removals,
   });
   return changes.map((change) => [change.reach, change.reachReason]);
 }
@@ -328,6 +330,48 @@ it('blocks a response change where code reads the property, traced or by the sam
       },
     ]),
   ).toEqual([['compatible', 'A response string may now be longer; reading it is unaffected.']]);
+});
+
+// Kanba-co/kanba app/api/stripe/webhook/route.ts, shortened: a period read on an untraced object.
+it('leaves a response removal Refit already analyzes to that analysis', () => {
+  const removed = {
+    id: 'response-required-property-removed',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/checkout/sessions',
+    text: 'removed the required property `total_details/amount_discount` from the response with the `200` status',
+  };
+  const source = `${AI_COMPANION}\nexport const discount = (totals) => totals.amount_discount;`;
+  const covered: Removal = {
+    id: 'subscription-period',
+    schema: 'payment_pages_checkout_session_total_details',
+    property: 'amount_discount',
+    pointer:
+      '/components/schemas/payment_pages_checkout_session_total_details/properties/amount_discount',
+  };
+  expect(reach(source, [{ ...removed }], [], () => false, [covered])).toEqual([
+    [
+      'handled',
+      "Refit's removed-field analysis covers `payment_pages_checkout_session_total_details.amount_discount`; its findings decide this removal.",
+    ],
+  ]);
+  expect(reach(source, [{ ...removed }])[0][0]).toBe('unknown');
+  // Only removals: the same property becoming nullable is still read for reach.
+  expect(
+    reach(
+      source,
+      [
+        {
+          ...removed,
+          id: 'response-property-became-nullable',
+          text: 'the response property `total_details/amount_discount` became nullable for the status `200`',
+        },
+      ],
+      [],
+      () => false,
+      [covered],
+    )[0][0],
+  ).toBe('unknown');
 });
 
 it('keeps blocking changes Refit has no reach rule for', () => {

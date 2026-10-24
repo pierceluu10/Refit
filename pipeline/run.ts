@@ -378,6 +378,7 @@ async function runOpenApiPipeline(options: {
           .map((site) => site.expression)),
       readFindings: (removals) =>
         analyzeRepository(repository, removals, provider, before.schemas).findings,
+      removals: changes,
       edited: (file, offset) =>
         edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
     });

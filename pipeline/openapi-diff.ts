@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import type { ProviderAdapter } from './providers.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import { isRemovedOperationChange } from './openapi-operations.ts';
-import { PASSING_REACH } from './operation-reach.ts';
+import { PASSING_REACH, RESPONSE_REMOVALS } from './operation-reach.ts';
 import { PipelineInputError } from './types.ts';
 import type { Removal, Finding, Location } from './types.ts';
 import {
@@ -23,10 +23,6 @@ const DIFF_TIMEOUT_MS = 30_000;
 // Raw oasdiff output; real Stripe version pairs report ~100,000 entries (~85 MB) before filtering.
 const MAX_DIFF_BYTES = 256 * 1024 * 1024;
 const RESPONSE_ENUM_ADDITION = 'response-property-enum-value-added';
-const RESPONSE_REMOVALS = new Set([
-  'response-required-property-removed',
-  'response-optional-property-removed',
-]);
 
 function responseRemovalLocation(change: Record<string, unknown>, before: object) {
   if (
