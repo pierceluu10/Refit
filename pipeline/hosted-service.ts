@@ -21,6 +21,7 @@ import { processApprovalIssues } from './hosted-approval.ts';
 import { openApprovalStore } from './hosted-approval-store.ts';
 import {
   failedOutcome,
+  type HostedOutcome,
   JOB_POLL_SECONDS,
   JOB_TIMEOUT_SECONDS,
   jobChannel,
@@ -35,7 +36,7 @@ import {
   hostedRedactor,
   type HostedLogContext,
 } from './hosted-ops.ts';
-import { openHostedStore, type HostedTarget } from './hosted-store.ts';
+import { openHostedStore, type HostedReceipt, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
   defaultRevision,
@@ -148,6 +149,8 @@ export async function runHostedService(options: {
   port?: number;
   intervalSeconds?: number;
   leaseSeconds?: number;
+  // The longest an in-VM job may run (default JOB_TIMEOUT_SECONDS, as for job machines).
+  jobTimeoutSeconds?: number;
   worker?: string;
   signal: AbortSignal;
   // Stops claiming new work: the running job finishes, then the service returns. `signal` still
@@ -178,6 +181,9 @@ export async function runHostedService(options: {
     throw new PipelineInputError('Service interval must be 30–86400 seconds.');
   if (!Number.isInteger(lease) || lease < MIN_LEASE_SECONDS)
     throw new PipelineInputError(`Worker leases must be at least ${MIN_LEASE_SECONDS} seconds.`);
+  const jobTimeout = options.jobTimeoutSeconds ?? JOB_TIMEOUT_SECONDS;
+  if (!Number.isInteger(jobTimeout) || jobTimeout < 1)
+    throw new PipelineInputError('The job timeout must be a whole number of seconds.');
   const worker = options.worker ?? `${hostname()}:${process.pid}`;
   // Logs, stored receipts and error responses never carry a credential, whatever produced the text.
   // `refit hosted serve` passes a redactor built from its whole environment; otherwise the
@@ -336,6 +342,30 @@ export async function runHostedService(options: {
         );
       return { cpuSteal: Math.round(steal * 100) / 100 };
     };
+    // finish refuses a job this worker no longer holds; say so instead of losing the receipt.
+    // `ran` is what a completed run adds: the approval and build a later poll compares.
+    const record = async (outcome: HostedOutcome, ran: Partial<HostedReceipt> = {}) => {
+      const receipt = redactReceipt({ ...outcome.receipt, ...ran, ...(await cpuSteal()) });
+      if (!(await store.finish(job, worker, outcome.status, receipt)))
+        progress(
+          `Receipt not stored: this worker no longer holds job ${job}; another worker reclaimed its lease, or it failed after repeated lease expiry. ${receipt.status}: ${receipt.message}`,
+          'error',
+        );
+    };
+    // A hung in-VM job would keep renewing its lease and hold its installation's only job slot.
+    // Job machines have their own timeout.
+    const deadline = new AbortController();
+    const timeout = jobs
+      ? undefined
+      : setTimeout(
+          () =>
+            deadline.abort(
+              new PipelineInputError(
+                `Job exceeded the ${jobTimeout}-second job timeout and was stopped.`,
+              ),
+            ),
+          jobTimeout * MILLISECONDS_PER_SECOND,
+        );
     const leaseMilliseconds = lease * MILLISECONDS_PER_SECOND;
     const renewEvery = leaseMilliseconds / RENEWALS_PER_LEASE;
     // The claim set the lease just before this job started.
@@ -415,7 +445,7 @@ export async function runHostedService(options: {
             app: options.app,
             directory,
             retry,
-            signal: controller.signal,
+            signal: AbortSignal.any([controller.signal, deadline.signal]),
             aiPatch: options.aiPatch && {
               ...options.aiPatch,
               ...(options.aiPatch.budget && {
@@ -443,17 +473,10 @@ export async function runHostedService(options: {
             notify: options.notify,
             onProgress: progress,
           });
-      await store.finish(
-        job,
-        worker,
-        outcome.status,
-        redactReceipt({
-          ...outcome.receipt,
-          fingerprint: target.approval.fingerprint,
-          ...(build && { build }),
-          ...(await cpuSteal()),
-        }),
-      );
+      await record(outcome, {
+        fingerprint: target.approval.fingerprint,
+        ...(build && { build }),
+      });
       // The receipt carries the error name from both runners, so a job machine's refusal counts too.
       if (options.approvalIssues && outcome.receipt.message?.startsWith('RepositoryApprovalError:'))
         await approvals.changed(target.repository);
@@ -463,16 +486,11 @@ export async function runHostedService(options: {
       );
     } catch (error) {
       if (!(error instanceof Error)) throw error;
-      const outcome = failedOutcome(error, controller.signal.aborted);
-      await store.finish(
-        job,
-        worker,
-        outcome.status,
-        redactReceipt({ ...outcome.receipt, ...(await cpuSteal()) }),
-      );
+      await record(failedOutcome(error, controller.signal.aborted));
       progress(`${error.name}: ${error.message}`, 'error');
     } finally {
       clearInterval(renewal);
+      clearTimeout(timeout);
       running.delete(job);
       options.signal.removeEventListener('abort', abort);
     }
