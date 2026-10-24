@@ -46,6 +46,8 @@ Refit keeps one draft per repository, base branch, integration and target API ve
 
 The evidence marker at the end of the body names the Refit release that wrote it. The watcher runs each job that ended with an open draft once more after a Refit upgrade; a current draft is found before generation, so only a `[Needs review]` draft from an earlier release is generated and validated again (with `--ai-patch`, that spends the AI budget once per draft per release).
 
+Otherwise Refit writes nothing to a draft whose job nothing has changed. With `refit serve --publish-draft --weekly-status`, which is off by default, it comments once a week on each such draft that is still open and still its own. The comment says the base commit and the newest contract are the same, so the patch and check results in the description still apply, and that Refit did not rerun the checks. The week counts from the job's end, then from the last comment (see [automation state](AUTOMATION.md#state-recovery-and-errors)).
+
 Refit recognizes its own commit by one parent and the App bot as both author and committer. It never merges, never marks a draft ready, and never writes to a draft a person closed. A run with a personal token cannot tell its own commit from a person's, so it reports an existing draft as it is and refuses to overwrite a branch without one. Other integrations in the same repository have their own drafts. Tests: `pipeline/draft-lifecycle.test.ts` runs each row against simulated GitHub with real Git objects.
 
 ## After the merge
