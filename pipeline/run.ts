@@ -11,7 +11,12 @@ import {
   renderFileReplacements,
 } from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
-import { invoicePreviewMove } from './stripe-invoice-preview.ts';
+import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
+import {
+  PRODUCT_MARKETING_FEATURES_RULE,
+  PROMOTION_CODE_PROMOTION_RULE,
+  REQUEST_MOVE_RULES,
+} from './stripe-request-moves.ts';
 import { propertyExists } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -57,6 +62,8 @@ import {
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   INVOICE_PRICE_ID_HELPER_RULE,
   CHECKOUT_SHIPPING_HELPER_RULE,
+  COUPON_ID_HELPER_RULE,
+  PRODUCT_FEATURES_HELPER_RULE,
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
@@ -205,8 +212,15 @@ async function runOpenApiPipeline(options: {
       'collected_information',
       'shipping_details',
     ]),
-    // The coupon ID and product features helpers, the mined request moves and the createPreview
-    // move have no entry: they stay review-only (owner decision, 2026-10-22).
+    // The mined read helpers read either API version (owner decision, 2026-10-24, overnight
+    // sign-off; docs/overnight/F4.md). The request moves and createPreview are set below.
+    [COUPON_ID_HELPER_RULE]:
+      propertyExists(after.schemas, ['promotion_code', 'promotion', 'coupon']) &&
+      propertyExists(after.schemas, ['discount', 'source', 'coupon']),
+    [PRODUCT_FEATURES_HELPER_RULE]: propertyExists(after.schemas, [
+      'product',
+      'marketing_features',
+    ]),
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   const versionEdits =
@@ -255,15 +269,24 @@ async function runOpenApiPipeline(options: {
   // allowed_payment_method_types. Without a patch request (validation preflight, scans) only the
   // pin is checked: the registry lookup for the upgrade runs when the patch is generated, and a
   // failed upgrade stops that run.
+  // The mined request moves follow the same rule. stripe-node has invoices.createPreview only from
+  // 15.6.0, so that rewrite needs the upgrade in JavaScript too.
   const patchRequested = Boolean(options.proposePatch || options.aiPatch);
+  const preview = analyzedEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
   const cardUpgrade =
     patchRequested &&
-    analyzedEdits.some((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '')) &&
+    analyzedEdits.some(
+      (edit) =>
+        PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') ||
+        REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
+        edit.rule === INVOICE_PREVIEW_RULE,
+    ) &&
     bumpsVersion &&
-    upgradeRequired &&
+    (upgradeRequired || preview) &&
     typeof targetVersion === 'string'
       ? await stripePackageUpgrade(repository.root, targetVersion)
       : undefined;
+  const upgraded = Boolean(cardUpgrade && 'upgrade' in cardUpgrade);
   // Every client that may send the renamed field must reach the target version: a dynamic or
   // unresolved pin can keep one on the version that rejects allowed_payment_method_types. A
   // client without the option moves with the stripe-node upgrade.
@@ -271,10 +294,11 @@ async function runOpenApiPipeline(options: {
     (entry) => entry.status !== 'unknown' || (entry.kind === 'constructor' && entry.absent),
   );
   movedTo[CARD_PAYMENT_METHOD_RULE] =
-    bumpsVersion &&
-    everyPinMoves &&
-    (!patchRequested || !upgradeRequired || Boolean(cardUpgrade && 'upgrade' in cardUpgrade));
+    bumpsVersion && everyPinMoves && (!patchRequested || !upgradeRequired || upgraded);
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
+  movedTo[PROMOTION_CODE_PROMOTION_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
+  movedTo[PRODUCT_MARKETING_FEATURES_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
+  movedTo[INVOICE_PREVIEW_RULE] = bumpsVersion && everyPinMoves && (!patchRequested || upgraded);
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);
@@ -292,6 +316,10 @@ async function runOpenApiPipeline(options: {
   for (const finding of analysis.findings)
     if (finding.requestParameter && editCovers(repository, edits, finding))
       delete finding.requestParameter;
+  // So does the removed upcoming invoice call a kept createPreview rewrite covers.
+  for (const finding of analysis.findings)
+    if (finding.changeId === INVOICE_PREVIEW_RULE && editCovers(repository, edits, finding))
+      delete finding.contractReview;
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
@@ -466,7 +494,9 @@ async function runOpenApiPipeline(options: {
     'generator' in patch &&
     (patch.generator === 'openai' || (ruleEdits.length > 0 && !configuredMigrationProposal));
   const upgrade =
-    bumpedVersion && upgradeRequired && typeof targetVersion === 'string'
+    bumpedVersion &&
+    (upgradeRequired || ruleEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE)) &&
+    typeof targetVersion === 'string'
       ? (cardUpgrade ?? (await stripePackageUpgrade(repository.root, targetVersion)))
       : undefined;
   const upgradedPatch =
