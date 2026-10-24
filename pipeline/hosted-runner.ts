@@ -83,6 +83,34 @@ export function failedOutcome(error: Error, aborted: boolean): HostedOutcome {
   };
 }
 
+// The receipt a scheduled poll stores instead of running, or null when the job must run. Only a
+// finished, ready job on the same commit, approval and worker build, with no fetched contract or
+// documentation, is reused. Job-machine receipts never carry liveContract, so they always run.
+export function unchangedReceipt(
+  previous: { job: number; status: string; receipt: HostedReceipt | null } | null,
+  current: { revision: string; fingerprint: string; build: string },
+): HostedReceipt | null {
+  const receipt = previous?.receipt;
+  if (
+    previous?.status !== 'finished' ||
+    !receipt ||
+    receipt.revision !== current.revision ||
+    receipt.fingerprint !== current.fingerprint ||
+    receipt.build !== current.build ||
+    receipt.liveContract !== false ||
+    receipt.readiness !== 'ready-for-validation'
+  )
+    return null;
+  if (receipt.unchangedSince) return receipt;
+  // The CLI prints the message, so it says which job did the work rather than repeating its claim.
+  return {
+    ...receipt,
+    message:
+      `Reused the receipt of job ${previous.job}: same commit, approval and worker build, so nothing ran. ${receipt.message ?? ''}`.trim(),
+    unchangedSince: previous.job,
+  };
+}
+
 // Runs one hosted job in this process. The in-VM worker and every job machine share it.
 export async function runHostedTarget(options: {
   target: HostedTarget;
@@ -124,6 +152,7 @@ export async function runHostedTarget(options: {
         ...summarizePoll(result),
         revision: 'checkout' in result ? result.checkout.revision : null,
         readiness: 'readiness' in result && result.readiness ? result.readiness.status : null,
+        ...('liveContract' in result ? { liveContract: result.liveContract !== false } : {}),
       },
     };
   } catch (error) {
