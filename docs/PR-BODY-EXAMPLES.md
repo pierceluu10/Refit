@@ -10,7 +10,7 @@ I read the 13 draft PRs Refit published under refit-dev (Signl, pci-update, podv
 |---|---|---|
 | Why: the provider's own page for the change | No draft links a Stripe changelog page; the only link offered is the OpenAPI spec. | Overview links each changelog page the rule or vendor note cites, including Stripe's Endive entry for `payment_method_types`. |
 | What changed, per file | 10 of 13 drafts list the lockfile with "Updates Stripe API usage for the new contract." The pinned API version and the SDK upgrade are not stated. | Key Changes states the pinned version move and `stripe` X → Y for the manifest and the lockfile. Code Changes names the lockfile instead of showing it. |
-| The exact checks and results | Stated, but nothing says when the command proves little (e.g. `node -e 0`). | Same gates, plus a checklist item to confirm the command exercises the patched code. |
+| The exact checks and results | Stated, but nothing says when the command proves little (e.g. `node -e 0`), and a failed validation says only "Validation did not pass (regression)." | Evidence Strength grades what ran: the repository's tests, a type check only, generated stripe-mock checks only, `node -e 0`, or nothing. A failed check is named with its side and exit code, and a type check with the first error the patch introduced. |
 | What was not verified | Not stated; a reviewer has to infer it from silence. | A Not Verified section: no request reached the provider, webhook endpoint versions, AI-written lines, SDK-internal requests, and what is still unmigrated. |
 | Each untraced site, with file and line | 9 of 13 drafts pack every untraced site into one Review sentence, up to 524 characters on one line. | A Left Unchanged section lists each site on its own line: 25 entries, then "and N more; every location is in report.json." |
 | How to roll back | Not stated. | A Rollback section: revert, plus the pinned version, the SDK version and the generated helper the revert restores or removes, and confirmation that Refit changed nothing outside the repository. |
@@ -20,7 +20,7 @@ I read the 13 draft PRs Refit published under refit-dev (Signl, pci-update, podv
 
 Still missing:
 
-- **Unmigrated confirmed usages are counted but not located.** The stored patch keeps only `unresolvedFindings` as a number, so the body says "migrate them ... using the locations in Refit's run report." Naming them needs the pipeline to record their sites.
+- **Unmigrated usages in stored reports are counted but not located.** Runs since 2026-10-24 store `patch.unresolvedSites`, and the body lists each one under Left Unchanged. The stored reports below predate that, so their bodies still point to Refit's run report.
 - **Stored reports from before 2026-10-21 do not count untraced reads as unresolved.** pci-update's stored `unresolvedFindings` is 0, so its regenerated title has no `[Needs review]` and its commit has no review line. A current run counts the read, so the same patch gets both.
 - **Breaking Changes can read "Recorded in the technical evidence."** That happens when the report has no change the body can describe; the template keeps the line.
 
@@ -28,13 +28,13 @@ Still missing:
 
 | Shape | Stored result | Characters | What it shows |
 |---|---|---|---|
-| [Validated deterministic patch](#validated-deterministic-patch) | refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit | 3,865 | The `['card']` rule, the API version pin and the stripe-node upgrade; checks passed. |
-| [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 6,208 | Published only with `--publish-unresolved`: the `webhook-api-version` waiver, with 2 webhook reads still unmigrated. |
-| [Untraced reads](#untraced-reads) | refit-stripe-active/run-6d4f38a, amahmood-pci/pci-update | 4,035 | One `.payment_intent` read Refit could not trace, left unchanged and listed with file and line. |
-| [AI patch](#ai-patch) | refit-stripe-benchmark/run-prs-all, webdevcody/thumbnail-critique | 4,707 | Lines written by `gpt-5.4-mini-2026-03-17` and checked by Refit, with the webhook waiver. |
+| [Validated deterministic patch](#validated-deterministic-patch) | refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit | 4,159 | The `['card']` rule, the API version pin and the stripe-node upgrade; checks passed. |
+| [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 6,450 | Published only with `--publish-unresolved`: the `webhook-api-version` waiver, with 2 webhook reads still unmigrated. |
+| [Untraced reads](#untraced-reads) | refit-stripe-active/run-6d4f38a, amahmood-pci/pci-update | 4,336 | One `.payment_intent` read Refit could not trace, left unchanged and listed with file and line. |
+| [AI patch](#ai-patch) | refit-stripe-benchmark/run-prs-all, webdevcody/thumbnail-critique | 4,876 | Lines written by `gpt-5.4-mini-2026-03-17` and checked by Refit, with the webhook waiver. |
 | [Model fix](#model-fix) | docs/benchmarks/2026-10-21-model-replacement-results.json, RiP3rQ/AI-Butler | 2,018 | **Simulated checks.** The stored validation for this repository is baseline-failed, so Refit never wrote this body. The four replacements are the stored ones; the checks are marked passed to show the body Refit publishes. |
-| [Shopify](#shopify) | refit-shopify-benchmark/run-1, samirjabib/shopify-apps-convex-template | 2,631 | Admin API pin moved from 2025-10 to 2026-04; no GraphQL documents in the app's own code. |
-| [Multi-integration collection](#multi-integration-collection) | refit-stripe-fresh/run-6d4f38a-c, tmachnacki/podvex | 4,528 | A real Stripe report rendered as the `stripe` integration of a collection. No stored run comes from a real repository with a collection, so the only collection-specific parts are the integration in Related Telemetry and the `refit-integration` marker. |
+| [Shopify](#shopify) | refit-shopify-benchmark/run-1, samirjabib/shopify-apps-convex-template | 2,748 | Admin API pin moved from 2025-10 to 2026-04; no GraphQL documents in the app's own code. |
+| [Multi-integration collection](#multi-integration-collection) | refit-stripe-fresh/run-6d4f38a-c, tmachnacki/podvex | 4,720 | A real Stripe report rendered as the `stripe` integration of a collection. No stored run comes from a real repository with a collection, so the only collection-specific parts are the integration in Related Telemetry and the `refit-integration` marker. |
 
 Every body is under the 16,000-character budget. A separate test adds 400 untraced sites and 120 long changed lines to the multi-integration report; that body cuts Code Changes to 40 lines, lists 25 sites and "and 375 more", and stays under the budget.
 
@@ -45,7 +45,7 @@ Regenerated from refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit. Th
 `````markdown
 ## Overview
 
-Stripe API 2026-09-30.endive removes request fields this code sends. A deterministic Refit rule migrates 1 confirmed usage in 1 file so the code keeps working after the upgrade. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
+Stripe API 2026-09-30.endive removes request fields this code sends. A deterministic Refit rule migrates 1 confirmed usage in 1 file. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
 
 ## API Impact & Spec Changes
 
@@ -59,6 +59,7 @@ Stripe API 2026-09-30.endive removes request fields this code sends. A determini
 - `package.json`: Upgrades `stripe` from `20.4.1` to `23.0.0`.
 - `package-lock.json`: Upgrades `stripe` from `20.4.1` to `23.0.0`.
 - Review: `allowed_payment_method_types` filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.
+- Review: Upgrades `stripe` across major versions, `20.4.1` to `23.0.0`; [its changelog](https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md) lists type and behavior changes the checks may not cover.
 
 ## Code Changes
 
@@ -98,13 +99,14 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 
+- Evidence Strength: **Type-checked only.** No code ran except the generated stripe-mock checks below.
 - Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` passed on the original and migrated code in offline Docker. Generated stripe-mock checks passed on 1 of 1 exported functions.
-- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 confirmed usages of the breaking changes remain.
+- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 usages of the breaking changes remain.
 - Security Scans: Not run.
 
 ## Not Verified
 
-- Refit made no request to Stripe. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.
+- Refit made no request to Stripe, and `npx --no-install tsc --noEmit --pretty false -p .` runs none of this repository's code; only the generated stripe-mock checks called any of it.
 - Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.
 
 ## Rollback
@@ -118,7 +120,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
 - [ ] Confirm cards stay enabled in the Stripe Dashboard.
-- [ ] Confirm `npx --no-install tsc --noEmit --pretty false -p .` exercises the code this patch changes, or add a test that does.
+- [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.
 
 ## Related Telemetry
 
@@ -141,9 +143,13 @@ This patch changes webhook handlers. Stripe sends webhooks in the API version se
 
 - `app/api/webhook/route.js:70` (`invoice_payment_succeeded`)
 
+## Usages left for you
+
+**Don't merge until you have migrated or checked each usage Refit left.** 2 usages of the breaking changes are still unmigrated: no rule changed them, and the checks passed without them. The locations are in Refit's run report.
+
 ## Overview
 
-Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 3 confirmed usages in 2 files so the code keeps working after the upgrade. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end), [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
+Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 3 confirmed usages in 2 files. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end), [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
 
 ## API Impact & Spec Changes
 
@@ -157,7 +163,6 @@ Stripe API 2026-09-30.endive removes fields this code reads and removes request 
 - `app/api/webhook/route.js`: Migrates reads of `subscription.current_period_end` to the documented new locations.
 - `lib/stripe.js`: Moves the pinned API version from `2023-08-16` to `2026-09-30.endive`.
 - `app/api/webhook/stripe-subscription-period.js`: Adds the generated helper that reads the removed fields under either API version.
-- Review: **2 confirmed usages of the breaking changes are still unmigrated.** The checks passed without them; migrate them before merging, using the locations in Refit's run report.
 - Review: `allowed_payment_method_types` filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.
 - Review: Uses the item the code already selects for items on different billing periods: `items.data[0]`.
 
@@ -217,15 +222,16 @@ New file `app/api/webhook/stripe-subscription-period.js`; see Files changed.
 
 ## Automated Verification Gates
 
+- Evidence Strength: **No meaningful check.** `node -e 0` runs no code and no generated check ran, so this shows only that the dependencies install and the patch applies.
 - Test Suite Output: `node -e 0` passed on the original and migrated code in offline Docker. Generated stripe-mock checks could not run any of 2 exported functions on their own.
-- Linter & Static Analysis: Not run; Refit rescanned the migrated code and 2 confirmed usages of the breaking changes remain.
+- Linter & Static Analysis: Not run; Refit rescanned the migrated code and 2 usages of the breaking changes remain.
 - Security Scans: Not run.
 
 ## Not Verified
 
-- Refit made no request to Stripe. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.
+- Refit made no request to Stripe, and `node -e 0` runs none of this repository's code.
 - Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.
-- 2 confirmed usages are still unmigrated.
+- 2 usages are still unmigrated.
 
 ## Rollback
 
@@ -239,8 +245,9 @@ New file `app/api/webhook/stripe-subscription-period.js`; see Files changed.
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
 - [ ] Set the webhook endpoint API version to `2026-09-30.endive` when you deploy, or confirm it already is.
 - [ ] Confirm cards stay enabled in the Stripe Dashboard.
-- [ ] Migrate the 2 confirmed usages Refit left unmigrated.
-- [ ] Confirm `node -e 0` exercises the code this patch changes, or add a test that does.
+- [ ] Migrate the 2 usages Refit left unmigrated.
+- [ ] Confirm the selected item is the one whose period this code needs when items bill on different periods (see Key Changes).
+- [ ] Run the code this patch changes, or add a test that does: `node -e 0` does not run it.
 
 ## Related Telemetry
 
@@ -257,9 +264,13 @@ New file `app/api/webhook/stripe-subscription-period.js`; see Files changed.
 Regenerated from refit-stripe-active/run-6d4f38a, amahmood-pci/pci-update. One `.payment_intent` read Refit could not trace, left unchanged and listed with file and line.
 
 `````markdown
+## Usages left for you
+
+**Don't merge until you have migrated or checked each usage Refit left.** Refit could not trace 1 read of removed field names to a Stripe object, so it left it unchanged; it is listed under Left Unchanged.
+
 ## Overview
 
-Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 1 confirmed usage in 1 file so the code keeps working after the upgrade. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
+Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 1 confirmed usage in 1 file. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
 
 ## API Impact & Spec Changes
 
@@ -273,7 +284,7 @@ Stripe API 2026-09-30.endive removes fields this code reads and removes request 
 - `package.json`: Upgrades `stripe` from `17.7.0` to `23.0.0`.
 - `package-lock.json`: Upgrades `stripe` from `17.7.0` to `23.0.0`.
 - Review: `allowed_payment_method_types` filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.
-- Review: Leaves 1 untraced read of removed field names unchanged for manual review; each is listed under Left Unchanged.
+- Review: Upgrades `stripe` across major versions, `17.7.0` to `23.0.0`; [its changelog](https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md) lists type and behavior changes the checks may not cover.
 
 ## Code Changes
 
@@ -303,8 +314,9 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 
+- Evidence Strength: **Type-checked only.** No code ran.
 - Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` passed on the original and migrated code in offline Docker. Generated stripe-mock checks could not run any of 1 exported functions on their own.
-- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 confirmed usages of the breaking changes remain, plus 1 untraced read of removed field names.
+- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 usages of the breaking changes remain, plus 1 untraced read of removed field names.
 - Security Scans: Not run.
 
 ## Left Unchanged
@@ -315,7 +327,7 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 
 ## Not Verified
 
-- Refit made no request to Stripe. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.
+- Refit made no request to Stripe, and `npx --no-install tsc --noEmit --pretty false -p .` runs none of this repository's code.
 - 1 untraced read was left unchanged; see Left Unchanged.
 
 ## Rollback
@@ -329,7 +341,7 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
 - [ ] Confirm cards stay enabled in the Stripe Dashboard.
 - [ ] Check each read under Left Unchanged.
-- [ ] Confirm `npx --no-install tsc --noEmit --pretty false -p .` exercises the code this patch changes, or add a test that does.
+- [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.
 
 ## Related Telemetry
 
@@ -352,9 +364,13 @@ This patch changes webhook handlers. Stripe sends webhooks in the API version se
 
 - `convex/stripe.ts:81` (`invoice.payment_succeeded`)
 
+## Usages left for you
+
+**Don't merge until you have migrated or checked each usage Refit left.** 1 usage of the breaking changes is still unmigrated: no rule changed it, and the checks passed without it. The locations are in Refit's run report.
+
 ## Overview
 
-Stripe API 2026-09-30.endive removes fields this code reads. AI (`gpt-5.4-mini-2026-03-17`), checked by Refit, migrates 3 confirmed usages in 1 file so the code keeps working after the upgrade. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md), [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md).
+Stripe API 2026-09-30.endive removes fields this code reads. AI (`gpt-5.4-mini-2026-03-17`), checked by Refit, migrates 3 confirmed usages in 1 file. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md), [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md).
 
 ## API Impact & Spec Changes
 
@@ -366,7 +382,6 @@ Stripe API 2026-09-30.endive removes fields this code reads. AI (`gpt-5.4-mini-2
 
 - `convex/stripe.ts`: Migrates reads of `subscription.current_period_end`, `invoice.subscription` to the documented new locations.
 - `convex/stripe-subscription-period.ts`: Adds the generated helper that reads the removed fields under either API version.
-- Review: **1 confirmed usage of the breaking changes is still unmigrated.** The checks passed without it; migrate it before merging, using the locations in Refit's run report.
 - Review: Uses the item the code already selects for items on different billing periods: `items.data[0]`.
 
 ## Code Changes
@@ -407,16 +422,17 @@ New file `convex/stripe-subscription-period.ts`; see Files changed.
 
 ## Automated Verification Gates
 
+- Evidence Strength: **Type-checked only.** No code ran.
 - Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` passed on the original and migrated code in offline Docker. Generated stripe-mock checks did not run.
-- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 1 confirmed usage of the breaking changes remain.
+- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 1 usage of the breaking changes remains.
 - Security Scans: Not run.
 
 ## Not Verified
 
-- Refit made no request to Stripe. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.
+- Refit made no request to Stripe, and `npx --no-install tsc --noEmit --pretty false -p .` runs none of this repository's code.
 - The AI-written lines are checked only by the commands above; read them as you would a teammate’s.
 - Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.
-- 1 confirmed usage is still unmigrated.
+- 1 usage is still unmigrated.
 
 ## Rollback
 
@@ -428,8 +444,9 @@ New file `convex/stripe-subscription-period.ts`; see Files changed.
 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
 - [ ] Set the webhook endpoint API version to `2026-09-30.endive` when you deploy, or confirm it already is.
-- [ ] Migrate the 1 confirmed usage Refit left unmigrated.
-- [ ] Confirm `npx --no-install tsc --noEmit --pretty false -p .` exercises the code this patch changes, or add a test that does.
+- [ ] Migrate the 1 usage Refit left unmigrated.
+- [ ] Confirm the selected item is the one whose period this code needs when items bill on different periods (see Key Changes).
+- [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.
 
 ## Related Telemetry
 
@@ -538,6 +555,7 @@ This app pins Shopify Admin API 2025-10. A deterministic Refit rule moves it to 
 
 ## Automated Verification Gates
 
+- Evidence Strength: **The repository's test command.** Refit does not measure whether it reaches the changed lines.
 - Test Suite Output: `npm test` passed on the original and migrated code in offline Docker.
 - Linter & Static Analysis: Not run; Refit rescanned the migrated code and every runtime Admin API pin is on 2026-04.
 - Security Scans: Not run.
@@ -574,7 +592,7 @@ Regenerated from refit-stripe-fresh/run-6d4f38a-c, tmachnacki/podvex. A real Str
 `````markdown
 ## Overview
 
-Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Refit rule migrates 1 confirmed usage in 1 file so the code keeps working after the upgrade. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).
+Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Refit rule migrates 1 confirmed usage in 1 file. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).
 
 ## API Impact & Spec Changes
 
@@ -588,6 +606,7 @@ Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Ref
 - `convex/stripe-subscription-period.ts`: Adds the generated helper that reads the removed fields under either API version.
 - `package.json`: Upgrades `stripe` from `16.5.0` to `23.0.0`.
 - `package-lock.json`: Upgrades `stripe` from `16.5.0` to `23.0.0`.
+- Review: Upgrades `stripe` across major versions, `16.5.0` to `23.0.0`; [its changelog](https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md) lists type and behavior changes the checks may not cover.
 
 ## Code Changes
 
@@ -659,13 +678,14 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 
+- Evidence Strength: **Type-checked only.** No code ran.
 - Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` passed on the original and migrated code in offline Docker. Generated stripe-mock checks did not run.
-- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 confirmed usages of the breaking changes remain.
+- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 usages of the breaking changes remain.
 - Security Scans: Not run.
 
 ## Not Verified
 
-- Refit made no request to Stripe. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.
+- Refit made no request to Stripe, and `npx --no-install tsc --noEmit --pretty false -p .` runs none of this repository's code.
 - Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.
 
 ## Rollback
@@ -679,7 +699,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 ## Reviewer Checklist
 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
-- [ ] Confirm `npx --no-install tsc --noEmit --pretty false -p .` exercises the code this patch changes, or add a test that does.
+- [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.
 
 ## Related Telemetry
 
@@ -703,8 +723,7 @@ Each draft's commit, regenerated from the same stored results (`pipeline/__snaps
 fix(stripe): move payment_method_types to allowed_payment_method_types
 
 Stripe API 2026-09-30.endive removes request fields this code sends. A
-deterministic Refit rule migrates 1 confirmed usage in 1 file so the
-code keeps working after the upgrade.
+deterministic Refit rule migrates 1 confirmed usage in 1 file.
 
 - lib/stripe.ts: Sends allowed_payment_method_types in place of the
   removed payment_method_types. Moves the pinned API version from
@@ -727,7 +746,7 @@ fix(stripe): migrate removed Stripe API fields
 
 Stripe API 2026-09-30.endive removes fields this code reads and removes
 request fields this code sends. A deterministic Refit rule migrates 3
-confirmed usages in 2 files so the code keeps working after the upgrade.
+confirmed usages in 2 files.
 
 - app/api/stripe/route.js: Sends allowed_payment_method_types in place
   of the removed payment_method_types.
@@ -756,7 +775,7 @@ fix(stripe): migrate removed API fields
 
 Stripe API 2026-09-30.endive removes fields this code reads and removes
 request fields this code sends. A deterministic Refit rule migrates 1
-confirmed usage in 1 file so the code keeps working after the upgrade.
+confirmed usage in 1 file.
 
 - api/stripe-checkout.js: Sends allowed_payment_method_types in place of
   the removed payment_method_types.
@@ -780,7 +799,7 @@ fix(stripe): migrate removed Stripe API fields
 
 Stripe API 2026-09-30.endive removes fields this code reads. AI
 (gpt-5.4-mini-2026-03-17), checked by Refit, migrates 3 confirmed usages
-in 1 file so the code keeps working after the upgrade.
+in 1 file.
 
 - convex/stripe.ts: Migrates reads of subscription.current_period_end,
   invoice.subscription to the documented new locations.
@@ -841,8 +860,7 @@ Refit-Run: a6212c5cfe66
 fix(stripe): migrate removed invoice.subscription reads
 
 Stripe API 2026-09-30.endive removes fields this code reads. A
-deterministic Refit rule migrates 1 confirmed usage in 1 file so the
-code keeps working after the upgrade.
+deterministic Refit rule migrates 1 confirmed usage in 1 file.
 
 - convex/stripe.ts: Migrates reads of invoice.subscription to the
   documented new locations. Moves the pinned API version from 2024-06-20

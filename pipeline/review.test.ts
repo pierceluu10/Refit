@@ -344,7 +344,7 @@ it('marks a draft with an untraced read for review and keeps it out of the confi
     '0 usages of the breaking changes remain, plus 1 untraced read of removed field names.',
   );
   expect(body).toContain(
-    'Leaves 1 untraced read of removed field names unchanged for manual review',
+    "## Usages left for you\n\n**Don't merge until you have migrated or checked each usage Refit left.** Refit could not trace 1 read of removed field names to a Stripe object, so it left it unchanged; it is listed under Left Unchanged.\n\n## Overview",
   );
   expect(body).not.toContain('still unmigrated');
 });
@@ -408,14 +408,14 @@ it('lists each usage the migrated code still has, counts a site once and names t
   const body = createReviewArtifacts(value).files['pull-request.md'];
   expect(body).toContain('A deterministic Refit rule migrates 0 of 1 confirmed usage in 1 file');
   expect(body).toContain(
-    '- Review: **1 usage of the breaking changes is still unmigrated.** Migrate it before merging, using the locations under Left Unchanged.',
+    "**Don't merge until you have migrated or checked each usage Refit left.** 1 usage of the breaking changes is still unmigrated: no rule changed it. It is listed under Left Unchanged. Refit could not trace 1 read",
   );
   expect(body).not.toContain('The checks passed without');
   expect(body).toContain(
     'Migrate each one before merging:\n\n- `billing.ts:14` reads `.charges` (`payment_intent.charges`)\n\nRefit could not trace',
   );
   // The two findings at legacy.ts:7 are one site everywhere the body counts them.
-  expect(body).toContain('Leaves 1 untraced read of removed field names');
+  expect(body).toContain('Refit could not trace 1 read of removed field names');
   expect(body).toContain('1 usage of the breaking changes remains, plus 1 untraced read of');
   expect(body).toContain('- 1 untraced read was left unchanged; see Left Unchanged.');
   expect(body).toContain(

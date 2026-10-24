@@ -280,11 +280,10 @@ function failedChecks(validation: Validation) {
 
 // How much a validation shows, from what ran; Refit does not measure which lines a repository's own
 // command reaches.
-function evidenceStrength(validation: Validation, generatedRan: number) {
+function evidenceStrength(validation: Validation, generated: boolean) {
   if (validation.status !== 'passed')
     return '**None.** The checks did not pass, so nothing in this patch is verified.';
   const command = validation.command.join(' ');
-  const generated = generatedRan > 0 && validation.generated?.patched.status === 'passed';
   if (command === NO_OP_CHECK)
     return generated
       ? `**Generated checks only.** ${code(command)} runs no code; only the generated stripe-mock checks below ran any.`
@@ -645,11 +644,6 @@ export function createReviewArtifacts(
       (entry) =>
         `Deprecated on ${after}, still served: ${code(entry.split(':')[0])}${plainText(entry.slice(entry.indexOf(':')))}`,
     ),
-    ...(unresolvedReads
-      ? [
-          `**${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated.** ${passed ? `The checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}; migrate` : 'Migrate'} ${unresolvedReads === 1 ? 'it' : 'them'} before merging, ${unmigrated?.length ? 'using the locations under Left Unchanged' : "using the locations in Refit's run report"}.`,
-        ]
-      : []),
     ...reasons,
     ...('reviewTypeErrors' in validation && validation.reviewTypeErrors?.length
       ? [
@@ -701,14 +695,23 @@ export function createReviewArtifacts(
       ),
     ),
   ];
-  if (untracedSites.length)
-    review.push(
-      `Leaves ${untracedSites.length} untraced read${untracedSites.length === 1 ? '' : 's'} of removed field names unchanged for manual review; each is listed under Left Unchanged.`,
-    );
   const unmigratedSites = (unmigrated ?? []).map((site) => {
     const entry = report.changes.find((candidate) => candidate.id === site.changeId);
     return `${code(`${site.file}:${site.line}`)} ${site.changeId.startsWith('request-parameter:') ? 'sends' : 'reads'} ${code(site.expression)}${entry ? ` (${code(`${entry.schema}.${entry.property}`)})` : ''}`;
   });
+  // Why a [Needs review] draft needs review opens the body; the checklist at the end has the actions.
+  const usagesLeft = [
+    ...(unresolvedReads
+      ? [
+          `${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated: no rule changed ${unresolvedReads === 1 ? 'it' : 'them'}${passed ? `, and the checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}` : ''}. ${unmigratedSites.length ? `${unresolvedReads === 1 ? 'It is' : 'Each is'} listed under Left Unchanged.` : "The locations are in Refit's run report."}`,
+        ]
+      : []),
+    ...(untracedSites.length
+      ? [
+          `Refit could not trace ${untracedSites.length} read${untracedSites.length === 1 ? '' : 's'} of removed field names to a ${plainText(provider)} object, so it left ${untracedSites.length === 1 ? 'it unchanged; it is' : 'them unchanged; each is'} listed under Left Unchanged.`,
+        ]
+      : []),
+  ];
   // Provider pages that document the change, from the rule's source and attached vendor notes.
   const sourceUrls = [
     ...new Set(
@@ -722,6 +725,7 @@ export function createReviewArtifacts(
   const sources = sourceUrls.map((url) => link(url)!);
   // An entry that failed on the original code (missing module, unmocked service) proves nothing.
   const generatedRan = generated ? generated.entryPoints.length - generated.notRunnable.length : 0;
+  const generatedPassed = generatedRan > 0 && generated?.patched.status === 'passed';
   const generatedResult = generated
     ? generated.patched.status === 'not-run'
       ? ' Generated stripe-mock checks did not run.'
@@ -737,7 +741,7 @@ export function createReviewArtifacts(
     ranCode
       ? `Refit made no request to ${plainText(provider)}. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.`
       : passed
-        ? `Refit made no request to ${plainText(provider)}, and ${commandText(validation.command)} runs none of this repository's code.`
+        ? `Refit made no request to ${plainText(provider)}, and ${commandText(validation.command)} runs none of this repository's code${generatedPassed ? '; only the generated stripe-mock checks called any of it' : ''}.`
         : `Refit made no request to ${plainText(provider)}, and the checks did not pass or did not run on this patch.`,
     ...(ai
       ? [
@@ -888,6 +892,12 @@ export function createReviewArtifacts(
             ),
           ]
         : []),
+      ...(usagesLeft.length
+        ? [
+            '## Usages left for you',
+            `**Don't merge until you have migrated or checked each usage Refit left.** ${usagesLeft.join(' ')}`,
+          ]
+        : []),
       '## Overview',
       shopify
         ? overview
@@ -909,7 +919,7 @@ export function createReviewArtifacts(
         : []),
       '## Automated Verification Gates',
       [
-        `- Evidence Strength: ${evidenceStrength(validation, generatedRan)}`,
+        `- Evidence Strength: ${evidenceStrength(validation, generatedPassed)}`,
         `- Test Suite Output: ${checks}${generatedResult}`,
         ...(legacyPeerDeps
           ? [

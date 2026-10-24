@@ -61,7 +61,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Not Verified
 
-- Refit made no request to Stripe, and `npx --no-install tsc --noEmit --pretty false -p .` runs none of this repository's code.
+- Refit made no request to Stripe, and `npx --no-install tsc --noEmit --pretty false -p .` runs none of this repository's code; only the generated stripe-mock checks called any of it.
 - Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.
 
 ## Rollback

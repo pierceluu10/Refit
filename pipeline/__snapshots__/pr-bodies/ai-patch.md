@@ -4,6 +4,10 @@ This patch changes webhook handlers. Stripe sends webhooks in the API version se
 
 - `convex/stripe.ts:81` (`invoice.payment_succeeded`)
 
+## Usages left for you
+
+**Don't merge until you have migrated or checked each usage Refit left.** 1 usage of the breaking changes is still unmigrated: no rule changed it, and the checks passed without it. The locations are in Refit's run report.
+
 ## Overview
 
 Stripe API 2026-09-30.endive removes fields this code reads. AI (`gpt-5.4-mini-2026-03-17`), checked by Refit, migrates 3 confirmed usages in 1 file. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end.md), [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects.md).
@@ -18,7 +22,6 @@ Stripe API 2026-09-30.endive removes fields this code reads. AI (`gpt-5.4-mini-2
 
 - `convex/stripe.ts`: Migrates reads of `subscription.current_period_end`, `invoice.subscription` to the documented new locations.
 - `convex/stripe-subscription-period.ts`: Adds the generated helper that reads the removed fields under either API version.
-- Review: **1 usage of the breaking changes is still unmigrated.** The checks passed without it; migrate it before merging, using the locations in Refit's run report.
 - Review: Uses the item the code already selects for items on different billing periods: `items.data[0]`.
 
 ## Code Changes

@@ -4,6 +4,10 @@ This patch changes webhook handlers. Stripe sends webhooks in the API version se
 
 - `app/api/webhook/route.js:70` (`invoice_payment_succeeded`)
 
+## Usages left for you
+
+**Don't merge until you have migrated or checked each usage Refit left.** 2 usages of the breaking changes are still unmigrated: no rule changed them, and the checks passed without them. The locations are in Refit's run report.
+
 ## Overview
 
 Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 3 confirmed usages in 2 files. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end), [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
@@ -20,7 +24,6 @@ Stripe API 2026-09-30.endive removes fields this code reads and removes request 
 - `app/api/webhook/route.js`: Migrates reads of `subscription.current_period_end` to the documented new locations.
 - `lib/stripe.js`: Moves the pinned API version from `2023-08-16` to `2026-09-30.endive`.
 - `app/api/webhook/stripe-subscription-period.js`: Adds the generated helper that reads the removed fields under either API version.
-- Review: **2 usages of the breaking changes are still unmigrated.** The checks passed without them; migrate them before merging, using the locations in Refit's run report.
 - Review: `allowed_payment_method_types` filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.
 - Review: Uses the item the code already selects for items on different billing periods: `items.data[0]`.
 

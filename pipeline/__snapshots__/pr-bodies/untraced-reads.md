@@ -1,3 +1,7 @@
+## Usages left for you
+
+**Don't merge until you have migrated or checked each usage Refit left.** Refit could not trace 1 read of removed field names to a Stripe object, so it left it unchanged; it is listed under Left Unchanged.
+
 ## Overview
 
 Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 1 confirmed usage in 1 file. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
@@ -15,7 +19,6 @@ Stripe API 2026-09-30.endive removes fields this code reads and removes request 
 - `package-lock.json`: Upgrades `stripe` from `17.7.0` to `23.0.0`.
 - Review: `allowed_payment_method_types` filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.
 - Review: Upgrades `stripe` across major versions, `17.7.0` to `23.0.0`; [its changelog](https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md) lists type and behavior changes the checks may not cover.
-- Review: Leaves 1 untraced read of removed field names unchanged for manual review; each is listed under Left Unchanged.
 
 ## Code Changes
 
