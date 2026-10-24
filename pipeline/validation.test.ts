@@ -1,10 +1,10 @@
 import { execFile } from 'node:child_process';
-import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { validateMigration } from './validation.ts';
+import { sandboxInput, validateMigration } from './validation.ts';
 import { digest } from './specifications.ts';
 import { runWorkflow } from './workflow.ts';
 
@@ -652,3 +652,11 @@ it.skipIf(!IMAGE).each(['validated', 'regression', 'published', 'publication-err
   },
   60_000,
 );
+
+it('makes folders mounted into the sandbox readable by its unprivileged user', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-sandbox-input-'));
+  directories.push(root);
+  const directory = await sandboxInput(root, 'candidate-');
+  expect(directory.startsWith(join(root, 'candidate-'))).toBe(true);
+  expect((await stat(directory)).mode & 0o777).toBe(0o755);
+});

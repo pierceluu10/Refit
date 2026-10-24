@@ -2,7 +2,7 @@ import { migrationReviewReason, withoutRequestParameters } from './migration-rev
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -312,6 +312,14 @@ async function extractSnapshot(repository: string, revision: string, root: strin
   return { archive, archiveHash: digest(archiveResult.stdout), baselineDirectory };
 }
 
+// The sandbox runs as an unprivileged user, so a folder it mounts must be readable by others;
+// mkdtemp creates mode 700, which only Docker Desktop on macOS lets through.
+export async function sandboxInput(root: string, prefix: string) {
+  const directory = await mkdtemp(join(root, prefix));
+  await chmod(directory, 0o755);
+  return directory;
+}
+
 async function applyPatch(archive: string, directory: string, patch: string, diff: string) {
   await command('tar', ['-xf', archive, '-C', directory]);
   await writeFile(patch, diff);
@@ -447,7 +455,7 @@ async function generatedStripeChecks(options: {
   signal?: AbortSignal;
 }) {
   const { entries, uncovered } = options.entryPoints;
-  const tools = await mkdtemp(join(options.root, 'generated-'));
+  const tools = await sandboxInput(options.root, 'generated-');
   const mock = await extractStripeMock(options.settings.stripeMockImage, tools);
   const fixtures = {
     before: options.settings.beforeFixtures,
@@ -645,7 +653,7 @@ export async function validateMigration(options: {
             const { patch } = await proposed;
             const diff = 'diff' in patch ? patch.diff : '';
             if (!diff || !packageDiff(diff)) return undefined;
-            const directory = await mkdtemp(join(root, 'candidate-'));
+            const directory = await sandboxInput(root, 'candidate-');
             await applyPatch(archive, directory, `${directory}.patch`, diff);
             return {
               directory,
@@ -702,7 +710,7 @@ export async function validateMigration(options: {
       // The install started with the proposal, for this diff, when the patch changes the lockfile.
       const installed = install && (await install);
       // Reusing a removed bind-mount path can expose a stale directory in Docker Desktop.
-      const patchedDirectory = installed?.directory ?? (await mkdtemp(join(root, 'candidate-')));
+      const patchedDirectory = installed?.directory ?? (await sandboxInput(root, 'candidate-'));
       if (!installed)
         await applyPatch(archive, patchedDirectory, `${patchedDirectory}.patch`, diff);
       // An SDK upgrade in the patch needs dependencies prepared from the patched lockfile, which
