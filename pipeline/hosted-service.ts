@@ -272,6 +272,8 @@ export async function runHostedService(options: {
         if (!isDatabaseUnavailable(error)) throw error;
         await unavailable(error);
         options.signal.throwIfAborted();
+        // A worker told to stop before it reached PostgreSQL has no running job to wait for.
+        options.drain?.throwIfAborted();
       }
   };
   const store = await openStore();
@@ -343,15 +345,16 @@ export async function runHostedService(options: {
         );
       return { cpuSteal: Math.round(steal * 100) / 100 };
     };
-    // finish refuses a job this worker no longer holds; say so instead of losing the receipt.
+    // finish and reuse refuse a job this worker no longer holds; say so instead of losing the receipt.
+    const notStored = (receipt: HostedReceipt) =>
+      progress(
+        `Receipt not stored: this worker no longer holds job ${job}; another worker reclaimed its lease, or it failed after repeated lease expiry. ${receipt.status}: ${receipt.message}`,
+        'error',
+      );
     // `ran` is what a completed run adds: the approval and build a later poll compares.
     const record = async (outcome: HostedOutcome, ran: Partial<HostedReceipt> = {}) => {
       const receipt = redactReceipt({ ...outcome.receipt, ...ran, ...(await cpuSteal()) });
-      if (!(await store.finish(job, worker, outcome.status, receipt)))
-        progress(
-          `Receipt not stored: this worker no longer holds job ${job}; another worker reclaimed its lease, or it failed after repeated lease expiry. ${receipt.status}: ${receipt.message}`,
-          'error',
-        );
+      if (!(await store.finish(job, worker, outcome.status, receipt))) notStored(receipt);
     };
     // A hung in-VM job would keep renewing its lease and hold its installation's only job slot.
     // Job machines have their own timeout.
@@ -419,10 +422,12 @@ export async function runHostedService(options: {
           build,
         });
         if (reused) {
-          await store.reuse(job, worker, target.installationId, redactReceipt(reused));
-          progress(
-            `${reused.status}: unchanged since job ${reused.unchangedSince} at ${reused.revision?.slice(0, REVISION_PREFIX)}; nothing ran.`,
-          );
+          const receipt = redactReceipt(reused);
+          if (await store.reuse(job, worker, target.installationId, receipt))
+            progress(
+              `${reused.status}: unchanged since job ${reused.unchangedSince} at ${reused.revision?.slice(0, REVISION_PREFIX)}; nothing ran.`,
+            );
+          else notStored(receipt);
           return;
         }
       }

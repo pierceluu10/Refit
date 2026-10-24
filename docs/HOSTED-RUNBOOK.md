@@ -84,6 +84,7 @@ The worker process is not listening. `fly status` and `fly logs`: a crash loop s
 | `Slack notification not sent:`              | The Slack webhook failed or timed out. Jobs are unaffected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `CPU throttled:` with a `job`               | The host took at least a quarter of the machine's CPU time while that job ran (steal, from `/proc/stat`; jobs of 30 s or more). Shared vCPUs fall to their quota once the burst balance is spent, and installs and checks then hit their time limits. `refit hosted receipt <n>` shows the job's `CPU steal`. While full runs are queued, `fly scale vm performance-2x --memory 4096 -a refit-hosted` (**live**; it restarts the machine, so do it when no job runs), retry the jobs that stopped on a time limit, and scale back to the `fly.toml` size afterwards. |
 | `error: …` or `interrupted: …` with a `job` | That job failed; its receipt has the same message.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `<ErrorName>: …` with a `job`               | That job failed before its workflow started, for example on the repository access check or the branch-head read; its receipt has the same message, with outcome `error` or `interrupted`.                                                                                                                                                                                                                                                                                                                                                                            |
 
 `Lease lost or job cancelled; stopping.` (info) means the repository or installation was removed, or another worker reclaimed the job. GitHub shows 401 for deliveries signed with an old webhook secret and 409 for a reused delivery id with a different body; neither changes state.
 
@@ -93,9 +94,11 @@ The worker process is not listening. `fly status` and `fly logs`: a crash loop s
 
 1. Run the hosted tests against a local PostgreSQL ([Hosted onboarding](HOSTED-ONBOARDING.md#implemented-single-tenant-hosted-worker)) and `npm test`.
 2. [Drain](#drain-the-worker): `refit hosted pause`, then wait until no job is running.
-3. `fly deploy -a refit-hosted`. Fly builds the image from `Dockerfile`, replaces the Machine and keeps the volume.
+3. `fly deploy -a refit-hosted`. Fly builds the image from `Dockerfile`, replaces the Machine and keeps the volume. The Machine comes back still paused, at the `[[vm]]` size in `fly.toml` (shared-cpu-2x). `--vm-size` does not override that section.
 4. Verify: `curl https://refit-hosted.fly.dev/health`, `fly status`, then `fly ssh console -C "refit hosted health"`.
-5. `fly ssh console -a refit-hosted -C "refit hosted resume"`, then retry any job the deploy interrupted (`refit hosted jobs --status failed`).
+5. `fly scale vm performance-2x --vm-memory 4096 -a refit-hosted` for the first round. That round never reuses a receipt ([Unchanged polls](#unchanged-polls)), and a target whose scan changed runs in full. On a throttled shared vCPU a full run can stop at the 300-second dependency limit: job 1024, after the 2026-10-24 deploy, ran at 55% CPU steal.
+6. `fly ssh console -a refit-hosted -C "refit hosted resume"`, then retry any job the deploy interrupted (`refit hosted jobs --status failed`). The worker notices the resume when its loop next wakes, up to one polling interval (300 s) later.
+7. When that round ends, pause, wait until no job is running, run `fly scale vm shared-cpu-2x --vm-memory 4096 -a refit-hosted`, and resume.
 
 ## Roll back to the previous image
 
@@ -110,7 +113,7 @@ Then verify as after a deploy. The worker only adds tables and columns on boot, 
 
 ## Unchanged polls
 
-A scheduled poll first reads the base branch head through the GitHub API. If it, the approval fingerprint and the worker build match the target's last finished job, and that job's doctor result was ready and its contracts are committed files, the worker stores the earlier receipt with `unchangedSince: <job>` and logs `<status>: unchanged since job <job> at <revision>; nothing ran.` The job does not count against `REFIT_HOSTED_DAILY_JOBS`. A push to the base branch, a new approval or a deploy (a new `FLY_IMAGE_REF`) makes the next poll run in full; so does a change to `--ai-patch`, `OPENAI_MODEL`, `--repair-attempts` or `--publish-draft`. To rerun a target without any of those, [retry](#retry-a-job) it. Without `FLY_IMAGE_REF` (a local `refit hosted serve`), every poll runs.
+A scheduled poll first checks the App's access to the repository and reads the base branch head through the GitHub API: eight requests, minting two installation tokens. If the head, the approval fingerprint and the worker build match the target's last finished job, and that job's doctor result was ready and its contracts are committed files, the worker stores the earlier receipt with `unchangedSince: <job>` and logs `<status>: unchanged since job <job> at <revision>; nothing ran.` The job does not count against `REFIT_HOSTED_DAILY_JOBS`. A push to the base branch, a new approval or a deploy (a new `FLY_IMAGE_REF`) makes the next poll run in full; so does a change to `--ai-patch`, `OPENAI_MODEL`, `--repair-attempts` or `--publish-draft`. To rerun a target without any of those, [retry](#retry-a-job) it. Without `FLY_IMAGE_REF` (a local `refit hosted serve`), every poll runs.
 
 ## Retry a job
 
@@ -139,7 +142,7 @@ Open reservations are requests that reserved their maximum cost and never settle
 
 ## Drain the worker
 
-`refit hosted pause` stops every worker from starting jobs until `refit hosted resume`, across deploys and restarts. Running jobs finish, queued jobs wait, and webhooks are still recorded and queue jobs. The worker logs `Paused since <time>; no job starts until refit hosted resume.` and `/status` shows `paused`.
+`refit hosted pause` stops every worker from starting jobs until `refit hosted resume`, across deploys and restarts. Running jobs finish, queued jobs wait, and webhooks are still recorded and queue jobs. A job whose worker died goes back to the queue once its lease expires (5 minutes), so the running list still empties; `resume` continues it as another attempt. The worker logs `Paused since <time>; no job starts until refit hosted resume.` and `/status` shows `paused`.
 
 ```sh
 fly ssh console -a refit-hosted -C "refit hosted pause"
@@ -148,7 +151,7 @@ fly deploy -a refit-hosted                                                # or r
 fly ssh console -a refit-hosted -C "refit hosted resume"
 ```
 
-Without a pause, a stop still lets a short job finish. On the first `SIGINT` or `SIGTERM`, the worker stops claiming and exits once its running job finishes. Fly sends `SIGINT`, waits `kill_timeout` (300 seconds in `fly.toml`, Fly's maximum), then sends `SIGTERM`. The worker treats that second signal as a stop: it aborts the job, stores its receipt (`interrupted`, or `error` when the abort lands inside validation) and exits. Either needs a [retry](#retry-a-job). A scheduled poll on an unchanged target takes about a second, and a job that validates can take most of an hour, so pause before any deploy while a validation runs.
+Without a pause, a stop still lets a short job finish. On the first `SIGINT` or `SIGTERM`, the worker stops claiming and exits once its running job finishes. Fly sends `SIGINT`, waits `kill_timeout` (300 seconds in `fly.toml`, Fly's maximum), then sends `SIGTERM`. The worker treats that second signal as a stop: it aborts the job, stores its receipt as `interrupted`, including when the abort lands inside validation, and exits. It needs a [retry](#retry-a-job). A scheduled poll on an unchanged target takes about a second, and a job that validates can take most of an hour, so pause before any deploy while a validation runs.
 
 To stop new work and the machine, `fly machine stop -a refit-hosted` (**live**). Webhook deliveries fail while it is stopped; GitHub shows them as failed, and you can redeliver them after `fly machine start`.
 

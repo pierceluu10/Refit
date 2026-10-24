@@ -6,6 +6,7 @@ import { declaredApiVersions } from './declared-api-versions.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
+import { sourceLiterals } from './source-literals.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
 import { factoryClients, proxyClient } from './factory-clients.ts';
@@ -67,6 +68,17 @@ import {
   type Repository,
   type SourceEdit,
 } from './types.ts';
+
+// A file that imports the SDK and does not parse: its evidence would be incomplete.
+export class SourceParseError extends PipelineInputError {
+  override name = 'SourceParseError';
+  constructor(
+    readonly file: string,
+    readonly diagnostic: string,
+  ) {
+    super(`${file}: ${diagnostic}`);
+  }
+}
 
 const PURE_STRING_METHODS = new Set(['toLowerCase', 'toUpperCase', 'trim', 'trimStart', 'trimEnd']);
 const ARRAY_ITERATION_METHODS = new Set([
@@ -301,9 +313,10 @@ export function analyzeRepository(
   for (const source of program.getSourceFiles()) {
     const diagnostics = program.getSyntacticDiagnostics(source);
     if (diagnostics.length) {
-      const message = `${locations.get(source.fileName)}: ${ts.flattenDiagnosticMessageText(diagnostics[0].messageText, '\n')}`;
-      if (sdkImport.test(source.text)) throw new PipelineInputError(message);
-      skippedFiles.push(message);
+      const file = locations.get(source.fileName)!;
+      const diagnostic = ts.flattenDiagnosticMessageText(diagnostics[0].messageText, '\n');
+      if (sdkImport.test(source.text)) throw new SourceParseError(file, diagnostic);
+      skippedFiles.push(`${file}: ${diagnostic}`);
       continue;
     }
     visit(source);
@@ -312,6 +325,7 @@ export function analyzeRepository(
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) =>
     modules.member(node) ?? canonical(checker.getSymbolAtLocation(node));
+  const literals = sourceLiterals({ nodes, symbol });
   const stripeTypes =
     provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
@@ -1646,6 +1660,8 @@ export function analyzeRepository(
     const tracked = schema !== undefined;
     const webhook = webhooks?.origin(receiver);
     const provenance = sourceEvidence(receiver);
+    // An object the application writes as a literal (`PLANS.find(…).price`) is not a Stripe object.
+    if (!tracked && !provenance && !webhook && literals.literalObject(receiver)) return;
     const declaredType =
       provenance?.kind === 'declared-type' ||
       (provenance?.kind === 'unmapped-sdk' && Boolean(stripeTypes?.expressionSchema(receiver)));
