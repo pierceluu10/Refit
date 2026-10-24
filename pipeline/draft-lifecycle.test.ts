@@ -12,7 +12,7 @@ import {
   publishDraft,
   publishFiles,
 } from './publication.ts';
-import { INTEGRATION_MARKER, MIGRATION_MARKER } from './migration-identity.ts';
+import { INTEGRATION_MARKER, MIGRATION_MARKER, REFIT_VERSION } from './migration-identity.ts';
 import { digest } from './specifications.ts';
 import { runWorkflow } from './workflow.ts';
 
@@ -174,6 +174,43 @@ it('keeps drafts on different base branches apart, as the benchmark fork and the
 it('finds its own open draft before generation so a rerun spends no validation', async () => {
   const report = await candidate();
   await publishDraft(report, options());
+  expect(await findExistingMigration(report, await main(), options())).toMatchObject({
+    status: 'existing',
+    number: 1,
+    validation: 'not-rerun',
+  });
+});
+
+// As the release before this one would have left the draft's evidence marker.
+const writtenEarlier = (body: string) =>
+  body.replace(`"refit": "${REFIT_VERSION}"`, '"refit": "0.0.1"');
+
+it('generates a [Needs review] draft an earlier Refit release wrote again and updates it in place', async () => {
+  const earlier = await candidate();
+  earlier.patch.unresolvedFindings = 1;
+  await publishDraft(earlier, { ...options(), allowUnresolved: true });
+  const [draft] = github.pulls(REPOSITORY);
+  expect(draft.title).toMatch(/^\[Needs review\] /);
+  // Written by this release, it is found before generation like any current draft.
+  expect(await findExistingMigration(earlier, await main(), options())).toMatchObject({
+    status: 'existing',
+    number: 1,
+  });
+  draft.body = writtenEarlier(draft.body);
+  expect(await findExistingMigration(earlier, await main(), options())).toBeUndefined();
+  // This release migrates what the earlier one left: the same draft, no longer for review.
+  const current = await candidate('migrates the usage the earlier release left');
+  expect(await publishDraft(current, options())).toMatchObject({ status: 'updated', number: 1 });
+  expect(github.pulls(REPOSITORY)).toHaveLength(1);
+  expect(github.pulls(REPOSITORY)[0].title).not.toMatch(/Needs review/);
+  expect(github.pulls(REPOSITORY)[0].body).toContain(`"refit": "${REFIT_VERSION}"`);
+});
+
+it('still finds a draft an earlier release wrote when nothing in it needs review', async () => {
+  const report = await candidate();
+  await publishDraft(report, options());
+  const [draft] = github.pulls(REPOSITORY);
+  draft.body = writtenEarlier(draft.body);
   expect(await findExistingMigration(report, await main(), options())).toMatchObject({
     status: 'existing',
     number: 1,

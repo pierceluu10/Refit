@@ -182,7 +182,7 @@ The October 12 live generation used `gpt-5.4-mini-2026-03-17`: 2,133 input token
 
 ## State, recovery, and errors
 
-State retains captured snapshots, observations, job receipts, and per-attempt evidence. Job identity includes the committed revision, scanned repository content, adapter, configured application API version, and breaking changes. Source-only documentation edits do not create repeated AI jobs. Completed jobs are reused across restarts.
+State retains captured snapshots, observations, job receipts, and per-attempt evidence. Job identity includes the committed revision, scanned repository content, adapter, configured application API version, and breaking changes. Source-only documentation edits do not create repeated AI jobs. Completed jobs are reused across restarts. A job that ended with an open draft runs once more after a Refit upgrade, so a newer release can update a `[Needs review]` draft (see [Pull request descriptions](PULL-REQUESTS.md#one-draft-per-target-version)).
 
 Refit is quiet by default. A release the code does not use opens no pull request, issue or comment; the target records `needs-review` with "No confirmed supported usage was found", because a scan cannot prove there is no impact. A stop that needs a person writes nothing to GitHub either. It is one entry in the target's status, with the reason: a removed request parameter names each call that still sends it, as `billing.js:11 sends payment_method_types`. A poll that reuses the job keeps that reason after "Saved worker result reused; checks were not rerun." A new commit on the base reruns the scan, without AI or validation for a scan stop, and records the same stop in the same entry. `pipeline/release-replay.test.ts` runs both through the approved service path.
 

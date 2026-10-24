@@ -36,10 +36,14 @@ import { verifyArtifacts } from './verification.ts';
 import { PipelineInputError } from './types.ts';
 import { withGitHubCheckout, type GitHubCheckoutTarget } from './github-checkout.ts';
 import { gitEnvironment } from './git-environment.ts';
+import { REFIT_VERSION } from './migration-identity.ts';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 30_000;
 const RETRYABLE_STATUSES = new Set(['error', 'validation-failed', 'interrupted', 'needs-review']);
+// Outcomes with an open draft: after a Refit release, one more run lets the workflow refresh a
+// [Needs review] draft the earlier release wrote. A current draft is found before generation.
+const OPEN_DRAFT_STATUSES = new Set(['draft-created', 'draft-updated', 'existing-pr']);
 type WorkflowOptions = Parameters<typeof runWorkflow>[0];
 export interface WatchOptions {
   configuration: Omit<WorkflowOptions, 'repository' | 'output' | 'after' | 'latestStripe'> & {
@@ -310,7 +314,9 @@ async function watchLocalOnce(
     const settled =
       advanced?.hash === snapshot.hash
         ? { status: 'up-to-date', output: null }
-        : isObject(previous) && !(options.retry && RETRYABLE_STATUSES.has(String(previous.status)))
+        : isObject(previous) &&
+            !(options.retry && RETRYABLE_STATUSES.has(String(previous.status))) &&
+            !(OPEN_DRAFT_STATUSES.has(String(previous.status)) && previous.refit !== REFIT_VERSION)
           ? {
               status: String(previous.status),
               output: typeof previous.output === 'string' ? previous.output : null,
@@ -352,6 +358,7 @@ async function watchLocalOnce(
       output,
       runId: scan.runId,
       sourceHash: snapshot.hash,
+      refit: REFIT_VERSION,
     };
     await writeState(statePath, state);
     const confirmedUsageCount = scan.findings.filter(

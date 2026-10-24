@@ -1,11 +1,16 @@
 import { GitHubRequestError, requestGitHub } from './github.ts';
 import { authenticateGitHubApp, type GitHubAppConfiguration } from './github-app.ts';
-import { createReviewArtifacts } from './review.ts';
+import { createReviewArtifacts, NEEDS_REVIEW_PREFIX } from './review.ts';
 import { digest, isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { PublicationFile, validateMigration } from './validation.ts';
 import type { runPipeline } from './run.ts';
-import { INTEGRATION_MARKER, MIGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
+import {
+  INTEGRATION_MARKER,
+  MIGRATION_MARKER,
+  migrationIdentity,
+  REFIT_VERSION,
+} from './migration-identity.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { apiVersionSourceBlocked } from './api-version.ts';
 import {
@@ -270,6 +275,13 @@ export async function findExistingMigration(
     .sort((left, right) => Number(left.number) - Number(right.number));
   const pull = matches[0];
   if (!pull) return undefined;
+  // A later Refit release may migrate what an earlier one left for review: a [Needs review] draft
+  // another release wrote is generated and validated again, and publication updates it.
+  if (
+    String(pull.title).startsWith(NEEDS_REVIEW_PREFIX) &&
+    !String(pull.body).includes(`"refit": "${REFIT_VERSION}"`)
+  )
+    return undefined;
   const head = sha(object(pull.head).sha);
   const commit = object(await request('GET', `/git/commits/${head}`));
   if (

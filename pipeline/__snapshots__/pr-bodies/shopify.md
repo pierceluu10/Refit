@@ -77,4 +77,4 @@ This app pins Shopify Admin API 2025-10. A deterministic Refit rule moves it to 
 
 <!-- refit-migration:3266b6f195137419294a495bafdb7b5c1eebeddbe4e6bd2719b06af85fd9516d -->
 
-<!-- refit-evidence "runId": "a6212c5cfe6688957be9e54023331415293845ac621c076e06124bb41c65338f", "patchHash": "3bf3707df12a1ff6832ec45c79c28c1b098940a69a940b92d21e6597c5241752" -->
+<!-- refit-evidence "runId": "a6212c5cfe6688957be9e54023331415293845ac621c076e06124bb41c65338f", "patchHash": "3bf3707df12a1ff6832ec45c79c28c1b098940a69a940b92d21e6597c5241752", "refit": "<release>" -->

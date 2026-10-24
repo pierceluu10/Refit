@@ -5,6 +5,7 @@ import { modelFixBody, modelFixMessage } from './model-fixes.ts';
 import { publicationWaiver } from './publication.ts';
 import { createReviewArtifacts, MAX_BODY_CHARACTERS } from './review.ts';
 import { digest } from './specifications.ts';
+import { REFIT_VERSION } from './migration-identity.ts';
 
 // Stored benchmark results, reduced to what the body reads (see each fixture's storedResult).
 const fixture = (name: string) =>
@@ -21,7 +22,11 @@ const published = (name: string, integration?: string) => {
     publicationWaiver(report, true),
   );
   return {
-    body: artifacts.files['pull-request.md'],
+    // Every release bump changes the version in the evidence marker; the snapshot keeps its place.
+    body: artifacts.files['pull-request.md'].replace(
+      `"refit": "${REFIT_VERSION}"`,
+      '"refit": "<release>"',
+    ),
     message: artifacts.commitMessage,
     title: artifacts.manifest.title,
   };

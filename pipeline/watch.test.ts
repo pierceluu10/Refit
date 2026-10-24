@@ -35,7 +35,7 @@ async function options() {
 }
 function result(
   input: Parameters<typeof runWorkflow>[0],
-  status: 'validated' | 'validation-failed' | 'up-to-date' = 'validated',
+  status: 'validated' | 'validation-failed' | 'up-to-date' | 'draft-created' = 'validated',
 ) {
   return {
     directory: input.output,
@@ -336,6 +336,37 @@ it('preserves failed jobs and permits one explicit retry with a fresh evidence d
   const retry = await watchOnce({ ...input, retry: true });
   expect(runWorkflow).toHaveBeenCalledTimes(2);
   expect(first.output).not.toBe(retry.output);
+});
+
+// As state from before a Refit upgrade records the job.
+async function recordedEarlier(input: Awaited<ReturnType<typeof options>>, jobKey: string) {
+  const path = join(input.stateDirectory, 'state.json');
+  const state = JSON.parse(await readFile(path, 'utf8'));
+  state.jobs[jobKey].refit = '0.0.1';
+  await writeFile(path, JSON.stringify(state));
+}
+
+it('runs a draft job once more after a Refit release, then reuses it', async () => {
+  const input = await options();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'draft-created'));
+  const first = await watchOnce(input);
+  expect(await watchOnce(input)).toMatchObject({ status: 'already-processed' });
+  await recordedEarlier(input, first.jobKey);
+  expect(await watchOnce(input)).toMatchObject({ status: 'processed', jobKey: first.jobKey });
+  expect(await watchOnce(input)).toMatchObject({ status: 'already-processed' });
+  expect(runWorkflow).toHaveBeenCalledTimes(2);
+});
+
+it('reuses a job without a draft that an earlier Refit release recorded', async () => {
+  const input = await options();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'validation-failed'));
+  const first = await watchOnce(input);
+  await recordedEarlier(input, first.jobKey);
+  expect(await watchOnce(input)).toMatchObject({
+    status: 'already-processed',
+    previousStatus: 'validation-failed',
+  });
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
 });
 
 it('uses the captured input instead of forwarding a run configuration discovery flag', async () => {

@@ -6,7 +6,12 @@ import { digest, type AddedProperty } from './specifications.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
-import { INTEGRATION_MARKER, MIGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
+import {
+  INTEGRATION_MARKER,
+  MIGRATION_MARKER,
+  migrationIdentity,
+  REFIT_VERSION,
+} from './migration-identity.ts';
 import type { publicationWaiver } from './publication.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR } from './stripe-open-enums.ts';
@@ -24,6 +29,7 @@ const MAX_QUOTE = 300;
 // The body stays well under GitHub's 65,536-character limit and readable in one sitting; above
 // this, diffs and site lists shorten in steps and the body says what it left out.
 export const MAX_BODY_CHARACTERS = 16_000;
+export const NEEDS_REVIEW_PREFIX = '[Needs review] ';
 const MAX_LISTED_SITES = 25;
 // The check the Stripe benchmark runs where a repository has no tests and no TypeScript.
 const NO_OP_CHECK = 'node -e 0';
@@ -463,7 +469,7 @@ export function createReviewArtifacts(
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
   ).toLowerCase();
   const needsReview = Boolean(waiver || patch.unresolvedFindings);
-  const prefix = needsReview ? '[Needs review] ' : '';
+  const prefix = needsReview ? NEEDS_REVIEW_PREFIX : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
   const title =
     full.length <= MAX_TITLE
@@ -960,7 +966,7 @@ export function createReviewArtifacts(
       ].join('\n'),
       ...(integration ? [`${INTEGRATION_MARKER}${integration} -->`] : []),
       `${MIGRATION_MARKER}${migrationIdentity(report, validation.revision, integration)} -->`,
-      `<!-- refit-evidence "runId": "${report.runId}", "patchHash": "${validation.patchHash}" -->`,
+      `<!-- refit-evidence "runId": "${report.runId}", "patchHash": "${validation.patchHash}", "refit": "${REFIT_VERSION}" -->`,
     ].join('\n\n') + '\n';
   // Shorter diffs first, then shorter site lists, until the body fits.
   const tiers: [number, number, string?][] = [

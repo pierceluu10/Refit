@@ -1,8 +1,13 @@
+import { readFileSync } from 'node:fs';
 import { digest } from './specifications.ts';
 import type { runPipeline } from './run.ts';
 
 export const INTEGRATION_MARKER = '<!-- refit-integration:';
 export const MIGRATION_MARKER = '<!-- refit-migration:';
+// The Refit release that wrote a draft, so a later release can revisit what it left for review.
+export const REFIT_VERSION: string = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+).version;
 
 export function migrationIdentity(
   report: Pick<Awaited<ReturnType<typeof runPipeline>>, 'adapter' | 'findings'>,
