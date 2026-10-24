@@ -324,6 +324,35 @@ module.exports = { ends };
   ).toBe(subscriptionPeriodHelperModule('cjs'));
 });
 
+// Messages from a strict compile of in-memory files under /check; `stripe` resolves to
+// /check/stripe.d.ts when given.
+function strictDiagnostics(files: Map<string, string>) {
+  const options = {
+    strict: true,
+    noEmit: true,
+    noLib: false,
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    types: [],
+    paths: { stripe: ['/check/stripe.d.ts'] },
+  };
+  const host = ts.createCompilerHost(options);
+  const read = host.readFile.bind(host);
+  host.readFile = (name) => files.get(name) ?? read(name);
+  host.fileExists = (name) => files.has(name) || ts.sys.fileExists(name);
+  host.directoryExists = (name) => name === '/check' || ts.sys.directoryExists(name);
+  const getSource = host.getSourceFile.bind(host);
+  host.getSourceFile = (name, version) =>
+    files.has(name)
+      ? ts.createSourceFile(name, files.get(name)!, version, true)
+      : getSource(name, version);
+  const program = ts.createProgram([...files.keys()], options, host);
+  return ts
+    .getPreEmitDiagnostics(program)
+    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+}
+
 it('generates a TypeScript helper that compiles strictly without Stripe types', () => {
   const files = new Map([
     ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
@@ -340,31 +369,7 @@ export const legacy: { carrier: string } = getCheckoutShippingDetails({ shipping
 `,
     ],
   ]);
-  const options = {
-    strict: true,
-    noEmit: true,
-    noLib: false,
-    target: ts.ScriptTarget.ES2022,
-    module: ts.ModuleKind.ESNext,
-    moduleResolution: ts.ModuleResolutionKind.Bundler,
-    types: [],
-  };
-  const host = ts.createCompilerHost(options);
-  const read = host.readFile.bind(host);
-  host.readFile = (name) => files.get(name) ?? read(name);
-  host.fileExists = (name) => files.has(name) || ts.sys.fileExists(name);
-  host.directoryExists = (name) => name === '/check' || ts.sys.directoryExists(name);
-  const getSource = host.getSourceFile.bind(host);
-  host.getSourceFile = (name, version) =>
-    files.has(name)
-      ? ts.createSourceFile(name, files.get(name)!, version, true)
-      : getSource(name, version);
-  const program = ts.createProgram([...files.keys()], options, host);
-  expect(
-    ts
-      .getPreEmitDiagnostics(program)
-      .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')),
-  ).toEqual([]);
+  expect(strictDiagnostics(files)).toEqual([]);
 });
 
 const mixed = `export async function ends(id: string) {
@@ -912,6 +917,216 @@ it('does not move Checkout Session shipping details when the target contract lac
   expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
 });
 
+// Minimal stripe-node types for a strict compile: the old Checkout Session field, or (after the
+// upgrade) only its new location.
+const stripeTypes = (session: string) => `declare namespace Stripe {
+  interface Address { line1: string | null; city: string | null }
+  namespace Checkout {
+    interface Session { id: string; ${session} }
+  }
+  interface Event { type: string; data: { object: object } }
+}
+declare class Stripe {
+  constructor(key: string, options: { apiVersion: string });
+  webhooks: { constructEvent(body: string, signature: string, secret: string): Stripe.Event };
+}
+export default Stripe;
+`;
+const OLD_SESSION = 'shipping_details: { address?: Address; name?: string | null } | null;';
+const NEW_SESSION =
+  'collected_information: { shipping_details: { address: Address; name: string } | null } | null;';
+const compiled = (patched: string, session: string) =>
+  strictDiagnostics(
+    new Map([
+      ['/check/billing.ts', patched],
+      ['/check/stripe-subscription-period.ts', subscriptionPeriodHelperModule('ts')],
+      ['/check/stripe.d.ts', stripeTypes(session)],
+    ]),
+  );
+// The patched billing.ts alone (analyze() applies the helper module's edit too).
+const billingOf = (body: string) => {
+  const result = analyze(body);
+  return {
+    result,
+    billing: applySourceEdits(
+      header + body,
+      result.edits.filter((edit) => edit.file === 'billing.ts'),
+    ),
+  };
+};
+
+// Mangu-Commerce/madcaptees api/stripe/webhook.ts (and app/api/webhook/route.ts): the address is
+// narrowed by `session.shipping_details?.address`, so a helper call per read did not compile.
+it('reads narrowed Checkout shipping details through one local that compiles strictly', () => {
+  const { result, billing } = billingOf(`export async function record(
+  body: string,
+  signature: string,
+  orders: { insert(row: object): Promise<unknown> },
+) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    await orders.insert({
+      stripe_session_id: session.id,
+      shipping_address: session.shipping_details?.address
+        ? {
+            name: session.shipping_details.name ?? '',
+            line1: session.shipping_details.address.line1 ?? '',
+            city: session.shipping_details.address.city ?? '',
+          }
+        : null,
+    });
+  }
+}`);
+  expect(result.findings).toHaveLength(4);
+  expect(
+    result.findings.every(
+      (finding) =>
+        finding.confidence === 'confirmed' &&
+        finding.webhook?.migration?.rule === 'stripe-checkout-shipping-details-helper',
+    ),
+  ).toBe(true);
+  expect(billing).toContain(`    const sessionShippingDetails = getCheckoutShippingDetails(session);
+    await orders.insert({
+      stripe_session_id: session.id,
+      shipping_address: sessionShippingDetails?.address
+        ? {
+            name: sessionShippingDetails.name ?? '',
+            line1: sessionShippingDetails.address.line1 ?? '',
+            city: sessionShippingDetails.address.city ?? '',`);
+  expect(billing.match(/getCheckoutShippingDetails\(session\)/g)).toHaveLength(1);
+  // The local compiles against the old and the new stripe-node types; one call per read did not.
+  expect(compiled(billing, OLD_SESSION)).toEqual([]);
+  expect(compiled(billing, NEW_SESSION)).toEqual([]);
+  const perRead = billing
+    .replace('    const sessionShippingDetails = getCheckoutShippingDetails(session);\n', '')
+    .replaceAll('sessionShippingDetails', '(getCheckoutShippingDetails(session))');
+  expect(compiled(perRead, OLD_SESSION)).toContain("Object is possibly 'null'.");
+});
+
+// Bizgojo/drivetimetales app/api/webhook/route.ts and eka0789/evofuture
+// app/api/webhooks/stripe/route.ts: a truthiness guard narrows invoice.subscription for the next read.
+it('reads a truthiness-narrowed invoice.subscription through one local', () => {
+  const { result, billing } =
+    billingOf(`export async function paid(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  switch (event.type) {
+    case 'invoice.paid': {
+      const invoice = event.data.object as Stripe.Invoice;
+      if (!invoice.subscription) break;
+      return stripe.subscriptions.retrieve(invoice.subscription as string);
+    }
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice;
+      if (invoice.subscription) {
+        return stripe.subscriptions.retrieve(
+          invoice.subscription as string
+        );
+      }
+    }
+  }
+}`);
+  expect(
+    result.findings.every(
+      (finding) => finding.webhook?.migration?.rule === 'stripe-invoice-subscription-helper',
+    ),
+  ).toBe(true);
+  expect(billing).toContain(`      const invoiceSubscription = getInvoiceSubscription(invoice);
+      if (!invoiceSubscription) break;
+      return stripe.subscriptions.retrieve(invoiceSubscription as string);`);
+  expect(billing).toContain(`      const invoiceSubscription = getInvoiceSubscription(invoice);
+      if (invoiceSubscription) {
+        return stripe.subscriptions.retrieve(
+          invoiceSubscription as string`);
+  expect(billing.match(/getInvoiceSubscription\(invoice\)/g)).toHaveLength(2);
+});
+
+// ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform src/app/api/stripe/webhook/route.ts: one payload
+// variable for every event; the local goes in the invoice branch, before its guard.
+it('declares the local in the block whose test narrows the reads', () => {
+  const { billing } = billingOf(`export async function paid(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  const session = event.data.object as any;
+  if (event.type === 'checkout.session.completed') {
+    if (!session.subscription) return null;
+    return session.subscription as string;
+  }
+  if (event.type === 'invoice.payment_succeeded') {
+    if (!session.subscription) {
+      return null;
+    }
+    return stripe.subscriptions.retrieve(session.subscription as string);
+  }
+}`);
+  expect(billing).toContain(`    if (!session.subscription) return null;
+    return session.subscription as string;`);
+  expect(billing).toContain(`  if (event.type === 'invoice.payment_succeeded') {
+    const sessionSubscription = getInvoiceSubscription(session);
+    if (!sessionSubscription) {
+      return null;
+    }
+    return stripe.subscriptions.retrieve(sessionSubscription as string);`);
+});
+
+// guillermolg00/nextjs-stripe-store src/lib/orders.ts already narrows its own local.
+it('keeps one helper call for a single shipping-details read', () => {
+  const { billing } = billingOf(`export function order(session: Stripe.Checkout.Session) {
+  const shippingDetails = session.shipping_details;
+  return shippingDetails?.address
+    ? { name: shippingDetails.name ?? '', line1: shippingDetails.address.line1 ?? '' }
+    : null;
+}`);
+  expect(billing).toContain('  const shippingDetails = (getCheckoutShippingDetails(session));\n');
+  expect(billing).not.toContain('sessionShippingDetails');
+  expect(compiled(billing, OLD_SESSION)).toEqual([]);
+});
+
+it.each([
+  // abressiddique/AbresStore-Admin app/api/webhooks/route.ts: optional receiver, no test.
+  [
+    'an optional receiver',
+    `export function address(session?: Stripe.Checkout.Session) {
+  return { street: session?.shipping_details?.address?.line1, city: session?.shipping_details?.address?.city };
+}`,
+    2,
+  ],
+  [
+    'a receiver passed to a call between the reads',
+    `export async function name(session: Stripe.Checkout.Session, save: (value: object) => Promise<void>) {
+  if (session.shipping_details) {
+    await save(session);
+    return session.shipping_details.name;
+  }
+}`,
+    2,
+  ],
+  [
+    'a let receiver',
+    `export function name(input: Stripe.Checkout.Session) {
+  let session: Stripe.Checkout.Session = input;
+  if (session.shipping_details) return session.shipping_details.name;
+}`,
+    2,
+  ],
+  [
+    'a dropped field read in the block',
+    `export function contact(session: Stripe.Checkout.Session) {
+  if (session.shipping_details) return [session.shipping_details.name, session.shipping_details.carrier];
+}`,
+    2,
+  ],
+  [
+    'an arrow function without a block',
+    `export const name = (session: Stripe.Checkout.Session) =>
+  session.shipping_details ? session.shipping_details.name : null;`,
+    2,
+  ],
+])('calls the helper per read for %s', (_shape, body, calls) => {
+  const { billing } = billingOf(body);
+  expect(billing).not.toContain('sessionShippingDetails');
+  expect(billing.match(/getCheckoutShippingDetails\(session\)/g)).toHaveLength(calls);
+});
+
 // ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform src/app/api/stripe/webhook/route.ts at fde5a23:
 // the period is read through `as any`, the read P2's only correct AI fix made by hand.
 it('reads a period through an `as any` cast receiver and keeps the read typed any', async () => {
@@ -1026,29 +1241,5 @@ export const ends: string = new Date((getSubscriptionPeriodEnd(invoice as any) a
 `,
     ],
   ]);
-  const options = {
-    strict: true,
-    noEmit: true,
-    noLib: false,
-    target: ts.ScriptTarget.ES2022,
-    module: ts.ModuleKind.ESNext,
-    moduleResolution: ts.ModuleResolutionKind.Bundler,
-    types: [],
-  };
-  const host = ts.createCompilerHost(options);
-  const read = host.readFile.bind(host);
-  host.readFile = (name) => files.get(name) ?? read(name);
-  host.fileExists = (name) => files.has(name) || ts.sys.fileExists(name);
-  host.directoryExists = (name) => name === '/check' || ts.sys.directoryExists(name);
-  const getSource = host.getSourceFile.bind(host);
-  host.getSourceFile = (name, version) =>
-    files.has(name)
-      ? ts.createSourceFile(name, files.get(name)!, version, true)
-      : getSource(name, version);
-  const program = ts.createProgram([...files.keys()], options, host);
-  expect(
-    ts
-      .getPreEmitDiagnostics(program)
-      .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')),
-  ).toEqual([]);
+  expect(strictDiagnostics(files)).toEqual([]);
 });

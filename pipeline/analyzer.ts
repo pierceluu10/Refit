@@ -1197,6 +1197,19 @@ export function analyzeRepository(
     edits.push(edit);
     return true;
   }
+  // Reads sharing a hoisted helper local plan the same declaration; it is added once.
+  function addPlanned(planned: SourceEdit[]) {
+    return planned.every(
+      (edit) =>
+        edits.some(
+          (other) =>
+            other.file === edit.file &&
+            other.start === edit.start &&
+            other.end === edit.end &&
+            other.replacement === edit.replacement,
+        ) || addEdit(edit),
+    );
+  }
   const periodPlans = new Map<
     ts.Node,
     { rareCase: PeriodRareCase; text?: string; selection?: string }
@@ -1332,18 +1345,7 @@ export function analyzeRepository(
         (!expandsField('subscription') && (provenance === 'declared-type' || provenance === 'sdk')))
     ) {
       const planned = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
-      // Reads sharing a hoisted local plan the same declaration; it is added once.
-      const added = planned?.every(
-        (edit) =>
-          edits.some(
-            (other) =>
-              other.file === edit.file &&
-              other.start === edit.start &&
-              other.end === edit.end &&
-              other.replacement === edit.replacement,
-          ) || addEdit(edit),
-      );
-      if (planned && added) return planned[0].rule;
+      if (planned && addPlanned(planned)) return planned[0].rule;
     }
     // `line.price.id` on invoice line items and invoice items: the ID moved under `pricing`.
     if (
@@ -1388,8 +1390,8 @@ export function analyzeRepository(
       ) &&
       (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
     ) {
-      const edit = checkoutShippingHelperEdit(node, location(node).file, change.id);
-      if (edit && addEdit(edit)) return edit.rule;
+      const planned = checkoutShippingHelperEdit(node, location(node).file, change.id);
+      if (planned && addPlanned(planned)) return planned[0].rule;
     }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
