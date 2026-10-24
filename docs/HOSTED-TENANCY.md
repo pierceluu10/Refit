@@ -15,12 +15,12 @@ Allowing an account never runs anything by itself: every repository still needs 
 
 ## Guardrails per installation
 
-| Guardrail | Setting | Refusal in `/status` |
-| --- | --- | --- |
-| Allowed account | `REFIT_HOSTED_ACCOUNTS` | `account-not-allowed` |
-| At most one running job per installation | fixed | `installation-job-running` |
-| Daily job cap | `REFIT_HOSTED_DAILY_JOBS`, default 1440 (five targets polled every 300 seconds) | `daily-job-cap` |
-| Daily inventory cap | `REFIT_HOSTED_DAILY_INVENTORIES`, default 500 | `daily-inventory-cap` |
+| Guardrail                                | Setting                                                                                                                                                      | Refusal in `/status`       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| Allowed account                          | `REFIT_HOSTED_ACCOUNTS`                                                                                                                                      | `account-not-allowed`      |
+| At most one running job per installation | fixed                                                                                                                                                        | `installation-job-running` |
+| Daily job cap                            | `REFIT_HOSTED_DAILY_JOBS`, default 1440 (five targets polled every 300 seconds); a poll that reuses an unchanged target's receipt gives its reservation back | `daily-job-cap`            |
+| Daily inventory cap                      | `REFIT_HOSTED_DAILY_INVENTORIES`, default 500                                                                                                                | `daily-inventory-cap`      |
 
 - A job counts against the cap when a worker first claims it. Reclaiming the same job after an expired lease does not count again. Days run in UTC. A job held back by a cap stays queued and runs after midnight UTC.
 - Inventories count through the store's `reserveInventory(installationId)`. It returns `account-not-allowed` for a disallowed, suspended or deleted installation, and `daily-inventory-cap` once the cap is reached. Approval issues ([lane PG2](HOSTED-ONBOARDING-APPROVAL.md)) count each issue inspection through it. The install inventory reserves the same daily counter when it claims a request (`pipeline/inventory-store.ts`).
@@ -48,12 +48,14 @@ With `--ai-patch`, each installation's ledger is one row in `refit_ai_ledgers`, 
 Today every job runs inside the one worker Fly Machine, in its Docker daemon.
 
 Separated per installation:
+
 - Database rows are keyed by installation. Targets, jobs, usage and AI ledgers belong to one installation.
 - Each checkout uses an installation token scoped to exactly that repository with `contents: read`. Publication tokens are scoped the same way.
 - The job and inventory caps, one running job at a time, fair claiming and a separate AI ledger all apply per installation.
 - Validation containers are offline and non-root. They get no host environment, Git metadata or Docker socket, and have CPU, memory, process and workspace limits (see [architecture](ARCHITECTURE.md)).
 
 Shared by every allowed account:
+
 - The machine, its Docker daemon and the `/data` volume. Managed checkouts and evidence of every target persist there under `/data/state/targets/<id>`.
 - The worker process, which holds the App private key, the database URL and the OpenAI key.
 - Dependency preparation, which runs with registry network access (lifecycle scripts disabled) on the same daemon.

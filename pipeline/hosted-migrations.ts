@@ -311,6 +311,19 @@ CREATE TABLE IF NOT EXISTS refit_ai_total_ledger (
 ALTER TABLE refit_ai_total_ledger ENABLE ROW LEVEL SECURITY;
 `),
   },
+  {
+    version: 11,
+    name: 'Worker pause',
+    // At most one row: while it exists, no worker claims a job, so a deploy interrupts nothing.
+    up: (client) =>
+      client.query(`
+CREATE TABLE IF NOT EXISTS refit_worker_pause (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  paused_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE refit_worker_pause ENABLE ROW LEVEL SECURITY;
+`),
+  },
 ];
 
 // Reads the applied versions without creating anything. `unknown` lists versions a newer worker
