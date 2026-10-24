@@ -282,7 +282,7 @@ stripe@^${stripe}:
   integrity sha512-test
 `;
 
-it('generates for stripe declared only in a workspace package, checked from the root', async () => {
+it('stops for stripe declared only in a workspace package, which generation does not cover yet', async () => {
   // manucoffin/faster-fixes: a pnpm workspace whose root test script runs turbo.
   const root = await repository({
     'package.json': JSON.stringify({ name: 'faster-fixes', scripts: { test: 'turbo run test' } }),
@@ -304,16 +304,18 @@ export const stripeApi = new Stripe(
 );
 `,
   });
-  const { proposal, stops } = await proposeStripeConfiguration(root);
-  expect(stops).toEqual([]);
-  expect(proposal).toMatchObject({
-    apiVersion: {
-      value: '2025-12-15.clover',
-      source: 'set at apps/web/src/server/stripe/index.ts:9',
-    },
-    checks: { kind: 'tests', source: 'the test script in package.json, run with pnpm' },
+  expect(await proposeStripeConfiguration(root)).toEqual({
+    proposal: null,
+    stops: [
+      {
+        id: 'workspace-package',
+        detail:
+          'stripe is declared in apps/web/package.json, not in the root package.json, and Refit does not yet generate a configuration that checks a workspace package from the root.',
+        action:
+          "Commit a .refit.json whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).",
+      },
+    ],
   });
-  expect(proposal?.configuration.integrations[0]).toMatchObject({ command: ['pnpm', 'test'] });
 });
 
 it('takes the default of the release locked for the package a client is in', async () => {
@@ -336,15 +338,11 @@ export const createStripeLink = async ({ stripeApiKey }: { stripeApiKey: string 
 };
 `,
   });
-  const { proposal, stops } = await proposeStripeConfiguration(root);
-  expect(stops).toEqual([]);
-  expect(proposal).toMatchObject({
-    apiVersion: {
-      value: '2026-08-26.dahlia',
-      source: 'the default of stripe-node 22.6.2, which the lockfile records',
-    },
-    checks: { kind: 'typecheck' },
-  });
+  // With stripe only in the workspace package, generation stops; the rooted layout below still
+  // takes each package's own release.
+  expect((await proposeStripeConfiguration(root)).stops).toMatchObject([
+    { id: 'workspace-package' },
+  ]);
   // A second package locked to another release sends another default, and Refit names both.
   const two = await repository({
     'package.json': manifest('^14.25.0', { workspaces: ['packages/*'], ...TESTS }),
