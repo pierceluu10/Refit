@@ -19,6 +19,13 @@ const CACHED = {
   output: null,
   checkout: { revision: 'a'.repeat(40) },
 } as unknown as ServicePoll;
+// A poll a later job on the same commit, approval and build may reuse.
+const READY = {
+  ...CACHED,
+  previousStatus: 'validated',
+  readiness: { status: 'ready-for-validation' },
+  liveContract: false,
+} as unknown as ServicePoll;
 
 const fake = vi.hoisted(() => ({
   claims: [] as unknown[],
@@ -45,6 +52,10 @@ vi.mock('./hosted-cpu.ts', async (original) => ({
   MIN_THROTTLE_SECONDS: 0,
   readCpuTimes: vi.fn(async () => fake.samples.shift() ?? null),
 }));
+vi.mock('./inventory.ts', async (original) => ({
+  ...(await original<typeof import('./inventory.ts')>()),
+  defaultRevision: vi.fn(async () => 'a'.repeat(40)),
+}));
 const worker = await import('./service-worker.ts');
 
 const cleanups: (() => Promise<unknown>)[] = [];
@@ -65,7 +76,7 @@ function job(id: number) {
 // Serves until `count` jobs reach the store; returns what it stored and the error-level lines.
 async function serve(
   count: number,
-  options: { stored?: (job: number) => boolean; jobTimeoutSeconds?: number } = {},
+  options: { stored?: (job: number) => boolean; jobTimeoutSeconds?: number; build?: string } = {},
 ) {
   fake.claims = Array.from({ length: count }, (_, index) => job(index + 1));
   const finished: unknown[][] = [];
@@ -79,6 +90,14 @@ async function serve(
     finish: vi.fn(async (...args: unknown[]) => {
       finished.push(args);
       return options.stored?.(args[0] as number) ?? true;
+    }),
+    lastEnded: vi.fn(async () => {
+      const [job, , status, receipt] = finished.at(-1) ?? [];
+      return job === undefined ? null : { job, status, receipt };
+    }),
+    reuse: vi.fn(async (job: number, worker: string, _installation: number, receipt: unknown) => {
+      finished.push([job, worker, 'finished', receipt]);
+      return options.stored?.(job) ?? true;
     }),
     read: vi.fn(async () => ({ installations: [], targets: [], jobs: [] })),
   };
@@ -98,6 +117,7 @@ async function serve(
     intervalSeconds: 30,
     leaseSeconds: 30,
     jobTimeoutSeconds: options.jobTimeoutSeconds,
+    build: options.build,
     worker: 'test-worker',
     signal: controller.signal,
     onProgress: (message, fields) => lines.push({ message, ...fields }),
@@ -187,6 +207,23 @@ it('logs a receipt the store refuses because this worker no longer holds the job
       job: 1,
       message:
         'Receipt not stored: this worker no longer holds job 1; another worker reclaimed its lease, or it failed after repeated lease expiry. needs-review: Saved worker result reused; checks were not rerun.',
+    }),
+  ]);
+});
+
+it('logs a reused receipt the store refuses because this worker no longer holds the job', async () => {
+  vi.mocked(worker.pollServiceTarget).mockResolvedValue(READY);
+  const { finished, errors } = await serve(2, {
+    build: 'registry.fly.io/refit-hosted:test',
+    stored: (id) => id !== 2,
+  });
+  expect(worker.pollServiceTarget).toHaveBeenCalledTimes(1);
+  expect(finished[1]).toEqual([2, 'finished', expect.objectContaining({ unchangedSince: 1 })]);
+  expect(errors).toEqual([
+    expect.objectContaining({
+      job: 2,
+      message:
+        'Receipt not stored: this worker no longer holds job 2; another worker reclaimed its lease, or it failed after repeated lease expiry. validated: Reused the receipt of job 1: same commit, approval and worker build, so nothing ran. Saved worker result reused; checks were not rerun.',
     }),
   ]);
 });
