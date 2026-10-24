@@ -33,7 +33,8 @@ const HTTP_NOT_FOUND = 404;
 export const JOB_TIMEOUT_SECONDS = 3600;
 export const JOB_POLL_SECONDS = 15;
 // Validation runs in a 3 GiB container beside dockerd and the job process, as on the control VM.
-export const JOB_GUEST = { cpu_kind: 'shared', cpus: 2, memory_mb: 4096 } as const;
+// The default 4 GiB validation profile gives its container 5 GiB beside dockerd and the Node worker.
+export const JOB_GUEST = { cpu_kind: 'shared', cpus: 4, memory_mb: 8192 } as const;
 // A job machine fetches the managed checkout itself and rebuilds approved inputs from it.
 const LOCAL_ONLY = new Set(['github', 'approved-inputs']);
 const EXITED = new Set(['stopped', 'destroying', 'destroyed', 'failed']);
