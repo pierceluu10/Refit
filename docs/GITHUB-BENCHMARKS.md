@@ -1,6 +1,6 @@
 # GitHub Actions benchmarks
 
-The public repository `refit-dev/refit-bench` runs the Stripe benchmark on GitHub-hosted runners, one job per shard. It costs nothing while the repository is public, needs no AWS sign-in and does not load a laptop. Prefer it to [AWS benchmarks](AWS-BENCHMARKS.md) for runs without AI, and whenever EC2 is unavailable.
+The public repository `refit-dev/refit-bench` runs the Stripe benchmark on GitHub-hosted runners, one job per shard. It costs nothing while the repository is public, needs no AWS sign-in and does not load a laptop. Prefer it to [AWS benchmarks](AWS-BENCHMARKS.md) for Stripe runs, and whenever EC2 is unavailable.
 
 Its workflow, `.github/workflows/benchmark.yml`, checks out this repository at a pinned commit with a read-only token (`REFIT_READ_TOKEN`), installs dependencies and oasdiff, then runs per shard the same commands as an AWS shard:
 
@@ -40,7 +40,7 @@ The merged `results.json` reads like a single-process run, so `scripts/stripe-be
 
 ## Limits
 
-- No AI. The workflow passes no OpenAI key and `--ai` is not wired in. Logs and artifacts of a public repository are public, so an AI run would need a dedicated, capped key and a private repository.
+- AI is off by default. `-f ai=true -f ai_budget=<USD>` (more than 0, at most 20) adds `--ai` with the repository's `OPENAI_API_KEY` secret and `gpt-5.6-luna`. The budget is split evenly across shards, each with its own ledger, so a run cannot spend more than `ai_budget`; the merged summary reports the spend. The key goes to a file under the runner's temporary directory, not the environment of the benchmark, and GitHub masks it in logs. Logs and artifacts are public, so never pass a key through `flags`; the workflow refuses `--ai`, `--env` and `--publish` there.
 - Stripe only. Shopify needs its saved Admin schema snapshots and is not wired in.
 - A run holds at most 256 shards (GitHub's matrix limit); raise `size` for longer lists. About 20 jobs run at once on the free plan; the rest queue.
 - A shard times out after 300 minutes. Runners are 4-vCPU Linux machines, so validation times differ from a laptop or EC2; compare outcomes, not seconds, across environments.

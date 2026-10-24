@@ -41,15 +41,20 @@ Pierce (owner) decided these on 2026-10-24 before the run. Quote them when you r
 
 1. **Gate changes with evidence.** Pierce signed off "on everything that will improve Refit towards being an automated API fixer". A lane may change a default or widen an automatic edit **only** when it meets [the decision bar](#the-decision-bar-for-changing-a-default), and it records the change in `AGENTS.md` as an owner decision dated 2026-10-24 that cites this sign-off and links the evidence. Below the bar, the change stays behind an off-by-default flag and goes to the morning list.
 2. **Overnight merges.** Lane P5 merges PRs into `main` overnight after its review and checks. No other lane merges, pushes to `main` or force-pushes.
-3. **AI budget: $50 for the whole night.** $30 for lane P2 on Pierce's machine, $15 for lane P1 on the Fly worker, $5 held back (nobody spends it). No other lane makes a model request. GitHub Actions benchmarks never use AI: their logs are public.
-4. **Fly is for production tests, by P1 only.** P1 may deploy merged `main`, scale the machine, set the AI cap within its $15, fork benchmark repositories into `refit-dev`, approve them and let Refit Agent open draft PRs on those forks. Nobody else runs a Fly command that changes state.
+3. **AI budget: three $40 OpenAI keys, one per person.** Any lane may use AI where it measures something; spend it on evidence, not on repeating the same full pass. Past runs cost cents (531 repositories for $0.07; 17 coding-agent runs for $6.45), so the caps below are ceilings, not targets.
+   - **Pierce's key ($40):** P2 $20 locally, P1 $10 on the Fly worker, $10 for AI runs on GitHub Actions by any lane. The key is the `OPENAI_API_KEY` secret of `refit-dev/refit-bench`; dispatch with `-f ai=true -f ai_budget=<N>`, N at most $5 per run (the workflow refuses more than $20 and splits N across shards, so a run cannot exceed it).
+   - **Otabek's key ($40):** $8 for each of O1 to O5, locally. **Furqan's key ($40):** $8 for each of F1 to F5, locally.
+   - **Local setup, once per person:** the person (not an agent) writes `~/.refit/overnight-ai.env` (mode 600) with `OPENAI_API_KEY=…` and `OPENAI_MODEL=gpt-5.6-luna`. Each lane copies it to `~/.refit/overnight-ai-<lane>.env` with `cp`, appends `REFIT_AI_BUDGET_USD=8` and `REFIT_AI_BUDGET_DIRECTORY=$HOME/.refit/ai-budget-<lane>`, and passes it with `--env`. Never print or `cat` either file.
+   - **Each person also sets a $40 monthly limit on their key's project in the OpenAI dashboard**, so a bug cannot spend past it.
+   - Post every AI run's spend on the board (`AI <lane> $<spent> <run id or command>`). P5 stops further AI runs on a key whose posted total passes $35.
+4. **Fly is for production tests, by P1 only.** P1 may deploy merged `main`, scale the machine, set the AI cap within its $10, fork benchmark repositories into `refit-dev`, approve them and let Refit Agent open draft PRs on those forks. Nobody else runs a Fly command that changes state.
 5. **PR #244** (Otabek's 90-lane plan) is superseded by this file. Its general-finder ideas wait until Stripe is launched.
 
 These earlier decisions stay in force, whatever a lane finds:
 
 - Refit never merges a customer's PR, and never drops or silently changes a removed request parameter. The `payment_method_types` card rule and the `keep-listed` opt-in in `AGENTS.md` stand unless lane F2 meets the decision bar for a specific, documented widening.
 - Webhook reads are never rewritten to the new shape only. A webhook payload arrives at the endpoint's API version, not the client's.
-- No live call to Stripe, OpenAI or any vendor API from a lane, except P1's and P2's model requests within budget. Reading public documentation pages is fine.
+- No live call to Stripe, OpenAI or any vendor API from a lane, except OpenAI model requests within the AI budget above. Reading public documentation pages is fine.
 - Every other decision recorded in `AGENTS.md`.
 
 ## Where Stripe stands tonight
@@ -251,7 +256,7 @@ Pierce's machine holds the Fly access, the hosted database URL and the OpenAI ke
 
 **Owns.** Fly (`refit-hosted`), `fly.toml`, `Dockerfile`, `pipeline/hosted-*.ts`, `pipeline/fly-machines.ts`, `docs/HOSTED-*.md`, the `refit-dev` forks.
 
-**You may (tonight only).** Deploy **merged `main`** (never a branch) when no job is running, scale the machine, set the hosted AI cap up to **$15** for the night, fork benchmark repositories into `refit-dev`, approve them, add them to the Refit Agent installation, retry jobs, and let Refit Agent open draft PRs on the forks. Use `fly ssh console -a refit-hosted -C "refit hosted …"` for operations where you can, so the database URL stays on the machine; where you need it locally, use `REFIT_DATABASE_URL="$(cat ~/.refit/hosted/database-url)"` inside the command and never echo it.
+**You may (tonight only).** Deploy **merged `main`** (never a branch) when no job is running, scale the machine, set the hosted AI cap up to **$10** for the night, fork benchmark repositories into `refit-dev`, approve them, add them to the Refit Agent installation, retry jobs, and let Refit Agent open draft PRs on the forks. Use `fly ssh console -a refit-hosted -C "refit hosted …"` for operations where you can, so the database URL stays on the machine; where you need it locally, use `REFIT_DATABASE_URL="$(cat ~/.refit/hosted/database-url)"` inside the command and never echo it.
 
 **Work.**
 
@@ -260,7 +265,7 @@ Pierce's machine holds the Fly access, the hosted database URL and the OpenAI ke
 3. **Zero operator configuration.** Customers will not hand-write `.refit.json`. Use the path a customer would use (`refit enroll` and whatever P3 ships). Where a fork still needs a hand edit, record exactly which and why, and give the list to P3 on the board. Never set `fullDiff: false` by hand: the defaults are what you are testing.
 4. **Run at production speed.** Scale up only while jobs run (check prices with `fly platform vm-sizes`; keep the night's Fly compute under $15), and make sure no check is killed by throttling. Measure per-job time by stage (checkout, doctor, preparation, baseline checks, patch, patched checks, publication) from the logs. Return to `shared-cpu-2x` with 4 GB at the end. A deploy resets the size to `fly.toml`, so pass the size again or rescale after each deploy.
 5. **Compare against the prediction.** For each fork: predicted outcome, hosted outcome, benchmark outcome on the same commit. Every mismatch is a bug until explained. Fix hosted-side bugs yourself in slices (tests against a local Postgres; Linux-only problems need a Linux check, so reproduce in a `node:22` container or on Fly), and send pipeline-side bugs to the owning lane on the board.
-6. **Exercise what never ran on Fly.** AI patch and repair on at least 5 forks where deterministic rules stop for a reason AI may address (coordinate with P2; within your $15). Approval from a GitHub issue (#196) if it is on `main`. A push to a fork after its draft exists: the draft must be updated, not duplicated (with P4). Removing a repository from the installation cancels its target.
+6. **Exercise what never ran on Fly.** AI patch and repair on at least 5 forks where deterministic rules stop for a reason AI may address (coordinate with P2; within your $10). Approval from a GitHub issue (#196) if it is on `main`. A push to a fork after its draft exists: the draft must be updated, not duplicated (with P4). Removing a repository from the installation cancels its target.
 7. **Redeploy after merges.** When P5 merges a batch that changes pipeline behaviour, wait until no job runs, deploy that `main` commit, retry the affected forks and compare again. Note on the board which commit is live.
 
 **Design questions (answer in `docs/overnight/P1.md`).** Is one machine per job (`pipeline/fly-machines.ts`, #176) needed before a first customer, or is one performance machine enough for N installations? What is the cost per job and per installation per month at the measured times? What should the 120-second check limit be on hosted hardware? What happens to a running job during a deploy, and should deploys drain first?
@@ -277,16 +282,16 @@ Pierce's machine holds the Fly access, the hosted database URL and the OpenAI ke
 
 **Read first.** `docs/AI-PATCH-GUARD.md`, `docs/AI-PATCH-RELIABILITY.md`, `docs/AI-EVALUATION.md`, the [agent comparison](docs/BENCHMARKS.md#a-coding-agent-on-the-repositories-refit-did-not-fix-october-21), `pipeline/ai-patches.ts`, `pipeline/substitution-guard.ts`, `pipeline/ai-budget.ts`.
 
-**Owns.** The AI files in [the table](#file-ownership). **Budget: $30**, on your own ledger. Create `~/.refit/overnight-ai.env` (mode 600) from `~/.refit/benchmark.env` without printing it: copy every line except the `REFIT_AI_BUDGET_*` ones with `grep -v`, then append `REFIT_AI_BUDGET_USD=30` and `REFIT_AI_BUDGET_DIRECTORY=$HOME/.refit/ai-budget-overnight`. Pass it with `--env`. Runs are local, one repository per Docker lock hold.
+**Owns.** The AI files in [the table](#file-ownership). **Budget: $20** of Pierce's key, on your own ledger: set up `~/.refit/overnight-ai-P2.env` as in [owner decision 3](#owner-decisions-for-tonight) with `REFIT_AI_BUDGET_USD=20`. Local runs hold the Docker lock one repository at a time; for a wider sample, use an Actions AI run from the shared $10.
 
 **Work.**
 
 1. **Find the AI-eligible set.** From the latest `main` baseline, list every affected repository where deterministic rules stop for a reason the AI path is allowed to address (read `pipeline/run.ts` for when `useAi` is true), and why the others are not eligible. Expect 30 to 70.
-2. **Run the AI path on them** at the baseline commit (`npm run benchmark:stripe -- --root <dir> --output <run> --env ~/.refit/overnight-ai.env --ai --validate`, on a subset list, sliced with `--offset` and `--limit`). The benchmark makes 1 repair attempt where the hosted worker makes 2 (`--repair-attempts 2`); measure the second attempt's value on a sample with `refit run`. Record spend per repository.
+2. **Run the AI path on them** at the baseline commit (`npm run benchmark:stripe -- --root <dir> --output <run> --env ~/.refit/overnight-ai-P2.env --ai --validate`, on a subset list, sliced with `--offset` and `--limit`). The benchmark makes 1 repair attempt where the hosted worker makes 2 (`--repair-attempts 2`); measure the second attempt's value on a sample with `refit run`. Record spend per repository.
 3. **Read every AI diff that validated or was repaired.** Label each in `fix-reviews.json`. Classify every wrong or partial one: invented field, dropped parameter, wrong item choice, version semantics, type-only workaround (`as any`), unrelated edits.
 4. **Make the guard catch every wrong class** you found, deterministically: the patch is refused, never "fixed" by another model call. Give the model the owner policies it must follow (the card rule, never drop a parameter, dual-version webhook reads). Tests from the real diffs.
 5. **Rerun and compare.** Same repositories, same commit plus your change: validated correct up, wrong to zero.
-6. **Help P1** run AI repair on Fly forks (they spend their own $15).
+6. **Help P1** run AI repair on Fly forks (they spend their own $10).
 
 **Design questions.** Should an AI patch ever publish as a normal draft, or always as `[Needs review]`? Is repair worth its cost (fixes per dollar)? Is `gpt-5.6-luna` the right model, measured, not assumed (try one stronger model on the 10 hardest cases within budget)? Where does AI beat a rule we could write instead? Send those to F4.
 
