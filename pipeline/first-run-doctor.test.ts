@@ -88,6 +88,9 @@ it('sends a new user to refit agents when the repository has no .refit.json', as
   expect(lines[1]).toBe(
     'Next: Run refit agents to see which provider agents apply, then refit agents --add <id> to write .refit.json.',
   );
+  // Before: "Configuration  <app>/.refit.json", a file that does not exist.
+  expect(lines[3]).toBe('Configuration  this repository commits no .refit.json');
+  expect(report).toMatchObject({ missing: true, configuration: join(app, '.refit.json') });
   expect(lines.at(-1)).toBe(
     'Doctor only reads files: it runs no code, installs and downloads nothing, and the configuration is not approved or activated. Passing checks permit a validation attempt, not proof the migration is correct. Only bounded ESM/CommonJS client patterns and configured SDK mappings are inspected, so other usage can remain undetected; SDK/API-version rollout and effective account versions still need review.',
   );
@@ -306,6 +309,59 @@ export const auth = betterAuth({ plugins: [stripe({ stripeClient })] })
       'Refit traced no stripe API call in this code, so it cannot tell what the migration changes. Calls made inside another library, or through a client Refit cannot follow, are not counted.',
     action:
       'If the code reaches stripe only through another library, upgrade that library instead. Otherwise run refit run --human to see which clients Refit found, and call the API through one it can follow.',
+  });
+});
+
+it('names the tsconfig extends Refit does not read when shared clients stop for it', async () => {
+  const app = await repository();
+  await mkdir(join(app, 'refit'));
+  await mkdir(join(app, 'site'));
+  const files = {
+    'package.json': JSON.stringify({ dependencies: { stripe: '19.3.1' } }),
+    // hideokamoto/stripe-testing-mcp-tools: the docs site under site/ extends Astro's own tsconfig.
+    'site/tsconfig.json': `{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"]
+}
+`,
+    'site/astro.config.mjs': `// @ts-check
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+  site: process.env.SITE_URL ?? 'https://stripe-fixtures.pages.dev',
+});
+`,
+    'src/index.ts': `import Stripe from 'stripe';
+
+const createStripeClient = (apiKey?: string) => {
+  const stripe = new Stripe(apiKey!, {
+    apiVersion: '2026-08-26.dahlia',
+  });
+  return stripe;
+};
+
+export const createSession = () =>
+  createStripeClient(process.env.STRIPE_SECRET_KEY).checkout.sessions.create({ mode: 'payment' });
+`,
+    'refit/stripe-before.json': JSON.stringify(checkoutContract('2026-08-26.dahlia', ['mode'])),
+    'refit/stripe-after.json': JSON.stringify(checkoutContract('2026-09-30.endive', ['mode'])),
+    'refit/stripe.provider.json': JSON.stringify(checkoutProvider),
+    '.refit.json': JSON.stringify(stripeConfiguration),
+  };
+  for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
+  await commit(app);
+  const report = await inspectRepositoryReadiness({ repository: app });
+  // Before: "site/tsconfig.json: source alias resolution is unverified (invalid configuration,
+  // unavailable extends, project references or unsupported resolution options). …"
+  expect(report.checks.find((check) => check.id === 'source-resolution')).toEqual({
+    id: 'source-resolution',
+    title: 'Shared client resolution',
+    status: 'blocked',
+    detail:
+      'Refit cannot verify how imports resolve, because site/tsconfig.json extends astro/tsconfigs/strict, which Refit does not read, so it stops at clients shared between files.',
+    action:
+      'Nothing in your code needs to change: Refit reads only committed tsconfig files that an extends names by a relative path, so it stops here until it can read astro/tsconfigs/strict.',
   });
 });
 
