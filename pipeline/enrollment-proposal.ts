@@ -458,12 +458,12 @@ function applicationVersion(
   const sources = [
     ...(pinned.length ? [`set at ${places(pinned)}`] : []),
     ...(releases.length
-      ? [`the default of stripe-node ${releases.join(' and ')}, which the lockfile records`]
+      ? [`the default of stripe-node ${listed(releases)}, which the lockfile records`]
       : []),
   ];
   return {
     value: used[0],
-    source: `${sources.join(' and ')}${unfollowed.length ? `; Refit cannot follow every use of the client at ${places(unfollowed)}, so check that no request there sends another version` : ''}`,
+    source: `${sources.join(', and ')}${unfollowed.length ? `; Refit cannot follow every use of the client at ${places(unfollowed)}, so check that no request there sends another version` : ''}`,
   };
 }
 

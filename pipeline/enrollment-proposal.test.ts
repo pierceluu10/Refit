@@ -215,6 +215,23 @@ exports.handler = async (event, context) => {
   });
 });
 
+it('joins a pinned client and a release default that send the same version', async () => {
+  const root = await repository({
+    'package.json': manifest('^18.2.1', TESTS),
+    'package-lock.json': npmLock('18.2.1'),
+    'src/lib/stripe.ts': QUILL.replace('2026-04-22.dahlia', '2025-05-28.basil'),
+    'src/admin.ts': `import Stripe from "stripe";\n\nexport const admin = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");\n`,
+  });
+  const { proposal, stops } = await proposeStripeConfiguration(root);
+  expect(stops).toEqual([]);
+  // Before: "set at src/lib/stripe.ts:3 and the default of stripe-node 18.2.1, …"
+  expect(proposal?.apiVersion).toEqual({
+    value: '2025-05-28.basil',
+    source:
+      'set at src/lib/stripe.ts:3, and the default of stripe-node 18.2.1, which the lockfile records',
+  });
+});
+
 it('stops on a version read from the environment, and names the line', async () => {
   // kevinknielsen/superfan-core lib/stripe.ts
   const root = await repository({

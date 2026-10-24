@@ -14,6 +14,7 @@ import {
   REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
 } from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
+import type { ProviderAdapter } from './providers.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import {
   parseWorkflowConfiguration,
@@ -145,45 +146,108 @@ function migrationCoverageDetail(
 }
 
 const read = (finding: Finding) => `${finding.expression} at ${finding.file}:${finding.line}`;
+const at = (finding: Finding) => `${finding.file}:${finding.line}`;
 const targetVersion = (after: string | null) =>
   after ? `API version ${after}` : 'the target API version';
+type ReviewedEvidence = { adapter?: ProviderAdapter; findings: Finding[] };
 
-// Each removed parameter where it is still sent, so the person knows which calls to change.
-function removedParameterDetail(findings: Finding[], after: string | null) {
-  const sent = [
-    ...new Set(
-      findings.flatMap((finding) =>
-        finding.requestParameter
-          ? [`${finding.requestParameter.parameter} at ${finding.file}:${finding.line}`]
-          : [],
+// The findings that raise `reason` on their own, so a stop names only the code it is about.
+const raising = (evidence: ReviewedEvidence, reason: string) =>
+  evidence.findings.filter(
+    (finding) =>
+      migrationReviewReason({ adapter: evidence.adapter, findings: [finding] }, true) === reason,
+  );
+
+// What a source-provenance stop is about, and its fix. Every sentence must hold for every
+// repository that reaches the branch, so a branch says only what all its causes share.
+function provenanceStop(
+  evidence: ReviewedEvidence & { skippedFiles: string[] },
+  reason: string,
+  after: string | null,
+) {
+  if (evidence.skippedFiles.length) {
+    // Each entry is `path: first syntax diagnostic`.
+    const files = evidence.skippedFiles.map((entry) => {
+      const split = entry.indexOf(': ');
+      return `${entry.slice(0, split)} (${entry
+        .slice(split + 2)
+        .split('\n')[0]
+        .replace(/\.$/, '')})`;
+    });
+    const one = files.length === 1;
+    return {
+      detail: `Refit could not parse ${listed(files)}, so it did not scan ${one ? 'that file' : 'those files'}.`,
+      action:
+        'Fix any syntax error there, then run refit doctor again. Refit parses only TypeScript and JavaScript, so a file in another syntax, such as Flow, keeps this stop.',
+    };
+  }
+  if (reason === REMOVED_REQUEST_PARAMETER_REVIEW_REASON) {
+    const findings = evidence.findings.filter((finding) => finding.requestParameter);
+    const set = [
+      ...new Set(
+        findings.map((finding) => `${finding.requestParameter!.parameter} at ${at(finding)}`),
       ),
-    ),
-  ];
-  const one = sent.length === 1;
-  return `${one ? 'A request sends a parameter' : 'Requests send parameters'} that ${targetVersion(after)} removed: ${listed(sent)}. Refit has no reviewed replacement for ${one ? 'it' : 'them'}.`;
+    ];
+    const one = set.length === 1;
+    return {
+      detail: `Code sets ${one ? 'a request parameter' : 'request parameters'} that ${targetVersion(after)} removes, and Refit leaves ${one ? 'it' : 'them'} in place: ${listed(set)}.`,
+      action: `Remove or replace ${one ? 'it' : 'each one'} yourself.${
+        findings.some((finding) => finding.requestParameter!.parameter === 'payment_method_types')
+          ? ' docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.'
+          : ''
+      }`,
+    };
+  }
+  if (reason === DECLARED_TYPE_REVIEW_REASON) {
+    const reads = [
+      ...new Set(
+        evidence.findings
+          .filter((finding) => finding.declaredType && finding.confidence !== 'confirmed')
+          .map(read),
+      ),
+    ];
+    const one = reads.length === 1;
+    return {
+      detail: `Refit could not confirm ${one ? 'a read' : `${reads.length} reads`} of ${one ? 'a field' : 'fields'} that ${targetVersion(after)} removes, on ${one ? 'a value' : 'values'} the code declares with a Stripe type: ${listed(reads)}.`,
+      action: `Check ${one ? 'it, and change it yourself if it reads' : 'each one, and change the ones that read'} a Stripe object. Refit's rules migrate such a read only when Refit can confirm it, and it cannot when the value may change before the read or come from an optional call, when the property name is computed, or when Refit cannot tell which Stripe object the value is.`,
+    };
+  }
+  return {
+    detail: reason,
+    action: `Review the code at ${listed([...new Set(raising(evidence, reason).map(at))])} yourself: Refit does not migrate it automatically.`,
+  };
 }
 
-// The reads no Refit rule migrates, so the person knows which handler code to change.
-function webhookDetail(findings: Finding[], after: string | null) {
-  const webhooks = findings.filter((finding) => finding.webhook);
-  const unmigrated = webhooks.filter((finding) => !finding.webhook!.migration);
-  const blocking = unmigrated.length ? unmigrated : webhooks;
-  const reads = [...new Set(blocking.map(read))];
-  const events = [...new Set(blocking.flatMap((finding) => finding.webhook!.eventTypes))];
-  return `Webhook code reads ${listed(reads)}${events.length ? ` on ${listed(events)} events` : ''}, which ${targetVersion(after)} changes, and Refit has no rule it can apply to ${reads.length === 1 ? 'this read' : 'these reads'}.`;
-}
-
-// Reads Refit found only through a declared Stripe type, which it cannot trace to Stripe.
-function declaredTypeDetail(findings: Finding[]) {
-  const reads = [
-    ...new Set(
-      findings
-        .filter((finding) => finding.declaredType && finding.confidence !== 'confirmed')
-        .map(read),
-    ),
-  ];
+// What a webhook-migration stop is about, and its fix: each read that stops, with its own events.
+function webhookStop(evidence: ReviewedEvidence, reason: string, after: string | null) {
+  const stopped = raising(evidence, reason);
+  const events = new Map<string, Set<string>>();
+  // One read can break more than one change.
+  for (const finding of stopped)
+    events.set(
+      read(finding),
+      new Set([...(events.get(read(finding)) ?? []), ...finding.webhook!.eventTypes]),
+    );
+  const reads = [...events].map(([place, types]) =>
+    types.size ? `${place} (${listed([...types])})` : place,
+  );
   const one = reads.length === 1;
-  return `${one ? 'A read' : `${reads.length} reads`} of removed Stripe fields (${listed(reads)}) ${one ? 'is' : 'are'} on values only declared with Stripe types, and Refit ${one ? 'does not trace it' : 'traces none of them'} to a Stripe client or webhook event, so it cannot tell whether ${one ? 'it reads a Stripe object' : 'they read Stripe objects'}.`;
+  const unconfirmed = stopped.some((finding) => finding.confidence !== 'confirmed');
+  const uncovered = stopped.some((finding) => finding.confidence === 'confirmed');
+  return {
+    detail: `Webhook code reads ${one ? 'a field' : 'fields'} that ${targetVersion(after)} removes: ${listed(reads)}. ${
+      unconfirmed && uncovered
+        ? 'Refit cannot confirm what some of these reads receive, and no Refit rule migrates the others.'
+        : unconfirmed
+          ? `Refit cannot confirm what ${one ? 'this read receives' : 'these reads receive'}, so its rules do not migrate ${one ? 'it' : 'them'}.`
+          : `No Refit rule migrates ${one ? 'it' : 'them'}.`
+    }`,
+    action: `${
+      unconfirmed
+        ? "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. "
+        : ''
+    }${uncovered ? 'Change the reads no rule migrates yourself. ' : ''}A read you change must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).`,
+  };
 }
 
 // Each method Refit does not map, at its first call, so the person knows which calls to check.
@@ -452,29 +516,14 @@ export async function inspectRepositoryReadiness(options: {
         id: 'source-provenance',
         title: 'Migration source evidence',
         status: 'blocked',
-        detail:
-          originReview === REMOVED_REQUEST_PARAMETER_REVIEW_REASON
-            ? removedParameterDetail(evidence.findings, evidence.apiVersion.after)
-            : originReview === DECLARED_TYPE_REVIEW_REASON
-              ? declaredTypeDetail(evidence.findings)
-              : originReview,
-        action:
-          originReview === REMOVED_REQUEST_PARAMETER_REVIEW_REASON
-            ? 'Change those calls yourself (refit run --human lists every one): Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.'
-            : originReview === DECLARED_TYPE_REVIEW_REASON
-              ? 'Run refit run --human to see each read, and migrate the ones on Stripe objects yourself: Refit migrates only reads it traces to a Stripe client or a webhook event.'
-              : evidence.skippedFiles.length
-                ? `Fix the syntax of ${listed(evidence.skippedFiles)}, which Refit could not parse, so it can scan ${evidence.skippedFiles.length === 1 ? 'it' : 'them'}.`
-                : 'Run refit run --human to see each usage Refit could not trace, and migrate it yourself.',
+        ...provenanceStop(evidence, originReview, evidence.apiVersion.after),
       });
     if (webhookReview)
       report.checks.push({
         id: 'webhook-migration',
         title: 'Webhook payload migration',
         status: 'blocked',
-        detail: webhookDetail(evidence.findings, evidence.apiVersion.after),
-        action:
-          "Make each read accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
+        ...webhookStop(evidence, webhookReview, evidence.apiVersion.after),
       });
     else if (evidence.findings.some((finding) => finding.webhook?.migration))
       report.checks.push({
@@ -514,7 +563,7 @@ export async function inspectRepositoryReadiness(options: {
         action:
           unreadable && !warnings.length
             ? unreadable.action
-            : 'Nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.',
+            : 'If a tsconfig or jsconfig is invalid, fix it. Otherwise nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.',
       });
     }
     scan.check.detail = `${evidence.repository.scannedFiles} source files inspected; adapter contracts resolved. ${workflow.latestStripe ? 'Latest Stripe source was not fetched; only the baseline was inspected.' : 'Both supplied contracts were inspected.'}`;

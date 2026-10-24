@@ -191,55 +191,98 @@ it('accepts version-tolerant webhook period reads without a price policy', async
   });
 });
 
-it('names the webhook reads no rule migrates, and the fix', async () => {
+// A repository with the webhook fixture's client and contracts, pinned to their before version.
+async function stripeRepository(files: Record<string, string>, settings: object = {}) {
   const sample = await setup();
   const webhook = resolve('pipeline/fixtures/stripe-webhooks');
   for (const file of ['before.json', 'after.json'])
     await cp(join(webhook, file), join(sample.repository, file));
   await cp(join(webhook, 'repository/client.js'), join(sample.repository, 'client.js'));
-  // Mcgyver-ai/DMForge's handler: without a secret it accepts the unsigned body (for the Stripe CLI),
-  // so the event may not come from Stripe's signature check.
-  await writeFile(
-    join(sample.repository, 'webhook.js'),
-    [
-      "import { stripe } from './client.js';",
-      'export function handleWebhook(body, signature, secret) {',
-      '  let event;',
-      '  if (secret) event = stripe.webhooks.constructEvent(body, signature, secret);',
-      '  else event = JSON.parse(body);',
-      "  if (event.type !== 'customer.subscription.updated') return;",
-      '  const subscription = event.data.object;',
-      '  return subscription.current_period_end;',
-      '}',
-      '',
-    ].join('\n'),
-  );
   const { providerConfig: _provider, ...configuration } = sample.configuration;
   await writeFile(
     join(sample.repository, '.refit.json'),
-    JSON.stringify({ ...configuration, apiVersion: '2025-02-24.acacia' }),
+    JSON.stringify({ ...configuration, apiVersion: '2025-02-24.acacia', ...settings }),
   );
+  for (const [path, content] of Object.entries(files))
+    await writeFile(join(sample.repository, path), content);
   await commit(sample.repository);
-  const report = await inspectRepositoryReadiness({ repository: sample.repository });
+  return sample.repository;
+}
+
+// Mcgyver-ai/DMForge's handler: without a secret it accepts the unsigned body (for the Stripe CLI),
+// so `event` is assigned twice and Refit cannot confirm the payload, although the period helper
+// covers this read when the event comes from constructEvent alone.
+const DMFORGE = [
+  "import { stripe } from './client.js';",
+  'export function handleWebhook(body, signature, secret) {',
+  '  let event;',
+  '  if (secret) event = stripe.webhooks.constructEvent(body, signature, secret);',
+  '  else event = JSON.parse(body);',
+  "  if (event.type !== 'customer.subscription.updated') return;",
+  '  const subscription = event.data.object;',
+  '  return subscription.current_period_end;',
+  '}',
+  '',
+].join('\n');
+
+it('says Refit cannot confirm a webhook read on an event assigned twice, not that no rule applies', async () => {
+  const repository = await stripeRepository({ 'webhook.js': DMFORGE });
+  const report = await inspectRepositoryReadiness({ repository });
   expect(report.checks.find((check) => check.id === 'webhook-migration')).toMatchObject({
     status: 'blocked',
     detail:
-      'Webhook code reads .current_period_end at webhook.js:8 on customer.subscription.updated events, which API version 2025-03-31.basil changes, and Refit has no rule it can apply to this read.',
+      'Webhook code reads a field that API version 2025-03-31.basil removes: .current_period_end at webhook.js:8 (customer.subscription.updated). Refit cannot confirm what this read receives, so its rules do not migrate it.',
     action:
-      "Make each read accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
+      "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. A read you change must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
+  });
+  // The same handler with one signed event no longer stops: the helper migrates the read.
+  const signed = await stripeRepository({
+    'webhook.js': DMFORGE.replace('  let event;\n', '').replace(
+      /  if \(secret\) event = (.*)\n  else event = JSON.parse\(body\);/,
+      '  const event = $1',
+    ),
+  });
+  expect(
+    (await inspectRepositoryReadiness({ repository: signed })).checks.find(
+      (check) => check.id === 'webhook-migration',
+    ),
+  ).toMatchObject({ status: 'passed' });
+});
+
+it('pairs each stopped webhook read with its own events and cause', async () => {
+  // The before contract also has subscription.plan, which no Refit rule migrates.
+  const before = JSON.parse(
+    await readFile(resolve('pipeline/fixtures/stripe-webhooks/before.json'), 'utf8'),
+  );
+  before.components.schemas.subscription.properties.plan = { type: 'string' };
+  const repository = await stripeRepository({
+    'before.json': JSON.stringify(before),
+    'webhook.js': DMFORGE,
+    'plans.js': [
+      "import { stripe } from './client.js';",
+      'export function handlePlan(body, signature, secret) {',
+      '  const event = stripe.webhooks.constructEvent(body, signature, secret);',
+      "  if (event.type !== 'customer.subscription.deleted') return;",
+      '  return event.data.object.plan;',
+      '}',
+      '',
+    ].join('\n'),
+  });
+  const report = await inspectRepositoryReadiness({ repository });
+  expect(report.checks.find((check) => check.id === 'webhook-migration')).toMatchObject({
+    status: 'blocked',
+    detail:
+      'Webhook code reads fields that API version 2025-03-31.basil removes: .plan at plans.js:5 (customer.subscription.deleted) and .current_period_end at webhook.js:8 (customer.subscription.updated). Refit cannot confirm what some of these reads receive, and no Refit rule migrates the others.',
+    action:
+      "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. Change the reads no rule migrates yourself. A read you change must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
   });
 });
 
-it('says which reads Refit found only through a declared Stripe type', async () => {
-  const sample = await setup();
-  const webhook = resolve('pipeline/fixtures/stripe-webhooks');
-  for (const file of ['before.json', 'after.json'])
-    await cp(join(webhook, file), join(sample.repository, file));
+it('says a declared-type read stops because Refit cannot confirm it', async () => {
   // A typed but unsigned event, as internxt/payments-server and zainulabedeen123/Best-Saas-Kit--V2
   // read Stripe fields on values only declared with Stripe types.
-  await writeFile(
-    join(sample.repository, 'handler.ts'),
-    [
+  const repository = await stripeRepository({
+    'handler.ts': [
       "import type Stripe from 'stripe';",
       'export function handle(body: string) {',
       '  const event: Stripe.Event = JSON.parse(body);',
@@ -248,20 +291,109 @@ it('says which reads Refit found only through a declared Stripe type', async () 
       '}',
       '',
     ].join('\n'),
-  );
-  const { providerConfig: _provider, ...configuration } = sample.configuration;
+  });
+  const report = await inspectRepositoryReadiness({ repository });
+  expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
+    status: 'blocked',
+    detail:
+      'Refit could not confirm a read of a field that API version 2025-03-31.basil removes, on a value the code declares with a Stripe type: .current_period_end at handler.ts:5.',
+    action:
+      "Check it, and change it yourself if it reads a Stripe object. Refit's rules migrate such a read only when Refit can confirm it, and it cannot when the value may change before the read or come from an optional call, when the property name is computed, or when Refit cannot tell which Stripe object the value is.",
+  });
+});
+
+it('names each file Refit could not parse with its diagnostic, without calling Flow a syntax error', async () => {
+  const sample = await setup();
+  await writeFile(join(sample.repository, 'src/broken.ts'), 'export const = 1;\n');
   await writeFile(
-    join(sample.repository, '.refit.json'),
-    JSON.stringify({ ...configuration, apiVersion: '2025-02-24.acacia' }),
+    join(sample.repository, 'src/total.js'),
+    '// @flow\nexport function total(amount: number): number {\n  return amount;\n}\n',
   );
   await commit(sample.repository);
   const report = await inspectRepositoryReadiness({ repository: sample.repository });
   expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
     status: 'blocked',
     detail:
-      'A read of removed Stripe fields (.current_period_end at handler.ts:5) is on values only declared with Stripe types, and Refit does not trace it to a Stripe client or webhook event, so it cannot tell whether it reads a Stripe object.',
+      'Refit could not parse src/broken.ts (Variable declaration expected) and src/total.js (Type annotations can only be used in TypeScript files), so it did not scan those files.',
     action:
-      'Run refit run --human to see each read, and migrate the ones on Stripe objects yourself: Refit migrates only reads it traces to a Stripe client or a webhook event.',
+      'Fix any syntax error there, then run refit doctor again. Refit parses only TypeScript and JavaScript, so a file in another syntax, such as Flow, keeps this stop.',
+  });
+});
+
+// GET /v1/invoices/upcoming and POST /v1/invoices/create_preview, cut to what the move compares.
+const invoiceContract = (version: string, upcoming: boolean) => {
+  const text = { type: 'string' };
+  const invoice = {
+    content: { 'application/json': { schema: { $ref: '#/components/schemas/invoice' } } },
+  };
+  return {
+    openapi: '3.0.0',
+    info: { version },
+    paths: upcoming
+      ? {
+          '/v1/invoices/upcoming': {
+            get: {
+              operationId: 'GetInvoicesUpcoming',
+              parameters: ['customer', 'subscription', 'coupon'].map((name) => ({
+                in: 'query',
+                name,
+                schema: text,
+              })),
+              responses: { '200': invoice },
+            },
+          },
+        }
+      : {
+          '/v1/invoices/create_preview': {
+            post: {
+              operationId: 'PostInvoicesCreatePreview',
+              requestBody: {
+                content: {
+                  'application/x-www-form-urlencoded': {
+                    schema: { type: 'object', properties: { customer: text, subscription: text } },
+                  },
+                },
+              },
+              responses: { '200': invoice },
+            },
+          },
+        },
+    components: { schemas: { invoice: { type: 'object', properties: { id: text } } } },
+  };
+};
+
+it('points a traced call the contracts stop at to its place, not to untraced usage', async () => {
+  const repository = await stripeRepository(
+    {
+      'before.json': JSON.stringify(invoiceContract('2025-02-24.acacia', true)),
+      'after.json': JSON.stringify(invoiceContract('2025-03-31.basil', false)),
+      'provider.json': JSON.stringify({
+        id: 'stripe-invoices',
+        packageName: 'stripe',
+        defaultImport: true,
+        namedExport: 'Stripe',
+        constructorCalls: true,
+        apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
+        operations: [
+          {
+            resource: 'invoices',
+            method: 'retrieveUpcoming',
+            schema: 'invoice',
+            operationId: 'GetInvoicesUpcoming',
+          },
+        ],
+      }),
+      'billing.js':
+        "import { stripe } from './client.js';\nexport const preview = () => stripe.invoices.retrieveUpcoming({ customer: 'cus_1', coupon: 'SAVE10' });\n",
+    },
+    { providerConfig: './provider.json' },
+  );
+  const report = await inspectRepositoryReadiness({ repository });
+  expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
+    status: 'blocked',
+    detail:
+      'Stripe 2025-03-31.basil removed the upcoming invoice API (invoices.retrieveUpcoming) in favour of invoices.createPreview. coupon has no equivalent create_preview parameter; the call needs review.',
+    action: 'Review the code at billing.js:2 yourself: Refit does not migrate it automatically.',
   });
 });
 
@@ -283,7 +415,7 @@ it('blocks activation when shared source alias configuration cannot be verified'
   });
 });
 
-it('says nothing in the code needs to change when an alias import can load two files', async () => {
+it('says to fix an invalid tsconfig, and that nothing else needs to change for an ambiguous alias', async () => {
   const sample = await setup();
   // An "@/*" alias like gaurangkhera/Kinect's, with an import that matches two scanned files.
   await writeFile(
@@ -296,12 +428,23 @@ it('says nothing in the code needs to change when an alias import can load two f
     "import billing from '@/client';\nexport const consumer = billing;\n",
   );
   await commit(sample.repository);
-  const report = await inspectRepositoryReadiness({ repository: sample.repository });
-  expect(report.checks.find((check) => check.id === 'source-resolution')).toMatchObject({
+  const action =
+    'If a tsconfig or jsconfig is invalid, fix it. Otherwise nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.';
+  const ambiguous = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(ambiguous.checks.find((check) => check.id === 'source-resolution')).toMatchObject({
     status: 'blocked',
     detail: 'Ambiguous source alias target; shared clients require review.',
-    action:
-      'Nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.',
+    action,
+  });
+  // TypeScript rejects this tsconfig, so here the configuration is what needs to change.
+  await writeFile(join(sample.repository, 'tsconfig.json'), '{"compilerOptions": {');
+  await commit(sample.repository);
+  const invalid = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(invalid.checks.find((check) => check.id === 'source-resolution')).toMatchObject({
+    status: 'blocked',
+    detail:
+      'tsconfig.json: source alias resolution is unverified (invalid configuration, unavailable extends, project references or unsupported resolution options). Shared clients require review.',
+    action,
   });
 });
 
