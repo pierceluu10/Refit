@@ -118,7 +118,8 @@ const clean = (value: unknown) =>
     .replace(/\|/g, '/')
     .slice(0, 140);
 
-// What a customer gets: the full contract diff on, through validation when the scan lets it run.
+// The full contract diff on, through validation when the scan lets it run. It uses the benchmark's
+// SDK-spec adapter; `customerMode` records the built-in adapter a hosted worker scans with.
 // Rows from runs before production mode was recorded say so instead of guessing.
 export function productionOutcome(entry: Record<string, unknown>) {
   const production = entry.production as { status?: string; reason?: string; error?: string };
@@ -172,7 +173,7 @@ export function summaryTable(entries: Record<string, unknown>[]) {
   return [
     '# Stripe benchmark summary',
     '',
-    `Repositories: ${rows.length}. Affected in either mode: ${affected.length}. Production mode is what a customer gets (full contract diff on); benchmark mode turns the full diff off. Pull requests: ${count('outcome', 'pull request')}.`,
+    `Repositories: ${rows.length}. Affected in either mode: ${affected.length}. Production mode runs the full contract diff, as a hosted worker does, with the benchmark's SDK-spec adapter (customerMode records the built-in adapter's scan); benchmark mode turns the full diff off. Pull requests: ${count('outcome', 'pull request')}.`,
     ...(predates.length
       ? [
           '',
