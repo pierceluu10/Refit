@@ -1,0 +1,226 @@
+{
+  "criteria": "Laptop 3, PR #269 and cached-factory holders. Eligible: subsets/push-279-affected.json minus subsets/heldout-30.json (249). Selected: every eligible repository whose non-test source (no test, tests, __tests__, e2e or spec directory, no .test. or .spec. file) assigns `new Stripe(` to an existing binding (`x = new Stripe(`, `x ??= new Stripe(`, `x ||= new Stripe(`), by grep over shallow clones at the pinned commits (18), plus mykha1129/AI-Agent, the one other eligible repository in subsets/f1-proxy-clients.json (19). Entries unchanged, in push-279-affected order, split into a (first 10) and b (last 9).",
+  "frozenAt": "2026-10-24",
+  "purpose": "Before/after evidence for PR #269 (lazy Proxy Stripe clients) and Stripe clients held in a `let` holder; engine only.",
+  "repos": [
+    {
+      "repo": "IramMcFly/kitchen-soft-platform",
+      "stars": 2,
+      "commit": "5a3a8221b5a30307d4086b2498bc4e02c50368c1",
+      "before": "2026-01-28.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.3.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "yuens1002/artisan-roast",
+      "stars": 2,
+      "commit": "15be9a627bfe0a96f8a6606e6016b961f2035f09",
+      "before": "2026-01-28.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.3.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "4NDR3S-01/TuSuerteEC",
+      "stars": 1,
+      "commit": "cafa2f19d763120540fdaf53c3b20b7008f4dca5",
+      "before": "2024-04-10",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^15.12.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "inventashif/hackerai",
+      "stars": 1,
+      "commit": "c48bdee0038823339e13ee34a83013fa4f6e4d3d",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "pnpm",
+      "before": "2026-07-29.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "22.4.0"
+    },
+    {
+      "repo": "beindigital-products/wedillybird",
+      "stars": 0,
+      "commit": "4efeeed8e8d112cdddf9cabfde80003f9dbdfd9a",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.0"
+    },
+    {
+      "repo": "Dvargas005/node-hub",
+      "stars": 0,
+      "commit": "e06a3f69ef2411b93793c0630e2f5045e4147012",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^21.0.1"
+    },
+    {
+      "repo": "EngMajdSayedTaha/reelspy",
+      "stars": 0,
+      "commit": "c9a18cbf35ba5520e361d338bd0f36847ef4b7d1",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.7.0"
+    },
+    {
+      "repo": "RISHIE2006/Signl",
+      "stars": 0,
+      "commit": "42b02d9f773d8c730ff41aec645368d4126e2cbb",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-03-31.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.2.2"
+    },
+    {
+      "repo": "YosraGhanmi/BrainTrain-",
+      "stars": 0,
+      "commit": "2e5998b220efae72a8571679092b679713b2840a",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2"
+    }
+  ],
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ]
+}
