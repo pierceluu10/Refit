@@ -27,7 +27,17 @@ const published = (name: string, integration?: string) => {
   };
 };
 
-const shapes: Record<string, () => { body: string; message: string }> = {
+// As a benchmark or a failed validation stores them: a local review artifact Refit never publishes.
+const stored = (name: string) => {
+  const artifacts = createReviewArtifacts(fixture(name));
+  return {
+    body: artifacts.files['pull-request.md'],
+    message: artifacts.commitMessage,
+    title: artifacts.manifest.title,
+  };
+};
+
+const shapes: Record<string, () => { body: string; message: string; title?: string }> = {
   validated: () => published('validated'),
   'needs-review-waiver': () => {
     expect(publicationWaiver(fixture('needs-review-waiver'), true)?.gate).toBe(
@@ -44,6 +54,10 @@ const shapes: Record<string, () => { body: string; message: string }> = {
   shopify: () => published('shopify'),
   // One draft of a collection: each integration publishes its own body, marked with its id.
   'multi-integration': () => published('multi-integration', 'stripe'),
+  // Real benchmark patches whose checks did not pass (see each fixture's storedResultNote).
+  'unmigrated-usages': () => stored('unmigrated-usages'),
+  'type-errors': () => stored('type-errors'),
+  'baseline-timeout': () => stored('baseline-timeout'),
 };
 
 it.each(Object.keys(shapes))('writes the %s pull request body within budget', async (name) => {
@@ -55,12 +69,16 @@ it.each(Object.keys(shapes))('writes the %s pull request body within budget', as
   await expect(body).toMatchFileSnapshot(`__snapshots__/pr-bodies/${name}.md`);
 });
 
-it.each(['needs-review-waiver', 'untraced-reads', 'ai-patch'])(
-  'titles the %s draft for review',
-  (name) => {
-    expect(published(name).title).toMatch(/^\[Needs review\] /);
-  },
-);
+it.each([
+  'needs-review-waiver',
+  'untraced-reads',
+  'ai-patch',
+  'unmigrated-usages',
+  'type-errors',
+  'baseline-timeout',
+])('titles the %s draft for review', (name) => {
+  expect(shapes[name]().title).toMatch(/^\[Needs review\] /);
+});
 
 it.each(Object.keys(shapes))('writes the %s commit message', async (name) => {
   const { message } = shapes[name]();
