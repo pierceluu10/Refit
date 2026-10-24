@@ -17,7 +17,7 @@ export function renderReadiness(report: ReadinessReport) {
       blocked.find((check) => check.id !== 'repository') ?? blocked[0],
     ),
     '',
-    `Configuration  ${report.generated ? `generated, because this repository commits no ${REPOSITORY_CONFIGURATION}` : terminalText(report.configuration)}`,
+    `Configuration  ${report.generated ? `generated, because this repository commits no ${REPOSITORY_CONFIGURATION}` : report.missing ? `this repository commits no ${REPOSITORY_CONFIGURATION}` : terminalText(report.configuration)}`,
     ...(report.integration ? [`Integration    ${terminalText(report.integration)}`] : []),
     ...(report.repository ? [`Repository     ${terminalText(report.repository)}`] : []),
     ...(report.provider ? [`Provider       ${terminalText(report.provider.id)}`] : []),
