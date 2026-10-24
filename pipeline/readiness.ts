@@ -19,6 +19,7 @@ import {
 import { contractCommand } from './contract-commands.ts';
 import { DEFAULT_CONTRACTS_DIRECTORY, readStripeContract } from './enrollment-contracts.ts';
 import {
+  generatedVersionCheck,
   proposalContent,
   proposalSummary,
   proposeStripeConfiguration,
@@ -439,7 +440,7 @@ export async function inspectRepositoryReadiness(options: {
       id: 'api-version',
       title: 'Application API version',
       status: evidence.apiVersion.applicability === 'matches-before' ? 'passed' : 'blocked',
-      detail: `${evidence.apiVersion.reason} ${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`,
+      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}`,
       action:
         evidence.apiVersion.applicability === 'matches-before'
           ? null
@@ -538,9 +539,8 @@ export async function inspectRepositoryReadiness(options: {
         id: 'sdk-version',
         title: 'Recorded SDK version',
         status: 'review',
-        detail: `${unknownLocks.length} SDK declaration${unknownLocks.length === 1 ? '' : 's'} lack a resolved supported npm, pnpm or yarn lockfile version.`,
-        action:
-          'Review the actual installed SDK version and replacement method availability; dependency declarations alone are not installation evidence.',
+        detail: `Refit cannot tell which ${evidence.adapter.packageName} release ${unknownLocks.map((dependency) => `${dependency.file} (${dependency.version})`).join(', ')} install${unknownLocks.length === 1 ? 's' : ''}: ${[...new Set(unknownLocks.map((dependency) => dependency.lock.reason))].join(' ')}`,
+        action: `Check which ${evidence.adapter.packageName} release you install before merging a migration: a declared range is not the installed release, and a migration may use methods only newer releases have.`,
       });
   }
   if (workflow.prepareDependencies && snapshot.value) {

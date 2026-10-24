@@ -4,7 +4,11 @@ import { dirname, join } from 'node:path';
 import ts from 'typescript-compiler';
 import { scaffoldChecks } from './agent-catalog.ts';
 import { analyzeRepository } from './analyzer.ts';
-import { validateApiVersion, type ApiVersionDeclaration } from './api-version.ts';
+import {
+  validateApiVersion,
+  type ApiVersionDeclaration,
+  type ApiVersionSource,
+} from './api-version.ts';
 import {
   latestStripeContract,
   stripeContractFile,
@@ -392,6 +396,16 @@ export async function proposeStripeConfiguration(directory: string) {
     },
   };
   return { proposal, stops };
+}
+
+// How Refit checked the code against a generated configuration's version, which nobody pinned by
+// hand, so the operator-pin wording of committed configurations does not apply.
+export function generatedVersionCheck(source: ApiVersionSource) {
+  if (source.status === 'verified')
+    return 'Every Stripe client and request override Refit traced sends it.';
+  if (source.status === 'unknown')
+    return 'Refit could not read it at every client or request; check by hand the places the generated configuration names.';
+  return source.reason;
 }
 
 // One sentence a person reads before approving or running a generated configuration.

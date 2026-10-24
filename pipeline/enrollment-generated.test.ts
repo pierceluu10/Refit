@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import { stripeContractVersion } from './enrollment-contracts.ts';
 import { enrollmentReviewText } from './enrollment-review.ts';
+import { renderReadiness } from './readiness-presentation.ts';
 import { inspectRepositoryReadiness } from './readiness.ts';
 import {
   approveRepositoryEnrollment,
@@ -164,6 +165,10 @@ it.skipIf(!SAVED)(
       'Generated    No .refit.json is committed, so Refit generated one: Stripe API version 2026-04-22.dahlia (set at src/lib/stripe.ts:3), moving to 2026-09-30.endive, checked by the test script in package.json, run with npm.',
     );
     expect(review).toContain('Inputs (the generated .refit.json and saved Stripe contracts)');
+    // Nobody pinned the version by hand, so the review does not call it an operator pin.
+    expect(review).toContain(
+      'stripe: Application API version 2026-04-22.dahlia matches the before contract. Every Stripe client and request override Refit traced sends it.',
+    );
     const state = await directory();
     const { approval } = await approveRepositoryEnrollment({
       enrollment,
@@ -193,18 +198,34 @@ it.skipIf(!SAVED)(
       revision: stripeContractVersion('2026-04-22.dahlia')!.commit,
       hash: stripeContractVersion('2026-04-22.dahlia')!.sha256,
     });
-    // The code moves to another version: the generated inputs change, so the approval stops.
-    await writeFile(join(app, 'src/lib/stripe.ts'), CLIENT.replace('2026-04-22', '2026-05-27'));
-    await commit(app, 'test: move the pin');
-    await expect(
+    // The code moves to another version: the generated inputs change, so the approval stops and
+    // says what moved.
+    const load = () =>
       loadApprovedRepository({
         repository: app,
         approval,
         stateDirectory: state,
         integration: 'stripe',
         contracts: SAVED,
-      }),
-    ).rejects.toThrow(RepositoryApprovalError);
+      });
+    await writeFile(join(app, 'src/lib/stripe.ts'), CLIENT.replace('2026-04-22', '2026-05-27'));
+    await commit(app, 'test: move the pin');
+    await expect(load()).rejects.toThrow(
+      new RepositoryApprovalError(
+        'The configuration Refit generates for this repository changed since it was approved: your code now sends Stripe API version 2026-05-27.dahlia, moving to 2026-09-30.endive. Approve again to run that move.',
+      ),
+    );
+    // A merged Refit draft moves the code to the target.
+    await writeFile(
+      join(app, 'src/lib/stripe.ts'),
+      CLIENT.replace('2026-04-22.dahlia', '2026-09-30.endive'),
+    );
+    await commit(app, 'test: merge the draft');
+    await expect(load()).rejects.toThrow(
+      new RepositoryApprovalError(
+        'Your code now sends Stripe API version 2026-09-30.endive, the newest Refit has a contract for, so there is nothing to move.',
+      ),
+    );
   },
 );
 
@@ -219,6 +240,16 @@ it.skipIf(!SAVED)(
     expect(report.generated?.configuration).toMatchObject({
       formatVersion: 2,
       integrations: [{ id: 'stripe', apiVersion: '2026-04-22.dahlia', command: ['pnpm', 'test'] }],
+    });
+    const rendered = renderReadiness(report);
+    expect(rendered).toContain(
+      'Configuration  generated, because this repository commits no .refit.json\n',
+    );
+    expect(rendered).not.toContain('operator pin');
+    expect(report.checks.find((check) => check.id === 'sdk-version')).toMatchObject({
+      status: 'review',
+      detail:
+        'Refit cannot tell which stripe release package.json (^22.1.1) installs: Multiple package-manager lockfiles require explicit review; no effective graph is assumed.',
     });
     const dependencies = report.checks.find((check) => check.id === 'dependencies');
     expect(dependencies?.status).toBe('blocked');
