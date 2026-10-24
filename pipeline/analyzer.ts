@@ -17,8 +17,11 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import {
+  IN_PERSON_METHODS,
+  movablePaymentMethods,
   removedParameterProperty,
   requestPropertyEdit,
+  sendsSibling,
   untracedRemovedParameters,
 } from './request-migration.ts';
 import { requestMoveEdit } from './stripe-request-moves.ts';
@@ -30,6 +33,7 @@ import {
 import {
   CARD_PAYMENT_METHOD_RULE,
   LISTED_PAYMENT_METHODS_RULE,
+  MOVED_PAYMENT_METHODS_RULE,
   type RequestParameterRemoval,
 } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
@@ -989,26 +993,33 @@ export function analyzeRepository(
       if (!property) continue;
       const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
       // Only the exact literal `['card']` has a reviewed replacement, and, where the repository
-      // opted in, a literal list of `card` plus other distinct methods (never `card_present`).
-      // run.ts keeps the edit only with the API version bump (and, for TypeScript, the SDK
-      // upgrade) in the same patch.
+      // opted in, a literal list of `card` plus other distinct methods (never `card_present`), or
+      // any other value expression that names no in-person method (request-migration.ts). A body
+      // that already sends the replacement keeps stopping. run.ts keeps the edit only with the
+      // API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
       const methods =
         ts.isPropertyAssignment(property) &&
         ts.isArrayLiteralExpression(property.initializer) &&
         property.initializer.elements.every(ts.isStringLiteralLike)
           ? property.initializer.elements.map((element) => (element as ts.StringLiteralLike).text)
           : undefined;
-      const rule =
-        methods?.length === 1 && methods[0] === 'card'
+      const listed =
+        methods &&
+        methods.length > 1 &&
+        methods.includes('card') &&
+        !methods.some((method) => IN_PERSON_METHODS.has(method)) &&
+        new Set(methods).size === methods.length;
+      const rule = sendsSibling(property, removal.cardReplacement)
+        ? undefined
+        : methods?.length === 1 && methods[0] === 'card'
           ? CARD_PAYMENT_METHOD_RULE
-          : removal.keepListed &&
-              methods &&
-              methods.length > 1 &&
-              methods.includes('card') &&
-              !methods.includes('card_present') &&
-              new Set(methods).size === methods.length
-            ? LISTED_PAYMENT_METHODS_RULE
-            : undefined;
+          : !removal.keepListed
+            ? undefined
+            : listed
+              ? LISTED_PAYMENT_METHODS_RULE
+              : movablePaymentMethods(property, checker)
+                ? MOVED_PAYMENT_METHODS_RULE
+                : undefined;
       // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
       // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
       const moved =
@@ -1027,13 +1038,15 @@ export function analyzeRepository(
           changeId: removal.id,
           rule: moved.rule,
         });
-      if (confirmed && removal.cardReplacement && rule && ts.isPropertyAssignment(property)) {
+      if (confirmed && removal.cardReplacement && rule) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
         edits.push({
           file: location(property).file,
           start: property.name.getStart(),
           end: property.name.getEnd(),
-          replacement: `${quote}${removal.cardReplacement}${quote}`,
+          replacement: ts.isShorthandPropertyAssignment(property)
+            ? `${removal.cardReplacement}: ${property.name.text}`
+            : `${quote}${removal.cardReplacement}${quote}`,
           changeId: removal.id,
           rule,
         });

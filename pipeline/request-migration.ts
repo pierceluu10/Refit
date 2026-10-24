@@ -61,10 +61,71 @@ export function removedParameterProperty(
   const argument = call.arguments[removal.argumentIndex];
   if (!argument || !ts.isObjectLiteralExpression(argument)) return undefined;
   return argument.properties.find(
-    (property) =>
+    (property): property is ts.PropertyAssignment | ts.ShorthandPropertyAssignment =>
       (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
       propertyName(property.name) === removal.parameter,
   );
+}
+
+// Whether the object literal holding `property` also sends `name`, such as a body that already
+// has the replacement of the removed parameter it sends.
+export function sendsSibling(property: ts.ObjectLiteralElementLike, name: string | undefined) {
+  return (
+    name !== undefined &&
+    ts.isObjectLiteralExpression(property.parent) &&
+    property.parent.properties.some(
+      (entry) =>
+        entry !== property && entry.name !== undefined && propertyName(entry.name) === name,
+    )
+  );
+}
+
+// In-person methods: endive accepts them in `allowed_payment_method_types` only on PaymentIntents
+// and SetupIntents (https://docs.stripe.com/changelog/endive/2026-09-30/card-present-and-interac-present-enum-values-for-allowed-payment-method-types,
+// read 2026-10-24), and what they offer depends on reader configuration offline checks cannot see.
+export const IN_PERSON_METHODS = new Set(['card_present', 'interac_present']);
+const MAX_VALUE_HOPS = 4;
+
+// Whether a `payment_method_types` value on a creation call's own object literal may move to
+// `allowed_payment_method_types` unchanged (owner decision, 2026-10-24): any expression except one
+// that spells an in-person method, itself or through a declaration it names (a const, a property,
+// a function), and except an empty or repeated literal list.
+export function movablePaymentMethods(
+  property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
+  checker: ts.TypeChecker,
+) {
+  if (ts.isShorthandPropertyAssignment(property) && property.objectAssignmentInitializer)
+    return false;
+  const value = ts.isPropertyAssignment(property) ? property.initializer : property.name;
+  if (ts.isArrayLiteralExpression(value) && value.elements.every(ts.isStringLiteralLike)) {
+    const methods = value.elements.map((element) => (element as ts.StringLiteralLike).text);
+    if (!methods.length || new Set(methods).size !== methods.length) return false;
+  }
+  const seen = new Set<ts.Node>();
+  const inPerson = (node: ts.Node, hops: number): boolean => {
+    if (seen.has(node)) return false;
+    seen.add(node);
+    if (ts.isStringLiteralLike(node)) return IN_PERSON_METHODS.has(node.text);
+    if (ts.isIdentifier(node) && hops < MAX_VALUE_HOPS) {
+      const symbol = ts.isShorthandPropertyAssignment(node.parent)
+        ? checker.getShorthandAssignmentValueSymbol(node.parent)
+        : checker.getSymbolAtLocation(node);
+      const target =
+        symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+      for (const declaration of target?.declarations ?? [])
+        if (
+          !declaration.getSourceFile().isDeclarationFile &&
+          (ts.isVariableDeclaration(declaration) ||
+            ts.isPropertyAssignment(declaration) ||
+            ts.isFunctionDeclaration(declaration) ||
+            ts.isMethodDeclaration(declaration)) &&
+          inPerson(declaration, hops + 1)
+        )
+          return true;
+    }
+    return ts.forEachChild(node, (child) => inPerson(child, hops) || undefined) ?? false;
+  };
+  return !inPerson(value, 0);
 }
 
 // Object-literal keys spelling the removed `payment_method_types` outside every traced SDK call
