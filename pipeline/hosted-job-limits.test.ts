@@ -71,6 +71,7 @@ async function serve(
   fake.store = {
     allow: vi.fn(async () => ({ enrolled: [], cancelled: [] })),
     enqueueDue: vi.fn(async () => 0),
+    paused: vi.fn(async () => null),
     claim: vi.fn(async () => fake.claims.shift() ?? null),
     retire: vi.fn(async () => false),
     renew: vi.fn(async () => true),
