@@ -327,7 +327,12 @@ it('preserves failed jobs and permits one explicit retry with a fresh evidence d
   const input = await options();
   vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'validation-failed'));
   const first = await watchOnce(input);
-  await watchOnce(input);
+  // A reused job keeps why it ended, so the status a person reads still says it.
+  expect(await watchOnce(input)).toMatchObject({
+    status: 'already-processed',
+    previousStatus: 'validation-failed',
+    previousReason: 'Controlled worker result',
+  });
   const retry = await watchOnce({ ...input, retry: true });
   expect(runWorkflow).toHaveBeenCalledTimes(2);
   expect(first.output).not.toBe(retry.output);
@@ -351,7 +356,11 @@ it('marks interrupted jobs for review instead of silently regenerating or publis
   state.jobs[first.jobKey].status = 'running';
   await writeFile(path, JSON.stringify(state));
   const resumed = await watchOnce(input);
-  expect(resumed).toMatchObject({ status: 'already-processed', previousStatus: 'interrupted' });
+  expect(resumed).toMatchObject({
+    status: 'already-processed',
+    previousStatus: 'interrupted',
+    previousReason: expect.stringMatching(/^\w*Error: /),
+  });
   expect(runWorkflow).toHaveBeenCalledTimes(1);
 });
 

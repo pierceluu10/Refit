@@ -261,8 +261,8 @@ it.skipIf(
     const calls = transport.calls.filter(({ binary }) => binary === 'docker').length;
     const repeated = await runLocalService(sample.input);
     expect(
-      Object.values(repeated.registry.targets).every(
-        ({ message }) => message === 'Saved worker result reused; checks were not rerun.',
+      Object.values(repeated.registry.targets).every(({ message }) =>
+        message?.startsWith('Saved worker result reused; checks were not rerun.'),
       ),
     ).toBe(true);
     expect(transport.calls.filter(({ binary }) => binary === 'docker')).toHaveLength(calls);

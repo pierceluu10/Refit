@@ -11,6 +11,7 @@ const TYPE_EVIDENCE_REVIEW_REASON =
   'TypeScript types confirm reads of removed Stripe fields that Refit could not trace to an SDK response or a narrowed webhook event. Types, and casts in particular, do not establish provenance; automatic migration, AI and publication require traced source evidence.';
 export const REMOVED_REQUEST_PARAMETER_REVIEW_REASON =
   'A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.';
+const MAX_REASON_SITES = 3;
 const SKIPPED_SOURCE_REVIEW_REASON =
   'Unparseable source files were skipped. Their API usage and mutations are unknown; automatic migration, AI and publication require a complete source scan.';
 
@@ -67,6 +68,16 @@ export function migrationReviewReason(
   )
     return DECLARED_TYPE_REVIEW_REASON;
   if (evidence.findings.some((finding) => finding.typeEvidence)) return TYPE_EVIDENCE_REVIEW_REASON;
+}
+
+// Where traced calls still send a removed request parameter, so a stop says what to look at.
+export function removedParameterSites(findings: Finding[]) {
+  const sites = findings.flatMap((finding) =>
+    finding.requestParameter
+      ? [`${finding.file}:${finding.line} sends ${finding.requestParameter.parameter}`]
+      : [],
+  );
+  return `${sites.length === 1 ? 'The call' : 'The calls'}: ${sites.slice(0, MAX_REASON_SITES).join('; ')}${sites.length > MAX_REASON_SITES ? `; and ${sites.length - MAX_REASON_SITES} more in the run report` : ''}.`;
 }
 
 // Where a rescan of the migrated code still finds each usage, so the draft can list them.
