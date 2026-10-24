@@ -247,6 +247,26 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   });
 });
 
+it('stops on a file that imports stripe and does not parse, naming it with the other stops', async () => {
+  const root = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'src/lib/stripe.ts': QUILL,
+    'src/billing.ts': "import Stripe from 'stripe';\nconst total = ;\n",
+  });
+  expect(await proposeStripeConfiguration(root)).toEqual({
+    proposal: null,
+    stops: [
+      expect.objectContaining({ id: 'no-lockfile' }),
+      {
+        id: 'source-does-not-parse',
+        detail:
+          'src/billing.ts imports stripe but does not parse (Expression expected.), so Refit cannot read its Stripe calls or the API version it sends.',
+        action: 'Fix the syntax error in src/billing.ts and commit it.',
+      },
+    ],
+  });
+});
+
 it('names the options a client is created with when Refit cannot read them', async () => {
   const cases: { files: Record<string, string>; at: string; unread: string }[] = [
     {
