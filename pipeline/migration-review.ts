@@ -3,7 +3,7 @@ import type { Finding } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { HELPER_RULES, SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 
-const DECLARED_TYPE_REVIEW_REASON =
+export const DECLARED_TYPE_REVIEW_REASON =
   'Declared Stripe types identify possible usage but do not establish SDK or incoming-event provenance. Automatic migration, AI and publication require traced source evidence.';
 const TYPE_EVIDENCE_REVIEW_REASON =
   'TypeScript types confirm reads of removed Stripe fields that Refit could not trace to an SDK response or a narrowed webhook event. Types, and casts in particular, do not establish provenance; automatic migration, AI and publication require traced source evidence.';

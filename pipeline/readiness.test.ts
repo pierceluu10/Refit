@@ -191,6 +191,80 @@ it('accepts version-tolerant webhook period reads without a price policy', async
   });
 });
 
+it('names the webhook reads no rule migrates, and the fix', async () => {
+  const sample = await setup();
+  const webhook = resolve('pipeline/fixtures/stripe-webhooks');
+  for (const file of ['before.json', 'after.json'])
+    await cp(join(webhook, file), join(sample.repository, file));
+  await cp(join(webhook, 'repository/client.js'), join(sample.repository, 'client.js'));
+  // Mcgyver-ai/DMForge's handler: without a secret it accepts the unsigned body (for the Stripe CLI),
+  // so the event may not come from Stripe's signature check.
+  await writeFile(
+    join(sample.repository, 'webhook.js'),
+    [
+      "import { stripe } from './client.js';",
+      'export function handleWebhook(body, signature, secret) {',
+      '  let event;',
+      '  if (secret) event = stripe.webhooks.constructEvent(body, signature, secret);',
+      '  else event = JSON.parse(body);',
+      "  if (event.type !== 'customer.subscription.updated') return;",
+      '  const subscription = event.data.object;',
+      '  return subscription.current_period_end;',
+      '}',
+      '',
+    ].join('\n'),
+  );
+  const { providerConfig: _provider, ...configuration } = sample.configuration;
+  await writeFile(
+    join(sample.repository, '.refit.json'),
+    JSON.stringify({ ...configuration, apiVersion: '2025-02-24.acacia' }),
+  );
+  await commit(sample.repository);
+  const report = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(report.checks.find((check) => check.id === 'webhook-migration')).toMatchObject({
+    status: 'blocked',
+    detail:
+      'Webhook code reads .current_period_end at webhook.js:8 on customer.subscription.updated events, which API version 2025-03-31.basil changes, and Refit has no rule it can apply to this read.',
+    action:
+      "Make each read accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
+  });
+});
+
+it('says which reads Refit found only through a declared Stripe type', async () => {
+  const sample = await setup();
+  const webhook = resolve('pipeline/fixtures/stripe-webhooks');
+  for (const file of ['before.json', 'after.json'])
+    await cp(join(webhook, file), join(sample.repository, file));
+  // A typed but unsigned event, as internxt/payments-server and zainulabedeen123/Best-Saas-Kit--V2
+  // read Stripe fields on values only declared with Stripe types.
+  await writeFile(
+    join(sample.repository, 'handler.ts'),
+    [
+      "import type Stripe from 'stripe';",
+      'export function handle(body: string) {',
+      '  const event: Stripe.Event = JSON.parse(body);',
+      "  if (event.type === 'customer.subscription.updated')",
+      '    return event.data.object.current_period_end;',
+      '}',
+      '',
+    ].join('\n'),
+  );
+  const { providerConfig: _provider, ...configuration } = sample.configuration;
+  await writeFile(
+    join(sample.repository, '.refit.json'),
+    JSON.stringify({ ...configuration, apiVersion: '2025-02-24.acacia' }),
+  );
+  await commit(sample.repository);
+  const report = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
+    status: 'blocked',
+    detail:
+      'A read of removed Stripe fields (.current_period_end at handler.ts:5) is on values only declared with Stripe types, and Refit does not trace it to a Stripe client or webhook event, so it cannot tell whether it reads a Stripe object.',
+    action:
+      'Run refit run --human to see each read, and migrate the ones on Stripe objects yourself: Refit migrates only reads it traces to a Stripe client or a webhook event.',
+  });
+});
+
 it('blocks activation when shared source alias configuration cannot be verified', async () => {
   const sample = await setup();
   await writeFile(join(sample.repository, 'tsconfig.json'), '{"extends":"@vendor/tsconfig"}');
@@ -206,6 +280,28 @@ it('blocks activation when shared source alias configuration cannot be verified'
   });
   await expect(readFile(join(sample.repository, 'application-executed'))).rejects.toMatchObject({
     code: 'ENOENT',
+  });
+});
+
+it('says nothing in the code needs to change when an alias import can load two files', async () => {
+  const sample = await setup();
+  // An "@/*" alias like gaurangkhera/Kinect's, with an import that matches two scanned files.
+  await writeFile(
+    join(sample.repository, 'tsconfig.json'),
+    JSON.stringify({ compilerOptions: { paths: { '@/*': ['./src/*'] } } }),
+  );
+  await writeFile(join(sample.repository, 'src/client.js'), 'export default {};\n');
+  await writeFile(
+    join(sample.repository, 'src/consumer.ts'),
+    "import billing from '@/client';\nexport const consumer = billing;\n",
+  );
+  await commit(sample.repository);
+  const report = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(report.checks.find((check) => check.id === 'source-resolution')).toMatchObject({
+    status: 'blocked',
+    detail: 'Ambiguous source alias target; shared clients require review.',
+    action:
+      'Nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.',
   });
 });
 

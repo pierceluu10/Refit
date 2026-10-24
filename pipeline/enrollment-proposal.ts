@@ -55,9 +55,10 @@ export interface StripeProposal {
 const at = (location: Location) => `${location.file}:${location.line}`;
 
 // Names at most a few places, so a proposal over many clients stays one readable line.
-function listed(names: string[]) {
-  const named = names.slice(0, MAX_PLACES).join(', ');
-  return names.length > MAX_PLACES ? `${named} and ${names.length - MAX_PLACES} more` : named;
+export function listed(names: string[]) {
+  if (names.length > MAX_PLACES)
+    return `${names.slice(0, MAX_PLACES).join(', ')} and ${names.length - MAX_PLACES} more`;
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names.join('');
 }
 
 const places = (locations: Location[]) => listed(locations.map(at));

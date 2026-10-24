@@ -228,9 +228,13 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
   for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
   await commit(app);
   const report = await inspectRepositoryReadiness({ repository: app });
-  expect(report.checks.find((check) => check.id === 'source-provenance')?.action).toBe(
-    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.',
-  );
+  // kalibani/HireFazz sends the same ['card', 'paypal'] list from trpc/index.ts.
+  expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
+    detail:
+      'A request sends a parameter that API version 2026-09-30.endive removed: payment_method_types at checkout.js:3. Refit has no reviewed replacement for it.',
+    action:
+      'Change those calls yourself (refit run --human lists every one): Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.',
+  });
   // Before: "Verify the application client/account version and configure an exact
   // before-contract API-version pin."
   expect(report.checks.find((check) => check.id === 'api-version')?.action).toBe(

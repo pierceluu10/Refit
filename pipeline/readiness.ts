@@ -8,9 +8,13 @@ import type { BreakingOperationImpact } from './provider-operations.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
-import { migrationReviewReason } from './migration-review.ts';
+import {
+  DECLARED_TYPE_REVIEW_REASON,
+  migrationReviewReason,
+  REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+} from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
-import { PipelineInputError } from './types.ts';
+import { PipelineInputError, type Finding } from './types.ts';
 import {
   parseWorkflowConfiguration,
   readWorkflowConfiguration,
@@ -20,6 +24,7 @@ import { contractCommand } from './contract-commands.ts';
 import { DEFAULT_CONTRACTS_DIRECTORY, readStripeContract } from './enrollment-contracts.ts';
 import {
   generatedVersionCheck,
+  listed,
   proposalContent,
   proposalSummary,
   proposeStripeConfiguration,
@@ -137,6 +142,48 @@ function migrationCoverageDetail(
       ? `, including changes to ${impacts.length} operation${impacts.length === 1 ? '' : 's'} the code calls: ${operations.join(', ')}${more ? ` and ${more} more` : ''}`
       : ''
   }.`;
+}
+
+const read = (finding: Finding) => `${finding.expression} at ${finding.file}:${finding.line}`;
+const targetVersion = (after: string | null) =>
+  after ? `API version ${after}` : 'the target API version';
+
+// Each removed parameter where it is still sent, so the person knows which calls to change.
+function removedParameterDetail(findings: Finding[], after: string | null) {
+  const sent = [
+    ...new Set(
+      findings.flatMap((finding) =>
+        finding.requestParameter
+          ? [`${finding.requestParameter.parameter} at ${finding.file}:${finding.line}`]
+          : [],
+      ),
+    ),
+  ];
+  const one = sent.length === 1;
+  return `${one ? 'A request sends a parameter' : 'Requests send parameters'} that ${targetVersion(after)} removed: ${listed(sent)}. Refit has no reviewed replacement for ${one ? 'it' : 'them'}.`;
+}
+
+// The reads no Refit rule migrates, so the person knows which handler code to change.
+function webhookDetail(findings: Finding[], after: string | null) {
+  const webhooks = findings.filter((finding) => finding.webhook);
+  const unmigrated = webhooks.filter((finding) => !finding.webhook!.migration);
+  const blocking = unmigrated.length ? unmigrated : webhooks;
+  const reads = [...new Set(blocking.map(read))];
+  const events = [...new Set(blocking.flatMap((finding) => finding.webhook!.eventTypes))];
+  return `Webhook code reads ${listed(reads)}${events.length ? ` on ${listed(events)} events` : ''}, which ${targetVersion(after)} changes, and Refit has no rule it can apply to ${reads.length === 1 ? 'this read' : 'these reads'}.`;
+}
+
+// Reads Refit found only through a declared Stripe type, which it cannot trace to Stripe.
+function declaredTypeDetail(findings: Finding[]) {
+  const reads = [
+    ...new Set(
+      findings
+        .filter((finding) => finding.declaredType && finding.confidence !== 'confirmed')
+        .map(read),
+    ),
+  ];
+  const one = reads.length === 1;
+  return `${one ? 'A read' : `${reads.length} reads`} of removed Stripe fields (${listed(reads)}) ${one ? 'is' : 'are'} on values only declared with Stripe types, and Refit ${one ? 'does not trace it' : 'traces none of them'} to a Stripe client or webhook event, so it cannot tell whether ${one ? 'it reads a Stripe object' : 'they read Stripe objects'}.`;
 }
 
 // Each method Refit does not map, at its first call, so the person knows which calls to check.
@@ -405,20 +452,29 @@ export async function inspectRepositoryReadiness(options: {
         id: 'source-provenance',
         title: 'Migration source evidence',
         status: 'blocked',
-        detail: originReview,
-        action: evidence.findings.some((finding) => finding.requestParameter)
-          ? 'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.'
-          : 'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
+        detail:
+          originReview === REMOVED_REQUEST_PARAMETER_REVIEW_REASON
+            ? removedParameterDetail(evidence.findings, evidence.apiVersion.after)
+            : originReview === DECLARED_TYPE_REVIEW_REASON
+              ? declaredTypeDetail(evidence.findings)
+              : originReview,
+        action:
+          originReview === REMOVED_REQUEST_PARAMETER_REVIEW_REASON
+            ? 'Change those calls yourself (refit run --human lists every one): Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.'
+            : originReview === DECLARED_TYPE_REVIEW_REASON
+              ? 'Run refit run --human to see each read, and migrate the ones on Stripe objects yourself: Refit migrates only reads it traces to a Stripe client or a webhook event.'
+              : evidence.skippedFiles.length
+                ? `Fix the syntax of ${listed(evidence.skippedFiles)}, which Refit could not parse, so it can scan ${evidence.skippedFiles.length === 1 ? 'it' : 'them'}.`
+                : 'Run refit run --human to see each usage Refit could not trace, and migrate it yourself.',
       });
     if (webhookReview)
       report.checks.push({
         id: 'webhook-migration',
         title: 'Webhook payload migration',
         status: 'blocked',
-        detail:
-          'Affected snapshot webhook payload reads need separate incoming API-version and migration-policy review.',
+        detail: webhookDetail(evidence.findings, evidence.apiVersion.after),
         action:
-          'Confirm endpoint/event versions and the intended subscription-item policy before activation.',
+          "Make each read accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
       });
     else if (evidence.findings.some((finding) => finding.webhook?.migration))
       report.checks.push({
@@ -458,7 +514,7 @@ export async function inspectRepositoryReadiness(options: {
         action:
           unreadable && !warnings.length
             ? unreadable.action
-            : 'Resolve the repository tsconfig/jsconfig aliases and local extends inputs, then inspect the affected client usage before activation.',
+            : 'Nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.',
       });
     }
     scan.check.detail = `${evidence.repository.scannedFiles} source files inspected; adapter contracts resolved. ${workflow.latestStripe ? 'Latest Stripe source was not fetched; only the baseline was inspected.' : 'Both supplied contracts were inspected.'}`;
