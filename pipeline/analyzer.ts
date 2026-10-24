@@ -54,6 +54,7 @@ import {
   type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
 import { STRIPE_MOVE_REVIEW } from './stripe-field-moves.ts';
+import { removedExpandPaths, removedExpandReason } from './stripe-expand-paths.ts';
 import {
   PipelineInputError,
   type Finding,
@@ -924,6 +925,27 @@ export function analyzeRepository(
     if (!ts.isCallExpression(node)) continue;
     const call = sdkCall(node);
     if (!call) continue;
+    // Literal `expand` entries that walk through a removed field (stripe-expand-paths.ts) stop the
+    // run like a removed request parameter.
+    const expanded = provider.packageName === STRIPE.packageName ? responseCall(node) : undefined;
+    if (expanded)
+      for (const hit of removedExpandPaths(node, expanded.schema, changes, schemaDefinitions)) {
+        const reason = removedExpandReason(hit);
+        findings.push({
+          ...location(hit.node),
+          changeId: hit.removal.id,
+          expression: `${call.resource}.${call.method} expand '${hit.path}'`,
+          confidence:
+            !unsafe.has(clientBinding(call.client)!) && !call.optional ? 'confirmed' : 'review',
+          requestParameter: {
+            operationId: expanded.operationId ?? `${call.resource}.${call.method}`,
+            parameter: 'expand',
+          },
+          ...helperEvidence(call.client),
+          contractReview: reason,
+          reason,
+        });
+      }
     for (const rule of requestPropertyRenames.filter(
       (entry) => entry.resource === call.resource && entry.method === call.method,
     )) {
