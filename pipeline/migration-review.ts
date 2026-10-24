@@ -69,6 +69,18 @@ export function migrationReviewReason(
   if (evidence.findings.some((finding) => finding.typeEvidence)) return TYPE_EVIDENCE_REVIEW_REASON;
 }
 
+// Where a rescan of the migrated code still finds each usage, so the draft can list them.
+export function unresolvedSites(findings: Finding[]) {
+  return findings.map(({ file, line, changeId, expression, confidence, untraced }) => ({
+    file,
+    line,
+    changeId,
+    expression,
+    confidence,
+    ...(untraced ? { untraced } : {}),
+  }));
+}
+
 // With --publish-unresolved, a deterministic migration proceeds around traced calls that still send
 // a removed request parameter: they stay unresolved and the draft lists them for the owner.
 export function withoutRequestParameters<T extends { findings: Finding[] }>(evidence: T): T {

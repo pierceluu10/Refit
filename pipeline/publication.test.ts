@@ -431,7 +431,7 @@ it('publishes a passing draft with unresolved findings only when explicitly allo
   });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   expect(request.body.body).toContain(
-    '2 confirmed usages of the breaking changes are still unmigrated.',
+    '2 usages of the breaking changes are still unmigrated.** The checks passed without them;',
   );
   value.validation.status = value.patch.validation = 'regression';
   await expect(publishDraft(value, { ...OPTIONS, allowUnresolved: true })).rejects.toThrow(

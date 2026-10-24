@@ -537,8 +537,12 @@ it('proposes the field move and the API-version bump as one patch', async () => 
     status: 'proposed',
     edits: 4,
     unresolvedFindings: 0,
-    source:
-      'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
+    sources: [
+      {
+        url: 'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
+        files: ['billing.ts', 'stripe-subscription-period.ts'],
+      },
+    ],
   });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain("+const stripe = new Stripe('sk', { apiVersion: '2025-03-31.basil' });");

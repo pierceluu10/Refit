@@ -1,5 +1,5 @@
 import ts from 'typescript-compiler';
-import { migrationReviewReason } from './migration-review.ts';
+import { migrationReviewReason, unresolvedSites } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { analyzeRepository, syntaxErrors } from './analyzer.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
@@ -677,6 +677,7 @@ export async function proposeAiPatch(
     migratedWebhookFindings,
     // Reads Refit could not trace to a provider object stay unresolved, so the draft needs review.
     unresolvedFindings: remaining.findings.length,
+    ...(remaining.findings.length ? { unresolvedSites: unresolvedSites(remaining.findings) } : {}),
     diff: renderPatch(original, merged),
     validation: 'not-run',
     warnings: [

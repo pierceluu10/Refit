@@ -1,4 +1,8 @@
-import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
+import {
+  migrationReviewReason,
+  unresolvedSites,
+  withoutRequestParameters,
+} from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { proposeAiPatch } from './ai-patches.ts';
@@ -376,7 +380,7 @@ async function runOpenApiPipeline(options: {
   const deterministicRequested =
     options.proposePatch ||
     (options.aiPatch && !useAi && (configuredMigrationProposal || ruleEdits.length > 0));
-  const unresolvedFindingCount = deterministicRequested
+  const unresolved = deterministicRequested
     ? analyzeRepository(
         {
           ...repository,
@@ -397,8 +401,8 @@ async function runOpenApiPipeline(options: {
         parameterRemovals,
         { invoicePreview },
         // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
-      ).findings.length
-    : 0;
+      ).findings
+    : [];
   const reviewEvidence = { findings: analysis.findings, skippedFiles, adapter: provider };
   const reviewReason = migrationReviewReason(
     options.leaveRequestParameters && !useAi
@@ -441,11 +445,12 @@ async function runOpenApiPipeline(options: {
               ruleEdits.length && !configuredMigrationProposal
                 ? [...edits, ...versionEdits]
                 : edits,
-              unresolvedFindingCount,
+              unresolved.length,
               provider,
               replacements,
               requestRenames,
             ),
+            ...(unresolved.length ? { unresolvedSites: unresolvedSites(unresolved) } : {}),
             // AI repairs start again from the original code and must keep these rule edits.
             ...(ruleEdits.length && !configuredMigrationProposal
               ? { ruleEdits: [...ruleEdits, ...versionEdits] }

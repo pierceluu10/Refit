@@ -50,6 +50,7 @@ This app pins Shopify Admin API 2025-10. A deterministic Refit rule moves it to 
 
 ## Automated Verification Gates
 
+- Evidence Strength: **The repository's test command.** Refit does not measure whether it reaches the changed lines.
 - Test Suite Output: `npm test` passed on the original and migrated code in offline Docker.
 - Linter & Static Analysis: Not run; Refit rescanned the migrated code and every runtime Admin API pin is on 2026-04.
 - Security Scans: Not run.

@@ -1,6 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
+import ts from 'typescript-compiler';
 import { digest, type AddedProperty } from './specifications.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
@@ -9,6 +10,7 @@ import { INTEGRATION_MARKER, MIGRATION_MARKER, migrationIdentity } from './migra
 import type { publicationWaiver } from './publication.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR } from './stripe-open-enums.ts';
+import { PAYMENT_METHOD_TYPES_CHANGELOG } from './patches.ts';
 
 type PublicationWaiver = NonNullable<ReturnType<typeof publicationWaiver>>;
 
@@ -23,9 +25,17 @@ const MAX_QUOTE = 300;
 // this, diffs and site lists shorten in steps and the body says what it left out.
 export const MAX_BODY_CHARACTERS = 16_000;
 const MAX_LISTED_SITES = 25;
-// Source: Stripe changelog, 2026-09-30.endive, read 2026-10-22.
-const PAYMENT_METHOD_TYPES_CHANGELOG =
-  'https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions';
+// The check the Stripe benchmark runs where a repository has no tests and no TypeScript.
+const NO_OP_CHECK = 'node -e 0';
+// compareTypeCheck() in validation.ts lists these above the type checker's own output.
+const INTRODUCED_TYPE_ERRORS = 'Type errors this patch introduced:\n';
+// Checked on GitHub, 2026-10-24.
+const STRIPE_NODE_CHANGELOG = 'https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md';
+
+// A command that only type-checks, as `npx --no-install tsc --noEmit` does.
+function typeCheckOnly(command: string) {
+  return /^(?:npx (?:--no-install )?)?tsc\b/.test(command);
+}
 const LOCKFILE =
   /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?)$/;
 
@@ -98,11 +108,34 @@ function fileChanges(diff: string): FileChange[] {
     });
 }
 
-function enclosingFunction(lines: string[], index: number) {
-  for (let line = index; line >= 0; line--) {
-    const match = /\bfunction\s+([A-Za-z_$][\w$]*)/.exec(lines[line]);
-    if (match) return match[1];
-  }
+const SCRIPT = /\.[cm]?[jt]sx?$/;
+
+// One entry per path: a repair can append a second block for a file the rule already changed.
+function changedFiles(diff: string) {
+  const files = new Map<string, FileChange>();
+  for (const file of fileChanges(diff))
+    files.set(file.path, { ...file, before: files.get(file.path)?.before ?? file.before });
+  return [...files.values()];
+}
+
+// The innermost named function, method or function-valued variable that contains a line (1-based).
+function enclosingFunction(source: ts.SourceFile, line: number) {
+  const text = source.text.split('\n')[line - 1] ?? '';
+  const position =
+    source.getPositionOfLineAndCharacter(line - 1, 0) + text.length - text.trimStart().length;
+  let name: string | undefined;
+  const visit = (node: ts.Node) => {
+    if (position < node.getStart(source) || position >= node.getEnd()) return;
+    if (ts.isFunctionLike(node)) {
+      // Object properties such as Convex's `handler` name a role, not the function.
+      const named =
+        node.name ?? (ts.isVariableDeclaration(node.parent) ? node.parent.name : undefined);
+      if (named && ts.isIdentifier(named)) name = named.text;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return name;
 }
 
 // Lockfiles are named, not shown: their entries follow the package change shown above them.
@@ -120,7 +153,9 @@ function changeSections(diff: string, limit = MAX_VISIBLE_DIFF_LINES) {
       lockfiles.push(file.path);
       continue;
     }
-    const afterLines = file.after.split('\n');
+    const source = SCRIPT.test(file.path)
+      ? ts.createSourceFile(file.path, file.after, ts.ScriptTarget.Latest, true)
+      : undefined;
     for (const hunk of structuredPatch(file.path, file.path, file.before, file.after, '', '', {
       context: 2,
     }).hunks) {
@@ -138,7 +173,7 @@ function changeSections(diff: string, limit = MAX_VISIBLE_DIFF_LINES) {
         }
         line++;
       }
-      const name = enclosingFunction(afterLines, firstChange - 1);
+      const name = source && enclosingFunction(source, firstChange);
       sections.push(
         `${code(`${file.path}:${firstChange}`)}${name ? ` in ${code(`${name}()`)}` : ''}`,
         fenced(
@@ -193,6 +228,70 @@ function siteList(sites: string[], limit: number) {
     ...visible,
     ...(remaining ? [`- and ${remaining} more; every location is in report.json.`] : []),
   ].join('\n');
+}
+
+type Validation = ValidationReport['validation'];
+
+// Each check that did not pass: what ran, on which code, and how it ended.
+function failedChecks(validation: Validation) {
+  const generated = validation.generated;
+  const checks: [string, Validation['baseline'], string][] = [
+    [code(validation.baselineCommand.join(' ')), validation.baseline, 'original'],
+    [code(validation.command.join(' ')), validation.patched, 'migrated'],
+    ...(generated
+      ? ([
+          ['Generated stripe-mock checks', generated.baseline, 'original'],
+          ['Generated stripe-mock checks', generated.patched, 'migrated'],
+        ] as [string, Validation['baseline'], string][])
+      : []),
+  ];
+  const introduced =
+    validation.compareTypeErrors && validation.patched.stdout.startsWith(INTRODUCED_TYPE_ERRORS)
+      ? [
+          ...new Set(
+            validation.patched.stdout
+              .slice(INTRODUCED_TYPE_ERRORS.length)
+              .split('\n\n')[0]
+              .split('\n')
+              .filter(Boolean),
+          ),
+        ]
+      : [];
+  const failures = checks
+    .filter(([, check]) => check.status === 'failed' || check.status === 'error')
+    .map(
+      ([name, check, side]) =>
+        `${name} ${
+          check.status === 'error'
+            ? `could not finish on the ${side} code (${plainText(check.error ?? 'no result recorded')})`
+            : `failed on the ${side} code${check.exitCode === null ? '' : ` with exit code ${check.exitCode}`}`
+        }`,
+    );
+  return `**Validation did not pass (${validation.status}).**${failures.length ? ` ${failures.join('; ')}.` : ''}${
+    introduced.length
+      ? ` The patch introduced ${introduced.length} type error${introduced.length === 1 ? '' : 's'}, the first: ${quote(introduced[0])}.`
+      : ''
+  }${
+    validation.patched.status === 'not-run'
+      ? ' Refit did not run the checks on the migrated code.'
+      : ''
+  }`;
+}
+
+// How much a validation shows, from what ran; Refit does not measure which lines a repository's own
+// command reaches.
+function evidenceStrength(validation: Validation, generatedRan: number) {
+  if (validation.status !== 'passed')
+    return '**None.** The checks did not pass, so nothing in this patch is verified.';
+  const command = validation.command.join(' ');
+  const generated = generatedRan > 0 && validation.generated?.patched.status === 'passed';
+  if (command === NO_OP_CHECK)
+    return generated
+      ? `**Generated checks only.** ${code(command)} runs no code; only the generated stripe-mock checks below ran any.`
+      : `**No meaningful check.** ${code(command)} runs no code and no generated check ran, so this shows only that the dependencies install and the patch applies.`;
+  if (typeCheckOnly(command))
+    return `**Type-checked only.** No code ran${generated ? ' except the generated stripe-mock checks below' : ''}.`;
+  return `**${/^(?:npm|pnpm|yarn|bun)(?: run)? test\b/.test(command) ? "The repository's test command" : 'A configured command'}.** Refit does not measure whether it reaches the changed lines.`;
 }
 
 function addedProperties(patch: ValidationReport['patch']): AddedProperty[] {
@@ -377,17 +476,27 @@ export function createReviewArtifacts(
     readChanges.map((entry) => code(`${entry.schema}.${entry.property}`)),
   );
   const { reasons, replacements } = replacementReasons(report);
-  const usageCount = `${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'}`;
   const fileCount = `${affectedFiles.size} ${affectedFiles.size === 1 ? 'file' : 'files'}`;
   const after = plainText(report.apiVersion.after ?? 'the after contract');
   // Calls that still send a removed request parameter and untraced reads (no rule edits them) are
   // counted as unresolved; each gets its own line, so the confirmed count below leaves them out.
   const parameterCalls = waiver?.gate === 'removed-request-parameter' ? waiver.calls : [];
   const untracedReads = report.findings.filter((finding) => finding.untraced).length;
+  // Where the rescan of the migrated code still finds each usage; reports before 2026-10-24 only
+  // stored the count.
+  const sites = 'unresolvedSites' in patch ? patch.unresolvedSites : undefined;
+  const unmigrated = sites?.filter(
+    (site) =>
+      !site.untraced && !(parameterCalls.length && site.changeId.startsWith('request-parameter:')),
+  );
   const unresolvedReads = Math.max(
     0,
-    patch.unresolvedFindings - parameterCalls.length - untracedReads,
+    sites && unmigrated
+      ? unmigrated.length + patch.unresolvedFindings - sites.length
+      : patch.unresolvedFindings - parameterCalls.length - untracedReads,
   );
+  const remainingConfirmed = unmigrated?.filter((site) => site.confidence === 'confirmed').length;
+  const usageCount = `${remainingConfirmed ? `${Math.max(0, confirmedFindings.length - remainingConfirmed)} of ` : ''}${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'}`;
   const parameters = [...new Set(parameterCalls.map((call) => call.parameter))];
   const passed = validation.status === 'passed';
   const legacyPeerDeps = [validation.environment, validation.patchedEnvironment].some(
@@ -406,11 +515,24 @@ export function createReviewArtifacts(
   const generated = validation.generated;
   const sameCommand = validation.baselineCommand.join(' ') === validation.command.join(' ');
   const command = validation.command.join(' ');
-  const typeChecked = /\btsc\b/.test(command);
+  const typeChecked = /\btsc\b|\btype-?check\b/.test(command);
+  // What the passing checks ran: none of the repository's code for a type check or the no-op.
+  const ranCode = passed && !typeCheckOnly(command) && command !== NO_OP_CHECK;
+  // A field counts as migrated in a file once fewer of its confirmed reads remain there than the
+  // scan found; the rescan's lines are the migrated file's, so only the counts compare.
+  const remainingIn = (path: string, changeId: string) =>
+    unmigrated?.filter(
+      (site) => site.file === path && site.changeId === changeId && site.confidence === 'confirmed',
+    ).length ?? 0;
   const migratedFields = (path: string) => [
     ...new Set(
       confirmedFindings
         .filter((finding) => finding.file === path && !finding.untraced)
+        .filter(
+          (finding, _, found) =>
+            found.filter((other) => other.changeId === finding.changeId).length >
+            remainingIn(path, finding.changeId),
+        )
         .flatMap((finding) => {
           const entry = readChanges.find((candidate) => candidate.id === finding.changeId);
           return entry ? [code(`${entry.schema}.${entry.property}`)] : [];
@@ -436,9 +558,13 @@ export function createReviewArtifacts(
       file.after.includes(pinTo) &&
       !file.before.includes(pinTo),
     );
-  const pinFiles = fileChanges(patch.diff).filter(movesPin);
-  const helperFiles = fileChanges(patch.diff).filter((file) => !file.before);
-  const keyChanges = fileChanges(patch.diff).map((file) => {
+  const pinFiles = changedFiles(patch.diff).filter(movesPin);
+  // Each rule edit's provider page, with the files it changes; older reports name one page.
+  const rulePages = ('sources' in patch && patch.sources) || [];
+  const pagesFor = (path: string) =>
+    rulePages.filter((page) => page.files.includes(path)).flatMap((page) => link(page.url) ?? []);
+  const helperFiles = changedFiles(patch.diff).filter((file) => !file.before);
+  const keyChanges = changedFiles(patch.diff).map((file) => {
     const fields = migratedFields(file.path);
     const what = shopify
       ? `Moves the pinned Admin API version to ${plainText(after)}.`
@@ -462,7 +588,8 @@ export function createReviewArtifacts(
                 ]
               : []),
           ].join(' ') || `Updates ${plainText(provider)} API usage for the new contract.`;
-    return `- ${code(file.path)}: ${what}`;
+    const pages = pagesFor(file.path);
+    return `- ${code(file.path)}: ${what}${pages.length ? ` ${plainText(provider)} documents it: ${pages.join(', ')}.` : ''}`;
   });
   const breaking = shopify
     ? [
@@ -481,7 +608,9 @@ export function createReviewArtifacts(
           (entry) =>
             `Renames request field ${code(entry.removed)} to ${code(entry.replacement)} in ${code(`${entry.resource}.${entry.method}`)}.`,
         ),
-        ...(cardRename
+        // The keep-listed rule shares the card rule's findings; only a written `['card']` is this one.
+        ...(cardRename &&
+        /^\+.*allowed_payment_method_types['"]?\s*:\s*\[\s*['"]card['"]\s*\]/m.test(patch.diff)
           ? [
               `Removes request field ${code('payment_method_types')}; ${code("['card']")} moves to ${code('allowed_payment_method_types')} under the owner-approved policy.`,
             ]
@@ -518,7 +647,7 @@ export function createReviewArtifacts(
     ),
     ...(unresolvedReads
       ? [
-          `**${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated.** The checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}; migrate ${unresolvedReads === 1 ? 'it' : 'them'} before merging, using the locations in Refit's run report.`,
+          `**${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated.** ${passed ? `The checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}; migrate` : 'Migrate'} ${unresolvedReads === 1 ? 'it' : 'them'} before merging, ${unmigrated?.length ? 'using the locations under Left Unchanged' : "using the locations in Refit's run report"}.`,
         ]
       : []),
     ...reasons,
@@ -541,6 +670,13 @@ export function createReviewArtifacts(
             .map(code),
         )} may no longer be offered to some customers. Before merging, confirm they still appear where you rely on them.`,
     ),
+    ...(upgrade &&
+    report.adapter.packageName === 'stripe' &&
+    upgrade.from.split('.')[0] !== upgrade.to.split('.')[0]
+      ? [
+          `Upgrades ${code('stripe')} across major versions, ${code(upgrade.from)} to ${code(upgrade.to)}; [its changelog](${STRIPE_NODE_CHANGELOG}) lists type and behavior changes the checks may not cover.`,
+        ]
+      : []),
     ...(subscriptionPolicy
       ? [
           `Selects subscription periods from the single item priced ${code(subscriptionPolicy.priceId)}, keyed on the signed event ${code('api_version')}.`,
@@ -556,12 +692,8 @@ export function createReviewArtifacts(
           `Subscriptions with items on different billing periods are not handled; set ${code('stripeSubscriptionPeriods')} to choose the item at ${summaryList(flaggedPeriods.map((finding) => code(`${finding.file}:${finding.line}`)))}.`,
         ]
       : []),
-    ...(unconfirmed.length
-      ? [
-          `Leaves ${unconfirmed.length} untraced read${unconfirmed.length === 1 ? '' : 's'} of removed field names unchanged for manual review; each is listed under Left Unchanged.`,
-        ]
-      : []),
   ];
+  // One expression can read more than one removed field; it is one site to check.
   const untracedSites = [
     ...new Set(
       unconfirmed.map(
@@ -569,6 +701,14 @@ export function createReviewArtifacts(
       ),
     ),
   ];
+  if (untracedSites.length)
+    review.push(
+      `Leaves ${untracedSites.length} untraced read${untracedSites.length === 1 ? '' : 's'} of removed field names unchanged for manual review; each is listed under Left Unchanged.`,
+    );
+  const unmigratedSites = (unmigrated ?? []).map((site) => {
+    const entry = report.changes.find((candidate) => candidate.id === site.changeId);
+    return `${code(`${site.file}:${site.line}`)} ${site.changeId.startsWith('request-parameter:') ? 'sends' : 'reads'} ${code(site.expression)}${entry ? ` (${code(`${entry.schema}.${entry.property}`)})` : ''}`;
+  });
   // Provider pages that document the change, from the rule's source and attached vendor notes.
   const sourceUrls = [
     ...new Set(
@@ -589,14 +729,16 @@ export function createReviewArtifacts(
         ? ` Generated stripe-mock checks could not run any of ${generated.entryPoints.length} exported functions on their own.`
         : ` Generated stripe-mock checks ${generated.patched.status} on ${generatedRan} of ${generated.entryPoints.length} exported functions.`
     : '';
-  const fileTotal = fileChanges(patch.diff).length;
+  const fileTotal = changedFiles(patch.diff).length;
   const stripe = provider === 'Stripe';
   const webhookReads = report.findings.some((finding) => finding.webhook);
   // What the run did not establish, in one place, so a reviewer does not infer it from silence.
   const notVerified = [
-    passed
+    ranCode
       ? `Refit made no request to ${plainText(provider)}. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.`
-      : `Refit made no request to ${plainText(provider)}, and the checks did not pass or did not run on this patch.`,
+      : passed
+        ? `Refit made no request to ${plainText(provider)}, and ${commandText(validation.command)} runs none of this repository's code.`
+        : `Refit made no request to ${plainText(provider)}, and the checks did not pass or did not run on this patch.`,
     ...(ai
       ? [
           'The AI-written lines are checked only by the commands above; read them as you would a teammate’s.',
@@ -616,9 +758,7 @@ export function createReviewArtifacts(
         ]
       : []),
     ...(unresolvedReads
-      ? [
-          `${unresolvedReads} confirmed usage${unresolvedReads === 1 ? ' is' : 's are'} still unmigrated.`,
-        ]
+      ? [`${unresolvedReads} usage${unresolvedReads === 1 ? ' is' : 's are'} still unmigrated.`]
       : []),
     ...(parameterCalls.length
       ? [
@@ -659,28 +799,49 @@ export function createReviewArtifacts(
     ...(untracedSites.length ? ['Check each read under Left Unchanged.'] : []),
     ...(unresolvedReads
       ? [
-          `Migrate the ${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} Refit left unmigrated.`,
+          `Migrate the ${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} Refit left unmigrated${unmigratedSites.length ? ' (see Left Unchanged)' : ''}.`,
         ]
       : []),
     ...(flaggedPeriods.length
       ? ['Choose the subscription item for mixed billing periods (see Key Changes).']
       : []),
-    ...(passed
+    ...(selectedPeriods.length
+      ? [
+          'Confirm the selected item is the one whose period this code needs when items bill on different periods (see Key Changes).',
+        ]
+      : []),
+    ...(ranCode
       ? [
           `Confirm ${commandText(validation.command)} exercises the code this patch changes, or add a test that does.`,
         ]
-      : []),
+      : passed
+        ? [
+            `Run the code this patch changes, or add a test that does: ${commandText(validation.command)} does not run it.`,
+          ]
+        : waiver?.gate === 'dependency-preparation'
+          ? []
+          : validation.baseline.status !== 'passed'
+            ? [
+                `Make ${commandText(validation.baselineCommand)} pass on the original code, or configure a check that does, then run Refit again.`,
+              ]
+            : [
+                `Fix what ${commandText(validation.command)} reports on the migrated code (see Automated Verification Gates).`,
+              ]),
   ];
   const overview = shopify
     ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
-    : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount} so the code keeps working after the upgrade.`;
+    : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${
+        patch.diff
+          ? `${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount}.`
+          : `No Refit rule changes the ${usageCount} in ${fileCount}, so this patch changes no files.`
+      }`;
   const checks = passed
     ? sameCommand
       ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
       : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
     : waiver?.gate === 'dependency-preparation'
       ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
-      : `**Validation did not pass (${validation.status}).**`;
+      : failedChecks(validation);
   const render = (diffLimit: number, siteLimit: number, shortened?: string) =>
     [
       ...(waiver?.gate === 'dependency-preparation'
@@ -748,18 +909,25 @@ export function createReviewArtifacts(
         : []),
       '## Automated Verification Gates',
       [
+        `- Evidence Strength: ${evidenceStrength(validation, generatedRan)}`,
         `- Test Suite Output: ${checks}${generatedResult}`,
         ...(legacyPeerDeps
           ? [
               "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
             ]
           : []),
-        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} confirmed usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes remain${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}${untracedReads ? `, plus ${untracedReads} untraced read${untracedReads === 1 ? '' : 's'} of removed field names` : ''}.`}`,
+        `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} usage${unresolvedReads === 1 ? ' of the breaking changes remains' : 's of the breaking changes remain'}${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}${untracedSites.length ? `, plus ${untracedSites.length} untraced read${untracedSites.length === 1 ? '' : 's'} of removed field names` : ''}.`}`,
         '- Security Scans: Not run.',
       ].join('\n'),
+      ...(unmigratedSites.length || untracedSites.length ? ['## Left Unchanged'] : []),
+      ...(unmigratedSites.length
+        ? [
+            `Refit traced these usages to ${plainText(provider)} objects but no rule changed them, so the migrated code still uses what the upgrade removes. Migrate each one before merging:`,
+            siteList(unmigratedSites, siteLimit),
+          ]
+        : []),
       ...(untracedSites.length
         ? [
-            '## Left Unchanged',
             `Refit could not trace these reads of removed field names to a ${plainText(provider)} object, so it did not change them. Check each one: a read of a ${plainText(provider)} object here breaks after the upgrade.`,
             siteList(untracedSites, siteLimit),
           ]
