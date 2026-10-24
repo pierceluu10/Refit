@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "source": "docs/benchmarks/2026-10-21-agent-comparison-results.json",
-  "commit": "571f28df3a4e72e083c0bcf9c2fdca60b3853d20",
+  "commit": "71a6befdfd1ee6bcaffde18e01948a97ea6f5e9b",
   "after": "2026-09-30.endive",
   "rows": [
     {
@@ -1294,7 +1294,8 @@
       "unscanned": [],
       "againstRules": {
         "refusedBy": [
-          "droppedRequestPaths"
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
         ],
         "files": [
           "app/api/checkout/route.ts",
@@ -1313,7 +1314,38 @@
             }
           ],
           "addedTypeEscapes": [],
-          "newShapeOnlyReads": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 29,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            },
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 30,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            },
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 31,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            },
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 32,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            },
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 33,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            }
+          ],
           "substitutions": []
         }
       },
@@ -1477,7 +1509,8 @@
       "againstRules": {
         "refusedBy": [
           "addedItemChoices",
-          "droppedRequestPaths"
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
         ],
         "files": [
           "app/api/stripe/checkout/route.ts",
@@ -1498,7 +1531,20 @@
             }
           ],
           "addedTypeEscapes": [],
-          "newShapeOnlyReads": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "app/api/stripe/webhook/route.ts",
+              "line": 163,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/stripe/webhook/route.ts",
+              "line": 172,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
           "substitutions": []
         }
       },
@@ -1869,7 +1915,9 @@
       "unscanned": [],
       "againstRules": {
         "refusedBy": [
+          "addedItemChoices",
           "droppedRequestPaths",
+          "newShapeOnlyReads",
           "substitutions"
         ],
         "files": [
@@ -1878,7 +1926,9 @@
         ],
         "refusals": {
           "changedEventTypes": [],
-          "addedItemChoices": [],
+          "addedItemChoices": [
+            "lib/supabase-admin.ts"
+          ],
           "droppedRequestPaths": [
             {
               "call": "checkout.sessions.create",
@@ -1888,7 +1938,20 @@
             }
           ],
           "addedTypeEscapes": [],
-          "newShapeOnlyReads": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "lib/supabase-admin.ts",
+              "line": 174,
+              "schema": "subscription",
+              "property": "current_period_start"
+            },
+            {
+              "file": "lib/supabase-admin.ts",
+              "line": 177,
+              "schema": "subscription",
+              "property": "current_period_end"
+            }
+          ],
           "substitutions": [
             {
               "kind": "pre-existing",
@@ -2027,7 +2090,9 @@
       "unscanned": [],
       "againstRules": {
         "refusedBy": [
-          "droppedRequestPaths"
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
         ],
         "files": [
           "app/api/create-checkout-session/route.ts",
@@ -2035,7 +2100,9 @@
         ],
         "refusals": {
           "changedEventTypes": [],
-          "addedItemChoices": [],
+          "addedItemChoices": [
+            "libs/supabaseAdmin.ts"
+          ],
           "droppedRequestPaths": [
             {
               "call": "checkout.sessions.create",
@@ -2045,7 +2112,20 @@
             }
           ],
           "addedTypeEscapes": [],
-          "newShapeOnlyReads": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "libs/supabaseAdmin.ts",
+              "line": 152,
+              "schema": "subscription",
+              "property": "current_period_start"
+            },
+            {
+              "file": "libs/supabaseAdmin.ts",
+              "line": 153,
+              "schema": "subscription",
+              "property": "current_period_end"
+            }
+          ],
           "substitutions": []
         }
       },
@@ -2165,7 +2245,9 @@
       "unscanned": [],
       "againstRules": {
         "refusedBy": [
+          "addedItemChoices",
           "droppedRequestPaths",
+          "newShapeOnlyReads",
           "substitutions"
         ],
         "files": [
@@ -2175,7 +2257,9 @@
         ],
         "refusals": {
           "changedEventTypes": [],
-          "addedItemChoices": [],
+          "addedItemChoices": [
+            "src/app/api/webhooks/stripe/route.ts"
+          ],
           "droppedRequestPaths": [
             {
               "call": "checkout.sessions.create",
@@ -2185,7 +2269,26 @@
             }
           ],
           "addedTypeEscapes": [],
-          "newShapeOnlyReads": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 52,
+              "schema": "subscription",
+              "property": "current_period_end"
+            },
+            {
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 62,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 72,
+              "schema": "subscription",
+              "property": "current_period_end"
+            }
+          ],
           "substitutions": [
             {
               "kind": "pre-existing",
