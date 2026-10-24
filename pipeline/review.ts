@@ -69,9 +69,11 @@ function fenced(language: string, content: string) {
   return `${fence}${language}\n${content}\n${fence}`;
 }
 
-function quote(value: string) {
-  const text = value.replace(/\s+/g, ' ').trim();
-  return `“${plainText(text.length > MAX_QUOTE ? `${text.slice(0, MAX_QUOTE)}…` : text)}”`;
+// A quotation that ends the sentence; a quoted sentence's own period or a cut quote's ellipsis ends it.
+function closingQuote(value: string) {
+  const whole = value.replace(/\s+/g, ' ').trim();
+  const text = whole.length > MAX_QUOTE ? `${whole.slice(0, MAX_QUOTE)}…` : whole;
+  return `“${plainText(text)}”${/[.!?…]$/.test(text) ? '' : '.'}`;
 }
 
 interface FileChange {
@@ -269,13 +271,13 @@ function failedChecks(validation: Validation) {
       ([name, check, side]) =>
         `${name} ${
           check.status === 'error'
-            ? `could not finish on the ${side} code (${plainText(check.error ?? 'no result recorded')})`
+            ? `could not finish on the ${side} code (${plainText((check.error ?? 'no result recorded').replace(/\.$/, ''))})`
             : `failed on the ${side} code${check.exitCode === null ? '' : ` with exit code ${check.exitCode}`}`
         }`,
     );
   return `**Validation did not pass (${validation.status}).**${failures.length ? ` ${failures.join('; ')}.` : ''}${
     introduced.length
-      ? ` The patch introduced ${introduced.length} type error${introduced.length === 1 ? '' : 's'}, the first: ${quote(introduced[0])}.`
+      ? ` The patch introduced ${introduced.length} type error${introduced.length === 1 ? '' : 's'}, the first: ${closingQuote(introduced[0])}`
       : ''
   }${
     validation.patched.status === 'not-run'
@@ -359,7 +361,7 @@ function replacementReasons(report: ValidationReport) {
     );
     if (described)
       reasons.push(
-        `The after contract documents ${code(replacement)} as the replacement: ${quote(described)}.`,
+        `The after contract documents ${code(replacement)} as the replacement: ${closingQuote(described)}`,
       );
     else if (note) {
       const sentence =
@@ -368,7 +370,7 @@ function replacementReasons(report: ValidationReport) {
           .find((part) => part.includes(change.property) && part.includes(replacement)) ??
         note.content;
       reasons.push(
-        `The attached vendor note (${plainText(note.label)}, ${plainText(note.url)}) says ${quote(sentence)}.`,
+        `The attached vendor note (${plainText(note.label)}, ${plainText(note.url)}) says ${closingQuote(sentence)}`,
       );
     } else {
       const sameType = candidate?.type && change.type && candidate.type === change.type;
@@ -494,10 +496,17 @@ export function createReviewArtifacts(
     (site) =>
       !site.untraced && !(parameterCalls.length && site.changeId.startsWith('request-parameter:')),
   );
+  // One expression can resolve to more than one removed field, as `.price` does on an invoice item
+  // and a line item; it is one usage to migrate.
+  const unmigratedUsages = new Map<string, NonNullable<typeof unmigrated>>();
+  for (const site of unmigrated ?? []) {
+    const key = `${site.file}:${site.line} ${site.expression}`;
+    unmigratedUsages.set(key, [...(unmigratedUsages.get(key) ?? []), site]);
+  }
   const unresolvedReads = Math.max(
     0,
     sites && unmigrated
-      ? unmigrated.length + patch.unresolvedFindings - sites.length
+      ? unmigratedUsages.size + patch.unresolvedFindings - sites.length
       : patch.unresolvedFindings - parameterCalls.length - untracedReads,
   );
   const remainingConfirmed = unmigrated?.filter((site) => site.confidence === 'confirmed').length;
@@ -701,15 +710,25 @@ export function createReviewArtifacts(
       ),
     ),
   ];
-  const unmigratedSites = (unmigrated ?? []).map((site) => {
-    const entry = report.changes.find((candidate) => candidate.id === site.changeId);
-    return `${code(`${site.file}:${site.line}`)} ${site.changeId.startsWith('request-parameter:') ? 'sends' : 'reads'} ${code(site.expression)}${entry ? ` (${code(`${entry.schema}.${entry.property}`)})` : ''}`;
+  const unmigratedSites = [...unmigratedUsages.values()].map((group) => {
+    const fields = new Set(
+      group.flatMap((site) => {
+        const entry = report.changes.find((candidate) => candidate.id === site.changeId);
+        return entry ? [code(`${entry.schema}.${entry.property}`)] : [];
+      }),
+    );
+    const [site] = group;
+    return `${code(`${site.file}:${site.line}`)} ${site.changeId.startsWith('request-parameter:') ? 'sends' : 'reads'} ${code(site.expression)}${fields.size ? ` (${[...fields].join(' or ')})` : ''}`;
   });
+  // The Overview counts confirmed usages; the ones left can include usages traced less certainly.
+  const confirmedLeft = [...unmigratedUsages.values()].filter((group) =>
+    group.some((site) => site.confidence === 'confirmed'),
+  ).length;
   // Why a [Needs review] draft needs review opens the body; the checklist at the end has the actions.
   const usagesLeft = [
     ...(unresolvedReads
       ? [
-          `${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated: no rule changed ${unresolvedReads === 1 ? 'it' : 'them'}${passed ? `, and the checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}` : ''}. ${unmigratedSites.length ? `${unresolvedReads === 1 ? 'It is' : 'Each is'} listed under Left Unchanged.` : "The locations are in Refit's run report."}`,
+          `${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes${sites && confirmedLeft !== unresolvedReads ? ` (${confirmedLeft ? `${confirmedLeft} confirmed, ${unresolvedReads - confirmedLeft}` : 'none confirmed; Refit'} traced ${confirmedLeft ? 'with less certainty' : 'them with less certainty'})` : ''} ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated: no rule changed ${unresolvedReads === 1 ? 'it' : 'them'}${passed ? `, and the checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}` : ''}. ${unmigratedSites.length ? `${unresolvedReads === 1 ? 'It is' : 'Each is'} listed under Left Unchanged.` : "The locations are in Refit's run report."}`,
         ]
       : []),
     ...(untracedSites.length
@@ -723,6 +742,7 @@ export function createReviewArtifacts(
     ...new Set(
       [
         ...('source' in patch && typeof patch.source === 'string' ? [patch.source] : []),
+        ...rulePages.map((page) => page.url),
         ...vendorNotes(patch).map((note) => note.url),
         ...(cardRename || listedMethods.length ? [PAYMENT_METHOD_TYPES_CHANGELOG] : []),
       ].filter((url) => link(url)),
