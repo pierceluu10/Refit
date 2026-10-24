@@ -41,6 +41,8 @@ const JOB_ID = /^[1-9]\d{0,15}$/;
 const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--job-machines] [--purge-uninstalled]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
+       refit hosted pause
+       refit hosted resume
        refit hosted inventory --repository <owner/name>
        refit hosted migrate [--dry-run]
        refit hosted accounts
@@ -52,6 +54,7 @@ const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] 
        refit hosted health
 Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_ACCOUNTS, the comma-separated GitHub accounts whose installations may enroll (default: REFIT_HOSTED_OWNER alone). Other accounts' installations are recorded as not allowed and nothing is cloned. Each installation runs one job at a time, at most REFIT_HOSTED_DAILY_JOBS (default 1440) jobs and REFIT_HOSTED_DAILY_INVENTORIES (default 500) inventories per UTC day. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation in PostgreSQL, and one ledger across all installations capped at REFIT_HOSTED_AI_BUDGET_USD (default: REFIT_AI_BUDGET_USD).
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges. On Fly, a scheduled poll whose base commit, approval and worker build (FLY_IMAGE_REF and the AI and draft settings) match the target's last finished, ready job reuses that receipt, runs nothing and does not count against the daily cap; a contract or documentation fetched from upstream always runs.
+pause stops every worker from starting jobs until resume, across deploys and restarts: running jobs finish, queued jobs wait and webhooks are still recorded. serve stops claiming on the first SIGINT or SIGTERM and exits once its running job finishes; a second signal stops the job.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
 With REFIT_HOSTED_APPROVAL_ISSUES=1, serve opens one issue on each installed repository of an allowed account that has no approval, showing what refit enroll shows (or a proposed .refit.json), and handles /refit approve <fingerprint-prefix> and /refit revoke comments from users with the admin or maintain role. It needs the App's Issues permission and issue_comment event.
@@ -214,6 +217,21 @@ try {
           ? `Enrolled and queued: ${enrolled.join(', ')}`
           : 'Not installed yet; installing the App on this repository enrolls it.',
       );
+    } finally {
+      await pool.end();
+    }
+  } else if (command === 'pause' || command === 'resume') {
+    const pool = database();
+    try {
+      const store = await openHostedStore(pool);
+      if (command === 'pause') {
+        const since = await store.pause();
+        const running = (await store.leases()).size;
+        console.log(
+          `Paused since ${since.toISOString()}; no job starts until refit hosted resume. ${running} running ${running === 1 ? 'job finishes' : 'jobs finish'} first.`,
+        );
+      } else
+        console.log((await store.resume()) ? 'Resumed; workers claim jobs again.' : 'Not paused.');
     } finally {
       await pool.end();
     }
@@ -385,9 +403,12 @@ try {
     );
     const pool = database();
     const controller = new AbortController();
-    const stop = () => controller.abort();
-    process.once('SIGINT', stop);
-    process.once('SIGTERM', stop);
+    const drain = new AbortController();
+    // The first signal lets the running job finish; the second, which Fly sends once kill_timeout
+    // passes, stops it.
+    const stop = () => (drain.signal.aborted ? controller.abort() : drain.abort());
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
     try {
       await runHostedService({
         database: pool,
@@ -417,6 +438,7 @@ try {
         port: values.port === undefined ? undefined : Number(values.port),
         intervalSeconds: values.interval === undefined ? undefined : Number(values.interval),
         signal: controller.signal,
+        drain: drain.signal,
         onReady: (url) => log(`Listening at ${url}; webhook: /github/webhook`),
         onProgress: log,
       });
