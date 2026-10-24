@@ -118,6 +118,12 @@ it('separates guard rejections from the input checks on the model output', () =>
       "PipelineInputError: AI patch changes webhook event type 'customer.subscription-created'; event names stop for review.",
     ),
   ).toBe('review-stop');
+  // A dropped multi-line spread puts line breaks in the message.
+  expect(
+    repairError(
+      'PipelineInputError: AI patch drops or changes ...(coupon\n  ? { discounts: [{ coupon }] }\n  : {}) from checkout.sessions.create (checkout.ts:7); removing or replacing what a request sends changes its behavior, so it stops for review.',
+    ),
+  ).toBe('review-stop');
   expect(
     repairError('PipelineInputError: AI replacement must match exactly one source occurrence.'),
   ).toBe('input-rejected');

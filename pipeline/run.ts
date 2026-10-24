@@ -310,13 +310,15 @@ async function runOpenApiPipeline(options: {
     analysis.findings.some(
       (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
     );
+  // The card rename, the mined request moves and createPreview need the pin and the upgrade in
+  // the same patch, so they never ride a configured migration's patch, which has neither.
   movedTo[CARD_PAYMENT_METHOD_RULE] =
-    bumpsVersion && everyPinMoves && (!patchRequested || !upgradeRequired || upgraded);
+    bumpsVersion &&
+    everyPinMoves &&
+    (!patchRequested || !upgradeRequired || upgraded) &&
+    !configuredMigrationProposal;
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  // The mined request moves and createPreview need the pin and the upgrade in the same patch, so
-  // they never ride a configured migration's patch, which has neither.
-  movedTo[PROMOTION_CODE_PROMOTION_RULE] =
-    movedTo[CARD_PAYMENT_METHOD_RULE] && !configuredMigrationProposal;
+  movedTo[PROMOTION_CODE_PROMOTION_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[PRODUCT_MARKETING_FEATURES_RULE] = movedTo[PROMOTION_CODE_PROMOTION_RULE];
   movedTo[INVOICE_PREVIEW_RULE] =
     bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
@@ -341,6 +343,26 @@ async function runOpenApiPipeline(options: {
   for (const finding of analysis.findings)
     if (finding.changeId === INVOICE_PREVIEW_RULE && editCovers(repository, edits, finding))
       delete finding.contractReview;
+  // A dropped payment-method rename tells the customer which gate dropped it (F2).
+  const renames = analyzedEdits.filter((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? ''));
+  const unresolved = apiVersionDeclarations.find(
+    (entry) => entry.status === 'unknown' && !(entry.kind === 'constructor' && entry.absent),
+  );
+  const gate = movedTo[CARD_PAYMENT_METHOD_RULE]
+    ? undefined
+    : configuredMigrationProposal
+      ? 'this patch applies a configured migration, which does not move the API version'
+      : !everyPinMoves && unresolved
+        ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
+        : !bumpsVersion
+          ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
+          : cardUpgrade && 'reason' in cardUpgrade
+            ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
+            : undefined;
+  if (gate)
+    for (const finding of analysis.findings)
+      if (finding.requestParameter && editCovers(repository, renames, finding))
+        finding.reason = `${finding.reason} The owner-approved rename to allowed_payment_method_types applies to this value, but ${gate}.`;
   if (specificationDiff && provider.packageName === STRIPE.packageName)
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
