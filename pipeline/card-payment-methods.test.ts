@@ -470,10 +470,7 @@ it.each([
   [
     'in a conditional spread inside a traced body',
     {
-      'checkout.js': checkout(
-        "['card']",
-        "{ apiVersion: '2026-08-26.dahlia' }",
-      ).replace(
+      'checkout.js': checkout("['card']", "{ apiVersion: '2026-08-26.dahlia' }").replace(
         "mode: 'subscription',",
         "mode: 'subscription', ...(card ? { payment_method_types: ['card', 'paypal'] } : {}),",
       ),
