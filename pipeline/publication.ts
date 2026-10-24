@@ -25,6 +25,12 @@ const MAX_PAGES = 10;
 const PUSHED_MARKER = '<!-- refit-pushed:';
 const PUSHED_RECORD = /\n?<!-- refit-pushed: ([a-f0-9]{40}(?: [a-f0-9]{40})*) -->/g;
 const PROVIDER_MARKER = '<!-- refit-provider:';
+const TARGET_MARKER = '<!-- refit-target:';
+const TARGET_RECORD = /<!-- refit-target: ([A-Za-z0-9._-]+) -->/;
+const TARGET_VERSION = /^[A-Za-z0-9._-]+$/;
+// shortcut: natural order of version strings, which fits dated (Stripe, Shopify) and dotted
+// versions; a provider with another scheme needs its own order before it supersedes drafts.
+const VERSION_ORDER = new Intl.Collator('en', { numeric: true });
 const BASE_MOVED_MARKER = '<!-- refit-base-moved:';
 const SUPERSEDED_MARKER = '<!-- refit-superseded -->';
 const OTHERS_COMMITS =
@@ -571,19 +577,23 @@ export async function publishDraft(
     );
   const provider = `${PROVIDER_MARKER} ${report.provider} -->`;
   const target = apiVersion.after ?? 'the target contract';
+  const version =
+    apiVersion.after && TARGET_VERSION.test(apiVersion.after) ? apiVersion.after : undefined;
   return publishFiles(options, {
     revision: report.validation.revision,
     key: draftKey(report),
     files: report.publicationFiles,
     title: artifacts.manifest.title,
-    body: `${artifacts.files['pull-request.md']}\n${provider}`,
+    body: `${artifacts.files['pull-request.md']}\n${provider}${version ? `\n${TARGET_MARKER} ${version} -->` : ''}`,
     message: artifacts.commitMessage,
-    ...(options.supersedeDrafts
+    ...(options.supersedeDrafts && version
       ? {
           supersedes: {
-            // Refit's other migration drafts for this provider and integration, such as an older
-            // target version's. A draft that names no provider, from an earlier release, stays.
+            // Refit's other migration drafts for this provider and integration for an older
+            // target version, so a retried job for an older target never closes a newer draft.
+            // A draft that names no provider or target, from an earlier release, stays.
             matches: (other: string) =>
+              VERSION_ORDER.compare(other.match(TARGET_RECORD)?.[1] ?? version, version) < 0 &&
               other.includes(MIGRATION_MARKER) &&
               other.includes(provider) &&
               (options.integration
