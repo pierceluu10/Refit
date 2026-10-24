@@ -319,6 +319,126 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
   120_000,
 );
 
+it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE)(
+  "reuses an unchanged target's receipt on a scheduled poll without fetching, scanning or using the daily cap",
+  async () => {
+    const pool = await database();
+    const sample = await approvedRepository();
+    const github = await startFakeGitHub({ appId: 123, webhookSecret: WEBHOOK_SECRET });
+    cleanups.push(() => github.close());
+    vi.stubGlobal('fetch', github.fetch);
+    await github.publish('example/application', transport.source, { id: 789 });
+    github.installations.set(INSTALLATION, {
+      id: INSTALLATION,
+      login: 'example',
+      repositories: ['example/application'],
+      suspended: false,
+    });
+    const store = await openHostedStore(pool, hostedTenancy({ REFIT_HOSTED_OWNER: 'example' }));
+    await store.approve(sample.approval, 'octo-reviewer');
+    const target = hostedTargetId('example/application', 'main');
+    const progress: string[] = [];
+    // Runs one worker with the given build until the target has `jobs` ended jobs.
+    const serve = async (build: string, jobs: number) => {
+      const controller = new AbortController();
+      let ready: (url: string) => void;
+      const listening = new Promise<string>((resolve) => (ready = resolve));
+      const service = runHostedService({
+        database: pool,
+        app: github.app,
+        directory: join(sample.root, 'hosted-state'),
+        webhookSecret: WEBHOOK_SECRET,
+        controlToken: CONTROL_TOKEN,
+        tenancy: hostedTenancy({ REFIT_HOSTED_OWNER: 'example' }),
+        build,
+        host: '127.0.0.1',
+        port: 0,
+        intervalSeconds: 3600,
+        leaseSeconds: 30,
+        worker: 'test-worker',
+        signal: controller.signal,
+        onReady: (url) => ready(url),
+        onProgress: (message) => progress.push(message),
+      });
+      try {
+        const url = await listening;
+        if (jobs === 1)
+          await deliver(
+            url,
+            'installation',
+            installationPayload('created', ['example/application']),
+          );
+        let registry = await store.read();
+        for (
+          const deadline = Date.now() + 60_000;
+          registry.jobs.filter((job) => job.finishedAt).length < jobs && Date.now() < deadline;
+          registry = await store.read()
+        )
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        return registry;
+      } finally {
+        controller.abort();
+        await service;
+      }
+    };
+
+    const first = await serve('registry.fly.io/refit-hosted:deployment-1', 1);
+    console.log(progress.join('\n'));
+    expect(first.jobs).toHaveLength(1);
+    const ran = first.jobs[0].receipt;
+    expect(ran).toMatchObject({
+      status: 'validated',
+      readiness: 'ready-for-validation',
+      revision: transport.head,
+      fingerprint: sample.approval.fingerprint,
+      liveContract: false,
+      build: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(transport.calls.some((call) => call.binary === 'docker')).toBe(true);
+
+    // The next scheduled poll finds the same commit, approval and build: nothing is fetched or run,
+    // and the poll gives its job reservation back.
+    transport.calls = [];
+    expect(await store.enqueueDue(0)).toBe(1);
+    const second = await serve('registry.fly.io/refit-hosted:deployment-1', 2);
+    console.log(progress.join('\n'));
+    expect(second.jobs[1]).toMatchObject({
+      status: 'finished',
+      receipt: { ...ran, unchangedSince: Number(first.jobs[0].id) },
+    });
+    // The fake GitHub API answers the branch-head read from its own bare repository.
+    expect(transport.calls.filter((call) => !call.args[1]?.includes('refit-fake-github-'))).toEqual(
+      [],
+    );
+    expect(second.installations[0].jobsToday).toBe(1);
+    expect(progress).toContain(
+      `validated: unchanged since job ${first.jobs[0].id} at ${transport.head.slice(0, 12)}; nothing ran.`,
+    );
+
+    // A new worker build runs the poll again; the watch state still knows the job.
+    expect(await store.enqueueDue(0)).toBe(1);
+    const third = await serve('registry.fly.io/refit-hosted:deployment-2', 3);
+    expect(third.jobs[2].receipt).toMatchObject({
+      status: 'validated',
+      message: 'Saved worker result reused; checks were not rerun.',
+      revision: transport.head,
+    });
+    expect(third.jobs[2].receipt.unchangedSince).toBeUndefined();
+    expect(third.jobs[2].receipt.build).not.toBe(ran.build);
+    expect(transport.calls.some((call) => call.binary === 'git')).toBe(true);
+    expect(third.installations[0].jobsToday).toBe(2);
+
+    // An operator retry always runs, even when nothing changed.
+    transport.calls = [];
+    await store.retry(target);
+    const fourth = await serve('registry.fly.io/refit-hosted:deployment-2', 4);
+    expect(fourth.jobs[3]).toMatchObject({ retry: true, status: 'finished' });
+    expect(fourth.jobs[3].receipt.unchangedSince).toBeUndefined();
+    expect(transport.calls.some((call) => call.binary === 'git')).toBe(true);
+  },
+  180_000,
+);
+
 it.skipIf(!DATABASE)(
   'leases jobs durably, stops a running job on repository removal and keeps its evidence as cancelled',
   async () => {
