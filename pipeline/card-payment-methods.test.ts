@@ -581,3 +581,22 @@ it('renames an exact card list in a local body that only the Checkout call recei
   expect(report.patch.warnings).toContain(CARD_PAYMENT_METHOD_WARNING);
   expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
 });
+
+// kevinknielsen/superfan-core: `apiVersion: process.env.STRIPE_API_VERSION || '2023-10-16'`.
+it('says which client keeps the card rename from riding with the pin', async () => {
+  const report = await run({
+    'checkout.js': checkout(
+      "['card']",
+      "{ apiVersion: process.env.STRIPE_API_VERSION || '2026-08-26.dahlia' }",
+    ),
+  });
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings).toMatchObject([
+    {
+      requestParameter: { parameter: 'payment_method_types' },
+      reason: expect.stringContaining(
+        'The owner-approved rename to allowed_payment_method_types applies to this value, but Refit cannot resolve the API version the client created at checkout.js:2 sends, so it cannot move every client to 2026-09-30.endive.',
+      ),
+    },
+  ]);
+});
