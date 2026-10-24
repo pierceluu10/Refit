@@ -56,7 +56,7 @@ if (args[0] === 'cp') { fs.writeFileSync(args[2], 'stripe-mock'); process.exit(0
 const mount = args.find((arg) => arg.includes('dst=/input'));
 const contract = args.find((arg) => arg.includes('dst=/refit/spec.json'));
 const side = contract
-  ? (contract.includes('before.json') ? 'generated-before' : 'generated-after')
+  ? (contract.includes('before-spec.json') ? 'generated-before' : 'generated-after')
   : mount.includes('/baseline,') ? 'baseline' : 'patched';
 const started = Date.now();
 setTimeout(() => {

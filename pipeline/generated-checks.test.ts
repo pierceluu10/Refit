@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createServer, type IncomingMessage } from 'node:http';
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -11,12 +11,14 @@ import {
   generatedEntryPoints,
   generatedImportMap,
   generatedResults,
+  stageMockDocument,
   typescriptDirectory,
   writeHarness,
 } from './generated-checks.ts';
 import { readRepository } from './repository.ts';
 import { parseWorkflowConfiguration } from './workflow-configuration.ts';
 import type { Finding } from './types.ts';
+import { digest } from './specifications.ts';
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -336,4 +338,22 @@ export async function invoiceSubscription(id: string): Promise<string> {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+it('stages a private contract as a read-only copy the sandbox user can read', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-mock-document-'));
+  roots.push(root);
+  const contract = join(root, 'before.json');
+  const content = '{"openapi":"3.0.0"}';
+  await writeFile(contract, content, { mode: 0o600 });
+  const copy = join(root, 'before-spec.json');
+  expect(await stageMockDocument(contract, 'before contract', copy)).toBe(digest(content));
+  expect(await readFile(copy, 'utf8')).toBe(content);
+  expect((await stat(copy)).mode & 0o777).toBe(0o444);
+
+  const yaml = join(root, 'after.yaml');
+  await writeFile(yaml, 'openapi: 3.0.0\n');
+  await expect(
+    stageMockDocument(yaml, 'after contract', join(root, 'after-spec.json')),
+  ).rejects.toThrow('Generated checks require a JSON after contract.');
 });

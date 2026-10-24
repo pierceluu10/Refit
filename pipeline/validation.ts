@@ -32,7 +32,7 @@ import {
   compareGeneratedRuns,
   generatedEntryPoints,
   generatedImportMap,
-  readMockDocument,
+  stageMockDocument,
   typescriptDirectory,
   writeHarness,
   type GeneratedChecks,
@@ -457,18 +457,34 @@ async function generatedStripeChecks(options: {
   const { entries, uncovered } = options.entryPoints;
   const tools = await sandboxInput(options.root, 'generated-');
   const mock = await extractStripeMock(options.settings.stripeMockImage, tools);
-  const fixtures = {
-    before: options.settings.beforeFixtures,
-    after: options.settings.afterFixtures,
-  };
+  const staged = (side: 'before' | 'after') => ({
+    contract: join(tools, `${side}-spec.json`),
+    fixtures: join(tools, `${side}-fixtures.json`),
+  });
   const hashes = {
     before: {
-      contract: await readMockDocument(options.runs[0].contract, 'before contract'),
-      fixtures: await readMockDocument(fixtures.before, 'before fixtures file'),
+      contract: await stageMockDocument(
+        options.runs[0].contract,
+        'before contract',
+        staged('before').contract,
+      ),
+      fixtures: await stageMockDocument(
+        options.settings.beforeFixtures,
+        'before fixtures file',
+        staged('before').fixtures,
+      ),
     },
     after: {
-      contract: await readMockDocument(options.runs[1].contract, 'after contract'),
-      fixtures: await readMockDocument(fixtures.after, 'after fixtures file'),
+      contract: await stageMockDocument(
+        options.runs[1].contract,
+        'after contract',
+        staged('after').contract,
+      ),
+      fixtures: await stageMockDocument(
+        options.settings.afterFixtures,
+        'after fixtures file',
+        staged('after').fixtures,
+      ),
     },
   };
   await writeHarness(tools, entries, options.imports);
@@ -486,8 +502,8 @@ async function generatedStripeChecks(options: {
       dependencies: run.dependencies ?? options.dependencies,
       readOnlyMounts: [
         { source: mock.binary, target: '/refit/stripe-mock' },
-        { source: run.contract, target: '/refit/spec.json' },
-        { source: fixtures[run.side], target: '/refit/fixtures.json' },
+        { source: staged(run.side).contract, target: '/refit/spec.json' },
+        { source: staged(run.side).fixtures, target: '/refit/fixtures.json' },
         { source: tools, target: '/refit/generated' },
         { source: typescriptDirectory(), target: '/refit/typescript' },
       ],
