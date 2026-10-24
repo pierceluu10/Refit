@@ -488,7 +488,7 @@ export async function findExistingMigration(
 
 // Closes Refit's open draft for this target with a comment saying why, once the scanned base no
 // longer needs it: the customer migrated the code themselves. A draft with someone else's commits,
-// or one a person reopened after Refit closed it, stays open.
+// one a person marked ready for review, and one a person reopened after Refit closed it stay open.
 export async function closeResolvedDraft(
   report: Awaited<ReturnType<typeof runPipeline>>,
   revision: string,
@@ -499,17 +499,21 @@ export async function closeResolvedDraft(
   const { authentication, request } = await publicationSession(options);
   const branch = draftBranch(draftKey(report), authentication, options);
   const context = { options, branch, revision: sha(revision), authentication };
-  const base = async () => (await reference(request, options.base)) === context.revision;
-  if (!(await base()))
+  // Looked up first, so a run with no draft to close never fails on a base that moved.
+  const pull = await draftPull(request, options, branch, authentication);
+  if (
+    !pull ||
+    pull.state !== 'open' ||
+    pull.draft !== true ||
+    (await heldDraft(pull, request, context))
+  )
+    return undefined;
+  const { number } = pullUrl(pull, options);
+  if (await ownComment(request, number, authentication, RESOLVED_MARKER)) return undefined;
+  if ((await reference(request, options.base)) !== context.revision)
     throw new PipelineInputError(
       'GitHub base differs from the monitored commit. Update the local checkout before closing a draft.',
     );
-  const pull = await draftPull(request, options, branch, authentication);
-  if (!pull || pull.state !== 'open' || (await heldDraft(pull, request, context))) return undefined;
-  const { number } = pullUrl(pull, options);
-  if (await ownComment(request, number, authentication, RESOLVED_MARKER)) return undefined;
-  if (!(await base()))
-    throw new PipelineInputError('GitHub base changed while checking the draft. Retry the run.');
   // Closed first: the comment then marks only drafts Refit actually closed.
   const closed = object(await request('PATCH', `/pulls/${number}`, { state: 'closed' }));
   await request('POST', `/issues/${number}/comments`, { body: `${reason}\n\n${RESOLVED_MARKER}` });

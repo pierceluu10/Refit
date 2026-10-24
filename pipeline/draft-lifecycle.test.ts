@@ -580,7 +580,23 @@ it('closes its draft when the customer migrates the reads without moving the pin
 it('stays quiet when the code already sends the target and Refit has no draft', async () => {
   await migrateByHand('2022-11-15');
   expect((await workflow()).manifest).toMatchObject({ status: 'up-to-date' });
+  // main moves on GitHub while the checkout is scanned: with no draft to close, that is no error.
+  await addPersonCommit('main');
+  expect((await workflow()).manifest).toMatchObject({ status: 'up-to-date' });
   expect(github.pulls(REPOSITORY)).toEqual([]);
+  expect(github.comments(REPOSITORY)).toEqual([]);
+});
+
+it('leaves a draft a person marked ready for review open when the customer migrates', async () => {
+  const report = await candidate();
+  await publishDraft(report, options());
+  github.pulls(REPOSITORY)[0].draft = false;
+  await migrateByHand(report.apiVersion.after!);
+  expect((await workflow()).manifest).toMatchObject({
+    status: 'up-to-date',
+    reason: 'The code already sends 2022-11-15 and uses none of what it breaks.',
+  });
+  expect(github.pulls(REPOSITORY)).toMatchObject([{ number: 1, state: 'open', draft: false }]);
   expect(github.comments(REPOSITORY)).toEqual([]);
 });
 
