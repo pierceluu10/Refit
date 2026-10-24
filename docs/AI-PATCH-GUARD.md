@@ -185,6 +185,75 @@ On the 100-repository Stripe benchmark the guard rejected correct, version-toler
 
 The AI also now works on code that already carries the deterministic rule edits, so the guards judge only its own changes. Unit tests and the 244 evaluation-case checks pass. The tuning and held-out AI evaluations were not rerun after this change.
 
+## Owner policy stops (October 24)
+
+On real repositories the wrong AI patches that validated mostly broke an owner policy, not a contract rule. In the October 21 agent comparison, 7 of 8 validated patches deleted `payment_method_types`. `pipeline/ai-patch-policies.ts` now checks these policies after the model answers and before rules 1–5. A patch that breaks one stops for review. The model gets **no** corrected request, because the policy decides the case, not the model. Each check compares the AI's version of every file it changed with the rules' version, so the rules' own edits, such as the reviewed card rename, are never charged to the AI.
+
+| Policy | Refused when the AI's code… | Real diff it comes from |
+|---|---|---|
+| Never drop or replace a request parameter | no longer sends a key, nested key, spread, argument or literal value (string, number, boolean or null, also inside arrays) that a traced SDK call sent, or sets one to `undefined`, `void 0` or `null` (also over a spread). The body can be inline, a variable declared in scope with keys assigned to it later, a body a function in the same file returns, or a spread of either. Reordering, reformatting (a reflowed spread too) and added keys pass | `Bizgojo/drivetimetales` and `geallenboy/ai-saas-template` deleted `payment_method_types`; `Sanjdcool/ApanStack-Newsletter` replaced the expand path `latest_invoice.payment_intent`; `brendansudol/punchlines-ai` deleted it from a returned body |
+| No type-only workarounds | has more `any` types, `as unknown as` or `as never` assertions, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck` or `eslint-disable` comments | `kondax-com/Bocker` read `discounts` through `as unknown as { discounts?: unknown[] }` |
+| Choosing a subscription item is a reviewed policy | reads a billing period from an item it picks (`items.data[i]`, `.at()`, `.find()`) more often: directly, through a variable holding the item or the list (`const items = s.items.data`, `const { data } = s.items`, `const { items } = s`), by destructuring, string key or `Reflect.get`. Selector calls of the generated helpers and picks are counted separately, so swapping one for the other counts. Other fields read from a picked item pass | `JiantaoFu/insightly` stored `items.data[0]` in a variable and read `current_period_end` from it; `kondax-com/Bocker` read `items.data[0]!.current_period_start` |
+| Webhook reads keep both shapes | rewrote a webhook or `declaredType` finding without still reading the removed field from the same receiver (or a variable assigned from it in the edit) by property, string key, `Reflect.get`, destructuring or the generated helper for that field called on it. Every read from deeper in the receiver (`session.collected_information.shipping_details`) must sit in a `??` or `||` with an old-shape read, or under a conditional or `if` whose condition reads it. A dual read inside the code an edit replaces, a rule's helper call or an earlier round's `Reflect.get`, must stay dual too | `abressiddique/AbresStore-Admin` moved `session.shipping_details` to `session.collected_information.shipping_details` only |
+| Webhook event names | no longer compares with an event type string the rules' code did | (existing) |
+
+The instructions now state these policies, and the type-error instructions no longer tell the model to remove parameters the new types reject. A first AI patch that is refused ends the run like rules 1–5 (`refit run` saves the evidence, and the AI patch scorer counts it as `review-stop`). A refused repair records `repair-error`. Tests: `pipeline/ai-patch-policies.test.ts` (one per real diff above, and one per form the October 24 review found), `pipeline/ai-patches.test.ts`, and an end-to-end new-shape stop in `pipeline/stripe-webhook-payloads.test.ts`.
+
+### Replay over the recorded agent diffs
+
+`pipeline/ai-patch-eval-replay.ts` runs every guard (these policies and rules 1–5) over a recorded patch without calling a model or running repository code. The rules' stripe-node upgrade reads npm registry metadata, so it needs that access. For each repository it applies Refit's deterministic patch, applies the recorded diff on top, and runs the guards the way `proposeAiPatch()` does. It runs a second time against the original code, which charges the patch with every change it made itself.
+
+Where any hunk of a file conflicts with the rules, the whole file is taken from the original plus the diff. On the rules' code that charges the agent with undoing the rules' edits in that file, so the comparisons below use the original code. Files outside the scanned sources, such as `package.json` and `.mdx` docs, are listed and skipped.
+
+The replay runs the guards alone. It skips the scan's stops and `proposeAiPatch()`'s scope checks (a confirmed finding, and edits only in files with one), which on main stop all 16 wrong patches before any model request. It measures the guards as the last check, not what main would publish. It records the commit it ran at and refuses to run with uncommitted pipeline changes.
+
+The run covers all 17 agent patches recorded on October 21, at their frozen commits (`docs/benchmarks/subsets/p2-agent-replay.json`, results in `docs/benchmarks/2026-10-24-p2-agent-replay-results.json`). These are the 8 that validated:
+
+| Repository | Review verdict | Refused on the rules' code by | Refused on the original code by |
+|---|---|---|---|
+| `Bizgojo/drivetimetales` | wrong | item choice, dropped parameter, new shape only, substitution | the same |
+| `Dvargas005/node-hub` | wrong | dropped parameter | the same |
+| `abressiddique/AbresStore-Admin` | wrong | dropped parameter, new shape only | the same |
+| `Kanba-co/kanba` | wrong | item choice, dropped parameter, new shape only | the same |
+| `iggy-tech/product-hunt-clone-final` | wrong | item choice, dropped parameter | the same |
+| `geallenboy/ai-saas-template` | wrong | dropped parameter | the same |
+| `utsavkrishnatra/pdf_answers` | wrong | item choice, dropped parameter, new shape only, substitution | the same |
+| `sammorrispb/nextgen-academy` | correct | none | none |
+
+All 7 wrong patches are refused. What made each one wrong was the deleted card restriction, and the dropped-parameter guard refuses it in all 7. On the original code, the path it reports is the agent's own deletion of `payment_method_types`. On the rules' code it reports `allowed_payment_method_types` wherever the file came from the original: that is the card rule's rename, which the agent's file undoes, not the agent's own change (8 of the 17 rows).
+
+The other refusals land on edits the reviewer judged right: the first-item period reads in drivetimetales, Kanba, iggy-tech and pdf_answers, and the new-shape-only webhook reads (`invoice.subscription`, `shipping_details`) in drivetimetales, AbresStore, Kanba and pdf_answers. They stop because the owner policies make item choice and webhook shape review decisions, not because the code was wrong. On the rules' code, the new-shape check refuses the agent's replacement of the rules' version-tolerant helper calls in AbresStore, Kanba and pdf_answers (and in punchlines-ai and spotify below). Before the October 24 review it had nothing to check there, because those helper calls are not findings.
+
+The 9 patches that never validated have no October 21 verdict. Each was read in full on October 24, and all 9 are wrong; these labels are recorded here and in `docs/overnight/P2.md`, not in the results file. Six of them (marked †) are held out: no test was built from them before the replay. Two then led to fixes with tests: punchlines-ai (below) and wedillybird (two request bodies with the same name, found in review), so 4 remain untouched.
+
+| Repository | October 21 checks | Wrong because | Refused on the original code by |
+|---|---|---|---|
+| `kondax-com/Bocker` | not run | every class | event type, item choice, dropped parameter, type escape, new shape only, substitution |
+| `JiantaoFu/insightly` | baseline failed | dropped parameter, item choice | item choice, dropped parameter, new shape only |
+| `Sanjdcool/ApanStack-Newsletter` | baseline failed | swapped `expand` path, new shape only | dropped parameter, new shape only |
+| `inventashif/hackerai` † | not run | deleted `payment_method_types` (2 calls) | dropped parameter |
+| `beindigital-products/wedillybird` † | error | deleted `payment_method_types` (4 calls) | dropped parameter |
+| `RISHIE2006/Signl` † | baseline failed | deleted `payment_method_types` | dropped parameter |
+| `pretzelai/stripe-no-webhooks` † | error | webhook reads in the new shape only, edits to its own SQL and a doc comment | item choice, new shape only, substitution |
+| `brendansudol/punchlines-ai` † | regression | deleted `payment_method_types` from a body a helper returns; first-item period reads | item choice, dropped parameter, substitution |
+| `mrwebwork/spotify` † | regression | deleted `payment_method_types`; first-item period reads | item choice, dropped parameter |
+
+The held-out six found one gap. punchlines-ai builds its Checkout body in `getSessionCreateParams()` and passes the result to the call. The dropped-parameter check did not follow it, and only an incidental substitution (a new `subscription.id` read in an error message) refused the patch. The check now follows a body that a function in the same file returns, with a test from that diff.
+
+Main's guard (October 24, before these policies) had only the event-type check, a per-edit item-choice check and the substitution guard. On the same 17 diffs, on the original code, it refuses 5 of the 16 wrong patches: 2 of the 7 that validated and 2 of the 6 held out. The policies above refuse all 16, and the correct patch passes both.
+
+The correct patch passes, but the pass proves little. Its call is `getStripe().checkout.sessions.create(...)`, through a cached factory (`let cached: Stripe | null`; `cached = new Stripe(key)`) that the tracer does not follow on current main. So none of the request guards saw it. On main, that repository stops for review on unrelated review-confidence reads, so the AI is not asked there. Nothing catches the untraced call itself. No correct AI diff that the guards can see is recorded. Refit's own correct October 22 fix for `ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform` was not kept, but [AI patch reliability](AI-PATCH-RELIABILITY.md) describes its two edits: each `(subscription as any).current_period_end` read goes through `getSubscriptionPeriodEnd(subscription)`. A test rebuilds those edits on the real webhook route and checks that the four policies that apply accept them. Its reads come from a retrieved subscription, not a webhook payload, so the dual-shape check has nothing to check, and the substitution guard is not run in that test. Beyond that, the guards' false refusals on real code are measured only by the accepted cases in the tests.
+
+Known gaps:
+
+- A changed non-literal value, such as a different variable, is not compared.
+- A body passed to the call through a parameter or an import, filled by `Object.assign` or through an alias of the body is not resolved.
+- Type escapes are counted per file and construct, so swapping an existing `any` for a new one in the same file passes.
+- An item the AI picks and passes to the app's own function, which reads the period, is not detected.
+- A repair that moves a helper call into a separate edit from the reads it feeds stops for review (an over-stop).
+- A request through a client the tracer cannot follow, such as the cached factory above, is not checked.
+- An invented field the after contract does not define still depends on validation and review.
+
 ## Known limitations
 
 - Reads the analyzer cannot trace are invisible to the guard: destructuring (`const { id } = model`), computed access (`model['id']`), or a response passed through helper functions. These already reduce scanner confidence elsewhere.

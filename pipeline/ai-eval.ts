@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { diffLines } from 'diff';
 import type { AiOptions } from './ai-budget.ts';
+import { AiPolicyStop } from './ai-patches.ts';
 import { FAKE_SDK, evalAdapter, evalContract, type EvalCase } from './ai-eval-cases.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
@@ -179,7 +180,9 @@ export async function runCaseAttempt(
       ...(prepared.notes.length ? { documentationSnapshots: prepared.notes } : {}),
     });
   } catch (error) {
-    if (error instanceof FieldSubstitutionError) {
+    if (error instanceof FieldSubstitutionError || error instanceof AiPolicyStop) {
+      const refusal =
+        error instanceof AiPolicyStop ? 'an owner-policy stop' : 'the substitution guard';
       const proposal = error.proposal as {
         summary?: string;
         uncertainties?: string[];
@@ -195,8 +198,8 @@ export async function runCaseAttempt(
         pass,
         critical: false,
         detail: pass
-          ? `The substitution guard rejected an invented migration. ${error.message}`
-          : `False positive: the substitution guard rejected a fixable case. ${error.message}`,
+          ? `Rejected by ${refusal}, as an invented migration should be. ${error.message}`
+          : `False positive: ${refusal} rejected a fixable case. ${error.message}`,
         summary: proposal.summary,
         uncertainties: proposal.uncertainties,
         changedLines: proposal.diff
