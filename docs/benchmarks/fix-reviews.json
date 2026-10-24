@@ -296,6 +296,36 @@
         "upgradeComplete": "not needed for the webhook reads; the JavaScript client's literal pin moves without a stripe-node upgrade, which is the existing rule for JavaScript.",
         "wouldMerge": "not yet: the failing checks and the 47 unresolved findings come first."
       }
+    },
+    {
+      "repo": "ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40087282243 at b31089d (F5 slice 2, #279) ended at the missing stripe/stripe-mock image (infrastructure); the same commit validated locally with npm run benchmark:stripe -- --validate in offline Docker (node:22-alpine, stripe-mock pulled), commit fde5a23",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: both (subscription as any).current_period_end reads in src/app/api/stripe/webhook/route.ts become getSubscriptionPeriodEnd(subscription as any) as any (the subscription comes from stripe.subscriptions.retrieve), the basil move to subscription items; the invoice.payment_succeeded branch's session.subscription reads become getInvoiceSubscription(session), the move to parent.subscription_details.subscription; payment_method_types: ['card'] takes the owner-approved card rule.",
+        "bothVersions": "yes: the helpers return the old field when present, otherwise the new location, so events and responses of either version read the same value.",
+        "nothingUnrelated": "yes: the reads, one import, the generated src/app/api/stripe/webhook/stripe-subscription-period.ts, the apiVersion literal in src/lib/stripe.ts, the card rule, and stripe 20.4.1 to 23.0.0 in package.json and package-lock.json.",
+        "pleaseCheck": "tsc --noEmit passed before and after the patch in offline Docker, with 0 unresolved findings; the generated stripe-mock checks found no entry points and did not run, and nothing exercised the webhook handler. A subscription whose items have different periods gets undefined, as the draft says. Replay one checkout.session.completed and one invoice.payment_succeeded event in test mode.",
+        "upgradeComplete": "yes: stripe-node 20.4.1 to 23.0.0 with the registry's integrity.",
+        "wouldMerge": "yes, after replaying the two events in test mode."
+      }
+    },
+    {
+      "repo": "cyberdreadx/cyberpunk-grok-api",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40087282243 at b31089d (F5 slice 2, #279); patch reproduced with refit scan --propose-patch from that run's adapter and contracts at commit b1dc85c",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: the two (subscription as any).current_period_end reads in the customer.subscription webhook branch of api/webhook.ts and (sub as any)?.current_period_end in api/verify.ts call getSubscriptionPeriodEnd(... as any) as any, the basil move to subscription items.",
+        "bothVersions": "yes: the helper returns the subscription-level field when the payload has it, otherwise the period all items share.",
+        "nothingUnrelated": "yes: three reads, two imports and the generated api/stripe-subscription-period.ts.",
+        "pleaseCheck": "60 findings stay unresolved, including invoice.payment_intent reads with no one-to-one replacement, so a draft would be [Needs review]. Run 40087282243 stopped during validation on the missing stripe-mock image (infrastructure), so whether its tests pass with the patch is not recorded.",
+        "upgradeComplete": "not part of this patch: no apiVersion literal or stripe-node change, because the remaining findings keep the run from moving the pin.",
+        "wouldMerge": "not yet: the unresolved findings come first."
+      }
     }
   ]
 }
