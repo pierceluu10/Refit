@@ -1,0 +1,32 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Partially capturing or canceling payments no longer creates a Refund",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/remove-refund-from-partial-capture-and-payment-cancellation-flow",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "canceled added to Review.closed_reason",
+    "expired added to PaymentIntent.cancellation_reason",
+    "partial captures and cancellations no longer create Refunds, charge.refunded events or a second balance transaction; amount_captured is 0 on cancellation"
+  ],
+  "handling": "none",
+  "reason": "Behaviour change with no difference in the recorded stripe/openapi contracts, so Refit has no signal for it.",
+  "parts": [
+    {
+      "changed": [
+        "canceled added to Review.closed_reason",
+        "expired added to PaymentIntent.cancellation_reason"
+      ],
+      "handling": "generic",
+      "how": "Only with fullDiff: compareOpenApi drops Stripe response enum additions (openResponseEnums) and switchedEnumAdditions (openapi-diff.ts) re-adds the new value where the code switches over the field or assigns it to `never` (analyzer.ts enumChecks). unmappedBreakingChanges keeps that entry, so scanReviewReason (workflow.ts) stops the run for review and publication is blocked. Other reads need no edit (AGENTS.md: Stripe response enum additions block only where the code switches over the field). Without fullDiff nothing is reported.",
+      "fullDiffOnly": true
+    },
+    {
+      "changed": [
+        "partial captures and cancellations no longer create Refunds, charge.refunded events or a second balance transaction; amount_captured is 0 on cancellation"
+      ],
+      "handling": "none",
+      "reason": "Behaviour change with no difference in the recorded stripe/openapi contracts, so Refit has no signal for it."
+    }
+  ]
+}

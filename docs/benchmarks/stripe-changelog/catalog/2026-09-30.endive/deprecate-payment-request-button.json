@@ -1,0 +1,12 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Deprecates the payment request button",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/deprecate-payment-request-button",
+  "checkedAt": "2026-10-24",
+  "category": "stripejs",
+  "changed": [
+    "elements.create('paymentRequestButton') and PaymentRequestButtonElement removed"
+  ],
+  "handling": "none",
+  "reason": "Stripe.js change. Refit traces stripe-node SDK calls against the stripe/openapi contracts and does not analyze @stripe/stripe-js or @stripe/react-stripe-js code."
+}

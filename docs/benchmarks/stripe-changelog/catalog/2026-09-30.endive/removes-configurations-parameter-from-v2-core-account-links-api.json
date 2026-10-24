@@ -1,0 +1,12 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Removes the configurations parameter from the Account Links v2 API",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/removes-configurations-parameter-from-v2-core-account-links-api",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "configurations removed from v2.core.accountLinks.create use_case.account_onboarding and account_update"
+  ],
+  "handling": "none",
+  "reason": "API v2 change. The recorded stripe/openapi spec3.json contracts have no /v2 paths, so Refit sees neither the calls nor the change."
+}

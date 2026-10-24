@@ -1,0 +1,13 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Adds new error codes for required verifications",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/adds-requirement-error-codes",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "information_missing, invalid_signator, verification_failed_authorizer_authority, verification_rejected_ownership_exemption_reason added to requirements.errors[].code (Account, BankAccount, Capability, Person)"
+  ],
+  "handling": "generic",
+  "how": "Only with fullDiff: compareOpenApi drops Stripe response enum additions (openResponseEnums) and switchedEnumAdditions (openapi-diff.ts) re-adds the new value where the code switches over the field or assigns it to `never` (analyzer.ts enumChecks). unmappedBreakingChanges keeps that entry, so scanReviewReason (workflow.ts) stops the run for review and publication is blocked. Other reads need no edit (AGENTS.md: Stripe response enum additions block only where the code switches over the field). Without fullDiff nothing is reported.",
+  "fullDiffOnly": true
+}

@@ -1,0 +1,64 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Removes legacy usage-based billing",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-legacy-usage-based-billing",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "subscriptionItems.createUsageRecord and listUsageRecordSummaries removed",
+    "billing_thresholds request parameter removed from subscriptions.create/update and subscriptionItems.create/update",
+    "aggregate_usage request parameter removed from plans.create",
+    "recurring.aggregate_usage removed from prices.create; items[].billing_thresholds and schedule phases billing_thresholds removed",
+    "Subscription, SubscriptionItem and SubscriptionSchedule billing_thresholds and Plan.aggregate_usage removed",
+    "Price.recurring.aggregate_usage removed",
+    "prices.create with usage_type metered and no meter now returns an error"
+  ],
+  "handling": "none",
+  "reason": "Not mapped: the adapter names POST /v1/subscription_items/{subscription_item}/usage_records `subscriptionItems.usageRecords` from its URL (stripe-operations.ts stripeContractOperations, stripe-benchmark.ts stripeOperations), but stripe-node calls it `subscriptionItems.createUsageRecord`, so the call is not traced and no finding names it. (Under fullDiff, oasdiff can still report the operation's change when another mapped call returns the same object, which stops the whole run without naming this call.)",
+  "parts": [
+    {
+      "changed": [
+        "subscriptionItems.createUsageRecord and listUsageRecordSummaries removed"
+      ],
+      "handling": "none",
+      "reason": "Not mapped: the adapter names POST /v1/subscription_items/{subscription_item}/usage_records `subscriptionItems.usageRecords` from its URL (stripe-operations.ts stripeContractOperations, stripe-benchmark.ts stripeOperations), but stripe-node calls it `subscriptionItems.createUsageRecord`, so the call is not traced and no finding names it. (Under fullDiff, oasdiff can still report the operation's change when another mapped call returns the same object, which stops the whole run without naming this call.)"
+    },
+    {
+      "changed": [
+        "billing_thresholds request parameter removed from subscriptions.create/update and subscriptionItems.create/update",
+        "aggregate_usage request parameter removed from plans.create"
+      ],
+      "handling": "stop",
+      "reason": "removedRequestParameters (request-removals.ts) finds the removed top-level body parameter on the mapped operation; analyzeRepository marks each traced call that still sends it with requestParameter, and migrationReviewReason (migration-review.ts) stops automatic migration, AI and publication with REMOVED_REQUEST_PARAMETER_REVIEW_REASON."
+    },
+    {
+      "changed": [
+        "recurring.aggregate_usage removed from prices.create; items[].billing_thresholds and schedule phases billing_thresholds removed"
+      ],
+      "handling": "stop",
+      "reason": "Only with fullDiff (oasdiff; the watch worker default, off in `refit run` and in the benchmark fix stage): compareOpenApi (openapi-diff.ts) reports the request change and findBreakingOperationImpacts (provider-operations.ts) lists every traced call of that operation as an operation impact, which blocks AI and stops the run in scanReviewReason (workflow.ts), whether or not the call sends the changed value. Without fullDiff Refit reports nothing.",
+      "fullDiffOnly": true
+    },
+    {
+      "changed": [
+        "Subscription, SubscriptionItem and SubscriptionSchedule billing_thresholds and Plan.aggregate_usage removed"
+      ],
+      "handling": "ai",
+      "how": "findRemovedProperties (specifications.ts) reports the removed field and analyzeRepository (analyzer.ts) reports each traced read as a confirmed finding; STRIPE_MOVE_REVIEW (stripe-field-moves.ts) appends the named Stripe reason where it has one. No rule edits the read, so a deterministic patch leaves it unresolved and the AI patch path (run.ts aiFindings, ai-patches.ts proposeAiPatch) receives it."
+    },
+    {
+      "changed": [
+        "Price.recurring.aggregate_usage removed"
+      ],
+      "handling": "stop",
+      "reason": "price.recurring is a nullable `anyOf` reference in the recorded contracts and the analyzer resolves nested schemas only through direct `$ref`s (analyzer.ts referencedPropertySchema), so the read is reported only as a review finding (\"Receiver or property cannot be proven\"). run.ts counts it as unresolved, so a patch stays [Needs review], and the AI path receives confirmed findings only; no rule handles it."
+    },
+    {
+      "changed": [
+        "prices.create with usage_type metered and no meter now returns an error"
+      ],
+      "handling": "none",
+      "reason": "Behaviour change with no difference in the recorded stripe/openapi contracts, so Refit has no signal for it."
+    }
+  ]
+}

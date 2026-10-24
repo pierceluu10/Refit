@@ -1,0 +1,13 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Adds reason code for Issuing authorizations created while Stripe is unavailable",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/new-network-fallback-issuing-authorization-reason-code",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "network_fallback added to Issuing.Authorization.request_history[].reason"
+  ],
+  "handling": "generic",
+  "how": "Only with fullDiff: compareOpenApi drops Stripe response enum additions (openResponseEnums) and switchedEnumAdditions (openapi-diff.ts) re-adds the new value where the code switches over the field or assigns it to `never` (analyzer.ts enumChecks). unmappedBreakingChanges keeps that entry, so scanReviewReason (workflow.ts) stops the run for review and publication is blocked. Other reads need no edit (AGENTS.md: Stripe response enum additions block only where the code switches over the field). Without fullDiff nothing is reported.",
+  "fullDiffOnly": true
+}

@@ -1,0 +1,12 @@
+{
+  "version": "2025-09-30.clover",
+  "title": "Removes deprecated messaging and bank elements that were replaced",
+  "source": "https://docs.stripe.com/changelog/clover/2025-09-30/stripejs-deprecated-elements-removal",
+  "checkedAt": "2026-10-24",
+  "category": "stripejs",
+  "changed": [
+    "affirmMessage, afterpayClearpayMessage, epsBank, fpxBank, p24Bank, idealBank elements removed"
+  ],
+  "handling": "none",
+  "reason": "Stripe.js change. Refit traces stripe-node SDK calls against the stripe/openapi contracts and does not analyze @stripe/stripe-js or @stripe/react-stripe-js code."
+}

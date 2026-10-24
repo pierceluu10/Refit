@@ -1,0 +1,13 @@
+{
+  "version": "2025-09-30.clover",
+  "title": "Adds a new error code for business type validations",
+  "source": "https://docs.stripe.com/changelog/clover/2025-09-30/business-type-error-code",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "unsupported_business_type added to requirements.errors[].code"
+  ],
+  "handling": "generic",
+  "how": "Only with fullDiff: compareOpenApi drops Stripe response enum additions (openResponseEnums) and switchedEnumAdditions (openapi-diff.ts) re-adds the new value where the code switches over the field or assigns it to `never` (analyzer.ts enumChecks). unmappedBreakingChanges keeps that entry, so scanReviewReason (workflow.ts) stops the run for review and publication is blocked. Other reads need no edit (AGENTS.md: Stripe response enum additions block only where the code switches over the field). Without fullDiff nothing is reported.",
+  "fullDiffOnly": true
+}

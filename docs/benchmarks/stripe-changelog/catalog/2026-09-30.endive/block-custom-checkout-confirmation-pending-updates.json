@@ -1,0 +1,12 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Sets canConfirm to false while updates are pending in Elements with Checkout Sessions",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/block-custom-checkout-confirmation-pending-updates",
+  "checkedAt": "2026-10-24",
+  "category": "stripejs",
+  "changed": [
+    "canConfirm is false while Checkout Session updates are pending"
+  ],
+  "handling": "none",
+  "reason": "Stripe.js change. Refit traces stripe-node SDK calls against the stripe/openapi contracts and does not analyze @stripe/stripe-js or @stripe/react-stripe-js code."
+}
