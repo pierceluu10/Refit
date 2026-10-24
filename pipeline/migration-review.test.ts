@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -6,6 +6,7 @@ import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { STRIPE } from './providers.ts';
+import { targetReached } from './migration-review.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -151,4 +152,50 @@ it('treats an unsigned typed event as a source hint when the contract omits Even
   );
   expect(result.findings).toMatchObject([{ confidence: 'review', declaredType: {} }]);
   expect(result.edits).toEqual([]);
+});
+
+it('reaches a target only when every breaking change outside the rules is a removed field the code no longer reads', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-target-reached-'));
+  roots.push(root);
+  await cp(resolve('pipeline/fixtures/repository'), root, { recursive: true });
+  // billing.ts as a merged Refit draft leaves it: the read migrated and the pin moved to the target.
+  await writeFile(
+    join(root, 'billing.ts'),
+    `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
+export async function chargeHistory(paymentIntentId: string) {
+  const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  return (await stripe.charges.list({ payment_intent: intent.id })).data;
+}
+`,
+  );
+  const scan = await runPipeline({
+    repository: root,
+    before: resolve('pipeline/fixtures/before.json'),
+    after: resolve('pipeline/fixtures/after.json'),
+    apiVersion: '2022-08-01',
+  });
+  expect(scan.findings).toEqual([]);
+  expect(scan.changes.length).toBeGreaterThan(0);
+  expect(targetReached(scan)).toBe(true);
+  // The full comparison as oasdiff reports it: the removal Refit migrated stays reached.
+  const [change] = scan.changes;
+  const removal = {
+    id: 'response-optional-property-removed',
+    level: 3,
+    responseSchema: change.schema,
+    removedProperty: change.property,
+  };
+  const compared = (...changes: unknown[]) => ({
+    ...scan,
+    specificationDiff: { ...scan.specificationDiff, engine: 'oasdiff', changes },
+  });
+  expect(targetReached(compared(removal))).toBe(true);
+  // A change no rule covers, such as a newly required request parameter, still stops for review.
+  expect(targetReached(compared(removal, { id: 'new-required-request-parameter', level: 3 }))).toBe(
+    false,
+  );
+  expect(
+    targetReached(compared({ ...removal, removedProperty: `${change.property}_untracked` })),
+  ).toBe(false);
 });
