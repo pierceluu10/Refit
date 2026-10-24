@@ -466,6 +466,26 @@ it('counts a traced site with two removed fields once and says how many of those
   expect(cited.split('\n').find((line) => line.startsWith('- `billing.ts`: '))).toContain(
     `Stripe documents it: ${page}.`,
   );
+  // A request rule's page in a file that also moves the pin cites the request change, not the pin.
+  const move = 'https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-request-move';
+  value.apiVersion = { ...value.apiVersion, application: '2022-08-01', after: '2025-03-31.basil' };
+  value.patch.diff += [
+    'diff --git a/client.ts b/client.ts',
+    '--- a/client.ts',
+    '+++ b/client.ts',
+    '@@ -1 +1 @@',
+    "-export const stripe = new Stripe(key, { apiVersion: '2022-08-01' });",
+    "+export const stripe = new Stripe(key, { apiVersion: '2025-03-31.basil' });",
+    '',
+  ].join('\n');
+  value.validation.patchHash = digest(value.patch.diff);
+  Object.assign(value.patch, { sources: [{ url: move, files: ['client.ts'] }] });
+  const client = createReviewArtifacts(value)
+    .files['pull-request.md'].split('\n')
+    .find((line) => line.startsWith('- `client.ts`: '));
+  expect(client).toBe(
+    `- \`client.ts\`: Updates Stripe requests for the new contract. Stripe documents it: [${move.slice('https://'.length)}](${move}). Moves the pinned API version from \`2022-08-01\` to \`2025-03-31.basil\`.`,
+  );
 });
 
 it.each([
