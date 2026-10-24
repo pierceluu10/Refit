@@ -4,6 +4,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
 import { preparationStop } from './preparation-stops.ts';
+import type { BreakingOperationImpact } from './provider-operations.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
@@ -25,6 +26,9 @@ import {
 } from './enrollment-proposal.ts';
 
 const MAX_UNMAPPED_EXAMPLES = 3;
+// How many called operations the migration-coverage detail names before "and N more".
+const MAX_NAMED_OPERATIONS = 3;
+const SUBMODULE = /^Validation does not accept submodules;/;
 const GENERATED_TITLE = 'Generated configuration';
 // Stops that mean the repository has no Stripe code to generate a configuration for.
 const NOT_STRIPE = new Set(['no-package-json', 'no-stripe-dependency']);
@@ -51,7 +55,7 @@ export interface ReadinessReport {
   currentSourceChecked: boolean;
   checks: ReadinessCheck[];
   // Present when no .refit.json is committed and doctor checked the generated configuration.
-  generated?: Pick<StripeProposal, 'apiVersion' | 'target' | 'checks'>;
+  generated?: Pick<StripeProposal, 'apiVersion' | 'target' | 'checks' | 'configuration'>;
   sdkCoverage: {
     observedCalls: number;
     mappedCalls: number;
@@ -107,6 +111,30 @@ async function inspectCheck<T>(
   }
 }
 
+// What Refit cannot migrate, in one sentence: how many changes, between which versions, and the
+// operations the code calls with one call site each.
+function migrationCoverageDetail(
+  changes: number,
+  impacts: BreakingOperationImpact[],
+  apiVersion: { before: string | null; after: string | null },
+) {
+  const count = changes || impacts.reduce((total, impact) => total + impact.changes.length, 0);
+  const versions =
+    apiVersion.before && apiVersion.after && apiVersion.before !== apiVersion.after
+      ? ` from API version ${apiVersion.before} to ${apiVersion.after}`
+      : '';
+  const operations = impacts.slice(0, MAX_NAMED_OPERATIONS).map((impact) => {
+    const call = impact.usages[0];
+    return `${impact.httpMethod.toUpperCase()} ${impact.path}${call ? ` at ${call.file}:${call.line}` : ''}`;
+  });
+  const more = impacts.length - operations.length;
+  return `The contracts list ${count} breaking change${count === 1 ? '' : 's'}${versions} that no Refit rule migrates${
+    impacts.length
+      ? `, including changes to ${impacts.length} operation${impacts.length === 1 ? '' : 's'} the code calls: ${operations.join(', ')}${more ? ` and ${more} more` : ''}`
+      : ''
+  }.`;
+}
+
 async function committedRepositoryCheck(repository: string) {
   const snapshot = await inspectCheck(
     'repository',
@@ -116,6 +144,9 @@ async function committedRepositoryCheck(repository: string) {
   );
   if (snapshot.value)
     snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.`;
+  else if (SUBMODULE.test(snapshot.check.detail))
+    snapshot.check.action =
+      "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.";
   return snapshot;
 }
 
@@ -268,6 +299,7 @@ export async function inspectRepositoryReadiness(options: {
       apiVersion: generated.workflow.proposal.apiVersion,
       target: generated.workflow.proposal.target,
       checks: generated.workflow.proposal.checks,
+      configuration: generated.workflow.proposal.configuration,
     };
   const repository =
     options.repository ??
@@ -418,10 +450,13 @@ export async function inspectRepositoryReadiness(options: {
         id: 'migration-coverage',
         title: 'Supported migration coverage',
         status: 'blocked',
-        detail:
-          'The supplied contracts contain unresolved breaking changes without a supported migration rule.',
+        detail: migrationCoverageDetail(
+          unsupportedChanges.length,
+          evidence.operationImpacts,
+          evidence.apiVersion,
+        ),
         action:
-          'Run refit run --human to list them. Refit has no automatic migration for these changes, so they need a manual migration or a reviewed adapter rule before validation.',
+          'Run refit run --human to see each change and where the code reaches it, and migrate those calls by hand. Refit has no reviewed rule for these changes, so it stops before validation.',
       });
     if (evidence.specificationDiff.engine === 'direct-properties')
       report.checks.push({
@@ -462,9 +497,14 @@ export async function inspectRepositoryReadiness(options: {
       id: 'sdk-coverage',
       title: 'SDK call mapping',
       status: missingMappings ? 'blocked' : unmapped.length ? 'review' : 'passed',
-      detail: `${mappedCalls} of ${operationCalls.length} observed SDK API calls have configured mappings. ${helpers.size ? `${helpers.size} local webhook signature constructor${helpers.size === 1 ? '' : 's'} recognized; incoming version and policy require separate review. ` : ''}${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
+      detail:
+        !operationCalls.length && !helpers.size
+          ? `Refit traced no ${evidence.adapter.packageName} API call in this code, so it cannot tell what the migration changes. Calls made inside another library, or through a client Refit cannot follow, are not counted.`
+          : `${mappedCalls} of ${operationCalls.length} observed SDK API calls have configured mappings. ${helpers.size ? `${helpers.size} local webhook signature constructor${helpers.size === 1 ? '' : 's'} recognized; incoming version and policy require separate review. ` : ''}${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
       action: missingMappings
-        ? 'Confirm the SDK constructor/import mapping and supported client pattern, then inspect scan evidence before attempting a migration.'
+        ? !operationCalls.length
+          ? `If the code reaches ${evidence.adapter.packageName} only through another library, upgrade that library instead. Otherwise run refit run --human to see which clients Refit found, and call the API through one it can follow.`
+          : 'Confirm the SDK constructor/import mapping and supported client pattern, then inspect scan evidence before attempting a migration.'
         : unmapped.length
           ? 'Review unmapped methods against provider documentation and add verified adapter mappings where supported.'
           : null,
@@ -492,9 +532,12 @@ export async function inspectRepositoryReadiness(options: {
     if (dependencies.value) {
       const workspaces = Object.keys(dependencies.value.inputs.workspaceHashes ?? {}).length;
       dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records${workspaces ? ` and ${workspaces} committed workspace manifests` : ''} passed preparation input checks. Installation and engine compatibility were not tested.`;
-    } else if (dependencies.check.status === 'blocked')
+    } else if (dependencies.check.status === 'blocked') {
       dependencies.check.action =
         preparationStop(dependencies.check.detail)?.action ?? dependencies.check.action;
+      if (report.generated)
+        dependencies.check.action += ` This repository commits no ${REPOSITORY_CONFIGURATION}: to change its settings, commit the generated one first (refit doctor --json prints it as generated.configuration).`;
+    }
     report.checks.push(dependencies.check);
   } else if (!workflow.prepareDependencies)
     report.checks.push({
