@@ -224,7 +224,7 @@ All 7 wrong patches are refused. What made each one wrong was the deleted card r
 
 The other refusals land on edits the reviewer judged right: the first-item period reads in drivetimetales, Kanba, iggy-tech and pdf_answers, and the new-shape-only webhook reads (`invoice.subscription`, `shipping_details`) in drivetimetales, AbresStore, Kanba and pdf_answers. They stop because the owner policies make item choice and webhook shape review decisions, not because the code was wrong. On the rules' code, the new-shape check refuses the agent's replacement of the rules' version-tolerant helper calls in AbresStore, Kanba and pdf_answers (and in punchlines-ai and spotify below). Before the October 24 review it had nothing to check there, because those helper calls are not findings.
 
-The 9 patches that never validated have no October 21 verdict. Each was read in full on October 24, and all 9 are wrong; these labels are recorded here and in `docs/overnight/P2.md`, not in the results file. Six of them (marked †) are held out: no test was built from them before the replay. One, punchlines-ai, then led to a fix and a test (below), so 5 remain untouched.
+The 9 patches that never validated have no October 21 verdict. Each was read in full on October 24, and all 9 are wrong; these labels are recorded here and in `docs/overnight/P2.md`, not in the results file. Six of them (marked †) are held out: no test was built from them before the replay. Two then led to fixes with tests: punchlines-ai (below) and wedillybird (two request bodies with the same name, found in review), so 4 remain untouched.
 
 | Repository | October 21 checks | Wrong because | Refused on the original code by |
 |---|---|---|---|
