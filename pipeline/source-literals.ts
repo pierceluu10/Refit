@@ -1,4 +1,5 @@
 import ts from 'typescript-compiler';
+import { sourceRows } from './source-rows.ts';
 
 // Read-only array methods: they return an element, a copy or a value, and never change the array.
 const ELEMENT_METHODS = new Set(['find', 'findLast', 'at']);
@@ -409,5 +410,9 @@ export function sourceLiterals(options: {
     }
     return undefined;
   }
-  return { literalObject };
+  const rows = sourceRows({ symbol, nodes, references, shorthand });
+  // Rows a database client returns are not Stripe objects either (`pipeline/source-rows.ts`).
+  return {
+    literalObject: (expression: ts.Expression) => literalObject(expression) || rows.row(expression),
+  };
 }
