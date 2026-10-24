@@ -67,7 +67,7 @@ const GUARD =
 const EVIDENCE_LIMIT = /exceeds the 64 KiB input limit|exceeds the token limit/;
 // proposeAiPatch's policy stops on what the model's edits do (event names, subscription item
 // choice); they end in a review, not a rejected answer.
-const POLICY_STOP = /^(PipelineInputError: )?AI patch .* stops? for review\.$/;
+const POLICY_STOP = /^(PipelineInputError: )?AI patch .* stops? for review\.$/s;
 // proposeAiPatch's checks on the model's edits before any guard: schema, scope, matching,
 // coverage, overlap and syntax.
 const INPUT_CHECK = /^(PipelineInputError: )?AI (patch|replacement|replacements) /;

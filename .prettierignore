@@ -16,3 +16,5 @@ pipeline/fixtures/yarn-platform
 # Snapshots must match the generated text byte for byte.
 pipeline/__snapshots__
 pipeline/grammars
+# A real client, kept as its repository wrote it.
+pipeline/fixtures/generated-stripe/src

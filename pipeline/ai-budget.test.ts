@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import {
   aiBudgetConfiguration,
   aiBudgetLimit,
+  changeAiBudgetLimit,
   reserveAiBudget,
   responseUsage,
   usageCostUsd,
@@ -198,4 +199,50 @@ it('prices reported usage with cached input and cache writes at their own rates'
   expect(usageCostUsd('gpt-5.6-terra', usage)).toBeCloseTo(0.8 + 0.1 + 0.2 + 1.2, 9);
   expect(usageCostUsd('gpt-5.6-terra-2026-10-01', usage)).toBeCloseTo(2.3, 9);
   expect(() => usageCostUsd('gpt-unpriced', usage)).toThrow(/No verified token prices/);
+});
+
+it('moves a ledger to a new limit, keeping its spend and open reservations, and refuses a damaged one', async () => {
+  let stored: Record<string, unknown> | undefined;
+  const ledger = {
+    update: async (
+      change: (state: Record<string, unknown> | undefined) => Record<string, unknown>,
+    ) => {
+      stored = change(stored);
+    },
+  };
+  const usage = {
+    inputTokens: 1000,
+    cachedInputTokens: 0,
+    cacheWriteInputTokens: 0,
+    outputTokens: 100,
+    reasoningTokens: 0,
+  };
+  const reserve = async (limitUsd: number) =>
+    reserveAiBudget({ ...(await budget(limitUsd)), ledger }, MODEL, 1000, 4096);
+  await (
+    await reserve(0.05)
+  )(usage, MODEL);
+  await reserve(0.05);
+  // Each maximum reservation costs $0.019182; this one never settles.
+  expect(await changeAiBudgetLimit(ledger, 0.1)).toEqual({
+    limitUsd: 0.1,
+    spentUsd: 0.0012,
+    reservedUsd: 0.019182,
+    reservations: 1,
+  });
+  await expect(reserve(0.05)).rejects.toThrow('its configured limit changed');
+  await reserve(0.1);
+  expect(stored).toMatchObject({ limitNano: 100_000_000, spentNano: 1_200_000 });
+
+  stored = undefined;
+  expect(await changeAiBudgetLimit(ledger, 1)).toEqual({
+    limitUsd: 1,
+    spentUsd: 0,
+    reservedUsd: 0,
+    reservations: 0,
+  });
+  const damaged = { formatVersion: 1, limitNano: 1_000_000_000, spentNano: -1, reservations: {} };
+  stored = damaged;
+  await expect(changeAiBudgetLimit(ledger, 2)).rejects.toThrow('AI budget state is invalid');
+  expect(stored).toBe(damaged);
 });
