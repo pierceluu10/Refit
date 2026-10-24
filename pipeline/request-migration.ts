@@ -1,6 +1,7 @@
 import ts from 'typescript-compiler';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { RequestParameterRemoval } from './request-removals.ts';
+import { TEST_PATH } from './source-paths.ts';
 
 function propertyName(name: ts.PropertyName) {
   return ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)
@@ -64,4 +65,38 @@ export function removedParameterProperty(
       (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
       propertyName(property.name) === removal.parameter,
   );
+}
+
+// Object-literal keys spelling the removed `payment_method_types` outside every traced SDK call
+// body. A body built in a variable, assembled by a wrapper or sent by an untraced client still
+// sends it once the pin moves, so each one stops for review (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
+// Only top-level body keys count: a nested `payment_settings.payment_method_types` is still valid
+// on subscriptions and invoices. Test files send no production request, and an object value is a
+// schema definition such as Mongoose's `{ type: [String] }`, never a payment method list.
+export function untracedRemovedParameters(
+  nodes: ts.Node[],
+  removals: RequestParameterRemoval[],
+  tracedBody: (object: ts.ObjectLiteralExpression) => boolean,
+  file: (node: ts.Node) => string,
+) {
+  const removed = new Map(
+    removals.filter((removal) => removal.cardReplacement).map((entry) => [entry.parameter, entry]),
+  );
+  const sites: { property: ts.ObjectLiteralElementLike; removal: RequestParameterRemoval }[] = [];
+  for (const node of nodes) {
+    if (!(ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node))) continue;
+    const name = propertyName(node.name);
+    const removal = name === undefined ? undefined : removed.get(name);
+    if (
+      !removal ||
+      (ts.isPropertyAssignment(node) && ts.isObjectLiteralExpression(node.initializer)) ||
+      !ts.isObjectLiteralExpression(node.parent) ||
+      ts.isPropertyAssignment(node.parent.parent) ||
+      tracedBody(node.parent) ||
+      TEST_PATH.test(file(node))
+    )
+      continue;
+    sites.push({ property: node, removal });
+  }
+  return sites;
 }
