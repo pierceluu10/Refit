@@ -482,8 +482,12 @@ it('leaves an SDK invoice.subscription unresolved when it is expanded', async ()
   const invoice = await stripe.invoices.retrieve(id, { expand: ['subscription'] });
   return invoice.subscription;
 }`);
-  expect(report.findings).toMatchObject([{ expression: '.subscription', confidence: 'confirmed' }]);
-  expect(report.findings[0].webhook).toBeUndefined();
+  // The expand entry, which names the removed field (stripe-expand-paths.ts), and the read.
+  expect(report.findings).toMatchObject([
+    { expression: "invoices.retrieve expand 'subscription'", confidence: 'confirmed' },
+    { expression: '.subscription', confidence: 'confirmed' },
+  ]);
+  expect(report.findings.some((finding) => finding.webhook)).toBe(false);
   expect(report.patch).toMatchObject({ status: 'unsupported' });
 });
 
@@ -495,6 +499,8 @@ it('reads a webhook invoice.subscription through the helper when other code expa
 export const paid = (id: string) => stripe.invoices.retrieve(id, { expand: ['subscription'] });
 export const owner = async (id: string) => (await paid(id)).subscription;`,
   );
+  // The read and the expand entry, which names the removed field (stripe-expand-paths.ts).
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 2 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain('+    return (getInvoiceSubscription(invoice));');
   expect(diff).not.toContain('getInvoiceSubscription(await');

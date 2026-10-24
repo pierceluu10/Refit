@@ -30,7 +30,7 @@ refit serve --env .env --config examples/local-service.refit.json \
   --once --publish-draft
 ```
 
-The supplied profile replays the historical Stripe `PaymentIntent.charges` removal; it does not announce a new live Stripe change. It authenticates the installed App, fetches the GitHub base into a private managed checkout, then checks for an existing migration. A matching App draft on the current monitored revision is reused, with generation and checks explicitly marked as not rerun. The older PR #3 predates the approved configuration merge and is not proof of coverage for the current base. It never merges that PR or edits your normal checkout.
+The supplied profile replays the historical Stripe `PaymentIntent.charges` removal; it does not announce a new live Stripe change. It authenticates the installed App, fetches the GitHub base into a private managed checkout, then checks for an existing migration. A matching App draft on the current monitored revision is reused, with generation and checks explicitly marked as not rerun. The older PR #3 predates the approved configuration merge and is not proof of coverage for the current base. It never merges that PR or edits your normal checkout. Refit updates its own draft in place, moving the branch only while it still points at the commit Refit last pushed, and leaves a branch with anyone else's commits as it is. `--supersede-drafts` (with `--publish-draft`) also closes Refit's older open drafts for the same provider and integration, with a comment linking the new one; it is off by default.
 
 For continuous monitoring, omit `--once`:
 

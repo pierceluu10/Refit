@@ -111,6 +111,8 @@ export async function runLocalService(options: {
   publishDraft?: boolean;
   // Off unless set: a weekly comment on each open draft whose job nothing has changed.
   weeklyStatus?: boolean;
+  // With publishDraft: close Refit's older open drafts for the same provider and integration.
+  supersedeDrafts?: boolean;
   // Off unless set: opens or updates one issue per enrolled repository and registry deadline.
   deadlineAlerts?: { leadDays: readonly number[]; registry?: string | URL };
   // Off unless set: replaces retiring AI models in each enrolled repository, validates the change
@@ -528,6 +530,7 @@ export async function runLocalService(options: {
               repairAttempts,
               publishDraft: options.publishDraft,
               weeklyStatus: options.weeklyStatus,
+              supersedeDrafts: options.supersedeDrafts,
               notify: options.notify,
               retry: retryTargets.has(target.id),
               stateDirectory: join(directory, 'targets', target.id),

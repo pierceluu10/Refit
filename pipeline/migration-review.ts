@@ -12,6 +12,8 @@ const TYPE_EVIDENCE_REVIEW_REASON =
 export const REMOVED_REQUEST_PARAMETER_REVIEW_REASON =
   'A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.';
 const MAX_REASON_SITES = 3;
+// How analyzer.ts ends the expression of a removed parameter set in an object no traced call receives.
+const UNTRACED_BODY = ' outside a traced SDK request body';
 const SKIPPED_SOURCE_REVIEW_REASON =
   'Unparseable source files were skipped. Their API usage and mutations are unknown; automatic migration, AI and publication require a complete source scan.';
 
@@ -70,14 +72,21 @@ export function migrationReviewReason(
   if (evidence.findings.some((finding) => finding.typeEvidence)) return TYPE_EVIDENCE_REVIEW_REASON;
 }
 
-// Where traced calls still send a removed request parameter, so a stop says what to look at.
+// Where traced calls still send a removed request parameter, and where an object Refit could not
+// trace to a call sets it, so a stop says what to look at.
 export function removedParameterSites(findings: Finding[]) {
-  const sites = findings.flatMap((finding) =>
-    finding.requestParameter
-      ? [`${finding.file}:${finding.line} sends ${finding.requestParameter.parameter}`]
-      : [],
+  const removals = findings.filter((finding) => finding.requestParameter);
+  const sites = removals.map((finding) =>
+    finding.expression.endsWith(UNTRACED_BODY)
+      ? `${finding.file}:${finding.line} sets ${finding.expression}`
+      : `${finding.file}:${finding.line} sends ${finding.requestParameter!.parameter}`,
   );
-  return `${sites.length === 1 ? 'The call' : 'The calls'}: ${sites.slice(0, MAX_REASON_SITES).join('; ')}${sites.length > MAX_REASON_SITES ? `; and ${sites.length - MAX_REASON_SITES} more in the run report` : ''}.`;
+  const lead = removals.some((finding) => finding.expression.endsWith(UNTRACED_BODY))
+    ? 'Where'
+    : sites.length === 1
+      ? 'The call'
+      : 'The calls';
+  return `${lead}: ${sites.slice(0, MAX_REASON_SITES).join('; ')}${sites.length > MAX_REASON_SITES ? `; and ${sites.length - MAX_REASON_SITES} more in the run report` : ''}.`;
 }
 
 // Where a rescan of the migrated code still finds each usage, so the draft can list them.
