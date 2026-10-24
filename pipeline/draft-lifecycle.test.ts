@@ -14,6 +14,7 @@ import {
 } from './publication.ts';
 import { INTEGRATION_MARKER, MIGRATION_MARKER } from './migration-identity.ts';
 import { digest } from './specifications.ts';
+import { runWorkflow } from './workflow.ts';
 
 // Each draft's whole life against simulated GitHub: real Git objects, branches and pull requests,
 // with the App's installation token. No Docker check runs; the evidence is the fixture's.
@@ -287,4 +288,100 @@ it('closes the older drafts this one replaces with a link, but not other integra
   expect(await publishDraft(report, options())).toMatchObject({ status: 'existing', number: 4 });
   expect(github.comments(REPOSITORY)).toHaveLength(1);
   expect(await branchTip(other.branch)).toBeTruthy();
+});
+
+// The customer migrates billing.ts by hand and pushes it to main, optionally moving the pin too.
+async function migrateByHand(pin?: string, extra = '') {
+  await writeFile(
+    join(checkout, 'billing.ts'),
+    `import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!${pin ? `, { apiVersion: '${pin}' }` : ''});
+
+export async function chargeHistory(paymentIntentId: string) {
+  const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  return (await stripe.charges.list({ payment_intent: intent.id })).data;
+}
+${extra}`,
+  );
+  await git(checkout, ['commit', '--quiet', '-am', 'fix: migrate charge history']);
+  return github.publish(REPOSITORY, checkout);
+}
+
+let runs = 0;
+// The workflow as the watcher runs it, on the customer's clean checkout of main. Each run here
+// stops before validation, so no Docker check runs.
+const workflow = () =>
+  runWorkflow({
+    repository: checkout,
+    before: resolve('pipeline/fixtures/before.json'),
+    after: resolve('pipeline/fixtures/after.json'),
+    apiVersion: '2022-08-01',
+    output: join(root, `run-${++runs}`),
+    image: 'node:22-alpine',
+    command: ['npm', 'test'],
+    publication: options(),
+  });
+
+it('closes its draft once with a note when the customer migrates to the target themselves', async () => {
+  const report = await candidate();
+  const draft = await publishDraft(report, options());
+  const base = await migrateByHand(report.apiVersion.after!);
+
+  const first = await workflow();
+  expect(first.manifest).toMatchObject({
+    status: 'up-to-date',
+    reason: `The code already sends 2022-11-15 and uses none of what it breaks. Refit closed its draft ${draft.url}.`,
+  });
+  expect(github.pulls(REPOSITORY)).toMatchObject([{ number: 1, state: 'closed', merged: false }]);
+  expect(github.comments(REPOSITORY)).toEqual([
+    {
+      issue: 1,
+      user: BOT,
+      body: `Refit is closing this draft. On \`main\` at ${base.slice(0, 12)}, the code already sends 2022-11-15 and uses none of what it breaks, so this migration no longer applies. If you reopen it, Refit leaves it open.\n\n<!-- refit-resolved -->`,
+    },
+  ]);
+
+  // The customer wants it after all: Refit leaves the reopened draft alone.
+  github.reopenPull(REPOSITORY, 1);
+  expect((await workflow()).manifest).toMatchObject({
+    status: 'up-to-date',
+    reason: 'The code already sends 2022-11-15 and uses none of what it breaks.',
+  });
+  expect(github.pulls(REPOSITORY)).toMatchObject([{ number: 1, state: 'open' }]);
+  expect(github.comments(REPOSITORY)).toHaveLength(1);
+});
+
+it('closes its draft when the customer migrates the reads without moving the pin', async () => {
+  const draft = await publishDraft(await candidate(), options());
+  await migrateByHand();
+  expect((await workflow()).manifest).toMatchObject({
+    status: 'draft-closed',
+    reason: `Refit no longer finds the usages ${draft.url} migrated, so it closed that draft.`,
+  });
+  expect(github.pulls(REPOSITORY)).toMatchObject([{ number: 1, state: 'closed' }]);
+  expect(github.comments(REPOSITORY)[0].body).toContain(
+    'Refit no longer finds the usages this draft migrated',
+  );
+});
+
+it('stays quiet when the code already sends the target and Refit has no draft', async () => {
+  await migrateByHand('2022-11-15');
+  expect((await workflow()).manifest).toMatchObject({ status: 'up-to-date' });
+  expect(github.pulls(REPOSITORY)).toEqual([]);
+  expect(github.comments(REPOSITORY)).toEqual([]);
+});
+
+it('keeps its draft open while a read Refit cannot trace remains', async () => {
+  const report = await candidate();
+  await publishDraft(report, options());
+  await migrateByHand(
+    report.apiVersion.after!,
+    'export const cached = (intent: { charges: { data: unknown[] } }) => intent.charges.data;\n',
+  );
+  const result = await workflow();
+  console.log('untraced read:', result.manifest.status, result.manifest.reason);
+  expect(result.manifest.status).toBe('needs-review');
+  expect(github.pulls(REPOSITORY)).toMatchObject([{ number: 1, state: 'open' }]);
+  expect(github.comments(REPOSITORY)).toEqual([]);
 });

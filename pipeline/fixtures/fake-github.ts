@@ -575,7 +575,21 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
       return [200, { permission: role === 'maintain' ? 'write' : role, role_name: role }];
     }
     const issue = /^\/issues(?:\/(\d+)(\/comments)?)?$/.exec(rest);
-    // A pull request's conversation is its issue; pull request write access may comment on it.
+    // A pull request's conversation is its issue; pull request access may read and comment on it.
+    if (issue?.[2] && method === 'GET' && target.pulls.has(Number(issue[1]))) {
+      authenticateInstallation(token, target, 'pull_requests', 'read');
+      return [
+        200,
+        target.comments
+          .filter((comment) => comment.issue === Number(issue[1]))
+          .slice(0, Number(query.get('per_page') ?? 30))
+          .map((comment, index) => ({
+            id: index + 1,
+            body: comment.body,
+            user: { login: comment.user, type: comment.user === BOT_LOGIN ? 'Bot' : 'User' },
+          })),
+      ];
+    }
     if (issue?.[2] && method === 'POST' && target.pulls.has(Number(issue[1]))) {
       authenticateInstallation(token, target, 'pull_requests', 'write');
       target.comments.push({
@@ -836,9 +850,12 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
       Object.assign(pull, { state: 'closed', merged: true, headSha: head });
       return merged.sha;
     },
-    // A person closes a pull request without merging it.
+    // A person closes a pull request without merging it, or reopens it.
     closePull(fullName: string, number: number) {
       pullOf(repositories.get(fullName.toLowerCase())!, number).state = 'closed';
+    },
+    reopenPull(fullName: string, number: number) {
+      pullOf(repositories.get(fullName.toLowerCase())!, number).state = 'open';
     },
     // A person pushes the source's HEAD to a branch, as a customer adding commits to a draft does.
     async pushBranch(fullName: string, branch: string, source: string) {

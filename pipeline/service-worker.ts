@@ -9,7 +9,7 @@ import type { ServiceTarget } from './service-configuration.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { SlackSend } from './slack.ts';
-import { watchOnce } from './watch.ts';
+import { watchedApiVersions, watchOnce } from './watch.ts';
 import { join } from 'node:path';
 
 // Confirms through the GitHub API that the App can still read an active repository before any work.
@@ -132,6 +132,7 @@ export async function pollServiceTarget(options: {
         approval: target.approval,
         integration: target.integration,
         stateDirectory: options.stateDirectory,
+        acceptedApiVersions: await watchedApiVersions(options.stateDirectory),
       });
       options.signal.throwIfAborted();
       options.onProgress?.(

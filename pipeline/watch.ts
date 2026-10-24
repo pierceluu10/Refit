@@ -30,6 +30,8 @@ import {
 } from './state-files.ts';
 import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
+import { targetReached } from './migration-review.ts';
+import { specificationVersion } from './api-version.ts';
 import { verifyArtifacts } from './verification.ts';
 import { PipelineInputError } from './types.ts';
 import { withGitHubCheckout, type GitHubCheckoutTarget } from './github-checkout.ts';
@@ -171,6 +173,7 @@ async function watchLocalOnce(
         'Watch state belongs to another configuration or is invalid. Choose a fresh state directory.',
       );
     const jobs = state.jobs;
+    const advanced = advancedBaseline(state.baseline);
     if (state.documentation !== undefined && !isObject(state.documentation))
       throw new PipelineInputError('Watch documentation source state is invalid.');
     const documentationState = isObject(state.documentation) ? state.documentation : {};
@@ -204,6 +207,14 @@ async function watchLocalOnce(
     if ((await readSpecification(baseline)).hash !== before.hash)
       throw new PipelineInputError('The baseline changed while capturing watch inputs.');
     configuration.before = baseline;
+    if (advanced) {
+      configuration.before = join(snapshots, `${advanced.hash}.baseline.json`);
+      if ((await readSpecification(configuration.before)).hash !== advanced.hash)
+        throw new PipelineInputError(
+          'The advanced watch baseline does not match its recorded hash.',
+        );
+      configuration.apiVersion = advanced.apiVersion;
+    }
     const after = join(snapshots, `${snapshot.hash}.json`);
     try {
       await writeFile(after, `${JSON.stringify(snapshot)}\n`, { flag: 'wx', mode: 0o600 });
@@ -291,7 +302,17 @@ async function watchLocalOnce(
         previous.error = { name: error.name, message: error.message };
       }
     }
-    if (isObject(previous) && !(options.retry && RETRYABLE_STATUSES.has(String(previous.status)))) {
+    // Once the code reached this target, a new commit has nothing to compare until the next release.
+    const settled =
+      advanced?.hash === snapshot.hash
+        ? { status: 'up-to-date', output: null }
+        : isObject(previous) && !(options.retry && RETRYABLE_STATUSES.has(String(previous.status)))
+          ? {
+              status: String(previous.status),
+              output: typeof previous.output === 'string' ? previous.output : null,
+            }
+          : undefined;
+    if (settled) {
       if (documentationSources.length) state.documentation = capturedDocumentation.state;
       await writeState(statePath, state);
       if (capturedDocumentation.changes.length)
@@ -300,7 +321,7 @@ async function watchLocalOnce(
           provider: provider.id,
           jobKey,
           sourceHash: snapshot.hash,
-          previousStatus: String(previous.status),
+          previousStatus: settled.status,
           output: join(observations, 'documentation'),
           documentationChanges: capturedDocumentation.changes,
         };
@@ -309,8 +330,8 @@ async function watchLocalOnce(
         provider: provider.id,
         jobKey,
         sourceHash: snapshot.hash,
-        previousStatus: String(previous.status),
-        output: typeof previous.output === 'string' ? previous.output : null,
+        previousStatus: settled.status,
+        output: settled.output,
       };
     }
     const attempt =
@@ -342,6 +363,24 @@ async function watchLocalOnce(
       });
       jobs[jobKey] = { ...(jobs[jobKey] as object), status: result.manifest.status };
       if (documentationSources.length) state.documentation = capturedDocumentation.state;
+      // The code reached the target, by a merged draft or by hand: compare the next release with it.
+      const reached =
+        result.manifest.status === 'up-to-date' && targetReached(scan)
+          ? { hash: snapshot.hash, apiVersion: scan.apiVersion.after!, revision }
+          : undefined;
+      if (reached) {
+        const path = join(snapshots, `${reached.hash}.baseline.json`);
+        try {
+          await writeFile(path, await readFile(after, 'utf8'), { flag: 'wx', mode: 0o600 });
+        } catch (error) {
+          if (!hasErrorCode(error, 'EEXIST')) throw error;
+        }
+        if ((await readSpecification(path)).hash !== reached.hash)
+          throw new PipelineInputError(
+            'The advanced watch baseline does not match its recorded hash.',
+          );
+        state.baseline = reached;
+      }
       await writeState(statePath, state);
       return {
         status: 'processed' as const,
@@ -354,6 +393,14 @@ async function watchLocalOnce(
           : {}),
         ...(capturedDocumentation.baselines.length
           ? { documentationBaselines: capturedDocumentation.baselines }
+          : {}),
+        ...(reached
+          ? {
+              baselineAdvanced: {
+                from: configuration.apiVersion ?? null,
+                to: reached.apiVersion,
+              },
+            }
           : {}),
         result,
       };
@@ -368,6 +415,39 @@ async function watchLocalOnce(
       throw error;
     }
   });
+}
+
+// The baseline a reached target replaced the configured one with; the configured baseline is part
+// of the state's signature, so changing it starts a fresh state.
+function advancedBaseline(value: unknown) {
+  if (value === undefined) return undefined;
+  if (
+    !isObject(value) ||
+    typeof value.hash !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(value.hash) ||
+    typeof value.apiVersion !== 'string' ||
+    !value.apiVersion
+  )
+    throw new PipelineInputError(
+      'Watch baseline state is invalid. Choose a fresh state directory.',
+    );
+  return { hash: value.hash, apiVersion: value.apiVersion };
+}
+
+// The API versions code under this watcher may send besides the configured one: the target it last
+// captured, which a merged draft moves the pin to, and the baseline a reached target replaced.
+export async function watchedApiVersions(directory: string) {
+  const state = await readState(join(directory, 'state.json'));
+  if (!state) return [];
+  const versions = [advancedBaseline(state.baseline)?.apiVersion];
+  if (typeof state.lastSource === 'string')
+    versions.push(
+      specificationVersion(
+        (await readSpecification(join(directory, 'snapshots', `${state.lastSource}.json`)))
+          .document,
+      ) ?? undefined,
+    );
+  return [...new Set(versions.filter((version) => version !== undefined))];
 }
 
 async function captureDocumentationSources(

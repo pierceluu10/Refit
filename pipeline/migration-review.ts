@@ -1,6 +1,8 @@
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { Finding } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
+import { declaresVersion, type ApiVersionEvidence } from './api-version.ts';
+import { countBreakingOperationUsages } from './provider-operations.ts';
 import { HELPER_RULES, SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 
 const DECLARED_TYPE_REVIEW_REASON =
@@ -74,4 +76,23 @@ export function withoutRequestParameters<T extends { findings: Finding[] }>(evid
     ...evidence,
     findings: evidence.findings.filter((finding) => !finding.requestParameter),
   };
+}
+
+// The code already sends the target version and Refit finds nothing the target breaks, traced or
+// not: a merged Refit draft, or the customer's own migration.
+export function targetReached(scan: {
+  apiVersion: ApiVersionEvidence;
+  findings: Finding[];
+  skippedFiles?: string[];
+  operationImpacts: Parameters<typeof countBreakingOperationUsages>[0];
+}) {
+  const target = scan.apiVersion.after;
+  return Boolean(
+    target &&
+    target !== scan.apiVersion.before &&
+    declaresVersion(scan.apiVersion.source, target) &&
+    !scan.skippedFiles?.length &&
+    !scan.findings.length &&
+    !countBreakingOperationUsages(scan.operationImpacts),
+  );
 }

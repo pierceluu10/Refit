@@ -16,6 +16,9 @@ import {
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 
 const MAX_BODY_CHARACTERS = 60_000;
+// Ends Refit's comment when it closes a draft the base no longer needs; a person who reopens that
+// draft keeps it open.
+const RESOLVED_MARKER = '<!-- refit-resolved -->';
 const SHA = /^[a-f0-9]{40}$/;
 const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const BRANCH =
@@ -309,6 +312,53 @@ export async function findExistingMigration(
     duplicateCount: matches.length,
     validation: 'not-rerun' as const,
   };
+}
+
+// Closes Refit's open draft for this target with a comment saying why, once the scanned base no
+// longer needs it: the customer migrated the code themselves. A draft with someone else's commits,
+// or one a person reopened after Refit closed it, stays open.
+export async function closeResolvedDraft(
+  report: Awaited<ReturnType<typeof runPipeline>>,
+  revision: string,
+  options: PublicationConfiguration,
+  reason: string,
+) {
+  if (!options.app) return undefined;
+  const { authentication, request } = await publicationSession(options);
+  const branch = draftBranch(draftKey(report), authentication, options);
+  const context = { options, branch, revision: sha(revision), authentication };
+  const base = async () =>
+    object(
+      object(await request('GET', `/git/ref/heads/${encodeURIComponent(options.base)}`)).object,
+    ).sha === context.revision;
+  if (!(await base()))
+    throw new PipelineInputError(
+      'GitHub base differs from the monitored commit. Update the local checkout before closing a draft.',
+    );
+  const pull = await draftPull(request, options, branch);
+  if (!pull || pull.state !== 'open' || (await heldDraft(pull, request, context))) return undefined;
+  const { number } = pullUrl(pull, options);
+  const comments = await request('GET', `/issues/${number}/comments?per_page=100`);
+  if (!Array.isArray(comments) || comments.length >= 100)
+    throw new PipelineInputError(
+      'Draft comment search is incomplete; inspect the pull request before retrying.',
+    );
+  if (
+    comments.some(
+      (comment) =>
+        isObject(comment) &&
+        isObject(comment.user) &&
+        comment.user.login === authentication!.publisher.login &&
+        typeof comment.body === 'string' &&
+        comment.body.includes(RESOLVED_MARKER),
+    )
+  )
+    return undefined;
+  if (!(await base()))
+    throw new PipelineInputError('GitHub base changed while checking the draft. Retry the run.');
+  await request('POST', `/issues/${number}/comments`, { body: `${reason}\n\n${RESOLVED_MARKER}` });
+  const closed = object(await request('PATCH', `/pulls/${number}`, { state: 'closed' }));
+  return draftOutcome('closed', closed, sha(object(pull.head).sha), context);
 }
 
 // With --publish-unresolved, a draft may publish as [Needs review] when exactly one of these blocks
