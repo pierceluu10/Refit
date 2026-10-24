@@ -26,6 +26,7 @@ import {
   reapJobMachines,
   runHostedTarget,
   runJobMachine,
+  unchangedReceipt,
 } from './hosted-runner.ts';
 import {
   failedJobNotifier,
@@ -36,6 +37,7 @@ import {
 import { openHostedStore, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
+  defaultRevision,
   INVENTORY_LIMITS,
   inventorySummary,
   refreshInventory,
@@ -60,6 +62,7 @@ import {
 } from './local-service.ts';
 import { confirmRepositoryAccess } from './service-worker.ts';
 import type { SlackSend } from './slack.ts';
+import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
 const HOSTED_HOST = '0.0.0.0';
@@ -79,6 +82,7 @@ const MIN_LEASE_SECONDS = 3;
 // Renewing three times per lease keeps one missed renewal from releasing a running job.
 const RENEWALS_PER_LEASE = 3;
 const NOT_FOUND = 404;
+const REVISION_PREFIX = 12;
 // An inventory holds its lease for its whole time cap, plus this margin, without renewing it.
 const INVENTORY_LEASE_MARGIN_SECONDS = 60;
 // While PostgreSQL is unreachable the worker waits, doubling the wait up to the maximum.
@@ -101,6 +105,9 @@ export async function runHostedService(options: {
   aiTotalUsd?: number;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // The worker image this process runs (FLY_IMAGE_REF). With it, a scheduled poll whose base commit,
+  // approval and build match the target's last finished job stores that receipt and runs nothing.
+  build?: string;
   // Where customers ask for data deletion and report security issues (REFIT_HOSTED_CONTACT).
   contact?: string;
   // Off by default: re-scans inventories on push, registry change and age, and opens or updates
@@ -182,6 +189,17 @@ export async function runHostedService(options: {
       OPENAI_API_KEY: options.aiPatch?.apiKey,
       REFIT_DATABASE_URL: options.database.options?.connectionString,
     });
+  // A receipt is reused only by a worker with the same image and the same AI and draft settings.
+  const build =
+    options.build &&
+    digest(
+      JSON.stringify([
+        options.build,
+        options.aiPatch?.model ?? null,
+        repairAttempts,
+        Boolean(options.publishDraft),
+      ]),
+    );
   const redactReceipt = <Receipt extends { message: string | null }>(receipt: Receipt) => ({
     ...receipt,
     message: receipt.message && redact(receipt.message),
@@ -337,6 +355,20 @@ export async function runHostedService(options: {
         throw new PipelineInputError(
           'Repository name now belongs to a different GitHub repository; approve it again.',
         );
+      if (build && !retry) {
+        const reused = unchangedReceipt(await store.lastEnded(target.id), {
+          revision: await defaultRevision(options.app, target.repository, target.base),
+          fingerprint: target.approval.fingerprint,
+          build,
+        });
+        if (reused) {
+          await store.reuse(job, worker, target.installationId, redactReceipt(reused));
+          progress(
+            `${reused.status}: unchanged since job ${reused.unchangedSince} at ${reused.revision?.slice(0, REVISION_PREFIX)}; nothing ran.`,
+          );
+          return;
+        }
+      }
       const outcome = jobs
         ? await runJobMachine({
             ...jobs,
@@ -385,7 +417,16 @@ export async function runHostedService(options: {
             notify: options.notify,
             onProgress: progress,
           });
-      await store.finish(job, worker, outcome.status, redactReceipt(outcome.receipt));
+      await store.finish(
+        job,
+        worker,
+        outcome.status,
+        redactReceipt({
+          ...outcome.receipt,
+          fingerprint: target.approval.fingerprint,
+          ...(build && { build }),
+        }),
+      );
       // The receipt carries the error name from both runners, so a job machine's refusal counts too.
       if (options.approvalIssues && outcome.receipt.message?.startsWith('RepositoryApprovalError:'))
         await approvals.changed(target.repository);

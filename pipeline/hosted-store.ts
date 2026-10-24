@@ -29,6 +29,12 @@ const MAX_LEASE_ATTEMPTS = 3;
 const TARGET_HASH_LENGTH = 16;
 // Serializes claims so two workers never start jobs for one installation at once.
 const CLAIM_LOCK = 4_206_100_002;
+// A cancelled job keeps its cancelled status but still retains the evidence it produced.
+const FINISH_JOB = `UPDATE refit_jobs SET receipt = $4, finished_at = now(), lease_owner = NULL,
+    lease_expires_at = NULL,
+    status = CASE WHEN status = 'cancelled' THEN 'cancelled' ELSE $3 END
+  WHERE id = $1 AND lease_owner = $2 AND status IN ('running', 'cancelled')
+  RETURNING attempts`;
 
 export interface HostedTarget {
   id: string;
@@ -45,6 +51,13 @@ export interface HostedReceipt {
   message: string | null;
   revision?: string | null;
   readiness?: string | null;
+  // The approval and worker build the job ran with, and whether its after contract is fetched from
+  // upstream: what a later scheduled poll compares before reusing this receipt.
+  fingerprint?: string;
+  build?: string;
+  liveContract?: boolean;
+  // Set when nothing ran: the job whose work this receipt reports.
+  unchangedSince?: number;
 }
 
 export function hostedTargetId(repository: string, base: string, integration?: string | null) {
@@ -463,24 +476,44 @@ export async function openHostedStore(
       ).rowCount,
     );
 
-  // A cancelled job keeps its cancelled status but still retains the evidence it produced.
   const finish = async (
     job: number,
     worker: string,
     status: 'finished' | 'failed',
     receipt: HostedReceipt,
-  ) =>
-    Boolean(
-      (
-        await pool.query(
-          `UPDATE refit_jobs SET receipt = $4, finished_at = now(), lease_owner = NULL,
-             lease_expires_at = NULL,
-             status = CASE WHEN status = 'cancelled' THEN 'cancelled' ELSE $3 END
-           WHERE id = $1 AND lease_owner = $2 AND status IN ('running', 'cancelled')`,
-          [job, worker, status, receipt],
-        )
-      ).rowCount,
+  ) => Boolean((await pool.query(FINISH_JOB, [job, worker, status, receipt])).rowCount);
+
+  // Stores a receipt reused from an earlier job and gives back today's job reservation, so a poll
+  // that ran nothing never uses up the installation's daily cap.
+  const reuse = (job: number, worker: string, installationId: number, receipt: HostedReceipt) =>
+    transaction(pool, async (client) => {
+      const { rows } = await client.query<{ attempts: number }>(FINISH_JOB, [
+        job,
+        worker,
+        'finished',
+        receipt,
+      ]);
+      if (rows[0]?.attempts === 1)
+        await client.query(
+          `UPDATE refit_installation_usage SET jobs = jobs - 1
+           WHERE installation_id = $1 AND day = ${USAGE_DAY} AND jobs > 0`,
+          [installationId],
+        );
+      return Boolean(rows[0]);
+    });
+
+  // The target's most recent ended job, whose receipt a scheduled poll may reuse.
+  const lastEnded = async (targetId: string) => {
+    const { rows } = await pool.query<{ id: string; status: string; receipt: HostedReceipt }>(
+      `SELECT id, status, receipt FROM refit_jobs
+       WHERE target_id = $1 AND status IN ('finished', 'failed', 'cancelled')
+       ORDER BY id DESC LIMIT 1`,
+      [targetId],
     );
+    return rows[0]
+      ? { job: Number(rows[0].id), status: rows[0].status, receipt: rows[0].receipt }
+      : null;
+  };
 
   // Applies the configured accounts. Newly allowed active installations enroll every approved
   // installed repository; newly disallowed ones are cancelled as if uninstalled.
@@ -665,6 +698,8 @@ export async function openHostedStore(
     retry,
     renew,
     finish,
+    reuse,
+    lastEnded,
     read,
     allow,
     reserveInventory,

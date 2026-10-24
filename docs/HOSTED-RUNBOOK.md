@@ -105,6 +105,10 @@ fly deploy -a refit-hosted --image registry.fly.io/refit-hosted:deployment-<id>
 
 Then verify as after a deploy. The worker only adds tables and columns on boot, so an older image runs against a schema a newer one created. A rollback never undoes database rows.
 
+## Unchanged polls
+
+A scheduled poll first reads the base branch head through the GitHub API. If it, the approval fingerprint and the worker build match the target's last finished job, and that job's doctor result was ready and its contracts are committed files, the worker stores the earlier receipt with `unchangedSince: <job>` and logs `<status>: unchanged since job <job> at <revision>; nothing ran.` The job does not count against `REFIT_HOSTED_DAILY_JOBS`. A push to the base branch, a new approval or a deploy (a new `FLY_IMAGE_REF`) makes the next poll run in full; so does a change to `--ai-patch`, `OPENAI_MODEL`, `--repair-attempts` or `--publish-draft`. To rerun a target without any of those, [retry](#retry-a-job) it. Without `FLY_IMAGE_REF` (a local `refit hosted serve`), every poll runs.
+
 ## Retry a job
 
 **Live, and may spend.** A failed or interrupted result stays cached for its commit until an operator retries it.
@@ -126,7 +130,7 @@ fly deploy -a refit-hosted                                                # or r
 fly ssh console -a refit-hosted -C "refit hosted resume"
 ```
 
-Without a pause, a stop still lets a short job finish. On the first `SIGINT` or `SIGTERM`, the worker stops claiming and exits once its running job finishes. Fly sends `SIGINT`, waits `kill_timeout` (300 seconds in `fly.toml`, Fly's maximum), then sends `SIGTERM`. The worker treats that second signal as a stop: it aborts the job, stores its receipt (`interrupted`, or `error` when the abort lands inside validation) and exits. Either needs a [retry](#retry-a-job). A poll that finds nothing new takes seconds to a minute (4 to 64 seconds on October 24), and a job that validates can take most of an hour, so pause before any deploy while a validation runs.
+Without a pause, a stop still lets a short job finish. On the first `SIGINT` or `SIGTERM`, the worker stops claiming and exits once its running job finishes. Fly sends `SIGINT`, waits `kill_timeout` (300 seconds in `fly.toml`, Fly's maximum), then sends `SIGTERM`. The worker treats that second signal as a stop: it aborts the job, stores its receipt (`interrupted`, or `error` when the abort lands inside validation) and exits. Either needs a [retry](#retry-a-job). A scheduled poll on an unchanged target takes about a second, and a job that validates can take most of an hour, so pause before any deploy while a validation runs.
 
 To stop new work and the machine, `fly machine stop -a refit-hosted` (**live**). Webhook deliveries fail while it is stopped; GitHub shows them as failed, and you can redeliver them after `fly machine start`.
 
