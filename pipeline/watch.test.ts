@@ -302,6 +302,7 @@ export async function chargeHistory(paymentIntentId: string) {
   expect(vi.mocked(runWorkflow).mock.calls[0][0]).toMatchObject({
     before: join(await realpath(carried), baseline),
     apiVersion: '2022-11-15',
+    apiVersionPolicy: 'source-verified',
   });
   // A baseline file that no longer matches the state stops the watcher.
   await writeFile(join(carried, baseline), await readFile('pipeline/fixtures/before.json'));
