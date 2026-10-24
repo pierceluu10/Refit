@@ -7,6 +7,7 @@ import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import { droppedRequestParameters } from './validation.ts';
+import { removedParameterSites } from './migration-review.ts';
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -494,6 +495,12 @@ it.each([
         parameter: 'payment_method_types',
       },
     }),
+  );
+  // The stop names the site without calling it a traced call.
+  expect(removedParameterSites(report.findings)).toMatch(
+    new RegExp(
+      `^Where: .*${file}:${line} sets payment_method_types outside a traced SDK request body`,
+    ),
   );
 });
 
