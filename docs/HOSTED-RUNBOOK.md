@@ -139,7 +139,7 @@ Open reservations are requests that reserved their maximum cost and never settle
 
 ## Drain the worker
 
-`refit hosted pause` stops every worker from starting jobs until `refit hosted resume`, across deploys and restarts. Running jobs finish, queued jobs wait, and webhooks are still recorded and queue jobs. The worker logs `Paused since <time>; no job starts until refit hosted resume.` and `/status` shows `paused`.
+`refit hosted pause` stops every worker from starting jobs until `refit hosted resume`, across deploys and restarts. Running jobs finish, queued jobs wait, and webhooks are still recorded and queue jobs. A job whose worker died goes back to the queue once its lease expires (5 minutes), so the running list still empties; `resume` continues it as another attempt. The worker logs `Paused since <time>; no job starts until refit hosted resume.` and `/status` shows `paused`.
 
 ```sh
 fly ssh console -a refit-hosted -C "refit hosted pause"

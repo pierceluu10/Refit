@@ -150,6 +150,35 @@ it.skipIf(!DATABASE)(
 );
 
 it.skipIf(!DATABASE)(
+  'returns a dead worker’s expired lease to the queue while paused, and fails one that expired too often',
+  async () => {
+    const pool = await database();
+    const store = await enrolled(pool);
+    const first = await store.claim('dead-worker', 30);
+    const second = await store.claim('dead-worker', 30);
+    await pool.query(`UPDATE refit_jobs SET attempts = 3 WHERE id = $1`, [second!.job]);
+    await store.pause();
+    await pool.query(`UPDATE refit_jobs SET lease_expires_at = now() - interval '1 second'`);
+    expect(await store.claim('worker', 30)).toBeNull();
+    const jobs = async () =>
+      (await store.read()).jobs.map((job) => [job.id, job.status, job.attempts]);
+    expect(await jobs()).toEqual([
+      [String(first!.job), 'queued', 1],
+      [String(second!.job), 'failed', 3],
+    ]);
+    // Resuming continues the job as the same attempt series, without a new daily reservation.
+    await store.resume();
+    expect(await store.claim('worker', 30)).toMatchObject({ job: first!.job });
+    expect(await jobs()).toEqual([
+      [String(first!.job), 'running', 2],
+      [String(second!.job), 'failed', 3],
+    ]);
+    expect((await store.read()).installations.map((entry) => entry.jobsToday)).toEqual([1, 1]);
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
   'starts nothing while paused, lets the running job finish on drain and stops it on a second signal',
   async () => {
     const pool = await database();
