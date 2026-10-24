@@ -203,7 +203,7 @@ The instructions now state these policies, and the type-error instructions no lo
 
 `pipeline/ai-patch-eval-replay.ts` runs every guard (these policies and rules 1–5) over a recorded patch without calling a model or running repository code. For each repository it applies Refit's deterministic patch, applies the recorded diff on top, and checks it the way `proposeAiPatch()` does. It runs a second time against the original code, which charges the patch with every change it made itself. Where the rules already changed the recorded diff's lines, that file is taken from the original plus the diff. Files outside the scanned sources, such as `package.json` and `.mdx` docs, are listed and skipped.
 
-The run covered the 8 agent patches that validated on October 21, at their frozen commits (`docs/benchmarks/subsets/p2-agent-replay.json`, results in `docs/benchmarks/2026-10-24-p2-agent-replay-results.json`):
+The run covers all 17 agent patches recorded on October 21, at their frozen commits (`docs/benchmarks/subsets/p2-agent-replay.json`, results in `docs/benchmarks/2026-10-24-p2-agent-replay-results.json`). These are the 8 that validated:
 
 | Repository | Review verdict | Refused on the rules' code by | Refused on the original code by |
 |---|---|---|---|
@@ -220,12 +220,30 @@ All 7 wrong patches are refused. What made each one wrong was the deleted card r
 
 The other refusals land on edits the reviewer judged right: the first-item period reads in drivetimetales, Kanba, iggy-tech and pdf_answers, and the new-shape-only webhook reads (`invoice.subscription`, `shipping_details`) in drivetimetales, AbresStore, Kanba and pdf_answers. They stop because the owner policies make item choice and webhook shape review decisions, not because the code was wrong. On the rules' code, the new-shape check has nothing to compare in AbresStore, Kanba and pdf_answers, because the rules had already migrated those reads.
 
-The correct patch passes, but the pass proves little. Its call is `getStripe().checkout.sessions.create(...)`, through a cached factory (`let cached: Stripe | null`; `cached = new Stripe(key)`) that the tracer does not follow on current main. So none of the request guards saw it. No correct AI diff that the guards can see is on record, so the guards' false refusals on real code are measured only by the accepted cases in the tests.
+The 9 patches that never validated have no October 21 verdict. Each was read in full on October 24, and all 9 are wrong. Six of them (marked †) are held out: no test was built from them before the replay.
+
+| Repository | October 21 checks | Wrong because | Refused on the rules' code by |
+|---|---|---|---|
+| `kondax-com/Bocker` | not run | every class | event type, item choice, dropped parameter, type escape, new shape only, substitution |
+| `JiantaoFu/insightly` | baseline failed | dropped parameter, item choice | item choice, dropped parameter, new shape only |
+| `Sanjdcool/ApanStack-Newsletter` | baseline failed | swapped `expand` path, new shape only | dropped parameter, new shape only |
+| `inventashif/hackerai` † | not run | deleted `payment_method_types` (2 calls) | dropped parameter |
+| `beindigital-products/wedillybird` † | error | deleted `payment_method_types` (4 calls) | dropped parameter |
+| `RISHIE2006/Signl` † | baseline failed | deleted `payment_method_types` | dropped parameter |
+| `pretzelai/stripe-no-webhooks` † | error | webhook reads in the new shape only, edits to its own SQL and a doc comment | item choice, new shape only, substitution |
+| `brendansudol/punchlines-ai` † | regression | deleted `payment_method_types` from a body a helper returns | dropped parameter, substitution |
+| `mrwebwork/spotify` † | regression | deleted `payment_method_types` | dropped parameter |
+
+The held-out six found one gap. punchlines-ai builds its Checkout body in `getSessionCreateParams()` and passes the result to the call. The dropped-parameter check did not follow it, and only an incidental substitution (a new `subscription.id` read in an error message) refused the patch. The check now follows a body that a function in the same file returns, with a test from that diff.
+
+Main's guard (October 24, before these policies) had only the event-type check, a per-edit item-choice check and the substitution guard. On the same 17 diffs, it refuses 5 of the 16 wrong patches: 2 of the 7 that validated and 2 of the 6 held out. The policies above refuse all 16, and the correct patch passes both.
+
+The correct patch passes, but the pass proves little. Its call is `getStripe().checkout.sessions.create(...)`, through a cached factory (`let cached: Stripe | null`; `cached = new Stripe(key)`) that the tracer does not follow on current main. So none of the request guards saw it. No correct AI diff that the guards can see is recorded. Refit's own correct October 22 fix for `ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform` was not kept, but [AI patch reliability](AI-PATCH-RELIABILITY.md) describes its two edits: each `(subscription as any).current_period_end` read goes through `getSubscriptionPeriodEnd(subscription)`. A test rebuilds those edits on the real webhook route and checks that every policy accepts them. Beyond that, the guards' false refusals on real code are measured only by the accepted cases in the tests.
 
 Known gaps:
 
 - A changed non-literal value, such as a different variable, is not compared.
-- A body passed to the call through a parameter or an import is not resolved.
+- A body passed to the call through a parameter or an import is not resolved. A `const` body, and a body returned by a function in the same file, are.
 - A request through a client the tracer cannot follow, such as the cached factory above, is not checked.
 - An invented field the after contract does not define still depends on validation and review.
 
