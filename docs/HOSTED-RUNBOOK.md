@@ -89,10 +89,10 @@ The worker process is not listening. `fly status` and `fly logs`: a crash loop s
 **Live.** Deploy from a clean checkout of the commit being shipped.
 
 1. Run the hosted tests against a local PostgreSQL ([Hosted onboarding](HOSTED-ONBOARDING.md#implemented-single-tenant-hosted-worker)) and `npm test`.
-2. [Drain](#drain-the-worker): check that no job is running.
+2. [Drain](#drain-the-worker): `refit hosted pause`, then wait until no job is running.
 3. `fly deploy -a refit-hosted`. Fly builds the image from `Dockerfile`, replaces the Machine and keeps the volume.
 4. Verify: `curl https://refit-hosted.fly.dev/health`, `fly status`, then `fly ssh console -C "refit hosted health"`.
-5. Retry any job the deploy interrupted (`refit hosted jobs --status failed`).
+5. `fly ssh console -a refit-hosted -C "refit hosted resume"`, then retry any job the deploy interrupted (`refit hosted jobs --status failed`).
 
 ## Roll back to the previous image
 
@@ -117,15 +117,18 @@ It queues one fresh attempt, or marks the already-queued job as a retry. It refu
 
 ## Drain the worker
 
-There is no drain switch. On `SIGTERM` or `SIGINT` the worker stops claiming jobs, aborts the running job (stored as `interrupted`, which needs a retry) and exits. Fly allows 5 seconds (`kill_timeout`) before killing it, enough to store the receipt but not to finish a validation.
+`refit hosted pause` stops every worker from starting jobs until `refit hosted resume`, across deploys and restarts. Running jobs finish, queued jobs wait, and webhooks are still recorded and queue jobs. The worker logs `Paused since <time>; no job starts until refit hosted resume.` and `/status` shows `paused`.
 
-To stop without interrupting work:
+```sh
+fly ssh console -a refit-hosted -C "refit hosted pause"
+fly ssh console -a refit-hosted -C "refit hosted jobs --status running"   # repeat until it lists nothing
+fly deploy -a refit-hosted                                                # or restart, scale, set secrets
+fly ssh console -a refit-hosted -C "refit hosted resume"
+```
 
-1. `fly ssh console -C "refit hosted jobs --status running"`. Repeat until it lists nothing. A scheduled poll that finds nothing new is short; a job that validates can take most of an hour.
-2. Deploy, restart or stop right away: enrolled targets are queued again every 5 minutes.
-3. If a job started in between, it is `interrupted`. [Retry](#retry-a-job) it.
+Without a pause, a stop still lets a short job finish. On the first `SIGINT` or `SIGTERM`, the worker stops claiming and exits once its running job finishes. Fly sends `SIGINT`, waits `kill_timeout` (300 seconds in `fly.toml`, Fly's maximum), then sends `SIGTERM`. The worker treats that second signal as a stop: it aborts the job, stores its receipt (`interrupted`, or `error` when the abort lands inside validation) and exits. Either needs a [retry](#retry-a-job). A poll that finds nothing new takes seconds to a minute (4 to 64 seconds on October 24), and a job that validates can take most of an hour, so pause before any deploy while a validation runs.
 
-To stop new work entirely, `fly machine stop -a refit-hosted` (**live**). Webhook deliveries fail while it is stopped; GitHub shows them as failed, and you can redeliver them after `fly machine start`.
+To stop new work and the machine, `fly machine stop -a refit-hosted` (**live**). Webhook deliveries fail while it is stopped; GitHub shows them as failed, and you can redeliver them after `fly machine start`.
 
 ## Rotate each secret
 

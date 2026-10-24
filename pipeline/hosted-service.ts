@@ -142,6 +142,9 @@ export async function runHostedService(options: {
   leaseSeconds?: number;
   worker?: string;
   signal: AbortSignal;
+  // Stops claiming new work: the running job finishes, then the service returns. `signal` still
+  // stops everything at once.
+  drain?: AbortSignal;
   onReady?: (url: string) => void;
   onProgress?: (message: string, context?: HostedLogContext) => void;
 }) {
@@ -223,6 +226,12 @@ export async function runHostedService(options: {
     outage = Math.min(outage * 2, MAX_OUTAGE_RETRY_MS);
   };
   options.signal.addEventListener('abort', stop, { once: true });
+  const draining = () => options.signal.aborted || Boolean(options.drain?.aborted);
+  const drained = () => {
+    onProgress?.('Stopping after the running job; no new job starts.');
+    wake();
+  };
+  options.drain?.addEventListener('abort', drained, { once: true });
   const openStore = async () => {
     for (;;)
       try {
@@ -522,6 +531,7 @@ export async function runHostedService(options: {
             : undefined;
           respond(response, 200, {
             ...status,
+            paused: await store.paused(),
             ...(options.approvalIssues && { approvals: await approvals.read() }),
             inventories: (await inventories.read(repository)).map(({ inventory, ...row }) => ({
               ...row,
@@ -623,7 +633,8 @@ export async function runHostedService(options: {
       onProgress?.(`Job channel listening at ${jobs.callback}; jobs run on Fly Machines.`);
     }
     options.onReady?.(`http://${host}:${address.port}`);
-    while (!options.signal.aborted) {
+    let pausedAt: number | undefined;
+    while (!draining()) {
       requested = false;
       try {
         if (jobs) await reap(jobs);
@@ -640,6 +651,14 @@ export async function runHostedService(options: {
             onProgress,
           });
         await store.enqueueDue(interval);
+        const since = await store.paused();
+        if (since?.getTime() !== pausedAt)
+          onProgress?.(
+            since
+              ? `Paused since ${since.toISOString()}; no job starts until refit hosted resume.`
+              : 'Resumed; claiming jobs again.',
+          );
+        pausedAt = since?.getTime();
         if (options.purgeUninstalled) {
           const purged = await purgeUninstalled(options.database, directory);
           if (purged.targets.length)
@@ -657,7 +676,7 @@ export async function runHostedService(options: {
             onProgress?.(`[monitoring ${item.repository}] Inventory requested (${item.reason}).`);
         }
         // Inventories are short and read-only, so a queued one goes before the next validation job.
-        while (!options.signal.aborted) {
+        while (!draining()) {
           const inventory = await inventories.claim(
             worker,
             Math.max(lease, INVENTORY_LIMITS.seconds + INVENTORY_LEASE_MARGIN_SECONDS),
@@ -700,12 +719,13 @@ export async function runHostedService(options: {
         await unavailable(error);
         continue;
       }
-      if (options.signal.aborted || requested) continue;
+      if (draining() || requested) continue;
       await pause(interval * MILLISECONDS_PER_SECOND);
     }
     return { directory, registry: await store.read() };
   } finally {
     options.signal.removeEventListener('abort', stop);
+    options.drain?.removeEventListener('abort', drained);
     stop();
     await Promise.all(
       servers.map(

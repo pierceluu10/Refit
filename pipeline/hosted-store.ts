@@ -347,6 +347,8 @@ export async function openHostedStore(
       pool,
       async (client): Promise<{ job: number; retry: boolean; target: HostedTarget } | null> => {
         await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
+        // A paused worker starts nothing, not even a job whose worker stopped mid-lease.
+        if ((await client.query('SELECT 1 FROM refit_worker_pause')).rowCount) return null;
         await client.query(
           `UPDATE refit_jobs SET status = 'failed', finished_at = now(), lease_owner = NULL,
            receipt = jsonb_build_object('status', 'error', 'output', NULL,
@@ -569,6 +571,23 @@ export async function openHostedStore(
       }),
   });
 
+  // While paused, no worker claims a job: running jobs finish, queued ones wait and webhooks are
+  // still recorded. Pausing again keeps the first pause time.
+  const pause = async () =>
+    (
+      await pool.query<{ since: Date }>(
+        `INSERT INTO refit_worker_pause DEFAULT VALUES
+         ON CONFLICT (id) DO UPDATE SET paused_at = refit_worker_pause.paused_at
+         RETURNING paused_at AS since`,
+      )
+    ).rows[0].since;
+
+  const resume = async () => Boolean((await pool.query('DELETE FROM refit_worker_pause')).rowCount);
+
+  const paused = async () =>
+    (await pool.query<{ since: Date }>('SELECT paused_at AS since FROM refit_worker_pause')).rows[0]
+      ?.since ?? null;
+
   // Running jobs whose lease is still live, with the worker holding each.
   const leases = async () =>
     new Map(
@@ -652,5 +671,8 @@ export async function openHostedStore(
     aiLedger,
     aiTotalLedger,
     leases,
+    pause,
+    resume,
+    paused,
   };
 }
