@@ -226,6 +226,8 @@ it.skipIf(!DATABASE)(
     await store.resume();
 
     // Draining lets the running job finish, then the service returns without starting the next.
+    // The paused worker logged its own drain line, so only this worker's lines count.
+    progress.splice(0);
     const first = serve(pool, directory, progress);
     await until(() => polls.length === 1, 'the first job to start');
     first.drain.abort();
