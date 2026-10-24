@@ -144,6 +144,19 @@ it.each([
   );
 });
 
+it('still reports a conflicting literal pin when the repository has an escape hatch', () => {
+  const source = `${prefix} const stripe = new Stripe('test', { apiVersion: '${CHANGED}' }); await stripe.customers.list();`;
+  const header = `send({ headers: { 'Stripe-Version': '${CHANGED}' } });`;
+  const result = evidence(source, STRIPE, [{ path: 'edge.ts', content: header }]);
+  expect(result.source.status).toBe('conflict');
+  expect(result.applicability).toBe('conflicts-with-code');
+  expect(result.source.declarations[0]).toMatchObject({
+    status: 'unknown',
+    value: CHANGED,
+    reason: expect.stringContaining('Stripe-Version header'),
+  });
+});
+
 // Eziox-Development/eziox-web src/routeTree.gen.ts: a TanStack route id, not Stripe's private field.
 it('keeps a traced literal pin verified next to an `_api` route path', () => {
   const route = `export const routes = { id: '/_api/sitemap', path: '/_api/rss' };`;

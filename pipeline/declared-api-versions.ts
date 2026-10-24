@@ -293,23 +293,26 @@ export function declaredApiVersions(options: {
     if (creation) {
       const result = version(creation.arguments?.[mapping.constructorArgument]);
       const binding = options.clientBinding(node);
-      const uncertain =
-        hatch ||
+      const unresolved =
         creation.arguments?.some(ts.isSpreadElement) ||
         unsafe.has(options.constructorBinding(creation)!) ||
         !binding ||
         !clients.has(binding) ||
         unsafe.has(binding);
+      const uncertain = hatch || unresolved;
       if (result.node && !uncertain) literalSpan(result.node, result.value!);
       declarations.push({
         ...location(node),
         kind: 'constructor',
-        value: uncertain ? null : result.value,
+        // An escape hatch keeps the literal, so a pin that conflicts with it still stops.
+        value: unresolved ? null : result.value,
         status: result.status === 'literal' && !uncertain ? 'literal' : 'unknown',
         reason:
           result.status === 'literal' && !uncertain
             ? 'Literal SDK constructor API-version option.'
-            : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
+            : hatch && !unresolved
+              ? 'setApiVersion, a write to the private _api field or a raw Stripe-Version header elsewhere in the repository can change the version this client sends.'
+              : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
         ...(result.status === 'absent' && !uncertain ? { absent: true as const } : {}),
       });
     }
