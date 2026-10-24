@@ -1260,14 +1260,16 @@ export function analyzeRepository(
       }
     }
     // Same for invoice.subscription, unless the code expands it (the expand path moved too) or the
-    // adapter configures its own move.
+    // adapter configures its own move. Webhook payloads are never expanded ("Objects sent in events
+    // are always in their minimal form", https://docs.stripe.com/expand, read 2026-10-24), so an
+    // expand elsewhere does not hold back a webhook read.
     if (
       provider.packageName === STRIPE.packageName &&
       change.schema === 'invoice' &&
       change.property === 'subscription' &&
-      !expandsField('subscription') &&
       !propertyMoves.some((move) => move.schema === 'invoice' && move.removed === 'subscription') &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+      (webhooks?.origin(receiver) ||
+        (!expandsField('subscription') && (provenance === 'declared-type' || provenance === 'sdk')))
     ) {
       const planned = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
       // Reads sharing a hoisted local plan the same declaration; it is added once.
