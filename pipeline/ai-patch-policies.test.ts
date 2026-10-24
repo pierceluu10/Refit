@@ -9,8 +9,10 @@ import {
 import { STRIPE } from './providers.ts';
 import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
 
-// Snippets come from AI diffs in docs/benchmarks/2026-10-21-agent-comparison-results.json that
-// validated and were wrong; each test keeps the code the model changed and the change it made.
+// Snippets come from the recorded agent diffs in docs/benchmarks/2026-10-21-agent-comparison-results.json:
+// reviewed wrong after validating (drivetimetales, ai-saas-template, AbresStore, Kanba) or labelled
+// wrong on October 24 (the rest), and from Refit's own runs. Each test keeps the code the model
+// changed and the change it made, unless it says the code is rebuilt.
 
 const CLIENT = `import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-09-30.endive' });
@@ -360,6 +362,8 @@ it('refuses an AI patch that drops a spread or a later argument of a request', (
   ).toEqual(['...extra', 'argument 2']);
 });
 
+// Rebuilt: kondax-com/Bocker's agent wrote getSubscriptionCoupon in a new file, which Refit's AI
+// path cannot create, so the code before its change is reconstructed.
 const COUPON = `import Stripe from 'stripe'
 
 export function getSubscriptionCoupon(subscription: Stripe.Subscription): Stripe.Coupon | null {
@@ -447,8 +451,15 @@ it('refuses item choices by destructuring and by a non-null element', () => {
     expect(addedItemChoices(...versions('server.ts', PERIOD_WEBHOOK, after))).toEqual([
       'server.ts',
     ]);
-  // The price read from the first item was in the code before; only new choices count.
-  expect(addedItemChoices(...versions('server.ts', PERIOD_WEBHOOK, PERIOD_WEBHOOK))).toEqual([]);
+  // A choice already in the rules' code is not the AI's; only added choices count.
+  const unrelated = replaced(indexed, 'const customerId', 'const customer');
+  expect(addedItemChoices(...versions('server.ts', indexed, unrelated))).toEqual([]);
+  const second = replaced(
+    indexed,
+    '  return row;',
+    '  return { ...row, start: subscription.items.data[0].current_period_start };',
+  );
+  expect(addedItemChoices(...versions('server.ts', indexed, second))).toEqual(['server.ts']);
 });
 
 it('keeps refusing changed webhook event types', () => {
@@ -630,4 +641,316 @@ it('checks a destructured webhook read against its initializer', () => {
       content,
     ),
   ).toEqual([]);
+});
+
+it.each([
+  [
+    'a variable holding the list',
+    '(() => { const items = subscription.items.data; return new Date(items[0].current_period_end * 1000) })()',
+  ],
+  [
+    'destructured items',
+    '(() => { const { items } = subscription; return new Date(items.data[0].current_period_end * 1000) })()',
+  ],
+  [
+    'destructured data',
+    '(() => { const { data } = subscription.items; return new Date(data[0].current_period_end * 1000) })()',
+  ],
+  [
+    'a variable holding the item, then destructuring',
+    '(() => { const item = subscription.items.data[0]; const { current_period_end } = item; return new Date(current_period_end * 1000) })()',
+  ],
+  ['a string key', "new Date(subscription.items.data[0]['current_period_end'] * 1000)"],
+  [
+    'Reflect.get',
+    "new Date(Number(Reflect.get(subscription.items.data[0], 'current_period_end')) * 1000)",
+  ],
+])('refuses an item choice through %s', (_form, period) => {
+  const after = replaced(
+    PERIOD_WEBHOOK,
+    'new Date(subscription.current_period_end * 1000)',
+    period,
+  );
+  expect(addedItemChoices(...versions('server.ts', PERIOD_WEBHOOK, after))).toEqual(['server.ts']);
+});
+
+it('refuses replacing a reviewed item selector with an item the AI picks', () => {
+  const read = 'new Date(subscription.current_period_end * 1000)';
+  const selected = replaced(
+    PERIOD_WEBHOOK,
+    read,
+    'new Date(getSubscriptionPeriodEnd(subscription, selectPlanItem) * 1000)',
+  );
+  const picked = replaced(
+    PERIOD_WEBHOOK,
+    read,
+    'new Date(subscription.items.data[0].current_period_end * 1000)',
+  );
+  expect(addedItemChoices(...versions('server.ts', selected, picked))).toEqual(['server.ts']);
+});
+
+it('refuses an AI patch that sets a request parameter to undefined, void 0 or null', () => {
+  const path = 'app/api/create-setup-intent/route.ts';
+  for (const value of ['undefined', 'void 0', 'null']) {
+    const after = replaced(SETUP_INTENT, 'customer: customerId,', `customer: ${value},`);
+    expect(
+      droppedRequestPaths(...versions(path, SETUP_INTENT, after), STRIPE).map(
+        (entry) => entry.path,
+      ),
+    ).toEqual(['customer']);
+  }
+  // A key that overrides a spread with undefined unsets what the spread sent.
+  const spread = `${CLIENT}export async function POST(base: Stripe.SetupIntentCreateParams) {
+  return stripe.setupIntents.create({ ...base, usage: 'off_session' });
+}
+`;
+  const unset = replaced(
+    spread,
+    "usage: 'off_session'",
+    "usage: 'off_session', customer: undefined",
+  );
+  expect(
+    droppedRequestPaths(...versions(path, spread, unset), STRIPE).map((entry) => entry.path),
+  ).toEqual(['customer=unset']);
+});
+
+// geallenboy/ai-saas-template src/lib/stripe.ts: keys the body gets after its declaration.
+const SESSION_BUILDER = `${CLIENT}export async function createCheckoutSession(params: {
+  priceId: string
+  customerId?: string
+  customerEmail?: string
+  successUrl: string
+  cancelUrl: string
+  metadata?: Record<string, string>
+  mode?: 'payment' | 'subscription'
+}): Promise<Stripe.Checkout.Session> {
+  try {
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      mode: params.mode || 'subscription',
+      line_items: [
+        {
+          price: params.priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      metadata: params.metadata,
+      billing_address_collection: 'auto',
+    }
+
+    if (params.customerId) {
+      sessionParams.customer = params.customerId
+    } else if (params.customerEmail) {
+      sessionParams.customer_email = params.customerEmail
+    }
+
+    if (params.mode === 'subscription') {
+      sessionParams.subscription_data = {
+        metadata: params.metadata,
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams)
+    return session
+  } catch (error) {
+    throw error
+  }
+}
+`;
+
+it('refuses an AI patch that deletes a key assigned to a request body after its declaration', () => {
+  const after = replaced(
+    SESSION_BUILDER,
+    `    if (params.mode === 'subscription') {
+      sessionParams.subscription_data = {
+        metadata: params.metadata,
+      }
+    }
+`,
+    '',
+  );
+  expect(
+    droppedRequestPaths(...versions('src/lib/stripe.ts', SESSION_BUILDER, after), STRIPE),
+  ).toEqual([
+    {
+      call: 'checkout.sessions.create',
+      path: 'subscription_data',
+      line: 34,
+      file: 'src/lib/stripe.ts',
+    },
+  ]);
+});
+
+// beindigital-products/wedillybird lib/payments/drivers/stripe.ts: two bodies named `params`.
+const TWO_BODIES = `${CLIENT}export async function createCoupon(input: CouponInput) {
+  const params: Stripe.CouponCreateParams = {
+    name: clampCouponName(input.name),
+    duration: input.duration,
+    ...(input.percentOff != null ? { percent_off: input.percentOff } : {}),
+  };
+  const coupon = await stripe.coupons.create(params);
+  return mapCoupon(coupon);
+}
+
+export async function createPromotionCode(input: PromotionCodeInput) {
+  const params: Stripe.PromotionCodeCreateParams = {
+    promotion: { type: 'coupon', coupon: input.couponId },
+    ...(input.code ? { code: input.code } : {}),
+  };
+  const pc = await stripe.promotionCodes.create(params);
+  return mapPromotionCode(pc);
+}
+`;
+
+it('follows each request body to the declaration in its own scope', () => {
+  const after = replaced(TWO_BODIES, '    name: clampCouponName(input.name),\n', '');
+  expect(
+    droppedRequestPaths(...versions('lib/payments/drivers/stripe.ts', TWO_BODIES, after), STRIPE),
+  ).toEqual([
+    { call: 'coupons.create', path: 'name', line: 5, file: 'lib/payments/drivers/stripe.ts' },
+  ]);
+});
+
+it('follows a spread of a body declared in the file, and ignores reflowing a spread', () => {
+  const before = `${CLIENT}const base = { payment_method_types: ['card'], mode: 'payment' as const };
+export async function POST(customer: string, coupon?: string) {
+  return stripe.checkout.sessions.create({
+    ...base,
+    customer,
+    ...(coupon ? { discounts: [{ coupon }] } : {}),
+  });
+}
+`;
+  const dropped = replaced(before, "payment_method_types: ['card'], ", '');
+  expect(
+    droppedRequestPaths(...versions('checkout.ts', before, dropped), STRIPE).map(
+      (entry) => entry.path,
+    ),
+  ).toEqual(['payment_method_types']);
+  const reflowed = replaced(
+    before,
+    '    ...(coupon ? { discounts: [{ coupon }] } : {}),',
+    `    ...(coupon
+      ? { discounts: [{ coupon }] }
+      : {}),`,
+  );
+  expect(droppedRequestPaths(...versions('checkout.ts', before, reflowed), STRIPE)).toEqual([]);
+});
+
+it('refuses an added as never cast', () => {
+  const after = replaced(
+    COUPON,
+    '  const coupon = subscription.discount?.coupon',
+    '  const coupon = (subscription as never as { discount?: Stripe.Discount }).discount?.coupon',
+  );
+  expect(
+    addedTypeEscapes(...versions('lib/coupon.ts', COUPON, after)).map((entry) => entry.construct),
+  ).toEqual(['as never']);
+});
+
+it('refuses a new-shape read when the edit calls a helper for another field or object', () => {
+  // A generated helper is an old-shape read only of its own field, from the payload itself.
+  const otherObject = shippingEdit(`    const shippingAddress = {
+      street: (getCheckoutShippingDetails(retrieved) ?? session?.collected_information?.shipping_details)?.address?.line1,
+      city: session?.collected_information?.shipping_details?.address?.city,
+    }`);
+  const otherField = shippingEdit(`    const renews = getSubscriptionPeriodEnd(session);
+    const shippingAddress = {
+      street: session?.collected_information?.shipping_details?.address?.line1,
+      city: session?.collected_information?.shipping_details?.address?.city,
+    }`);
+  for (const edit of [otherObject, otherField])
+    expect(newShapeOnly(edit).map((read) => read.line)).toEqual([6, 7]);
+});
+
+it('refuses an edit where one read keeps the old shape and another reads only the new one', () => {
+  const reads = newShapeOnly(
+    shippingEdit(`    const shippingAddress = {
+      street: (Reflect.get(session, 'shipping_details') ?? session?.collected_information?.shipping_details)?.address?.line1,
+      city: session?.collected_information?.shipping_details?.address?.city,
+    }`),
+  );
+  expect(reads.map((read) => read.line)).toEqual([6, 7]);
+});
+
+// Mangu-Commerce/madcaptees api/stripe/webhook.ts in re-probe 40078712515: the shipping-details
+// rule calls the helper once per read, so TypeScript cannot narrow it and repair asks the model.
+const HELPER_READS = `import Stripe from 'stripe';
+import { getCheckoutShippingDetails } from '../../stripe-subscription-period';
+
+export async function record(session: Stripe.Checkout.Session, existing: unknown) {
+  if (!existing) {
+    const email = session.customer_details?.email || session.customer_email || 'unknown@checkout.stripe';
+    await supabase.from('orders').insert({
+      stripe_session_id: session.id,
+      email,
+      shipping_address: (getCheckoutShippingDetails(session))?.address
+        ? {
+            name: (getCheckoutShippingDetails(session)).name ?? '',
+            line1: (getCheckoutShippingDetails(session)).address.line1 ?? '',
+            city: (getCheckoutShippingDetails(session)).address.city ?? '',
+            country: (getCheckoutShippingDetails(session)).address.country ?? 'US',
+          }
+        : null,
+    });
+  }
+}
+`;
+
+function insertEdit(replacement: string): SourceEdit {
+  const start = HELPER_READS.indexOf('    await supabase');
+  const end = HELPER_READS.indexOf('    });\n') + '    });'.length;
+  expect(start).toBeGreaterThan(0);
+  return { file: 'api/stripe/webhook.ts', start, end, replacement, changeId: SHIPPING.id };
+}
+
+const helperReads = (edit: SourceEdit) =>
+  newShapeOnlyReads(repository('api/stripe/webhook.ts', HELPER_READS), [edit], [], [SHIPPING]);
+
+it('accepts a repair that calls the shipping helper once and narrows its result', () => {
+  expect(
+    helperReads(
+      insertEdit(`    const shipping = getCheckoutShippingDetails(session);
+    await supabase.from('orders').insert({
+      stripe_session_id: session.id,
+      email,
+      shipping_address: shipping?.address
+        ? {
+            name: shipping.name ?? '',
+            line1: shipping.address.line1 ?? '',
+            city: shipping.address.city ?? '',
+            country: shipping.address.country ?? 'US',
+          }
+        : null,
+    });`),
+    ),
+  ).toEqual([]);
+});
+
+it("refuses a repair that rewrites the rules' version-tolerant helper to the new shape only", () => {
+  // The helper calls are not findings, so only the edited code's dual reads show the change.
+  const reads = helperReads(
+    insertEdit(`    const shipping = session.collected_information?.shipping_details;
+    await supabase.from('orders').insert({
+      stripe_session_id: session.id,
+      email,
+      shipping_address: shipping?.address
+        ? {
+            name: shipping.name ?? '',
+            line1: shipping.address.line1 ?? '',
+            city: shipping.address.city ?? '',
+            country: shipping.address.country ?? 'US',
+          }
+        : null,
+    });`),
+  );
+  expect(reads).toEqual(
+    [10, 12, 13, 14, 15].map((line) => ({
+      file: 'api/stripe/webhook.ts',
+      line,
+      schema: 'checkout.session',
+      property: 'shipping_details',
+    })),
+  );
 });
