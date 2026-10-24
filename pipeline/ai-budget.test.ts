@@ -198,6 +198,8 @@ it('prices reported usage with cached input and cache writes at their own rates'
   };
   expect(usageCostUsd('gpt-5.6-terra', usage)).toBeCloseTo(0.8 + 0.1 + 0.2 + 1.2, 9);
   expect(usageCostUsd('gpt-5.6-terra-2026-10-01', usage)).toBeCloseTo(2.3, 9);
+  // gpt-6.1-sol: $2 input, $0.10 cached input, $2 cache write, $10 output.
+  expect(usageCostUsd('gpt-6.1-sol', usage)).toBeCloseTo(0.8 + 0.05 + 0.2 + 1, 9);
   expect(() => usageCostUsd('gpt-unpriced', usage)).toThrow(/No verified token prices/);
 });
 
