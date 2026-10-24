@@ -1,9 +1,11 @@
 import { expect, it } from 'vitest';
 import {
   crossesOpenEnums,
+  crossesTypeRemovals,
   keepsPartialRestore,
   openEnumRepair,
   restorableOpenEnumErrors,
+  untypedRequestProperty,
 } from './stripe-open-enums.ts';
 
 // Shapes from the Supabase subscription starter that stripe-node 23 stops compiling.
@@ -133,4 +135,93 @@ it('applies only to an upgrade across stripe-node 22.4.0', () => {
   expect(crossesOpenEnums('22.3.9', '22.4.0')).toBe(true);
   expect(crossesOpenEnums('22.4.0', '23.0.0')).toBe(false);
   expect(crossesOpenEnums('18.5.0', '22.3.0')).toBe(false);
+});
+
+// adityayaduvanshi/Full-Stack-Music-Web-App@90e902f4 app/api/create-checkout-session/route.ts, as
+// Refit's rules patch leaves it; four forks of the same course send it the same way.
+const route = `import Stripe from 'stripe';
+export async function POST() {
+    const session = await stripe.checkout.sessions.create({
+      allowed_payment_method_types: ['card'],
+      billing_address_collection: 'required',
+      customer,
+      line_items: [{ price: price.id, quantity }],
+      mode: 'subscription',
+      allow_promotion_codes: true,
+      subscription_data: {
+        trial_from_plan: true,
+        metadata,
+      },
+      success_url: \`\${getURL()}/account\`,
+      cancel_url: \`\${getURL()}\`,
+    });
+}
+`;
+// What the benchmark rows' TypeScript and TypeScript 5.9 report at the property.
+const OLD_MESSAGE =
+  "Type '{ trial_from_plan: true; metadata: any; }' is not assignable to type 'SubscriptionData'.";
+const NEW_MESSAGE =
+  "Object literal may only specify known properties, and 'trial_from_plan' does not exist in type 'SubscriptionData'.";
+const untypedAt = (content: string, code: string, message: string) => ({
+  ...at(content, 'route.ts', 'trial_from_plan: true', code),
+  message,
+});
+
+it('keeps sending a request property stripe-node 13 stopped typing, as a spread', () => {
+  for (const [code, message] of [
+    ['TS2322', OLD_MESSAGE],
+    ['TS2353', NEW_MESSAGE],
+  ]) {
+    const error = untypedAt(route, code, message);
+    expect(untypedRequestProperty(error)).toMatchObject({ property: 'trial_from_plan' });
+    const [repaired] = openEnumRepair([{ path: 'route.ts', content: route }], [error])!;
+    expect(repaired.content).toBe(
+      route.replace('trial_from_plan: true,', '...{ trial_from_plan: true },'),
+    );
+  }
+});
+
+it('restores an untyped property and an open enum in one candidate', () => {
+  const repaired = openEnumRepair(
+    [...files, { path: 'route.ts', content: route }],
+    [
+      at(types, 'types.ts', 'Stripe.PaymentMethod.Type]', 'TS2538'),
+      untypedAt(route, 'TS2353', NEW_MESSAGE),
+    ],
+  )!;
+  expect(repaired.map((file) => file.path).sort()).toEqual(['route.ts', 'types.ts']);
+});
+
+it('leaves request properties a version removed, or outside their parent, to the other paths', () => {
+  // Checkout's subscription_data.coupon was removed by 2022-08-01, so dropping it is a migration.
+  const coupon = route.replace('trial_from_plan: true', 'coupon: COUPON');
+  const couponError = {
+    ...at(coupon, 'route.ts', 'coupon: COUPON', 'TS2353'),
+    message: NEW_MESSAGE.replace('trial_from_plan', 'coupon'),
+  };
+  expect(untypedRequestProperty(couponError)).toBeUndefined();
+  expect(openEnumRepair([{ path: 'route.ts', content: coupon }], [couponError])).toBeUndefined();
+  const moved = route.replace('subscription_data: {', 'subscription_details: {');
+  expect(
+    openEnumRepair(
+      [{ path: 'route.ts', content: moved }],
+      [untypedAt(moved, 'TS2353', NEW_MESSAGE)],
+    ),
+  ).toBeUndefined();
+  // Another error with it, such as a missed period read, keeps the whole candidate unrestored.
+  expect(
+    openEnumRepair(
+      [...files, { path: 'route.ts', content: route }],
+      [
+        untypedAt(route, 'TS2353', NEW_MESSAGE),
+        at(admin, 'libs/admin.ts', 'id: price.id', 'TS2551'),
+      ],
+    ),
+  ).toBeUndefined();
+});
+
+it('keeps untyped properties only on an upgrade across stripe-node 13.0.0', () => {
+  expect(crossesTypeRemovals('12.18.0', '23.0.0')).toBe(true);
+  expect(crossesTypeRemovals('13.0.0', '23.0.0')).toBe(false);
+  expect(crossesTypeRemovals('12.8.0', '12.18.0')).toBe(false);
 });

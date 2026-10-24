@@ -327,6 +327,20 @@ it('says when the open-enum repair restored widened Stripe enum values', async (
   );
 });
 
+it('marks a draft that keeps sending an untyped request property for review', async () => {
+  const value = await report();
+  value.validation.repair.stopReason = 'open-enum-repair';
+  value.validation.repair.keptProperties = ['trial_from_plan'];
+  value.validation.repair.enumsUnchanged = true;
+  const artifacts = createReviewArtifacts(value);
+  expect(artifacts.manifest.title).toMatch(/^\[Needs review\] /);
+  const body = artifacts.files['pull-request.md'];
+  expect(body).toContain('**Keeps sending `subscription_data.trial_from_plan` unchanged.**');
+  expect(body).toContain('`subscription_data.trial_period_days`');
+  // Only the property was kept, so nothing claims an enum restore.
+  expect(body).not.toContain('OtherString');
+});
+
 it('marks a draft with an untraced read for review and keeps it out of the confirmed count', async () => {
   const value = await report();
   value.findings.push({
