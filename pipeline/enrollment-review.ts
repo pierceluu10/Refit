@@ -1,3 +1,4 @@
+import { proposalSummary } from './enrollment-proposal.ts';
 import type { inspectRepositoryEnrollment } from './repository-enrollment.ts';
 import { terminalText } from './workflow-presentation.ts';
 
@@ -19,6 +20,14 @@ export function enrollmentReview(enrollment: Enrollment) {
     settings: enrollment.settings,
     apiVersion: enrollment.apiVersion,
     profiles: enrollment.profiles.map(({ id, apiVersion }) => ({ id, apiVersion })),
+    generated: enrollment.generated
+      ? {
+          summary: proposalSummary(enrollment.generated),
+          apiVersion: enrollment.generated.apiVersion,
+          target: enrollment.generated.target,
+          checks: enrollment.generated.checks,
+        }
+      : null,
     scope: SCOPE,
   };
 }
@@ -40,5 +49,8 @@ export function enrollmentReviewText(enrollment: Enrollment) {
         `  ${file.integration ? `${terminalText(file.integration)} ` : ''}${file.role}: ${terminalText(file.path)} (${file.bytes} bytes, SHA-256 ${file.sha256})`,
     )
     .join('\n');
-  return `Review repository configuration\n\nTarget       ${terminalText(enrollment.repository)} at ${terminalText(enrollment.base)}\nRevision     ${enrollment.reviewedRevision}\nFingerprint  ${enrollment.fingerprint}\n\nAPI versions\n${versions}\n\nCommitted inputs\n${files}\n\nSettings\n${settings}\n\n${SCOPE}`;
+  const generated = enrollment.generated
+    ? `Generated    ${terminalText(proposalSummary(enrollment.generated))}\n\n`
+    : '';
+  return `Review repository configuration\n\nTarget       ${terminalText(enrollment.repository)} at ${terminalText(enrollment.base)}\nRevision     ${enrollment.reviewedRevision}\nFingerprint  ${enrollment.fingerprint}\n\n${generated}API versions\n${versions}\n\n${enrollment.generated ? 'Inputs (the generated .refit.json and saved Stripe contracts)' : 'Committed inputs'}\n${files}\n\nSettings\n${settings}\n\n${SCOPE}`;
 }
