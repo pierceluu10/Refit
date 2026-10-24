@@ -346,6 +346,33 @@ it('rejects tampered receipt identity/evidence and mismatched service repositori
   }
 });
 
+it('names the enroll options a command leaves out', async () => {
+  const sample = await setup();
+  // Before: the whole usage text on one line.
+  await expect(
+    execute(
+      process.execPath,
+      [bin, 'enroll', '--github', 'example/application', '--base', 'main'],
+      {
+        cwd: sample.repository,
+      },
+    ),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: 'refit enroll: --repository is required. Run refit enroll --help for its options.\n',
+  });
+  await expect(
+    execute(
+      process.execPath,
+      [bin, 'enroll', '--repository', sample.repository, '--approve', '0'.repeat(64)],
+      { cwd: sample.repository },
+    ),
+  ).rejects.toMatchObject({
+    stderr:
+      'refit enroll: --github and --base are required. Run refit enroll --help for its options.\n',
+  });
+});
+
 it('provides a read-only CLI review and creates a receipt only with the displayed fingerprint', async () => {
   const sample = await setup();
   const argumentsList = [
