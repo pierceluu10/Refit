@@ -91,6 +91,8 @@ it('checks a TypeScript repository without tests by new type errors, with its pa
   expect(proposal?.checks).toEqual({
     kind: 'typecheck',
     source: 'tsc over tsconfig.json, failing only on new type errors',
+    reason:
+      'There is no test script; tsc over tsconfig.json checks the Stripe code in src/lib/stripe.ts.',
   });
   expect(proposal?.configuration.integrations[0]).toMatchObject({
     command: ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'],

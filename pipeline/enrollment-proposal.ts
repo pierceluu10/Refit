@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import ts from 'typescript-compiler';
 import { scaffoldChecks } from './agent-catalog.ts';
 import { analyzeRepository } from './analyzer.ts';
+import { selectCheck } from './check-selection.ts';
 import { validateApiVersion, type ApiVersionDeclaration } from './api-version.ts';
 import {
   latestStripeContract,
@@ -22,12 +23,9 @@ import { YARN_LOCKFILE } from './yarn-lock.ts';
 
 export const STRIPE_INTEGRATION = 'stripe';
 const MANIFEST = 'package.json';
-const TSCONFIG = 'tsconfig.json';
 const RELEASE = /^(\d+)\.(\d+)\.(\d+)$/;
 // stripe-node 12 is the first major that sends its own API version (pipeline/api-version.ts).
 const FIRST_PINNING_MAJOR = 12;
-// The benchmark's type check (pipeline/stripe-benchmark-cli.ts): no install, no network.
-const TYPE_CHECK = ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'];
 const MAX_PLACES = 3;
 const OWN_CONFIGURATION = `or commit a ${REPOSITORY_CONFIGURATION} that sets it (docs/REPOSITORY-SETUP.md)`;
 
@@ -43,7 +41,7 @@ export interface StripeProposal {
   configuration: { formatVersion: 2; integrations: Record<string, unknown>[] };
   apiVersion: { value: string; source: string };
   target: string;
-  checks: { kind: 'tests' | 'typecheck'; source: string };
+  checks: { kind: 'tests' | 'typecheck'; source: string; reason: string };
 }
 
 const at = (location: Location) => `${location.file}:${location.line}`;
@@ -252,7 +250,7 @@ export async function proposeStripeConfiguration(directory: string) {
       ],
     };
   }
-  const { testScript, lockfile } = await scaffoldChecks(directory);
+  const { lockfile } = await scaffoldChecks(directory);
   if (!lockfile)
     stops.push({
       id: 'no-lockfile',
@@ -266,13 +264,14 @@ export async function proposeStripeConfiguration(directory: string) {
     : existsSync(join(directory, YARN_LOCKFILE))
       ? 'yarn'
       : 'npm';
-  const typecheck = existsSync(join(directory, TSCONFIG)) && Boolean(declared.typescript);
-  if (!testScript && !typecheck)
+  const check = await selectCheck(repository);
+  if (!check.kind)
     stops.push({
       id: 'no-checks',
       detail:
         'This repository has no test script and no TypeScript type check, so Refit has nothing that shows a change still works.',
-      action: `Add a "test" script to package.json, or a ${TSCONFIG} with typescript in devDependencies.`,
+      action:
+        'Add a "test" script to package.json, or a tsconfig.json with typescript in devDependencies.',
     });
   const root = repository.dependencies.find((dependency) => dependency.file === MANIFEST);
   const version = applicationVersion(
@@ -287,7 +286,7 @@ export async function proposeStripeConfiguration(directory: string) {
       detail: `Your code uses Stripe API version ${version.value}, and Refit has no contract for it.`,
       action: `Move the client to ${latestStripeContract().version} yourself, ${OWN_CONFIGURATION} with contracts for ${version.value}.`,
     });
-  if (stops.length || 'id' in version) return { proposal: null, stops };
+  if (stops.length || 'id' in version || !check.kind) return { proposal: null, stops };
   const target = latestStripeContract().version;
   const proposal: StripeProposal = {
     configuration: {
@@ -300,23 +299,32 @@ export async function proposeStripeConfiguration(directory: string) {
           apiVersion: version.value,
           image: NODE_22_IMAGE,
           prepareDependencies: true,
-          command: testScript ? [manager, 'test'] : TYPE_CHECK,
-          ...(testScript ? {} : { compareTypeErrors: true }),
+          command: check.command,
+          ...(check.compareTypeErrors ? { compareTypeErrors: true } : {}),
         },
       ],
     },
     apiVersion: version,
     target,
-    checks: testScript
-      ? { kind: 'tests', source: `the test script in ${MANIFEST}, run with ${manager}` }
-      : { kind: 'typecheck', source: `tsc over ${TSCONFIG}, failing only on new type errors` },
+    checks:
+      check.kind === 'tests'
+        ? {
+            kind: 'tests',
+            source: `the test script in ${MANIFEST}, run with ${manager}`,
+            reason: check.reason,
+          }
+        : {
+            kind: 'typecheck',
+            source: 'tsc over tsconfig.json, failing only on new type errors',
+            reason: check.reason,
+          },
   };
   return { proposal, stops };
 }
 
 // One sentence a person reads before approving or running a generated configuration.
 export function proposalSummary(proposal: StripeProposal) {
-  return `No ${REPOSITORY_CONFIGURATION} is committed, so Refit generated one: Stripe API version ${proposal.apiVersion.value} (${proposal.apiVersion.source}), moving to ${proposal.target}, checked by ${proposal.checks.source}.`;
+  return `No ${REPOSITORY_CONFIGURATION} is committed, so Refit generated one: Stripe API version ${proposal.apiVersion.value} (${proposal.apiVersion.source}), moving to ${proposal.target}, checked by ${proposal.checks.source}. ${proposal.checks.reason}`;
 }
 
 export function proposalContent(proposal: StripeProposal) {

@@ -20,7 +20,7 @@ import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './s
 import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
-import { validateMigration } from './validation.ts';
+import { checkFailureText, validateMigration } from './validation.ts';
 import {
   validateCheckCommand,
   validateRepairAttempts,
@@ -276,7 +276,7 @@ export async function runWorkflow(options: {
     if (report.validation.status !== 'passed' && waiver?.gate !== 'dependency-preparation')
       return await finish(
         'validation-failed',
-        `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}`,
+        `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}${checkFailureText(report.validation)}`,
         runId,
       );
     if (waiver && !publication)

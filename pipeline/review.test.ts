@@ -387,3 +387,31 @@ it('counts only generated stripe-mock entries that ran on the original code', as
     'Generated stripe-mock checks passed on 1 of 2 exported functions.',
   );
 });
+
+it('shows the evidence grade and holds a draft no check reached for review', async () => {
+  const value = await report();
+  value.validation.status = 'passed';
+  value.patch.validation = 'passed';
+  value.validation.patched = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
+  value.validation.grade = {
+    level: 'type-check',
+    reason:
+      'npx --no-install tsc --noEmit type-checks every changed file (src/billing.ts); no changed code ran.',
+  };
+  const typed = createReviewArtifacts(value);
+  expect(typed.manifest.title).not.toMatch(/^\[Needs review\] /);
+  expect(typed.files['pull-request.md']).toContain('- Evidence Grade: **Type-checked only.** ');
+  // A JavaScript repository whose tsconfig omits checkJs: tsc passed without reading the change.
+  value.validation.grade = {
+    level: 'none',
+    reason:
+      'npx --no-install tsc --noEmit reaches none of the changed code, and no generated check ran it.',
+  };
+  const unchecked = createReviewArtifacts(value);
+  expect(unchecked.manifest.title).toMatch(/^\[Needs review\] /);
+  const body = unchecked.files['pull-request.md'];
+  expect(body).toContain('- Evidence Grade: **No meaningful check.** ');
+  expect(body).toContain(
+    '**No check reached the changed code.** npx --no-install tsc --noEmit reaches none of the changed code, and no generated check ran it. Run the code this patch changes once before merging.',
+  );
+});

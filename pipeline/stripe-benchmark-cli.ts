@@ -14,6 +14,7 @@ import {
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
+import { selectCheck } from './check-selection.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
@@ -35,8 +36,6 @@ const execute = promisify(execFile);
 const USAGE =
   'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
 const VALIDATION_IMAGE = 'node:22-alpine';
-// Default `npm init` script; it is not a check.
-const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // `file(line,col): error TSxxxx: message`, keyed without the position so moved lines still match.
 const TYPE_ERROR = /^(.+?)\(\d+,\d+\): error (TS\d+): (.*)$/;
@@ -329,24 +328,25 @@ async function benchmark(entry: Selected, index: number) {
     await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
   );
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
-  const testScript: unknown = manifest.scripts?.test;
-  const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
-  const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
-  const pnpm = existsSync(join(directory, 'pnpm-lock.yaml'));
-  const yarn = existsSync(join(directory, 'yarn.lock'));
   const checkable =
-    (existsSync(join(directory, 'package-lock.json')) || pnpm || yarn) && Boolean(declared.stripe);
-  result.validatable = checkable && hasTests;
-  result.checks = !checkable
-    ? 'none'
-    : hasTests
-      ? 'tests'
-      : typescript
-        ? 'typecheck'
-        : 'generated-only';
-  if (values.validate && checkable) {
+    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some((lockfile) =>
+      existsSync(join(directory, lockfile)),
+    ) && Boolean(declared.stripe);
+  // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without a
+  // test script or type check there is none, and the repository is not validated.
+  const selection = await selectCheck(repository);
+  result.checkSelection = {
+    kind: selection.kind,
+    reason: selection.reason,
+    stripeFiles: selection.stripeFiles.length,
+    testedStripeFiles: selection.testedStripeFiles.length,
+    typeCheckedStripeFiles: selection.typeCheckedStripeFiles.length,
+  };
+  result.validatable = checkable && Boolean(selection.command);
+  result.checks = !checkable ? 'none' : (selection.kind ?? 'generated-only');
+  if (values.validate && checkable && selection.command) {
     const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
     const generatedChecks =
       existsSync(fixtures(entry.before)) && existsSync(fixtures(latest))
@@ -356,14 +356,9 @@ async function benchmark(entry: Selected, index: number) {
             afterFixtures: fixtures(latest),
           }
         : undefined;
-    // Without tests, TypeScript repositories typecheck; compareTypeErrors fails the patched check
-    // only on errors the patch introduced, which then go to AI repair.
-    const command = hasTests
-      ? [pnpm ? 'pnpm' : yarn ? 'yarn' : 'npm', 'test']
-      : typescript
-        ? ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.']
-        : // Refit refuses empty command arguments, so the no-op evaluates `0`.
-          ['node', '-e', '0'];
+    // compareTypeErrors fails a patched type check only on errors the patch introduced, which then
+    // go to AI repair.
+    const command = selection.command;
     const config = join(work, 'run.json');
     await writeFile(
       config,
@@ -441,6 +436,14 @@ async function benchmark(entry: Selected, index: number) {
       validation: report.validation?.status,
       baseline: report.validation?.baseline?.status,
       patched: report.validation?.patched?.status,
+      grade: report.validation?.grade,
+      baselineStop: report.validation?.baselineStop?.reason,
+      checkErrors: {
+        baseline: report.validation?.baseline?.error,
+        patched: report.validation?.patched?.error,
+      },
+      checkFailures: report.validation?.checkFailures,
+      timings: report.validation?.timings,
       ...(result.checks === 'typecheck' && report.validation?.patched
         ? {
             typeErrors: {
