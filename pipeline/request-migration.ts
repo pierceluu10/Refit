@@ -1,6 +1,7 @@
 import ts from 'typescript-compiler';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { RequestParameterRemoval } from './request-removals.ts';
+import { TEST_PATH } from './source-paths.ts';
 
 function propertyName(name: ts.PropertyName) {
   return ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)
@@ -64,4 +65,92 @@ export function removedParameterProperty(
       (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
       propertyName(property.name) === removal.parameter,
   );
+}
+
+// Object-literal keys spelling the removed `payment_method_types` outside every traced SDK call
+// body. A body built in a variable, assembled by a wrapper or sent by an untraced client still
+// sends it once the pin moves, so each one stops for review (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
+// Only top-level body keys count: a nested `payment_settings.payment_method_types` is still valid
+// on subscriptions and invoices. Test files send no production request, and an object value is a
+// schema definition such as Mongoose's `{ type: [String] }`, never a payment method list.
+export function untracedRemovedParameters(
+  nodes: ts.Node[],
+  removals: RequestParameterRemoval[],
+  sdkOperation: (call: ts.CallExpression) => { resource: string; method: string } | undefined,
+  file: (node: ts.Node) => string,
+) {
+  const removed = new Map(
+    removals.filter((removal) => removal.cardReplacement).map((entry) => [entry.parameter, entry]),
+  );
+  const removing = (parameter: string, call: ts.CallExpression) => {
+    const operation = sdkOperation(call);
+    return (
+      !operation ||
+      removals.some(
+        (entry) =>
+          entry.parameter === parameter &&
+          entry.resource === operation.resource &&
+          entry.method === operation.method,
+      )
+    );
+  };
+  const argument = (node: ts.Node) =>
+    ts.isCallExpression(node.parent) && node.parent.arguments.includes(node as ts.Expression);
+  // A local variable whose every use is a property access or a direct argument of a traced SDK
+  // call that still accepts the parameter, such as `stripe.paymentLinks.create(params)`.
+  const keptLocally = (object: ts.Expression, parameter: string) => {
+    let value: ts.Node = object;
+    while (
+      ts.isParenthesizedExpression(value.parent) ||
+      ts.isAsExpression(value.parent) ||
+      ts.isSatisfiesExpression(value.parent)
+    )
+      value = value.parent;
+    const declaration = value.parent;
+    if (
+      !ts.isVariableDeclaration(declaration) ||
+      declaration.initializer !== value ||
+      !ts.isIdentifier(declaration.name) ||
+      !ts.isVariableDeclarationList(declaration.parent) ||
+      !ts.isVariableStatement(declaration.parent.parent) ||
+      declaration.parent.parent.modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+      )
+    )
+      return false;
+    const name = declaration.name.text;
+    let kept = true;
+    const visit = (node: ts.Node): void => {
+      if (!kept) return;
+      if (ts.isIdentifier(node) && node.text === name && node !== declaration.name) {
+        const parent = node.parent;
+        kept =
+          (ts.isPropertyAccessExpression(parent) &&
+            parent.expression === node &&
+            parent.name.text !== parameter) ||
+          (argument(node) && !removing(parameter, parent as ts.CallExpression));
+      } else ts.forEachChild(node, visit);
+    };
+    visit(declaration.parent.parent.parent);
+    return kept;
+  };
+  const sites: { property: ts.ObjectLiteralElementLike; removal: RequestParameterRemoval }[] = [];
+  for (const node of nodes) {
+    if (!(ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node))) continue;
+    const name = propertyName(node.name);
+    const removal = name === undefined ? undefined : removed.get(name);
+    if (
+      !removal ||
+      (ts.isPropertyAssignment(node) && ts.isObjectLiteralExpression(node.initializer)) ||
+      !ts.isObjectLiteralExpression(node.parent) ||
+      ts.isPropertyAssignment(node.parent.parent) ||
+      // A traced SDK body is checked against its own operation by the analyzer.
+      (argument(node.parent) && sdkOperation(node.parent.parent as ts.CallExpression)) ||
+      keptLocally(node.parent, removal.parameter) ||
+      TEST_PATH.test(file(node))
+    )
+      continue;
+    sites.push({ property: node, removal });
+  }
+  return sites;
 }
