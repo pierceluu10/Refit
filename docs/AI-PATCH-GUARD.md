@@ -7,8 +7,8 @@ Status: **implemented** in `pipeline/substitution-guard.ts`, called from `propos
 The [first AI migration evaluation](AI-EVALS.md) showed that when a response field is removed and nothing safely replaces it, Refit's AI invents a migration in 48 of 63 attempts. The most common invention, 30 of the 48, swaps in a field the response already had:
 
 ```js
-return model.owned_by.toLowerCase(); // before: owned_by was removed
-return model.id.toLowerCase(); // AI "migration": returns the model's name as its owner
+return model.owned_by.toLowerCase();   // before: owned_by was removed
+return model.id.toLowerCase();         // AI "migration": returns the model's name as its owner
 ```
 
 The instructions already forbid this, and in most of these attempts the model's own summary admits the replacement is unproven. The prompt alone isn't a reliable control, so the check has to live in code.
@@ -17,10 +17,10 @@ The instructions already forbid this, and in most of these attempts the model's 
 
 The guard must tell two cases apart. It must **not** ban pre-existing fields outright, because the verified Stripe migration legitimately reads one.
 
-|                                                                                                                                       | Example                                                                                   | Verdict   |
-| ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------- |
-| A pre-existing response field used **as a substitute** for the removed field, meaning the value the code returns or uses in its place | `model.owned_by.toLowerCase()` → `model.id.toLowerCase()`                                 | **Block** |
-| A pre-existing field passed **as an argument to a traced SDK call** that fetches the replacement data                                 | `intent.charges.data` → `(await stripe.charges.list({ payment_intent: intent.id })).data` | **Allow** |
+| | Example | Verdict |
+|---|---|---|
+| A pre-existing response field used **as a substitute** for the removed field, meaning the value the code returns or uses in its place | `model.owned_by.toLowerCase()` → `model.id.toLowerCase()` | **Block** |
+| A pre-existing field passed **as an argument to a traced SDK call** that fetches the replacement data | `intent.charges.data` → `(await stripe.charges.list({ payment_intent: intent.id })).data` | **Allow** |
 
 Precisely:
 
@@ -34,13 +34,13 @@ Precisely:
 
 The guard needs no new data-flow tracing. Verified against the Stripe fixture:
 
-| Need                                                                    | Source                                                                                                                                           | Status                                                                                                                                                            |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Fields of the affected schema, before and after                         | `before.schemas` / `after.schemas` (already passed to `proposeAiPatch`)                                                                          | ✅ exists                                                                                                                                                         |
-| Which fields were added                                                 | `findAddedProperties()` in `specifications.ts`                                                                                                   | ✅ exists                                                                                                                                                         |
-| Reads of **any** field on a traced response, with file, line and column | `analyzeRepository()` with one synthetic `Removal` per schema field. On the patched Stripe fixture this reports `intent.id` at `billing.ts:7:55` | ✅ exists, reused as-is                                                                                                                                           |
-| Traced SDK calls, with call-start location                              | `analyzeRepository().sdkCalls`. It reports `stripe.charges.list` at `billing.ts:7:17`                                                            | ✅ exists                                                                                                                                                         |
-| **Argument range** of each traced SDK call                              | not exposed                                                                                                                                      | ❌ **gap**: re-parse the patched file with the TypeScript API, find the `CallExpression` starting at each `sdkCalls` location, and use its `arguments` text range |
+| Need | Source | Status |
+|---|---|---|
+| Fields of the affected schema, before and after | `before.schemas` / `after.schemas` (already passed to `proposeAiPatch`) | ✅ exists |
+| Which fields were added | `findAddedProperties()` in `specifications.ts` | ✅ exists |
+| Reads of **any** field on a traced response, with file, line and column | `analyzeRepository()` with one synthetic `Removal` per schema field. On the patched Stripe fixture this reports `intent.id` at `billing.ts:7:55` | ✅ exists, reused as-is |
+| Traced SDK calls, with call-start location | `analyzeRepository().sdkCalls`. It reports `stripe.charges.list` at `billing.ts:7:17` | ✅ exists |
+| **Argument range** of each traced SDK call | not exposed | ❌ **gap**: re-parse the patched file with the TypeScript API, find the `CallExpression` starting at each `sdkCalls` location, and use its `arguments` text range |
 
 ## How the check works
 
@@ -56,19 +56,18 @@ For each affected schema and each edited file:
 Comparing counts rather than positions keeps unrelated existing reads from triggering it, such as the untouched `return model.id` in another function, and it is unaffected by line shifts.
 
 **Where a rejection goes:**
-
 - `refit run`: the run ends with the existing error path and saves the evidence, as other rejected AI edits do today. No checks run and no PR is published.
 - **AI repair** (`validation.ts`): the existing `catch` records `repair-error` and stops.
 - **Evaluations:** the harness records a new `rejected` outcome. It counts as a pass on decline and ambiguous cases, and as a **false positive** on fix cases.
 
 ## Files to change
 
-| File                                             | Change                                                                                              |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `pipeline/ai-patches.ts`                         | Add the guard after edits are applied, and throw `PipelineInputError` with the field, file and line |
-| `pipeline/ai-patches.test.ts`                    | Add the four required tests below                                                                   |
-| `pipeline/ai-eval.ts`, `pipeline/ai-eval-cli.ts` | Add the `rejected` outcome and a report column                                                      |
-| `docs/AI-EVALS.md`                               | Add the new outcome and the before/after results                                                    |
+| File | Change |
+|---|---|
+| `pipeline/ai-patches.ts` | Add the guard after edits are applied, and throw `PipelineInputError` with the field, file and line |
+| `pipeline/ai-patches.test.ts` | Add the four required tests below |
+| `pipeline/ai-eval.ts`, `pipeline/ai-eval-cli.ts` | Add the `rejected` outcome and a report column |
+| `docs/AI-EVALS.md` | Add the new outcome and the before/after results |
 
 ## Required tests
 
@@ -83,29 +82,29 @@ The full suite, typecheck and the 128 eval-case checks must still pass.
 
 Applying these exact rules to the recorded patches:
 
-|                                                 | Count        |
-| ----------------------------------------------- | ------------ |
-| Invented migrations blocked                     | **30 of 48** |
-| Correct fixes wrongly blocked (false positives) | **0 of 72**  |
+| | Count |
+|---|---|
+| Invented migrations blocked | **30 of 48** |
+| Correct fixes wrongly blocked (false positives) | **0 of 72** |
 
 **Not covered by these rules: 18 invented migrations.** These are listed so the remaining risk is explicit:
 
-| Pattern                                                                                              | Count | Why the rules allow it                                       |
-| ---------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------ |
-| Uses an **added** field of a different type, e.g. `String(model.owned_details)` for a removed string | 11    | Rule 1 allows any added field                                |
-| Uses an **added** string field with unrelated meaning, e.g. `model.region`                           | 4     | Rule 1 allows any added field. Only meaning distinguishes it |
-| Keeps reading the removed field behind a fallback, e.g. `(model.owned_by ?? '').toLowerCase()`       | 3     | Not a substitution of a pre-existing field                   |
+| Pattern | Count | Why the rules allow it |
+|---|---|---|
+| Uses an **added** field of a different type, e.g. `String(model.owned_details)` for a removed string | 11 | Rule 1 allows any added field |
+| Uses an **added** string field with unrelated meaning, e.g. `model.region` | 4 | Rule 1 allows any added field. Only meaning distinguishes it |
+| Keeps reading the removed field behind a fallback, e.g. `(model.owned_by ?? '').toLowerCase()` | 3 | Not a substitution of a pre-existing field |
 
 ## Measured impact
 
 A fresh 50 cases × 3 attempts run with the guard enabled (commit `862bbeb`; see [results](ai-evals/2026-10-14-gpt-5.4-mini-guard.md)):
 
-|                                                       | Count                                                                                                                                         |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Invented migrations rejected                          | **26**, all substituting `id`                                                                                                                 |
-| Invented migrations not caught                        | 16: 9 added field of a different type, 5 added field with unrelated meaning, 2 removed-field fallbacks. All are outside these rules by design |
-| Pre-existing-field substitutions that slipped through | **0**                                                                                                                                         |
-| Correct fixes wrongly rejected                        | **0 of 78**                                                                                                                                   |
+| | Count |
+|---|---|
+| Invented migrations rejected | **26**, all substituting `id` |
+| Invented migrations not caught | 16: 9 added field of a different type, 5 added field with unrelated meaning, 2 removed-field fallbacks. All are outside these rules by design |
+| Pre-existing-field substitutions that slipped through | **0** |
+| Correct fixes wrongly rejected | **0 of 78** |
 
 The model is non-deterministic, so the rerun produced a different set of inventions than the baseline. The guard caught every one of the kind it targets.
 
@@ -140,17 +139,16 @@ A backward-compatible fallback that reads the new field first is allowed, for ex
 
 ### Expected impact on the recorded guard run
 
-|                                     | Count                                                                                                                              |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Inventions blocked by rule 4        | 9 of 16                                                                                                                            |
-| Inventions blocked by rule 5        | 2 of 16                                                                                                                            |
+| | Count |
+|---|---|
+| Inventions blocked by rule 4 | 9 of 16 |
+| Inventions blocked by rule 5 | 2 of 16 |
 | Correct fixes that would be blocked | 0 of 75. None reads a different-typed added field. The one that keeps the removed field also reads the new field, so it is allowed |
-| Still not caught                    | 5: an added **string** with unrelated meaning (`region`, `checksum`). Only evidence-citing can address these                       |
+| Still not caught | 5: an added **string** with unrelated meaning (`region`, `checksum`). Only evidence-citing can address these |
 
 ### Held-out evaluation set
 
 Add 34 cases on two **new** resources with **new** field names, using the same 16 scenarios. For example `vectorStores.retrieve` (`VectorStore.name` → `display_name`) and `responses.retrieve` (`Response.model` → `model_name`). `npm run eval:ai` gains `--set tuning|held-out|all` (default `tuning`, today's 50 cases). Rules for using it:
-
 - Tune prompts and rules against `tuning` only.
 - Run `held-out` to confirm a change, and don't adjust anything based on its individual failures.
 - Report both sets side by side.
@@ -191,13 +189,13 @@ The AI also now works on code that already carries the deterministic rule edits,
 
 On real repositories the wrong AI patches that validated mostly broke an owner policy, not a contract rule. In the October 21 agent comparison, 7 of 8 validated patches deleted `payment_method_types`. `pipeline/ai-patch-policies.ts` now checks these policies after the model answers and before rules 1–5. A patch that breaks one stops for review. The model gets **no** corrected request, because the policy decides the case, not the model. Each check compares the AI's version of every file it changed with the rules' version, so the rules' own edits, such as the reviewed card rename, are never charged to the AI.
 
-| Policy                                            | Refused when the AI's code…                                                                                                                                                                                                                          | Real diff it comes from                                                                                                                                                              |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Never drop or replace a request parameter         | no longer sends a key, nested key, spread, argument or array string that a traced SDK call sent. The body can be inline or a `const` declared once in the file. Reordering, reformatting and added keys pass                                         | `Bizgojo/drivetimetales` and `geallenboy/ai-saas-template` deleted `payment_method_types`; `Sanjdcool/ApanStack-Newsletter` replaced the expand path `latest_invoice.payment_intent` |
-| No type-only workarounds                          | has more `any` types, `as unknown as` assertions, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck` or `eslint-disable` comments                                                                                                                       | `kondax-com/Bocker` read `discounts` through `as unknown as { discounts?: unknown[] }`                                                                                               |
-| Choosing a subscription item is a reviewed policy | reads a billing period from `items.data[0]`, `.at()` or `.find()` more often, directly or through a variable or destructuring                                                                                                                        | `JiantaoFu/insightly` stored `items.data[0]` in a variable and read `current_period_end` from it; `kondax-com/Bocker` read `items.data[0]!.current_period_start`                     |
-| Webhook reads keep both shapes                    | rewrote a webhook or `declaredType` finding without still reading the removed field from the same receiver (or a variable assigned from it in the edit) by property, string key, `Reflect.get`, destructuring or a generated version-tolerant helper | `abressiddique/AbresStore-Admin` moved `session.shipping_details` to `session.collected_information.shipping_details` only                                                           |
-| Webhook event names                               | no longer compares with an event type string the rules' code did                                                                                                                                                                                     | (existing)                                                                                                                                                                           |
+| Policy | Refused when the AI's code… | Real diff it comes from |
+|---|---|---|
+| Never drop or replace a request parameter | no longer sends a key, nested key, spread, argument or array string that a traced SDK call sent. The body can be inline or a `const` declared once in the file. Reordering, reformatting and added keys pass | `Bizgojo/drivetimetales` and `geallenboy/ai-saas-template` deleted `payment_method_types`; `Sanjdcool/ApanStack-Newsletter` replaced the expand path `latest_invoice.payment_intent` |
+| No type-only workarounds | has more `any` types, `as unknown as` assertions, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck` or `eslint-disable` comments | `kondax-com/Bocker` read `discounts` through `as unknown as { discounts?: unknown[] }` |
+| Choosing a subscription item is a reviewed policy | reads a billing period from `items.data[0]`, `.at()` or `.find()` more often, directly or through a variable or destructuring | `JiantaoFu/insightly` stored `items.data[0]` in a variable and read `current_period_end` from it; `kondax-com/Bocker` read `items.data[0]!.current_period_start` |
+| Webhook reads keep both shapes | rewrote a webhook or `declaredType` finding without still reading the removed field from the same receiver (or a variable assigned from it in the edit) by property, string key, `Reflect.get`, destructuring or a generated version-tolerant helper | `abressiddique/AbresStore-Admin` moved `session.shipping_details` to `session.collected_information.shipping_details` only |
+| Webhook event names | no longer compares with an event type string the rules' code did | (existing) |
 
 The instructions now state these policies, and the type-error instructions no longer tell the model to remove parameters the new types reject. A first AI patch that is refused ends the run like rules 1–5 (`refit run` saves the evidence, and the AI patch scorer counts it as `review-stop`). A refused repair records `repair-error`. Tests: `pipeline/ai-patch-policies.test.ts` (one per real diff above) and `pipeline/ai-patches.test.ts`.
 
@@ -206,4 +204,4 @@ Known gaps: a changed literal value (other than array strings) is not compared; 
 ## Known limitations
 
 - Reads the analyzer cannot trace are invisible to the guard: destructuring (`const { id } = model`), computed access (`model['id']`), or a response passed through helper functions. These already reduce scanner confidence elsewhere.
-- "Inside an SDK call argument" doesn't prove the call fetches the _replacement_. It is the boundary the rules define, and the Docker checks and human review remain the final gates.
+- "Inside an SDK call argument" doesn't prove the call fetches the *replacement*. It is the boundary the rules define, and the Docker checks and human review remain the final gates.
