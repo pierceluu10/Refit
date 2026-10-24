@@ -1,5 +1,6 @@
+import { join } from 'node:path';
 import type { Pool, PoolClient } from 'pg';
-import type { AiLedger } from './ai-budget.ts';
+import { changeAiBudgetLimit, type AiLedger, type AiLedgerSummary } from './ai-budget.ts';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
 import { transaction } from './hosted-database.ts';
@@ -29,6 +30,12 @@ const MAX_LEASE_ATTEMPTS = 3;
 const TARGET_HASH_LENGTH = 16;
 // Serializes claims so two workers never start jobs for one installation at once.
 const CLAIM_LOCK = 4_206_100_002;
+// A cancelled job keeps its cancelled status but still retains the evidence it produced.
+const FINISH_JOB = `UPDATE refit_jobs SET receipt = $4, finished_at = now(), lease_owner = NULL,
+    lease_expires_at = NULL,
+    status = CASE WHEN status = 'cancelled' THEN 'cancelled' ELSE $3 END
+  WHERE id = $1 AND lease_owner = $2 AND status IN ('running', 'cancelled')
+  RETURNING attempts`;
 
 export interface HostedTarget {
   id: string;
@@ -45,6 +52,13 @@ export interface HostedReceipt {
   message: string | null;
   revision?: string | null;
   readiness?: string | null;
+  // The approval and worker build the job ran with, and whether its after contract is fetched from
+  // upstream: what a later scheduled poll compares before reusing this receipt.
+  fingerprint?: string;
+  build?: string;
+  liveContract?: boolean;
+  // Set when nothing ran: the job whose work this receipt reports.
+  unchangedSince?: number;
 }
 
 export function hostedTargetId(repository: string, base: string, integration?: string | null) {
@@ -347,6 +361,8 @@ export async function openHostedStore(
       pool,
       async (client): Promise<{ job: number; retry: boolean; target: HostedTarget } | null> => {
         await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
+        // A paused worker starts nothing, not even a job whose worker stopped mid-lease.
+        if ((await client.query('SELECT 1 FROM refit_worker_pause')).rowCount) return null;
         await client.query(
           `UPDATE refit_jobs SET status = 'failed', finished_at = now(), lease_owner = NULL,
            receipt = jsonb_build_object('status', 'error', 'output', NULL,
@@ -461,24 +477,44 @@ export async function openHostedStore(
       ).rowCount,
     );
 
-  // A cancelled job keeps its cancelled status but still retains the evidence it produced.
   const finish = async (
     job: number,
     worker: string,
     status: 'finished' | 'failed',
     receipt: HostedReceipt,
-  ) =>
-    Boolean(
-      (
-        await pool.query(
-          `UPDATE refit_jobs SET receipt = $4, finished_at = now(), lease_owner = NULL,
-             lease_expires_at = NULL,
-             status = CASE WHEN status = 'cancelled' THEN 'cancelled' ELSE $3 END
-           WHERE id = $1 AND lease_owner = $2 AND status IN ('running', 'cancelled')`,
-          [job, worker, status, receipt],
-        )
-      ).rowCount,
+  ) => Boolean((await pool.query(FINISH_JOB, [job, worker, status, receipt])).rowCount);
+
+  // Stores a receipt reused from an earlier job and gives back today's job reservation, so a poll
+  // that ran nothing never uses up the installation's daily cap.
+  const reuse = (job: number, worker: string, installationId: number, receipt: HostedReceipt) =>
+    transaction(pool, async (client) => {
+      const { rows } = await client.query<{ attempts: number }>(FINISH_JOB, [
+        job,
+        worker,
+        'finished',
+        receipt,
+      ]);
+      if (rows[0]?.attempts === 1)
+        await client.query(
+          `UPDATE refit_installation_usage SET jobs = jobs - 1
+           WHERE installation_id = $1 AND day = ${USAGE_DAY} AND jobs > 0`,
+          [installationId],
+        );
+      return Boolean(rows[0]);
+    });
+
+  // The target's most recent ended job, whose receipt a scheduled poll may reuse.
+  const lastEnded = async (targetId: string) => {
+    const { rows } = await pool.query<{ id: string; status: string; receipt: HostedReceipt }>(
+      `SELECT id, status, receipt FROM refit_jobs
+       WHERE target_id = $1 AND status IN ('finished', 'failed', 'cancelled')
+       ORDER BY id DESC LIMIT 1`,
+      [targetId],
     );
+    return rows[0]
+      ? { job: Number(rows[0].id), status: rows[0].status, receipt: rows[0].receipt }
+      : null;
+  };
 
   // Applies the configured accounts. Newly allowed active installations enroll every approved
   // installed repository; newly disallowed ones are cancelled as if uninstalled.
@@ -569,6 +605,77 @@ export async function openHostedStore(
       }),
   });
 
+  // While paused, no worker claims a job: running jobs finish, queued ones wait and webhooks are
+  // still recorded. Pausing again keeps the first pause time.
+  const pause = async () =>
+    (
+      await pool.query<{ since: Date }>(
+        `INSERT INTO refit_worker_pause DEFAULT VALUES
+         ON CONFLICT (id) DO UPDATE SET paused_at = refit_worker_pause.paused_at
+         RETURNING paused_at AS since`,
+      )
+    ).rows[0].since;
+
+  const resume = async () => Boolean((await pool.query('DELETE FROM refit_worker_pause')).rowCount);
+
+  const paused = async () =>
+    (await pool.query<{ since: Date }>('SELECT paused_at AS since FROM refit_worker_pause')).rows[0]
+      ?.since ?? null;
+
+  // Every stored AI ledger, read without changing it.
+  const aiLedgerStates = async () => {
+    const [installations, total] = await Promise.all([
+      pool.query<{ id: string; state: Record<string, unknown> }>(
+        `SELECT installation_id::text AS id, state FROM refit_ai_ledgers
+         WHERE state IS NOT NULL ORDER BY installation_id`,
+      ),
+      pool.query<{ state: Record<string, unknown> }>(
+        'SELECT state FROM refit_ai_total_ledger WHERE state IS NOT NULL',
+      ),
+    ]);
+    return {
+      installations: installations.rows.map((row) => ({
+        installationId: Number(row.id),
+        state: row.state,
+      })),
+      total: total.rows[0]?.state ?? null,
+    };
+  };
+
+  // Moves every recorded installation's AI ledger, and the ledger across installations, to new
+  // limits while keeping recorded spend. A job's requests reserve against the limits it started
+  // with, so this is refused while one runs.
+  const changeAiLimits = async (
+    limits: { installationUsd?: number; totalUsd?: number },
+    legacyDirectory?: string,
+  ) => {
+    if ((await leases()).size)
+      throw new PipelineInputError('A job is running; change AI limits once no job runs.');
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id::text FROM refit_installations
+       UNION SELECT installation_id::text FROM refit_ai_ledgers ORDER BY 1`,
+    );
+    const installations: { installationId: number; summary: AiLedgerSummary }[] = [];
+    if (limits.installationUsd !== undefined)
+      for (const installationId of rows.map((row) => Number(row.id)))
+        installations.push({
+          installationId,
+          summary: await changeAiBudgetLimit(
+            aiLedger(
+              installationId,
+              legacyDirectory &&
+                join(legacyDirectory, `installation-${installationId}`, 'budget.json'),
+            ),
+            limits.installationUsd,
+          ),
+        });
+    const total =
+      limits.totalUsd === undefined
+        ? null
+        : await changeAiBudgetLimit(aiTotalLedger(), limits.totalUsd);
+    return { installations, total };
+  };
+
   // Running jobs whose lease is still live, with the worker holding each.
   const leases = async () =>
     new Map(
@@ -646,11 +753,18 @@ export async function openHostedStore(
     retry,
     renew,
     finish,
+    reuse,
+    lastEnded,
     read,
     allow,
     reserveInventory,
     aiLedger,
     aiTotalLedger,
+    aiLedgerStates,
+    changeAiLimits,
     leases,
+    pause,
+    resume,
+    paused,
   };
 }
