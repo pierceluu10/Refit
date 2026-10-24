@@ -278,15 +278,23 @@ export function declaredApiVersions(options: {
     });
   // stripe-node fixes a client's API version at construction; `setApiVersion`, a write to its
   // private `_api` or a raw `Stripe-Version` header can still change what it sends, so any of them
-  // anywhere leaves every Stripe constructor's version unknown.
+  // anywhere leaves every Stripe constructor's version unknown. Only a header being sent counts
+  // (an object key or the name given to `set`/`append`), not reading an incoming one.
+  const sendsVersionHeader = (node: ts.Node) =>
+    ts.isStringLiteralLike(node) &&
+    node.text.toLowerCase() === 'stripe-version' &&
+    ((ts.isPropertyAssignment(node.parent) && node.parent.name === node) ||
+      (ts.isCallExpression(node.parent) &&
+        node.parent.arguments[0] === node &&
+        ts.isPropertyAccessExpression(node.parent.expression) &&
+        ['set', 'append'].includes(node.parent.expression.name.text)));
   const hatch =
     options.provider.packageName === 'stripe' &&
     nodes.some(
       (node) =>
-        ts.isSourceFile(node) &&
-        /\.(?:setApiVersion|_setApiField|_api|_requestSender)\b|['"`]Stripe-Version['"`]/i.test(
-          node.text,
-        ),
+        (ts.isSourceFile(node) &&
+          /\.(?:setApiVersion|_setApiField|_api|_requestSender)\b/i.test(node.text)) ||
+        sendsVersionHeader(node),
     );
   for (const node of nodes) {
     const creation = options.creation(node);

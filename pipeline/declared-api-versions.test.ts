@@ -136,6 +136,7 @@ it.each([
   ['setApiVersion', `stripe.setApiVersion('${CHANGED}');`],
   ['a write to the private API field', `(stripe as any)._api.version = '${CHANGED}';`],
   ['a raw Stripe-Version header', `send({ headers: { 'Stripe-Version': '${CHANGED}' } });`],
+  ['a Stripe-Version header set on Headers', `headers.set('stripe-version', '${CHANGED}');`],
 ])('leaves a traced literal pin unknown when the repository has %s', (_case, code) => {
   const source = `${prefix} const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.customers.list();`;
   expect(evidence(source).source.status).toBe('verified');
@@ -155,6 +156,18 @@ it('still reports a conflicting literal pin when the repository has an escape ha
     value: CHANGED,
     reason: expect.stringContaining('Stripe-Version header'),
   });
+});
+
+// pipeline/fixtures/stripe-sdk/contract.mjs: a simulated server that reads the header the SDK sent.
+it('keeps a traced literal pin verified next to code that reads an incoming Stripe-Version header', () => {
+  const server = `apiVersions.push(request.headers['stripe-version'] ?? null); request.headers.get('Stripe-Version');`;
+  expect(
+    evidence(
+      `${prefix} const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.customers.list();`,
+      STRIPE,
+      [{ path: 'simulator/contract.mjs', content: server }],
+    ).source.status,
+  ).toBe('verified');
 });
 
 // Eziox-Development/eziox-web src/routeTree.gen.ts: a TanStack route id, not Stripe's private field.
