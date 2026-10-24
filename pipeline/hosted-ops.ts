@@ -5,6 +5,7 @@ import { promisify } from 'node:util';
 import type { Pool } from 'pg';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { WebhookInputError } from './github-webhooks.ts';
+import type { HostedReceipt } from './hosted-store.ts';
 import { hostedFailureNotice, slackNotifier, type SlackSend } from './slack.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -154,13 +155,7 @@ export async function readHostedReceipt(pool: Pool, job: string) {
     leaseExpiresAt: Date | null;
     createdAt: Date;
     finishedAt: Date | null;
-    receipt: {
-      status: string;
-      output: string | null;
-      message: string | null;
-      revision?: string | null;
-      readiness?: string | null;
-    } | null;
+    receipt: HostedReceipt | null;
   }>(
     `SELECT j.id::text, j.target_id AS "targetId", t.repository, t.base, t.integration, j.status,
        j.attempts, j.retry, j.lease_owner AS "leaseOwner", j.lease_expires_at AS "leaseExpiresAt",

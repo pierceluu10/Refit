@@ -40,7 +40,7 @@ The merged `results.json` reads like a single-process run, so `scripts/stripe-be
 
 ## Limits
 
-- AI is off by default. `-f ai=true -f ai_budget=<USD>` (more than 0, at most 20) adds `--ai` with the repository's `OPENAI_API_KEY` secret and `gpt-5.6-luna`. The budget is split evenly across shards, each with its own ledger, so a run cannot spend more than `ai_budget`; the merged summary reports the spend. The key goes to a file under the runner's temporary directory, not the environment of the benchmark, and GitHub masks it in logs. Logs and artifacts are public, so never pass a key through `flags`; the workflow refuses `--ai`, `--env` and `--publish` there.
+- AI is off by default. `-f ai=true -f ai_budget=<USD>` (more than 0, at most 1000, the most Refit accepts) adds `--ai` with the repository's `OPENAI_API_KEY` secret and `gpt-5.6-luna`. The budget is split evenly across shards, each with its own ledger, so a run cannot spend more than `ai_budget`; the merged summary reports the spend. The key goes to a file under the runner's temporary directory, not the environment of the benchmark, and GitHub masks it in logs. Logs and artifacts are public, so never pass a key through `flags`; the workflow refuses `--ai`, `--env` and `--publish` there.
 - Stripe only. Shopify needs its saved Admin schema snapshots and is not wired in.
 - A run holds at most 256 shards (GitHub's matrix limit); raise `size` for longer lists. About 20 jobs run at once on the free plan; the rest queue.
 - A shard times out after 300 minutes. Runners are 4-vCPU Linux machines, so validation times differ from a laptop or EC2; compare outcomes, not seconds, across environments.
