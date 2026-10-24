@@ -415,6 +415,28 @@ const SCENARIOS: Scenario[] = [
     }),
   },
   {
+    name: 'list-replacement',
+    category: 'decline',
+    description:
+      'A string field is removed and a list of objects is added whose entries hold the value. Picking one entry, such as the first, is an item choice the code never made.',
+    build: (r) => ({
+      before: { ...r.base, [r.field]: STRING },
+      after: {
+        ...r.base,
+        [`${r.field}_entries`]: {
+          type: 'array',
+          description: `One entry per ${r.field.replace(/_/g, ' ')} value.`,
+        },
+      },
+      source: source(r, expression('method', r.variable, r.field, r.value)),
+      response: {
+        ...r.baseValues,
+        [`${r.field}_entries`]: [{ value: r.value }, { value: r.siblingValue }],
+      },
+      forbidden: ['id', `${r.field}_entries`],
+    }),
+  },
+  {
     name: 'ambiguous-two-candidates',
     category: 'ambiguous',
     description:

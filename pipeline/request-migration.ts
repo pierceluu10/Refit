@@ -140,7 +140,9 @@ export function untracedRemovedParameters(
             parent.name.text !== parameter;
       } else ts.forEachChild(node, visit);
     };
-    visit(declaration.parent.parent.parent);
+    const scope = declaration.parent.parent.parent;
+    // A `case` clause's declarations are in scope for every clause of its switch.
+    visit(ts.isCaseClause(scope) || ts.isDefaultClause(scope) ? scope.parent : scope);
     return local ? calls : undefined;
   };
   const cardOnly = (node: ts.ObjectLiteralElementLike) =>

@@ -29,6 +29,7 @@ import {
   workflowScanStop,
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
+import { AiPolicyStop } from './ai-patches.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { publicationConfiguration, publishDraft } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
@@ -623,7 +624,10 @@ async function benchmark(entry: Selected, index: number) {
       };
     } catch (error) {
       result.ai = {
-        outcome: error instanceof FieldSubstitutionError ? 'rejected-by-guard' : 'error',
+        outcome:
+          error instanceof FieldSubstitutionError || error instanceof AiPolicyStop
+            ? 'rejected-by-guard'
+            : 'error',
         detail: message(error),
       };
     }

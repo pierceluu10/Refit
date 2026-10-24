@@ -1,11 +1,12 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { CARD_PAYMENT_METHOD_WARNING, listedPaymentMethodWarning } from './patches.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
+import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { droppedRequestParameters } from './validation.ts';
 
 const directories: string[] = [];
@@ -107,6 +108,73 @@ const checkout = (
 const stripe = new Stripe(process.env.STRIPE_KEY, ${options});
 export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ${methods} });
 `;
+
+// O1's reproduction: the price-policy fixture is a configured subscription-period migration
+// (acacia to basil), whose patch carries neither the pin nor the stripe-node upgrade, so the
+// rename would ship allowed_payment_method_types on acacia, which rejects it.
+it('keeps the card stop on a configured-migration patch, which never moves the pin', async () => {
+  const fixture = resolve('pipeline/fixtures/stripe-webhooks');
+  const read = (path: string) => readFile(join(fixture, path), 'utf8');
+  const merged = async (path: string, version: string, fields: string[]) => {
+    const projection = JSON.parse(await read(path));
+    const card = contract(version, fields);
+    return JSON.stringify({
+      ...projection,
+      paths: { ...projection.paths, ...card.paths },
+      components: { schemas: { ...projection.components.schemas, ...card.components.schemas } },
+    });
+  };
+  const provider = JSON.parse(await read('provider-price-policy.json'));
+  provider.operations.push({
+    resource: 'checkout.sessions',
+    method: 'create',
+    schema: 'checkout.session',
+    operationId: 'PostCheckoutSessions',
+  });
+  const root = await mkdtemp(join(tmpdir(), 'refit-card-configured-'));
+  directories.push(root);
+  for (const [path, content] of Object.entries({
+    'package.json': await read('repository/package.json'),
+    'client.js': await read('repository/client.js'),
+    'entitlements.js': await read('repository/entitlements.js'),
+    'checkout.js': `import { stripe } from './client.js';
+export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ['card'] });
+`,
+    'before.json': await merged('before.json', '2025-02-24.acacia', [
+      'mode',
+      'payment_method_types',
+    ]),
+    'after.json': await merged('after.json', '2025-03-31.basil', [
+      'mode',
+      'allowed_payment_method_types',
+    ]),
+    'provider.json': JSON.stringify(provider),
+  }))
+    await writeFile(join(root, path), content);
+  const report = await runPipeline({
+    repository: root,
+    before: join(root, 'before.json'),
+    after: join(root, 'after.json'),
+    providerConfig: join(root, 'provider.json'),
+    apiVersion: '2025-02-24.acacia',
+    proposePatch: true,
+  });
+  expect(
+    report.findings.some(
+      (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
+    ),
+  ).toBe(true);
+  expect('diff' in report.patch ? report.patch.diff : '').not.toContain(
+    'allowed_payment_method_types',
+  );
+  expect(report.findings.find((finding) => finding.requestParameter)).toMatchObject({
+    file: 'checkout.js',
+    requestParameter: { parameter: 'payment_method_types' },
+    reason: expect.stringContaining(
+      'but this patch applies a configured migration, which does not move the API version.',
+    ),
+  });
+});
 
 it("moves ['card'] to allowed_payment_method_types together with the endive pin", async () => {
   const report = await run({ 'checkout.js': checkout("['card']") });
@@ -487,6 +555,27 @@ it.each([
     },
     'checkout.js',
     8,
+  ],
+  [
+    // A `case` clause's `const` is in scope for the clauses below it (O1's second reading).
+    'in a case-clause const that falls through to Payment Links',
+    {
+      'checkout.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const quick = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+export async function pay(kind) {
+  switch (kind) {
+    case 'session':
+      const params = { mode: 'payment', payment_method_types: ['card'] };
+      await stripe.checkout.sessions.create(params);
+    case 'link':
+      await stripe.paymentLinks.create(params);
+  }
+}
+`,
+    },
+    'checkout.js',
+    7,
   ],
   [
     'in a function-scoped var',
