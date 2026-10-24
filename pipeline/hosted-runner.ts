@@ -101,10 +101,12 @@ export function unchangedReceipt(
     receipt.readiness !== 'ready-for-validation'
   )
     return null;
-  if (receipt.unchangedSince) return receipt;
+  // Nothing ran, so no CPU was measured: the earlier job's steal is not this job's.
+  const { cpuSteal, ...work } = receipt;
+  if (work.unchangedSince) return work;
   // The CLI prints the message, so it says which job did the work rather than repeating its claim.
   return {
-    ...receipt,
+    ...work,
     message:
       `Reused the receipt of job ${previous.job}: same commit, approval and worker build, so nothing ran. ${receipt.message ?? ''}`.trim(),
     unchangedSince: previous.job,

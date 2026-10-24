@@ -14,6 +14,7 @@ import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
 import { hostedPages } from './hosted-setup.ts';
 import { GitHubRequestError } from './github.ts';
+import { MIN_THROTTLE_SECONDS, readCpuTimes, stealShare, THROTTLED_STEAL } from './hosted-cpu.ts';
 import { isDatabaseUnavailable } from './hosted-database.ts';
 import { purgeUninstalled } from './hosted-retention.ts';
 import { processApprovalIssues } from './hosted-approval.ts';
@@ -310,6 +311,31 @@ export async function runHostedService(options: {
         installation: target.installationId,
         ...(level && { level }),
       });
+    // A job machine's CPU is not this machine's, so only in-VM jobs are measured.
+    // A diagnostic: an unreadable /proc/stat is logged and skipped, never allowed to lose the receipt.
+    const measureCpu = () =>
+      readCpuTimes().catch((error: unknown) => {
+        progress(
+          `CPU steal not measured: ${error instanceof Error ? error.message : String(error)}`,
+          'error',
+        );
+        return null;
+      });
+    const cpu = jobs ? null : await measureCpu();
+    const started = Date.now();
+    // Throttled installs and checks hit their time limits, which reads as the repository's failure.
+    const cpuSteal = async () => {
+      const after = cpu && (await measureCpu());
+      if (!cpu || !after || Date.now() - started < MIN_THROTTLE_SECONDS * MILLISECONDS_PER_SECOND)
+        return {};
+      const steal = stealShare(cpu, after);
+      if (steal >= THROTTLED_STEAL)
+        progress(
+          `CPU throttled: the host took ${Math.round(steal * 100)}% of this machine's CPU time during the job, so installs and checks ran slower and may have hit their time limits.`,
+          'error',
+        );
+      return { cpuSteal: Math.round(steal * 100) / 100 };
+    };
     const leaseMilliseconds = lease * MILLISECONDS_PER_SECOND;
     const renewEvery = leaseMilliseconds / RENEWALS_PER_LEASE;
     // The claim set the lease just before this job started.
@@ -425,6 +451,7 @@ export async function runHostedService(options: {
           ...outcome.receipt,
           fingerprint: target.approval.fingerprint,
           ...(build && { build }),
+          ...(await cpuSteal()),
         }),
       );
       // The receipt carries the error name from both runners, so a job machine's refusal counts too.
@@ -437,7 +464,12 @@ export async function runHostedService(options: {
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       const outcome = failedOutcome(error, controller.signal.aborted);
-      await store.finish(job, worker, outcome.status, redactReceipt(outcome.receipt));
+      await store.finish(
+        job,
+        worker,
+        outcome.status,
+        redactReceipt({ ...outcome.receipt, ...(await cpuSteal()) }),
+      );
       progress(`${error.name}: ${error.message}`, 'error');
     } finally {
       clearInterval(renewal);

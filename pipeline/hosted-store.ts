@@ -52,6 +52,8 @@ export interface HostedReceipt {
   message: string | null;
   revision?: string | null;
   readiness?: string | null;
+  // The host's share of the machine's CPU time during an in-VM job of at least 30 s.
+  cpuSteal?: number;
   // The approval and worker build the job ran with, and whether its after contract is fetched from
   // upstream: what a later scheduled poll compares before reusing this receipt.
   fingerprint?: string;

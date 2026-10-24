@@ -532,6 +532,10 @@ it('reuses a receipt only for a finished, ready job on the same commit, approval
     unchangedSince: 7,
   };
   expect(unchangedReceipt(previous, current)).toEqual(reused);
+  // Nothing ran in a reused job, so an earlier job's CPU steal is not carried over.
+  expect(
+    unchangedReceipt({ ...previous, receipt: { ...receipt, cpuSteal: 0.5 } }, current),
+  ).toEqual(reused);
   // A chain of reused receipts keeps pointing at the job that did the work, without repeating it.
   expect(unchangedReceipt({ job: 9, status: 'finished', receipt: reused }, current)).toEqual(
     reused,
