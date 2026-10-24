@@ -236,10 +236,12 @@ Do these once, in order. A lane that hits a missing item records it as Blocked a
 2. **Permissions.** Start each session in a mode that does not stop for approvals, with your main clone as its folder. A session waiting on a prompt does nothing all night.
 3. **GitHub.** `gh auth status` works; `gh repo view pierceluu10/Refit --json viewerPermission` says WRITE or ADMIN; `gh workflow list -R refit-dev/refit-bench` lists `Stripe benchmark`.
 4. **Docker.** Docker runs with about 8 GB for its VM, at least 40 GB of disk is free (`df -h ~`), and `docker image inspect node:22-alpine postgres:17-alpine` succeeds (pull them if not).
-5. **This file.** In your main clone: `git checkout main && git pull`, then `ln -sf "$PWD/OVERNIGHT-AGENTS.md" ~/OVERNIGHT-AGENTS.md`.
-6. **Pierce only.**
+5. **Your OpenAI key.** Write `~/.refit/overnight-ai.env` yourself, as in [owner decision 3](#owner-decisions-for-tonight), then `chmod 600` it and check it with `grep -c '^OPENAI_API_KEY=' ~/.refit/overnight-ai.env` (prints 1), never by printing it. Set the $40 project limit in the OpenAI dashboard.
+6. **This file.** In your main clone: `git checkout main && git pull`, then `ln -sf "$PWD/OVERNIGHT-AGENTS.md" ~/OVERNIGHT-AGENTS.md`.
+7. **Pierce only.**
    - `fly auth whoami` works and `fly status -a refit-hosted` shows the machine started.
-   - `~/.refit/hosted/database-url` exists (mode 600) and `~/.refit/benchmark.env` exists with an `OPENAI_API_KEY` line (check with `grep -c '^OPENAI_API_KEY=' ~/.refit/benchmark.env`, never by printing it).
+   - `~/.refit/hosted/database-url` exists (mode 600).
+   - `gh secret list -R refit-dev/refit-bench` shows `OPENAI_API_KEY` (set it with `gh secret set OPENAI_API_KEY -R refit-dev/refit-bench`, which prompts for the value).
    - Start P5 first: it opens the board and sets T0.
 
 ---
@@ -297,7 +299,7 @@ Pierce's machine holds the Fly access, the hosted database URL and the OpenAI ke
 
 **Measure.** Before/after table on the eligible set: validated, correct, partial, wrong, refused by the guard, spend.
 
-**Done when.** No AI patch that passes the guard is wrong on the eligible set, the guard's new refusals have tests, the spend is recorded and under $30, and `docs/overnight/P2.md` answers the design questions with numbers.
+**Done when.** No AI patch that passes the guard is wrong on the eligible set, the guard's new refusals have tests, the spend is recorded and under $20, and `docs/overnight/P2.md` answers the design questions with numbers.
 
 **Keep going.** The AI eval suite (`pipeline/ai-eval-cases.ts`) gets a case for each wrong class; held-out evaluation on repositories you did not tune on.
 
