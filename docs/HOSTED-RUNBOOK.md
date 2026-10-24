@@ -49,14 +49,15 @@ Sent when `REFIT_SLACK_WEBHOOK_URL` is set and a job ends `failed`, at most once
 1. `refit hosted receipt <n>` and read the message.
 2. Fix the cause, then [retry](#retry-a-job).
 
-| Outcome and message                                                              | Meaning and fix                                                                                                                       |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `interrupted`                                                                    | The worker stopped mid-job (deploy, restart, `fly secrets set`, lease renewal failure). Retry.                                        |
-| `error: Worker lease expired repeatedly…`                                        | Three workers in a row died holding this job: usually the Machine ran out of memory or crashed. Check `fly logs` for OOM, then retry. |
-| `error: PipelineInputError: Repository now belongs to another App installation.` | The repository moved. Check the installation in GitHub before retrying.                                                               |
-| `error: … Configured repository is unavailable, archived, disabled …`            | The App lost access or the repository was archived. Nothing to retry until access returns.                                            |
-| `error: Managed Git … failed: …`                                                 | Fetching the repository failed (GitHub outage, revoked access). Retry once GitHub is reachable.                                       |
-| any other `error`                                                                | A pipeline failure. The evidence directory holds the details.                                                                         |
+| Outcome and message                                                              | Meaning and fix                                                                                                                                                                     |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `interrupted`                                                                    | The worker stopped mid-job (deploy, restart, `fly secrets set`, lease renewal failure), before or during the workflow. Retry.                                                       |
+| `error: Worker lease expired repeatedly…`                                        | Three workers in a row died holding this job: usually the Machine ran out of memory or crashed. Check `fly logs` for OOM, then retry.                                               |
+| `error: PipelineInputError: Repository now belongs to another App installation.` | The repository moved. Check the installation in GitHub before retrying.                                                                                                             |
+| `error: … Configured repository is unavailable, archived, disabled …`            | The App lost access or the repository was archived. Nothing to retry until access returns.                                                                                          |
+| `error: Managed Git … failed: …`                                                 | Fetching the repository failed (GitHub outage, revoked access). Retry once GitHub is reachable.                                                                                     |
+| `error: Workflow failed during <stage>. … <ErrorName>: …`                        | The workflow stopped on an error in that stage, for example a dependency timeout or a Docker failure; the receipt ends with the error. The evidence directory keeps what completed. |
+| any other `error`                                                                | A pipeline failure. The evidence directory holds the details.                                                                                                                       |
 
 `needs-review` and `validation-failed` are not failures: the job finished and the receipt says what to review. They never send this notice. The workflow's own notices (draft PR ready, regression, publication failed partway) arrive as in `refit serve`; see [Slack notifications](SLACK.md).
 
@@ -75,12 +76,12 @@ The worker process is not listening. `fly status` and `fly logs`: a crash loop s
 
 ### Error log lines
 
-| `message` starts with          | Meaning                                                                                                                                                          |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Webhook processing failed:`   | A signed delivery was not stored and GitHub got a 500. Fix the cause (usually the database), then redeliver it from the App's Advanced → Recent Deliveries page. |
-| `Lease renewal failed:`        | The worker could not reach the database while a job ran; the job was stopped and will be `interrupted`.                                                          |
-| `Slack notification not sent:` | The Slack webhook failed or timed out. Jobs are unaffected.                                                                                                      |
-| `<ErrorName>: …` with a `job`  | That job failed; its receipt has the same message.                                                                                                               |
+| `message` starts with                       | Meaning                                                                                                                                                          |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Webhook processing failed:`                | A signed delivery was not stored and GitHub got a 500. Fix the cause (usually the database), then redeliver it from the App's Advanced → Recent Deliveries page. |
+| `Lease renewal failed:`                     | The worker could not reach the database while a job ran; the job was stopped and will be `interrupted`.                                                          |
+| `Slack notification not sent:`              | The Slack webhook failed or timed out. Jobs are unaffected.                                                                                                      |
+| `error: …` or `interrupted: …` with a `job` | That job failed; its receipt has the same message.                                                                                                               |
 
 `Lease lost or job cancelled; stopping.` (info) means the repository or installation was removed, or another worker reclaimed the job. GitHub shows 401 for deliveries signed with an old webhook secret and 409 for a reused delivery id with a different body; neither changes state.
 

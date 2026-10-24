@@ -430,7 +430,10 @@ export async function runHostedService(options: {
       // The receipt carries the error name from both runners, so a job machine's refusal counts too.
       if (options.approvalIssues && outcome.receipt.message?.startsWith('RepositoryApprovalError:'))
         await approvals.changed(target.repository);
-      progress(`${outcome.receipt.status}: ${outcome.receipt.message}`);
+      progress(
+        `${outcome.receipt.status}: ${outcome.receipt.message}`,
+        outcome.status === 'failed' ? 'error' : undefined,
+      );
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       const outcome = failedOutcome(error, controller.signal.aborted);
