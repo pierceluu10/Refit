@@ -309,6 +309,59 @@ export const auth = betterAuth({ plugins: [stripe({ stripeClient })] })
   });
 });
 
+it('names the tsconfig extends Refit does not read when shared clients stop for it', async () => {
+  const app = await repository();
+  await mkdir(join(app, 'refit'));
+  await mkdir(join(app, 'site'));
+  const files = {
+    'package.json': JSON.stringify({ dependencies: { stripe: '19.3.1' } }),
+    // hideokamoto/stripe-testing-mcp-tools: the docs site under site/ extends Astro's own tsconfig.
+    'site/tsconfig.json': `{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"]
+}
+`,
+    'site/astro.config.mjs': `// @ts-check
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+  site: process.env.SITE_URL ?? 'https://stripe-fixtures.pages.dev',
+});
+`,
+    'src/index.ts': `import Stripe from 'stripe';
+
+const createStripeClient = (apiKey?: string) => {
+  const stripe = new Stripe(apiKey!, {
+    apiVersion: '2026-08-26.dahlia',
+  });
+  return stripe;
+};
+
+export const createSession = () =>
+  createStripeClient(process.env.STRIPE_SECRET_KEY).checkout.sessions.create({ mode: 'payment' });
+`,
+    'refit/stripe-before.json': JSON.stringify(checkoutContract('2026-08-26.dahlia', ['mode'])),
+    'refit/stripe-after.json': JSON.stringify(checkoutContract('2026-09-30.endive', ['mode'])),
+    'refit/stripe.provider.json': JSON.stringify(checkoutProvider),
+    '.refit.json': JSON.stringify(stripeConfiguration),
+  };
+  for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
+  await commit(app);
+  const report = await inspectRepositoryReadiness({ repository: app });
+  // Before: "site/tsconfig.json: source alias resolution is unverified (invalid configuration,
+  // unavailable extends, project references or unsupported resolution options). …"
+  expect(report.checks.find((check) => check.id === 'source-resolution')).toEqual({
+    id: 'source-resolution',
+    title: 'Shared client resolution',
+    status: 'blocked',
+    detail:
+      'Refit cannot verify how imports resolve, because site/tsconfig.json extends astro/tsconfigs/strict, which Refit does not read, so it stops at clients shared between files.',
+    action:
+      'Nothing in your code needs to change: Refit reads only committed tsconfig files that an extends names by a relative path, so it stops here until it can read astro/tsconfigs/strict.',
+  });
+});
+
 it('names each method Refit does not map, at its first call, when it maps none', async () => {
   const app = await repository();
   await mkdir(join(app, 'refit'), { recursive: true });
