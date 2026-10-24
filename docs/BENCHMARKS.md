@@ -357,6 +357,27 @@ Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b
 - **Shopify schemas.** All four served Admin schemas differ from the SHA-256 pinned in the frozen list, so the setup script refuses fresh ones. Both runs used the same schemas, saved on October 22. They compare runs with each other, not with the pinned introspection.
 - **Not measured:** AI patches, publication, the other Stripe sets, and the new features the merges added, which are mostly off by default. An unchanged score shows the merges did not break these repositories; it does not measure what they add.
 
+## Hosted fork test (October 24)
+
+The single-tenant hosted worker (`refit hosted serve` on Fly, with `--publish-draft --ai-patch --repair-attempts 2` and a $2 AI cap) ran the whole hosted path on 8 Stripe forks in `refit-dev`: GitHub App installation, stored approval, managed checkout, offline Docker validation and draft publication by Refit Agent. The operator wrote each fork's `.refit.json` and checks, with `fullDiff: false` as in the benchmarks, and picked the forks from the frozen sets, so every outcome was predicted before the run. Final outcomes are from main `c6c7665`, read from the worker log; the drafts are on the forks, and the upstream repositories were not touched.
+
+| Fork                                 | Outcome                                                                                        |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| ai-companion                         | [Draft](https://github.com/refit-dev/ai-companion/pull/1), `tsc` before and after              |
+| full-stack-starter-kit               | [Draft](https://github.com/refit-dev/full-stack-starter-kit/pull/2), `tsc` before and after    |
+| spotify-clone                        | [Draft](https://github.com/refit-dev/spotify-clone/pull/1), `tsc` before and after             |
+| stripe_elements_customized_card_form | [Draft](https://github.com/refit-dev/stripe_elements_customized_card_form/pull/1), `node -e 0` |
+| web-scraping-course-app              | [Draft](https://github.com/refit-dev/web-scraping-course-app/pull/1), `node -e 0`              |
+| querypdf                             | Checks passed, untraced reads unresolved: not published                                        |
+| synthai                              | Stopped at `refit doctor`: dependency preparation inputs                                       |
+| miro-clone                           | Stopped at `refit doctor`: dependency preparation inputs                                       |
+
+- **Every outcome matched the prediction.** All 5 drafts come from deterministic rules. No AI request was made, so AI repair on the hosted worker is still unexercised.
+- **Two Linux-only bugs, both fixed.** The sandbox runs as an unprivileged user and the hosted worker as root, while Docker Desktop on macOS ignores folder modes, so local runs never met either. Candidate and generated folders were created by `mkdtemp`, readable only by their owner ([#242](https://github.com/pierceluu10/Refit/pull/242)), and `stripe-mock` contracts were mounted from private run artifacts ([#243](https://github.com/pierceluu10/Refit/pull/243)). Before the fixes no patched check could read its input, and `stripe-mock` never started.
+- **Shared CPU throttles.** On `shared-cpu-2x` the first full job took about 5 minutes. After an hour of back-to-back jobs, installs and type checks slowed until 2 jobs passed the 120-second check limit. On `performance-8x` the same retries took about 2 minutes each.
+- **Weak checks on two drafts.** stripe_elements_customized_card_form and web-scraping-course-app have no tests, so the operator's check was `node -e 0`, and generated `stripe-mock` checks found no entry point in either. Those drafts show that the patch applies, not that the code works. spotify-clone's one `stripe-mock` entry point could not run on its own.
+- **Not measured:** AI patches, approval issues, more than one installation, and draft updates: full-stack-starter-kit opened a second draft beside one from an earlier local run instead of updating it.
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

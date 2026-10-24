@@ -15749,6 +15749,68 @@
           "reason": "Part of the hash algorithm name SHA-256."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "The single-tenant hosted worker (`refit hosted serve` on Fly, with `--publish-draft --ai-patch --repair-attempts 2` and a $2 AI cap) ran the whole hosted path on 8 Stripe forks in `refit-dev`: GitHub App installation, stored approval, managed checkout, offline Docker validation and draft publication by Refit Agent.",
+      "values": [
+        {
+          "says": "8",
+          "notCheckable": "From the hosted fork test on the Fly worker (October 24, main c6c7665), read from the worker log; the drafts are linked in the section, and no results file is committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "$2",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "All 5 drafts come from deterministic rules.",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the hosted fork test on the Fly worker (October 24, main c6c7665), read from the worker log; the drafts are linked in the section, and no results file is committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "On `shared-cpu-2x` the first full job took about 5 minutes.",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the hosted fork test on the Fly worker (October 24, main c6c7665), read from the worker log; the drafts are linked in the section, and no results file is committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "After an hour of back-to-back jobs, installs and type checks slowed until 2 jobs passed the 120-second check limit.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the hosted fork test on the Fly worker (October 24, main c6c7665), read from the worker log; the drafts are linked in the section, and no results file is committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "120",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "On `performance-8x` the same retries took about 2 minutes each.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the hosted fork test on the Fly worker (October 24, main c6c7665), read from the worker log; the drafts are linked in the section, and no results file is committed."
+        }
+      ]
     }
   ]
 }

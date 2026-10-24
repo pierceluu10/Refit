@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 24 checkpoint: hosted validation on Linux (unreleased, after 0.39.0)
+
+The first hosted fork test ran the full path on the Fly worker: installation, stored approval, offline Docker validation and draft publication ([results](BENCHMARKS.md#hosted-fork-test-october-24)). It found two Linux-only failures that local runs could not, because Docker Desktop on macOS ignores folder modes: the unprivileged sandbox user could not read candidate or generated folders made by `mkdtemp` (#242), or `stripe-mock` contracts mounted from private run artifacts (#243). Both are fixed; generated checks now mount read-only copies, and run artifacts stay private. Fly shared CPUs throttle under back-to-back jobs until checks pass the check limit, so sustained hosted use needs a performance machine. Not exercised on the hosted worker: AI repair, approval issues, and more than one installation.
+
 ## October 23 checkpoint: hosted AI cap across installations (unreleased, after 0.39.0)
 
 With `--ai-patch`, `refit hosted serve` now caps AI spend across every installation, not only per installation. Each request reserves against its installation's ledger and against one total ledger (`refit_ai_total_ledger`, hosted migration 10), and is sent only when both have room. The total cap is `REFIT_HOSTED_AI_BUDGET_USD`; unset, it equals `REFIT_AI_BUDGET_USD`, so allowing more accounts does not multiply exposure until the operator raises it. Local `refit run` is unchanged. Tests: `pipeline/ai-budget.test.ts` (file ledgers) and `pipeline/hosted-tenancy.test.ts` (PostgreSQL, gated by `REFIT_POSTGRES_URL`). Not exercised against the live hosted worker or OpenAI.
