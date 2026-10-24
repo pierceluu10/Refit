@@ -1,5 +1,6 @@
+import { join } from 'node:path';
 import type { Pool, PoolClient } from 'pg';
-import type { AiLedger } from './ai-budget.ts';
+import { changeAiBudgetLimit, type AiLedger, type AiLedgerSummary } from './ai-budget.ts';
 import type { GitHubWebhook } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
 import { transaction } from './hosted-database.ts';
@@ -602,6 +603,60 @@ export async function openHostedStore(
       }),
   });
 
+  // Every stored AI ledger, read without changing it.
+  const aiLedgerStates = async () => {
+    const [installations, total] = await Promise.all([
+      pool.query<{ id: string; state: Record<string, unknown> }>(
+        `SELECT installation_id::text AS id, state FROM refit_ai_ledgers
+         WHERE state IS NOT NULL ORDER BY installation_id`,
+      ),
+      pool.query<{ state: Record<string, unknown> }>(
+        'SELECT state FROM refit_ai_total_ledger WHERE state IS NOT NULL',
+      ),
+    ]);
+    return {
+      installations: installations.rows.map((row) => ({
+        installationId: Number(row.id),
+        state: row.state,
+      })),
+      total: total.rows[0]?.state ?? null,
+    };
+  };
+
+  // Moves every recorded installation's AI ledger, and the ledger across installations, to new
+  // limits while keeping recorded spend. A job's requests reserve against the limits it started
+  // with, so this is refused while one runs.
+  const changeAiLimits = async (
+    limits: { installationUsd?: number; totalUsd?: number },
+    legacyDirectory?: string,
+  ) => {
+    if ((await leases()).size)
+      throw new PipelineInputError('A job is running; change AI limits once no job runs.');
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id::text FROM refit_installations
+       UNION SELECT installation_id::text FROM refit_ai_ledgers ORDER BY 1`,
+    );
+    const installations: { installationId: number; summary: AiLedgerSummary }[] = [];
+    if (limits.installationUsd !== undefined)
+      for (const installationId of rows.map((row) => Number(row.id)))
+        installations.push({
+          installationId,
+          summary: await changeAiBudgetLimit(
+            aiLedger(
+              installationId,
+              legacyDirectory &&
+                join(legacyDirectory, `installation-${installationId}`, 'budget.json'),
+            ),
+            limits.installationUsd,
+          ),
+        });
+    const total =
+      limits.totalUsd === undefined
+        ? null
+        : await changeAiBudgetLimit(aiTotalLedger(), limits.totalUsd);
+    return { installations, total };
+  };
+
   // Running jobs whose lease is still live, with the worker holding each.
   const leases = async () =>
     new Map(
@@ -686,6 +741,8 @@ export async function openHostedStore(
     reserveInventory,
     aiLedger,
     aiTotalLedger,
+    aiLedgerStates,
+    changeAiLimits,
     leases,
   };
 }
