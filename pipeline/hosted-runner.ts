@@ -83,6 +83,10 @@ export function failedOutcome(error: Error, aborted: boolean): HostedOutcome {
   };
 }
 
+// The Stripe contracts of generated configurations, shared by every target and the approval issues:
+// each file is one pinned stripe/openapi version, checked on read.
+export const hostedContracts = (directory: string) => join(directory, 'contracts');
+
 // Runs one hosted job in this process. The in-VM worker and every job machine share it.
 export async function runHostedTarget(options: {
   target: HostedTarget;
@@ -116,8 +120,7 @@ export async function runHostedTarget(options: {
       publishDraft: options.publishDraft,
       notify: options.notify,
       inspectReadiness: true,
-      // Shared by every target: each file is one pinned stripe/openapi version, checked on read.
-      contracts: join(options.directory, 'contracts'),
+      contracts: hostedContracts(options.directory),
       onProgress: options.onProgress,
     });
     return {

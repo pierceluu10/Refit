@@ -20,6 +20,7 @@ import { processApprovalIssues } from './hosted-approval.ts';
 import { openApprovalStore } from './hosted-approval-store.ts';
 import {
   failedOutcome,
+  hostedContracts,
   JOB_POLL_SECONDS,
   JOB_TIMEOUT_SECONDS,
   jobChannel,
@@ -631,6 +632,7 @@ export async function runHostedService(options: {
           await processApprovalIssues({
             app: options.app,
             directory: join(directory, 'approvals'),
+            contracts: hostedContracts(directory),
             store,
             approvals,
             signal: options.signal,

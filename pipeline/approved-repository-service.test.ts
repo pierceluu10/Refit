@@ -1,8 +1,14 @@
-import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { stripeContractFile, stripeContractVersion } from './enrollment-contracts.ts';
+import {
+  GENERATED_REPOSITORY,
+  GENERATED_VERSIONS,
+  SAVED_CONTRACTS,
+  savedContractDownloads,
+} from './fixtures/approved-repository.ts';
 import { gitEnvironment } from './git-environment.ts';
 import {
   approveRepositoryEnrollment,
@@ -12,7 +18,6 @@ import {
 import { pollServiceTarget } from './service-worker.ts';
 import { runLocalService } from './local-service.ts';
 import { readServiceConfiguration, type ServiceTarget } from './service-configuration.ts';
-import { stripeSpecificationUrl } from './specifications.ts';
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
 import { verifyArtifacts } from './verification.ts';
 import * as watch from './watch.ts';
@@ -70,20 +75,6 @@ const fixture = resolve('pipeline/fixtures/endpoint-replacement');
 const APP = { appId: '123', privateKeyFile: 'unused-test-key' };
 const WEBHOOK_SECRET = 'webhook-secret-for-approved-profile-tests-123';
 const CONTROL_TOKEN = 'control-secret-for-approved-profile-tests-456';
-// Real Stripe contracts are 7 MB each, so the approved generated configuration runs only against a
-// saved directory: REFIT_STRIPE_CONTRACTS=~/.refit/contracts after refit stripe-snapshot --version
-// 2026-04-22.dahlia --version 2026-09-30.endive.
-const SAVED_CONTRACTS = process.env.REFIT_STRIPE_CONTRACTS;
-const GENERATED_VERSIONS = ['2026-04-22.dahlia', '2026-09-30.endive'];
-// The client Ankit-Sharma1011/Quill's src/lib/stripe.ts, as in the P3 enrollment sample.
-const GENERATED_CLIENT = `import Stripe from "stripe";
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2026-04-22.dahlia",
-  typescript: true,
-});
-`;
-
 afterEach(async () => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -178,26 +169,7 @@ async function setupGenerated() {
   const root = await mkdtemp(join(tmpdir(), 'refit-generated-app-'));
   roots.push(root);
   transport.source = join(root, 'source');
-  await mkdir(join(transport.source, 'src/lib'), { recursive: true });
-  await writeFile(
-    join(transport.source, 'package.json'),
-    JSON.stringify({
-      name: 'app',
-      scripts: { test: 'vitest run' },
-      dependencies: { stripe: '^22.1.1' },
-    }),
-  );
-  await writeFile(
-    join(transport.source, 'package-lock.json'),
-    JSON.stringify({
-      lockfileVersion: 3,
-      packages: {
-        '': { dependencies: { stripe: '^22.1.1' } },
-        'node_modules/stripe': { version: '22.1.1' },
-      },
-    }),
-  );
-  await writeFile(join(transport.source, 'src/lib/stripe.ts'), GENERATED_CLIENT);
+  await cp(GENERATED_REPOSITORY, transport.source, { recursive: true });
   await transport.native!(['init', '--quiet', '--initial-branch=main'], transport.source);
   await commit();
   return {
@@ -439,24 +411,8 @@ it.skipIf(!SAVED_CONTRACTS)(
       fingerprint: enrollment.fingerprint,
       output: join(sample.root, 'approval.json'),
     });
-    // The pinned stripe/openapi commits, served from the saved snapshots instead of GitHub.
-    const served = new Map(
-      await Promise.all(
-        GENERATED_VERSIONS.map(async (version) => {
-          const saved = join(SAVED_CONTRACTS!, stripeContractFile(version));
-          const { content } = JSON.parse(await readFile(saved, 'utf8')) as { content: string };
-          return [stripeSpecificationUrl(stripeContractVersion(version)!.commit), content] as const;
-        }),
-      ),
-    );
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url: string) => {
-        const content = served.get(url);
-        if (content === undefined) throw new Error(`Unexpected request to ${url}`);
-        return new Response(content);
-      }),
-    );
+    const downloads = await savedContractDownloads(SAVED_CONTRACTS!);
+    vi.stubGlobal('fetch', vi.fn(downloads.respond));
     const input = {
       ...sample.input,
       target: generatedTarget(approval),
@@ -465,7 +421,7 @@ it.skipIf(!SAVED_CONTRACTS)(
     // The hosted worker runs refit doctor first. The approval loads and the contracts check passes;
     // this two-file fixture still lacks an installed SDK, so doctor stops before scanning.
     const hosted = await pollServiceTarget({ ...input, inspectReadiness: true });
-    expect(vi.mocked(globalThis.fetch).mock.calls.map(([url]) => url)).toEqual([...served.keys()]);
+    expect(vi.mocked(globalThis.fetch).mock.calls.map(([url]) => url)).toEqual(downloads.urls);
     expect((await readdir(join(sample.contracts, 'refit'))).sort()).toEqual(
       GENERATED_VERSIONS.map((version) => stripeContractFile(version).slice('refit/'.length)),
     );
