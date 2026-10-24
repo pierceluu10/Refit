@@ -1,0 +1,2313 @@
+{
+  "formatVersion": 1,
+  "description": "P3 zero-configuration enrollment: each repository of docs/benchmarks/subsets/p3-enrollment.json through refit enroll and refit doctor with no hand edits. before = main fc4dc00, the configuration refit agents --add proposes committed as is, then with each hand edit; after = feat/p3-zero-config bb202d7, no .refit.json committed. Read-only: no repository code ran. fullDiffFalse is a counterfactual doctor run of the generated configuration with fullDiff false, not a default.",
+  "before": {
+    "commit": "fc4dc00fd9b57b39a15ff26a178f775605510971",
+    "command": "npm run benchmark:enrollment -- --root <root> --list docs/benchmarks/subsets/p3-enrollment.json --mode scaffold --output <results.json>"
+  },
+  "after": {
+    "commit": "bb202d7",
+    "command": "npm run benchmark:enrollment -- --root <root> --list docs/benchmarks/subsets/p3-enrollment.json --mode generated --contracts ~/.refit/contracts --output <results.json>"
+  },
+  "rows": [
+    {
+      "repo": "Ankit-Sharma1011/Quill",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2026-04-22.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage", "dependencies"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "dependencies"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-04-22.dahlia",
+          "source": "set at src/lib/stripe.ts:7"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["dependencies"]
+      }
+    },
+    {
+      "repo": "CapChris20/Retronix-Wallpapers-Startup",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2025-05-28.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-checks"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "Shivamrai15/Spotify-Clone",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2023-10-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-checks"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "passion-27/QuotesAI",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2024-04-10",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage", "dependencies"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "dependencies"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2024-04-10",
+          "source": "set at lib/stripe.ts:3, pages/api/checkout.ts:8"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["dependencies"]
+      }
+    },
+    {
+      "repo": "afdon/music-app",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2022-11-15",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2022-11-15",
+          "source": "set at libs/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "karanchhina/playground0",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2023-10-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-checks"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "airwaylab-app/airwaylab",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2026-02-25.clover",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-02-25.clover",
+          "source": "set at app/api/create-checkout-session/route.ts:73, app/api/customer-portal/route.ts:68, app/api/delete-user-data/route.ts:20 and 3 more; Refit cannot follow every use of the client at app/api/cron/subscription-drift/route.ts:155, so check that no request there sends another version"
+        },
+        "checks": "tests"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "amahmood-pci/pci-update",
+      "set": "2026-10-16-stripe-active",
+      "packageManager": "npm",
+      "listBefore": "2025-02-24.acacia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-02-24.acacia",
+          "source": "the default of stripe-node 17.7.0, which the lockfile records"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "psykat1116/Planit",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2024-04-10",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2024-04-10",
+          "source": "set at lib/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "WalterIt/Better-Auth-Template",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2025-10-29.clover",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "sdk-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-10-29.clover",
+          "source": "set at auth.ts:23; Refit cannot follow every use of the client at auth.ts:23, so check that no request there sends another version"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["sdk-coverage"]
+      }
+    },
+    {
+      "repo": "Auriti-Labs/geo-score",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2026-02-25.clover",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-02-25.clover",
+          "source": "set at src/lib/stripe.ts:10"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "vukrosic/next14-skool",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2023-10-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2023-10-16",
+          "source": "set at convex/stripe.ts:27"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "KyngKai909/nova-editor",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2026-05-27.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-05-27.dahlia",
+          "source": "the default of stripe-node 22.2.1, which the lockfile records"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "papotte/stundenzettel",
+      "set": "2026-10-16-stripe-active",
+      "packageManager": "npm",
+      "listBefore": "2025-06-30.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-06-30.basil",
+          "source": "set at functions/src/index.ts:198, scripts/test-full-subscription-flow.js:13, scripts/test-webhook-flow.js:15 and 8 more; Refit cannot follow every use of the client at src/services/stripe/checkout.ts:6, src/services/stripe/team-checkout.ts:6, src/services/stripe/customer-portal.ts:3 and 3 more, so check that no request there sends another version"
+        },
+        "checks": "tests"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "tmsteph/3dvr-portal",
+      "set": "2026-10-16-stripe-active",
+      "packageManager": "npm",
+      "listBefore": "2023-10-16",
+      "before": {
+        "crash": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total)."
+      },
+      "after": {
+        "enrolled": false,
+        "status": null,
+        "blocked": [],
+        "crash": "PipelineInputError: Repository exceeds scan limits (10,000 files, 2 MiB per file, 50 MiB total).",
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "PranjalTheCoder/Sommaire",
+      "set": "2026-10-14-stripe",
+      "packageManager": "npm",
+      "listBefore": "2025-05-28.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-05-28.basil",
+          "source": "the default of stripe-node 18.2.1, which the lockfile records; Refit cannot follow every use of the client at app/api/payments/route.ts:8, so check that no request there sends another version"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "siavashsk/spotify-clone",
+      "set": "2026-10-15-stripe-heldout",
+      "packageManager": "npm",
+      "listBefore": "2023-10-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2023-10-16",
+          "source": "set at libs/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "kaorii-ako/Shiori-v1",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2025-02-24.acacia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["repository", "analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["repository", "source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["repository", "migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-checks"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "OwnTube-tv/peertube-plugin-premium-users",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2025-04-30.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-stripe-client"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "Openpod/impractical-video",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2026-06-24.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-06-24.dahlia",
+          "source": "the default of stripe-node 22.3.1, which the lockfile records"
+        },
+        "checks": "tests"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "kpirabaharan/Spotify-Clone",
+      "set": "2026-10-14-stripe",
+      "packageManager": "npm",
+      "listBefore": "2022-11-15",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2022-11-15",
+          "source": "set at libs/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "heyitsadityaa/ticketr",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2025-07-30.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-07-30.basil",
+          "source": "set at lib/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "hideokamoto/stripe-testing-mcp-tools",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2026-05-27.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["source-resolution", "migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-05-27.dahlia",
+          "source": "set at src/index.ts:44; Refit cannot follow every use of the client at src/index.ts:44, so check that no request there sends another version"
+        },
+        "checks": "tests"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["source-resolution"]
+      }
+    },
+    {
+      "repo": "arebrinkemil/mp3streamer",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "npm",
+      "listBefore": "2022-11-15",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-stripe-client"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "mickelsamuel/migrationpilot",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2026-07-29.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-07-29.dahlia",
+          "source": "the default of stripe-node 22.5.0, which the lockfile records"
+        },
+        "checks": "tests"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "KiranRevanna1/taxonomy",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2022-11-15",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage", "dependencies"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "dependencies"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2022-11-15",
+          "source": "set at lib/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["dependencies"]
+      }
+    },
+    {
+      "repo": "wevm/curl.md",
+      "set": "2026-10-14-stripe",
+      "packageManager": "pnpm",
+      "listBefore": "2026-02-25.clover",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": [
+            "source-provenance",
+            "source-resolution",
+            "api-version",
+            "migration-coverage",
+            "dependencies"
+          ]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": [
+            "source-provenance",
+            "source-resolution",
+            "migration-coverage",
+            "dependencies"
+          ]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["api-version-unreadable"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "ItusiAI/Open-Magiviz",
+      "set": "2026-10-14-stripe",
+      "packageManager": "pnpm",
+      "listBefore": "2026-01-28.clover",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage", "dependencies"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "dependencies"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-01-28.clover",
+          "source": "set at lib/stripe.ts:9, app/api/stripe/customer-portal/route.ts:9, app/api/stripe/webhook/route.ts:15"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["dependencies"]
+      }
+    },
+    {
+      "repo": "boristenkes/shop.co",
+      "set": "2026-10-14-stripe",
+      "packageManager": "pnpm",
+      "listBefore": "2025-04-30.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["source-provenance", "migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-04-30.basil",
+          "source": "set at lib/stripe.ts:4"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["source-provenance"]
+      }
+    },
+    {
+      "repo": "ericz99/useauro",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2025-08-27.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "sdk-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-08-27.basil",
+          "source": "set at lib/auth.ts:9; Refit cannot follow every use of the client at lib/auth.ts:9, so check that no request there sends another version"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["sdk-coverage"]
+      }
+    },
+    {
+      "repo": "Miguel07Alm/text2question",
+      "set": "2026-10-14-stripe",
+      "packageManager": "pnpm",
+      "listBefore": "2025-04-30.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage", "dependencies"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "dependencies"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-04-30.basil",
+          "source": "set at src/lib/stripe.ts:9"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["dependencies"]
+      }
+    },
+    {
+      "repo": "LucasKlemke/StudMed",
+      "set": "2026-10-15-stripe-heldout",
+      "packageManager": "pnpm",
+      "listBefore": "2025-03-31.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage", "dependencies"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "dependencies"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-03-31.basil",
+          "source": "the default of stripe-node 18.0.0, which the lockfile records"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["dependencies"]
+      }
+    },
+    {
+      "repo": "axelker/next-js-dashboard-better-auth-stripe",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2025-05-28.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-05-28.basil",
+          "source": "set at lib/auth.ts:9; Refit cannot follow every use of the client at lib/auth.ts:9, so check that no request there sends another version"
+        },
+        "checks": "tests"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "workos/next-b2b-starter-kit",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2026-06-24.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-06-24.dahlia",
+          "source": "the default of stripe-node 22.3.2, which the lockfile records; Refit cannot follow every use of the client at src/app/api/stripe.ts:3, so check that no request there sends another version"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "kevinknielsen/superfan-core",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2024-06-20",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["api-version-unreadable"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "deniaiapp/deni-ai",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2026-03-25.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage", "dependencies"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["api-version-unreadable"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "steven-tey/extrapolate",
+      "set": "2026-10-14-stripe",
+      "packageManager": "pnpm",
+      "listBefore": "2024-04-10",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2024-04-10",
+          "source": "the default of stripe-node 15.6.0, which the lockfile records"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "hex22a/techwear-shop-nextjs",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2025-11-17.clover",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["api-version-unreadable"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "bolg55/fastify_starter",
+      "set": "2026-10-14-stripe",
+      "packageManager": "pnpm",
+      "listBefore": "2023-10-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["workspace-package"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "csuermann/virtual-smart-home",
+      "set": "2026-10-14-stripe",
+      "packageManager": "pnpm",
+      "listBefore": "2023-08-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2023-08-16",
+          "source": "set at subscription.ts:18, backendApi.ts:39"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "tarkovtracker-org/TarkovTracker",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "pnpm",
+      "listBefore": "2026-08-26.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": [
+            "source-resolution",
+            "api-version",
+            "migration-coverage",
+            "sdk-coverage",
+            "dependencies"
+          ]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "migration-coverage", "sdk-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-stripe-client"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "BeigeTechLA/beige-tech-mobile-web-api-2",
+      "set": "2026-10-16-stripe-active",
+      "packageManager": "pnpm",
+      "listBefore": "2022-11-15",
+      "before": {
+        "crash": "The measurement could not commit the proposed .refit.json: the repository's .gitignore ignores *.json, so a customer must git add -f it."
+      },
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["api-version-unreadable"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "shaoxuan0916/life-slice",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "yarn",
+      "listBefore": "2025-01-27.acacia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-01-27.acacia",
+          "source": "set at lib/stripe.ts:5, app/api/webhook/stripe/route.ts:10"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "SeaMossBros/sea-moss-api",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "yarn",
+      "listBefore": "2023-08-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage", "dependencies"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-checks"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "acm-uiuc/core",
+      "set": "2026-10-15-stripe-heldout",
+      "packageManager": "yarn",
+      "listBefore": "2026-08-26.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["workspace-package"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "Strata-Labs/BitScript",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "yarn",
+      "listBefore": "2023-10-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2023-10-16",
+          "source": "the default of stripe-node 14.3.0, which the lockfile records"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "ahmedaliofficial/latest-nestjs-stripe",
+      "set": "2026-10-14-stripe",
+      "packageManager": "yarn",
+      "listBefore": "2024-04-10",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["api-version-unreadable"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "AlefeSk8/Spotify-Clone-Next.js",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "yarn",
+      "listBefore": "2022-11-15",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2022-11-15",
+          "source": "set at libs/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "starwidesolutions/b2b-ecommerce-saaskit-",
+      "set": "2026-10-14-stripe",
+      "packageManager": "yarn",
+      "listBefore": "2022-11-15",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-stripe-client"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "naveennaidu/OpenformStack",
+      "set": "2026-10-14-stripe",
+      "packageManager": "yarn",
+      "listBefore": "2023-08-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis", "dependencies"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": [
+            "source-resolution",
+            "api-version",
+            "migration-coverage",
+            "sdk-coverage",
+            "dependencies"
+          ]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-resolution", "migration-coverage", "sdk-coverage", "dependencies"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-checks", "no-stripe-client"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "ahmadk953/tasko",
+      "set": "2026-10-15-stripe-heldout",
+      "packageManager": "yarn",
+      "listBefore": "2026-02-25.clover",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["source-provenance", "migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2026-02-25.clover",
+          "source": "set at lib/stripe.ts:3; Refit cannot follow every use of the client at lib/stripe.ts:3, so check that no request there sends another version"
+        },
+        "checks": "tests"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["source-provenance"]
+      }
+    },
+    {
+      "repo": "bichsonnhat/cognito",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "yarn",
+      "listBefore": "2025-03-31.basil",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["repository", "analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["repository", "source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["repository", "migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["repository", "migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2025-03-31.basil",
+          "source": "set at lib/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["repository"]
+      }
+    },
+    {
+      "repo": "vignesh-gupta/digibee-marketplace",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "yarn",
+      "listBefore": "2024-12-18.acacia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2024-12-18.acacia",
+          "source": "set at src/lib/stripe.ts:3"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "ready-for-validation",
+        "blocked": []
+      }
+    },
+    {
+      "repo": "michaelshimeles/guru-catcher",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "yarn",
+      "listBefore": "2023-10-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": true,
+        "status": "needs-attention",
+        "blocked": ["migration-coverage", "sdk-coverage"],
+        "crash": null,
+        "apiVersion": {
+          "value": "2023-10-16",
+          "source": "set at app/api/payment/route.ts:9, app/api/sales-data/route.ts:15, app/api/verify/route.ts:56; Refit cannot follow every use of the client at app/api/verify/route.ts:56, so check that no request there sends another version"
+        },
+        "checks": "typecheck"
+      },
+      "fullDiffFalse": {
+        "status": "needs-attention",
+        "blocked": ["sdk-coverage"]
+      }
+    },
+    {
+      "repo": "Ardione321/prep-ai",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "none",
+      "listBefore": "2025-02-24.acacia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-lockfile", "stripe-not-locked"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "techblitzdev/TechBlitz",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "none",
+      "listBefore": "2025-01-27.acacia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-lockfile"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "Rohit19060/stripe_hono",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "none",
+      "listBefore": "2023-10-16",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-lockfile", "no-checks", "stripe-not-locked"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "1jmdev/StripeGate",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "none",
+      "listBefore": "2025-12-15.clover",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-lockfile", "stripe-not-locked"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "kovrichard/catalyst",
+      "set": "2026-10-14-stripe",
+      "packageManager": "none",
+      "listBefore": "2026-06-24.dahlia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["api-version", "migration-coverage", "sdk-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["migration-coverage", "sdk-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-lockfile"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    },
+    {
+      "repo": "nirholas/memescope-monday",
+      "set": "2026-10-16-stripe-fresh",
+      "packageManager": "none",
+      "listBefore": "2025-02-24.acacia",
+      "before": [
+        {
+          "edit": "none",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["analysis"]
+        },
+        {
+          "edit": "contracts",
+          "enrolled": false,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "api-version", "migration-coverage"]
+        },
+        {
+          "edit": "apiVersion",
+          "enrolled": true,
+          "status": "needs-attention",
+          "blocked": ["source-provenance", "migration-coverage"]
+        }
+      ],
+      "after": {
+        "enrolled": false,
+        "status": "needs-attention",
+        "blocked": ["no-lockfile", "stripe-not-locked"],
+        "crash": null,
+        "apiVersion": null,
+        "checks": null
+      },
+      "fullDiffFalse": null
+    }
+  ]
+}

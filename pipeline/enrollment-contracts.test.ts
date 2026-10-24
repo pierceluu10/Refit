@@ -26,6 +26,7 @@ async function directory() {
   return root;
 }
 
+// A new frozen list that pins another tag fails here: run scripts/stripe-openapi-versions.mjs again.
 it('names exactly the stripe/openapi tags the frozen benchmark lists pin, oldest first', async () => {
   const pinned = new Map<string, string>();
   for (const name of await readdir('docs/benchmarks')) {

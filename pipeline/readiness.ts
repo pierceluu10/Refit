@@ -107,6 +107,18 @@ async function inspectCheck<T>(
   }
 }
 
+async function committedRepositoryCheck(repository: string) {
+  const snapshot = await inspectCheck(
+    'repository',
+    'Committed repository',
+    'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
+    () => readCommittedRepository(repository),
+  );
+  if (snapshot.value)
+    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.`;
+  return snapshot;
+}
+
 // What doctor checks in a repository that commits no .refit.json: the configuration enrollment
 // generates for it, read from the saved contracts, or why there is none. A repository without
 // Stripe keeps the guidance to add an agent.
@@ -208,6 +220,9 @@ export async function inspectRepositoryReadiness(options: {
         )
       : undefined;
   if (generated && !generated.workflow) {
+    // Every blocker at once, so a repository that also has, say, a submodule hears it now.
+    const snapshot = await committedRepositoryCheck(dirname(configurationPath));
+    if (snapshot.check.status === 'blocked') report.checks.push(snapshot.check);
     report.checks.push(...generated.checks);
     return report;
   }
@@ -270,12 +285,7 @@ export async function inspectRepositoryReadiness(options: {
   }
   report.repository = resolve(repository);
   const [snapshot, scan, image] = await Promise.all([
-    inspectCheck(
-      'repository',
-      'Committed repository',
-      'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
-      () => readCommittedRepository(repository),
-    ),
+    committedRepositoryCheck(repository),
     inspectCheck(
       'analysis',
       'Contracts and adapter',
@@ -321,7 +331,6 @@ export async function inspectRepositoryReadiness(options: {
   if (snapshot.value) {
     report.repository = snapshot.value.directory;
     report.revision = snapshot.value.revision;
-    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.`;
   }
   if (scan.value) {
     const evidence = scan.value;
