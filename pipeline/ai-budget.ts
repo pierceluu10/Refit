@@ -183,6 +183,64 @@ function pricesFor(model: string, budget: AiBudget) {
   return prices;
 }
 
+// A stored ledger whose limit, spend and reservations are well formed, whatever its limit.
+function intactLedger(value: Record<string, unknown>) {
+  return (
+    value.formatVersion === 1 &&
+    Number.isSafeInteger(value.limitNano) &&
+    Number(value.limitNano) > 0 &&
+    Number.isSafeInteger(value.spentNano) &&
+    Number(value.spentNano) >= 0 &&
+    isObject(value.reservations) &&
+    Object.values(value.reservations).every(
+      (amount) => Number.isSafeInteger(amount) && Number(amount) >= 0,
+    )
+  );
+}
+
+export interface AiLedgerSummary {
+  limitUsd: number;
+  spentUsd: number;
+  // Requests that reserved their maximum cost and have not settled, including ones that failed.
+  reservedUsd: number;
+  reservations: number;
+}
+
+// What a stored ledger has recorded.
+export function summarizeAiLedger(value: Record<string, unknown>): AiLedgerSummary {
+  if (!intactLedger(value))
+    throw new PipelineInputError(
+      'AI budget state is invalid. Inspect the ledger before starting a new budget.',
+    );
+  const reservations = Object.values(value.reservations as Record<string, number>);
+  return {
+    limitUsd: Number(value.limitNano) / NANO_USD_PER_USD,
+    spentUsd: Number(value.spentNano) / NANO_USD_PER_USD,
+    reservedUsd: reservations.reduce((sum, amount) => sum + amount, 0) / NANO_USD_PER_USD,
+    reservations: reservations.length,
+  };
+}
+
+// Moves a ledger to a new limit and keeps its recorded spend and open reservations, so raising or
+// lowering a configured limit never forgets money already spent. A ledger nothing has used yet
+// starts at the new limit.
+export async function changeAiBudgetLimit(ledger: AiLedger, limitUsd: number) {
+  let summary: AiLedgerSummary | undefined;
+  await ledger.update((stored) => {
+    if (stored) summarizeAiLedger(stored);
+    const state = {
+      formatVersion: 1,
+      spentNano: 0,
+      reservations: {},
+      ...stored,
+      limitNano: Math.floor(limitUsd * NANO_USD_PER_USD),
+    };
+    summary = summarizeAiLedger(state);
+    return state;
+  });
+  return summary as AiLedgerSummary;
+}
+
 type AiSettlement = (
   usage: AiUsage | null,
   responseModel: string,
@@ -212,16 +270,7 @@ export async function reserveAiBudget(
       reservations: {},
     },
   ) => {
-    if (
-      value.formatVersion !== 1 ||
-      value.limitNano !== limitNano ||
-      !Number.isSafeInteger(value.spentNano) ||
-      Number(value.spentNano) < 0 ||
-      !isObject(value.reservations) ||
-      !Object.values(value.reservations).every(
-        (amount) => Number.isSafeInteger(amount) && Number(amount) >= 0,
-      )
-    )
+    if (!intactLedger(value) || value.limitNano !== limitNano)
       throw new PipelineInputError(
         'AI budget state is invalid or its configured limit changed. Inspect the ledger before starting a new budget.',
       );

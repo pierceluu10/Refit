@@ -115,6 +115,21 @@ fly ssh console -a refit-hosted -C "refit hosted retry --target <id>"
 
 It queues one fresh attempt, or marks the already-queued job as a retry. It refuses while the target has a running job and for a target that is not enrolled. Approval and access gates still apply. With `--ai-patch` in `REFIT_HOSTED_FLAGS`, a retried job can spend the installation's AI budget, and with `--publish-draft` it can open a draft PR.
 
+## Change the AI cap
+
+Each installation's ledger and the ledger across installations store the limit they were created with. A worker whose `REFIT_AI_BUDGET_USD` or `REFIT_HOSTED_AI_BUDGET_USD` differs from the stored limit refuses every AI request (`AI budget state is invalid or its configured limit changed`), so changing a cap takes three steps, run when no job runs:
+
+```sh
+fly ssh console -a refit-hosted -C "refit hosted ai-budget"   # read-only: limit, spend and open reservations per ledger
+fly secrets set -a refit-hosted --stage REFIT_AI_BUDGET_USD=10 REFIT_HOSTED_AI_BUDGET_USD=10
+fly ssh console -a refit-hosted -C "refit hosted ai-budget --limit 10 --total-limit 10"
+fly machine restart -a refit-hosted
+```
+
+**Live, and may spend.** `--limit` and `--total-limit` move every recorded installation's ledger and the shared one to the new limit and keep their recorded spend; an earlier worker's file ledger under `REFIT_AI_BUDGET_DIRECTORY` is imported first. They refuse while a job runs. A secret overrides the `fly.toml` value of the same name ([Fly configuration](https://docs.fly.io/reference/configuration)). Between the ledger change and the restart the old worker refuses AI requests, which fails closed. To return to the `fly.toml` value, move the ledgers back, then `fly secrets unset -a refit-hosted --stage REFIT_AI_BUDGET_USD` and restart.
+
+Open reservations are requests that reserved their maximum cost and never settled, for example because the job failed after the request was sent. They still count against the limit.
+
 ## Drain the worker
 
 There is no drain switch. On `SIGTERM` or `SIGINT` the worker stops claiming jobs, aborts the running job (stored as `interrupted`, which needs a retry) and exits. Fly allows 5 seconds (`kill_timeout`) before killing it, enough to store the receipt but not to finish a validation.

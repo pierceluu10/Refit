@@ -1,6 +1,11 @@
 import { parseArgs } from 'node:util';
 import type { Pool } from 'pg';
-import { aiBudgetLimit } from './ai-budget.ts';
+import {
+  aiBudgetConfiguration,
+  aiBudgetLimit,
+  summarizeAiLedger,
+  type AiLedgerSummary,
+} from './ai-budget.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { flyMachines } from './fly-machines.ts';
 import { githubAppConfiguration } from './github-app.ts';
@@ -39,6 +44,7 @@ const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] 
        refit hosted inventory --repository <owner/name>
        refit hosted migrate [--dry-run]
        refit hosted accounts
+       refit hosted ai-budget [--limit <usd>] [--total-limit <usd>]
        refit hosted job
        refit hosted jobs [--target <id>] [--status ${JOB_STATUSES.join('|')}] [--since <iso>]
        refit hosted receipt <job>
@@ -50,6 +56,7 @@ retry queues one fresh attempt for an enrolled target, permitting a cached faile
 migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
 With REFIT_HOSTED_APPROVAL_ISSUES=1, serve opens one issue on each installed repository of an allowed account that has no approval, showing what refit enroll shows (or a proposed .refit.json), and handles /refit approve <fingerprint-prefix> and /refit revoke comments from users with the admin or maintain role. It needs the App's Issues permission and issue_comment event.
 REFIT_HOSTED_LIFECYCLE=1 (off by default) follows repository renames, transfers and archiving and account renames, and stops a target GitHub no longer serves or whose name now belongs to another repository. Approvals never follow a rename or transfer. Renames and transfers need the App's repository event.
+ai-budget prints each AI ledger's limit, recorded spend and open reservations (requests that reserved their maximum cost and never settled). --limit moves every installation's ledger to a new limit and --total-limit moves the ledger across installations, keeping recorded spend; both refuse while a job runs. Then set REFIT_AI_BUDGET_USD and REFIT_HOSTED_AI_BUDGET_USD to the same values and restart the worker; until it restarts, its AI requests are refused because the limits differ.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
 inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
 --job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch or --publish-draft. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process.
@@ -88,6 +95,9 @@ function database() {
 }
 
 const time = (value: Date | null) => value?.toISOString() ?? '-';
+
+const ledgerLine = (summary: AiLedgerSummary) =>
+  `limit $${summary.limitUsd.toFixed(2)}, spent $${summary.spentUsd.toFixed(4)}, ${summary.reservations} open ${summary.reservations === 1 ? 'reservation' : 'reservations'} ($${summary.reservedUsd.toFixed(4)}).`;
 
 async function printJobs(pool: Pool, filter: Parameters<typeof listHostedJobs>[1]) {
   const { jobs, total } = await listHostedJobs(pool, filter);
@@ -179,6 +189,8 @@ try {
       'dry-run': { type: 'boolean' },
       status: { type: 'string' },
       since: { type: 'string' },
+      limit: { type: 'string' },
+      'total-limit': { type: 'string' },
       help: { type: 'boolean' },
     },
   });
@@ -276,6 +288,38 @@ try {
         if (!applied.length) console.log('No pending migrations.');
         for (const migration of applied)
           console.log(`Applied: ${migration.version} ${migration.name}`);
+      }
+    } finally {
+      await pool.end();
+    }
+  } else if (command === 'ai-budget') {
+    const installationUsd =
+      values.limit === undefined ? undefined : aiBudgetLimit(values.limit, '--limit');
+    const totalUsd =
+      values['total-limit'] === undefined
+        ? undefined
+        : aiBudgetLimit(values['total-limit'], '--total-limit');
+    const pool = database();
+    try {
+      const store = await openHostedStore(pool);
+      if (installationUsd !== undefined || totalUsd !== undefined) {
+        const changed = await store.changeAiLimits(
+          { installationUsd, totalUsd },
+          aiBudgetConfiguration(process.env).directory,
+        );
+        for (const { installationId, summary } of changed.installations)
+          console.log(`Changed installation ${installationId}: ${ledgerLine(summary)}`);
+        if (changed.total) console.log(`Changed all installations: ${ledgerLine(changed.total)}`);
+        console.log(
+          'Set REFIT_AI_BUDGET_USD and REFIT_HOSTED_AI_BUDGET_USD to match and restart the worker; until then its AI requests are refused.',
+        );
+      } else {
+        const ledgers = await store.aiLedgerStates();
+        if (!ledgers.installations.length && !ledgers.total) console.log('No AI ledger recorded.');
+        for (const { installationId, state } of ledgers.installations)
+          console.log(`Installation ${installationId}: ${ledgerLine(summarizeAiLedger(state))}`);
+        if (ledgers.total)
+          console.log(`All installations: ${ledgerLine(summarizeAiLedger(ledgers.total))}`);
       }
     } finally {
       await pool.end();
