@@ -199,7 +199,35 @@ On real repositories the wrong AI patches that validated mostly broke an owner p
 
 The instructions now state these policies, and the type-error instructions no longer tell the model to remove parameters the new types reject. A first AI patch that is refused ends the run like rules 1–5 (`refit run` saves the evidence, and the AI patch scorer counts it as `review-stop`). A refused repair records `repair-error`. Tests: `pipeline/ai-patch-policies.test.ts` (one per real diff above) and `pipeline/ai-patches.test.ts`.
 
-Known gaps: a changed non-literal value, such as a different variable, is not compared; a body passed to the call through a parameter or an import is not resolved; an invented field the after contract does not define still depends on validation and review.
+### Replay over the recorded agent diffs
+
+`pipeline/ai-patch-eval-replay.ts` runs every guard (these policies and rules 1–5) over a recorded patch without calling a model or running repository code. For each repository it applies Refit's deterministic patch, applies the recorded diff on top, and checks it the way `proposeAiPatch()` does. It runs a second time against the original code, which charges the patch with every change it made itself. Where the rules already changed the recorded diff's lines, that file is taken from the original plus the diff. Files outside the scanned sources, such as `package.json` and `.mdx` docs, are listed and skipped.
+
+The run covered the 8 agent patches that validated on October 21, at their frozen commits (`docs/benchmarks/subsets/p2-agent-replay.json`, results in `docs/benchmarks/2026-10-24-p2-agent-replay-results.json`):
+
+| Repository | Review verdict | Refused on the rules' code by | Refused on the original code by |
+|---|---|---|---|
+| `Bizgojo/drivetimetales` | wrong | item choice, dropped parameter, new shape only, substitution | the same |
+| `Dvargas005/node-hub` | wrong | dropped parameter | the same |
+| `abressiddique/AbresStore-Admin` | wrong | dropped parameter | dropped parameter, new shape only |
+| `Kanba-co/kanba` | wrong | item choice, dropped parameter | item choice, dropped parameter, new shape only |
+| `iggy-tech/product-hunt-clone-final` | wrong | item choice, dropped parameter | the same |
+| `geallenboy/ai-saas-template` | wrong | dropped parameter | the same |
+| `utsavkrishnatra/pdf_answers` | wrong | dropped parameter, substitution | item choice, dropped parameter, new shape only, substitution |
+| `sammorrispb/nextgen-academy` | correct | none | none |
+
+All 7 wrong patches are refused. What made each one wrong was the deleted card restriction, and the dropped-parameter guard refuses it in all 7, on both bases. On the rules' code, the guard reports `allowed_payment_method_types` where the card rule had already renamed the parameter.
+
+The other refusals land on edits the reviewer judged right: the first-item period reads in drivetimetales, Kanba, iggy-tech and pdf_answers, and the new-shape-only webhook reads (`invoice.subscription`, `shipping_details`) in drivetimetales, AbresStore, Kanba and pdf_answers. They stop because the owner policies make item choice and webhook shape review decisions, not because the code was wrong. On the rules' code, the new-shape check has nothing to compare in AbresStore, Kanba and pdf_answers, because the rules had already migrated those reads.
+
+The correct patch passes, but the pass proves little. Its call is `getStripe().checkout.sessions.create(...)`, through a cached factory (`let cached: Stripe | null`; `cached = new Stripe(key)`) that the tracer does not follow on current main. So none of the request guards saw it. No correct AI diff that the guards can see is on record, so the guards' false refusals on real code are measured only by the accepted cases in the tests.
+
+Known gaps:
+
+- A changed non-literal value, such as a different variable, is not compared.
+- A body passed to the call through a parameter or an import is not resolved.
+- A request through a client the tracer cannot follow, such as the cached factory above, is not checked.
+- An invented field the after contract does not define still depends on validation and review.
 
 ## Known limitations
 

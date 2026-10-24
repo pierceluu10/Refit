@@ -1,0 +1,107 @@
+{
+  "frozenAt": "2026-10-24",
+  "purpose": "P2 replay of the policy guards over the coding-agent diffs that passed validation in docs/benchmarks/2026-10-21-agent-comparison-results.json: those 8 repositories at their frozen commits, unchanged entries from the four tuned sets.",
+  "specs": [
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "Kanba-co/kanba",
+      "stars": 661,
+      "commit": "d5dfe822a503dcf87e14e687e4a13a0baffc9fe3",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "iggy-tech/product-hunt-clone-final",
+      "stars": 59,
+      "commit": "85b3a0fa123b4a722d6ab963bf9a0d4c4e6de1c9",
+      "before": "2024-04-10",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "geallenboy/ai-saas-template",
+      "stars": 40,
+      "commit": "e890ff0e5406585f27712bd9754c8d49a17865c8",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "abressiddique/AbresStore-Admin",
+      "stars": 5,
+      "commit": "33469c76ef2c00692765450e8b421f7a679474ea",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "unused-candidate"
+    },
+    {
+      "repo": "utsavkrishnatra/pdf_answers",
+      "stars": 4,
+      "commit": "064833f31558c5c995ba7a0ca7ec534effd222ec",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "next-by-stars"
+    },
+    {
+      "repo": "Bizgojo/drivetimetales",
+      "stars": 0,
+      "commit": "9cb92abc9adad2b383441a6e215c01d0ee1af29c",
+      "owner": "User",
+      "authors90d": 4,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.25.0"
+    },
+    {
+      "repo": "Dvargas005/node-hub",
+      "stars": 0,
+      "commit": "e06a3f69ef2411b93793c0630e2f5045e4147012",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^21.0.1"
+    },
+    {
+      "repo": "sammorrispb/nextgen-academy",
+      "stars": 0,
+      "commit": "1bf893710db664a72c745f8d69d2853b7c838da2",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.0"
+    }
+  ]
+}

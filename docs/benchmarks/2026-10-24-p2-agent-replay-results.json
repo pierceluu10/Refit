@@ -1,0 +1,913 @@
+{
+  "formatVersion": 1,
+  "source": "docs/benchmarks/2026-10-21-agent-comparison-results.json",
+  "after": "2026-09-30.endive",
+  "rows": [
+    {
+      "repo": "Bizgojo/drivetimetales",
+      "verdict": "wrong",
+      "rulePatch": "not-generated",
+      "fromFallback": [],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "newShapeOnlyReads",
+          "substitutions"
+        ],
+        "files": [
+          "app/api/admin/payments/route.ts",
+          "app/api/admin/refund/route.ts",
+          "app/api/checkout/route.ts",
+          "app/api/create-setup-intent/route.ts",
+          "app/api/quick-purchase/route.ts",
+          "app/api/subscription/change/route.ts",
+          "app/api/subscription/price/route.ts",
+          "app/api/user/cancel-subscription/route.ts",
+          "app/api/user/portal/route.ts",
+          "app/api/webhook/route.ts",
+          "lib/stripe-fm.ts",
+          "lib/stripe.ts",
+          "scripts/cfo-report/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "app/api/user/cancel-subscription/route.ts",
+            "app/api/webhook/route.ts",
+            "lib/stripe-fm.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 215,
+              "file": "app/api/checkout/route.ts"
+            },
+            {
+              "call": "setupIntents.create",
+              "path": "payment_method_types",
+              "line": 59,
+              "file": "app/api/create-setup-intent/route.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 66,
+              "file": "app/api/subscription/change/route.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 81,
+              "file": "lib/stripe.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 109,
+              "file": "lib/stripe.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 166,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 168,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 292,
+              "schema": "subscription",
+              "property": "current_period_end"
+            },
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 345,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 347,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "id",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "lib/stripe-fm.ts",
+              "line": 7,
+              "message": "AI replacement substitutes pre-existing field subscription.id for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in lib/stripe-fm.ts:7. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "app/api/user/cancel-subscription/route.ts",
+              "line": 42,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in app/api/user/cancel-subscription/route.ts:42. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "app/api/webhook/route.ts",
+              "line": 37,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in app/api/webhook/route.ts:37. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "lib/stripe-fm.ts",
+              "line": 6,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in lib/stripe-fm.ts:6. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "newShapeOnlyReads",
+          "substitutions"
+        ],
+        "files": [
+          "app/api/admin/payments/route.ts",
+          "app/api/admin/refund/route.ts",
+          "app/api/checkout/route.ts",
+          "app/api/create-setup-intent/route.ts",
+          "app/api/quick-purchase/route.ts",
+          "app/api/subscription/change/route.ts",
+          "app/api/subscription/price/route.ts",
+          "app/api/user/cancel-subscription/route.ts",
+          "app/api/user/portal/route.ts",
+          "app/api/webhook/route.ts",
+          "lib/stripe-fm.ts",
+          "lib/stripe.ts",
+          "scripts/cfo-report/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "app/api/user/cancel-subscription/route.ts",
+            "app/api/webhook/route.ts",
+            "lib/stripe-fm.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 215,
+              "file": "app/api/checkout/route.ts"
+            },
+            {
+              "call": "setupIntents.create",
+              "path": "payment_method_types",
+              "line": 59,
+              "file": "app/api/create-setup-intent/route.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 66,
+              "file": "app/api/subscription/change/route.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 81,
+              "file": "lib/stripe.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 109,
+              "file": "lib/stripe.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 166,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 168,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 292,
+              "schema": "subscription",
+              "property": "current_period_end"
+            },
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 345,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/webhook/route.ts",
+              "line": 347,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "id",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "lib/stripe-fm.ts",
+              "line": 7,
+              "message": "AI replacement substitutes pre-existing field subscription.id for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in lib/stripe-fm.ts:7. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "app/api/user/cancel-subscription/route.ts",
+              "line": 42,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in app/api/user/cancel-subscription/route.ts:42. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "app/api/webhook/route.ts",
+              "line": 37,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in app/api/webhook/route.ts:37. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "lib/stripe-fm.ts",
+              "line": 6,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in lib/stripe-fm.ts:6. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "repo": "Dvargas005/node-hub",
+      "verdict": "wrong",
+      "rulePatch": "not-generated",
+      "fromFallback": [],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "scripts/setup-seo-addons.ts",
+          "src/app/api/admin/clients/[id]/payment-link/route.ts",
+          "src/lib/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 97,
+              "file": "src/app/api/admin/clients/[id]/payment-link/route.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "scripts/setup-seo-addons.ts",
+          "src/app/api/admin/clients/[id]/payment-link/route.ts",
+          "src/lib/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 97,
+              "file": "src/app/api/admin/clients/[id]/payment-link/route.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      }
+    },
+    {
+      "repo": "sammorrispb/nextgen-academy",
+      "verdict": "correct",
+      "rulePatch": "unsupported",
+      "fromFallback": [],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [],
+        "files": [
+          "src/app/api/commit/start-checkout/route.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [],
+        "files": [
+          "src/app/api/commit/start-checkout/route.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      }
+    },
+    {
+      "repo": "abressiddique/AbresStore-Admin",
+      "verdict": "wrong",
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "app/api/checkout/route.ts",
+        "app/api/webhooks/route.ts",
+        "lib/stripe.ts"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "app/api/checkout/route.ts",
+          "app/api/webhooks/route.ts",
+          "lib/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 23,
+              "file": "app/api/checkout/route.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
+        ],
+        "files": [
+          "app/api/checkout/route.ts",
+          "app/api/webhooks/route.ts",
+          "lib/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 23,
+              "file": "app/api/checkout/route.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 28,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            },
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 29,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            },
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 30,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            },
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 31,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            },
+            {
+              "file": "app/api/webhooks/route.ts",
+              "line": 32,
+              "schema": "checkout.session",
+              "property": "shipping_details"
+            }
+          ],
+          "substitutions": []
+        }
+      }
+    },
+    {
+      "repo": "Kanba-co/kanba",
+      "verdict": "wrong",
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "app/api/stripe/checkout/route.ts",
+        "app/api/stripe/webhook/route.ts",
+        "lib/stripe.ts"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "app/api/stripe/checkout/route.ts",
+          "app/api/stripe/webhook/route.ts",
+          "lib/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "app/api/stripe/webhook/route.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 172,
+              "file": "app/api/stripe/checkout/route.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
+        ],
+        "files": [
+          "app/api/stripe/checkout/route.ts",
+          "app/api/stripe/webhook/route.ts",
+          "lib/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "app/api/stripe/webhook/route.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 172,
+              "file": "app/api/stripe/checkout/route.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "app/api/stripe/webhook/route.ts",
+              "line": 162,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/stripe/webhook/route.ts",
+              "line": 171,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": []
+        }
+      }
+    },
+    {
+      "repo": "iggy-tech/product-hunt-clone-final",
+      "verdict": "wrong",
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "app/api/stripe/route.ts",
+        "lib/stripe.ts"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "lib/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "lib/stripe.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 16,
+              "file": "lib/stripe.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "app/api/stripe/route.ts",
+          "lib/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "lib/stripe.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 16,
+              "file": "lib/stripe.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      }
+    },
+    {
+      "repo": "geallenboy/ai-saas-template",
+      "verdict": "wrong",
+      "rulePatch": "not-generated",
+      "fromFallback": [],
+      "unscanned": [
+        "src/content/docs/architecture.mdx",
+        "src/content/docs/development/configuration.mdx",
+        "src/content/docs/features/payment-billing.mdx"
+      ],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "src/app/api/payments/create-checkout-session/route.ts",
+          "src/lib/stripe.ts",
+          "src/server/routers/payments.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 178,
+              "file": "src/app/api/payments/create-checkout-session/route.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 366,
+              "file": "src/server/routers/payments.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "src/app/api/payments/create-checkout-session/route.ts",
+          "src/lib/stripe.ts",
+          "src/server/routers/payments.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 178,
+              "file": "src/app/api/payments/create-checkout-session/route.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 366,
+              "file": "src/server/routers/payments.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      }
+    },
+    {
+      "repo": "utsavkrishnatra/pdf_answers",
+      "verdict": "wrong",
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "src/app/api/webhooks/stripe/route.ts",
+        "src/lib/stripe.ts",
+        "src/trpc/index.ts"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths",
+          "substitutions"
+        ],
+        "files": [
+          "src/app/api/webhooks/stripe/route.ts",
+          "src/lib/stripe.ts",
+          "src/trpc/index.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 93,
+              "file": "src/trpc/index.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "checkout.session",
+              "property": "metadata",
+              "removed": [
+                "shipping_details"
+              ],
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 42,
+              "message": "AI replacement substitutes pre-existing field checkout.session.metadata for removed checkout.session.shipping_details in src/app/api/webhooks/stripe/route.ts:42. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "checkout.session",
+              "property": "subscription",
+              "removed": [
+                "shipping_details"
+              ],
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 42,
+              "message": "AI replacement substitutes pre-existing field checkout.session.subscription for removed checkout.session.shipping_details in src/app/api/webhooks/stripe/route.ts:42. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "invoice",
+              "property": "metadata",
+              "removed": [
+                "application_fee_amount",
+                "charge",
+                "discount",
+                "paid",
+                "paid_out_of_band",
+                "payment_intent",
+                "quote",
+                "rendering_options",
+                "subscription",
+                "subscription_details",
+                "subscription_proration_date",
+                "tax",
+                "total_tax_amounts",
+                "transfer_data"
+              ],
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 75,
+              "message": "AI replacement substitutes pre-existing field invoice.metadata for removed invoice.application_fee_amount, invoice.charge, invoice.discount, invoice.paid, invoice.paid_out_of_band, invoice.payment_intent, invoice.quote, invoice.rendering_options, invoice.subscription, invoice.subscription_details, invoice.subscription_proration_date, invoice.tax, invoice.total_tax_amounts, invoice.transfer_data in src/app/api/webhooks/stripe/route.ts:75. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 7,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in src/app/api/webhooks/stripe/route.ts:7. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "newShapeOnlyReads",
+          "substitutions"
+        ],
+        "files": [
+          "src/app/api/webhooks/stripe/route.ts",
+          "src/lib/stripe.ts",
+          "src/trpc/index.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "src/app/api/webhooks/stripe/route.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 93,
+              "file": "src/trpc/index.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 61,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "checkout.session",
+              "property": "metadata",
+              "removed": [
+                "shipping_details"
+              ],
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 42,
+              "message": "AI replacement substitutes pre-existing field checkout.session.metadata for removed checkout.session.shipping_details in src/app/api/webhooks/stripe/route.ts:42. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "checkout.session",
+              "property": "subscription",
+              "removed": [
+                "shipping_details"
+              ],
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 42,
+              "message": "AI replacement substitutes pre-existing field checkout.session.subscription for removed checkout.session.shipping_details in src/app/api/webhooks/stripe/route.ts:42. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "invoice",
+              "property": "metadata",
+              "removed": [
+                "application_fee_amount",
+                "charge",
+                "discount",
+                "paid",
+                "paid_out_of_band",
+                "payment_intent",
+                "quote",
+                "rendering_options",
+                "subscription",
+                "subscription_details",
+                "subscription_proration_date",
+                "tax",
+                "total_tax_amounts",
+                "transfer_data"
+              ],
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 75,
+              "message": "AI replacement substitutes pre-existing field invoice.metadata for removed invoice.application_fee_amount, invoice.charge, invoice.discount, invoice.paid, invoice.paid_out_of_band, invoice.payment_intent, invoice.quote, invoice.rendering_options, invoice.subscription, invoice.subscription_details, invoice.subscription_proration_date, invoice.tax, invoice.total_tax_amounts, invoice.transfer_data in src/app/api/webhooks/stripe/route.ts:75. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "src/app/api/webhooks/stripe/route.ts",
+              "line": 7,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in src/app/api/webhooks/stripe/route.ts:7. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "list": "docs/benchmarks/subsets/p2-agent-replay.json",
+  "commit": "46143fce5adcb1d51326e002de56a884a6f92082",
+  "command": "npx tsx pipeline/ai-patch-eval-replay.ts --results docs/benchmarks/2026-10-21-agent-comparison-results.json --root <setup root> --output <file>"
+}
