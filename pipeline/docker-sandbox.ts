@@ -14,12 +14,13 @@ export const PREPARATION_MEMORY = '3g';
 const MIB = 1024 * 1024;
 // Operators can enlarge offline validation for large dependency trees. Each profile keeps memory
 // above the workspace and the dependency archive at half of it, so the unpacked tree still fits.
+// The committed source shares the workspace; from 2g it may take a sixteenth of it.
 const VALIDATION_PROFILES = {
-  '512m': { workspace: '512m', memory: '1g', archiveBytes: 256 * MIB },
-  '1g': { workspace: '1g', memory: '2g', archiveBytes: 512 * MIB },
-  '2g': { workspace: '2g', memory: '3g', archiveBytes: 1024 * MIB },
+  '512m': { workspace: '512m', memory: '1g', archiveBytes: 256 * MIB, sourceBytes: 50 * MIB },
+  '1g': { workspace: '1g', memory: '2g', archiveBytes: 512 * MIB, sourceBytes: 50 * MIB },
+  '2g': { workspace: '2g', memory: '3g', archiveBytes: 1024 * MIB, sourceBytes: 128 * MIB },
   // Opt-in only: it raises the memory a container may claim on the Docker host.
-  '4g': { workspace: '4g', memory: '5g', archiveBytes: 2048 * MIB },
+  '4g': { workspace: '4g', memory: '5g', archiveBytes: 2048 * MIB, sourceBytes: 256 * MIB },
 } as const;
 
 export const MAX_VALIDATION_ARCHIVE_BYTES = Math.max(

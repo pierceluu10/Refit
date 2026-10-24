@@ -490,21 +490,25 @@ it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile'
     workspace: '2g',
     memory: '3g',
     archiveBytes: 1024 * 1024 * 1024,
+    sourceBytes: 128 * 1024 * 1024,
   });
   expect(validationProfile('512m')).toEqual({
     workspace: '512m',
     memory: '1g',
     archiveBytes: 256 * 1024 * 1024,
+    sourceBytes: 50 * 1024 * 1024,
   });
   expect(validationProfile('2g')).toEqual({
     workspace: '2g',
     memory: '3g',
     archiveBytes: 1024 * 1024 * 1024,
+    sourceBytes: 128 * 1024 * 1024,
   });
   expect(validationProfile('4g')).toEqual({
     workspace: '4g',
     memory: '5g',
     archiveBytes: 2048 * 1024 * 1024,
+    sourceBytes: 256 * 1024 * 1024,
   });
   for (const value of ['8g', '512', 'large'])
     expect(() => validationProfile(value), value).toThrow('REFIT_VALIDATION_WORKSPACE');

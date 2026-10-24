@@ -289,19 +289,20 @@ async function roomForTwoSandboxes() {
 // Archives the committed revision under `root` and extracts it as the baseline directory.
 async function extractSnapshot(repository: string, revision: string, root: string) {
   const archive = join(root, 'source.tar');
+  const { sourceBytes } = validationProfile();
   const archiveResult = await execute(
     'git',
     ['-C', repository, 'archive', '--format=tar', revision],
     {
       encoding: 'buffer',
       timeout: PROCESS_TIMEOUT_MS,
-      maxBuffer: MAX_ARCHIVE_BYTES,
+      maxBuffer: sourceBytes,
       env: gitEnvironment(),
     },
   ).catch((error: unknown) => {
     if ((error as { code?: unknown }).code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER')
       throw new PipelineInputError(
-        `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit. Stop committing build output, media or data files (or track them with Git LFS) so the committed tree fits.`,
+        `Committed source exceeds the ${sourceBytes / 1024 / 1024} MiB validation archive limit. Stop committing build output, media or data files (or track them with Git LFS) so the committed tree fits.`,
       );
     throw error;
   });
