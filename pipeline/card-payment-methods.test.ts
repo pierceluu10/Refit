@@ -1,11 +1,12 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { CARD_PAYMENT_METHOD_WARNING, listedPaymentMethodWarning } from './patches.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
+import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { droppedRequestParameters } from './validation.ts';
 
 const directories: string[] = [];
@@ -107,6 +108,73 @@ const checkout = (
 const stripe = new Stripe(process.env.STRIPE_KEY, ${options});
 export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ${methods} });
 `;
+
+// O1's reproduction: the price-policy fixture is a configured subscription-period migration
+// (acacia to basil), whose patch carries neither the pin nor the stripe-node upgrade, so the
+// rename would ship allowed_payment_method_types on acacia, which rejects it.
+it('keeps the card stop on a configured-migration patch, which never moves the pin', async () => {
+  const fixture = resolve('pipeline/fixtures/stripe-webhooks');
+  const read = (path: string) => readFile(join(fixture, path), 'utf8');
+  const merged = async (path: string, version: string, fields: string[]) => {
+    const projection = JSON.parse(await read(path));
+    const card = contract(version, fields);
+    return JSON.stringify({
+      ...projection,
+      paths: { ...projection.paths, ...card.paths },
+      components: { schemas: { ...projection.components.schemas, ...card.components.schemas } },
+    });
+  };
+  const provider = JSON.parse(await read('provider-price-policy.json'));
+  provider.operations.push({
+    resource: 'checkout.sessions',
+    method: 'create',
+    schema: 'checkout.session',
+    operationId: 'PostCheckoutSessions',
+  });
+  const root = await mkdtemp(join(tmpdir(), 'refit-card-configured-'));
+  directories.push(root);
+  for (const [path, content] of Object.entries({
+    'package.json': await read('repository/package.json'),
+    'client.js': await read('repository/client.js'),
+    'entitlements.js': await read('repository/entitlements.js'),
+    'checkout.js': `import { stripe } from './client.js';
+export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ['card'] });
+`,
+    'before.json': await merged('before.json', '2025-02-24.acacia', [
+      'mode',
+      'payment_method_types',
+    ]),
+    'after.json': await merged('after.json', '2025-03-31.basil', [
+      'mode',
+      'allowed_payment_method_types',
+    ]),
+    'provider.json': JSON.stringify(provider),
+  }))
+    await writeFile(join(root, path), content);
+  const report = await runPipeline({
+    repository: root,
+    before: join(root, 'before.json'),
+    after: join(root, 'after.json'),
+    providerConfig: join(root, 'provider.json'),
+    apiVersion: '2025-02-24.acacia',
+    proposePatch: true,
+  });
+  expect(
+    report.findings.some(
+      (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
+    ),
+  ).toBe(true);
+  expect('diff' in report.patch ? report.patch.diff : '').not.toContain(
+    'allowed_payment_method_types',
+  );
+  expect(report.findings.find((finding) => finding.requestParameter)).toMatchObject({
+    file: 'checkout.js',
+    requestParameter: { parameter: 'payment_method_types' },
+    reason: expect.stringContaining(
+      'but this patch applies a configured migration, which does not move the API version.',
+    ),
+  });
+});
 
 it("moves ['card'] to allowed_payment_method_types together with the endive pin", async () => {
   const report = await run({ 'checkout.js': checkout("['card']") });
@@ -421,4 +489,203 @@ it('keeps the stop when another client sets a version the patch cannot move', as
   });
   expect('diff' in report.patch && report.patch.diff).not.toContain('allowed_payment_method_types');
   expect(report.findings.filter((finding) => finding.requestParameter)).toHaveLength(2);
+});
+
+// Real shapes from the benchmark repositories (noorjsdivs/tulos_yt actions/createCheckoutSession.ts,
+// hex22a/techwear-shop-nextjs app/lib/config.ts). Moving the pin while these still send the
+// parameter makes Stripe answer 400, so a body Refit cannot trace stops for review.
+const builtInVariable = `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const quick = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+export async function createCheckoutSession(customerId, email) {
+  const sessionPayload = {
+    mode: "payment",
+    allow_promotion_codes: true,
+    payment_method_types: ["card"],
+  };
+  if (customerId) {
+    sessionPayload.customer = customerId;
+  } else {
+    sessionPayload.customer_email = email;
+  }
+  const session = await stripe.checkout.sessions.create(sessionPayload);
+  return session.url;
+}
+`;
+const exportedConfig = `export const STRIPE_SESSION_CREATE_PARAMS = {
+  mode: "payment",
+  submit_type: "pay",
+  payment_method_types: ["card"],
+  ui_mode: "hosted",
+};
+`;
+const spreadConfig = `import Stripe from 'stripe';
+import { STRIPE_SESSION_CREATE_PARAMS } from './config.js';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const quick = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+export const checkout = (line_items) =>
+  stripe.checkout.sessions.create({ ...STRIPE_SESSION_CREATE_PARAMS, line_items });
+`;
+
+it.each([
+  [
+    'in a variable the call receives, with PayPal',
+    { 'checkout.js': builtInVariable.replace('["card"]', '["card", "paypal"]') },
+    'checkout.js',
+    8,
+  ],
+  [
+    'in a variable a wrapper receives',
+    {
+      'checkout.js': builtInVariable.replace(
+        'stripe.checkout.sessions.create(sessionPayload)',
+        'send(sessionPayload)',
+      ),
+    },
+    'checkout.js',
+    8,
+  ],
+  [
+    'in a variable that also reaches Payment Links',
+    {
+      'checkout.js': builtInVariable.replace(
+        'return session.url;',
+        'await stripe.paymentLinks.create(sessionPayload);\n  return session.url;',
+      ),
+    },
+    'checkout.js',
+    8,
+  ],
+  [
+    // A `case` clause's `const` is in scope for the clauses below it (O1's second reading).
+    'in a case-clause const that falls through to Payment Links',
+    {
+      'checkout.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const quick = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+export async function pay(kind) {
+  switch (kind) {
+    case 'session':
+      const params = { mode: 'payment', payment_method_types: ['card'] };
+      await stripe.checkout.sessions.create(params);
+    case 'link':
+      await stripe.paymentLinks.create(params);
+  }
+}
+`,
+    },
+    'checkout.js',
+    7,
+  ],
+  [
+    'in a function-scoped var',
+    { 'checkout.js': builtInVariable.replace('const sessionPayload', 'var sessionPayload') },
+    'checkout.js',
+    8,
+  ],
+  [
+    'in a variable whose list is reassigned',
+    {
+      'checkout.js': builtInVariable.replace(
+        'if (customerId) {',
+        "sessionPayload.payment_method_types = ['card', 'paypal'];\n  if (customerId) {",
+      ),
+    },
+    'checkout.js',
+    8,
+  ],
+  [
+    'in an exported config spread into the call',
+    { 'checkout.js': spreadConfig, 'config.js': exportedConfig },
+    'config.js',
+    4,
+  ],
+  [
+    'in a conditional spread inside a traced body',
+    {
+      'checkout.js': checkout("['card']", "{ apiVersion: '2026-08-26.dahlia' }").replace(
+        "mode: 'subscription',",
+        "mode: 'subscription', ...(card ? { payment_method_types: ['card', 'paypal'] } : {}),",
+      ),
+    },
+    'checkout.js',
+    3,
+  ],
+])('stops for review when the removed parameter is set %s', async (_case, files, file, line) => {
+  const report = await run(files);
+  expect(report.patch).toMatchObject({
+    status: 'not-generated',
+    reason: expect.stringMatching(/parameter the target API version removed/),
+  });
+  expect(report.findings).toContainEqual(
+    expect.objectContaining({
+      file,
+      line,
+      confidence: 'review',
+      requestParameter: {
+        operationId: 'PostCheckoutSessions',
+        parameter: 'payment_method_types',
+      },
+    }),
+  );
+});
+
+it('ignores nested payment_settings lists, schema definitions and test files', async () => {
+  const report = await run({
+    'checkout.js': `${checkout("['card']")}export const subscription = { items: [], payment_settings: { payment_method_types: ['card'] } };
+export const InvoiceSchema = { payment_method_types: { type: Array, required: false } };
+`,
+    'checkout.test.js': `export const expected = { mode: 'payment', payment_method_types: ['card'] };\n`,
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed' });
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+// MeiyuTech/AET-App src/app/(frontend)/(aet-app)/api/stripe/create-payment-link/route.ts: endive
+// keeps payment_method_types on POST /v1/payment_links.
+it('leaves a variable that only reaches an SDK call still accepting the parameter', async () => {
+  const report = await run({
+    'checkout.js': `${checkout("['card']")}export async function link(price) {
+  const paymentLinkParams = {
+    payment_method_types: ['card', 'alipay'],
+    line_items: [{ price: price.id, quantity: 1 }],
+  };
+  paymentLinkParams.metadata = { source: 'aet' };
+  return stripe.paymentLinks.create(paymentLinkParams);
+}
+`,
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed' });
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+it('renames an exact card list in a local body that only the Checkout call receives', async () => {
+  const report = await run({ 'checkout.js': builtInVariable });
+  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain('+    allowed_payment_method_types: ["card"],');
+  expect(report.patch.diff).toContain(
+    "+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-09-30.endive' });",
+  );
+  expect(report.patch.warnings).toContain(CARD_PAYMENT_METHOD_WARNING);
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+// kevinknielsen/superfan-core: `apiVersion: process.env.STRIPE_API_VERSION || '2023-10-16'`.
+it('says which client keeps the card rename from riding with the pin', async () => {
+  const report = await run({
+    'checkout.js': checkout(
+      "['card']",
+      "{ apiVersion: process.env.STRIPE_API_VERSION || '2026-08-26.dahlia' }",
+    ),
+  });
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings).toMatchObject([
+    {
+      requestParameter: { parameter: 'payment_method_types' },
+      reason: expect.stringContaining(
+        'The owner-approved rename to allowed_payment_method_types applies to this value, but Refit cannot resolve the API version the client created at checkout.js:2 sends, so it cannot move every client to 2026-09-30.endive.',
+      ),
+    },
+  ]);
 });

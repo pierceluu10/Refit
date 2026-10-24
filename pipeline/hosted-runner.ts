@@ -83,6 +83,40 @@ export function failedOutcome(error: Error, aborted: boolean): HostedOutcome {
   };
 }
 
+// The Stripe contracts of generated configurations, shared by every target and the approval issues:
+// each file is one pinned stripe/openapi version, checked on read.
+export const hostedContracts = (directory: string) => join(directory, 'contracts');
+
+// The receipt a scheduled poll stores instead of running, or null when the job must run. Only a
+// finished, ready job on the same commit, approval and worker build, with no fetched contract or
+// documentation, is reused. Job-machine receipts never carry liveContract, so they always run.
+export function unchangedReceipt(
+  previous: { job: number; status: string; receipt: HostedReceipt | null } | null,
+  current: { revision: string; fingerprint: string; build: string },
+): HostedReceipt | null {
+  const receipt = previous?.receipt;
+  if (
+    previous?.status !== 'finished' ||
+    !receipt ||
+    receipt.revision !== current.revision ||
+    receipt.fingerprint !== current.fingerprint ||
+    receipt.build !== current.build ||
+    receipt.liveContract !== false ||
+    receipt.readiness !== 'ready-for-validation'
+  )
+    return null;
+  // Nothing ran, so no CPU was measured: the earlier job's steal is not this job's.
+  const { cpuSteal, ...work } = receipt;
+  if (work.unchangedSince) return work;
+  // The CLI prints the message, so it says which job did the work rather than repeating its claim.
+  return {
+    ...work,
+    message:
+      `Reused the receipt of job ${previous.job}: same commit, approval and worker build, so nothing ran. ${receipt.message ?? ''}`.trim(),
+    unchangedSince: previous.job,
+  };
+}
+
 // Runs one hosted job in this process. The in-VM worker and every job machine share it.
 export async function runHostedTarget(options: {
   target: HostedTarget;
@@ -116,15 +150,24 @@ export async function runHostedTarget(options: {
       publishDraft: options.publishDraft,
       notify: options.notify,
       inspectReadiness: true,
+      contracts: hostedContracts(options.directory),
       onProgress: options.onProgress,
     });
-    return {
+    const outcome: HostedOutcome = {
       status: 'finished',
       receipt: {
         ...summarizePoll(result),
         revision: 'checkout' in result ? result.checkout.revision : null,
         readiness: 'readiness' in result && result.readiness ? result.readiness.status : null,
+        ...('liveContract' in result ? { liveContract: result.liveContract !== false } : {}),
       },
+    };
+    // A workflow error fails the job, so the failed-job notice reports it. A stop or lost lease
+    // during the workflow is an interruption, as it is before the workflow starts.
+    if (result.status !== 'processed' || result.result.manifest.status !== 'error') return outcome;
+    return {
+      status: 'failed',
+      receipt: { ...outcome.receipt, status: options.signal.aborted ? 'interrupted' : 'error' },
     };
   } catch (error) {
     if (!(error instanceof Error)) throw error;

@@ -25,6 +25,7 @@
     "eval:ai": "tsx pipeline/ai-eval-cli.ts",
     "eval:ai-patch": "tsx pipeline/ai-patch-eval-cli.ts",
     "benchmark:coverage": "tsx pipeline/sdk-coverage-cli.ts",
+    "benchmark:enrollment": "tsx pipeline/enrollment-benchmark-cli.ts",
     "benchmark:stripe": "tsx pipeline/stripe-benchmark-cli.ts",
     "benchmark:stripe-labels": "tsx pipeline/stripe-ground-truth-cli.ts",
     "benchmark:stripe-score": "tsx pipeline/stripe-benchmark-score.ts",

@@ -112,14 +112,21 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK).each(SDK_VERSIONS)(
       ),
     ).toBe(true);
     expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
-    // Previously rendered (old-version) signed events still succeed after the patch.
+    // The patched handler gives old-version and new-version signed events the same result
+    // (simulated deliveries); items on different periods keep the original missing-period error.
     const patch = join(sample.root, 'migration.patch');
     await writeFile(patch, 'diff' in report.patch ? report.patch.diff : '');
     await sample.git(['apply', patch]);
-    const replay = JSON.parse(
-      (await execute(process.execPath, [harness, sample.repository, 'before'])).stdout,
+    const dual = JSON.parse(
+      (await execute(process.execPath, [harness, sample.repository, 'dual-read'])).stdout,
     );
-    expect(replay.deliveries[0].status).toBe(200);
+    expect(dual.deliveries.map((delivery: { status: number }) => delivery.status)).toEqual([
+      200, 200, 200, 422, 422, 200,
+    ]);
+    expect(dual.deliveries[1].body).toEqual({
+      ...dual.deliveries[0].body,
+      incomingApiVersion: '2025-03-31.basil',
+    });
     await sample.git(['checkout', '--', '.']);
     await sample.git(['clean', '-fdq', '--exclude=node_modules']);
     expect(fetch).not.toHaveBeenCalled();

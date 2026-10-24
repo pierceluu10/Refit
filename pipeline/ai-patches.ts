@@ -13,6 +13,13 @@ import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { applySourceEdits, editCovers, renderPatch } from './patches.ts';
 import { buildPatchContext } from './patch-context.ts';
 import {
+  addedItemChoices,
+  addedTypeEscapes,
+  changedEventTypes,
+  droppedRequestPaths,
+  newShapeOnlyReads,
+} from './ai-patch-policies.ts';
+import {
   FieldSubstitutionError,
   findFieldSubstitutions,
   findUnsafeReplacements,
@@ -69,11 +76,16 @@ An existing PaymentIntent with no payment attempts has valid empty charge histor
 Preserve the intended list behavior, and explain pagination, expansion and added-network-request uncertainty.
 evidence.addedProperties lists properties the after contract adds to schemas with removed fields. They are candidates, not proven replacements: use one only when its name, type and description plainly carry the same meaning as the removed field; otherwise return zero edits and state the uncertainty.
 Never substitute an unrelated existing field, such as an identifier, for a removed field.
+Owner policies; Refit refuses a proposal that breaks one:
+- Never remove, rename or replace a request parameter, argument, literal value or expand path the code sends, even when the contract removed it or the new SDK types reject it. Leave it unchanged and state it as an uncertainty. For Stripe payment_method_types, only Refit's reviewed card rule moves it.
+- Never choose one subscription item or list element, such as items.data[0], to stand in for a value the removed field held for the whole object.
+- Never silence type errors with any, as unknown as, as-casts to unrelated types, @ts-ignore, @ts-expect-error or eslint-disable comments.
+- Change only what the cited findings need.
 Return zero edits when context is insufficient. API-version applicability is unknown.
 Do not assume the code is safe because a finding disappears. Human review remains required.`;
 export const TYPE_ERROR_CHANGE = 'type-error';
 const TYPE_ERROR_INSTRUCTIONS = `
-Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: rename or remove parameters the new types dropped, match the new type shapes, and correct invalid literals. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. An edit citing a type-error finding must lie within the statement or member containing its reported position; when the cause is elsewhere, such as a type declared in another statement or file, leave that error and state it as an uncertainty. Keep values in the request objects they were sent in, such as metadata. Do not silence errors with any, as-casts to unrelated types or ts-ignore.`;
+Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: match the new type shapes and correct invalid literals outside request bodies. A request parameter or value the new types reject is a review item, not a migration: never rename, remove or change it. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. An edit citing a type-error finding must lie within the statement or member containing its reported position; when the cause is elsewhere, such as a type declared in another statement or file, leave that error and state it as an uncertainty. Keep values in the request objects they were sent in, such as metadata.`;
 const WEBHOOK_INSTRUCTIONS = `
 Findings with webhook evidence read a signed webhook payload; findings with declaredType evidence read a value known only from its Stripe type, which is often a webhook payload passed into a helper. A webhook payload is rendered in the webhook endpoint's own API version, which can be older or newer than the SDK's, so the same code receives both shapes. Each replacement for such a finding must work for both: read the removed field with Reflect.get(object, 'field_name') when it is present (old version), otherwise the new location (new version), and keep the original result when neither exists. Do not drop the old-shape read.`;
 const VENDOR_NOTE_INSTRUCTIONS = `
@@ -89,6 +101,17 @@ class AiEditRejection extends PipelineInputError {
   constructor(
     message: string,
     readonly edit?: { file: string; findingId: string },
+  ) {
+    super(message);
+  }
+}
+
+// A stop for review because the model's edits break an owner policy (event names, item choice,
+// sent request values, type escapes, dual-shape webhook reads). It carries the refused proposal.
+export class AiPolicyStop extends PipelineInputError {
+  constructor(
+    message: string,
+    readonly proposal: Record<string, unknown>,
   ) {
     super(message);
   }
@@ -269,82 +292,6 @@ function enclosingStatement(path: string, content: string, offset: number) {
   };
   ts.forEachChild(source, visit);
   return span;
-}
-
-// String literals used as event types: case labels and comparisons with a `.type` property.
-function eventTypeLiterals(path: string, content: string) {
-  const source = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
-  const literals: string[] = [];
-  const isType = (node: ts.Node) =>
-    ts.isPropertyAccessExpression(node) && node.name.text === 'type';
-  const visit = (node: ts.Node) => {
-    const parent = node.parent;
-    if (
-      ts.isStringLiteralLike(node) &&
-      ((ts.isCaseClause(parent) && parent.expression === node) ||
-        (ts.isBinaryExpression(parent) &&
-          [
-            ts.SyntaxKind.EqualsEqualsEqualsToken,
-            ts.SyntaxKind.ExclamationEqualsEqualsToken,
-            ts.SyntaxKind.EqualsEqualsToken,
-            ts.SyntaxKind.ExclamationEqualsToken,
-          ].includes(parent.operatorToken.kind) &&
-          isType(parent.left === node ? parent.right : parent.left)))
-    )
-      literals.push(node.text);
-    ts.forEachChild(node, visit);
-  };
-  ts.forEachChild(source, visit);
-  return literals;
-}
-
-// Calls of the generated period helpers that pass a plan-item selector as their second argument,
-// and period reads from one item the code picks, such as `subscription.items.data[0]`.
-function periodItemChoices(content: string) {
-  const source = ts.createSourceFile('edit.ts', content, ts.ScriptTarget.Latest, true);
-  let count = 0;
-  const unwrap = (node: ts.Expression): ts.Expression =>
-    ts.isParenthesizedExpression(node) || ts.isNonNullExpression(node)
-      ? unwrap(node.expression)
-      : node;
-  // `<x>.items.data`, the list an item is picked from.
-  const itemList = (node: ts.Expression) => {
-    const list = unwrap(node);
-    return (
-      ts.isPropertyAccessExpression(list) &&
-      list.name.text === 'data' &&
-      ts.isPropertyAccessExpression(unwrap(list.expression)) &&
-      (unwrap(list.expression) as ts.PropertyAccessExpression).name.text === 'items'
-    );
-  };
-  const pickedItem = (node: ts.Expression) => {
-    const item = unwrap(node);
-    if (ts.isElementAccessExpression(item)) return itemList(item.expression);
-    return (
-      ts.isCallExpression(item) &&
-      ts.isPropertyAccessExpression(item.expression) &&
-      ['at', 'find'].includes(item.expression.name.text) &&
-      itemList(item.expression.expression)
-    );
-  };
-  const visit = (node: ts.Node) => {
-    if (ts.isCallExpression(node) && node.arguments.length > 1) {
-      const callee = ts.isPropertyAccessExpression(node.expression)
-        ? node.expression.name
-        : node.expression;
-      if (ts.isIdentifier(callee) && /^getSubscriptionPeriod(?:Start|End)$/.test(callee.text))
-        count++;
-    }
-    if (
-      ts.isPropertyAccessExpression(node) &&
-      /^current_period_(?:start|end)$/.test(node.name.text) &&
-      pickedItem(node.expression)
-    )
-      count++;
-    ts.forEachChild(node, visit);
-  };
-  ts.forEachChild(source, visit);
-  return count;
 }
 
 function text(value: unknown, maximum = MAX_TEXT): value is string {
@@ -584,34 +531,42 @@ export async function proposeAiPatch(
       )
       .map((file) => file.path),
   );
-  const changedEvents = [...aiFiles].flatMap((path) => {
-    const after = eventTypeLiterals(
-      path,
-      modified.files.find((file) => file.path === path)!.content,
-    );
-    const before = ruleBase.files.find((file) => file.path === path);
-    return before
-      ? eventTypeLiterals(path, before.content).filter((literal) => {
-          const index = after.indexOf(literal);
-          if (index >= 0) after.splice(index, 1);
-          return index < 0;
-        })
-      : [];
+  const proposal = () => ({
+    ...metadata,
+    summary: value.summary,
+    uncertainties: value.uncertainties,
+    diff: renderPatch(repository, edits),
   });
+  const changedEvents = changedEventTypes(ruleBase, modified, aiFiles);
   if (changedEvents.length)
-    throw new PipelineInputError(
+    throw new AiPolicyStop(
       `AI patch changes webhook event type ${[...new Set(changedEvents)].map((name) => `'${name}'`).join(', ')}; event names stop for review.`,
+      proposal(),
     );
   // Choosing one subscription item when periods differ needs an operator-approved policy; the
   // model must not supply its own, such as the first item.
-  if (
-    value.edits.some(
-      (edit) =>
-        periodItemChoices(String(edit.replacement)) > periodItemChoices(String(edit.original)),
-    )
-  )
-    throw new PipelineInputError(
+  if (addedItemChoices(ruleBase, modified, aiFiles).length)
+    throw new AiPolicyStop(
       'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
+      proposal(),
+    );
+  const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider);
+  if (dropped.length)
+    throw new AiPolicyStop(
+      `AI patch drops or changes ${dropped.map((entry) => `${entry.path} from ${entry.call} (${entry.file}:${entry.line})`).join(', ')}; removing or replacing what a request sends changes its behavior, so it stops for review.`,
+      proposal(),
+    );
+  const escapes = addedTypeEscapes(ruleBase, modified, aiFiles);
+  if (escapes.length)
+    throw new AiPolicyStop(
+      `AI patch silences type checks with ${escapes.map((entry) => `${entry.construct} (${entry.file}:${entry.line})`).join(', ')}; a type-only workaround hides the break instead of migrating it, so it stops for review.`,
+      proposal(),
+    );
+  const newShapeOnly = newShapeOnlyReads(repository, edits, findings, changes);
+  if (newShapeOnly.length)
+    throw new AiPolicyStop(
+      `AI patch reads ${newShapeOnly.map((entry) => `${entry.schema}.${entry.property} (${entry.file}:${entry.line})`).join(', ')} only in the new shape; a webhook payload arrives at the endpoint's API version, so the old shape must still be read, and it stops for review.`,
+      proposal(),
     );
   const substitutions = [
     ...findFieldSubstitutions(ruleBase, modified, changes, provider, schemaDefinitions, aiFiles),
@@ -626,13 +581,7 @@ export async function proposeAiPatch(
       notes.map((note) => note.content),
     ),
   ];
-  if (substitutions.length)
-    throw new FieldSubstitutionError(substitutions, {
-      ...metadata,
-      summary: value.summary,
-      uncertainties: value.uncertainties,
-      diff: renderPatch(repository, edits),
-    });
+  if (substitutions.length) throw new FieldSubstitutionError(substitutions, proposal());
   const remaining = analyzeRepository(modified, changes, provider, schemaDefinitions);
   // One diff from the original code to rules plus model edits.
   const merged = modified.files.flatMap((file) => {
