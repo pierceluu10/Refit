@@ -492,6 +492,8 @@ async function runOpenApiPipeline(options: {
             options.documentationSnapshots,
             after.schemas,
             [...ruleEdits, ...versionEdits],
+            undefined,
+            parameterRemovals,
           )
       : deterministicRequested
         ? {

@@ -464,6 +464,8 @@ async function benchmark(entry: Selected, index: number) {
           }
         : {}),
       repairAttempts: report.validation?.repair?.requested ?? 0,
+      // Why repair stopped early, such as an AI policy stop; a first-request stop is `error`.
+      ...(report.validation?.repair?.error ? { repairError: report.validation.repair.error } : {}),
       aiCostUsd: report.patch?.budget?.costUsd,
       diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
