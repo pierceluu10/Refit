@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "source": "docs/benchmarks/2026-10-21-agent-comparison-results.json",
-  "commit": "c1e9a957a66ea8548a85f473ef494d9ad5efe7cd",
+  "commit": "571f28df3a4e72e083c0bcf9c2fdca60b3853d20",
   "after": "2026-09-30.endive",
   "rows": [
     {
@@ -1869,6 +1869,7 @@
       "unscanned": [],
       "againstRules": {
         "refusedBy": [
+          "droppedRequestPaths",
           "substitutions"
         ],
         "files": [
@@ -1878,7 +1879,14 @@
         "refusals": {
           "changedEventTypes": [],
           "addedItemChoices": [],
-          "droppedRequestPaths": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 41,
+              "file": "app/api/create-checkout-session/route.ts"
+            }
+          ],
           "addedTypeEscapes": [],
           "newShapeOnlyReads": [],
           "substitutions": [
@@ -1901,6 +1909,7 @@
       "againstOriginal": {
         "refusedBy": [
           "addedItemChoices",
+          "droppedRequestPaths",
           "substitutions"
         ],
         "files": [
@@ -1913,7 +1922,14 @@
           "addedItemChoices": [
             "lib/supabase-admin.ts"
           ],
-          "droppedRequestPaths": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 41,
+              "file": "app/api/create-checkout-session/route.ts"
+            }
+          ],
           "addedTypeEscapes": [],
           "newShapeOnlyReads": [],
           "substitutions": [
