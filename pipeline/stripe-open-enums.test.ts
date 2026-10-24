@@ -201,7 +201,8 @@ it('keeps sending a request property stripe-node 13 stopped typing, as a spread'
       expect(repaired.content).toBe(
         content.replace('trial_from_plan: true', '...{ trial_from_plan: true }'),
       );
-      // Behind the flag, the error stays a regression as before the decision.
+      expect(openEnumRepair([{ path: 'route.ts', content }], [error])).toEqual([repaired]);
+      // With the flag off, the error stays a regression as before the decision.
       expect(openEnumRepair([{ path: 'route.ts', content }], [error], false)).toBeUndefined();
     }
 });
