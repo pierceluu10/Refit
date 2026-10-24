@@ -36,8 +36,8 @@ export const crossesOpenEnums = (from: string, to: string) =>
 // read 2026-10-24), so it is not listed. The restore keeps sending each property unchanged, spread
 // from its own object literal so that the object's other properties are still checked, and the
 // draft is [Needs review] with the check below.
-// Push 279 owner decision 4 (2026-10-24) ships this; it stays off until its default is flipped.
-export const KEEP_UNTYPED_REQUEST_PROPERTIES = false;
+// Owner decision (2026-10-24, Pierce, Push 279 decision 4): on by default.
+export const KEEP_UNTYPED_REQUEST_PROPERTIES = true;
 export const TYPE_REMOVALS_SINCE = '13.0.0';
 export const UNTYPED_REQUEST_PROPERTIES = [
   {
