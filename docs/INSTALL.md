@@ -50,6 +50,7 @@ A Stripe app on npm, pnpm or Yarn does not have to write a configuration. When t
 
 - **API version:** the `apiVersion` string your `new Stripe(...)` call passes. A client that sets none sends the default of your locked stripe-node release: the API version that was newest when that release came out ([Stripe](https://docs.stripe.com/sdks/set-version)). Refit knows that default for stripe-node 12 and later.
 - **Target:** the newest Stripe API version Refit has a contract for, 2026-09-30.endive today. Both contracts are Stripe's published OpenAPI files at commits Refit pins and checks by SHA-256 (`data/stripe-openapi-versions.json`).
+- **Workspaces:** a client in a workspace package that the root lockfile installs counts like one at the root, and a client with no `apiVersion` sends the default of the stripe-node release locked for its own package. Checks and dependency installation still run from the root. A project with its own lockfile beside the root is not installed; the generated configuration names it.
 - **Checks:** your `test` script, run with the package manager your lockfile belongs to. Without one, `tsc --noEmit` over your `tsconfig.json`, failing only on type errors the change adds.
 - **Sandbox:** `node:22-alpine`, with dependencies installed from your lockfile and no network while checks run.
 
@@ -74,7 +75,7 @@ On October 24, 2026, Refit ran on 60 Stripe repositories sampled from its four b
 
 - **35 got a complete configuration.** In all 35 its API version matched the one the benchmark selection had found independently. Before this change none did: each needed a hand-written `.refit.json` with an `apiVersion` and two saved contracts.
 - **None was ready for validation yet.** Refit compares the full contracts, and in all 35 it found breaking changes, on operations the code calls, that no Refit rule migrates (`migration-coverage` below).
-- **The other 25 stopped before a configuration:** an `apiVersion` that is not a string literal (6), no tests and no TypeScript (6), no lockfile (6), a client Refit could not find (4), `stripe` declared only in a workspace package (2), and the scan limit (1).
+- **The other 25 stopped before a configuration:** an `apiVersion` that is not a string literal (6), no tests and no TypeScript (6), no lockfile (6), a tsconfig `extends` Refit does not read, which hides every client (4, and 1 more counted under no tests), no client at all (1), `stripe` declared only in a project the root lockfile does not install (1), and the scan limit (1).
 
 On the 38 repositories Refit's operator runs on the hosted service, 29 got a configuration with no edits. The other 9 had no tests and no TypeScript (7) or no lockfile (2).
 
@@ -92,7 +93,8 @@ Doctor gives each reason in one sentence with the place in your code, then the f
 | `api-version-account-default`, `stripe-not-locked` | A client sets no `apiVersion`, and Refit cannot tell which default it sends. | Set `apiVersion` at the place doctor names, or commit your lockfile. |
 | `api-version-no-contract` | Refit has no contract for your API version. | Move to the target yourself, or commit a `.refit.json` with contracts for your version. |
 | `no-stripe-client` | Refit found no `new Stripe(...)` client it can follow. | Create the client with `new Stripe(secretKey, { apiVersion })` in your server code. |
-| `workspace-package` | `stripe` is declared only in a workspace package, and checks run from the root. | Commit a `.refit.json` whose checks run that package's tests from the root. |
+| `source-resolution` | A `tsconfig.json` extends a package (`@tsconfig/node20/tsconfig.json`, a workspace's shared tsconfig) or a file a build writes (`.nuxt/tsconfig.json`). Refit reads only committed files named by a relative path, so it cannot tell how imports resolve. | Nothing in your code: Refit does not support this yet. |
+| `nested-project` | `stripe` is declared only in a `package.json` that the root lockfile does not install, or there is no root `package.json`. | Make that project a workspace of the root and commit the lockfile, or commit a `.refit.json` with a custom image. |
 | `migration-coverage` | The contracts list breaking changes on operations your code calls that no Refit rule migrates. | Migrate the calls doctor names by hand; `refit run --human` lists each change. |
 | `sdk-coverage` | Refit traced no Stripe call, or none it maps. | If a library calls Stripe for you, upgrade that library; otherwise check the named calls by hand. |
 | `dependencies` | Conflicting lockfiles, a shrinkwrap, pnpm hooks or tracked `node_modules`. | Make the change doctor names and commit it. |
