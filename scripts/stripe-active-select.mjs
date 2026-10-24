@@ -13,6 +13,7 @@ import { parseArgs, promisify } from 'node:util';
 const execute = promisify(execFile);
 
 export const ACTIVE_DAYS = 90;
+const METADATA_CONCURRENCY = 4;
 const TARGET = '2026-09-30.endive';
 const MAX_DISK_KB = 50 * 1024;
 const MIN_AUTHORS = 2;
@@ -171,40 +172,6 @@ async function main() {
     return !list;
   });
 
-  // 2. Metadata, recent history and root files, 20 repositories per GraphQL query.
-  const metadata = await cached('metadata.json', async () => {
-    const records = {};
-    for (let start = 0; start < candidates.length; start += 20) {
-      const batch = candidates.slice(start, start + 20);
-      const fields = batch
-        .map((repo, index) => {
-          const [owner, name] = repo.split('/');
-          return `r${index}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) {
-          nameWithOwner isArchived isFork diskUsage stargazerCount
-          owner { __typename }
-          defaultBranchRef { target { ... on Commit {
-            oid committedDate
-            history(since: ${JSON.stringify(since)}, first: 100) {
-              totalCount nodes { author { email user { login } } }
-            }
-          } } }
-          workflows: object(expression: "HEAD:.github/workflows") { ... on Tree { entries { name } } }
-          manifest: object(expression: "HEAD:package.json") { ... on Blob { text } }
-          ${LOCKFILES.map((file, lock) => `lock${lock}: object(expression: "HEAD:${file}") { oid }`).join('\n')}
-        }`;
-        })
-        .join('\n');
-      const result = await github('/graphql', {
-        method: 'POST',
-        body: JSON.stringify({ query: `query { ${fields} }` }),
-      });
-      for (const [index, repo] of batch.entries())
-        records[repo] = result.data?.[`r${index}`] ?? null;
-      console.error(`metadata ${Math.min(start + 20, candidates.length)}/${candidates.length}`);
-    }
-    return records;
-  });
-
   function declaresStripe(text) {
     try {
       const manifest = JSON.parse(text);
@@ -216,18 +183,19 @@ async function main() {
     }
   }
 
-  const reasons = {};
-  const eligible = [];
-  for (const repo of candidates) {
-    const record = metadata[repo];
-    const commit = record?.defaultBranchRef?.target;
-    const authors = new Set(
+  function humanAuthors(commit) {
+    return new Set(
       (commit?.history?.nodes ?? [])
         .map((node) => node.author?.user?.login ?? node.author?.email)
         .filter((author) => author && !BOT.test(author)),
     );
+  }
+
+  // Why a repository is not eligible, or null when it is.
+  function ineligibility(record) {
+    const commit = record?.defaultBranchRef?.target;
     const locks = LOCKFILES.filter((_, index) => record?.[`lock${index}`]);
-    const reason = !record
+    return !record
       ? 'unavailable'
       : record.isArchived || record.isFork
         ? 'archived or fork'
@@ -235,7 +203,7 @@ async function main() {
           ? 'over 50 MB'
           : !commit || commit.committedDate < since
             ? `no commit in ${ACTIVE_DAYS} days`
-            : authors.size < MIN_AUTHORS
+            : humanAuthors(commit).size < MIN_AUTHORS
               ? `fewer than 2 human authors in ${ACTIVE_DAYS} days`
               : !record.workflows?.entries?.length
                 ? 'no GitHub Actions workflow'
@@ -244,6 +212,80 @@ async function main() {
                   : locks.length !== 1
                     ? 'not exactly one root lockfile'
                     : null;
+  }
+
+  // 2. Metadata. A light pass (100 repositories per GraphQL query) drops archived repositories,
+  // forks, large ones and those not pushed to since the window opened: a push is never older than
+  // the default branch's last commit, so none of these could pass the full check. The rest get
+  // recent history and root files, 20 per query. Queries run METADATA_CONCURRENCY at a time.
+  const metadata = await cached('metadata.json', async () => {
+    const query = async (batch, fields) => {
+      const aliases = batch
+        .map((repo, index) => {
+          const [owner, name] = repo.split('/');
+          return `r${index}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) { ${fields} }`;
+        })
+        .join('\n');
+      const result = await github('/graphql', {
+        method: 'POST',
+        body: JSON.stringify({ query: `query { ${aliases} }` }),
+      });
+      return batch.map((repo, index) => [repo, result.data?.[`r${index}`] ?? null]);
+    };
+    const readAll = async (repos, size, fields, label) => {
+      const records = {};
+      const step = size * METADATA_CONCURRENCY;
+      for (let start = 0; start < repos.length; start += step) {
+        const batches = [];
+        for (let offset = start; offset < Math.min(start + step, repos.length); offset += size)
+          batches.push(repos.slice(offset, offset + size));
+        for (const entries of await Promise.all(batches.map((batch) => query(batch, fields))))
+          for (const [repo, record] of entries) records[repo] = record;
+        console.error(`${label} ${Math.min(start + step, repos.length)}/${repos.length}`);
+      }
+      return records;
+    };
+    const light = await readAll(
+      candidates,
+      100,
+      'nameWithOwner isArchived isFork diskUsage pushedAt',
+      'light',
+    );
+    const full = await readAll(
+      candidates.filter((repo) => {
+        const record = light[repo];
+        return (
+          record &&
+          !record.isArchived &&
+          !record.isFork &&
+          record.diskUsage < MAX_DISK_KB &&
+          record.pushedAt >= since
+        );
+      }),
+      20,
+      `nameWithOwner isArchived isFork diskUsage stargazerCount
+          owner { __typename }
+          defaultBranchRef { target { ... on Commit {
+            oid committedDate
+            history(since: ${JSON.stringify(since)}, first: 100) {
+              totalCount nodes { author { email user { login } } }
+            }
+          } } }
+          workflows: object(expression: "HEAD:.github/workflows") { ... on Tree { entries { name } } }
+          manifest: object(expression: "HEAD:package.json") { ... on Blob { text } }
+          ${LOCKFILES.map((file, lock) => `lock${lock}: object(expression: "HEAD:${file}") { oid }`).join('\n')}`,
+      'full',
+    );
+    // A repository the light pass dropped keeps its light record, which fails the same check.
+    return Object.fromEntries(candidates.map((repo) => [repo, full[repo] ?? light[repo]]));
+  });
+
+  const reasons = {};
+  const eligible = [];
+  for (const repo of candidates) {
+    const record = metadata[repo];
+    const commit = record?.defaultBranchRef?.target;
+    const reason = ineligibility(record);
     if (reason) {
       reasons[reason] = (reasons[reason] ?? 0) + 1;
       continue;
@@ -259,9 +301,9 @@ async function main() {
       stars: record.stargazerCount,
       commit: commit.oid,
       owner: record.owner.__typename,
-      authors90d: authors.size,
+      authors90d: humanAuthors(commit).size,
       packageManager: { 'package-lock.json': 'npm', 'pnpm-lock.yaml': 'pnpm', 'yarn.lock': 'yarn' }[
-        locks[0]
+        LOCKFILES.find((_, index) => record[`lock${index}`])
       ],
     });
   }
