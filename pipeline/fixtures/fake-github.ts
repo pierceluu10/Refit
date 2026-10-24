@@ -89,6 +89,8 @@ export interface FakePull {
   // Who last closed or merged it, as GET …/issues/{number} reports in closed_by.
   closedBy?: string;
   reviews?: { user: string; commit: string }[];
+  // The head GitHub still reports for a moment after a push.
+  reportedHead?: string;
 }
 
 interface IssuedToken {
@@ -356,7 +358,7 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
   }
 
   async function pullRecord(target: FakeRepository, pull: FakePull, single = false) {
-    const head = (await branchTip(target, pull.head)) ?? pull.headSha;
+    const head = pull.reportedHead ?? (await branchTip(target, pull.head)) ?? pull.headSha;
     const repository = { full_name: target.fullName };
     return {
       number: pull.number,
@@ -672,24 +674,24 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
             pull_request: { url: `${ISSUE_URL}/${target.fullName}/pull/${pull.number}` },
           },
         ];
+      // One page of the conversation, as GitHub serves it (30 per page by default).
+      const size = Number(query.get('per_page') ?? 30);
+      const page = Number(query.get('page') ?? 1);
       return [
         200,
         target.comments
-          .flatMap((comment, index) =>
-            comment.issue === pull.number
+          .flatMap((entry, index) =>
+            entry.issue === pull.number
               ? [
                   {
                     id: index + 1,
-                    body: comment.body,
-                    user: {
-                      login: comment.user,
-                      type: comment.user === BOT_LOGIN ? 'Bot' : 'User',
-                    },
+                    body: entry.body,
+                    user: { login: entry.user, type: entry.user === BOT_LOGIN ? 'Bot' : 'User' },
                   },
                 ]
               : [],
           )
-          .slice(0, Number(query.get('per_page') ?? 30)),
+          .slice((page - 1) * size, page * size),
       ];
     }
     if (issue?.[2] && method === 'POST' && target.pulls.has(Number(issue[1]))) {
@@ -962,6 +964,10 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
         state: 'closed',
         closedBy: PERSON_LOGIN,
       });
+    },
+    // GitHub keeps reporting `sha` as the pull request's head, as it may just after a push.
+    lagHead(fullName: string, number: number, sha: string | undefined) {
+      pullOf(repositories.get(fullName.toLowerCase())!, number).reportedHead = sha;
     },
     reopenPull(fullName: string, number: number) {
       pullOf(repositories.get(fullName.toLowerCase())!, number).state = 'open';

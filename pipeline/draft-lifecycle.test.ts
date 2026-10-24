@@ -215,6 +215,14 @@ it('leaves a draft branch with commits a person added as it is, and says once th
   const draft = await publishDraft(await candidate(), options());
   const edited = await addPersonCommit(draft.branch);
   const body = github.pulls(REPOSITORY)[0].body;
+  // A busy conversation: Refit's own comment lands past GitHub's first page.
+  const conversation = Array.from({ length: 120 }, (_, index) => ({
+    issue: 1,
+    user: 'customer',
+    body: `Comment ${index + 1}`,
+  }));
+  github.comments(REPOSITORY).push(...conversation);
+  const refit = () => github.comments(REPOSITORY).filter(({ user }) => user === BOT);
   const expected = {
     status: 'existing',
     number: 1,
@@ -222,7 +230,7 @@ it('leaves a draft branch with commits a person added as it is, and says once th
   };
   // While main has not moved, the person's commits are all there is to say.
   expect(await publishDraft(await candidate('regenerated'), options())).toMatchObject(expected);
-  expect(github.comments(REPOSITORY)).toEqual([]);
+  expect(refit()).toEqual([]);
 
   const base = await pushToMain('README.md', 'moved\n');
   const report = await candidate('regenerated');
@@ -233,22 +241,20 @@ it('leaves a draft branch with commits a person added as it is, and says once th
   expect(await publishDraft(report, options())).toMatchObject(expected);
   expect(await branchTip(draft.branch)).toBe(edited);
   expect(github.pulls(REPOSITORY)).toMatchObject([{ number: 1, state: 'open', body }]);
-  expect(github.comments(REPOSITORY)).toEqual([
+  expect(refit()).toEqual([
     {
       issue: 1,
       user: BOT,
-      body: `\`main\` has moved to \`${short(base)}\` since this draft was last updated, and the draft branch has commits Refit did not write. Refit force-pushes only over its own last commit, so it left the branch as it is. On \`main\` at \`${short(base)}\`, the usages this draft migrates are in \`billing.ts\`. To update the draft, merge \`main\` into this branch and resolve any conflicts; the check results in the description ran on the earlier base.\n\n<!-- refit-base-moved: ${base} -->`,
+      body: `\`main\` has moved to \`${short(base)}\` since this draft was last updated, and the draft branch has commits Refit did not write. Refit force-pushes only over its own last commit, so it left the branch as it is. Refit's scan of \`main\` at \`${short(base)}\` finds usages to migrate in \`billing.ts\`; check that the draft covers each of them. To update the draft, merge \`main\` into this branch and resolve any conflicts; the check results in the description ran on the earlier base.\n\n<!-- refit-base-moved: ${base} -->`,
     },
   ]);
 
   // Main moves again: the same comment is edited, not repeated.
   const later = await pushToMain('CHANGELOG.md', 'later\n');
   await publishDraft(await candidate('regenerated'), options());
-  expect(github.comments(REPOSITORY)).toHaveLength(1);
-  expect(github.comments(REPOSITORY)[0].body).toContain(
-    `\`main\` has moved to \`${short(later)}\``,
-  );
-  expect(github.comments(REPOSITORY)[0].body).toContain(
+  expect(refit()).toHaveLength(1);
+  expect(refit()[0].body).toContain(`\`main\` has moved to \`${short(later)}\``);
+  expect(refit()[0].body).toContain(
     `Refit's patch for \`main\` at \`${short(later)}\` changes \`billing.ts\`.`,
   );
   expect(await branchTip(draft.branch)).toBe(edited);
@@ -261,6 +267,8 @@ it('never forces over a commit a person pushes while Refit is updating its draft
   let pushed = '';
   github.beforeNext('POST', '/graphql', async () => {
     pushed = await addPersonCommit(draft.branch);
+    // GitHub still lists Refit's commit as the head, which the record names.
+    github.lagHead(REPOSITORY, draft.number, tip);
   });
   expect(await publishDraft(await candidate('regenerated'), options())).toMatchObject({
     status: 'existing',
@@ -278,6 +286,30 @@ it('never forces over a commit a person pushes while Refit is updating its draft
   ]);
 });
 
+it("keeps another Refit run's update when two runs update the same draft at once", async () => {
+  const draft = await publishDraft(await candidate(), options());
+  await pushToMain('README.md', 'moved\n');
+  const theirs = await candidate('the other run');
+  let other = '';
+  // The other run finishes while this one reads the draft before moving the branch.
+  github.beforeNext('GET', `/repos/${REPOSITORY}/pulls/${draft.number}`, async () => {
+    await publishDraft(theirs, options());
+    other = await branchTip(draft.branch);
+  });
+  await expect(publishDraft(await candidate('this run'), options())).rejects.toThrow(
+    'Migration branch changed during publication.',
+  );
+  expect(await branchTip(draft.branch)).toBe(other);
+  const [pull] = github.pulls(REPOSITORY);
+  expect(pull.body).toContain(`<!-- refit-pushed: ${other} -->`);
+  expect(pull.body).not.toContain('this run');
+  // The draft is still Refit's: a rerun of the other run finds it current, and nothing is posted.
+  const rerun = await publishDraft(theirs, options());
+  expect(rerun).toMatchObject({ status: 'existing', number: 1, head: other });
+  expect(rerun).not.toHaveProperty('leftUnchanged');
+  expect(github.comments(REPOSITORY)).toEqual([]);
+});
+
 it('tells reviewers when it replaces the commit they reviewed', async () => {
   const draft = await publishDraft(await candidate(), options());
   const tip = await branchTip(draft.branch);
@@ -290,18 +322,19 @@ it('tells reviewers when it replaces the commit they reviewed', async () => {
     status: 'updated',
   });
   const changed = await branchTip(draft.branch);
+  // Nobody reviewed the second commit, so its replacement needs no notice.
   expect(github.comments(REPOSITORY)).toEqual([
     {
       issue: 1,
       user: BOT,
-      body: `Refit replaced commit \`${short(tip)}\` with \`${short(moved)}\` because \`main\` moved to \`${short(base)}\`. Reviews before this comment refer to \`${short(tip)}\`; the description now shows the checks for \`${short(moved)}\`.`,
-    },
-    {
-      issue: 1,
-      user: BOT,
-      body: `Refit replaced commit \`${short(moved)}\` with \`${short(changed)}\` because the migration changed. Reviews before this comment refer to \`${short(moved)}\`; the description now shows the checks for \`${short(changed)}\`.`,
+      body: `Refit replaced the reviewed commit \`${short(tip)}\` with \`${short(moved)}\` because \`main\` moved to \`${short(base)}\`. Those reviews refer to \`${short(tip)}\`; the description now shows the checks for \`${short(moved)}\`.`,
     },
   ]);
+  github.review(REPOSITORY, draft.number);
+  await publishDraft(await candidate('another release'), options());
+  expect(github.comments(REPOSITORY)[1].body).toBe(
+    `Refit replaced the reviewed commit \`${short(changed)}\` with \`${short(await branchTip(draft.branch))}\` because the migration changed. Those reviews refer to \`${short(changed)}\`; the description now shows the checks for \`${short(await branchTip(draft.branch))}\`.`,
+  );
 });
 
 it('leaves a pull request someone else opened from the Refit branch to them', async () => {
@@ -384,19 +417,21 @@ it('closes older drafts only when asked, and only for the same provider and inte
   );
   const edited = await earlierDraft(report, revision, 'edited', [same]);
   await addPersonCommit(edited.branch);
+  const ready = await earlierDraft(report, revision, 'ready', [same]);
+  github.pulls(REPOSITORY).find(({ number }) => number === ready.number)!.draft = false;
   const states = () => github.pulls(REPOSITORY).map(({ number, state }) => [number, state]);
 
   // Off by default.
   const current = await publishDraft(report, options());
-  expect(current).toMatchObject({ status: 'created', number: 6 });
+  expect(current).toMatchObject({ status: 'created', number: 7 });
   expect(current).not.toHaveProperty('superseded');
-  expect(github.pulls(REPOSITORY).find(({ number }) => number === 6)?.body).toContain(same);
+  expect(github.pulls(REPOSITORY).find(({ number }) => number === 7)?.body).toContain(same);
   expect(states().every(([, state]) => state === 'open')).toBe(true);
 
   const asked = { ...options(), supersedeDrafts: true };
   expect(await publishDraft(report, asked)).toMatchObject({
     status: 'existing',
-    number: 6,
+    number: 7,
     superseded: [older.number],
   });
   expect(states()).toEqual([
@@ -406,12 +441,13 @@ it('closes older drafts only when asked, and only for the same provider and inte
     [4, 'open'],
     [5, 'open'],
     [6, 'open'],
+    [7, 'open'],
   ]);
   expect(github.comments(REPOSITORY)).toEqual([
     {
       issue: 1,
       user: BOT,
-      body: `Superseded by #6. Refit keeps one draft per integration and updates it in place; that draft migrates this code to ${report.apiVersion.after} on the current \`main\`.\n\n<!-- refit-superseded -->`,
+      body: `Superseded by #7. Refit keeps one draft per integration and updates it in place; that draft migrates this code to ${report.apiVersion.after} on the current \`main\`.\n\n<!-- refit-superseded -->`,
     },
   ]);
   expect(await branchTip(other.branch)).toBeTruthy();
@@ -419,7 +455,7 @@ it('closes older drafts only when asked, and only for the same provider and inte
   // A person reopens the closed draft: Refit leaves it open.
   github.reopenPull(REPOSITORY, older.number);
   const again = await publishDraft(report, asked);
-  expect(again).toMatchObject({ status: 'existing', number: 6 });
+  expect(again).toMatchObject({ status: 'existing', number: 7 });
   expect(again).not.toHaveProperty('superseded');
   expect(states()[0]).toEqual([1, 'open']);
   expect(github.comments(REPOSITORY)).toHaveLength(1);
@@ -436,14 +472,24 @@ it('opens a new draft for a target whose draft Refit closed itself, unlike one a
   expect(reopened).toMatchObject({ status: 'created', number: 3, branch: older.branch });
 });
 
-it('names a draft by its target version, or by its contract when the version stays the same', async () => {
+it('names a draft by its target version, or by its breaking changes when the version stays the same', async () => {
   const report = await candidate();
-  const { after } = report.snapshots;
-  const named = (before: string | null, target: string | null) =>
-    draftKey({ ...report, apiVersion: { ...report.apiVersion, before, after: target } });
+  const named = (
+    before: string | null,
+    target: string | null,
+    changes: typeof report.changes = report.changes,
+  ) =>
+    draftKey({ ...report, changes, apiVersion: { ...report.apiVersion, before, after: target } });
   expect(named('2024-06-20', '2025-03-31.basil')).toBe(`draft:${report.provider}:2025-03-31.basil`);
-  expect(named('1.0.0', '1.0.0')).toBe(`draft:${report.provider}:${after}`);
-  expect(named(null, null)).toBe(`draft:${report.provider}:${after}`);
+  const same = named('1.0.0', '1.0.0');
+  expect(same).toMatch(`draft:${report.provider}:changes:`);
+  expect(named(null, null)).toBe(same);
+  // An upstream edit that leaves the breaking changes alone keeps the draft; another one does not.
+  expect(report.changes.length).toBeGreaterThan(0);
+  expect(named('1.0.0', '1.0.0', [...report.changes].reverse())).toBe(same);
+  expect(
+    named('1.0.0', '1.0.0', [...report.changes, { ...report.changes[0], id: 'another' }]),
+  ).not.toBe(same);
 });
 
 // The customer migrates billing.ts by hand and pushes it to main, optionally moving the pin too.

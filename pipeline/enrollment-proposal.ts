@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import ts from 'typescript-compiler';
 import { scaffoldChecks } from './agent-catalog.ts';
 import { analyzeRepository } from './analyzer.ts';
@@ -13,7 +13,8 @@ import {
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
 import { STRIPE } from './providers.ts';
 import { readRepository } from './repository.ts';
-import { parseObject } from './specifications.ts';
+import { configurationTarget } from './source-configurations.ts';
+import { isObject, parseObject } from './specifications.ts';
 import { STRIPE_SDK_RELEASES } from './stripe-package-upgrade.ts';
 import { PipelineInputError, type Location, type Repository } from './types.ts';
 import { NODE_22_IMAGE } from './validation-runtime.ts';
@@ -49,12 +50,12 @@ export interface StripeProposal {
 const at = (location: Location) => `${location.file}:${location.line}`;
 
 // Names at most a few places, so a proposal over many clients stays one readable line.
-function places(locations: Location[]) {
-  const named = locations.slice(0, MAX_PLACES).map(at).join(', ');
-  return locations.length > MAX_PLACES
-    ? `${named} and ${locations.length - MAX_PLACES} more`
-    : named;
+function listed(names: string[]) {
+  const named = names.slice(0, MAX_PLACES).join(', ');
+  return names.length > MAX_PLACES ? `${named} and ${names.length - MAX_PLACES} more` : named;
 }
+
+const places = (locations: Location[]) => listed(locations.map(at));
 
 const release = (version: string) => RELEASE.exec(version)?.slice(1).map(Number);
 
@@ -136,17 +137,56 @@ function writtenVersion(
   }
 }
 
+// The package.json that decides the stripe-node release a file loads: the nearest one above it
+// that declares stripe, as Node resolves it from that package's node_modules.
+function stripeOwner(dependencies: Repository['dependencies']) {
+  const packages = [...dependencies].sort(
+    (left, right) => dirname(right.file).length - dirname(left.file).length,
+  );
+  return (file: string) =>
+    packages.find(
+      (dependency) =>
+        dirname(dependency.file) === '.' || file.startsWith(`${dirname(dependency.file)}/`),
+    );
+}
+
+// Each tsconfig `extends` Refit does not follow: one named by package (a workspace's shared
+// tsconfig or an npm base), or a file the repository does not commit (.nuxt/tsconfig.json, which a
+// build writes). Refit cannot tell how imports resolve under it.
+function unreadableExtends(configurations: Repository['files']) {
+  const committed = new Set(configurations.map((file) => file.path));
+  return configurations.flatMap((file) => {
+    const { config } = ts.parseConfigFileTextToJson(file.path, file.content);
+    return [isObject(config) ? config.extends : undefined]
+      .flat()
+      .filter(
+        (parent): parent is string =>
+          typeof parent === 'string' &&
+          (!/^\.\.?\//.test(parent) ||
+            !configurationTarget((name) => committed.has(name), join(dirname(file.path), parent))),
+      )
+      .map((parent) => ({ file: file.path, parent }));
+  });
+}
+
 function applicationVersion(
   declarations: ApiVersionDeclaration[],
-  files: Repository['files'],
-  locked: string | null,
+  repository: Repository,
 ): { value: string; source: string } | EnrollmentStop {
+  const owner = stripeOwner(repository.dependencies);
+  const unreadable = unreadableExtends(repository.configurations ?? []);
   if (!declarations.some((declaration) => declaration.kind === 'constructor'))
-    return {
-      id: 'no-stripe-client',
-      detail: 'Refit found no new Stripe(...) client in this repository that it can follow.',
-      action: `Create the client with new Stripe(secretKey, { apiVersion: '<your API version>' }) in your server code, ${OWN_CONFIGURATION}.`,
-    };
+    return unreadable.length
+      ? {
+          id: 'source-resolution',
+          detail: `Refit found no Stripe client it can follow, because ${listed(unreadable.map(({ file, parent }) => `${file} extends ${parent}`))}, which Refit does not read, so it cannot tell how imports resolve.`,
+          action: `Nothing in your code needs to change: Refit reads only committed tsconfig files that an extends names by a relative path, so it stops here until it can read ${listed([...new Set(unreadable.map(({ parent }) => parent))])}.`,
+        }
+      : {
+          id: 'no-stripe-client',
+          detail: 'Refit found no new Stripe(...) client in this repository that it can follow.',
+          action: `Create the client with new Stripe(secretKey, { apiVersion: '<your API version>' }) in your server code, ${OWN_CONFIGURATION}.`,
+        };
   const pinned: (Location & { value: string })[] = [];
   const absent: Location[] = [];
   const unfollowed: Location[] = [];
@@ -155,7 +195,7 @@ function applicationVersion(
     else if (declaration.absent) absent.push(declaration);
     else if (declaration.status === 'unknown') {
       const written =
-        declaration.kind === 'constructor' ? writtenVersion(files, declaration) : null;
+        declaration.kind === 'constructor' ? writtenVersion(repository.files, declaration) : null;
       if (!written)
         return {
           id: 'api-version-unreadable',
@@ -170,36 +210,63 @@ function applicationVersion(
       else pinned.push({ ...declaration, value: written.value });
     }
   }
-  const fallback = absent.length && locked ? stripeNodeDefaultVersion(locked) : undefined;
-  if (absent.length && !fallback)
-    return locked
-      ? {
-          id: 'api-version-account-default',
-          detail: `The Stripe client at ${at(absent[0])} sets no apiVersion, and Refit does not know which version stripe-node ${locked} sends by default, so requests may use your Stripe account's default version.`,
-          action: `Set apiVersion at ${at(absent[0])} to the version your account uses, ${OWN_CONFIGURATION}.`,
-        }
-      : {
-          id: 'stripe-not-locked',
-          detail: `The Stripe client at ${at(absent[0])} sets no apiVersion, and no committed lockfile records which stripe-node release sends the default.`,
-          action: `Set apiVersion at ${at(absent[0])}, or commit your lockfile.`,
-        };
-  const used = [...new Set([...pinned.map((pin) => pin.value), ...(fallback ? [fallback] : [])])];
+  const defaults: (Location & { release: string; value: string })[] = [];
+  for (const client of absent) {
+    const dependency = owner(client.file);
+    const release = dependency?.lock.status === 'locked' ? dependency.lock.version : null;
+    const value = release ? stripeNodeDefaultVersion(release) : undefined;
+    if (!release)
+      return dependency && dependency.file !== MANIFEST
+        ? {
+            id: 'stripe-not-locked',
+            detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit reads only the root lockfile, which does not install ${dependency.file}, so it cannot tell which stripe-node release sends the default.`,
+            action: `Set apiVersion at ${at(client)}.`,
+          }
+        : {
+            id: 'stripe-not-locked',
+            detail: `The Stripe client at ${at(client)} sets no apiVersion, and no committed lockfile records which stripe-node release sends the default.`,
+            action: `Set apiVersion at ${at(client)}, or commit your lockfile.`,
+          };
+    if (!value)
+      return {
+        id: 'api-version-account-default',
+        detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit does not know which version stripe-node ${release} sends by default, so requests may use your Stripe account's default version.`,
+        action: `Set apiVersion at ${at(client)} to the version your account uses, ${OWN_CONFIGURATION}.`,
+      };
+    defaults.push({ ...client, release, value });
+  }
+  const used = [...new Set([...pinned, ...defaults].map((client) => client.value))];
   if (used.length > 1)
     return {
       id: 'api-version-several',
       detail: `This repository sends more than one Stripe API version (${used
         .map((version) =>
-          version === fallback && !pinned.some((pin) => pin.value === version)
-            ? `stripe-node's default ${version} at ${places(absent)}`
-            : `${version} at ${places(pinned.filter((pin) => pin.value === version))}`,
+          [
+            ...(pinned.some((pin) => pin.value === version)
+              ? [`${version} at ${places(pinned.filter((pin) => pin.value === version))}`]
+              : []),
+            ...[
+              ...new Set(
+                defaults
+                  .filter((client) => client.value === version)
+                  .map((client) => client.release),
+              ),
+            ].map(
+              (release) =>
+                `stripe-node ${release}'s default ${version} at ${places(defaults.filter((client) => client.release === release))}`,
+            ),
+          ].join(', '),
         )
         .join('; ')}), and Refit moves one version at a time.`,
       action:
         'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
     };
+  const releases = [...new Set(defaults.map((client) => client.release))];
   const sources = [
     ...(pinned.length ? [`set at ${places(pinned)}`] : []),
-    ...(fallback ? [`the default of stripe-node ${locked}, which the lockfile records`] : []),
+    ...(releases.length
+      ? [`the default of stripe-node ${releases.join(' and ')}, which the lockfile records`]
+      : []),
   ];
   return {
     value: used[0],
@@ -220,7 +287,9 @@ export async function proposeStripeConfiguration(directory: string) {
     ...(manifest?.dependencies as Record<string, unknown> | undefined),
     ...(manifest?.devDependencies as Record<string, unknown> | undefined),
   };
-  if (!declared[STRIPE.packageName]) {
+  const { testScript, lockfile } = await scaffoldChecks(directory);
+  const rooted = Boolean(declared[STRIPE.packageName]);
+  if (!rooted) {
     const nested = [...new Set(repository.dependencies.map((dependency) => dependency.file))];
     if (!nested.length)
       return {
@@ -241,18 +310,27 @@ export async function proposeStripeConfiguration(directory: string) {
               },
         ],
       };
+  }
+  // A package the root lockfile installs is a workspace Refit prepares and checks from the root;
+  // any other package.json that declares stripe is a project of its own. Beside a root that declares
+  // stripe it is named with the checks, as configured repositories have always been run.
+  const outside = repository.dependencies
+    .filter((dependency) => !manifest || (lockfile && dependency.lock.status !== 'locked'))
+    .filter((dependency) => dependency.file !== MANIFEST)
+    .map((dependency) => dependency.file);
+  if (outside.length && !rooted) {
+    const projects = outside.length === 1 ? 'that project' : 'those projects';
     return {
       proposal: null,
       stops: [
         {
-          id: 'workspace-package',
-          detail: `stripe is declared in ${nested.join(', ')}, not in the root package.json, and Refit runs checks only from the root.`,
-          action: `Commit a ${REPOSITORY_CONFIGURATION} whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).`,
+          id: 'nested-project',
+          detail: `stripe is declared in ${listed(outside)}, ${manifest ? `which the root lockfile does not install, so Refit cannot prepare ${projects}` : 'and this repository has no package.json at its root'}.`,
+          action: `Refit installs and checks only from the root package.json and its lockfile: make ${projects} a workspace of the root and commit the lockfile, or commit a ${REPOSITORY_CONFIGURATION} with a custom image (docs/DEPENDENCIES.md).`,
         },
       ],
     };
   }
-  const { testScript, lockfile } = await scaffoldChecks(directory);
   if (!lockfile)
     stops.push({
       id: 'no-lockfile',
@@ -274,11 +352,9 @@ export async function proposeStripeConfiguration(directory: string) {
         'This repository has no test script and no TypeScript type check, so Refit has nothing that shows a change still works.',
       action: `Add a "test" script to package.json, or a ${TSCONFIG} with typescript in devDependencies.`,
     });
-  const root = repository.dependencies.find((dependency) => dependency.file === MANIFEST);
   const version = applicationVersion(
     analyzeRepository(repository, [], STRIPE).apiVersionDeclarations,
-    repository.files,
-    root?.lock.status === 'locked' ? root.lock.version : null,
+    repository,
   );
   if ('id' in version) stops.push(version);
   else if (!stripeContractVersion(version.value))
@@ -287,8 +363,20 @@ export async function proposeStripeConfiguration(directory: string) {
       detail: `Your code uses Stripe API version ${version.value}, and Refit has no contract for it.`,
       action: `Move the client to ${latestStripeContract().version} yourself, ${OWN_CONFIGURATION} with contracts for ${version.value}.`,
     });
+  // Generation for stripe only in workspace packages is withheld under the decision bar (P5, #270):
+  // no measured repository generates this way, nothing shows the root check covers the package, and
+  // the stripe-node upgrade edits only the root package.json.
+  if (!rooted && !stops.length)
+    stops.push({
+      id: 'workspace-package',
+      detail: `stripe is declared in ${listed([...new Set(repository.dependencies.map((dependency) => dependency.file))])}, not in the root package.json, and Refit does not yet generate a configuration that checks a workspace package from the root.`,
+      action: `Commit a ${REPOSITORY_CONFIGURATION} whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).`,
+    });
   if (stops.length || 'id' in version) return { proposal: null, stops };
   const target = latestStripeContract().version;
+  const checked = testScript
+    ? `the test script in ${MANIFEST}, run with ${manager}`
+    : `tsc over ${TSCONFIG}, failing only on new type errors`;
   const proposal: StripeProposal = {
     configuration: {
       formatVersion: 2,
@@ -307,9 +395,10 @@ export async function proposeStripeConfiguration(directory: string) {
     },
     apiVersion: version,
     target,
-    checks: testScript
-      ? { kind: 'tests', source: `the test script in ${MANIFEST}, run with ${manager}` }
-      : { kind: 'typecheck', source: `tsc over ${TSCONFIG}, failing only on new type errors` },
+    checks: {
+      kind: testScript ? 'tests' : 'typecheck',
+      source: `${checked}${outside.length ? `; Refit does not install ${listed(outside)}, which the root lockfile leaves out` : ''}`,
+    },
   };
   return { proposal, stops };
 }
