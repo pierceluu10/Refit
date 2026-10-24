@@ -1068,22 +1068,45 @@ export function analyzeRepository(
       });
     }
   }
-  // A removed parameter set outside every traced SDK body stops for review (request-migration.ts).
-  for (const { property, removal } of untracedRemovedParameters(
+  // A removed parameter set outside every traced SDK body stops for review, unless it is an exact
+  // `['card']` in a local body only confirmed card-rule calls receive (request-migration.ts).
+  for (const { property, removal, rename } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
-    sdkCall,
+    (node) => {
+      const call = sdkCall(node);
+      return (
+        call && {
+          resource: call.resource,
+          method: call.method,
+          confirmed: !unsafe.has(clientBinding(call.client)!) && !call.optional,
+        }
+      );
+    },
     (node) => location(node).file,
-  ))
+  )) {
+    if (rename && ts.isPropertyAssignment(property)) {
+      const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
+      edits.push({
+        file: location(property).file,
+        start: property.name.getStart(),
+        end: property.name.getEnd(),
+        replacement: `${quote}${removal.cardReplacement}${quote}`,
+        changeId: removal.id,
+        rule: CARD_PAYMENT_METHOD_RULE,
+      });
+    }
     findings.push({
       ...location(property),
       changeId: removal.id,
-      expression: `${removal.parameter} outside a traced SDK request body`,
-      confidence: 'review',
+      expression: `${removal.parameter} ${rename ? 'in a local request body' : 'outside a traced SDK request body'}`,
+      confidence: rename ? 'confirmed' : 'review',
       requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
-      reason:
-        'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
+      reason: rename
+        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved card rule covers.'
+        : 'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
     });
+  }
   for (const node of nodes) {
     const operation = responseCall(node);
     if (!operation || !ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression))
