@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 const [repository, mode] = process.argv.slice(2);
 assert.ok(repository, 'Supply the webhook application directory.');
 assert.ok(
-  ['before', 'after', 'regression', 'migrated'].includes(mode),
+  ['before', 'after', 'regression', 'migrated', 'dual-read'].includes(mode),
   'Unknown webhook contract mode.',
 );
 const { stripe } = await import(pathToFileURL(resolve(repository, 'client.js')));
@@ -132,6 +132,34 @@ try {
     endsAt: PERIOD_END,
     incomingApiVersion: version,
   });
+  // After the generated helper patch: a subscription whose items share one period reads the same
+  // from an old-version and a new-version event; items on different periods have no plan in this
+  // handler, so they keep the original missing-period error.
+  if (mode === 'dual-read') {
+    const shared = snapshot(AFTER_VERSION);
+    shared.data.object.items.data[1].current_period_end = PERIOD_END;
+    assert.deepEqual(await deliver(shared), {
+      status: 200,
+      body: { ...result.body, incomingApiVersion: AFTER_VERSION },
+    });
+    const single = snapshot(AFTER_VERSION);
+    single.data.object.items.data.pop();
+    assert.deepEqual(await deliver(single), {
+      status: 200,
+      body: { ...result.body, incomingApiVersion: AFTER_VERSION },
+    });
+    assert.deepEqual(await deliver(after), {
+      status: 422,
+      body: { error: 'missing-subscription-period' },
+    });
+    const empty = snapshot(AFTER_VERSION);
+    empty.data.object.items.data = [];
+    assert.deepEqual(await deliver(empty), {
+      status: 422,
+      body: { error: 'missing-subscription-period' },
+    });
+    assert.deepEqual(await deliver(snapshot(BEFORE_VERSION)), result);
+  }
   if (mode === 'regression' || mode === 'migrated') {
     const changed = await deliver(after);
     assert.equal(changed.status, mode === 'migrated' ? 200 : 422);

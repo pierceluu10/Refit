@@ -422,3 +422,106 @@ it('keeps the stop when another client sets a version the patch cannot move', as
   expect('diff' in report.patch && report.patch.diff).not.toContain('allowed_payment_method_types');
   expect(report.findings.filter((finding) => finding.requestParameter)).toHaveLength(2);
 });
+
+// Real shapes from the benchmark repositories (noorjsdivs/tulos_yt actions/createCheckoutSession.ts,
+// hex22a/techwear-shop-nextjs app/lib/config.ts). Moving the pin while these still send the
+// parameter makes Stripe answer 400, so a body Refit cannot trace stops for review.
+const builtInVariable = `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const quick = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+export async function createCheckoutSession(customerId, email) {
+  const sessionPayload = {
+    mode: "payment",
+    allow_promotion_codes: true,
+    payment_method_types: ["card"],
+  };
+  if (customerId) {
+    sessionPayload.customer = customerId;
+  } else {
+    sessionPayload.customer_email = email;
+  }
+  const session = await stripe.checkout.sessions.create(sessionPayload);
+  return session.url;
+}
+`;
+const exportedConfig = `export const STRIPE_SESSION_CREATE_PARAMS = {
+  mode: "payment",
+  submit_type: "pay",
+  payment_method_types: ["card"],
+  ui_mode: "hosted",
+};
+`;
+const spreadConfig = `import Stripe from 'stripe';
+import { STRIPE_SESSION_CREATE_PARAMS } from './config.js';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const quick = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+export const checkout = (line_items) =>
+  stripe.checkout.sessions.create({ ...STRIPE_SESSION_CREATE_PARAMS, line_items });
+`;
+
+it.each([
+  ['in a variable the call receives', { 'checkout.js': builtInVariable }, 'checkout.js', 8],
+  [
+    'in an exported config spread into the call',
+    { 'checkout.js': spreadConfig, 'config.js': exportedConfig },
+    'config.js',
+    4,
+  ],
+  [
+    'in a conditional spread inside a traced body',
+    {
+      'checkout.js': checkout("['card']", "{ apiVersion: '2026-08-26.dahlia' }").replace(
+        "mode: 'subscription',",
+        "mode: 'subscription', ...(card ? { payment_method_types: ['card', 'paypal'] } : {}),",
+      ),
+    },
+    'checkout.js',
+    3,
+  ],
+])('stops for review when the removed parameter is set %s', async (_case, files, file, line) => {
+  const report = await run(files);
+  expect(report.patch).toMatchObject({
+    status: 'not-generated',
+    reason: expect.stringMatching(/parameter the target API version removed/),
+  });
+  expect(report.findings).toContainEqual(
+    expect.objectContaining({
+      file,
+      line,
+      confidence: 'review',
+      requestParameter: {
+        operationId: 'PostCheckoutSessions',
+        parameter: 'payment_method_types',
+      },
+    }),
+  );
+});
+
+it('ignores nested payment_settings lists, schema definitions and test files', async () => {
+  const report = await run({
+    'checkout.js': `${checkout("['card']")}export const subscription = { items: [], payment_settings: { payment_method_types: ['card'] } };
+export const InvoiceSchema = { payment_method_types: { type: Array, required: false } };
+`,
+    'checkout.test.js': `export const expected = { mode: 'payment', payment_method_types: ['card'] };\n`,
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed' });
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+// MeiyuTech/AET-App src/app/(frontend)/(aet-app)/api/stripe/create-payment-link/route.ts: endive
+// keeps payment_method_types on POST /v1/payment_links.
+it('leaves a variable that only reaches an SDK call still accepting the parameter', async () => {
+  const report = await run({
+    'checkout.js': `${checkout("['card']")}export async function link(price) {
+  const paymentLinkParams = {
+    payment_method_types: ['card', 'alipay'],
+    line_items: [{ price: price.id, quantity: 1 }],
+  };
+  paymentLinkParams.metadata = { source: 'aet' };
+  return stripe.paymentLinks.create(paymentLinkParams);
+}
+`,
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed' });
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});

@@ -1,16 +1,18 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { afterEach, expect, it } from 'vitest';
+import { join, resolve } from 'node:path';
+import { afterEach, expect, it, vi } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
 import { migrationReviewReason } from './migration-review.ts';
 import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
 import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
+import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
+  vi.unstubAllGlobals();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -294,4 +296,144 @@ export const preview = (customer, subscription) => stripe.invoices.retrieveUpcom
       contractReview: expect.stringContaining('needs review'),
     }),
   ]);
+});
+
+// Shaped like an npm v3 lockfile on stripe-node 17 and the registry's stripe 23.0.0 metadata.
+const INTEGRITY = `sha512-${'A'.repeat(86)}==`;
+const npmFiles = (dependencies: Record<string, string>, locked: string) => ({
+  'package.json': `${JSON.stringify({ name: 'app', dependencies }, null, 2)}\n`,
+  'package-lock.json': `${JSON.stringify(
+    {
+      name: 'app',
+      lockfileVersion: 3,
+      requires: true,
+      packages: {
+        '': { name: 'app', dependencies },
+        'node_modules/stripe': {
+          version: locked,
+          resolved: `https://registry.npmjs.org/stripe/-/stripe-${locked}.tgz`,
+          integrity: INTEGRITY,
+        },
+      },
+    },
+    null,
+    2,
+  )}\n`,
+});
+
+const stubRegistry = (version: string) =>
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            name: 'stripe',
+            version,
+            license: 'MIT',
+            dependencies: {},
+            engines: { node: '>=20' },
+            dist: {
+              tarball: `https://registry.npmjs.org/stripe/-/stripe-${version}.tgz`,
+              integrity: INTEGRITY,
+            },
+          }),
+        ),
+    ),
+  );
+
+it('rewrites retrieveUpcoming with the pin and the stripe-node upgrade in JavaScript', async () => {
+  stubRegistry('23.0.0');
+  const root = await mkdtemp(join(tmpdir(), 'refit-invoice-preview-'));
+  roots.push(root);
+  // stripe-node 17 has no invoices.createPreview, so the rewrite needs the upgrade even though
+  // the client sets its API version.
+  for (const [path, content] of Object.entries({
+    ...npmFiles({ stripe: '^17.7.0' }, '17.7.0'),
+    'billing.js': `import Stripe from 'stripe';
+const stripe = new Stripe('sk', { apiVersion: '2025-02-24.acacia' });
+export const preview = (customer, subscription) => stripe.invoices.retrieveUpcoming({ customer, subscription });
+`,
+    'provider.json': JSON.stringify({
+      ...STRIPE,
+      id: 'stripe-invoices',
+      operations: [{ resource: 'invoices', method: 'retrieve', schema: 'invoice' }],
+    }),
+    'before.json': JSON.stringify(before),
+    'after.json': JSON.stringify(after),
+  }))
+    await writeFile(join(root, path), content);
+  const report = await runPipeline({
+    repository: root,
+    before: join(root, 'before.json'),
+    after: join(root, 'after.json'),
+    providerConfig: join(root, 'provider.json'),
+    apiVersion: '2025-02-24.acacia',
+    proposePatch: true,
+  });
+  expect(report.patch).toMatchObject({
+    status: 'proposed',
+    unresolvedFindings: 0,
+    sdkUpgrade: { from: '17.7.0', to: '23.0.0' },
+  });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain('stripe.invoices.createPreview({ customer, subscription })');
+  expect(diff).toContain("apiVersion: '2026-09-30.endive'");
+  expect(diff).toContain('"stripe": "^23.0.0"');
+  expect(report.findings[0].contractReview).toBeUndefined();
+});
+
+it('leaves retrieveUpcoming for review on a configured subscription-period migration', async () => {
+  stubRegistry('18.0.0');
+  const fixture = resolve('pipeline/fixtures/stripe-webhooks');
+  const read = (path: string) => readFile(join(fixture, path), 'utf8');
+  // The price-policy fixture moves acacia to basil, which removed the upcoming invoice API. Its
+  // configured patch carries neither the pin nor the stripe-node upgrade createPreview needs. The
+  // endive create_preview reduction stands in for basil's: both take customer and subscription.
+  const withInvoices = (document: ReturnType<typeof contract>, base: string) => {
+    const projection = JSON.parse(base);
+    return JSON.stringify({
+      ...projection,
+      paths: { ...projection.paths, ...document.paths },
+      components: {
+        schemas: { ...projection.components.schemas, ...document.components.schemas },
+      },
+    });
+  };
+  const root = await mkdtemp(join(tmpdir(), 'refit-invoice-preview-'));
+  roots.push(root);
+  for (const [path, content] of Object.entries({
+    ...npmFiles({ stripe: '17.7.0' }, '17.7.0'),
+    'client.js': await read('repository/client.js'),
+    'entitlements.js': await read('repository/entitlements.js'),
+    'billing.js': `import { stripe } from './client.js';
+export const preview = (customer, subscription) => stripe.invoices.retrieveUpcoming({ customer, subscription });
+`,
+    'before.json': withInvoices(before, await read('before.json')),
+    'after.json': withInvoices(contract('2025-03-31.basil', true), await read('after.json')),
+  }))
+    await writeFile(join(root, path), content);
+  const report = await runPipeline({
+    repository: root,
+    before: join(root, 'before.json'),
+    after: join(root, 'after.json'),
+    providerConfig: join(fixture, 'provider-price-policy.json'),
+    apiVersion: '2025-02-24.acacia',
+    proposePatch: true,
+  });
+  // The policy still makes this a configured migration run.
+  expect(
+    report.findings.some(
+      (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
+    ),
+  ).toBe(true);
+  expect('diff' in report.patch ? report.patch.diff : '').not.toContain('createPreview');
+  expect(report.patch).toEqual({
+    status: 'not-generated',
+    reason: expect.stringContaining('removed the upcoming invoice API'),
+  });
+  expect(report.findings.find((finding) => finding.file === 'billing.js')).toMatchObject({
+    expression: 'invoices.retrieveUpcoming',
+    contractReview: expect.stringContaining('this call needs review'),
+  });
 });

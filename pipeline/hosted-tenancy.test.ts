@@ -535,6 +535,91 @@ it.skipIf(!DATABASE)(
 );
 
 it.skipIf(!DATABASE)(
+  'moves every AI ledger to a new limit without forgetting spend, and refuses while a job runs',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(pool, tenancy(['first', 'second']));
+    await store.approve(approval('first/a'), 'octo-reviewer');
+    await install(store, 1, 'first', ['first/a']);
+    await install(store, 2, 'second', []);
+    const directory = await temporaryDirectory();
+    const reserve = (limitUsd: number, totalUsd: number) =>
+      reserveAiBudget(
+        {
+          directory,
+          limitUsd,
+          ledger: store.aiLedger(1),
+          parent: { directory, limitUsd: totalUsd, ledger: store.aiTotalLedger() },
+        },
+        MODEL,
+        1000,
+        4096,
+      );
+    const settle = await reserve(0.05, 0.06);
+    await settle(
+      {
+        inputTokens: 1000,
+        cachedInputTokens: 0,
+        cacheWriteInputTokens: 0,
+        outputTokens: 100,
+        reasoningTokens: 0,
+      },
+      MODEL,
+    );
+    // A request whose job failed before settling keeps its $0.019182 reservation.
+    await reserve(0.05, 0.06);
+    // The second installation's spend is still in an earlier worker's file ledger.
+    await mkdir(join(directory, 'installation-2'));
+    await writeState(join(directory, 'installation-2', 'budget.json'), {
+      formatVersion: 1,
+      limitNano: 50_000_000,
+      spentNano: 20_000_000,
+      reservations: {},
+    });
+
+    const job = await store.claim('worker', 30);
+    expect(job).not.toBeNull();
+    await expect(
+      store.changeAiLimits({ installationUsd: 0.1, totalUsd: 0.2 }, directory),
+    ).rejects.toThrow('A job is running; change AI limits once no job runs.');
+    await store.finish(job!.job, 'worker', 'finished', {
+      status: 'needs-review',
+      output: null,
+      message: null,
+    });
+
+    const open = { reservedUsd: 0.019182, reservations: 1 };
+    const none = { reservedUsd: 0, reservations: 0 };
+    expect(await store.changeAiLimits({ installationUsd: 0.1, totalUsd: 0.2 }, directory)).toEqual({
+      installations: [
+        { installationId: 1, summary: { limitUsd: 0.1, spentUsd: 0.0012, ...open } },
+        { installationId: 2, summary: { limitUsd: 0.1, spentUsd: 0.02, ...none } },
+      ],
+      total: { limitUsd: 0.2, spentUsd: 0.0012, ...open },
+    });
+    // A worker still configured with the old limits is refused rather than given a fresh budget.
+    await expect(reserve(0.05, 0.06)).rejects.toThrow('its configured limit changed');
+    await reserve(0.1, 0.2);
+    const ledgers = await store.aiLedgerStates();
+    expect(
+      ledgers.installations.map(({ installationId, state }) => [installationId, state]),
+    ).toEqual([
+      [1, expect.objectContaining({ limitNano: 100_000_000, spentNano: 1_200_000 })],
+      [2, expect.objectContaining({ limitNano: 100_000_000, spentNano: 20_000_000 })],
+    ]);
+    expect(ledgers.total).toMatchObject({ limitNano: 200_000_000, spentNano: 1_200_000 });
+    expect(Object.keys(ledgers.total!.reservations as object)).toHaveLength(2);
+
+    // Only the shared ledger moves when only its limit is given.
+    expect(await store.changeAiLimits({ totalUsd: 0.3 })).toMatchObject({
+      installations: [],
+      total: { limitUsd: 0.3 },
+    });
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
   'caps AI spend across all installations with one total ledger',
   async () => {
     const pool = await database();
