@@ -276,27 +276,51 @@ export function declaredApiVersions(options: {
       end: node.getEnd() - 1,
       value,
     });
+  // stripe-node fixes a client's API version at construction; `setApiVersion`, a write to its
+  // private `_api` or a raw `Stripe-Version` header can still change what it sends, so any of them
+  // anywhere leaves every Stripe constructor's version unknown. Only a header being sent counts
+  // (an object key or the name given to `set`/`append`), not reading an incoming one.
+  const sendsVersionHeader = (node: ts.Node) =>
+    ts.isStringLiteralLike(node) &&
+    node.text.toLowerCase() === 'stripe-version' &&
+    ((ts.isPropertyAssignment(node.parent) && node.parent.name === node) ||
+      (ts.isCallExpression(node.parent) &&
+        node.parent.arguments[0] === node &&
+        ts.isPropertyAccessExpression(node.parent.expression) &&
+        ['set', 'append'].includes(node.parent.expression.name.text)));
+  const hatch =
+    options.provider.packageName === 'stripe' &&
+    nodes.some(
+      (node) =>
+        (ts.isSourceFile(node) &&
+          /\.(?:setApiVersion|_setApiField|_api|_requestSender)\b/i.test(node.text)) ||
+        sendsVersionHeader(node),
+    );
   for (const node of nodes) {
     const creation = options.creation(node);
     if (creation) {
       const result = version(creation.arguments?.[mapping.constructorArgument]);
       const binding = options.clientBinding(node);
-      const uncertain =
+      const unresolved =
         creation.arguments?.some(ts.isSpreadElement) ||
         unsafe.has(options.constructorBinding(creation)!) ||
         !binding ||
         !clients.has(binding) ||
         unsafe.has(binding);
+      const uncertain = hatch || unresolved;
       if (result.node && !uncertain) literalSpan(result.node, result.value!);
       declarations.push({
         ...location(node),
         kind: 'constructor',
-        value: uncertain ? null : result.value,
+        // An escape hatch keeps the literal, so a pin that conflicts with it still stops.
+        value: unresolved ? null : result.value,
         status: result.status === 'literal' && !uncertain ? 'literal' : 'unknown',
         reason:
           result.status === 'literal' && !uncertain
             ? 'Literal SDK constructor API-version option.'
-            : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
+            : hatch && !unresolved
+              ? 'setApiVersion, a write to the private _api field or a raw Stripe-Version header elsewhere in the repository can change the version this client sends.'
+              : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
         ...(result.status === 'absent' && !uncertain ? { absent: true as const } : {}),
       });
     }
