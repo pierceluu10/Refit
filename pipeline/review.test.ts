@@ -424,6 +424,50 @@ it('lists each usage the migrated code still has, counts a site once and names t
   expect(body).toContain('- [ ] Migrate the 1 usage Refit left unmigrated (see Left Unchanged).');
 });
 
+it('counts a traced site with two removed fields once and says how many of those left are confirmed', async () => {
+  const value = await report();
+  const [finding] = value.findings;
+  const [change] = value.changes;
+  // brunobola-portfolio/GitHub-Repo-Manager's `.price` resolves to an invoice item and a line item,
+  // both traced with review confidence.
+  value.changes.push(
+    { ...change, id: 'invoiceitem-price', schema: 'invoiceitem', property: 'price' },
+    { ...change, id: 'line-item-price', schema: 'line_item', property: 'price' },
+  );
+  const price = { ...finding, line: 29, expression: '.price', confidence: 'review' as const };
+  if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
+  value.patch.unresolvedFindings = 3;
+  value.patch.unresolvedSites = unresolvedSites([
+    { ...finding, line: 14 },
+    { ...price, changeId: 'invoiceitem-price' },
+    { ...price, changeId: 'line-item-price' },
+  ]);
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  expect(body).toContain(
+    '2 usages of the breaking changes (1 confirmed, 1 traced with less certainty) are still unmigrated: no rule changed them.',
+  );
+  expect(body).toContain(
+    '- `billing.ts:14` reads `.charges` (`payment_intent.charges`)\n- `billing.ts:29` reads `.price` (`invoiceitem.price` or `line_item.price`)\n',
+  );
+  expect(body).toContain('- 2 usages are still unmigrated.');
+  expect(body).toContain('- [ ] Migrate the 2 usages Refit left unmigrated (see Left Unchanged).');
+  // A field-move rule's page is cited in the Overview and with the file it edits.
+  const url =
+    'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end';
+  Object.assign(value.patch, { sources: [{ url, files: ['billing.ts'] }] });
+  const cited = createReviewArtifacts(value).files['pull-request.md'];
+  const page = `[${url.slice('https://'.length)}](${url})`;
+  expect(cited).toMatch(
+    new RegExp(
+      `^Stripe API .* Stripe documents the change: .*${page.replace(/[[\]().]/g, '\\$&')}`,
+      'm',
+    ),
+  );
+  expect(cited.split('\n').find((line) => line.startsWith('- `billing.ts`: '))).toContain(
+    `Stripe documents it: ${page}.`,
+  );
+});
+
 it.each([
   [['npx', 'tsc', '--noEmit'], false, '**Type-checked only.** No code ran.'],
   [
@@ -472,7 +516,7 @@ it('says a check that could not finish on the original code never ran on the mig
   };
   value.validation.patched = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
-    '- Test Suite Output: **Validation did not pass (error).** `npm test` could not finish on the original code (Check exceeded 120 seconds; the container was stopped.). Refit did not run the checks on the migrated code.',
+    '- Test Suite Output: **Validation did not pass (error).** `npm test` could not finish on the original code (Check exceeded 120 seconds; the container was stopped). Refit did not run the checks on the migrated code.',
   );
 });
 
@@ -490,7 +534,7 @@ it('names the first type error a patch introduced, once, from the compared type 
     stderr: '',
   };
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
-    "`npx tsc --noEmit` failed on the migrated code with exit code 2. The patch introduced 1 type error, the first: “app/api/create-checkout-session/route.ts(39,9): error TS2322: Type '\\{ trial\\_from\\_plan: true; \\}' is not assignable to type 'SubscriptionData'.”.",
+    "`npx tsc --noEmit` failed on the migrated code with exit code 2. The patch introduced 1 type error, the first: “app/api/create-checkout-session/route.ts(39,9): error TS2322: Type '\\{ trial\\_from\\_plan: true; \\}' is not assignable to type 'SubscriptionData'.”",
   );
 });
 
