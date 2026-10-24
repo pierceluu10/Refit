@@ -119,6 +119,63 @@ function declaredCall(files: Repository['files'], declaration: ApiVersionDeclara
   return call && { call, source };
 }
 
+// Where the source creates a Stripe client, read from each file alone: `new X(...)` or `X(...)` on
+// a binding imported or required from stripe, or `require('stripe')(...)`. It names the clients a
+// stop is about when the tracer follows none of them.
+function writtenClients(files: Repository['files']) {
+  const clients: Location[] = [];
+  const quotedPackage = new RegExp(`['"]${STRIPE.packageName}['"]`);
+  for (const file of files) {
+    if (!quotedPackage.test(file.content)) continue;
+    const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
+    const isPackage = (node: ts.Node) =>
+      ts.isStringLiteralLike(node) && node.text === STRIPE.packageName;
+    const required = (node: ts.Node) =>
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'require' &&
+      node.arguments.length === 1 &&
+      isPackage(node.arguments[0]);
+    const bindings = new Set<string>();
+    const creations: (ts.NewExpression | ts.CallExpression)[] = [];
+    const visit = (node: ts.Node) => {
+      const clause =
+        ts.isImportDeclaration(node) && isPackage(node.moduleSpecifier) && node.importClause;
+      if (clause && !clause.isTypeOnly) {
+        if (clause.name) bindings.add(clause.name.text);
+        if (clause.namedBindings && ts.isNamedImports(clause.namedBindings))
+          for (const element of clause.namedBindings.elements)
+            if (!element.isTypeOnly && (element.propertyName ?? element.name).text === 'Stripe')
+              bindings.add(element.name.text);
+      }
+      if (
+        ts.isImportEqualsDeclaration(node) &&
+        ts.isExternalModuleReference(node.moduleReference) &&
+        isPackage(node.moduleReference.expression)
+      )
+        bindings.add(node.name.text);
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.initializer &&
+        required(unwrap(node.initializer))
+      )
+        bindings.add(node.name.text);
+      if (ts.isNewExpression(node) || ts.isCallExpression(node)) creations.push(node);
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const creation of creations) {
+      const callee = unwrap(creation.expression);
+      if ((ts.isIdentifier(callee) && bindings.has(callee.text)) || required(callee)) {
+        const { line, character } = source.getLineAndCharacterOfPosition(creation.getStart(source));
+        clients.push({ file: file.path, line: line + 1, column: character + 1 });
+      }
+    }
+  }
+  return clients;
+}
+
 const UNREAD = 'its apiVersion is not a string literal Refit can read';
 
 // The apiVersion written where a client is created, for a constructor the tracer could not follow
@@ -261,13 +318,37 @@ function applicationVersion(
 ): { value: string; source: string } | EnrollmentStop[] {
   const owner = stripeOwner(repository.dependencies);
   const unreadable = unreadableExtendsReason(repository.configurations ?? []);
-  if (!declarations.some((declaration) => declaration.kind === 'constructor'))
+  const creates = (found: ApiVersionDeclaration[]) =>
+    found.some((declaration) => declaration.kind === 'constructor');
+  if (!creates(declarations)) {
+    // A tsconfig is the cause only when tracing the imports Refit cannot verify finds a client.
+    const traced = analyzeRepository(repository, [], STRIPE, {}, [], [], [], [], {
+      traceUnverifiedPackageImports: true,
+    });
+    const unverified = [
+      ...new Set(traced.sourceWarnings.map((warning) => warning.slice(0, warning.indexOf(':')))),
+    ];
+    if (creates(traced.apiVersionDeclarations) && (unreadable || unverified.length))
+      return [
+        unreadable
+          ? {
+              id: 'source-resolution',
+              detail: `Refit found no Stripe client it can follow, because ${unreadable.named}, so it cannot tell how imports resolve.`,
+              action: unreadable.action,
+            }
+          : {
+              id: 'source-resolution',
+              detail: `Refit found no Stripe client it can follow, because it cannot verify how imports resolve under ${listed(unverified)}.`,
+              action: `Nothing in your code needs to change: Refit stops here until it can verify how ${listed(unverified)} ${unverified.length === 1 ? 'resolves' : 'resolve'} imports.`,
+            },
+      ];
+    const written = writtenClients(repository.files);
     return [
-      unreadable
+      written.length
         ? {
-            id: 'source-resolution',
-            detail: `Refit found no Stripe client it can follow, because ${unreadable.named}, so it cannot tell how imports resolve.`,
-            action: unreadable.action,
+            id: 'no-stripe-client',
+            detail: `Refit sees ${written.length === 1 ? 'a Stripe client' : 'Stripe clients'} created at ${places(written)}, but cannot follow ${written.length === 1 ? 'it' : 'them'} to the calls that use ${written.length === 1 ? 'it' : 'them'}.`,
+            action: `Nothing in your code needs to change: Refit follows a client created directly in a const declaration, such as const stripe = new Stripe(secretKey, { apiVersion: '<your API version>' }), so it stops here until it can follow ${written.length === 1 ? 'this one' : 'these'}.`,
           }
         : {
             id: 'no-stripe-client',
@@ -275,6 +356,7 @@ function applicationVersion(
             action: `Create the client with new Stripe(secretKey, { apiVersion: '<your API version>' }) in your server code, ${OWN_CONFIGURATION}.`,
           },
     ];
+  }
   const pinned: (Location & { value: string })[] = [];
   const absent: Location[] = [];
   const unfollowed: Location[] = [];
@@ -320,11 +402,17 @@ function applicationVersion(
       ];
     if (!value)
       return [
-        {
-          id: 'api-version-account-default',
-          detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit does not know which version stripe-node ${release} sends by default, so requests may use your Stripe account's default version.`,
-          action: `Set apiVersion at ${at(client)} to the version your account uses, ${OWN_CONFIGURATION}.`,
-        },
+        Number(RELEASE.exec(release)?.[1] ?? 0) >= FIRST_PINNING_MAJOR
+          ? {
+              id: 'api-version-account-default',
+              detail: `The Stripe client at ${at(client)} sets no apiVersion, so it sends the API version stripe-node ${release} pins, and Refit's table of stripe-node releases does not record which one that is.`,
+              action: `Set apiVersion at ${at(client)} to the version stripe-node ${release} pins (its changelog names it), ${OWN_CONFIGURATION}.`,
+            }
+          : {
+              id: 'api-version-account-default',
+              detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit does not know which version stripe-node ${release} sends by default, so requests may use your Stripe account's default version.`,
+              action: `Set apiVersion at ${at(client)} to the version your account uses, ${OWN_CONFIGURATION}.`,
+            },
       ];
     defaults.push({ ...client, release, value });
   }
