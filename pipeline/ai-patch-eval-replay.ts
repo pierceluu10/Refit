@@ -213,6 +213,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     },
   });
   if (!values.results || !values.root || !values.output) throw new PipelineInputError(USAGE);
+  // The commit whose guards run: read before the replay, from this script's checkout, which must
+  // have no uncommitted pipeline changes.
+  const checkout = { cwd: import.meta.dirname, encoding: 'utf8' } as const;
+  if (execFileSync('git', ['status', '--porcelain', '--', '.'], checkout).trim())
+    throw new PipelineInputError(
+      'The replay records the commit its guards come from; commit pipeline changes first.',
+    );
+  const commit = execFileSync('git', ['rev-parse', 'HEAD'], checkout).trim();
   const results = JSON.parse(await readFile(values.results, 'utf8')) as {
     repos: {
       repo: string;
@@ -259,7 +267,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.error(`${row.repo}: ${error.message}`);
     }
   }
-  const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
   await writeFile(
     values.output,
     `${JSON.stringify({ formatVersion: 1, source: values.results, commit, after, rows }, null, 2)}\n`,
