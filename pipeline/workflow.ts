@@ -38,6 +38,8 @@ import { countBreakingOperationUsages } from './provider-operations.ts';
 import type { ApiVersionPolicy } from './api-version.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
+// The error in an error's reason, which is the one entry a person reads; manifest.error keeps it whole.
+const MAX_REASON_ERROR = 300;
 const NO_USAGE_REASON =
   'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
 
@@ -397,9 +399,14 @@ export async function runWorkflow(options: {
     return await finish(...publicationOutcome(published, report), runId);
   } catch (error) {
     if (!(error instanceof Error)) throw error;
+    const cause = error.message.replace(/\s+/g, ' ').trim();
     return await finish(
       'error',
-      `Workflow failed during ${stage}. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.`,
+      `Workflow failed during ${stage}: ${
+        cause.length > MAX_REASON_ERROR
+          ? `${cause.slice(0, MAX_REASON_ERROR)}… (the whole error is in manifest.json)`
+          : cause.replace(/(?<![.!?])$/, '.')
+      } Completed artifacts are retained.${stage === 'publication' ? ' Publication errors can leave a remote branch or PR; reconcile before retrying.' : ''}`,
       runId,
       { name: error.name, message: error.message },
     );

@@ -159,6 +159,10 @@ it('retains completed scan evidence when validation setup fails and never publis
     stage: 'validation',
     error: { message: 'Docker image is unavailable' },
   });
+  // The service shows the reason as the target's one status entry, so it names the cause.
+  expect(result.manifest.reason).toBe(
+    'Workflow failed during validation: Docker image is unavailable. Completed artifacts are retained.',
+  );
   expect(JSON.parse(await readFile(join(input.output, 'scan.json'), 'utf8')).status).toBe(
     'affected',
   );
@@ -167,6 +171,19 @@ it('retains completed scan evidence when validation setup fails and never publis
   expect(progress.at(-2)).toContain('Docker image is unavailable');
   expect(progress.at(-1)).toBe(`Evidence: ${input.output}`);
   await expect(runWorkflow(input)).rejects.toMatchObject({ code: 'EEXIST' });
+});
+
+it('cuts a long command error in the reason and keeps it whole in the manifest', async () => {
+  const input = await options();
+  // As execFile reports a failed Docker command: the command line, then the daemon's stderr.
+  const message = `Command failed: docker image inspect stripe/stripe-mock:latest\n${'Error response from daemon: No such image. '.repeat(20)}`;
+  vi.mocked(validateMigration).mockRejectedValueOnce(new Error(message));
+  const { manifest } = await runWorkflow(input);
+  expect(manifest.error?.message).toBe(message);
+  expect(manifest.reason).toMatch(
+    /^Workflow failed during validation: Command failed: docker image inspect stripe\/stripe-mock:latest Error response from daemon: No such image\. .+… \(the whole error is in manifest\.json\) Completed artifacts are retained\.$/,
+  );
+  expect(manifest.reason.length).toBeLessThan(450);
 });
 
 it('rejects ambiguous discovery options and raw discovery baselines', async () => {

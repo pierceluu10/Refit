@@ -107,7 +107,12 @@ it('sends an [URGENT] notice when publication fails partway', async () => {
     publication: { repository: 'o/r', base: 'main', token: 'unused', allowUnresolved: true },
     notify: { send },
   });
-  expect(result.manifest).toMatchObject({ status: 'error', stage: 'publication' });
+  expect(result.manifest).toMatchObject({
+    status: 'error',
+    stage: 'publication',
+    reason:
+      'Workflow failed during publication: GitHub returned HTTP 502. Completed artifacts are retained. Publication errors can leave a remote branch or PR; reconcile before retrying.',
+  });
   expect(send).toHaveBeenCalledExactlyOnceWith(
     '🚨 [URGENT] o/r: publication failed partway (GitHub returned HTTP 502.); a remote branch or draft PR may remain, reconcile before retrying.',
   );
