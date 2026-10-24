@@ -36,6 +36,13 @@ function propertyTarget(schemas: Record<string, unknown>, value: unknown): strin
     return propertyTarget(schemas, value.properties.data);
 }
 
+function isList(value: unknown) {
+  return (
+    isObject(value) &&
+    (value.type === 'array' || (isObject(value.properties) && isObject(value.properties.data)))
+  );
+}
+
 // The literal `expand` entries of a call's object arguments that walk through a removed field,
 // starting at the operation's response schema. Entries Refit cannot follow end silently.
 export function removedExpandPaths(
@@ -58,8 +65,17 @@ export function removedExpandPaths(
       for (const element of property.initializer.elements) {
         if (!ts.isStringLiteralLike(element)) continue;
         let current: string | undefined = resolvableComponentSchema(schemas, schema);
+        let listed = false;
         for (const segment of element.text.split('.')) {
           if (!current) break;
+          const definition = schemas[current];
+          const properties =
+            isObject(definition) && isObject(definition.properties) ? definition.properties : {};
+          // A list's items were already entered: `lines.data.price` reads `data` as the list.
+          if (segment === 'data' && !Object.hasOwn(properties, 'data') && listed) {
+            listed = false;
+            continue;
+          }
           const removal = changes.find(
             (change) => change.schema === current && change.property === segment,
           );
@@ -67,11 +83,8 @@ export function removedExpandPaths(
             found.push({ node: element, path: element.text, removal });
             break;
           }
-          const definition = schemas[current];
-          const value =
-            isObject(definition) && isObject(definition.properties)
-              ? definition.properties[segment]
-              : undefined;
+          const value = properties[segment];
+          listed = isList(value);
           const next = propertyTarget(schemas, value);
           current = next && resolvableComponentSchema(schemas, next);
         }

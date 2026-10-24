@@ -19,6 +19,10 @@ function schemas(after: boolean): Record<string, unknown> {
       type: 'object',
       properties: {
         id: string,
+        lines: {
+          type: 'object',
+          properties: { object: string, data: { type: 'array', items: ref('line_item') } },
+        },
         ...(after
           ? {
               confirmation_secret: { anyOf: [ref('invoices_resource_confirmation_secret')] },
@@ -35,10 +39,24 @@ function schemas(after: boolean): Record<string, unknown> {
       properties: { client_secret: string, type: string },
     },
     invoice_parent: { type: 'object', properties: { type: string } },
+    line_item: {
+      type: 'object',
+      properties: { id: string, ...(after ? { pricing: string } : { price: expandable('price') }) },
+    },
+    item: { type: 'object', properties: { id: string, price: expandable('price') } },
+    price: { type: 'object', properties: { id: string, product: string } },
     payment_intent: { type: 'object', properties: { id: string, client_secret: string } },
     'checkout.session': {
       type: 'object',
-      properties: { id: string, payment_intent: expandable('payment_intent') },
+      properties: {
+        id: string,
+        payment_intent: expandable('payment_intent'),
+        line_items: {
+          type: 'object',
+          nullable: true,
+          properties: { object: string, data: { type: 'array', items: ref('item') } },
+        },
+      },
     },
   };
 }
@@ -87,10 +105,12 @@ export async function subscribe(customerId: string) {
   return { subscription };
 }
 export async function invoiceOf(id: string) {
-  return stripe.invoices.retrieve(id, { expand: ['subscription'] });
+  return stripe.invoices.retrieve(id, { expand: ['subscription', 'lines.data.price.product'] });
 }
 export async function session(id: string) {
-  return stripe.checkout.sessions.retrieve(id, { expand: ['payment_intent'] });
+  return stripe.checkout.sessions.retrieve(id, {
+    expand: ['payment_intent', 'line_items.data.price.product'],
+  });
 }
 `);
   expect(edits).toEqual([]);
@@ -99,6 +119,7 @@ export async function session(id: string) {
     [
       [7, "subscriptions.create expand 'latest_invoice.payment_intent'", 'confirmed'],
       [12, "invoices.retrieve expand 'subscription'", 'confirmed'],
+      [12, "invoices.retrieve expand 'lines.data.price.product'", 'confirmed'],
     ],
   );
   expect(expands[0].reason).toMatch(/removed invoice\.payment_intent/);
