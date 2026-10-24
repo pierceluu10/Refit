@@ -16,7 +16,9 @@ function plainReceiver(expression: ts.Expression): boolean {
 }
 
 // Rewrites a direct `receiver.property` or `receiver?.property` read; longer optional chains,
-// element access and destructuring stay with review or AI.
+// element access and destructuring stay with review or AI. A cast receiver,
+// `(subscription as any).current_period_end`, goes to the helper as written; under `as any` the
+// result stays `any`, as the read was, since the generic helpers would type it `unknown`.
 export function movedReadEdit(
   node: ts.Node,
   file: string,
@@ -24,16 +26,27 @@ export function movedReadEdit(
   rule: NonNullable<SourceEdit['rule']>,
   replacement: (receiver: string) => string,
 ): SourceEdit | undefined {
-  if (!ts.isPropertyAccessExpression(node) || !plainReceiver(node.expression)) return;
+  if (!ts.isPropertyAccessExpression(node)) return;
+  const cast =
+    ts.isParenthesizedExpression(node.expression) &&
+    (ts.isAsExpression(node.expression.expression) ||
+      ts.isTypeAssertionExpression(node.expression.expression) ||
+      ts.isSatisfiesExpression(node.expression.expression))
+      ? node.expression.expression
+      : undefined;
+  if (!plainReceiver(cast ? cast.expression : node.expression)) return;
   if (!node.questionDotToken && node.flags & ts.NodeFlags.OptionalChain) return;
-  const receiver = node.expression.getText();
-  const value = replacement(receiver);
+  const receiver = (cast ?? node.expression).getText();
+  const value =
+    cast && !ts.isSatisfiesExpression(cast) && cast.type.kind === ts.SyntaxKind.AnyKeyword
+      ? `${replacement(receiver)} as any`
+      : replacement(receiver);
   return {
     file,
     start: node.getStart(),
     end: node.getEnd(),
     replacement: node.questionDotToken
-      ? `(${receiver} == null ? undefined : ${value})`
+      ? `(${cast ? `(${receiver})` : receiver} == null ? undefined : ${value})`
       : `(${value})`,
     changeId,
     rule,

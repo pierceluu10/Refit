@@ -832,3 +832,102 @@ it('does not move Checkout Session shipping details when the target contract lac
   const report = await run(shippingReads, false);
   expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
 });
+
+// ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform src/app/api/stripe/webhook/route.ts at fde5a23:
+// the period is read through `as any`, the read P2's only correct AI fix made by hand.
+it('reads a period through an `as any` cast receiver and keeps the read typed any', async () => {
+  const report = await run(`export async function paid(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return {
+    status: subscription.status,
+    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+  };
+}`);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain(
+    '+    current_period_end: new Date((getSubscriptionPeriodEnd(subscription as any) as any) * 1000).toISOString(),',
+  );
+});
+
+// cyberdreadx/cyberpunk-grok-api api/webhook.ts at b1dc85c: a narrowed webhook subscription read
+// through `as any` in a conditional, and through optional chaining.
+it('reads webhook periods through cast receivers for either payload version', async () => {
+  const report = await run(`export function ends(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as Stripe.Subscription;
+    const cancelAt = subscription.cancel_at
+      ? new Date(subscription.cancel_at * 1000).toISOString()
+      : (subscription as any).current_period_end
+        ? new Date((subscription as any).current_period_end * 1000).toISOString()
+        : null;
+    return { cancelAt, start: (subscription as Stripe.Subscription)?.current_period_start };
+  }
+}`);
+  const reads = report.findings.filter((finding) => finding.webhook);
+  expect(reads).toHaveLength(3);
+  expect(
+    reads.every(
+      (finding) => finding.webhook?.migration?.rule === 'stripe-subscription-periods-helper',
+    ),
+  ).toBe(true);
+  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain('+      : (getSubscriptionPeriodEnd(subscription as any) as any)');
+  expect(diff).toContain(
+    '+        ? new Date((getSubscriptionPeriodEnd(subscription as any) as any) * 1000).toISOString()',
+  );
+  expect(diff).toContain(
+    '+    return { cancelAt, start: ((subscription as Stripe.Subscription) == null ? undefined : getSubscriptionPeriodStart(subscription as Stripe.Subscription)) };',
+  );
+});
+
+it('passes a typed cast receiver to the invoice helper without widening it to any', async () => {
+  const report = await run(`export async function owner(id: string) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return (invoice as Stripe.Invoice).subscription;
+}`);
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(diff).toContain('+  return (getInvoiceSubscription(invoice as Stripe.Invoice));');
+});
+
+it('keeps an `as any` receiver typed any under the generic helpers', () => {
+  const files = new Map([
+    ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
+    [
+      '/check/use.ts',
+      `import { getInvoiceSubscription, getCheckoutShippingDetails, getSubscriptionPeriodEnd } from './helper';
+declare const invoice: { id: string };
+export const owner: string = (getInvoiceSubscription(invoice as any) as any).id;
+export const name: string = (getCheckoutShippingDetails(invoice as any) as any).name;
+export const ends: string = new Date((getSubscriptionPeriodEnd(invoice as any) as any) * 1000).toISOString();
+`,
+    ],
+  ]);
+  const options = {
+    strict: true,
+    noEmit: true,
+    noLib: false,
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    types: [],
+  };
+  const host = ts.createCompilerHost(options);
+  const read = host.readFile.bind(host);
+  host.readFile = (name) => files.get(name) ?? read(name);
+  host.fileExists = (name) => files.has(name) || ts.sys.fileExists(name);
+  host.directoryExists = (name) => name === '/check' || ts.sys.directoryExists(name);
+  const getSource = host.getSourceFile.bind(host);
+  host.getSourceFile = (name, version) =>
+    files.has(name)
+      ? ts.createSourceFile(name, files.get(name)!, version, true)
+      : getSource(name, version);
+  const program = ts.createProgram([...files.keys()], options, host);
+  expect(
+    ts
+      .getPreEmitDiagnostics(program)
+      .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')),
+  ).toEqual([]);
+});
