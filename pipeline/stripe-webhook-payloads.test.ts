@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
+import { AiPolicyStop } from './ai-patches.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { compareApiVersion } from './api-version.ts';
 import { migrationReviewReason } from './migration-review.ts';
@@ -549,4 +550,63 @@ it('sends unmigrated webhook reads to AI with version-tolerant instructions', as
   expect(report.patch).toMatchObject({ status: 'proposed', generator: 'openai' });
   expect(report.findings[0].webhook?.migration).toEqual({ rule: 'ai-version-tolerant' });
   expect(migrationReviewReason(report)).toBeUndefined();
+});
+
+it('stops an AI webhook fix that reads only the new shape, with no corrected request', async () => {
+  const { repository, beforePath, afterPath } = await webhookOnlyRepository();
+  const before = JSON.parse(await readFile(beforePath, 'utf8'));
+  const after = JSON.parse(await readFile(afterPath, 'utf8'));
+  after.components.schemas.subscription.properties.period_end =
+    before.components.schemas.subscription.properties.current_period_end;
+  await writeFile(afterPath, JSON.stringify(after));
+  const fetch = vi.fn(async (_url: string, init: { body: string }) => {
+    const evidence = JSON.parse(JSON.parse(init.body).input[0].content);
+    return new Response(
+      JSON.stringify({
+        id: 'resp_webhook',
+        model: 'fixture-model',
+        status: 'completed',
+        output: [
+          {
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: JSON.stringify({
+                  summary: 'Read the period from the new field.',
+                  uncertainties: [],
+                  edits: [
+                    {
+                      file: 'handler.ts',
+                      findingId: evidence.findings[0].id,
+                      original: 'return subscription.current_period_end;',
+                      replacement: 'return subscription.period_end;',
+                    },
+                  ],
+                }),
+              },
+            ],
+          },
+        ],
+      }),
+    );
+  });
+  vi.stubGlobal('fetch', fetch);
+  const run = runPipeline({
+    repository,
+    before: beforePath,
+    after: afterPath,
+    apiVersion: VERSION,
+    apiVersionPolicy: 'source-verified',
+    aiPatch: { apiKey: 'local-fixture', model: 'fixture-model' },
+  });
+  await expect(run).rejects.toThrow(
+    /^AI patch reads subscription\.current_period_end \(handler\.ts:\d+\) only in the new shape; .* stops for review\.$/,
+  );
+  await expect(run).rejects.toBeInstanceOf(AiPolicyStop);
+  await expect(run).rejects.toMatchObject({
+    proposal: { diff: expect.stringContaining('return subscription.period_end;') },
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
 });

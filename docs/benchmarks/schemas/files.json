@@ -256,6 +256,10 @@
       "format": "stripe-results",
       "predates": []
     },
+    "2026-10-24-p2-agent-replay-results.json": {
+      "format": "ai-patch-replay-results",
+      "predates": []
+    },
     "2026-10-24-p3-enrollment-results.json": {
       "format": "enrollment-results",
       "predates": []
