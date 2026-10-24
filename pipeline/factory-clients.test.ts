@@ -295,6 +295,168 @@ it.each([
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
 });
 
+// Lazy Proxy clients from the tuned Stripe sets, as written (messages shortened, version added).
+it.each([
+  [
+    'a local client with methods bound by a ternary (TAIRED1/hackerai app/api/stripe.ts)',
+    `let stripeClient: Stripe | null = null;
+export function getStripe(): Stripe {
+  if (stripeClient) return stripeClient;
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
+  }
+  stripeClient = new Stripe(secretKey, ${options});
+  return stripeClient;
+}
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const client = getStripe();
+    const value = Reflect.get(client, prop, client);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});`,
+  ],
+  [
+    'a local client with methods bound by an if (mwakidenis/TicketHub lib/stripe.ts)',
+    `let stripeInstance: Stripe | null = null
+export function getStripe(): Stripe {
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY!, ${options})
+  }
+  return stripeInstance
+}
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const instance = getStripe()
+    const value = instance[prop as keyof Stripe]
+    if (typeof value === 'function') {
+      return value.bind(instance)
+    }
+    return value
+  },
+})`,
+  ],
+  [
+    'a cast local client (DIFFERENCECODE/product_landing_page src/lib/stripe.ts)',
+    `let _stripe: Stripe | null = null;
+export function getStripe(): Stripe {
+  if (_stripe) return _stripe;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('STRIPE_SECRET_KEY is not set');
+  _stripe = new Stripe(key, ${options});
+  return _stripe;
+}
+export const stripe = new Proxy({} as Stripe, {
+  get(_t, prop) {
+    const client = getStripe() as unknown as Record<string | symbol, unknown>;
+    const value = client[prop as string];
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(client) : value;
+  },
+}) as Stripe;`,
+  ],
+  [
+    'a module holder filled in the trap (trentas/saas-scaffolding lib/stripe.ts)',
+    `function getStripeClient() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not set');
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY, ${options});
+}
+let _stripe: Stripe | null = null;
+export const stripe = new Proxy({} as Stripe, {
+  get(_, prop) {
+    if (!_stripe) _stripe = getStripeClient();
+    return (_stripe as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});`,
+  ],
+  [
+    'a module holder filled in a block (openshiporg/openfront-restaurant lib/stripe.ts)',
+    `const getStripeClient = () => {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) {
+    throw new Error('Stripe secret key not configured.');
+  }
+  return new Stripe(stripeKey, ${options});
+};
+let stripeClient: Stripe | null = null;
+export const stripe = new Proxy({} as Stripe, {
+  get(_, prop) {
+    if (!stripeClient) {
+      stripeClient = getStripeClient();
+    }
+    return (stripeClient as any)[prop];
+  }
+});`,
+  ],
+])('traces a lazy Proxy client with %s', (_name, client) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';\n${client}`,
+    'billing.ts': `import { stripe } from './client.ts';\n${read('stripe')}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+  expect(result.apiVersionDeclarations).toMatchObject([
+    { file: 'client.ts', kind: 'constructor', status: 'literal', value: ORIGINAL },
+    { file: 'billing.ts', kind: 'request', status: 'inherited' },
+  ]);
+});
+
+it.each([
+  [
+    'methods bound to another object',
+    'get(_t, key) { const client = getStripe(); const value = client[key]; return typeof value === "function" ? value.bind(other) : value; }',
+  ],
+  [
+    'a function test on another value',
+    'get(_t, key) { const client = getStripe(); const value = client[key]; return typeof other === "function" ? value.bind(client) : value; }',
+  ],
+  [
+    'a ternary that returns something else',
+    'get(_t, key) { const client = getStripe(); const value = client[key]; return typeof value === "function" ? value.bind(client) : other; }',
+  ],
+  [
+    'an if that returns something else',
+    'get(_t, key) { const client = getStripe(); const value = client[key]; if (typeof value === "function") return other; return value; }',
+  ],
+  [
+    'a read from another object than the local',
+    'get(_t, key) { const client = getStripe(); return other[key]; }',
+  ],
+  ['a local that is not a client', 'get(_t, key) { const client = other; return client[key]; }'],
+  [
+    'a Reflect.get receiver that is another object',
+    'get(_t, key) { const client = getStripe(); return Reflect.get(client, key, other); }',
+  ],
+  [
+    'a statement before the local',
+    'get(_t, key) { console.log(key); const client = getStripe(); return client[key]; }',
+  ],
+  ['a mutable local', 'get(_t, key) { let client = getStripe(); return client[key]; }'],
+])('leaves a lazy Proxy untraced with %s', (_name, trap) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';\n${lazy}\nconst other: any = {};\nexport const stripe = new Proxy({} as Stripe, { ${trap} });`,
+    'billing.ts': `import { stripe } from './client.ts';\n${read('stripe')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+it('leaves a Proxy over a module holder untraced when the holder can hold something else', () => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';
+let _stripe: Stripe | null = null;
+export function reset() { _stripe = {} as Stripe; }
+export const stripe = new Proxy({} as Stripe, {
+  get(_, prop) {
+    if (!_stripe) _stripe = new Stripe('key', ${options});
+    return (_stripe as any)[prop];
+  },
+});`,
+    'billing.ts': `import { stripe } from './client.ts';\n${read('stripe')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
 it.each([
   [
     'a destructured import',

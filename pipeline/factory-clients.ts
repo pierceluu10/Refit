@@ -3,7 +3,9 @@ import ts from 'typescript-compiler';
 // `new Proxy(target, { get: (_, key) => client[key] })`, or the same with `Reflect.get(client, key)`
 // or `Reflect.get(client, key, receiver)`, forwards every read to `client`; returns that expression.
 // The trap may first fill `client` (`client ??= make()` or `if (!client) client = make()`); that
-// write is checked wherever `client` is. Any other trap or trap body is not one.
+// write is checked wherever `client` is. It may name the client in a `const` first
+// (`const client = getStripe()`), and may bind methods to that same client before returning them.
+// Any other trap or trap body is not one.
 export function proxyClient(expression: ts.Expression): ts.Expression | undefined {
   const unwrap = (node: ts.Expression): ts.Expression =>
     ts.isParenthesizedExpression(node) ||
@@ -36,19 +38,97 @@ export function proxyClient(expression: ts.Expression): ts.Expression | undefine
   if (get.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)) return;
   const key = get.parameters[1]?.name;
   if (!key || !ts.isIdentifier(key) || !get.body) return;
-  const statements = ts.isBlock(get.body) ? [...get.body.statements] : [];
-  const last = statements.pop();
-  const body = ts.isBlock(get.body)
-    ? last && ts.isReturnStatement(last) && last.expression
-    : get.body;
-  if (!body || statements.length > 1) return;
-  const read = unwrap(body);
   const named = (node: ts.Node | undefined, name: string | undefined) => {
     const current = node && ts.isExpression(node) ? unwrap(node) : node;
     return Boolean(current && name && ts.isIdentifier(current) && current.text === name);
   };
+  // `const name = value;`, one declaration.
+  const local = (statement: ts.Statement | undefined) => {
+    if (
+      !statement ||
+      !ts.isVariableStatement(statement) ||
+      !(statement.declarationList.flags & ts.NodeFlags.Const) ||
+      statement.declarationList.declarations.length !== 1
+    )
+      return;
+    const [declaration] = statement.declarationList.declarations;
+    return ts.isIdentifier(declaration.name) && declaration.initializer
+      ? { name: declaration.name.text, value: declaration.initializer }
+      : undefined;
+  };
+  // The body is `[fill;] [const client = value;] return read;`, or ends with the read bound for
+  // methods: `const result = read; return typeof result === 'function' ? result.bind(client) :
+  // result;` or `… if (typeof result === 'function') return result.bind(client); return result;`.
+  const statements = ts.isBlock(get.body) ? [...get.body.statements] : [];
+  const last = statements.pop();
+  let body = ts.isBlock(get.body)
+    ? last && ts.isReturnStatement(last) && last.expression
+    : get.body;
+  if (!body) return;
+  const isFunction = (node: ts.Expression, name?: string) =>
+    ts.isBinaryExpression(node) &&
+    [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken].includes(
+      node.operatorToken.kind,
+    ) &&
+    ts.isTypeOfExpression(node.left) &&
+    (name === undefined || named(node.left.expression, name)) &&
+    ts.isStringLiteral(node.right) &&
+    node.right.text === 'function';
+  const binding = (node: ts.Node | undefined, name: string) => {
+    const call = node && ts.isExpression(node) ? unwrap(node) : undefined;
+    if (
+      !call ||
+      !ts.isCallExpression(call) ||
+      call.questionDotToken ||
+      call.arguments.length !== 1 ||
+      !ts.isPropertyAccessExpression(call.expression) ||
+      call.expression.questionDotToken ||
+      call.expression.name.text !== 'bind' ||
+      !named(call.expression.expression, name)
+    )
+      return;
+    const receiver = unwrap(call.arguments[0]);
+    return ts.isIdentifier(receiver) ? receiver.text : undefined;
+  };
+  const previous = statements.at(-1);
+  const check =
+    previous &&
+    ts.isIfStatement(previous) &&
+    !previous.elseStatement &&
+    isFunction(previous.expression)
+      ? (statements.pop() as ts.IfStatement)
+      : undefined;
+  let bound: string | undefined;
+  if (check || ts.isConditionalExpression(unwrap(body))) {
+    const result = local(statements.pop());
+    if (!result) return;
+    const returned = unwrap(body);
+    if (check) {
+      const then =
+        ts.isBlock(check.thenStatement) && check.thenStatement.statements.length === 1
+          ? check.thenStatement.statements[0]
+          : check.thenStatement;
+      if (
+        !isFunction(check.expression, result.name) ||
+        !named(returned, result.name) ||
+        !ts.isReturnStatement(then)
+      )
+        return;
+      bound = binding(then.expression, result.name);
+    } else if (ts.isConditionalExpression(returned)) {
+      if (!isFunction(returned.condition, result.name) || !named(returned.whenFalse, result.name))
+        return;
+      bound = binding(returned.whenTrue, result.name);
+    }
+    if (!bound) return;
+    body = result.value;
+  }
+  const client = local(statements.at(-1)) ? local(statements.pop()) : undefined;
+  if (statements.length > 1) return;
+  const [fill] = statements;
+  const read = unwrap(body);
   const receiver = get.parameters[2]?.name;
-  const target =
+  const base =
     ts.isElementAccessExpression(read) &&
     !read.questionDotToken &&
     named(read.argumentExpression, key.text)
@@ -61,12 +141,18 @@ export function proxyClient(expression: ts.Expression): ts.Expression | undefine
           named(read.arguments[1], key.text) &&
           (read.arguments.length === 2 ||
             (read.arguments.length === 3 &&
-              receiver &&
-              ts.isIdentifier(receiver) &&
-              named(read.arguments[2], receiver.text)))
+              // The trap's receiver, or the client itself (an ordinary read of the client).
+              ((receiver && ts.isIdentifier(receiver) && named(read.arguments[2], receiver.text)) ||
+                (ts.isIdentifier(unwrap(read.arguments[0])) &&
+                  named(read.arguments[2], (unwrap(read.arguments[0]) as ts.Identifier).text)))))
         ? unwrap(read.arguments[0])
         : undefined;
-  if (!target || (statements.length && !fills(statements[0], target))) return;
+  if (!base) return;
+  // Methods may be bound only to the very object they were read from.
+  if (bound !== undefined && !named(base, bound)) return;
+  if (client && !named(base, client.name)) return;
+  const target = client ? unwrap(client.value) : base;
+  if (fill && !fills(fill, target)) return;
   return target;
 }
 

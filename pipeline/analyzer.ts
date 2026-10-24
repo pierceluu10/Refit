@@ -548,8 +548,12 @@ export function analyzeRepository(
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
   factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
   for (const declaration of declarations) {
-    const binding = clientBinding(proxyClient(declaration.initializer) ?? declaration.initializer);
-    if (binding && clients.has(binding)) add(clients, declaration.name);
+    const forwarded = proxyClient(declaration.initializer);
+    const binding = clientBinding(forwarded ?? declaration.initializer);
+    // A Proxy reads its holder on every access, so a holder that only ever holds the client
+    // (filled in the trap or by a factory) forwards to that client.
+    if (binding && (clients.has(binding) || (forwarded && factoryBindings.holders.has(binding))))
+      add(clients, declaration.name);
   }
   const helperBindings = helperClients({
     nodes,

@@ -55,6 +55,20 @@ The factory may be a function declaration or a `const` arrow or function express
 
 An `async` factory counts when every call to it is awaited at once (`const stripe = await getStripe()`, `(await getStripe()).customers.create(...)`), including one that awaits its key before filling a lazy holder. If any call stores, returns or passes the promise, or calls it optionally, the whole factory stays a review case. A factory also stays a review case when it is a generator, returns anything else on any path, is reassigned, or its holder is written any other way (destructuring, `++`, a non-client value).
 
+A `Proxy` export whose only trap is `get` and forwards every read to the client is the client too:
+
+```ts
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const client = getStripe();
+    const value = Reflect.get(client, prop, client);
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
+```
+
+The trap may read `client[prop]` or `Reflect.get(client, prop)` (with the trap's receiver or the client itself), name the client in a `const` first, fill a lazy holder first (`if (!_stripe) _stripe = getStripeClient()`), and bind methods to that same client, through a ternary or an `if (typeof value === 'function') return value.bind(client)`. Any other statement, a binding to another object, a mutable local or a holder that can hold anything else leaves the export untraced.
+
 ## Boundaries
 
 Only scanned source files are resolved. Relative imports and supported repository `paths`/`baseUrl` mappings share the same graph. Exact paths, unique extensionless file/index paths and unambiguous `.js` → `.ts`, `.mjs` → `.mts` and `.cjs` → `.cts` paths are supported. Ambiguous source/output pairs are refused. See [configured aliases and runtime boundaries](SOURCE-ALIASES.md).
