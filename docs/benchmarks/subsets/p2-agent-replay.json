@@ -1,0 +1,211 @@
+{
+  "frozenAt": "2026-10-24",
+  "purpose": "P2 replay of the AI patch guards over every coding-agent diff recorded in docs/benchmarks/2026-10-21-agent-comparison-results.json: those repositories at their frozen commits, unchanged entries from the four tuned sets.",
+  "specs": [
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "Kanba-co/kanba",
+      "stars": 661,
+      "commit": "d5dfe822a503dcf87e14e687e4a13a0baffc9fe3",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "pretzelai/stripe-no-webhooks",
+      "stars": 102,
+      "commit": "1b30651bf7872de9748539a5fdbf77323dba3108",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "brendansudol/punchlines-ai",
+      "stars": 60,
+      "commit": "093385416a737328185b86b3d82c966c86cfa46f",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "iggy-tech/product-hunt-clone-final",
+      "stars": 59,
+      "commit": "85b3a0fa123b4a722d6ab963bf9a0d4c4e6de1c9",
+      "before": "2024-04-10",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "mrwebwork/spotify",
+      "stars": 46,
+      "commit": "91cfa45df898fef97f66fb5125009e86872633a0",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "geallenboy/ai-saas-template",
+      "stars": 40,
+      "commit": "e890ff0e5406585f27712bd9754c8d49a17865c8",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "abressiddique/AbresStore-Admin",
+      "stars": 5,
+      "commit": "33469c76ef2c00692765450e8b421f7a679474ea",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "unused-candidate"
+    },
+    {
+      "repo": "Sanjdcool/ApanStack-Newsletter",
+      "stars": 5,
+      "commit": "fe50120d42b54754a7261fc5e51fdc67f3470dde",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "unused-candidate"
+    },
+    {
+      "repo": "utsavkrishnatra/pdf_answers",
+      "stars": 4,
+      "commit": "064833f31558c5c995ba7a0ca7ec534effd222ec",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "next-by-stars"
+    },
+    {
+      "repo": "inventashif/hackerai",
+      "stars": 1,
+      "commit": "c48bdee0038823339e13ee34a83013fa4f6e4d3d",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "pnpm",
+      "before": "2026-07-29.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "22.4.0"
+    },
+    {
+      "repo": "kondax-com/Bocker",
+      "stars": 1,
+      "commit": "084bfee71fa441fac8850a11b5ade649e9005bb4",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.7.0"
+    },
+    {
+      "repo": "beindigital-products/wedillybird",
+      "stars": 0,
+      "commit": "4efeeed8e8d112cdddf9cabfde80003f9dbdfd9a",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.0"
+    },
+    {
+      "repo": "Bizgojo/drivetimetales",
+      "stars": 0,
+      "commit": "9cb92abc9adad2b383441a6e215c01d0ee1af29c",
+      "owner": "User",
+      "authors90d": 4,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.25.0"
+    },
+    {
+      "repo": "Dvargas005/node-hub",
+      "stars": 0,
+      "commit": "e06a3f69ef2411b93793c0630e2f5045e4147012",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^21.0.1"
+    },
+    {
+      "repo": "JiantaoFu/insightly",
+      "stars": 0,
+      "commit": "e752d3c311780e3e11ec9738b16a4f6a549cb321",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.2.1"
+    },
+    {
+      "repo": "RISHIE2006/Signl",
+      "stars": 0,
+      "commit": "42b02d9f773d8c730ff41aec645368d4126e2cbb",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-03-31.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.2.2"
+    },
+    {
+      "repo": "sammorrispb/nextgen-academy",
+      "stars": 0,
+      "commit": "1bf893710db664a72c745f8d69d2853b7c838da2",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.0"
+    }
+  ]
+}

@@ -204,13 +204,21 @@ function writtenVersion(
   const other = options.properties.find((property) => !ts.isPropertyAssignment(property));
   if (other)
     return { unread: `its options include ${quoted(other, source)}, which may set apiVersion` };
-  const option = options.properties
+  const computed = options.properties.find(
+    (property) => property.name && ts.isComputedPropertyName(property.name),
+  );
+  if (computed)
+    return { unread: `its options include ${quoted(computed, source)}, which may set apiVersion` };
+  const named = options.properties
     .filter(ts.isPropertyAssignment)
-    .find(
+    .filter(
       (property) =>
         (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) &&
         property.name.text === STRIPE.apiVersion!.property,
     );
+  // The runtime sends the last of repeated keys; Refit does not guess which one was meant.
+  if (named.length > 1) return { unread: `its options set apiVersion ${named.length} times` };
+  const [option] = named;
   if (!option) return 'absent';
   const value = unwrap(option.initializer);
   if (!ts.isStringLiteral(value) && !ts.isNoSubstitutionTemplateLiteral(value))
@@ -547,6 +555,15 @@ export async function proposeStripeConfiguration(directory: string) {
       id: 'api-version-no-contract',
       detail: `Your code uses Stripe API version ${version.value}, and Refit has no contract for it.`,
       action: `Move the client to ${latestStripeContract().version} yourself, ${OWN_CONFIGURATION} with contracts for ${version.value}.`,
+    });
+  // Generation for stripe only in workspace packages is withheld under the decision bar (P5, #270):
+  // no measured repository generates this way, nothing shows the root check covers the package, and
+  // the stripe-node upgrade edits only the root package.json.
+  if (!rooted && !stops.length)
+    stops.push({
+      id: 'workspace-package',
+      detail: `stripe is declared in ${listed([...new Set(repository.dependencies.map((dependency) => dependency.file))])}, not in the root package.json, and Refit does not yet generate a configuration that checks a workspace package from the root.`,
+      action: `Commit a ${REPOSITORY_CONFIGURATION} whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).`,
     });
   if (stops.length || Array.isArray(version)) return { proposal: null, stops };
   const target = latestStripeContract().version;

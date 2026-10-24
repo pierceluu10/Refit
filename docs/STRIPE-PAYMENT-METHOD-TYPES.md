@@ -39,9 +39,10 @@ There are 222 call sites in 193 repositories. Every value is a literal array; no
 
 Refit would rename the property and keep the value. It would apply this only when all of these hold:
 
-- The value is exactly the literal `['card']`, on one of the three operations, in a traced SDK call.
+- The value is exactly the literal `['card']`, on one of the three operations, in a traced SDK call. Since 2026-10-24 it may also sit in a local `const` or `let` body (not `var`, not exported) whose every use is a property access other than `payment_method_types` or a direct argument of a confirmed traced creation call; any other site outside a traced SDK body stops for review (#280).
 - The same patch moves the API version to endive: the literal `apiVersion` pin, or, when no client sets `apiVersion` at all, the stripe-node upgrade itself, because stripe-node 12 and later sends the API version its release pins. `apiVersion: null` (the account default), a dynamic option and `setApiVersion` never count, and one such client anywhere in the repository keeps every call stopping, because Refit cannot tell which client sends which request. For a TypeScript project, the patch must also upgrade `stripe` to a release whose types have the new property (23.0.0 or later). Otherwise, as in pnpm projects today, the call keeps stopping.
 - No other stop applies to the repository. A stop for webhooks, skipped files, declared types or other removed parameters still stops the run.
+- The patch is not a configured migration's (an operation replacement or request rename the code uses, or the subscription-period webhook migration): that patch moves no pin and upgrades nothing, so the call keeps stopping.
 
 The draft PR would state, in its "please check" section, that the account must keep cards enabled in the Dashboard or payment method configuration.
 

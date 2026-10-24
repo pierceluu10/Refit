@@ -15,6 +15,7 @@ import {
   reapJobMachines,
   runHostedJob,
   runJobMachine,
+  unchangedReceipt,
   type HostedOutcome,
 } from './hosted-runner.ts';
 import { hostedTargetId, type HostedTarget } from './hosted-store.ts';
@@ -53,6 +54,7 @@ const READ_TOKEN = 'job-read-token';
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   transport.tokens = [];
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
@@ -62,6 +64,8 @@ afterEach(async () => {
 async function setup(machine: (created: FakeMachine) => void = () => undefined) {
   const root = await mkdtemp(join(tmpdir(), 'refit-runner-'));
   cleanups.push(() => rm(root, { recursive: true, force: true }));
+  // The first job expects doctor to stop for a missing image, so a gated run's image is not used.
+  vi.stubEnv('REFIT_DOCKER_IMAGE', undefined);
   const sample = await approvedRepository(root);
   transport.source = sample.source;
   transport.head = sample.head;
@@ -505,4 +509,51 @@ it('reaps job machines that no live job owns', async () => {
   expect(
     [running, elsewhere, unrelated].map((machine) => fake.machines.get(machine.id)?.state),
   ).toEqual(['started', 'started', 'started']);
+});
+
+it('reuses a receipt only for a finished, ready job on the same commit, approval and build with no fetched contract', () => {
+  const revision = 'a'.repeat(40);
+  const current = { revision, fingerprint: 'f'.repeat(64), build: 'build-1' };
+  const receipt = {
+    status: 'needs-review',
+    output: '/data/targets/abc/runs/key-1',
+    message: 'Operation changes need review.',
+    revision,
+    readiness: 'ready-for-validation',
+    fingerprint: current.fingerprint,
+    build: current.build,
+    liveContract: false,
+  };
+  const previous = { job: 7, status: 'finished', receipt };
+  const reused = {
+    ...receipt,
+    message:
+      'Reused the receipt of job 7: same commit, approval and worker build, so nothing ran. Operation changes need review.',
+    unchangedSince: 7,
+  };
+  expect(unchangedReceipt(previous, current)).toEqual(reused);
+  // Nothing ran in a reused job, so an earlier job's CPU steal is not carried over.
+  expect(
+    unchangedReceipt({ ...previous, receipt: { ...receipt, cpuSteal: 0.5 } }, current),
+  ).toEqual(reused);
+  // A chain of reused receipts keeps pointing at the job that did the work, without repeating it.
+  expect(unchangedReceipt({ job: 9, status: 'finished', receipt: reused }, current)).toEqual(
+    reused,
+  );
+  const runs = [
+    null,
+    { ...previous, receipt: null },
+    { ...previous, status: 'failed' },
+    { ...previous, status: 'cancelled' },
+    { ...previous, receipt: { ...receipt, revision: 'b'.repeat(40) } },
+    { ...previous, receipt: { ...receipt, revision: null } },
+    { ...previous, receipt: { ...receipt, fingerprint: 'e'.repeat(64) } },
+    { ...previous, receipt: { ...receipt, build: 'build-0' } },
+    { ...previous, receipt: { ...receipt, build: undefined } },
+    { ...previous, receipt: { ...receipt, liveContract: true } },
+    { ...previous, receipt: { ...receipt, liveContract: undefined } },
+    { ...previous, receipt: { ...receipt, readiness: 'needs-attention' } },
+    { ...previous, receipt: { ...receipt, readiness: null } },
+  ];
+  for (const run of runs) expect(unchangedReceipt(run, current), JSON.stringify(run)).toBeNull();
 });
