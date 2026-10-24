@@ -62,6 +62,9 @@ export function summarizePoll(result: ServicePoll) {
       result.status === 'processed'
         ? [
             result.result.manifest.reason,
+            ...(result.result.manifest.error
+              ? [`${result.result.manifest.error.name}: ${result.result.manifest.error.message}`]
+              : []),
             ...(result.documentationBaselines?.length
               ? [
                   `Now monitoring ${result.documentationBaselines.length} documentation source${result.documentationBaselines.length === 1 ? '' : 's'}.`,
@@ -146,9 +149,10 @@ export async function pollServiceTarget(options: {
       options.signal.throwIfAborted();
       if (readiness?.status === 'needs-attention')
         return { status: 'readiness-blocked' as const, output: null, readiness, checkout };
+      const source = target.source ?? profile.source;
       const result = await watchOnce({
         configuration: { ...profile.workflow, repository: checkout.directory, ...runtime },
-        source: target.source ?? profile.source,
+        source,
         documentationSources: target.documentationSources,
         stateDirectory: options.stateDirectory,
         retry: options.retry,
@@ -162,6 +166,8 @@ export async function pollServiceTarget(options: {
         ...(readiness ? { readiness } : {}),
         checkout,
         checks: { image, command, baselineCommand, prepareDependencies, compareTypeErrors },
+        // Fetched contracts and documentation can change without a new commit.
+        liveContract: source.kind !== 'file' || target.documentationSources.length > 0,
       };
     },
   );

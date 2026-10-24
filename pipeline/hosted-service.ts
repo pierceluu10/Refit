@@ -14,18 +14,21 @@ import { standaloneStateDirectory } from './github-checkout.ts';
 import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
 import { hostedPages } from './hosted-setup.ts';
 import { GitHubRequestError } from './github.ts';
+import { MIN_THROTTLE_SECONDS, readCpuTimes, stealShare, THROTTLED_STEAL } from './hosted-cpu.ts';
 import { isDatabaseUnavailable } from './hosted-database.ts';
 import { purgeUninstalled } from './hosted-retention.ts';
 import { processApprovalIssues } from './hosted-approval.ts';
 import { openApprovalStore } from './hosted-approval-store.ts';
 import {
   failedOutcome,
+  type HostedOutcome,
   JOB_POLL_SECONDS,
   JOB_TIMEOUT_SECONDS,
   jobChannel,
   reapJobMachines,
   runHostedTarget,
   runJobMachine,
+  unchangedReceipt,
 } from './hosted-runner.ts';
 import {
   failedJobNotifier,
@@ -33,9 +36,10 @@ import {
   hostedRedactor,
   type HostedLogContext,
 } from './hosted-ops.ts';
-import { openHostedStore, type HostedTarget } from './hosted-store.ts';
+import { openHostedStore, type HostedReceipt, type HostedTarget } from './hosted-store.ts';
 import type { HostedTenancy } from './hosted-tenancy.ts';
 import {
+  defaultRevision,
   INVENTORY_LIMITS,
   inventorySummary,
   refreshInventory,
@@ -60,6 +64,7 @@ import {
 } from './local-service.ts';
 import { confirmRepositoryAccess } from './service-worker.ts';
 import type { SlackSend } from './slack.ts';
+import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
 const HOSTED_HOST = '0.0.0.0';
@@ -79,6 +84,7 @@ const MIN_LEASE_SECONDS = 3;
 // Renewing three times per lease keeps one missed renewal from releasing a running job.
 const RENEWALS_PER_LEASE = 3;
 const NOT_FOUND = 404;
+const REVISION_PREFIX = 12;
 // An inventory holds its lease for its whole time cap, plus this margin, without renewing it.
 const INVENTORY_LEASE_MARGIN_SECONDS = 60;
 // While PostgreSQL is unreachable the worker waits, doubling the wait up to the maximum.
@@ -101,6 +107,9 @@ export async function runHostedService(options: {
   aiTotalUsd?: number;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // The worker image this process runs (FLY_IMAGE_REF). With it, a scheduled poll whose base commit,
+  // approval and build match the target's last finished job stores that receipt and runs nothing.
+  build?: string;
   // Where customers ask for data deletion and report security issues (REFIT_HOSTED_CONTACT).
   contact?: string;
   // Off by default: re-scans inventories on push, registry change and age, and opens or updates
@@ -140,8 +149,13 @@ export async function runHostedService(options: {
   port?: number;
   intervalSeconds?: number;
   leaseSeconds?: number;
+  // The longest an in-VM job may run (default JOB_TIMEOUT_SECONDS, as for job machines).
+  jobTimeoutSeconds?: number;
   worker?: string;
   signal: AbortSignal;
+  // Stops claiming new work: the running job finishes, then the service returns. `signal` still
+  // stops everything at once.
+  drain?: AbortSignal;
   onReady?: (url: string) => void;
   onProgress?: (message: string, context?: HostedLogContext) => void;
 }) {
@@ -167,6 +181,9 @@ export async function runHostedService(options: {
     throw new PipelineInputError('Service interval must be 30–86400 seconds.');
   if (!Number.isInteger(lease) || lease < MIN_LEASE_SECONDS)
     throw new PipelineInputError(`Worker leases must be at least ${MIN_LEASE_SECONDS} seconds.`);
+  const jobTimeout = options.jobTimeoutSeconds ?? JOB_TIMEOUT_SECONDS;
+  if (!Number.isInteger(jobTimeout) || jobTimeout < 1)
+    throw new PipelineInputError('The job timeout must be a whole number of seconds.');
   const worker = options.worker ?? `${hostname()}:${process.pid}`;
   // Logs, stored receipts and error responses never carry a credential, whatever produced the text.
   // `refit hosted serve` passes a redactor built from its whole environment; otherwise the
@@ -179,6 +196,17 @@ export async function runHostedService(options: {
       OPENAI_API_KEY: options.aiPatch?.apiKey,
       REFIT_DATABASE_URL: options.database.options?.connectionString,
     });
+  // A receipt is reused only by a worker with the same image and the same AI and draft settings.
+  const build =
+    options.build &&
+    digest(
+      JSON.stringify([
+        options.build,
+        options.aiPatch?.model ?? null,
+        repairAttempts,
+        Boolean(options.publishDraft),
+      ]),
+    );
   const redactReceipt = <Receipt extends { message: string | null }>(receipt: Receipt) => ({
     ...receipt,
     message: receipt.message && redact(receipt.message),
@@ -223,6 +251,12 @@ export async function runHostedService(options: {
     outage = Math.min(outage * 2, MAX_OUTAGE_RETRY_MS);
   };
   options.signal.addEventListener('abort', stop, { once: true });
+  const draining = () => options.signal.aborted || Boolean(options.drain?.aborted);
+  const drained = () => {
+    onProgress?.('Stopping after the running job; no new job starts.');
+    wake();
+  };
+  options.drain?.addEventListener('abort', drained, { once: true });
   const openStore = async () => {
     for (;;)
       try {
@@ -283,6 +317,55 @@ export async function runHostedService(options: {
         installation: target.installationId,
         ...(level && { level }),
       });
+    // A job machine's CPU is not this machine's, so only in-VM jobs are measured.
+    // A diagnostic: an unreadable /proc/stat is logged and skipped, never allowed to lose the receipt.
+    const measureCpu = () =>
+      readCpuTimes().catch((error: unknown) => {
+        progress(
+          `CPU steal not measured: ${error instanceof Error ? error.message : String(error)}`,
+          'error',
+        );
+        return null;
+      });
+    const cpu = jobs ? null : await measureCpu();
+    const started = Date.now();
+    // Throttled installs and checks hit their time limits, which reads as the repository's failure.
+    const cpuSteal = async () => {
+      const after = cpu && (await measureCpu());
+      if (!cpu || !after || Date.now() - started < MIN_THROTTLE_SECONDS * MILLISECONDS_PER_SECOND)
+        return {};
+      const steal = stealShare(cpu, after);
+      if (steal >= THROTTLED_STEAL)
+        progress(
+          `CPU throttled: the host took ${Math.round(steal * 100)}% of this machine's CPU time during the job, so installs and checks ran slower and may have hit their time limits.`,
+          'error',
+        );
+      return { cpuSteal: Math.round(steal * 100) / 100 };
+    };
+    // finish refuses a job this worker no longer holds; say so instead of losing the receipt.
+    // `ran` is what a completed run adds: the approval and build a later poll compares.
+    const record = async (outcome: HostedOutcome, ran: Partial<HostedReceipt> = {}) => {
+      const receipt = redactReceipt({ ...outcome.receipt, ...ran, ...(await cpuSteal()) });
+      if (!(await store.finish(job, worker, outcome.status, receipt)))
+        progress(
+          `Receipt not stored: this worker no longer holds job ${job}; another worker reclaimed its lease, or it failed after repeated lease expiry. ${receipt.status}: ${receipt.message}`,
+          'error',
+        );
+    };
+    // A hung in-VM job would keep renewing its lease and hold its installation's only job slot.
+    // Job machines have their own timeout.
+    const deadline = new AbortController();
+    const timeout = jobs
+      ? undefined
+      : setTimeout(
+          () =>
+            deadline.abort(
+              new PipelineInputError(
+                `Job exceeded the ${jobTimeout}-second job timeout and was stopped.`,
+              ),
+            ),
+          jobTimeout * MILLISECONDS_PER_SECOND,
+        );
     const leaseMilliseconds = lease * MILLISECONDS_PER_SECOND;
     const renewEvery = leaseMilliseconds / RENEWALS_PER_LEASE;
     // The claim set the lease just before this job started.
@@ -328,6 +411,20 @@ export async function runHostedService(options: {
         throw new PipelineInputError(
           'Repository name now belongs to a different GitHub repository; approve it again.',
         );
+      if (build && !retry) {
+        const reused = unchangedReceipt(await store.lastEnded(target.id), {
+          revision: await defaultRevision(options.app, target.repository, target.base),
+          fingerprint: target.approval.fingerprint,
+          build,
+        });
+        if (reused) {
+          await store.reuse(job, worker, target.installationId, redactReceipt(reused));
+          progress(
+            `${reused.status}: unchanged since job ${reused.unchangedSince} at ${reused.revision?.slice(0, REVISION_PREFIX)}; nothing ran.`,
+          );
+          return;
+        }
+      }
       const outcome = jobs
         ? await runJobMachine({
             ...jobs,
@@ -348,7 +445,7 @@ export async function runHostedService(options: {
             app: options.app,
             directory,
             retry,
-            signal: controller.signal,
+            signal: AbortSignal.any([controller.signal, deadline.signal]),
             aiPatch: options.aiPatch && {
               ...options.aiPatch,
               ...(options.aiPatch.budget && {
@@ -376,18 +473,24 @@ export async function runHostedService(options: {
             notify: options.notify,
             onProgress: progress,
           });
-      await store.finish(job, worker, outcome.status, redactReceipt(outcome.receipt));
+      await record(outcome, {
+        fingerprint: target.approval.fingerprint,
+        ...(build && { build }),
+      });
       // The receipt carries the error name from both runners, so a job machine's refusal counts too.
       if (options.approvalIssues && outcome.receipt.message?.startsWith('RepositoryApprovalError:'))
         await approvals.changed(target.repository);
-      progress(`${outcome.receipt.status}: ${outcome.receipt.message}`);
+      progress(
+        `${outcome.receipt.status}: ${outcome.receipt.message}`,
+        outcome.status === 'failed' ? 'error' : undefined,
+      );
     } catch (error) {
       if (!(error instanceof Error)) throw error;
-      const outcome = failedOutcome(error, controller.signal.aborted);
-      await store.finish(job, worker, outcome.status, redactReceipt(outcome.receipt));
+      await record(failedOutcome(error, controller.signal.aborted));
       progress(`${error.name}: ${error.message}`, 'error');
     } finally {
       clearInterval(renewal);
+      clearTimeout(timeout);
       running.delete(job);
       options.signal.removeEventListener('abort', abort);
     }
@@ -522,6 +625,7 @@ export async function runHostedService(options: {
             : undefined;
           respond(response, 200, {
             ...status,
+            paused: await store.paused(),
             ...(options.approvalIssues && { approvals: await approvals.read() }),
             inventories: (await inventories.read(repository)).map(({ inventory, ...row }) => ({
               ...row,
@@ -623,7 +727,8 @@ export async function runHostedService(options: {
       onProgress?.(`Job channel listening at ${jobs.callback}; jobs run on Fly Machines.`);
     }
     options.onReady?.(`http://${host}:${address.port}`);
-    while (!options.signal.aborted) {
+    let pausedAt: number | undefined;
+    while (!draining()) {
       requested = false;
       try {
         if (jobs) await reap(jobs);
@@ -640,6 +745,14 @@ export async function runHostedService(options: {
             onProgress,
           });
         await store.enqueueDue(interval);
+        const since = await store.paused();
+        if (since?.getTime() !== pausedAt)
+          onProgress?.(
+            since
+              ? `Paused since ${since.toISOString()}; no job starts until refit hosted resume.`
+              : 'Resumed; claiming jobs again.',
+          );
+        pausedAt = since?.getTime();
         if (options.purgeUninstalled) {
           const purged = await purgeUninstalled(options.database, directory);
           if (purged.targets.length)
@@ -657,7 +770,7 @@ export async function runHostedService(options: {
             onProgress?.(`[monitoring ${item.repository}] Inventory requested (${item.reason}).`);
         }
         // Inventories are short and read-only, so a queued one goes before the next validation job.
-        while (!options.signal.aborted) {
+        while (!draining()) {
           const inventory = await inventories.claim(
             worker,
             Math.max(lease, INVENTORY_LIMITS.seconds + INVENTORY_LEASE_MARGIN_SECONDS),
@@ -700,12 +813,13 @@ export async function runHostedService(options: {
         await unavailable(error);
         continue;
       }
-      if (options.signal.aborted || requested) continue;
+      if (draining() || requested) continue;
       await pause(interval * MILLISECONDS_PER_SECOND);
     }
     return { directory, registry: await store.read() };
   } finally {
     options.signal.removeEventListener('abort', stop);
+    options.drain?.removeEventListener('abort', drained);
     stop();
     await Promise.all(
       servers.map(
