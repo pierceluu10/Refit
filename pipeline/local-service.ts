@@ -109,6 +109,8 @@ export async function runLocalService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Off unless set: a weekly comment on each open draft whose job nothing has changed.
+  weeklyStatus?: boolean;
   // Off unless set: opens or updates one issue per enrolled repository and registry deadline.
   deadlineAlerts?: { leadDays: readonly number[]; registry?: string | URL };
   // Off unless set: replaces retiring AI models in each enrolled repository, validates the change
@@ -124,6 +126,8 @@ export async function runLocalService(options: {
   const retryTargets = new Set(options.retryTargets ?? []);
   if (retryTargets.size && !options.once)
     throw new PipelineInputError('--retry-target requires --once to avoid repeated paid retries.');
+  if (options.weeklyStatus && !options.publishDraft)
+    throw new PipelineInputError('--weekly-status requires --publish-draft.');
   if (
     retryTargets.size !== (options.retryTargets?.length ?? 0) ||
     [...retryTargets].some((id) => !options.targets.some((target) => target.id === id))
@@ -523,6 +527,7 @@ export async function runLocalService(options: {
               aiPatch: options.aiPatch,
               repairAttempts,
               publishDraft: options.publishDraft,
+              weeklyStatus: options.weeklyStatus,
               notify: options.notify,
               retry: retryTargets.has(target.id),
               stateDirectory: join(directory, 'targets', target.id),

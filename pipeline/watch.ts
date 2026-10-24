@@ -37,6 +37,7 @@ import { PipelineInputError } from './types.ts';
 import { withGitHubCheckout, type GitHubCheckoutTarget } from './github-checkout.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { REFIT_VERSION } from './migration-identity.ts';
+import { commentOnOwnDraft } from './publication.ts';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 30_000;
@@ -44,6 +45,7 @@ const RETRYABLE_STATUSES = new Set(['error', 'validation-failed', 'interrupted',
 // Outcomes with an open draft: after a Refit release, one more run lets the workflow refresh a
 // [Needs review] draft the earlier release wrote. A current draft is found before generation.
 const OPEN_DRAFT_STATUSES = new Set(['draft-created', 'draft-updated', 'existing-pr']);
+const WEEK_MS = 7 * 24 * 60 * 60 * 1_000;
 type WorkflowOptions = Parameters<typeof runWorkflow>[0];
 export interface WatchOptions {
   configuration: Omit<WorkflowOptions, 'repository' | 'output' | 'after' | 'latestStripe'> & {
@@ -55,6 +57,8 @@ export interface WatchOptions {
   retry?: boolean;
   onProgress?: (message: string) => void;
   syncGitHub?: GitHubCheckoutTarget;
+  // Off by default: once a week, a short comment on an open draft whose job nothing has changed.
+  weeklyStatus?: boolean;
 }
 
 interface DocumentationChange {
@@ -337,6 +341,18 @@ async function watchLocalOnce(
           output: join(observations, 'documentation'),
           documentationChanges: capturedDocumentation.changes,
         };
+      const weeklyStatus =
+        options.weeklyStatus &&
+        configuration.publication &&
+        isObject(previous) &&
+        OPEN_DRAFT_STATUSES.has(settled.status)
+          ? await postWeeklyStatus(previous, configuration.publication, {
+              base: configuration.publication.base,
+              revision,
+              target: scan.apiVersion.after,
+            })
+          : undefined;
+      if (options.weeklyStatus) await writeState(statePath, state);
       return {
         status: 'already-processed' as const,
         provider: provider.id,
@@ -345,6 +361,7 @@ async function watchLocalOnce(
         previousStatus: settled.status,
         ...(settled.reason ? { previousReason: settled.reason } : {}),
         output: settled.output,
+        ...(weeklyStatus ? { weeklyStatus } : {}),
       };
     }
     const attempt =
@@ -379,6 +396,7 @@ async function watchLocalOnce(
         ...(jobs[jobKey] as object),
         status: result.manifest.status,
         reason: result.manifest.reason,
+        finishedAt: new Date().toISOString(),
       };
       if (documentationSources.length) state.documentation = capturedDocumentation.state;
       // The code reached the target, by a merged draft or by hand: compare the next release with it.
@@ -433,6 +451,41 @@ async function watchLocalOnce(
       throw error;
     }
   });
+}
+
+// Posts the weekly note on the job's draft when a week has passed since the job finished or the
+// last note, and records when it checked on the job; returns the draft's URL when it posted.
+async function postWeeklyStatus(
+  job: Record<string, unknown>,
+  publication: NonNullable<WorkflowOptions['publication']>,
+  current: { base: string; revision: string; target: string | null },
+) {
+  if (typeof job.output !== 'string') return;
+  const since = Date.parse(String(job.weeklyStatusAt ?? job.finishedAt));
+  // A job recorded before weekly notes existed starts its week now.
+  if (Number.isNaN(since)) {
+    job.weeklyStatusAt = new Date().toISOString();
+    return;
+  }
+  if (Date.now() - since < WEEK_MS) return;
+  const draft = await readState(join(job.output, 'publication.json'));
+  if (
+    !isObject(draft) ||
+    typeof draft.url !== 'string' ||
+    typeof draft.number !== 'number' ||
+    typeof draft.branch !== 'string'
+  )
+    return;
+  const note = `Refit checked this draft again on ${new Date().toISOString().slice(0, 10)}. Nothing the patch depends on has changed since ${new Date(since).toISOString().slice(0, 10)}: \`${current.base}\` is still at \`${current.revision.slice(0, 7)}\`${current.target ? `, and the newest contract Refit has seen is still \`${current.target}\`` : ''}. The patch and the check results in the description still apply; Refit did not rerun the checks.
+
+Refit posts this once a week while the draft is open, because the service runs with \`--weekly-status\`.`;
+  const posted = await commentOnOwnDraft(
+    publication,
+    { number: draft.number, branch: draft.branch, revision: current.revision },
+    note,
+  );
+  job.weeklyStatusAt = new Date().toISOString();
+  return posted ? draft.url : undefined;
 }
 
 // Why a recorded job ended as it did, so a poll that reuses it can still say why.

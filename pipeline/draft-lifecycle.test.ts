@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { startFakeGitHub, type FakeGitHub } from './fixtures/fake-github.ts';
 import { validatedReport } from './fixtures/publication-report.ts';
 import {
+  commentOnOwnDraft,
   findExistingMigration,
   publicationConfiguration,
   publishDraft,
@@ -248,6 +249,42 @@ it('leaves a draft branch with commits a person added as it is, even after main 
   expect(await publishDraft(report, options())).toMatchObject(expected);
   expect(await branchTip(draft.branch)).toBe(edited);
   expect(github.pulls(REPOSITORY)).toMatchObject([{ number: 1, state: 'open', body }]);
+});
+
+it('posts the weekly note only on an open draft Refit still owns', async () => {
+  const draft = await publishDraft(await candidate(), options());
+  const revision = await main();
+  const target = { number: draft.number, branch: draft.branch, revision };
+  expect(await commentOnOwnDraft(options(), target, 'Still current.')).toBe(true);
+  expect(github.comments(REPOSITORY)).toEqual([
+    { issue: 1, body: 'Still current.\n\n<!-- refit-weekly-status -->', user: BOT },
+  ]);
+  // A pull request number that now belongs to another branch is not Refit's draft.
+  expect(
+    await commentOnOwnDraft(options(), { ...target, branch: 'customer/feature' }, 'Wrong.'),
+  ).toBe(false);
+
+  const branch = join(root, 'branch');
+  await execute(
+    'git',
+    ['clone', '--quiet', '--branch', draft.branch, github.remote(REPOSITORY), branch],
+    { env: isolated },
+  );
+  await writeFile(join(branch, 'billing.ts'), '// reviewed by the customer\n');
+  await git(branch, ['commit', '--quiet', '-am', 'fix: keep the reviewed charge history']);
+  await github.pushBranch(REPOSITORY, draft.branch, branch);
+  expect(await commentOnOwnDraft(options(), target, 'Edited.')).toBe(false);
+
+  const other = await publishDraft(await candidate(), options('billing-stripe'));
+  github.closePull(REPOSITORY, other.number);
+  expect(
+    await commentOnOwnDraft(
+      options('billing-stripe'),
+      { number: other.number, branch: other.branch, revision },
+      'Closed.',
+    ),
+  ).toBe(false);
+  expect(github.comments(REPOSITORY)).toHaveLength(1);
 });
 
 it('never reopens or replaces a draft a person closed, and stays quiet once one is merged', async () => {

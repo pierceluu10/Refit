@@ -24,6 +24,7 @@ const MAX_BODY_CHARACTERS = 60_000;
 // Ends Refit's comment when it closes a draft the base no longer needs; a person who reopens that
 // draft keeps it open.
 const RESOLVED_MARKER = '<!-- refit-resolved -->';
+const WEEKLY_STATUS_MARKER = '<!-- refit-weekly-status -->';
 const SHA = /^[a-f0-9]{40}$/;
 const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const BRANCH =
@@ -220,6 +221,26 @@ async function heldDraft(
       leftUnchanged: 'The draft branch has commits Refit did not write, so Refit left it as it is.',
     });
   return undefined;
+}
+
+// The weekly note on a draft Refit still owns: false once the draft is closed, merged, someone
+// else's, or its branch has commits a person added.
+export async function commentOnOwnDraft(
+  options: PublicationConfiguration,
+  draft: { number: number; branch: string; revision: string },
+  note: string,
+) {
+  const { authentication, request } = await publicationSession(options);
+  if (!authentication)
+    throw new PipelineInputError('Weekly status comments require the GitHub App.');
+  const pull = object(await request('GET', `/pulls/${draft.number}`));
+  if (object(pull.head).ref !== draft.branch) return false;
+  const context = { options, branch: draft.branch, revision: draft.revision, authentication };
+  if (await heldDraft(pull, request, context)) return false;
+  await request('POST', `/issues/${draft.number}/comments`, {
+    body: `${note}\n\n${WEEKLY_STATUS_MARKER}`,
+  });
+  return true;
 }
 
 export async function findExistingMigration(
