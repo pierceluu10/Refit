@@ -19,6 +19,16 @@ import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { readRepository } from './repository.ts';
 import {
+  DEFAULT_CONTRACTS_DIRECTORY,
+  readStripeContract,
+  stripeContractFile,
+} from './enrollment-contracts.ts';
+import {
+  EnrollmentStopError,
+  proposalContent,
+  proposeStripeConfiguration,
+} from './enrollment-proposal.ts';
+import {
   MAX_WORKFLOW_CONFIGURATION_BYTES,
   parseWorkflowConfigurations,
   MAX_REPOSITORY_INTEGRATIONS,
@@ -111,8 +121,24 @@ export async function inspectRepositoryEnrollment(options: {
   repository: string;
   github: string;
   base: string;
+  contracts?: string;
 }) {
   return inspectEnrollmentInputs(options);
+}
+
+// The configuration a repository without a committed .refit.json gets, with the saved contracts it
+// names, as the files the review and fingerprint read in place of committed ones.
+async function generatedInputs(directory: string, contracts: string) {
+  const { proposal, stops } = await proposeStripeConfiguration(directory);
+  if (!proposal) throw new EnrollmentStopError(stops);
+  const contents = new Map([[REPOSITORY_CONFIGURATION, proposalContent(proposal)]]);
+  const paths = new Map<string, string>();
+  for (const version of new Set([proposal.apiVersion.value, proposal.target])) {
+    const contract = await readStripeContract(contracts, version);
+    contents.set(stripeContractFile(version), contract.content);
+    paths.set(stripeContractFile(version), contract.path);
+  }
+  return { proposal, contents, paths };
 }
 
 async function inspectEnrollmentInputs(options: {
@@ -121,12 +147,24 @@ async function inspectEnrollmentInputs(options: {
   base: string;
   integration?: string;
   acceptedApiVersions?: string[];
+  contracts?: string;
 }) {
   const target = validateGitHubTarget(options.github, options.base);
   const snapshot = await readCommittedRepository(options.repository);
+  const generated = snapshot.entries.some(
+    (entry) => entry.slice(entry.indexOf('\t') + 1) === REPOSITORY_CONFIGURATION,
+  )
+    ? undefined
+    : await generatedInputs(snapshot.directory, options.contracts ?? DEFAULT_CONTRACTS_DIRECTORY);
+  const read = (path: string, maximumBytes: number) => {
+    if (!generated) return readCommittedFile(snapshot, path, maximumBytes);
+    const content = generated.contents.get(path);
+    if (content === undefined)
+      throw new PipelineInputError(`The generated configuration has no input ${path}.`);
+    return content;
+  };
   const contents = new Map<string, string>();
-  const configurationContent = await readCommittedFile(
-    snapshot,
+  const configurationContent = await read(
     REPOSITORY_CONFIGURATION,
     MAX_WORKFLOW_CONFIGURATION_BYTES,
   );
@@ -155,11 +193,7 @@ async function inspectEnrollmentInputs(options: {
     const { workflow, settings } = entry;
     const integration = entry.id ?? undefined;
     const baselinePath = inputPath(settings.before);
-    const baselineContent = await readCommittedFile(
-      snapshot,
-      baselinePath,
-      MAX_SPECIFICATION_BYTES,
-    );
+    const baselineContent = await read(baselinePath, MAX_SPECIFICATION_BYTES);
     const baseline = parseSpecificationInput(baselineContent, baselinePath);
     const baselineInput = {
       role: 'baseline' as const,
@@ -171,11 +205,7 @@ async function inspectEnrollmentInputs(options: {
     let provider = STRIPE;
     if (settings.providerConfig !== undefined) {
       const adapterPath = inputPath(settings.providerConfig);
-      const adapterContent = await readCommittedFile(
-        snapshot,
-        adapterPath,
-        MAX_WORKFLOW_CONFIGURATION_BYTES,
-      );
+      const adapterContent = await read(adapterPath, MAX_WORKFLOW_CONFIGURATION_BYTES);
       provider = parseProviderAdapter(parseObject(adapterContent, adapterPath));
       const adapterInput = {
         role: 'adapter' as const,
@@ -224,7 +254,7 @@ async function inspectEnrollmentInputs(options: {
       const afterPath = inputPath(settings.after);
       if (options.integration === undefined || entry.id === options.integration) {
         const current = parseSpecificationInput(
-          await readCommittedFile(snapshot, afterPath, MAX_SPECIFICATION_BYTES),
+          await read(afterPath, MAX_SPECIFICATION_BYTES),
           afterPath,
         );
         if (current.provenance && current.provenance.provider !== provider.id)
@@ -232,7 +262,10 @@ async function inspectEnrollmentInputs(options: {
             'Repository after-contract provenance does not match its provider adapter.',
           );
       }
-      source = { kind: 'file', path: join(snapshot.directory, afterPath) };
+      source = {
+        kind: 'file',
+        path: generated?.paths.get(afterPath) ?? join(snapshot.directory, afterPath),
+      };
     }
     profiles.push({
       id: entry.id,
@@ -262,6 +295,7 @@ async function inspectEnrollmentInputs(options: {
     fingerprint: fingerprint(target.repository, target.base, files, integrations),
     files,
     contents,
+    generated: generated?.proposal ?? null,
     settings: raw,
     workflow: configuration.formatVersion === 1 ? profiles[0].workflow : undefined,
     source: configuration.formatVersion === 1 ? profiles[0].source : undefined,
@@ -474,6 +508,7 @@ export async function loadApprovedRepository(options: {
   integration?: string;
   // Versions the code may send instead of the baseline's, such as the target of a merged draft.
   acceptedApiVersions?: string[];
+  contracts?: string;
 }) {
   if (
     options.approval.formatVersion === 2 &&
@@ -490,6 +525,7 @@ export async function loadApprovedRepository(options: {
       base: options.approval.base,
       integration: options.integration,
       acceptedApiVersions: options.acceptedApiVersions,
+      contracts: options.contracts,
     });
   } catch (cause) {
     if (!(cause instanceof PipelineInputError)) throw cause;

@@ -2,6 +2,8 @@
 
 What a new user meets between installing Refit and a clear `refit doctor` verdict, on five real repositories, before and after this change. Recorded on October 22, 2026 with the CLI installed from `npm run package:cli`'s tarball into an empty directory (`npm install refit-0.39.0.tgz`), as a customer would install it. Before is Refit `7b2c86a` (`main`); after is this branch. The after transcripts predate a review fix: doctor's closing caveat now also says that only bounded client patterns and configured SDK mappings are inspected, and that SDK/API-version rollout still needs review. No application code ran: doctor and `agents` only read files, and `refit run` stopped at its scan.
 
+Since #255, a Stripe repository with no `.refit.json` gets a configuration Refit generates instead of the referral to `refit agents` shown below. See [installing Refit](INSTALL.md#a-repository-with-no-refitjson) and the October 24 measurement in [P3](overnight/P3.md). The transcripts below predate it.
+
 ## Repositories
 
 Private copies at the commits pinned in the frozen benchmark lists, so nothing in them changed except what the steps below wrote.

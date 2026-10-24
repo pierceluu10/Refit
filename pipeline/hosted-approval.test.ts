@@ -7,6 +7,11 @@ import { promisify } from 'node:util';
 import pg from 'pg';
 import { afterEach, expect, it, vi } from 'vitest';
 import { enrollmentReviewText } from './enrollment-review.ts';
+import {
+  GENERATED_REPOSITORY,
+  SAVED_CONTRACTS,
+  savedContractDownloads,
+} from './fixtures/approved-repository.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { parseWebhook } from './github-webhooks.ts';
 import { APPROVAL_OUTCOMES, processApprovalIssues } from './hosted-approval.ts';
@@ -117,6 +122,7 @@ const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
   transport.calls = [];
   github.issues.clear();
@@ -177,12 +183,14 @@ async function addConfiguration(command?: string) {
   await commit();
 }
 
-// The repository the fake GitHub serves, with a committed .refit.json unless `bare`.
-async function repository(options: { bare?: boolean; files?: Record<string, string> } = {}) {
+// The repository the fake GitHub serves, a copy of `from` with a committed .refit.json unless `bare`.
+async function repository(
+  options: { bare?: boolean; files?: Record<string, string>; from?: string } = {},
+) {
   const root = await mkdtemp(join(tmpdir(), 'refit-approval-'));
   cleanups.push(() => rm(root, { recursive: true, force: true }));
   transport.source = join(root, 'source');
-  await cp(join(fixture, 'repository'), transport.source, { recursive: true });
+  await cp(options.from ?? join(fixture, 'repository'), transport.source, { recursive: true });
   for (const [name, content] of Object.entries(options.files ?? {}))
     await writeFile(join(transport.source, name), content);
   await transport.native!(['init', '--quiet', '--initial-branch=main'], transport.source);
@@ -214,6 +222,7 @@ async function setup(root: string, environment: NodeJS.ProcessEnv = {}) {
   const context = {
     app: APP,
     directory: join(root, 'approvals'),
+    contracts: join(root, 'contracts'),
     store,
     approvals,
     signal: new AbortController().signal,
@@ -476,6 +485,50 @@ it.skipIf(!DATABASE)(
     await sample.comment('octo-admin', `/refit approve ${reviewed.fingerprint.slice(0, 12)}`);
     await sample.process();
     expect((await sample.outcomes()).at(-1)).toBe(APPROVAL_OUTCOMES.approved);
+  },
+  60_000,
+);
+
+it.skipIf(!DATABASE || !SAVED_CONTRACTS)(
+  'shows the review of the configuration refit enroll generates when the repository commits none, and approves it',
+  async () => {
+    const root = await repository({ bare: true, from: GENERATED_REPOSITORY });
+    const sample = await setup(root);
+    const downloads = await savedContractDownloads(SAVED_CONTRACTS!);
+    vi.stubGlobal('fetch', vi.fn(downloads.respond));
+    github.roles.set('octo-admin', 'admin');
+    const reviewed = await inspectRepositoryEnrollment({
+      repository: transport.source,
+      github: REPOSITORY,
+      base: 'main',
+      contracts: SAVED_CONTRACTS,
+    });
+
+    await sample.process();
+    const opened = github.issues.get(1)!;
+    expect(opened).toMatchObject({ title: 'Approve Refit for this repository', state: 'open' });
+    expect(opened.body).toContain(enrollmentReviewText(reviewed));
+    expect(opened.body).toContain(`/refit approve ${reviewed.fingerprint.slice(0, 12)}`);
+    // Both contracts were downloaded into the directory jobs read, once.
+    expect(vi.mocked(globalThis.fetch).mock.calls.map(([url]) => url)).toEqual(downloads.urls);
+
+    await sample.comment('octo-admin', `/refit approve ${reviewed.fingerprint.slice(0, 12)}`);
+    await sample.process();
+    expect(await sample.outcomes()).toEqual([APPROVAL_OUTCOMES.approved]);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(downloads.urls.length);
+    // The stored approval is the receipt `refit enroll --approve` writes, apart from its time.
+    const [row] = await sample.stored();
+    expect({ ...row.approval, approvedAt: null }).toEqual({
+      ...repositoryApproval(reviewed, reviewed.fingerprint),
+      approvedAt: null,
+    });
+    expect((await sample.store.read()).targets).toEqual([
+      expect.objectContaining({
+        integration: 'stripe',
+        status: 'enrolled',
+        fingerprint: reviewed.fingerprint,
+      }),
+    ]);
   },
   60_000,
 );
