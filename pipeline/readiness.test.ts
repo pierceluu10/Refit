@@ -224,7 +224,10 @@ it('blocks activation when shared source alias configuration cannot be verified'
   expect(report.status).toBe('needs-attention');
   expect(report.checks.find((check) => check.id === 'source-resolution')).toMatchObject({
     status: 'blocked',
-    detail: expect.stringContaining('unverified'),
+    detail:
+      'Refit cannot verify how imports resolve, because tsconfig.json extends @vendor/tsconfig, which Refit does not read, so it stops at clients shared between files.',
+    action:
+      'Nothing in your code needs to change: Refit reads only committed tsconfig files that an extends names by a relative path, so it stops here until it can read @vendor/tsconfig.',
   });
   await expect(readFile(join(sample.repository, 'application-executed'))).rejects.toMatchObject({
     code: 'ENOENT',

@@ -4,7 +4,11 @@ import { dirname, join } from 'node:path';
 import ts from 'typescript-compiler';
 import { scaffoldChecks } from './agent-catalog.ts';
 import { analyzeRepository } from './analyzer.ts';
-import { validateApiVersion, type ApiVersionDeclaration } from './api-version.ts';
+import {
+  validateApiVersion,
+  type ApiVersionDeclaration,
+  type ApiVersionSource,
+} from './api-version.ts';
 import {
   latestStripeContract,
   stripeContractFile,
@@ -30,6 +34,7 @@ const FIRST_PINNING_MAJOR = 12;
 // The benchmark's type check (pipeline/stripe-benchmark-cli.ts): no install, no network.
 const TYPE_CHECK = ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'];
 const MAX_PLACES = 3;
+const MAX_QUOTED = 60;
 const OWN_CONFIGURATION = `or commit a ${REPOSITORY_CONFIGURATION} that sets it (docs/REPOSITORY-SETUP.md)`;
 
 // Why Refit cannot propose a configuration: one plain sentence and the exact change that fixes it.
@@ -85,40 +90,119 @@ function unwrap(expression: ts.Expression): ts.Expression {
     : expression;
 }
 
-// The apiVersion written where a client is created, for a constructor the tracer could not follow
-// to every use (an exported client, one handed to a plugin, one created lazily). Only a string
-// literal in the options object, or no option at all, is read; anything else stays unreadable.
-function writtenVersion(
-  files: Repository['files'],
-  declaration: ApiVersionDeclaration,
-): { value: string } | 'absent' | null {
+// The code a stop names, on one line and cut short.
+function quoted(node: ts.Node, source: ts.SourceFile) {
+  const text = node.getText(source).replace(/\s+/g, ' ');
+  return text.length > MAX_QUOTED ? `${text.slice(0, MAX_QUOTED - 1)}…` : text;
+}
+
+// The client creation or request call the tracer reported at a declaration's location.
+function declaredCall(files: Repository['files'], declaration: ApiVersionDeclaration) {
   const file = files.find((entry) => entry.path === declaration.file);
-  if (!file) return null;
+  if (!file) return undefined;
   const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
   const position = source.getPositionOfLineAndCharacter(
     declaration.line - 1,
     declaration.column - 1,
   );
-  let creation: ts.NewExpression | ts.CallExpression | undefined;
+  let call: ts.NewExpression | ts.CallExpression | undefined;
   const visit = (node: ts.Node) => {
-    if (creation || node.getEnd() < position || node.getStart(source) > position) return;
+    if (call || node.getEnd() < position || node.getStart(source) > position) return;
     if (
       (ts.isNewExpression(node) || ts.isCallExpression(node)) &&
       node.getStart(source) === position
     )
-      creation = node;
+      call = node;
     else ts.forEachChild(node, visit);
   };
   visit(source);
-  if (!creation || creation.arguments?.some(ts.isSpreadElement)) return null;
+  return call && { call, source };
+}
+
+// Where the source creates a Stripe client, read from each file alone: `new X(...)` or `X(...)` on
+// a binding imported or required from stripe, or `require('stripe')(...)`. It names the clients a
+// stop is about when the tracer follows none of them.
+function writtenClients(files: Repository['files']) {
+  const clients: Location[] = [];
+  const quotedPackage = new RegExp(`['"]${STRIPE.packageName}['"]`);
+  for (const file of files) {
+    if (!quotedPackage.test(file.content)) continue;
+    const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
+    const isPackage = (node: ts.Node) =>
+      ts.isStringLiteralLike(node) && node.text === STRIPE.packageName;
+    const required = (node: ts.Node) =>
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'require' &&
+      node.arguments.length === 1 &&
+      isPackage(node.arguments[0]);
+    const bindings = new Set<string>();
+    const creations: (ts.NewExpression | ts.CallExpression)[] = [];
+    const visit = (node: ts.Node) => {
+      const clause =
+        ts.isImportDeclaration(node) && isPackage(node.moduleSpecifier) && node.importClause;
+      if (clause && !clause.isTypeOnly) {
+        if (clause.name) bindings.add(clause.name.text);
+        if (clause.namedBindings && ts.isNamedImports(clause.namedBindings))
+          for (const element of clause.namedBindings.elements)
+            if (!element.isTypeOnly && (element.propertyName ?? element.name).text === 'Stripe')
+              bindings.add(element.name.text);
+      }
+      if (
+        ts.isImportEqualsDeclaration(node) &&
+        ts.isExternalModuleReference(node.moduleReference) &&
+        isPackage(node.moduleReference.expression)
+      )
+        bindings.add(node.name.text);
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.initializer &&
+        required(unwrap(node.initializer))
+      )
+        bindings.add(node.name.text);
+      if (ts.isNewExpression(node) || ts.isCallExpression(node)) creations.push(node);
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const creation of creations) {
+      const callee = unwrap(creation.expression);
+      if ((ts.isIdentifier(callee) && bindings.has(callee.text)) || required(callee)) {
+        const { line, character } = source.getLineAndCharacterOfPosition(creation.getStart(source));
+        clients.push({ file: file.path, line: line + 1, column: character + 1 });
+      }
+    }
+  }
+  return clients;
+}
+
+const UNREAD = 'its apiVersion is not a string literal Refit can read';
+
+// The apiVersion written where a client is created, for a constructor the tracer could not follow
+// to every use (an exported client, one handed to a plugin, one created lazily). Only a string
+// literal in the options object, or no option at all, is read; anything else is named as unread.
+function writtenVersion(
+  files: Repository['files'],
+  declaration: ApiVersionDeclaration,
+): { value: string } | 'absent' | { unread: string } {
+  const found = declaredCall(files, declaration);
+  if (!found) return { unread: UNREAD };
+  const { call: creation, source } = found;
+  const spread = creation.arguments?.find(ts.isSpreadElement);
+  if (spread)
+    return {
+      unread: `its arguments include ${quoted(spread, source)}, which Refit cannot trace to an apiVersion`,
+    };
   const argument = creation.arguments?.[STRIPE.apiVersion!.constructorArgument];
   if (!argument) return 'absent';
   const options = unwrap(argument);
-  if (
-    !ts.isObjectLiteralExpression(options) ||
-    options.properties.some((property) => !ts.isPropertyAssignment(property))
-  )
-    return null;
+  if (!ts.isObjectLiteralExpression(options))
+    return {
+      unread: `its options are ${quoted(options, source)}, which Refit cannot trace to an apiVersion`,
+    };
+  const other = options.properties.find((property) => !ts.isPropertyAssignment(property));
+  if (other)
+    return { unread: `its options include ${quoted(other, source)}, which may set apiVersion` };
   const option = options.properties
     .filter(ts.isPropertyAssignment)
     .find(
@@ -128,13 +212,61 @@ function writtenVersion(
     );
   if (!option) return 'absent';
   const value = unwrap(option.initializer);
-  if (!ts.isStringLiteral(value) && !ts.isNoSubstitutionTemplateLiteral(value)) return null;
+  if (!ts.isStringLiteral(value) && !ts.isNoSubstitutionTemplateLiteral(value))
+    return {
+      unread: `its apiVersion is ${quoted(value, source)}, which Refit cannot trace to one version`,
+    };
   try {
     return { value: validateApiVersion(value.text)! };
   } catch (error) {
     if (!(error instanceof PipelineInputError)) throw error;
-    return null;
+    return { unread: `its apiVersion ${quoted(value, source)} is not a Stripe API version` };
   }
+}
+
+// What keeps Refit from seeing whether a request overrides the client's version: the first
+// argument where stripe-node takes request options that is not an object literal Refit reads, or
+// an apiVersion option that is not a string literal.
+function requestOptions(files: Repository['files'], declaration: ApiVersionDeclaration) {
+  const found = declaredCall(files, declaration);
+  for (const [index, argument] of found?.call.arguments?.entries() ?? []) {
+    if (!ts.isSpreadElement(argument) && !STRIPE.apiVersion!.requestArguments.includes(index))
+      continue;
+    const options = unwrap(argument);
+    if (!ts.isObjectLiteralExpression(options))
+      return { text: quoted(options, found!.source), sets: false };
+    for (const property of options.properties) {
+      if (!ts.isPropertyAssignment(property))
+        return { text: quoted(property, found!.source), sets: false };
+      if (
+        property.name.getText(found!.source).replace(/['"]/g, '') === STRIPE.apiVersion!.property &&
+        !ts.isStringLiteralLike(unwrap(property.initializer))
+      )
+        return { text: quoted(property, found!.source), sets: true };
+    }
+  }
+  return undefined;
+}
+
+// A request whose options Refit cannot read. When every client sends one version, the fix names it.
+function unreadableRequest(
+  files: Repository['files'],
+  request: ApiVersionDeclaration,
+  used: string[],
+): EnrollmentStop {
+  const options = requestOptions(files, request);
+  const uses = `Refit cannot tell which Stripe API version the request at ${at(request)} uses`;
+  if (!options || options.sets)
+    return {
+      id: 'api-version-unreadable',
+      detail: `${uses}: ${options ? `it sets ${options.text}, which Refit cannot trace to one version` : UNREAD}.`,
+      action: `Write the request's apiVersion at ${at(request)} as a string literal, or remove it so the request uses the client's version, ${OWN_CONFIGURATION}.`,
+    };
+  return {
+    id: 'api-version-unreadable',
+    detail: `${uses}: it passes ${options.text}, and Refit cannot tell whether that sets apiVersion.`,
+    action: `If ${options.text} sets no apiVersion, commit a ${REPOSITORY_CONFIGURATION} that sets ${used.length === 1 ? `"apiVersion": "${used[0]}", the version your clients send` : 'the version your clients send'} (docs/REPOSITORY-SETUP.md).`,
+  };
 }
 
 // The package.json that decides the stripe-node release a file loads: the nearest one above it
@@ -169,42 +301,81 @@ function unreadableExtends(configurations: Repository['files']) {
   });
 }
 
+// The reason and fix a person reads when a tsconfig `extends` Refit does not read is why it stops.
+export function unreadableExtendsReason(configurations: Repository['files']) {
+  const unreadable = unreadableExtends(configurations);
+  if (!unreadable.length) return null;
+  return {
+    files: unreadable.map(({ file }) => file),
+    named: `${listed(unreadable.map(({ file, parent }) => `${file} extends ${parent}`))}, which Refit does not read`,
+    action: `Nothing in your code needs to change: Refit reads only committed tsconfig files that an extends names by a relative path, so it stops here until it can read ${listed([...new Set(unreadable.map(({ parent }) => parent))])}.`,
+  };
+}
+
 function applicationVersion(
   declarations: ApiVersionDeclaration[],
   repository: Repository,
-): { value: string; source: string } | EnrollmentStop {
+): { value: string; source: string } | EnrollmentStop[] {
   const owner = stripeOwner(repository.dependencies);
-  const unreadable = unreadableExtends(repository.configurations ?? []);
-  if (!declarations.some((declaration) => declaration.kind === 'constructor'))
-    return unreadable.length
-      ? {
-          id: 'source-resolution',
-          detail: `Refit found no Stripe client it can follow, because ${listed(unreadable.map(({ file, parent }) => `${file} extends ${parent}`))}, which Refit does not read, so it cannot tell how imports resolve.`,
-          action: `Nothing in your code needs to change: Refit reads only committed tsconfig files that an extends names by a relative path, so it stops here until it can read ${listed([...new Set(unreadable.map(({ parent }) => parent))])}.`,
-        }
-      : {
-          id: 'no-stripe-client',
-          detail: 'Refit found no new Stripe(...) client in this repository that it can follow.',
-          action: `Create the client with new Stripe(secretKey, { apiVersion: '<your API version>' }) in your server code, ${OWN_CONFIGURATION}.`,
-        };
+  const unreadable = unreadableExtendsReason(repository.configurations ?? []);
+  const creates = (found: ApiVersionDeclaration[]) =>
+    found.some((declaration) => declaration.kind === 'constructor');
+  if (!creates(declarations)) {
+    // A tsconfig is the cause only when tracing the imports Refit cannot verify finds a client.
+    const traced = analyzeRepository(repository, [], STRIPE, {}, [], [], [], [], {
+      traceUnverifiedPackageImports: true,
+    });
+    const unverified = [
+      ...new Set(traced.sourceWarnings.map((warning) => warning.slice(0, warning.indexOf(':')))),
+    ];
+    if (creates(traced.apiVersionDeclarations) && (unreadable || unverified.length))
+      return [
+        unreadable
+          ? {
+              id: 'source-resolution',
+              detail: `Refit found no Stripe client it can follow, because ${unreadable.named}, so it cannot tell how imports resolve.`,
+              action: unreadable.action,
+            }
+          : {
+              id: 'source-resolution',
+              detail: `Refit found no Stripe client it can follow, because it cannot verify how imports resolve under ${listed(unverified)}.`,
+              action: `Nothing in your code needs to change: Refit stops here until it can verify how ${listed(unverified)} ${unverified.length === 1 ? 'resolves' : 'resolve'} imports.`,
+            },
+      ];
+    const written = writtenClients(repository.files);
+    return [
+      written.length
+        ? {
+            id: 'no-stripe-client',
+            detail: `Refit sees ${written.length === 1 ? 'a Stripe client' : 'Stripe clients'} created at ${places(written)}, but cannot follow ${written.length === 1 ? 'it' : 'them'} to the calls that use ${written.length === 1 ? 'it' : 'them'}.`,
+            action: `Nothing in your code needs to change: Refit follows a client created directly in a const declaration, such as const stripe = new Stripe(secretKey, { apiVersion: '<your API version>' }), so it stops here until it can follow ${written.length === 1 ? 'this one' : 'these'}.`,
+          }
+        : {
+            id: 'no-stripe-client',
+            detail: 'Refit found no new Stripe(...) client in this repository that it can follow.',
+            action: `Create the client with new Stripe(secretKey, { apiVersion: '<your API version>' }) in your server code, ${OWN_CONFIGURATION}.`,
+          },
+    ];
+  }
   const pinned: (Location & { value: string })[] = [];
   const absent: Location[] = [];
   const unfollowed: Location[] = [];
+  const requests: ApiVersionDeclaration[] = [];
   for (const declaration of declarations) {
     if (declaration.value !== null) pinned.push({ ...declaration, value: declaration.value });
     else if (declaration.absent) absent.push(declaration);
+    else if (declaration.status === 'unknown' && declaration.kind === 'request')
+      requests.push(declaration);
     else if (declaration.status === 'unknown') {
-      const written =
-        declaration.kind === 'constructor' ? writtenVersion(repository.files, declaration) : null;
-      if (!written)
-        return {
-          id: 'api-version-unreadable',
-          detail: `Refit cannot tell which Stripe API version the ${declaration.kind === 'constructor' ? 'client' : 'request'} at ${at(declaration)} uses: its apiVersion is not a string literal Refit can read.`,
-          action:
-            declaration.kind === 'constructor'
-              ? `Write the apiVersion at ${at(declaration)} as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), ${OWN_CONFIGURATION}.`
-              : `Write the request's apiVersion at ${at(declaration)} as a string literal, or remove it so the request uses the client's version, ${OWN_CONFIGURATION}.`,
-        };
+      const written = writtenVersion(repository.files, declaration);
+      if (written !== 'absent' && 'unread' in written)
+        return [
+          {
+            id: 'api-version-unreadable',
+            detail: `Refit cannot tell which Stripe API version the client at ${at(declaration)} uses: ${written.unread}.`,
+            action: `Write the apiVersion at ${at(declaration)} as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), ${OWN_CONFIGURATION}.`,
+          },
+        ];
       unfollowed.push(declaration);
       if (written === 'absent') absent.push(declaration);
       else pinned.push({ ...declaration, value: written.value });
@@ -216,28 +387,40 @@ function applicationVersion(
     const release = dependency?.lock.status === 'locked' ? dependency.lock.version : null;
     const value = release ? stripeNodeDefaultVersion(release) : undefined;
     if (!release)
-      return dependency && dependency.file !== MANIFEST
-        ? {
-            id: 'stripe-not-locked',
-            detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit reads only the root lockfile, which does not install ${dependency.file}, so it cannot tell which stripe-node release sends the default.`,
-            action: `Set apiVersion at ${at(client)}.`,
-          }
-        : {
-            id: 'stripe-not-locked',
-            detail: `The Stripe client at ${at(client)} sets no apiVersion, and no committed lockfile records which stripe-node release sends the default.`,
-            action: `Set apiVersion at ${at(client)}, or commit your lockfile.`,
-          };
+      return [
+        dependency && dependency.file !== MANIFEST
+          ? {
+              id: 'stripe-not-locked',
+              detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit reads only the root lockfile, which does not install ${dependency.file}, so it cannot tell which stripe-node release sends the default.`,
+              action: `Set apiVersion at ${at(client)}.`,
+            }
+          : {
+              id: 'stripe-not-locked',
+              detail: `The Stripe client at ${at(client)} sets no apiVersion, and no committed lockfile records which stripe-node release sends the default.`,
+              action: `Set apiVersion at ${at(client)}, or commit your lockfile.`,
+            },
+      ];
     if (!value)
-      return {
-        id: 'api-version-account-default',
-        detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit does not know which version stripe-node ${release} sends by default, so requests may use your Stripe account's default version.`,
-        action: `Set apiVersion at ${at(client)} to the version your account uses, ${OWN_CONFIGURATION}.`,
-      };
+      return [
+        Number(RELEASE.exec(release)?.[1] ?? 0) >= FIRST_PINNING_MAJOR
+          ? {
+              id: 'api-version-account-default',
+              detail: `The Stripe client at ${at(client)} sets no apiVersion, so it sends the API version stripe-node ${release} pins, and Refit's table of stripe-node releases does not record which one that is.`,
+              action: `Set apiVersion at ${at(client)} to the version stripe-node ${release} pins (its changelog names it), ${OWN_CONFIGURATION}.`,
+            }
+          : {
+              id: 'api-version-account-default',
+              detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit does not know which version stripe-node ${release} sends by default, so requests may use your Stripe account's default version.`,
+              action: `Set apiVersion at ${at(client)} to the version your account uses, ${OWN_CONFIGURATION}.`,
+            },
+      ];
     defaults.push({ ...client, release, value });
   }
   const used = [...new Set([...pinned, ...defaults].map((client) => client.value))];
+  // Checked after the clients, so the fix can name the one version they all send.
+  const stops = requests.length ? [unreadableRequest(repository.files, requests[0], used)] : [];
   if (used.length > 1)
-    return {
+    stops.push({
       id: 'api-version-several',
       detail: `This repository sends more than one Stripe API version (${used
         .map((version) =>
@@ -260,7 +443,8 @@ function applicationVersion(
         .join('; ')}), and Refit moves one version at a time.`,
       action:
         'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
-    };
+    });
+  if (stops.length) return stops;
   const releases = [...new Set(defaults.map((client) => client.release))];
   const sources = [
     ...(pinned.length ? [`set at ${places(pinned)}`] : []),
@@ -356,7 +540,7 @@ export async function proposeStripeConfiguration(directory: string) {
     analyzeRepository(repository, [], STRIPE).apiVersionDeclarations,
     repository,
   );
-  if ('id' in version) stops.push(version);
+  if (Array.isArray(version)) stops.push(...version);
   else if (!stripeContractVersion(version.value))
     stops.push({
       id: 'api-version-no-contract',
@@ -372,7 +556,7 @@ export async function proposeStripeConfiguration(directory: string) {
       detail: `stripe is declared in ${listed([...new Set(repository.dependencies.map((dependency) => dependency.file))])}, not in the root package.json, and Refit does not yet generate a configuration that checks a workspace package from the root.`,
       action: `Commit a ${REPOSITORY_CONFIGURATION} whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).`,
     });
-  if (stops.length || 'id' in version) return { proposal: null, stops };
+  if (stops.length || Array.isArray(version)) return { proposal: null, stops };
   const target = latestStripeContract().version;
   const checked = testScript
     ? `the test script in ${MANIFEST}, run with ${manager}`
@@ -401,6 +585,16 @@ export async function proposeStripeConfiguration(directory: string) {
     },
   };
   return { proposal, stops };
+}
+
+// How Refit checked the code against a generated configuration's version, which nobody pinned by
+// hand, so the operator-pin wording of committed configurations does not apply.
+export function generatedVersionCheck(source: ApiVersionSource) {
+  if (source.status === 'verified')
+    return 'Every Stripe client and request override Refit traced sends it.';
+  if (source.status === 'unknown')
+    return 'Refit could not read it at every client or request; check by hand the places the generated configuration names.';
+  return source.reason;
 }
 
 // One sentence a person reads before approving or running a generated configuration.
