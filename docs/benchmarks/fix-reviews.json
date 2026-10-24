@@ -281,6 +281,36 @@
         "upgradeComplete": "yes: stripe-node 20.4.1 to 23.0.0; the lockfile integrity matches npm.",
         "wouldMerge": "yes, after running checkout once in test mode."
       }
+    },
+    {
+      "repo": "cdinnison/goal-reminder",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40086105751 at a2cc6a9 (F4 slice 2, #264); patch reproduced with refit scan --propose-patch from that run's adapter and contracts. The diff is the same on main; slice 2 removes the review findings that kept it from publishing",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: invoice.subscription in the invoice.payment_failed webhook (app/api/webhook/stripe/route.ts:136) reads through the generated getInvoiceSubscription, the documented move to parent.subscription_details.subscription.",
+        "bothVersions": "yes: the helper returns the old invoice.subscription when present, so the handler works for old-version and new-version payloads; the webhook endpoint's version is not changed.",
+        "nothingUnrelated": "yes: one read, three apiVersion literals (2023-10-16 to 2026-09-30.endive), the generated helper module, and the stripe dependency with its package-lock.json entries.",
+        "pleaseCheck": "tsc --noEmit passed before and after in offline Docker; the run reached the generated checks, which run only when both pass (pipeline/validation.ts:1190), and those failed on the missing stripe/stripe-mock image. The only review findings it had were .name reads (userData.name, user.name) reported through the product_feature.name schema-rename artefact that slice 2 removes. Send one invoice.payment_failed test event.",
+        "upgradeComplete": "yes: stripe-node 14.25.0 to 23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, after one invoice.payment_failed test event."
+      }
+    },
+    {
+      "repo": "samarbadriddin0v/notion-clone",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40086105751 at a2cc6a9 (F4 slice 2, #264); patch reproduced with refit scan --propose-patch from that run's adapter and contracts. The diff is the same on main; slice 2 removes the review findings that kept it from publishing",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation (app/api/stripe/subscription/route.ts:36) sends exactly [\"card\"], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the only client (lib/stripe.ts) moves from 2023-10-16 to 2026-09-30.endive in the same patch.",
+        "nothingUnrelated": "yes: one parameter, one apiVersion literal, the stripe dependency and its package-lock.json entries.",
+        "pleaseCheck": "tsc --noEmit passed before and after (the run reached the generated checks, pipeline/validation.ts:1190, which failed on the missing stripe/stripe-mock image). Its only review finding was subscriptions.data[0].plan.product.name (route.ts:78), a Product name, reported through the product_feature.name artefact that slice 2 removes. Confirm cards stay enabled and run checkout once in test mode.",
+        "upgradeComplete": "yes: stripe-node 14.25.0 to 23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, after running checkout once in test mode."
+      }
     }
   ]
 }
