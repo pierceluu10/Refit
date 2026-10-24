@@ -25,6 +25,22 @@ The body stays under 16,000 characters. Site lists show 25 entries and say how m
 
 Two hidden comments follow: the migration identity Refit uses to find its own open draft, and the run ID and patch hash.
 
+## One draft per target version
+
+Refit keeps one draft per repository, base branch, integration and target API version (`draftKey()` and `publishFiles()` in `pipeline/publication.ts`). The branch name is derived from those alone, not from the commit, the run or the patch bytes, so a rerun, a retry or a push to the base finds the same draft. With the GitHub App, Refit then does one of these:
+
+| What GitHub holds | What Refit does |
+|---|---|
+| No draft for this target | Opens one: a single commit on the validated base, as Refit Agent |
+| Its open draft, same base and patch | Nothing. Before generation, a matching draft also skips AI and validation |
+| Its open draft on an older base, or with an older patch | Validates the current base, replaces its own commit with one on the new base, moves the branch, and refreshes the title and description. Same pull request number |
+| A draft with commits a person added (or a merge or rebase of the base) | Leaves the branch and description as they are and reports it, before generation |
+| A draft a person closed without merging | Nothing: no reopen, no new draft for that target. Reopening it lets Refit update it again |
+| A merged draft | Nothing for that target |
+| Another open Refit draft for this integration on the same base, from an older target version or an earlier release of Refit | Comments `Superseded by #N` with the reason and closes it, once the new draft is up to date. A draft with commits a person added stays open |
+
+Refit recognizes its own commit by one parent and the App bot as both author and committer. It never merges, never marks a draft ready, and never writes to a draft a person closed. A run with a personal token cannot tell its own commit from a person's, so it reports an existing draft as it is and refuses to overwrite a branch without one. Other integrations in the same repository have their own drafts. Tests: `pipeline/draft-lifecycle.test.ts` runs each row against simulated GitHub with real Git objects.
+
 ## Commit message
 
 The draft's single commit uses the PR title without `[Needs review]` as its subject. The body is plain text wrapped at 72 columns: the overview sentence, one line per changed file (up to 25), the check command and its result, `Needs review` when the draft needs it, each provider page as `Source: <url>`, and `Refit-Run:` with the short run ID (and `Refit-Integration:` for a collection). Model-fix commits list each edited line with the old and new model and the retirement date. Check logs never go into a commit.

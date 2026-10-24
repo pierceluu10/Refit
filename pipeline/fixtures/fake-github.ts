@@ -23,6 +23,12 @@ const ISSUE_URL = 'https://github.com';
 const UPLOAD_PACK = 'git-upload-pack';
 const REPOSITORY_PATH = /^\/repos\/([^/]+)\/([^/]+)(\/.*)?$/;
 const GIT_PATH = /^\/git\/([^/]+)\/([^/]+)\.git(\/.*)$/;
+const APP_SLUG = 'refit-acceptance';
+// Installation tokens act as the App's bot user, which writes commits and opens pull requests.
+const BOT_LOGIN = `${APP_SLUG}[bot]`;
+const BOT_ID = 7000;
+const CUSTOMER = { name: 'Customer', email: 'customer@example.test' };
+const PERSON = /^\w+ (.*) <([^>]*)> (\d+) [+-]\d{4}$/;
 // Fixture Git commands ignore the developer's configuration; pushes into the bare remotes are local.
 const FIXTURE_GIT = {
   PATH: process.env.PATH,
@@ -58,6 +64,26 @@ interface FakeRepository {
   // Collaborator login → role_name, as GET …/collaborators/{user}/permission answers.
   roles: Map<string, string>;
   issues: Map<number, { title: string; body: string; state: string }>;
+  pulls: Map<number, FakePull>;
+  comments: { issue: number; body: string; user: string }[];
+  // Issues and pull requests share one number sequence, as on GitHub.
+  next: number;
+}
+
+export interface FakePull {
+  number: number;
+  title: string;
+  body: string;
+  head: string;
+  base: string;
+  // The base branch commit when the head last changed.
+  baseSha: string;
+  // The head commit when the branch last existed, kept after the branch is deleted.
+  headSha: string;
+  draft: boolean;
+  state: 'open' | 'closed';
+  merged: boolean;
+  user: string;
 }
 
 interface IssuedToken {
@@ -179,10 +205,194 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
     }
   }
 
-  async function api(method: string, path: string, body: Buffer, authorization?: string) {
+  // The Git data API (trees, commits, refs) writes straight into the bare remote.
+  function git(target: FakeRepository, args: string[], env: NodeJS.ProcessEnv = FIXTURE_GIT) {
+    return execute('git', ['-C', target.bare, ...args], { env });
+  }
+
+  async function branchTip(target: FakeRepository, branch: string) {
+    try {
+      return await revision(target, branch);
+    } catch (error) {
+      if (error instanceof Reply && error.status === 404) return undefined;
+      throw error;
+    }
+  }
+
+  async function isAncestor(target: FakeRepository, ancestor: string, descendant: string) {
+    try {
+      await git(target, ['merge-base', '--is-ancestor', ancestor, descendant]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function readCommit(target: FakeRepository, sha: string) {
+    let raw: string;
+    try {
+      raw = (await git(target, ['cat-file', 'commit', sha])).stdout;
+    } catch {
+      throw new Reply(404, 'Not Found');
+    }
+    const split = raw.indexOf('\n\n');
+    const lines = raw.slice(0, split).split('\n');
+    const person = (kind: string) => {
+      const [, name, email, seconds] = PERSON.exec(
+        lines.find((line) => line.startsWith(`${kind} `))!,
+      )!;
+      return {
+        name,
+        email,
+        date: new Date(Number(seconds) * MILLISECONDS_PER_SECOND).toISOString(),
+      };
+    };
+    return {
+      sha,
+      tree: { sha: lines[0].slice('tree '.length) },
+      parents: lines
+        .filter((line) => line.startsWith('parent '))
+        .map((line) => ({ sha: line.slice('parent '.length) })),
+      author: person('author'),
+      committer: person('committer'),
+      message: raw.slice(split + 2).replace(/\n$/, ''),
+    };
+  }
+
+  async function writeTree(target: FakeRepository, request: Record<string, unknown>) {
+    const index = join(root, `index-${randomUUID()}`);
+    const env = { ...FIXTURE_GIT, GIT_INDEX_FILE: index };
+    try {
+      if (request.base_tree) await git(target, ['read-tree', String(request.base_tree)], env);
+      for (const entry of request.tree as Record<string, unknown>[]) {
+        const path = String(entry.path);
+        if (entry.sha === null) {
+          await git(target, ['update-index', '--force-remove', '--', path], env);
+          continue;
+        }
+        let blob = String(entry.sha);
+        if (typeof entry.content === 'string') {
+          const file = join(root, `blob-${randomUUID()}`);
+          await writeFile(file, entry.content);
+          try {
+            blob = (
+              await git(target, ['hash-object', '-w', '--no-filters', '--', file])
+            ).stdout.trim();
+          } finally {
+            await rm(file, { force: true });
+          }
+        }
+        await git(
+          target,
+          ['update-index', '--add', '--cacheinfo', `${entry.mode},${blob},${path}`],
+          env,
+        );
+      }
+      return (await git(target, ['write-tree'], env)).stdout.trim();
+    } catch (error) {
+      if (error instanceof Reply) throw error;
+      throw new Reply(422, 'Invalid tree entries');
+    } finally {
+      await rm(index, { force: true });
+    }
+  }
+
+  async function writeCommit(
+    target: FakeRepository,
+    request: {
+      message: string;
+      tree: string;
+      parents: string[];
+      author?: { name: string; email: string };
+      committer?: { name: string; email: string };
+    },
+  ) {
+    const author = request.author ?? {
+      name: BOT_LOGIN,
+      email: `${BOT_ID}+${BOT_LOGIN}@users.noreply.github.com`,
+    };
+    const committer = request.committer ?? author;
+    const { stdout } = await git(
+      target,
+      [
+        'commit-tree',
+        request.tree,
+        ...request.parents.flatMap((parent) => ['-p', parent]),
+        '-m',
+        request.message,
+      ],
+      {
+        ...FIXTURE_GIT,
+        GIT_AUTHOR_NAME: author.name,
+        GIT_AUTHOR_EMAIL: author.email,
+        GIT_COMMITTER_NAME: committer.name,
+        GIT_COMMITTER_EMAIL: committer.email,
+      },
+    );
+    return readCommit(target, stdout.trim());
+  }
+
+  // Moves a branch and, as GitHub does on a push, refreshes each open pull request it heads.
+  async function moveBranch(target: FakeRepository, branch: string, sha: string) {
+    try {
+      await git(target, ['cat-file', '-e', `${sha}^{commit}`]);
+    } catch {
+      throw new Reply(422, 'Object does not exist');
+    }
+    await git(target, ['update-ref', `refs/heads/${branch}`, sha]);
+    for (const pull of target.pulls.values())
+      if (pull.head === branch && pull.state === 'open') {
+        pull.headSha = sha;
+        pull.baseSha = await revision(target, pull.base);
+      }
+  }
+
+  async function pullRecord(target: FakeRepository, pull: FakePull, single = false) {
+    const head = (await branchTip(target, pull.head)) ?? pull.headSha;
+    const repository = { full_name: target.fullName };
+    return {
+      number: pull.number,
+      html_url: `${ISSUE_URL}/${target.fullName}/pull/${pull.number}`,
+      title: pull.title,
+      body: pull.body,
+      state: pull.state,
+      draft: pull.draft,
+      merged_at: pull.merged ? new Date().toISOString() : null,
+      user: { login: pull.user, type: pull.user === BOT_LOGIN ? 'Bot' : 'User' },
+      head: { ref: pull.head, sha: head, repo: repository },
+      base: { ref: pull.base, sha: pull.baseSha, repo: repository },
+      ...(single
+        ? {
+            merged: pull.merged,
+            commits: Number(
+              (await git(target, ['rev-list', '--count', `${pull.baseSha}..${head}`])).stdout,
+            ),
+          }
+        : {}),
+    };
+  }
+
+  function pullOf(target: FakeRepository, number: number) {
+    const pull = target.pulls.get(number);
+    if (!pull) throw new Reply(404, 'Not Found');
+    return pull;
+  }
+
+  async function api(
+    method: string,
+    path: string,
+    body: Buffer,
+    authorization?: string,
+    query = new URLSearchParams(),
+  ) {
     if (method === 'GET' && path === '/app') {
       authenticateApp(authorization);
-      return [200, { id: options.appId, slug: 'refit-acceptance', name: 'Refit Acceptance' }];
+      return [200, { id: options.appId, slug: APP_SLUG, name: 'Refit Acceptance' }];
+    }
+    const user = /^\/users\/([^/]+)$/.exec(path);
+    if (method === 'GET' && user) {
+      if (decodeURIComponent(user[1]) !== BOT_LOGIN) throw new Reply(404, 'Not Found');
+      return [200, { login: BOT_LOGIN, id: BOT_ID, type: 'Bot' }];
     }
     const access = /^\/app\/installations\/(\d+)\/access_tokens$/.exec(path);
     if (method === 'POST' && access) {
@@ -258,6 +468,105 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
       const sha = await revision(target, decodeURIComponent(reference[1]));
       return [200, { ref: `refs/heads/${reference[1]}`, object: { type: 'commit', sha } }];
     }
+    const commit = /^\/git\/commits\/([a-f0-9]{40})$/.exec(rest);
+    if (method === 'GET' && commit) {
+      authenticateInstallation(token, target, 'contents', 'read');
+      return [200, await readCommit(target, commit[1])];
+    }
+    if (method === 'POST' && rest === '/git/trees') {
+      authenticateInstallation(token, target, 'contents', 'write');
+      return [201, { sha: await writeTree(target, json(body)) }];
+    }
+    if (method === 'POST' && rest === '/git/commits') {
+      authenticateInstallation(token, target, 'contents', 'write');
+      return [201, await writeCommit(target, json(body) as Parameters<typeof writeCommit>[1])];
+    }
+    if (method === 'POST' && rest === '/git/refs') {
+      authenticateInstallation(token, target, 'contents', 'write');
+      const request = json(body);
+      const name = String(request.ref);
+      if (!name.startsWith('refs/heads/')) throw new Reply(422, 'Reference name is invalid');
+      const branch = name.slice('refs/heads/'.length);
+      if (await branchTip(target, branch)) throw new Reply(422, 'Reference already exists');
+      await moveBranch(target, branch, String(request.sha));
+      return [201, { ref: name, object: { type: 'commit', sha: request.sha } }];
+    }
+    const update = /^\/git\/refs\/heads\/(.+)$/.exec(rest);
+    if (method === 'PATCH' && update) {
+      authenticateInstallation(token, target, 'contents', 'write');
+      const branch = decodeURIComponent(update[1]);
+      const request = json(body);
+      const current = await branchTip(target, branch);
+      if (!current) throw new Reply(422, 'Reference does not exist');
+      if (request.force !== true && !(await isAncestor(target, current, String(request.sha))))
+        throw new Reply(422, 'Update is not a fast forward');
+      await moveBranch(target, branch, String(request.sha));
+      return [200, { ref: `refs/heads/${branch}`, object: { type: 'commit', sha: request.sha } }];
+    }
+    if (rest === '/pulls' && method === 'GET') {
+      authenticateInstallation(token, target, 'pull_requests', 'read');
+      const state = query.get('state') ?? 'open';
+      const head = query.get('head');
+      const base = query.get('base');
+      const owner = target.fullName.split('/')[0].toLowerCase();
+      const pulls = [...target.pulls.values()]
+        .filter(
+          (pull) =>
+            (state === 'all' || pull.state === state) &&
+            (!base || pull.base === base) &&
+            (!head || head.toLowerCase() === `${owner}:${pull.head.toLowerCase()}`),
+        )
+        .sort((left, right) => right.number - left.number);
+      return [200, await Promise.all(pulls.map((pull) => pullRecord(target, pull)))];
+    }
+    if (rest === '/pulls' && method === 'POST') {
+      authenticateInstallation(token, target, 'pull_requests', 'write');
+      const request = json(body);
+      const head = String(request.head);
+      const base = String(request.base);
+      const headSha = await branchTip(target, head);
+      if (!headSha) throw new Reply(422, 'Validation Failed: head is invalid');
+      if (
+        [...target.pulls.values()].some(
+          (pull) => pull.state === 'open' && pull.head === head && pull.base === base,
+        )
+      )
+        throw new Reply(422, `A pull request already exists for ${head}.`);
+      const pull: FakePull = {
+        number: target.next++,
+        title: String(request.title),
+        body: String(request.body ?? ''),
+        head,
+        base,
+        baseSha: await revision(target, base),
+        headSha,
+        draft: request.draft === true,
+        state: 'open',
+        merged: false,
+        user: BOT_LOGIN,
+      };
+      target.pulls.set(pull.number, pull);
+      return [201, await pullRecord(target, pull, true)];
+    }
+    const pullPath = /^\/pulls\/(\d+)$/.exec(rest);
+    if (pullPath && method === 'GET') {
+      authenticateInstallation(token, target, 'pull_requests', 'read');
+      return [200, await pullRecord(target, pullOf(target, Number(pullPath[1])), true)];
+    }
+    if (pullPath && method === 'PATCH') {
+      authenticateInstallation(token, target, 'pull_requests', 'write');
+      const pull = pullOf(target, Number(pullPath[1]));
+      const request = json(body);
+      if (typeof request.title === 'string') pull.title = request.title;
+      if (typeof request.body === 'string') pull.body = request.body;
+      if (request.state === 'closed') pull.state = 'closed';
+      if (request.state === 'open') {
+        if (pull.merged || !(await branchTip(target, pull.head)))
+          throw new Reply(422, 'Validation Failed: state cannot be changed');
+        pull.state = 'open';
+      }
+      return [200, await pullRecord(target, pull, true)];
+    }
     const permission = /^\/collaborators\/([^/]+)\/permission$/.exec(rest);
     if (method === 'GET' && permission) {
       authenticateInstallation(token, target, 'metadata', 'read');
@@ -266,11 +575,21 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
       return [200, { permission: role === 'maintain' ? 'write' : role, role_name: role }];
     }
     const issue = /^\/issues(?:\/(\d+)(\/comments)?)?$/.exec(rest);
+    // A pull request's conversation is its issue; pull request write access may comment on it.
+    if (issue?.[2] && method === 'POST' && target.pulls.has(Number(issue[1]))) {
+      authenticateInstallation(token, target, 'pull_requests', 'write');
+      target.comments.push({
+        issue: Number(issue[1]),
+        body: String(json(body).body),
+        user: BOT_LOGIN,
+      });
+      return [201, { id: target.comments.length }];
+    }
     if (issue && (method === 'POST' || method === 'PATCH')) {
       authenticateInstallation(token, target, 'issues', 'write');
       const request = json(body);
       if (method === 'POST' && !issue[1]) {
-        const number = target.issues.size + 1;
+        const number = target.next++;
         target.issues.set(number, {
           title: String(request.title),
           body: String(request.body),
@@ -361,6 +680,7 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
           url.pathname,
           body,
           request.headers.authorization,
+          url.searchParams,
         );
         status = code as number;
         if (method !== 'GET') writes.push({ method, path: url.pathname, body: json(body) });
@@ -465,6 +785,9 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
           bare,
           roles: new Map(),
           issues: new Map(),
+          pulls: new Map(),
+          comments: [],
+          next: 1,
         });
       }
       const target = repositories.get(key)!;
@@ -485,6 +808,57 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
         { env: FIXTURE_GIT },
       );
       return revision(target, target.defaultBranch);
+    },
+
+    // Pull requests and their comments, as GitHub holds them now.
+    pulls: (fullName: string) => [...repositories.get(fullName.toLowerCase())!.pulls.values()],
+    comments: (fullName: string) => repositories.get(fullName.toLowerCase())!.comments,
+    // The bare remote, for cloning what GitHub serves.
+    remote: (fullName: string) => repositories.get(fullName.toLowerCase())!.bare,
+    branch: (fullName: string, name: string) =>
+      branchTip(repositories.get(fullName.toLowerCase())!, name),
+
+    // A person merges a pull request into its base: a merge commit, or one squashed commit.
+    async merge(fullName: string, number: number, method: 'merge' | 'squash' = 'merge') {
+      const target = repositories.get(fullName.toLowerCase())!;
+      const pull = pullOf(target, number);
+      const base = await revision(target, pull.base);
+      const head = await revision(target, pull.head);
+      const { stdout } = await git(target, ['merge-tree', '--write-tree', base, head]);
+      const merged = await writeCommit(target, {
+        message:
+          method === 'squash' ? `${pull.title} (#${number})` : `Merge pull request #${number}`,
+        tree: stdout.trim().split('\n')[0],
+        parents: method === 'squash' ? [base] : [base, head],
+        author: CUSTOMER,
+      });
+      await git(target, ['update-ref', `refs/heads/${pull.base}`, merged.sha]);
+      Object.assign(pull, { state: 'closed', merged: true, headSha: head });
+      return merged.sha;
+    },
+    // A person closes a pull request without merging it.
+    closePull(fullName: string, number: number) {
+      pullOf(repositories.get(fullName.toLowerCase())!, number).state = 'closed';
+    },
+    // A person pushes the source's HEAD to a branch, as a customer adding commits to a draft does.
+    async pushBranch(fullName: string, branch: string, source: string) {
+      const target = repositories.get(fullName.toLowerCase())!;
+      await execute(
+        'git',
+        [
+          '-C',
+          source,
+          '-c',
+          'protocol.file.allow=always',
+          'push',
+          '--quiet',
+          '--force',
+          target.bare,
+          `HEAD:refs/heads/${branch}`,
+        ],
+        { env: FIXTURE_GIT },
+      );
+      await moveBranch(target, branch, await revision(target, branch));
     },
 
     // Customer actions: each changes what GitHub serves, then delivers the webhook GitHub sends.

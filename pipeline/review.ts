@@ -5,7 +5,7 @@ import { digest, type AddedProperty } from './specifications.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
-import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
+import { INTEGRATION_MARKER, MIGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 import type { publicationWaiver } from './publication.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR } from './stripe-open-enums.ts';
@@ -781,7 +781,7 @@ export function createReviewArtifacts(
           : []),
       ].join('\n'),
       ...(integration ? [`${INTEGRATION_MARKER}${integration} -->`] : []),
-      `<!-- refit-migration:${migrationIdentity(report, validation.revision, integration)} -->`,
+      `${MIGRATION_MARKER}${migrationIdentity(report, validation.revision, integration)} -->`,
       `<!-- refit-evidence "runId": "${report.runId}", "patchHash": "${validation.patchHash}" -->`,
     ].join('\n\n') + '\n';
   // Shorter diffs first, then shorter site lists, until the body fits.

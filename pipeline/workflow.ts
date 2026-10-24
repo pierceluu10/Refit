@@ -34,7 +34,44 @@ const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
 
 type Stage = 'inputs' | 'scan' | 'validation' | 'publication';
 type Status =
-  'needs-review' | 'validation-failed' | 'validated' | 'draft-created' | 'existing-pr' | 'error';
+  | 'needs-review'
+  | 'validation-failed'
+  | 'validated'
+  | 'draft-created'
+  | 'draft-updated'
+  | 'draft-closed'
+  | 'existing-pr'
+  | 'error';
+
+// How a found or published draft ends the run. A draft a person closed or merged is final for its
+// target version, and one they edited is theirs.
+function publicationOutcome(
+  draft: {
+    status: 'created' | 'updated' | 'existing' | 'closed' | 'merged';
+    url: string;
+    leftUnchanged?: string;
+    validation?: 'not-rerun';
+  },
+  report: Pick<Awaited<ReturnType<typeof runPipeline>>, 'apiVersion'>,
+): [Status, string] {
+  const target = report.apiVersion.after ?? 'this target contract';
+  const rerun =
+    draft.validation === 'not-rerun' ? ' AI generation and validation were not rerun.' : '';
+  if (draft.status === 'created') return ['draft-created', draft.url];
+  if (draft.status === 'updated') return ['draft-updated', draft.url];
+  if (draft.status === 'merged')
+    return [
+      'draft-closed',
+      `${draft.url} was merged. Refit does not open another draft for ${target}.${rerun}`,
+    ];
+  if (draft.status === 'closed')
+    return [
+      'draft-closed',
+      `${draft.url} was closed without merging. Refit does not reopen or replace it for ${target}; reopen it to have Refit update it.${rerun}`,
+    ];
+  if (draft.leftUnchanged) return ['existing-pr', `${draft.url}: ${draft.leftUnchanged}${rerun}`];
+  return ['existing-pr', `${draft.url} already covers these changes.${rerun}`];
+}
 
 // The workflow's stops that need only its scan, checked in this order before dependency
 // preparation or validation. The Stripe benchmark applies them before it starts `refit run`.
@@ -237,11 +274,7 @@ export async function runWorkflow(options: {
         if (existing) {
           stage = 'publication';
           await save('publication.json', `${JSON.stringify(existing, null, 2)}\n`);
-          return await finish(
-            'existing-pr',
-            `${existing.url} already covers these changes. AI generation and validation were not rerun.`,
-            runId,
-          );
+          return await finish(...publicationOutcome(existing, scan), runId);
         }
       }
     }
@@ -306,11 +339,7 @@ export async function runWorkflow(options: {
     );
     const published = await publishDraft(report, publication);
     await save('publication.json', `${JSON.stringify(published, null, 2)}\n`);
-    return await finish(
-      published.status === 'created' ? 'draft-created' : 'existing-pr',
-      published.url,
-      runId,
-    );
+    return await finish(...publicationOutcome(published, report), runId);
   } catch (error) {
     if (!(error instanceof Error)) throw error;
     return await finish(

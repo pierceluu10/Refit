@@ -15,6 +15,7 @@ import { digest } from './specifications.ts';
 import type { validateMigration } from './validation.ts';
 import * as githubApp from './github-app.ts';
 import { repositoryDependencyFailure } from './dependency-preparation.ts';
+import { validatedReport } from './fixtures/publication-report.ts';
 import { PipelineInputError } from './types.ts';
 
 const REVISION = 'a'.repeat(40);
@@ -24,60 +25,7 @@ const HEAD = 'd'.repeat(40);
 const OPTIONS = publicationConfiguration('example/application', 'main', 'test-token');
 type Report = Awaited<ReturnType<typeof validateMigration>>;
 
-async function report(): Promise<Report> {
-  const scan = await runPipeline({
-    repository: resolve('pipeline/fixtures/repository'),
-    before: resolve('pipeline/fixtures/before.json'),
-    after: resolve('pipeline/fixtures/after.json'),
-    apiVersion: '2022-08-01',
-    proposePatch: true,
-  });
-  if (!('diff' in scan.patch)) throw new Error('Expected fixture patch');
-  const source = await readFile('pipeline/fixtures/repository/billing.ts', 'utf8');
-  return {
-    ...scan,
-    patch: { ...scan.patch, validation: 'passed' },
-    publicationFiles: [
-      {
-        path: 'billing.ts',
-        mode: '100644',
-        content: source.replace(
-          'intent.charges.data',
-          '(await stripe.charges.list({ payment_intent: intent.id })).data',
-        ),
-      },
-    ],
-    validation: {
-      status: 'passed',
-      revision: REVISION,
-      image: `sha256:${'e'.repeat(64)}`,
-      runtime: {
-        configured: 'node:22-alpine',
-        image: 'node:22-alpine',
-        nodeVersion: '22.23.3',
-        declarations: [],
-        reason: 'The repository declares no Node.js version.',
-      },
-      command: ['npm', 'test'],
-      baselineCommand: ['npm', 'test'],
-      archiveHash: 'f'.repeat(64),
-      patchHash: digest(scan.patch.diff),
-      baseline: { status: 'passed', exitCode: 0, stdout: 'PRIVATE LOG', stderr: '' },
-      patched: { status: 'passed', exitCode: 0, stdout: '', stderr: '' },
-      limits: {
-        timeoutMs: 120000,
-        outputBytes: 1048576,
-        network: 'none',
-        workspace: '512m' as const,
-        memory: '1g' as const,
-      },
-      publishable: false,
-      attempts: [],
-      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
-      reason: 'Controlled publication test evidence.',
-    },
-  };
-}
+const report = () => validatedReport(REVISION);
 
 it('refuses webhook publication even with otherwise passing validation evidence', async () => {
   const evidence = await report();
@@ -254,8 +202,10 @@ function github() {
     raceRef: false,
     racePull: false,
     moveBaseOnCommit: false,
-    moveHeadOnPullList: false,
+    moveHeadOnCommitRead: false,
     author: 'example',
+    // Other open pull requests on the base, which a new App draft may supersede.
+    others: [] as Record<string, unknown>[],
   };
   const calls: { method: string; path: string; body: Record<string, unknown> }[] = [];
   const fetch = vi.fn(async (input: string, options: RequestInit) => {
@@ -278,11 +228,13 @@ function github() {
         : response({}, 404);
     if (method === 'GET' && path === `/git/commits/${REVISION}`)
       return response({ tree: { sha: BASE_TREE } });
-    if (method === 'GET' && path === `/git/commits/${HEAD}`)
+    if (method === 'GET' && path === `/git/commits/${HEAD}`) {
+      if (state.moveHeadOnCommitRead) state.head = REVISION;
       return response({
         tree: { sha: state.tree },
         parents: state.parents.map((sha) => ({ sha })),
       });
+    }
     if (method === 'POST' && path === '/git/trees') return response({ sha: PATCH_TREE }, 201);
     if (method === 'POST' && path === '/git/commits') {
       if (state.moveBaseOnCommit) state.base = HEAD;
@@ -294,10 +246,13 @@ function github() {
       return response({}, state.raceRef ? 422 : 201);
     }
     if (method === 'GET' && path === '/pulls') {
+      expect(url.searchParams.get('base')).toBe('main');
+      if (url.searchParams.get('state') === 'open') {
+        expect(url.searchParams.has('head')).toBe(false);
+        return response([...(state.pull?.state === 'open' ? [state.pull] : []), ...state.others]);
+      }
       expect(url.searchParams.get('state')).toBe('all');
       expect(url.searchParams.get('head')).toMatch(/^example:refit\//);
-      expect(url.searchParams.get('base')).toBe('main');
-      if (state.moveHeadOnPullList) state.head = REVISION;
       return response(state.pull ? [state.pull] : []);
     }
     if (method === 'POST' && path === '/pulls') {
@@ -305,6 +260,8 @@ function github() {
       state.pull = {
         number: 17,
         html_url: 'https://github.com/example/application/pull/17',
+        title: body.title,
+        body: body.body,
         head: { sha: state.head },
         base: { ref: 'main' },
         draft: true,
@@ -403,23 +360,18 @@ it('blocks request publication independently when usage evidence is unsupported 
   expect(remote.fetch).not.toHaveBeenCalled();
 });
 
-it('reuses an existing PR even after a human closes it or marks it ready', async () => {
+it('reuses an open draft a person marked ready, and never writes to one they closed or merged', async () => {
   const remote = github();
   const value = await report();
   await publishDraft(value, OPTIONS);
-  remote.state.pull!.state = 'closed';
   remote.state.pull!.draft = false;
-  expect(await publishDraft(value, OPTIONS)).toMatchObject({
-    status: 'existing',
-    state: 'closed',
-    draft: false,
-  });
-  expect(
-    remote.calls.filter((call) => call.method === 'POST' && call.path === '/pulls'),
-  ).toHaveLength(1);
-  expect(
-    remote.calls.filter((call) => call.method === 'POST' && call.path === '/git/refs'),
-  ).toHaveLength(1);
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'existing', draft: false });
+  remote.state.pull!.state = 'closed';
+  const writes = remote.calls.filter((call) => call.method !== 'GET').length;
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'closed', state: 'closed' });
+  remote.state.pull!.merged_at = '2026-10-24T08:00:00Z';
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'merged', state: 'closed' });
+  expect(remote.calls.filter((call) => call.method !== 'GET')).toHaveLength(writes);
 });
 
 it('publishes separate named integrations against the same base without sharing branch or PR markers', async () => {
@@ -520,7 +472,7 @@ it('rechecks the base before creating a branch and checks the head before creati
   expect(remote.calls.some((call) => call.path === '/git/refs')).toBe(false);
   remote.state.moveBaseOnCommit = false;
   remote.state.base = REVISION;
-  remote.state.moveHeadOnPullList = true;
+  remote.state.moveHeadOnCommitRead = true;
   await expect(publishDraft(await report(), OPTIONS)).rejects.toThrow(/branch changed/);
   expect(remote.calls.some((call) => call.path === '/pulls' && call.method === 'POST')).toBe(false);
 });
@@ -533,11 +485,29 @@ it.each(['tree', 'parents'] as const)(
     if (key === 'tree') remote.state.tree = BASE_TREE;
     else remote.state.parents = [HEAD];
     await expect(publishDraft(await report(), OPTIONS)).rejects.toThrow(/Refusing to overwrite/);
-    expect(remote.calls.some((call) => call.path === '/git/refs' || call.path === '/pulls')).toBe(
-      false,
-    );
+    expect(
+      remote.calls.some(
+        (call) =>
+          call.method !== 'GET' && (call.path.startsWith('/git/refs') || call.path === '/pulls'),
+      ),
+    ).toBe(false);
   },
 );
+
+it('leaves an open draft as it is when a personal token cannot tell its own commits apart', async () => {
+  const remote = github();
+  const value = await report();
+  await publishDraft(value, OPTIONS);
+  remote.state.tree = BASE_TREE;
+  const writes = remote.calls.filter((call) => call.method !== 'GET' && call.path !== '/git/trees');
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({
+    status: 'existing',
+    leftUnchanged: 'Refit updates an existing draft only when it publishes as the GitHub App.',
+  });
+  expect(
+    remote.calls.filter((call) => call.method !== 'GET' && call.path !== '/git/trees'),
+  ).toEqual(writes);
+});
 
 it('recovers after a failed PR request without exposing the response body or creating another branch', async () => {
   const remote = github();
@@ -612,18 +582,21 @@ it('discovers equivalent App drafts before generation while ignoring foreign aut
   });
   const fetcher = vi.fn(async (input: string, options: RequestInit) => {
     expect(options.method).toBe('GET');
-    const path = new URL(input).pathname;
-    const response = path.endsWith('/pulls')
-      ? [
-          makePull(1, `"runId": "${value.runId}"`, 'someone-else'),
-          makePull(3, `"runId": "${value.runId}"`),
-          makePull(2, `<!-- refit-migration:${migrationIdentity(value, REVISION)} -->`),
-        ]
-      : path.includes('/git/commits/')
-        ? { parents: [{ sha: REVISION }] }
-        : path.endsWith('/main')
-          ? { object: { sha: REVISION } }
-          : { object: { sha: HEAD } };
+    const url = new URL(input);
+    const path = url.pathname;
+    const response = url.searchParams.has('head')
+      ? []
+      : path.endsWith('/pulls')
+        ? [
+            makePull(1, `"runId": "${value.runId}"`, 'someone-else'),
+            makePull(3, `"runId": "${value.runId}"`),
+            makePull(2, `<!-- refit-migration:${migrationIdentity(value, REVISION)} -->`),
+          ]
+        : path.includes('/git/commits/')
+          ? { parents: [{ sha: REVISION }] }
+          : path.endsWith('/main')
+            ? { object: { sha: REVISION } }
+            : { object: { sha: HEAD } };
     return new Response(JSON.stringify(response));
   });
   vi.stubGlobal('fetch', fetcher);
@@ -642,7 +615,7 @@ it('discovers equivalent App drafts before generation while ignoring foreign aut
     validation: 'not-rerun',
     publisher: { login: 'refit-agent[bot]' },
   });
-  expect(fetcher).toHaveBeenCalledTimes(5);
+  expect(fetcher).toHaveBeenCalledTimes(6);
 });
 
 it('discovers only the selected integration draft and refuses unscoped legacy matches for named profiles', async () => {
@@ -664,14 +637,17 @@ it('discovers only the selected integration draft and refuses unscoped legacy ma
   }));
   const fetcher = vi.fn(async (input: string, options: RequestInit) => {
     expect(options.method).toBe('GET');
-    const path = new URL(input).pathname;
+    const url = new URL(input);
+    const path = url.pathname;
     return new Response(
       JSON.stringify(
-        path.endsWith('/pulls')
-          ? pulls
-          : path.includes('/git/commits/')
-            ? { parents: [{ sha: REVISION }] }
-            : { object: { sha: path.endsWith('/main') ? REVISION : HEAD } },
+        url.searchParams.has('head')
+          ? []
+          : path.endsWith('/pulls')
+            ? pulls
+            : path.includes('/git/commits/')
+              ? { parents: [{ sha: REVISION }] }
+              : { object: { sha: path.endsWith('/main') ? REVISION : HEAD } },
       ),
     );
   });
