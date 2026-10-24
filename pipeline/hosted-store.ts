@@ -45,6 +45,8 @@ export interface HostedReceipt {
   message: string | null;
   revision?: string | null;
   readiness?: string | null;
+  // The host's share of the machine's CPU time during an in-VM job of at least 30 s.
+  cpuSteal?: number;
 }
 
 export function hostedTargetId(repository: string, base: string, integration?: string | null) {

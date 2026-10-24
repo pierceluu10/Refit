@@ -128,6 +128,8 @@ async function printReceipt(pool: Pool, id: string) {
   if (job.receipt.message) console.log(`Message   ${terminalText(job.receipt.message)}`);
   if (job.receipt.revision) console.log(`Revision  ${terminalText(job.receipt.revision)}`);
   if (job.receipt.readiness) console.log(`Doctor    ${terminalText(job.receipt.readiness)}`);
+  if (job.receipt.cpuSteal !== undefined)
+    console.log(`CPU steal ${Math.round(job.receipt.cpuSteal * 100)}% of the machine's CPU time`);
   if (!job.receipt.output) return;
   console.log(
     `Evidence  ${terminalText(job.receipt.output)}${job.evidence ? '' : ' (not on this machine)'}`,
