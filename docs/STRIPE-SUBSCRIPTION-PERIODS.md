@@ -22,6 +22,8 @@ If neither exists, step 3 returns `undefined` and the pull request says: "Subscr
 
 Each migrated finding records `subscriptionPeriod.rareCase`: `item-in-code`, `price-policy` or `flagged`. Imports follow each file's module style and its existing relative-import extensions, or `tsconfig` Node16/NodeNext resolution. Where a configured policy's guarded handler applies (below), that migration takes precedence over the helper.
 
+A read on one parenthesized cast of a traced receiver also moves, for every helper: `(subscription as any).current_period_end` becomes `(getSubscriptionPeriodEnd(subscription as any) as any)`, keeping the read typed `any`, and a typed cast such as `(invoice as Stripe.Invoice)` passes through as written. Double casts, a non-null assertion after a cast, a cast call result and `typeof`-guarded cast reads stay under review.
+
 ## Invoice subscription reads
 
 Stripe [moved `invoice.subscription` to `invoice.parent.subscription_details.subscription`](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects) in the same release. The generated helper file also exports `getInvoiceSubscription(invoice)`, and Refit rewrites `invoice.subscription` reads on the same sources (SDK responses, signed webhook payloads, `Stripe.Invoice`-typed values) to call it. It returns the old field when the payload has it, including `null`, otherwise the new location, otherwise `null`. Under TypeScript, the return type matches the old field with old `stripe` types and the new location with new ones.

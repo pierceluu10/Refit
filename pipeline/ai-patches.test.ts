@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
-import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
+import { AiPolicyStop, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { digest } from './specifications.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
@@ -586,17 +586,53 @@ async function typeErrorFixture(content = CHECKOUT, search = 'subscription_data'
   return { repository, report, findings: [...report.findings, typeError], findingId };
 }
 
+// A type-error fix that keeps every request parameter the code sends.
 const TRIAL_EDIT = {
   file: 'checkout.ts',
   original: 'trial_from_plan: true,\n      metadata,',
-  replacement: 'metadata,',
+  replacement: 'trial_from_plan: true,\n      metadata: { ...metadata },',
 };
 
 it('lets a type-error fix edit inside the statement enclosing the reported position', async () => {
   const { repository, report, findings, findingId } = await typeErrorFixture();
   respond([{ ...TRIAL_EDIT, findingId }]);
   const proposal = await proposeAiPatch(repository, report.changes, findings, OPTIONS);
-  expect(proposal.diff).toContain('-      trial_from_plan: true,');
+  expect(proposal.diff).toContain('+      metadata: { ...metadata },');
+});
+
+it('stops a type-error fix that drops the request parameter the new types reject', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  respond([{ ...TRIAL_EDIT, replacement: 'metadata,', findingId }]);
+  const stop = proposeAiPatch(repository, report.changes, findings, OPTIONS);
+  await expect(stop).rejects.toThrow(
+    'AI patch drops or changes subscription_data.trial_from_plan from checkout.sessions.create (checkout.ts:7); removing or replacing what a request sends changes its behavior, so it stops for review.',
+  );
+  // The stop keeps the refused diff and the request's usage for the evidence.
+  await expect(stop).rejects.toBeInstanceOf(AiPolicyStop);
+  await expect(stop).rejects.toMatchObject({
+    proposal: {
+      diff: expect.stringContaining('-      trial_from_plan: true,'),
+      model: OPTIONS.model,
+      usage: { inputTokens: 1000, outputTokens: 100 },
+    },
+  });
+  // A policy stop gets no corrected request.
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+it('stops a type-error fix that silences the error with a cast', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  respond([
+    {
+      ...TRIAL_EDIT,
+      replacement: 'trial_from_plan: true as any,\n      metadata,',
+      findingId,
+    },
+  ]);
+  await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
+    'AI patch silences type checks with any (checkout.ts:7); a type-only workaround hides the break instead of migrating it, so it stops for review.',
+  );
+  expect(fetch).toHaveBeenCalledTimes(1);
 });
 
 it('rejects a type-error fix outside the statement enclosing the reported position', async () => {
@@ -633,7 +669,7 @@ it('stops a fix that chooses a subscription item for the billing period', async 
   const { repository, report, findings, findingId } = await typeErrorFixture();
   const edit = (period: string) => ({
     ...TRIAL_EDIT,
-    replacement: `metadata: { ...metadata, period: ${period} },`,
+    replacement: `trial_from_plan: true,\n      metadata: { ...metadata, period: ${period} },`,
     findingId,
   });
   respond([edit('getSubscriptionPeriodEnd(metadata, (items) => items[0])')]);
@@ -653,7 +689,11 @@ it.each([
 ])('stops a fix that reads the billing period from an item it picks: %s', async (period) => {
   const { repository, report, findings, findingId } = await typeErrorFixture();
   respond([
-    { ...TRIAL_EDIT, replacement: `metadata: { ...metadata, period: ${period} },`, findingId },
+    {
+      ...TRIAL_EDIT,
+      replacement: `trial_from_plan: true,\n      metadata: { ...metadata, period: ${period} },`,
+      findingId,
+    },
   ]);
   await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
     'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
@@ -666,7 +706,8 @@ it('lets a fix read fields other than the billing period from a picked item', as
   respond([
     {
       ...TRIAL_EDIT,
-      replacement: 'metadata: { ...metadata, price: subscription.items.data[0].price.id },',
+      replacement:
+        'trial_from_plan: true,\n      metadata: { ...metadata, price: subscription.items.data[0].price.id },',
       findingId,
     },
   ]);
@@ -700,7 +741,7 @@ it('repairs the failed candidate at its type-error positions and guards every AI
   const proposal = await repairRound(previous);
   expect(modelEvidence().body.input[0].content).toContain('// earlier repair');
   expect(proposal.diff).toContain('+// earlier repair');
-  expect(proposal.diff).toContain('-      trial_from_plan: true,');
+  expect(proposal.diff).toContain('+      metadata: { ...metadata },');
 
   // An event name an earlier round changed is caught even when this round edits elsewhere.
   respond([{ ...TRIAL_EDIT, findingId }]);

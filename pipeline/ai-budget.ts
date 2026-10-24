@@ -10,13 +10,14 @@ const TOKENS_PER_MILLION = 1_000_000;
 const DEFAULT_BUDGET_USD = 1;
 const MAX_BUDGET_USD = 1000;
 // Standard short-context text-token prices per million, from official OpenAI documentation
-// (gpt-5.4-mini verified 2026-10-12, gpt-5.6-luna 2026-10-15, gpt-5.6-terra and gpt-5.6-sol 2026-10-21 at
+// (gpt-5.4-mini verified 2026-10-12, gpt-5.6-luna 2026-10-15, gpt-5.6-terra and gpt-5.6-sol 2026-10-21, gpt-6.1-sol 2026-10-24 at
 // https://developers.openai.com/api/docs/pricing). OpenAI bills cache writes as input.
 const MODEL_PRICES: Record<string, AiPrices> = {
   'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, cacheWrite: 0.75, output: 4.5 },
   'gpt-5.6-luna': { input: 0.2, cachedInput: 0.02, cacheWrite: 0.2, output: 1.2 },
   'gpt-5.6-terra': { input: 2, cachedInput: 0.2, cacheWrite: 2, output: 12 },
   'gpt-5.6-sol': { input: 4, cachedInput: 0.4, cacheWrite: 4, output: 20 },
+  'gpt-6.1-sol': { input: 2, cachedInput: 0.1, cacheWrite: 2, output: 10 },
 };
 // Responses report a dated snapshot of the configured model, such as gpt-5.4-mini-2026-03-17.
 const SNAPSHOT = /-\d{4}-\d{2}-\d{2}$/;
@@ -183,6 +184,64 @@ function pricesFor(model: string, budget: AiBudget) {
   return prices;
 }
 
+// A stored ledger whose limit, spend and reservations are well formed, whatever its limit.
+function intactLedger(value: Record<string, unknown>) {
+  return (
+    value.formatVersion === 1 &&
+    Number.isSafeInteger(value.limitNano) &&
+    Number(value.limitNano) > 0 &&
+    Number.isSafeInteger(value.spentNano) &&
+    Number(value.spentNano) >= 0 &&
+    isObject(value.reservations) &&
+    Object.values(value.reservations).every(
+      (amount) => Number.isSafeInteger(amount) && Number(amount) >= 0,
+    )
+  );
+}
+
+export interface AiLedgerSummary {
+  limitUsd: number;
+  spentUsd: number;
+  // Requests that reserved their maximum cost and have not settled, including ones that failed.
+  reservedUsd: number;
+  reservations: number;
+}
+
+// What a stored ledger has recorded.
+export function summarizeAiLedger(value: Record<string, unknown>): AiLedgerSummary {
+  if (!intactLedger(value))
+    throw new PipelineInputError(
+      'AI budget state is invalid. Inspect the ledger before starting a new budget.',
+    );
+  const reservations = Object.values(value.reservations as Record<string, number>);
+  return {
+    limitUsd: Number(value.limitNano) / NANO_USD_PER_USD,
+    spentUsd: Number(value.spentNano) / NANO_USD_PER_USD,
+    reservedUsd: reservations.reduce((sum, amount) => sum + amount, 0) / NANO_USD_PER_USD,
+    reservations: reservations.length,
+  };
+}
+
+// Moves a ledger to a new limit and keeps its recorded spend and open reservations, so raising or
+// lowering a configured limit never forgets money already spent. A ledger nothing has used yet
+// starts at the new limit.
+export async function changeAiBudgetLimit(ledger: AiLedger, limitUsd: number) {
+  let summary: AiLedgerSummary | undefined;
+  await ledger.update((stored) => {
+    if (stored) summarizeAiLedger(stored);
+    const state = {
+      formatVersion: 1,
+      spentNano: 0,
+      reservations: {},
+      ...stored,
+      limitNano: Math.floor(limitUsd * NANO_USD_PER_USD),
+    };
+    summary = summarizeAiLedger(state);
+    return state;
+  });
+  return summary as AiLedgerSummary;
+}
+
 type AiSettlement = (
   usage: AiUsage | null,
   responseModel: string,
@@ -212,16 +271,7 @@ export async function reserveAiBudget(
       reservations: {},
     },
   ) => {
-    if (
-      value.formatVersion !== 1 ||
-      value.limitNano !== limitNano ||
-      !Number.isSafeInteger(value.spentNano) ||
-      Number(value.spentNano) < 0 ||
-      !isObject(value.reservations) ||
-      !Object.values(value.reservations).every(
-        (amount) => Number.isSafeInteger(amount) && Number(amount) >= 0,
-      )
-    )
+    if (!intactLedger(value) || value.limitNano !== limitNano)
       throw new PipelineInputError(
         'AI budget state is invalid or its configured limit changed. Inspect the ledger before starting a new budget.',
       );

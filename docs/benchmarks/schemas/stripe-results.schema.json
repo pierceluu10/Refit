@@ -167,6 +167,11 @@
                   },
                   "confidence": {
                     "enum": ["confirmed", "review"]
+                  },
+                  "webhook": {
+                    "type": "string",
+                    "x-added": "2026-10-24",
+                    "description": "Signed-webhook payload reads only: the migrating rule, or unmigrated. Runs before F5's first slice lack it."
                   }
                 }
               },

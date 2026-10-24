@@ -2,6 +2,20 @@
 
 What a new user meets between installing Refit and a clear `refit doctor` verdict, on five real repositories, before and after this change. Recorded on October 22, 2026 with the CLI installed from `npm run package:cli`'s tarball into an empty directory (`npm install refit-0.39.0.tgz`), as a customer would install it. Before is Refit `7b2c86a` (`main`); after is this branch. The after transcripts predate a review fix: doctor's closing caveat now also says that only bounded client patterns and configured SDK mappings are inspected, and that SDK/API-version rollout still needs review. No application code ran: doctor and `agents` only read files, and `refit run` stopped at its scan.
 
+Since #255, a Stripe repository with no `.refit.json` gets a configuration Refit generates instead of the referral to `refit agents` shown below. See [installing Refit](INSTALL.md#a-repository-with-no-refitjson) and the October 24 measurement in [P3](overnight/P3.md). The transcripts below predate it.
+
+## October 24: the same three Stripe repositories with zero edits
+
+`refit doctor` in each fresh checkout, with nothing written. Both contracts were already saved by `refit stripe-snapshot --version`, which a first doctor run names when they are not. Run with the branch's `bin/refit.mjs`, not the packaged CLI: #272 for the checks, and the follow-up slice for faster-fixes' header line. No application code ran.
+
+| Repository                | Doctor's verdict      | What it says                                                                                                                                                                                                                                                                                           |
+| ------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Hombre2014/Genius`       | 1 of 9 checks blocked | Generated: Stripe API version 2023-08-16 (set at `lib/stripe.ts:3`), moving to 2026-09-30.endive, checked by `tsc` with new type errors only. Blocked only on migration coverage: 332 breaking changes, including changes to 3 operations the code calls, each named with its call site.               |
+| `pra9711/lexinote`        | 1 of 9 checks blocked | Generated: 2023-10-16 (set at `src/lib/stripe.ts:6`), checked by `tsc`: the app has no tests, but it has TypeScript. Blocked only on migration coverage: 339 breaking changes, 3 operations the code calls.                                                                                            |
+| `manucoffin/faster-fixes` | 1 of 1 check blocked  | No configuration: `apps/web/tsconfig.json` extends `@workspace/typescript-config/nextjs.json` (and 13 more `extends`), which Refit does not read, so it cannot tell how imports resolve. Nothing in the code needs to change. The header says `Configuration  this repository commits no .refit.json`. |
+
+On October 22, each needed `refit agents --add stripe`, a `stripe/openapi` commit for its API version and a hand-added `apiVersion` before doctor got this far. Migration coverage is O1's gate (`docs/overnight/P3.md`).
+
 ## Repositories
 
 Private copies at the commits pinned in the frozen benchmark lists, so nothing in them changed except what the steps below wrote.
