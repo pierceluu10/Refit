@@ -557,6 +557,27 @@ it.each([
     8,
   ],
   [
+    // A `case` clause's `const` is in scope for the clauses below it (O1's second reading).
+    'in a case-clause const that falls through to Payment Links',
+    {
+      'checkout.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const quick = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+export async function pay(kind) {
+  switch (kind) {
+    case 'session':
+      const params = { mode: 'payment', payment_method_types: ['card'] };
+      await stripe.checkout.sessions.create(params);
+    case 'link':
+      await stripe.paymentLinks.create(params);
+  }
+}
+`,
+    },
+    'checkout.js',
+    7,
+  ],
+  [
     'in a function-scoped var',
     { 'checkout.js': builtInVariable.replace('const sessionPayload', 'var sessionPayload') },
     'checkout.js',
