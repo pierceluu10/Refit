@@ -25,6 +25,8 @@ const PUSHED_RECORD = /\n?<!-- refit-pushed: ([a-f0-9]{40})(?: ([a-f0-9]{40}))? 
 const PROVIDER_MARKER = '<!-- refit-provider:';
 const BASE_MOVED_MARKER = '<!-- refit-base-moved:';
 const SUPERSEDED_MARKER = '<!-- refit-superseded -->';
+const OTHERS_COMMITS =
+  'The draft branch has commits Refit did not write, so Refit left it as it is.';
 const UPDATE_REFS =
   'mutation($repositoryId: ID!, $refUpdates: [RefUpdate!]!) { updateRefs(input: { repositoryId: $repositoryId, refUpdates: $refUpdates }) { clientMutationId } }';
 const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
@@ -40,7 +42,7 @@ type PublicationConfiguration = {
   // Close Refit's older open drafts for the same provider and integration once this one is up to
   // date. Off by default (owner decision, 2026-10-24).
   supersedeDrafts?: boolean;
-} &({ token: string; app?: never } | { app: GitHubAppConfiguration; token?: never });
+} & ({ token: string; app?: never } | { app: GitHubAppConfiguration; token?: never });
 
 export function validateGitHubTarget(repository: string | undefined, base: string | undefined) {
   if (
@@ -244,13 +246,11 @@ async function ownHead(
 }
 
 // A draft a person closed or merged for this target stays as they left it, and one with commits a
-// person added, or opened by someone else, stays theirs: Refit never force-pushes over them. When
-// the base has moved under a branch with someone else's commits, the draft says so, once.
+// person added, or opened by someone else, stays theirs: Refit never force-pushes over them.
 async function heldDraft(
   pull: Record<string, unknown>,
   request: Session['request'],
   context: Parameters<typeof draftOutcome>[3],
-  needs: string,
 ) {
   const head = sha(object(pull.head).sha);
   if (pull.state === 'closed')
@@ -268,10 +268,21 @@ async function heldDraft(
         'Someone else opened this pull request from the Refit branch, so Refit left it as it is.',
     });
   if (await ownHead(pull, head, request, authentication)) return undefined;
-  await noteBaseMoved(pull, head, request, context, needs);
-  return draftOutcome('existing', pull, head, context, {
-    leftUnchanged: 'The draft branch has commits Refit did not write, so Refit left it as it is.',
-  });
+  return draftOutcome('existing', pull, head, context, { leftUnchanged: OTHERS_COMMITS });
+}
+
+// When publication finds its branch held for someone else's commits, the draft also says if the
+// base has moved under it, and what needs updating.
+async function heldDraftNoted(
+  pull: Record<string, unknown>,
+  request: Session['request'],
+  context: Parameters<typeof draftOutcome>[3],
+  needs: string,
+) {
+  const held = await heldDraft(pull, request, context);
+  if (held?.leftUnchanged === OTHERS_COMMITS)
+    await noteBaseMoved(pull, held.head, request, context, needs);
+  return held;
 }
 
 // One comment, edited when the base moves again, so a held draft does not collect one per run.
@@ -346,7 +357,7 @@ export async function findExistingMigration(
     .map((finding) => finding.file);
   const held =
     own &&
-    (await heldDraft(
+    (await heldDraftNoted(
       own,
       request,
       { options, branch, revision, authentication },
@@ -694,13 +705,13 @@ export async function publishFiles(
   // Someone else moved the branch during publication: leave it, and tell the draft if the base moved.
   const leaveBranch = async () => {
     const latest = await draftPull(request, options, branch, authentication);
-    const held = latest && (await heldDraft(latest, request, context, needs));
+    const held = latest && (await heldDraftNoted(latest, request, context, needs));
     if (held) return held;
     throw new PipelineInputError('Migration branch changed during publication.');
   };
   await checkBase();
   let pull = await draftPull(request, options, branch, authentication);
-  const held = pull && (await heldDraft(pull, request, context, needs));
+  const held = pull && (await heldDraftNoted(pull, request, context, needs));
   if (held) return held;
   const baseCommit = object(await request('GET', `/git/commits/${revision}`));
   const baseTree = sha(object(baseCommit.tree).sha);
@@ -753,7 +764,8 @@ export async function publishFiles(
       // Without the App, Refit cannot tell its own commits from a person's.
       if (pull && !authentication)
         return draftOutcome('existing', pull, head, context, {
-          leftUnchanged: 'Refit updates an existing draft only when it publishes as the GitHub App.',
+          leftUnchanged:
+            'Refit updates an existing draft only when it publishes as the GitHub App.',
         });
       const own = pull
         ? await ownHead(pull, head, request, authentication)
