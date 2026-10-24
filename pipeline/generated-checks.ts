@@ -321,11 +321,13 @@ export async function extractStripeMock(image: string, directory: string) {
   return { imageId, binary, binaryHash: digest(await readFile(binary)) };
 }
 
-// stripe-mock reads JSON only; YAML contracts cannot be served.
-export async function readMockDocument(path: string, label: string) {
+// stripe-mock reads JSON only; YAML contracts cannot be served. The copy is world-readable because
+// the sandbox user cannot read private run artifacts (mode 600, owned by the worker).
+export async function stageMockDocument(path: string, label: string, destination: string) {
   const content = await readFile(path, 'utf8');
   if (!content.trimStart().startsWith('{'))
     throw new PipelineInputError(`Generated checks require a JSON ${label}.`);
+  await writeFile(destination, content, { mode: 0o444 });
   return digest(content);
 }
 
