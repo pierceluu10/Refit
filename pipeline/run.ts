@@ -293,12 +293,29 @@ async function runOpenApiPipeline(options: {
   const everyPinMoves = apiVersionDeclarations.every(
     (entry) => entry.status !== 'unknown' || (entry.kind === 'constructor' && entry.absent),
   );
+  const operationChanges = operationReplacementEvidence(
+    replacements,
+    analysis.calls,
+    analysis.findings,
+  );
+  const requestChanges = requestRenameEvidence(requestRenames, analysis.calls, analysis.findings);
+  // A configured migration's patch carries no version edits or stripe-node upgrade (below).
+  const configuredMigrationProposal =
+    operationChanges.some((change) => change.usages.length > 0) ||
+    requestChanges.some((change) => change.usages.length > 0) ||
+    analysis.findings.some(
+      (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
+    );
   movedTo[CARD_PAYMENT_METHOD_RULE] =
     bumpsVersion && everyPinMoves && (!patchRequested || !upgradeRequired || upgraded);
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  movedTo[PROMOTION_CODE_PROMOTION_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  movedTo[PRODUCT_MARKETING_FEATURES_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  movedTo[INVOICE_PREVIEW_RULE] = bumpsVersion && everyPinMoves && (!patchRequested || upgraded);
+  // The mined request moves and createPreview need the pin and the upgrade in the same patch, so
+  // they never ride a configured migration's patch, which has neither.
+  movedTo[PROMOTION_CODE_PROMOTION_RULE] =
+    movedTo[CARD_PAYMENT_METHOD_RULE] && !configuredMigrationProposal;
+  movedTo[PRODUCT_MARKETING_FEATURES_RULE] = movedTo[PROMOTION_CODE_PROMOTION_RULE];
+  movedTo[INVOICE_PREVIEW_RULE] =
+    bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
   // The period helper reads either API version, so it does not depend on the version pin.
   const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
   const ruleEdits = edits.filter(isFieldMove);
@@ -336,12 +353,6 @@ async function runOpenApiPipeline(options: {
     (apiVersionSourceBlocked(apiVersion) && (options.aiPatch || options.assessment))
   )
     throw new PipelineInputError(`Automated work is blocked. ${apiVersion.reason}`);
-  const operationChanges = operationReplacementEvidence(
-    replacements,
-    analysis.calls,
-    analysis.findings,
-  );
-  const requestChanges = requestRenameEvidence(requestRenames, analysis.calls, analysis.findings);
   const reviewableBreakingChanges = unmappedBreakingChanges(
     specificationDiff,
     changes,
@@ -387,12 +398,6 @@ async function runOpenApiPipeline(options: {
         : provider.id === STRIPE.id
           ? 'no-stripe-signal'
           : 'no-provider-signal';
-  const configuredMigrationProposal =
-    operationChanges.some((change) => change.usages.length > 0) ||
-    requestChanges.some((change) => change.usages.length > 0) ||
-    analysis.findings.some(
-      (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
-    );
   // AI receives every confirmed finding no rule covers, webhook payload reads included.
   const aiFindings = analysis.findings.filter(
     (finding) => finding.confidence === 'confirmed' && !editCovers(repository, ruleEdits, finding),
