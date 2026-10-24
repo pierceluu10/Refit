@@ -3,6 +3,9 @@
 # REFIT_HOSTED_OWNER, OPENAI_API_KEY and OPENAI_MODEL.
 app = "refit-hosted"
 primary_region = "iad"
+# Fly sends SIGINT, waits this long, then SIGTERM. The worker stops claiming on the first signal
+# and stops the running job on the second; 300 seconds is Fly's maximum.
+kill_timeout = 300
 
 [build]
   dockerfile = "Dockerfile"

@@ -246,6 +246,8 @@ async function benchmark(entry: Selected, index: number) {
       line: finding.line,
       property: finding.expression.replace(/^\??\./, ''),
       confidence: finding.confidence,
+      // A signed-webhook payload read: the rule that migrates it, or `unmigrated`.
+      ...(finding.webhook ? { webhook: finding.webhook.migration?.rule ?? 'unmigrated' } : {}),
     })),
     confirmedFields: [
       ...new Set(

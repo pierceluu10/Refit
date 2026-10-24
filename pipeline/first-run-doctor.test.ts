@@ -77,7 +77,7 @@ it('sends a new user to refit agents when the repository has no .refit.json', as
       id: 'configuration',
       title: 'Workflow configuration',
       status: 'blocked',
-      detail: `No .refit.json in ${app} yet.`,
+      detail: `No .refit.json in ${app} yet, and Refit found no Stripe package to generate one for.`,
       action:
         'Run refit agents to see which provider agents apply, then refit agents --add <id> to write .refit.json.',
     },
@@ -263,8 +263,132 @@ it('tells the person which changes Refit cannot migrate, without asking for an a
   for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
   await commit(app);
   const report = await inspectRepositoryReadiness({ repository: app });
-  // Before: "Inspect the scan evidence and define a reviewed adapter migration rule".
-  expect(report.checks.find((check) => check.id === 'migration-coverage')?.action).toBe(
-    'Run refit run --human to list them. Refit has no automatic migration for these changes, so they need a manual migration or a reviewed adapter rule before validation.',
-  );
+  // Before: "The supplied contracts contain unresolved breaking changes without a supported
+  // migration rule." with no count, versions or place.
+  expect(report.checks.find((check) => check.id === 'migration-coverage')).toMatchObject({
+    detail:
+      'The contracts list 1 breaking change from API version 2026-08-26.dahlia to 2026-09-30.endive that no Refit rule migrates, including changes to 1 operation the code calls: POST /v1/checkout/sessions at checkout.js:3.',
+    action:
+      'Run refit run --human to see each change and where the code reaches it, and migrate those calls by hand. Refit has no reviewed rule for these changes, so it stops before validation.',
+  });
+});
+
+it('says when Refit traced no API call, as when the client only goes to a library', async () => {
+  const app = await repository();
+  await mkdir(join(app, 'refit'));
+  const files = {
+    'package.json': JSON.stringify({ dependencies: { stripe: '19.3.1' } }),
+    // WalterIt/Better-Auth-Template auth.ts: the only use of the client is @better-auth/stripe.
+    'auth.ts': `import { betterAuth } from "better-auth"
+import { stripe } from "@better-auth/stripe"
+import Stripe from "stripe"
+
+const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2026-08-26.dahlia",
+})
+
+export const auth = betterAuth({ plugins: [stripe({ stripeClient })] })
+`,
+    'refit/stripe-before.json': JSON.stringify(checkoutContract('2026-08-26.dahlia', ['mode'])),
+    'refit/stripe-after.json': JSON.stringify(checkoutContract('2026-09-30.endive', ['mode'])),
+    'refit/stripe.provider.json': JSON.stringify(checkoutProvider),
+    '.refit.json': JSON.stringify(stripeConfiguration),
+  };
+  for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
+  await commit(app);
+  const report = await inspectRepositoryReadiness({ repository: app });
+  // Before: "0 of 0 observed SDK API calls have configured mappings."
+  expect(report.checks.find((check) => check.id === 'sdk-coverage')).toEqual({
+    id: 'sdk-coverage',
+    title: 'SDK call mapping',
+    status: 'blocked',
+    detail:
+      'Refit traced no stripe API call in this code, so it cannot tell what the migration changes. Calls made inside another library, or through a client Refit cannot follow, are not counted.',
+    action:
+      'If the code reaches stripe only through another library, upgrade that library instead. Otherwise run refit run --human to see which clients Refit found, and call the API through one it can follow.',
+  });
+});
+
+it('names each method Refit does not map, at its first call, when it maps none', async () => {
+  const app = await repository();
+  await mkdir(join(app, 'refit'), { recursive: true });
+  await mkdir(join(app, 'app/api/payment'), { recursive: true });
+  const files = {
+    'package.json': JSON.stringify({ dependencies: { stripe: '14.25.0' } }),
+    // michaelshimeles/guru-catcher app/api/payment/route.ts, cut to its Stripe calls.
+    'app/api/payment/route.ts': `import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("param");
+
+  // Initialize Stripe
+  const stripe = new Stripe(id!, {
+    apiVersion: "2026-08-26.dahlia", // Use the latest API version
+  });
+
+  const invoices = await stripe.invoices.list({ status: "open", limit: 100 });
+  const more = await stripe.invoices.list({ status: "draft", limit: 100 });
+  const subscriptionSchedules = await stripe.subscriptionSchedules.list({ limit: 100 });
+  return NextResponse.json([...invoices.data, ...more.data, ...subscriptionSchedules.data]);
+}
+`,
+    'refit/stripe-before.json': JSON.stringify(checkoutContract('2026-08-26.dahlia', ['mode'])),
+    'refit/stripe-after.json': JSON.stringify(checkoutContract('2026-09-30.endive', ['mode'])),
+    'refit/stripe.provider.json': JSON.stringify(checkoutProvider),
+    '.refit.json': JSON.stringify(stripeConfiguration),
+  };
+  for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
+  await commit(app);
+  const report = await inspectRepositoryReadiness({ repository: app });
+  // Before: "0 of 3 observed SDK API calls have configured mappings. Unmapped calls are outside
+  // automatic coverage." and "Confirm the SDK constructor/import mapping and supported client
+  // pattern, then inspect scan evidence before attempting a migration."
+  expect(report.checks.find((check) => check.id === 'sdk-coverage')).toEqual({
+    id: 'sdk-coverage',
+    title: 'SDK call mapping',
+    status: 'blocked',
+    detail:
+      'Refit traced 3 stripe API calls, and it maps none of their methods to an operation in the contracts: invoices.list at app/api/payment/route.ts:13, subscriptionSchedules.list at app/api/payment/route.ts:15.',
+    action:
+      'Check these calls against the stripe changes from 2026-08-26.dahlia to 2026-09-30.endive by hand. Refit cannot tell what the migration changes for a method it does not map, so it stops before validation.',
+  });
+});
+
+it('tells the person to commit or remove a submodule, not to commit or stash files', async () => {
+  const app = await repository({ formatVersion: 2, integrations: [integration('catalog')] });
+  await execute('git', [
+    '-C',
+    app,
+    'update-index',
+    '--add',
+    '--cacheinfo',
+    `160000,${'b'.repeat(40)},vendor/plugin`,
+  ]);
+  // An uninitialized submodule, as a shallow clone without submodules leaves it: an empty directory.
+  await mkdir(join(app, 'vendor/plugin'), { recursive: true });
+  // Commit the index as is: `git add .` would stage the gitlink's removal.
+  await execute('git', [
+    '-C',
+    app,
+    '-c',
+    'user.name=Refit Tests',
+    '-c',
+    'user.email=tests@refit.local',
+    'commit',
+    '-qm',
+    'test: add a submodule',
+  ]);
+  expect(
+    (await inspectRepositoryReadiness({ repository: app })).checks.find(
+      (check) => check.id === 'repository',
+    ),
+  ).toMatchObject({
+    status: 'blocked',
+    detail:
+      'Validation does not accept submodules; vendor/plugin is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.',
+    action:
+      "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.",
+  });
 });
