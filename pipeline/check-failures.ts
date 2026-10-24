@@ -1,0 +1,65 @@
+import type { CheckResult } from './validation.ts';
+
+const ANSI = /\u001b\[[0-9;]*m/g;
+// The first line test runners and tsc print for a failure: a failing file or test, a type error,
+// an uncaught error or npm's own.
+const FAILURE_LINE =
+  /^\s*(?:FAIL\s+\S|[×✗✕]\s|not ok\b|\S.*\(\d+,\d+\): error TS\d+|\w*Error:|npm (?:ERR!|error) )/;
+const PASSED_LINE = /^\s*(?:[✓√]|PASS|ok\b)\s+\S/;
+const FAILED_LINE = /^\s*(?:FAIL|[×✗✕]|not ok\b)\s+\S/;
+
+// Which check failed or did not finish, the first failure it printed and, for a check stopped at
+// the time limit, how far it got, so a slow or failing suite is reported instead of a bare status.
+export function checkFailure(side: 'baseline' | 'patched', command: string[], check: CheckResult) {
+  if (check.status === 'passed' || check.status === 'not-run') return undefined;
+  const lines = `${check.stdout}\n${check.stderr}`.replace(ANSI, '').split('\n');
+  const firstFailure = lines
+    .find((line) => FAILURE_LINE.test(line))
+    ?.trim()
+    .slice(0, 300);
+  const passed = lines.filter((line) => PASSED_LINE.test(line)).length;
+  const failed = lines.filter((line) => FAILED_LINE.test(line)).length;
+  return {
+    side,
+    command: command.join(' '),
+    status: check.status,
+    // A failed check's error is the Docker command line; only an error is a reason of its own.
+    ...(check.status === 'error' && check.error ? { error: check.error } : {}),
+    ...(firstFailure ? { firstFailure } : {}),
+    ...(passed || failed ? { reported: { passed, failed } } : {}),
+  };
+}
+
+// The stop message's sentences naming each check that failed or did not finish.
+export function checkFailureText(validation: {
+  checkFailures?: NonNullable<ReturnType<typeof checkFailure>>[];
+}) {
+  return (validation.checkFailures ?? [])
+    .map((failure) => {
+      const what = failure.error
+        ? `did not finish (${failure.error.replace(/\.$/, '')})`
+        : failure.side === 'baseline'
+          ? 'fails on the original code, before any change'
+          : 'fails on the migrated code';
+      const first = failure.firstFailure ? `; the first failure: ${failure.firstFailure}` : '';
+      const reported = failure.reported
+        ? ` ${failure.error ? 'Before it stopped, it' : 'It'} reported ${failure.reported.passed} passing and ${failure.reported.failed} failing.`
+        : '';
+      return ` The ${failure.side} check ${failure.command} ${what}${first}.${reported}`;
+    })
+    .join('');
+}
+
+// Every check of a validation that failed or did not finish.
+export function checkFailures(
+  baselineCommand: string[],
+  command: string[],
+  baseline: CheckResult,
+  patched: CheckResult,
+) {
+  const failures = [
+    checkFailure('baseline', baselineCommand, baseline),
+    checkFailure('patched', command, patched),
+  ].filter((failure) => failure !== undefined);
+  return failures.length ? { checkFailures: failures } : {};
+}

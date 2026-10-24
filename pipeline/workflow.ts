@@ -20,7 +20,8 @@ import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './s
 import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
-import { checkFailureText, validateMigration } from './validation.ts';
+import { checkFailureText } from './check-failures.ts';
+import { validateMigration } from './validation.ts';
 import {
   validateCheckCommand,
   validateRepairAttempts,

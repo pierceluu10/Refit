@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { checkFailure, checkFailureText, validateSourcePatch } from './validation.ts';
+import { checkFailure, checkFailureText } from './check-failures.ts';
+import { validateSourcePatch } from './validation.ts';
 
 const TYPE_CHECK_COMMAND = ['npx', '--no-install', 'tsc', '--noEmit'];
 
