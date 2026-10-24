@@ -83,6 +83,10 @@ export function failedOutcome(error: Error, aborted: boolean): HostedOutcome {
   };
 }
 
+// The Stripe contracts of generated configurations, shared by every target and the approval issues:
+// each file is one pinned stripe/openapi version, checked on read.
+export const hostedContracts = (directory: string) => join(directory, 'contracts');
+
 // The receipt a scheduled poll stores instead of running, or null when the job must run. Only a
 // finished, ready job on the same commit, approval and worker build, with no fetched contract or
 // documentation, is reused. Job-machine receipts never carry liveContract, so they always run.
@@ -146,8 +150,7 @@ export async function runHostedTarget(options: {
       publishDraft: options.publishDraft,
       notify: options.notify,
       inspectReadiness: true,
-      // Shared by every target: each file is one pinned stripe/openapi version, checked on read.
-      contracts: join(options.directory, 'contracts'),
+      contracts: hostedContracts(options.directory),
       onProgress: options.onProgress,
     });
     const outcome: HostedOutcome = {

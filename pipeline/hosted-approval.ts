@@ -20,6 +20,7 @@ import type {
 import { hostedTargetId, type openHostedStore } from './hosted-store.ts';
 import { inspectRepositoryEnrollment, repositoryApproval } from './repository-enrollment.ts';
 import { isObject } from './specifications.ts';
+import { saveGeneratedContracts } from './service-worker.ts';
 import { PipelineInputError } from './types.ts';
 import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
@@ -63,6 +64,8 @@ interface ApprovalContext {
   app: GitHubAppConfiguration;
   // Managed checkouts used only to inspect configuration, one per repository and branch.
   directory: string;
+  // Where the Stripe contracts of a generated configuration are kept, as for jobs.
+  contracts: string;
   store: HostedStore;
   approvals: ApprovalStore;
   signal: AbortSignal;
@@ -81,7 +84,8 @@ function fence(text: string, language = '') {
 }
 
 // The same inputs `refit enroll` reads, from a fresh checkout of the branch. A repository without
-// .refit.json gets the configuration `refit agents --add` would write for its detected providers.
+// .refit.json is reviewed with the configuration `refit enroll` generates, or, where none can be
+// generated, gets the configuration `refit agents --add` would write for its detected providers.
 async function inspect(context: ApprovalContext, repository: string, base: string) {
   return withGitHubCheckout(
     {
@@ -90,7 +94,8 @@ async function inspect(context: ApprovalContext, repository: string, base: strin
       signal: context.signal,
     },
     async (checkout): Promise<Inspection> => {
-      if (!existsSync(join(checkout.directory, REPOSITORY_CONFIGURATION))) {
+      const generated = await saveGeneratedContracts(checkout.directory, context.contracts);
+      if (!generated && !existsSync(join(checkout.directory, REPOSITORY_CONFIGURATION))) {
         const detections = await detectProviders(checkout.directory);
         const detected = detections.map((detection) => detection.agent.name);
         const ids = detections.filter(addable).map((detection) => detection.agent.id);
@@ -111,6 +116,7 @@ async function inspect(context: ApprovalContext, repository: string, base: strin
             repository: checkout.directory,
             github: repository,
             base,
+            contracts: context.contracts,
           }),
         };
       } catch (error) {

@@ -45,8 +45,9 @@ export async function confirmRepositoryAccess(app: GitHubAppConfiguration, repos
 
 // A repository that commits no .refit.json runs the configuration Refit generates from its code,
 // which reads two Stripe contracts. Each is downloaded once into `contracts` and checked against
-// the pinned table; with no proposal, enrollment itself names the stop.
-async function saveGeneratedContracts(repository: string, contracts: string) {
+// the pinned table; with no proposal, enrollment itself names the stop. Returns whether the
+// repository runs a generated configuration.
+export async function saveGeneratedContracts(repository: string, contracts: string) {
   const committed = await lstat(join(repository, REPOSITORY_CONFIGURATION)).then(
     () => true,
     (error: unknown) => {
@@ -54,11 +55,12 @@ async function saveGeneratedContracts(repository: string, contracts: string) {
       throw error;
     },
   );
-  if (committed) return;
+  if (committed) return false;
   const { proposal } = await proposeStripeConfiguration(repository);
-  if (proposal)
-    for (const version of new Set([proposal.apiVersion.value, proposal.target]))
-      await saveStripeContract(contracts, version);
+  if (!proposal) return false;
+  for (const version of new Set([proposal.apiVersion.value, proposal.target]))
+    await saveStripeContract(contracts, version);
+  return true;
 }
 
 export type ServicePoll = Awaited<ReturnType<typeof pollServiceTarget>>;
