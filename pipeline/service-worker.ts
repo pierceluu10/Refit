@@ -159,12 +159,13 @@ export async function pollServiceTarget(options: {
     async (checkout) => {
       if (options.contracts) await saveGeneratedContracts(checkout.directory, options.contracts);
       options.signal.throwIfAborted();
+      const acceptedApiVersions = await watchedApiVersions(options.stateDirectory);
       const profile = await loadApprovedRepository({
         repository: checkout.directory,
         approval: target.approval,
         integration: target.integration,
         stateDirectory: options.stateDirectory,
-        acceptedApiVersions: await watchedApiVersions(options.stateDirectory),
+        acceptedApiVersions,
         contracts: options.contracts,
       });
       options.signal.throwIfAborted();
@@ -176,6 +177,7 @@ export async function pollServiceTarget(options: {
             repository: checkout.directory,
             integration: target.integration,
             contracts: options.contracts,
+            acceptedApiVersions,
           })
         : undefined;
       options.signal.throwIfAborted();
