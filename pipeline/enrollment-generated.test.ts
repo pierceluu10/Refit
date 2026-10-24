@@ -207,3 +207,23 @@ it.skipIf(!SAVED)(
     ).rejects.toThrow(RepositoryApprovalError);
   },
 );
+
+it.skipIf(!SAVED)(
+  'shows the generated .refit.json and says to commit it before changing its settings',
+  async () => {
+    const app = await repository();
+    // Two lockfiles, as in Ankit-Sharma1011/Quill, which commits package-lock.json and pnpm-lock.yaml.
+    await writeFile(join(app, 'pnpm-lock.yaml'), "lockfileVersion: '9.0'\n");
+    await commit(app, 'test: add a second lockfile');
+    const report = await inspectRepositoryReadiness({ repository: app, contracts: SAVED });
+    expect(report.generated?.configuration).toMatchObject({
+      formatVersion: 2,
+      integrations: [{ id: 'stripe', apiVersion: '2026-04-22.dahlia', command: ['pnpm', 'test'] }],
+    });
+    const dependencies = report.checks.find((check) => check.id === 'dependencies');
+    expect(dependencies?.status).toBe('blocked');
+    expect(dependencies?.action).toMatch(
+      /^Make the change the message names in the repository and commit it, or: In \.refit\.json, .* This repository commits no \.refit\.json: to change its settings, commit the generated one first \(refit doctor --json prints it as generated\.configuration\) together with the contracts it names: run refit stripe-snapshot --version \S+ --version \S+ --contracts \. in the repository and commit refit\/\.$/,
+    );
+  },
+);
