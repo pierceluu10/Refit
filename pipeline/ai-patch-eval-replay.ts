@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -234,25 +235,23 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     await readFile(join(values.root, 'specs', `sdk-${after}.json`), 'utf8'),
   );
   const rows = [];
-  for (const row of results.repos.filter(
-    (candidate) => candidate.validation?.status === 'passed',
-  )) {
+  for (const row of results.repos.filter((candidate) => candidate.agent.diff)) {
     const entry = selected.find((candidate) => candidate.repo === row.repo);
-    const base = { repo: row.repo, verdict: row.review?.verdict };
-    if (
-      !entry ||
-      !row.agent.diff ||
-      !existsSync(join(values.root, 'repos', row.repo.replace('/', '__')))
-    ) {
-      rows.push({ ...base, error: 'Not in the benchmark root, or no recorded diff.' });
+    const base = {
+      repo: row.repo,
+      validation: row.validation?.status ?? null,
+      verdict: row.review?.verdict ?? null,
+    };
+    if (!entry || !existsSync(join(values.root, 'repos', row.repo.replace('/', '__')))) {
+      rows.push({ ...base, error: 'Not in the benchmark root.' });
       continue;
     }
     try {
-      const result = await replay(values.root, entry, row.agent.diff, after, sdkSpec);
+      const result = await replay(values.root, entry, row.agent.diff!, after, sdkSpec);
       rows.push({ ...base, ...result });
       const listed = (guards: string[]) => guards.join(', ') || 'passes every guard';
       console.error(
-        `${row.repo} (${base.verdict}): on the rules' code ${listed(result.againstRules.refusedBy)}; on the original ${listed(result.againstOriginal.refusedBy)}`,
+        `${row.repo} (${base.validation}, ${base.verdict}): on the rules' code ${listed(result.againstRules.refusedBy)}; on the original ${listed(result.againstOriginal.refusedBy)}`,
       );
     } catch (error) {
       if (!(error instanceof PipelineInputError)) throw error;
@@ -260,8 +259,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.error(`${row.repo}: ${error.message}`);
     }
   }
+  const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
   await writeFile(
     values.output,
-    `${JSON.stringify({ formatVersion: 1, source: values.results, after, rows }, null, 2)}\n`,
+    `${JSON.stringify({ formatVersion: 1, source: values.results, commit, after, rows }, null, 2)}\n`,
   );
 }

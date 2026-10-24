@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
-import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
+import { AiPolicyStop, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { digest } from './specifications.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
@@ -603,9 +603,19 @@ it('lets a type-error fix edit inside the statement enclosing the reported posit
 it('stops a type-error fix that drops the request parameter the new types reject', async () => {
   const { repository, report, findings, findingId } = await typeErrorFixture();
   respond([{ ...TRIAL_EDIT, replacement: 'metadata,', findingId }]);
-  await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
+  const stop = proposeAiPatch(repository, report.changes, findings, OPTIONS);
+  await expect(stop).rejects.toThrow(
     'AI patch drops or changes subscription_data.trial_from_plan from checkout.sessions.create (checkout.ts:7); removing or replacing what a request sends changes its behavior, so it stops for review.',
   );
+  // The stop keeps the refused diff and the request's usage for the evidence.
+  await expect(stop).rejects.toBeInstanceOf(AiPolicyStop);
+  await expect(stop).rejects.toMatchObject({
+    proposal: {
+      diff: expect.stringContaining('-      trial_from_plan: true,'),
+      model: OPTIONS.model,
+      usage: { inputTokens: 1000, outputTokens: 100 },
+    },
+  });
   // A policy stop gets no corrected request.
   expect(fetch).toHaveBeenCalledTimes(1);
 });

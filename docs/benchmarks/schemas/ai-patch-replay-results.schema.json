@@ -1,30 +1,62 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI patch guard replay",
-  "description": "Written by `npx tsx pipeline/ai-patch-eval-replay.ts`: every guard of proposeAiPatch() run over recorded patches that validated, once on Refit's rule-patched code and once on the original code. No model is called and no repository code runs.",
+  "description": "Written by `npx tsx pipeline/ai-patch-eval-replay.ts`: every guard of proposeAiPatch() run over each recorded patch, once on Refit's rule-patched code and once on the original code, with the commit whose guards ran. No model is called and no repository code runs.",
   "type": "object",
-  "required": ["formatVersion", "source", "list", "commit", "command", "after", "rows"],
+  "required": ["formatVersion", "source", "commit", "after", "rows"],
   "properties": {
-    "formatVersion": { "const": 1 },
-    "source": { "type": "string" },
-    "list": { "type": "string" },
-    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "command": { "type": "string" },
-    "after": { "type": "string" },
+    "formatVersion": {
+      "const": 1
+    },
+    "source": {
+      "type": "string"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "after": {
+      "type": "string"
+    },
     "rows": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["repo", "verdict"],
+        "required": ["repo", "validation", "verdict"],
         "properties": {
-          "repo": { "type": "string" },
-          "verdict": { "type": "string" },
-          "error": { "type": "string" },
-          "rulePatch": { "type": "string" },
-          "fromFallback": { "type": "array", "items": { "type": "string" } },
-          "unscanned": { "type": "array", "items": { "type": "string" } },
-          "againstRules": { "$ref": "#/$defs/guards" },
-          "againstOriginal": { "$ref": "#/$defs/guards" }
+          "repo": {
+            "type": "string"
+          },
+          "validation": {
+            "type": ["string", "null"]
+          },
+          "verdict": {
+            "type": ["string", "null"]
+          },
+          "error": {
+            "type": "string"
+          },
+          "rulePatch": {
+            "type": "string"
+          },
+          "fromFallback": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unscanned": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "againstRules": {
+            "$ref": "#/$defs/guards"
+          },
+          "againstOriginal": {
+            "$ref": "#/$defs/guards"
+          }
         }
       }
     }
@@ -34,8 +66,18 @@
       "type": "object",
       "required": ["refusedBy", "files", "refusals"],
       "properties": {
-        "refusedBy": { "type": "array", "items": { "type": "string" } },
-        "files": { "type": "array", "items": { "type": "string" } },
+        "refusedBy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "refusals": {
           "type": "object",
           "required": [
@@ -46,7 +88,9 @@
             "newShapeOnlyReads",
             "substitutions"
           ],
-          "additionalProperties": { "type": "array" }
+          "additionalProperties": {
+            "type": "array"
+          }
         }
       }
     }

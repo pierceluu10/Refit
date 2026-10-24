@@ -150,6 +150,63 @@ it('refuses an AI patch that deletes a parameter from a body declared before the
   expect(addedTypeEscapes(before, after, files)).toEqual([]);
 });
 
+const SESSION_HELPER = `${CLIENT}import { NextResponse } from 'next/server';
+import { createOrRetrieveCustomer } from '@/lib/supabase-admin';
+import { getURL } from '@/lib/utils';
+
+export async function POST(req: Request) {
+  try {
+    const customer = await createOrRetrieveCustomer({ uuid, email });
+    const sessionParams = getSessionCreateParams(customer);
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    return NextResponse.json({ sessionId: session.id });
+  } catch (error) {
+    console.error(error);
+    return errorResponse('Unknown');
+  }
+}
+
+function getSessionCreateParams(
+  customer: string,
+  priceId: string = process.env.STRIPE_PRICE_ID ?? '',
+  mode: 'payment' | 'subscription' = 'subscription'
+): Stripe.Checkout.SessionCreateParams {
+  const homeUrl = getURL();
+
+  return {
+    payment_method_types: ['card'],
+    billing_address_collection: 'required',
+    customer,
+    customer_update: { address: 'auto' },
+    line_items: [{ price: priceId, quantity: 1 }],
+    mode,
+    allow_promotion_codes: true,
+    success_url: homeUrl,
+    cancel_url: homeUrl
+  };
+}
+`;
+
+it('refuses an AI patch that deletes a parameter from a body a helper function returns', () => {
+  // brendansudol/punchlines-ai: the body comes from a function in the same file.
+  const path = 'app/api/create-checkout-session/route.ts';
+  const dropped = [
+    { call: 'checkout.sessions.create', path: 'payment_method_types', line: 27, file: path },
+  ];
+  const deleted = replaced(SESSION_HELPER, "    payment_method_types: ['card'],\n", '');
+  expect(droppedRequestPaths(...versions(path, SESSION_HELPER, deleted), STRIPE)).toEqual(dropped);
+  // The same body passed to the call without a variable.
+  const inline = (content: string) =>
+    replaced(
+      content,
+      'const sessionParams = getSessionCreateParams(customer);\n    const session = await stripe.checkout.sessions.create(sessionParams);',
+      'const session = await stripe.checkout.sessions.create(getSessionCreateParams(customer));',
+    );
+  expect(
+    droppedRequestPaths(...versions(path, inline(SESSION_HELPER), inline(deleted)), STRIPE),
+  ).toEqual(dropped.map((entry) => ({ ...entry, line: entry.line - 1 })));
+});
+
 const SUBSCRIPTION = `${CLIENT}export async function createSubscription(customerId: string, priceId: string, trialDays: number) {
   return stripe.subscriptions.create({
     customer: customerId,

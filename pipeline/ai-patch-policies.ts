@@ -162,6 +162,18 @@ interface RequestPath {
   line: number;
 }
 
+// The values a function body returns, not counting nested functions.
+function returnedValues(body: ts.ConciseBody) {
+  if (!ts.isBlock(body)) return [body];
+  const values: ts.Expression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isReturnStatement(node) && node.expression) values.push(node.expression);
+    else if (!ts.isFunctionLike(node)) ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(body, visit);
+  return values;
+}
+
 // What each traced SDK call sends: its arguments, the property names of object-literal arguments,
 // nested and inside arrays (`line_items[].price`), spreads, and literal values (`mode='payment'`,
 // `expand[]='data.customer'`). Other values, such as variables, are not compared.
@@ -182,9 +194,19 @@ function requestPaths(
   );
   // `const params = { ... }; stripe.x.create(params)`: a body declared once in the file.
   const declared = new Map<string, ts.Expression | null>();
+  // `stripe.x.create(params(customer))`: the bodies a function declared once in the file returns.
+  const returned = new Map<string, ts.Expression[] | null>();
+  const declare = <T>(names: Map<string, T | null>, name: string, value: T) =>
+    names.set(name, names.has(name) ? null : value);
   const declarations = (node: ts.Node) => {
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer)
-      declared.set(node.name.text, declared.has(node.name.text) ? null : node.initializer);
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+      declare(declared, node.name.text, node.initializer);
+      const value = unwrap(node.initializer);
+      if (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+        declare(returned, node.name.text, returnedValues(value.body));
+    }
+    if (ts.isFunctionDeclaration(node) && node.name && node.body)
+      declare(returned, node.name.text, returnedValues(node.body));
     ts.forEachChild(node, declarations);
   };
   declarations(source);
@@ -237,10 +259,13 @@ function requestPaths(
       node.arguments.forEach((argument, index) => {
         add(`argument ${index + 1}`, argument);
         const value = unwrap(argument);
-        sent(
-          (ts.isIdentifier(value) && declared.get(value.text)) || argument,
-          index ? `argument ${index + 1}` : '',
-        );
+        const body = (ts.isIdentifier(value) && declared.get(value.text)) || argument;
+        const builder = unwrap(body);
+        const bodies =
+          ts.isCallExpression(builder) &&
+          ts.isIdentifier(builder.expression) &&
+          returned.get(builder.expression.text);
+        for (const built of bodies || [body]) sent(built, index ? `argument ${index + 1}` : '');
       });
     }
     ts.forEachChild(node, visit);

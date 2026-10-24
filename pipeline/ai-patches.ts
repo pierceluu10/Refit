@@ -106,6 +106,17 @@ class AiEditRejection extends PipelineInputError {
   }
 }
 
+// A stop for review because the model's edits break an owner policy (event names, item choice,
+// sent request values, type escapes, dual-shape webhook reads). It carries the refused proposal.
+export class AiPolicyStop extends PipelineInputError {
+  constructor(
+    message: string,
+    readonly proposal: Record<string, unknown>,
+  ) {
+    super(message);
+  }
+}
+
 type RequestMetadata = Omit<Awaited<ReturnType<typeof requestStructuredOutput>>, 'content'>;
 
 // A corrected answer reports the usage and cost of both requests.
@@ -520,31 +531,42 @@ export async function proposeAiPatch(
       )
       .map((file) => file.path),
   );
+  const proposal = () => ({
+    ...metadata,
+    summary: value.summary,
+    uncertainties: value.uncertainties,
+    diff: renderPatch(repository, edits),
+  });
   const changedEvents = changedEventTypes(ruleBase, modified, aiFiles);
   if (changedEvents.length)
-    throw new PipelineInputError(
+    throw new AiPolicyStop(
       `AI patch changes webhook event type ${[...new Set(changedEvents)].map((name) => `'${name}'`).join(', ')}; event names stop for review.`,
+      proposal(),
     );
   // Choosing one subscription item when periods differ needs an operator-approved policy; the
   // model must not supply its own, such as the first item.
   if (addedItemChoices(ruleBase, modified, aiFiles).length)
-    throw new PipelineInputError(
+    throw new AiPolicyStop(
       'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
+      proposal(),
     );
   const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider);
   if (dropped.length)
-    throw new PipelineInputError(
+    throw new AiPolicyStop(
       `AI patch drops or changes ${dropped.map((entry) => `${entry.path} from ${entry.call} (${entry.file}:${entry.line})`).join(', ')}; removing or replacing what a request sends changes its behavior, so it stops for review.`,
+      proposal(),
     );
   const escapes = addedTypeEscapes(ruleBase, modified, aiFiles);
   if (escapes.length)
-    throw new PipelineInputError(
+    throw new AiPolicyStop(
       `AI patch silences type checks with ${escapes.map((entry) => `${entry.construct} (${entry.file}:${entry.line})`).join(', ')}; a type-only workaround hides the break instead of migrating it, so it stops for review.`,
+      proposal(),
     );
   const newShapeOnly = newShapeOnlyReads(repository, edits, findings, changes);
   if (newShapeOnly.length)
-    throw new PipelineInputError(
+    throw new AiPolicyStop(
       `AI patch reads ${newShapeOnly.map((entry) => `${entry.schema}.${entry.property} (${entry.file}:${entry.line})`).join(', ')} only in the new shape; a webhook payload arrives at the endpoint's API version, so the old shape must still be read, and it stops for review.`,
+      proposal(),
     );
   const substitutions = [
     ...findFieldSubstitutions(ruleBase, modified, changes, provider, schemaDefinitions, aiFiles),
@@ -559,13 +581,7 @@ export async function proposeAiPatch(
       notes.map((note) => note.content),
     ),
   ];
-  if (substitutions.length)
-    throw new FieldSubstitutionError(substitutions, {
-      ...metadata,
-      summary: value.summary,
-      uncertainties: value.uncertainties,
-      diff: renderPatch(repository, edits),
-    });
+  if (substitutions.length) throw new FieldSubstitutionError(substitutions, proposal());
   const remaining = analyzeRepository(modified, changes, provider, schemaDefinitions);
   // One diff from the original code to rules plus model edits.
   const merged = modified.files.flatMap((file) => {

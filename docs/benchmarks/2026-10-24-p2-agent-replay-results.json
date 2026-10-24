@@ -1,10 +1,717 @@
 {
   "formatVersion": 1,
   "source": "docs/benchmarks/2026-10-21-agent-comparison-results.json",
+  "commit": "c1e9a957a66ea8548a85f473ef494d9ad5efe7cd",
   "after": "2026-09-30.endive",
   "rows": [
     {
+      "repo": "inventashif/hackerai",
+      "validation": null,
+      "verdict": null,
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "convex/extraUsageActions.ts",
+        "convex/teamExtraUsageActions.ts"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "convex/extraUsageActions.ts",
+          "convex/teamExtraUsageActions.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 545,
+              "file": "convex/extraUsageActions.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 346,
+              "file": "convex/teamExtraUsageActions.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "convex/extraUsageActions.ts",
+          "convex/teamExtraUsageActions.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 545,
+              "file": "convex/extraUsageActions.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 346,
+              "file": "convex/teamExtraUsageActions.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      }
+    },
+    {
+      "repo": "kondax-com/Bocker",
+      "validation": null,
+      "verdict": null,
+      "rulePatch": "not-generated",
+      "fromFallback": [],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "changedEventTypes",
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "addedTypeEscapes",
+          "newShapeOnlyReads",
+          "substitutions"
+        ],
+        "files": [
+          "app/[locale]/(dashboard)/dashboard/subscription/_components/PreviewDialog.tsx",
+          "convex/tenant/referral/action.ts",
+          "convex/tenant/subscription/action.ts",
+          "services/stripe/constants.ts",
+          "services/stripe/repositories/StripeConnectRepository.ts",
+          "services/stripe/repositories/StripeSubscriptionRepository.ts",
+          "services/webhook/stripe/handlers.subscription.test.ts",
+          "services/webhook/stripe/handlers.subscription.ts",
+          "services/webhook/stripe/StripeWebhookProcessor.ts",
+          "services/webhook/stripe/subscriptionSync.test.ts",
+          "services/webhook/stripe/subscriptionSync.ts",
+          "services/stripe/discounts.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [
+            "subscription"
+          ],
+          "addedItemChoices": [
+            "convex/tenant/subscription/action.ts",
+            "services/webhook/stripe/subscriptionSync.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "subscriptions.update",
+              "path": "argument 2.coupon",
+              "line": 187,
+              "file": "convex/tenant/referral/action.ts"
+            },
+            {
+              "call": "subscriptions.update",
+              "path": "argument 2.coupon",
+              "line": 416,
+              "file": "convex/tenant/referral/action.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 70,
+              "file": "convex/tenant/subscription/action.ts"
+            }
+          ],
+          "addedTypeEscapes": [
+            {
+              "construct": "as unknown as",
+              "line": 33,
+              "file": "services/webhook/stripe/subscriptionSync.ts"
+            },
+            {
+              "construct": "as unknown as",
+              "line": 53,
+              "file": "services/webhook/stripe/subscriptionSync.ts"
+            },
+            {
+              "construct": "as unknown as",
+              "line": 125,
+              "file": "services/webhook/stripe/subscriptionSync.ts"
+            },
+            {
+              "construct": "as unknown as",
+              "line": 11,
+              "file": "services/stripe/discounts.ts"
+            }
+          ],
+          "newShapeOnlyReads": [
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 374,
+              "schema": "subscription",
+              "property": "discount"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 375,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 375,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 375,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 375,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 379,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 379,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 379,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 379,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 380,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 380,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 380,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 380,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 381,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 381,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 381,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 381,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 382,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 382,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 382,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 382,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/webhook/stripe/handlers.subscription.ts",
+              "line": 316,
+              "schema": "line_item",
+              "property": "price"
+            },
+            {
+              "file": "services/webhook/stripe/handlers.subscription.ts",
+              "line": 450,
+              "schema": "line_item",
+              "property": "price"
+            },
+            {
+              "file": "services/webhook/stripe/StripeWebhookProcessor.ts",
+              "line": 117,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "services/webhook/stripe/StripeWebhookProcessor.ts",
+              "line": 117,
+              "schema": "invoiceitem",
+              "property": "subscription"
+            },
+            {
+              "file": "services/webhook/stripe/StripeWebhookProcessor.ts",
+              "line": 121,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "services/webhook/stripe/StripeWebhookProcessor.ts",
+              "line": 121,
+              "schema": "invoiceitem",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "discounts",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "services/stripe/discounts.ts",
+              "line": 11,
+              "message": "AI replacement substitutes pre-existing field subscription.discounts for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in services/stripe/discounts.ts:11. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "convex/tenant/subscription/action.ts",
+              "line": 623,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in convex/tenant/subscription/action.ts:623. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "changedEventTypes",
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "addedTypeEscapes",
+          "newShapeOnlyReads",
+          "substitutions"
+        ],
+        "files": [
+          "app/[locale]/(dashboard)/dashboard/subscription/_components/PreviewDialog.tsx",
+          "convex/tenant/referral/action.ts",
+          "convex/tenant/subscription/action.ts",
+          "services/stripe/constants.ts",
+          "services/stripe/repositories/StripeConnectRepository.ts",
+          "services/stripe/repositories/StripeSubscriptionRepository.ts",
+          "services/webhook/stripe/handlers.subscription.test.ts",
+          "services/webhook/stripe/handlers.subscription.ts",
+          "services/webhook/stripe/StripeWebhookProcessor.ts",
+          "services/webhook/stripe/subscriptionSync.test.ts",
+          "services/webhook/stripe/subscriptionSync.ts",
+          "services/stripe/discounts.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [
+            "subscription"
+          ],
+          "addedItemChoices": [
+            "convex/tenant/subscription/action.ts",
+            "services/webhook/stripe/subscriptionSync.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "subscriptions.update",
+              "path": "argument 2.coupon",
+              "line": 187,
+              "file": "convex/tenant/referral/action.ts"
+            },
+            {
+              "call": "subscriptions.update",
+              "path": "argument 2.coupon",
+              "line": 416,
+              "file": "convex/tenant/referral/action.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 70,
+              "file": "convex/tenant/subscription/action.ts"
+            }
+          ],
+          "addedTypeEscapes": [
+            {
+              "construct": "as unknown as",
+              "line": 33,
+              "file": "services/webhook/stripe/subscriptionSync.ts"
+            },
+            {
+              "construct": "as unknown as",
+              "line": 53,
+              "file": "services/webhook/stripe/subscriptionSync.ts"
+            },
+            {
+              "construct": "as unknown as",
+              "line": 125,
+              "file": "services/webhook/stripe/subscriptionSync.ts"
+            },
+            {
+              "construct": "as unknown as",
+              "line": 11,
+              "file": "services/stripe/discounts.ts"
+            }
+          ],
+          "newShapeOnlyReads": [
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 374,
+              "schema": "subscription",
+              "property": "discount"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 375,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 375,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 375,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 375,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 379,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 379,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 379,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 379,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 380,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 380,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 380,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 380,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 381,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 381,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 381,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 381,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 382,
+              "schema": "deleted_discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 382,
+              "schema": "discount",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 382,
+              "schema": "promotion_code",
+              "property": "coupon"
+            },
+            {
+              "file": "services/stripe/repositories/StripeConnectRepository.ts",
+              "line": 382,
+              "schema": "subscription_schedule_phase_configuration",
+              "property": "coupon"
+            },
+            {
+              "file": "services/webhook/stripe/handlers.subscription.ts",
+              "line": 316,
+              "schema": "line_item",
+              "property": "price"
+            },
+            {
+              "file": "services/webhook/stripe/handlers.subscription.ts",
+              "line": 450,
+              "schema": "line_item",
+              "property": "price"
+            },
+            {
+              "file": "services/webhook/stripe/StripeWebhookProcessor.ts",
+              "line": 117,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "services/webhook/stripe/StripeWebhookProcessor.ts",
+              "line": 117,
+              "schema": "invoiceitem",
+              "property": "subscription"
+            },
+            {
+              "file": "services/webhook/stripe/StripeWebhookProcessor.ts",
+              "line": 121,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "services/webhook/stripe/StripeWebhookProcessor.ts",
+              "line": 121,
+              "schema": "invoiceitem",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "discounts",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "services/stripe/discounts.ts",
+              "line": 11,
+              "message": "AI replacement substitutes pre-existing field subscription.discounts for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in services/stripe/discounts.ts:11. Pre-existing fields may only be passed as arguments to SDK calls."
+            },
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "convex/tenant/subscription/action.ts",
+              "line": 623,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in convex/tenant/subscription/action.ts:623. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "repo": "beindigital-products/wedillybird",
+      "validation": "error",
+      "verdict": null,
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "lib/payments/drivers/stripe.ts"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "lib/payments/drivers/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 90,
+              "file": "lib/payments/drivers/stripe.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 239,
+              "file": "lib/payments/drivers/stripe.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 347,
+              "file": "lib/payments/drivers/stripe.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 425,
+              "file": "lib/payments/drivers/stripe.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "lib/payments/drivers/stripe.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 90,
+              "file": "lib/payments/drivers/stripe.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 239,
+              "file": "lib/payments/drivers/stripe.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 347,
+              "file": "lib/payments/drivers/stripe.ts"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 425,
+              "file": "lib/payments/drivers/stripe.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      }
+    },
+    {
       "repo": "Bizgojo/drivetimetales",
+      "validation": "passed",
       "verdict": "wrong",
       "rulePatch": "not-generated",
       "fromFallback": [],
@@ -312,6 +1019,7 @@
     },
     {
       "repo": "Dvargas005/node-hub",
+      "validation": "passed",
       "verdict": "wrong",
       "rulePatch": "not-generated",
       "fromFallback": [],
@@ -368,7 +1076,178 @@
       }
     },
     {
+      "repo": "JiantaoFu/insightly",
+      "validation": "baseline-failed",
+      "verdict": null,
+      "rulePatch": "not-generated",
+      "fromFallback": [],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
+        ],
+        "files": [
+          "server/index.js"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "server/index.js"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 2989,
+              "file": "server/index.js"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 3105,
+              "file": "server/index.js"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "server/index.js",
+              "line": 188,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "server/index.js",
+              "line": 189,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "server/index.js",
+              "line": 190,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
+        ],
+        "files": [
+          "server/index.js"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "server/index.js"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 2989,
+              "file": "server/index.js"
+            },
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 3105,
+              "file": "server/index.js"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "server/index.js",
+              "line": 188,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "server/index.js",
+              "line": 189,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "server/index.js",
+              "line": 190,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": []
+        }
+      }
+    },
+    {
+      "repo": "RISHIE2006/Signl",
+      "validation": "baseline-failed",
+      "verdict": null,
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "app/api/stripe/checkout/route.js",
+        "src/lib/stripe.js"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "app/api/stripe/checkout/route.js"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 39,
+              "file": "app/api/stripe/checkout/route.js"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "app/api/stripe/checkout/route.js",
+          "src/lib/stripe.js"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 39,
+              "file": "app/api/stripe/checkout/route.js"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      }
+    },
+    {
       "repo": "sammorrispb/nextgen-academy",
+      "validation": "passed",
       "verdict": "correct",
       "rulePatch": "unsupported",
       "fromFallback": [],
@@ -404,6 +1283,7 @@
     },
     {
       "repo": "abressiddique/AbresStore-Admin",
+      "validation": "passed",
       "verdict": "wrong",
       "rulePatch": "proposed",
       "fromFallback": [
@@ -496,7 +1376,96 @@
       }
     },
     {
+      "repo": "Sanjdcool/ApanStack-Newsletter",
+      "validation": "baseline-failed",
+      "verdict": null,
+      "rulePatch": "unsupported",
+      "fromFallback": [],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
+        ],
+        "files": [
+          "app/api/webhooks/stripe/route.ts",
+          "lib/stripe.ts",
+          "tests/integration/b02-stripe-webhook-sweep.test.ts",
+          "tests/integration/stripe-webhook.test.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "subscriptions.create",
+              "path": "expand[]='latest_invoice.payment_intent'",
+              "line": 25,
+              "file": "lib/stripe.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "app/api/webhooks/stripe/route.ts",
+              "line": 265,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/webhooks/stripe/route.ts",
+              "line": 289,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "droppedRequestPaths",
+          "newShapeOnlyReads"
+        ],
+        "files": [
+          "app/api/webhooks/stripe/route.ts",
+          "lib/stripe.ts",
+          "tests/integration/b02-stripe-webhook-sweep.test.ts",
+          "tests/integration/stripe-webhook.test.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "subscriptions.create",
+              "path": "expand[]='latest_invoice.payment_intent'",
+              "line": 25,
+              "file": "lib/stripe.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "app/api/webhooks/stripe/route.ts",
+              "line": 265,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "app/api/webhooks/stripe/route.ts",
+              "line": 289,
+              "schema": "invoice",
+              "property": "subscription"
+            }
+          ],
+          "substitutions": []
+        }
+      }
+    },
+    {
       "repo": "Kanba-co/kanba",
+      "validation": "passed",
       "verdict": "wrong",
       "rulePatch": "proposed",
       "fromFallback": [
@@ -577,7 +1546,397 @@
       }
     },
     {
+      "repo": "pretzelai/stripe-no-webhooks",
+      "validation": "error",
+      "verdict": null,
+      "rulePatch": "not-generated",
+      "fromFallback": [],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "addedItemChoices",
+          "newShapeOnlyReads",
+          "substitutions"
+        ],
+        "files": [
+          "src/credits/topup.ts",
+          "src/handlers/billing.ts",
+          "src/handlers/checkout.ts",
+          "src/handlers/webhook.ts",
+          "src/stripe-proxy.ts",
+          "src/subscriptions.ts",
+          "src/usage/index.ts",
+          "src/wallet/topup.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "src/handlers/checkout.ts",
+            "src/subscriptions.ts",
+            "src/usage/index.ts"
+          ],
+          "droppedRequestPaths": [],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "src/credits/topup.ts",
+              "line": 979,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/credits/topup.ts",
+              "line": 982,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/credits/topup.ts",
+              "line": 983,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/credits/topup.ts",
+              "line": 984,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/wallet/topup.ts",
+              "line": 968,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/wallet/topup.ts",
+              "line": 971,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/wallet/topup.ts",
+              "line": 972,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/wallet/topup.ts",
+              "line": 973,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/handlers/checkout.ts",
+              "line": 207,
+              "schema": "subscription",
+              "property": "current_period_end"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 434,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 435,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 435,
+              "schema": "invoiceitem",
+              "property": "subscription"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 435,
+              "schema": "invoice",
+              "property": "subscription_details"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 553,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 576,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 578,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 579,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 580,
+              "schema": "invoice",
+              "property": "payment_intent"
+            }
+          ],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "src/handlers/checkout.ts",
+              "line": 207,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in src/handlers/checkout.ts:207. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "addedItemChoices",
+          "newShapeOnlyReads",
+          "substitutions"
+        ],
+        "files": [
+          "src/credits/topup.ts",
+          "src/handlers/billing.ts",
+          "src/handlers/checkout.ts",
+          "src/handlers/webhook.ts",
+          "src/stripe-proxy.ts",
+          "src/subscriptions.ts",
+          "src/usage/index.ts",
+          "src/wallet/topup.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "src/handlers/checkout.ts",
+            "src/subscriptions.ts",
+            "src/usage/index.ts"
+          ],
+          "droppedRequestPaths": [],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [
+            {
+              "file": "src/credits/topup.ts",
+              "line": 979,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/credits/topup.ts",
+              "line": 982,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/credits/topup.ts",
+              "line": 983,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/credits/topup.ts",
+              "line": 984,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/wallet/topup.ts",
+              "line": 968,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/wallet/topup.ts",
+              "line": 971,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/wallet/topup.ts",
+              "line": 972,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/wallet/topup.ts",
+              "line": 973,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/handlers/checkout.ts",
+              "line": 207,
+              "schema": "subscription",
+              "property": "current_period_end"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 434,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 435,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 435,
+              "schema": "invoiceitem",
+              "property": "subscription"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 435,
+              "schema": "invoice",
+              "property": "subscription_details"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 553,
+              "schema": "invoice",
+              "property": "subscription"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 576,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 578,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 579,
+              "schema": "invoice",
+              "property": "payment_intent"
+            },
+            {
+              "file": "src/handlers/webhook.ts",
+              "line": 580,
+              "schema": "invoice",
+              "property": "payment_intent"
+            }
+          ],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "items",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "src/handlers/checkout.ts",
+              "line": 207,
+              "message": "AI replacement substitutes pre-existing field subscription.items for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in src/handlers/checkout.ts:207. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "repo": "brendansudol/punchlines-ai",
+      "validation": "regression",
+      "verdict": null,
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "lib/stripe.ts",
+        "lib/supabase-admin.ts"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "substitutions"
+        ],
+        "files": [
+          "app/api/create-checkout-session/route.ts",
+          "lib/supabase-admin.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "id",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "lib/supabase-admin.ts",
+              "line": 156,
+              "message": "AI replacement substitutes pre-existing field subscription.id for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in lib/supabase-admin.ts:156. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "addedItemChoices",
+          "substitutions"
+        ],
+        "files": [
+          "app/api/create-checkout-session/route.ts",
+          "lib/stripe.ts",
+          "lib/supabase-admin.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "lib/supabase-admin.ts"
+          ],
+          "droppedRequestPaths": [],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": [
+            {
+              "kind": "pre-existing",
+              "schema": "subscription",
+              "property": "id",
+              "removed": [
+                "current_period_end",
+                "current_period_start",
+                "discount"
+              ],
+              "file": "lib/supabase-admin.ts",
+              "line": 156,
+              "message": "AI replacement substitutes pre-existing field subscription.id for removed subscription.current_period_end, subscription.current_period_start, subscription.discount in lib/supabase-admin.ts:156. Pre-existing fields may only be passed as arguments to SDK calls."
+            }
+          ]
+        }
+      }
+    },
+    {
       "repo": "iggy-tech/product-hunt-clone-final",
+      "validation": "passed",
       "verdict": "wrong",
       "rulePatch": "proposed",
       "fromFallback": [
@@ -640,7 +1999,72 @@
       }
     },
     {
+      "repo": "mrwebwork/spotify",
+      "validation": "regression",
+      "verdict": null,
+      "rulePatch": "proposed",
+      "fromFallback": [
+        "app/api/create-checkout-session/route.ts",
+        "libs/stripe.ts",
+        "libs/supabaseAdmin.ts"
+      ],
+      "unscanned": [],
+      "againstRules": {
+        "refusedBy": [
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "app/api/create-checkout-session/route.ts",
+          "libs/supabaseAdmin.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "allowed_payment_method_types",
+              "line": 31,
+              "file": "app/api/create-checkout-session/route.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      },
+      "againstOriginal": {
+        "refusedBy": [
+          "addedItemChoices",
+          "droppedRequestPaths"
+        ],
+        "files": [
+          "app/api/create-checkout-session/route.ts",
+          "libs/stripe.ts",
+          "libs/supabaseAdmin.ts"
+        ],
+        "refusals": {
+          "changedEventTypes": [],
+          "addedItemChoices": [
+            "libs/supabaseAdmin.ts"
+          ],
+          "droppedRequestPaths": [
+            {
+              "call": "checkout.sessions.create",
+              "path": "payment_method_types",
+              "line": 31,
+              "file": "app/api/create-checkout-session/route.ts"
+            }
+          ],
+          "addedTypeEscapes": [],
+          "newShapeOnlyReads": [],
+          "substitutions": []
+        }
+      }
+    },
+    {
       "repo": "geallenboy/ai-saas-template",
+      "validation": "passed",
       "verdict": "wrong",
       "rulePatch": "not-generated",
       "fromFallback": [],
@@ -714,6 +2138,7 @@
     },
     {
       "repo": "utsavkrishnatra/pdf_answers",
+      "validation": "passed",
       "verdict": "wrong",
       "rulePatch": "proposed",
       "fromFallback": [
@@ -906,8 +2331,5 @@
         }
       }
     }
-  ],
-  "list": "docs/benchmarks/subsets/p2-agent-replay.json",
-  "commit": "46143fce5adcb1d51326e002de56a884a6f92082",
-  "command": "npx tsx pipeline/ai-patch-eval-replay.ts --results docs/benchmarks/2026-10-21-agent-comparison-results.json --root <setup root> --output <file>"
+  ]
 }
