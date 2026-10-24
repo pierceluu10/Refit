@@ -1,4 +1,6 @@
 import type { AiOptions } from './ai-budget.ts';
+import { saveStripeContract } from './enrollment-contracts.ts';
+import { proposeStripeConfiguration } from './enrollment-proposal.ts';
 import { authenticateGitHubRead, type GitHubAppConfiguration } from './github-app.ts';
 import { withGitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
@@ -10,7 +12,10 @@ import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { SlackSend } from './slack.ts';
 import { watchOnce } from './watch.ts';
+import { lstat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { hasErrorCode } from './state-files.ts';
+import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
 // Confirms through the GitHub API that the App can still read an active repository before any work.
 export async function confirmRepositoryAccess(app: GitHubAppConfiguration, repository: string) {
@@ -36,6 +41,24 @@ export async function confirmRepositoryAccess(app: GitHubAppConfiguration, repos
     defaultBranch: record.default_branch,
     size: record.size,
   };
+}
+
+// A repository that commits no .refit.json runs the configuration Refit generates from its code,
+// which reads two Stripe contracts. Each is downloaded once into `contracts` and checked against
+// the pinned table; with no proposal, enrollment itself names the stop.
+async function saveGeneratedContracts(repository: string, contracts: string) {
+  const committed = await lstat(join(repository, REPOSITORY_CONFIGURATION)).then(
+    () => true,
+    (error: unknown) => {
+      if (hasErrorCode(error, 'ENOENT')) return false;
+      throw error;
+    },
+  );
+  if (committed) return;
+  const { proposal } = await proposeStripeConfiguration(repository);
+  if (proposal)
+    for (const version of new Set([proposal.apiVersion.value, proposal.target]))
+      await saveStripeContract(contracts, version);
 }
 
 export type ServicePoll = Awaited<ReturnType<typeof pollServiceTarget>>;
@@ -93,6 +116,8 @@ export async function pollServiceTarget(options: {
   retry?: boolean;
   // Runs refit doctor on the approved checkout first; blocked setup stops before scanning.
   inspectReadiness?: boolean;
+  // Where the Stripe contracts of a generated configuration are kept.
+  contracts?: string;
   notify?: SlackSend;
   onProgress?: (message: string) => void;
 }) {
@@ -130,11 +155,14 @@ export async function pollServiceTarget(options: {
       onProgress: options.onProgress,
     },
     async (checkout) => {
+      if (options.contracts) await saveGeneratedContracts(checkout.directory, options.contracts);
+      options.signal.throwIfAborted();
       const profile = await loadApprovedRepository({
         repository: checkout.directory,
         approval: target.approval,
         integration: target.integration,
         stateDirectory: options.stateDirectory,
+        contracts: options.contracts,
       });
       options.signal.throwIfAborted();
       options.onProgress?.(
@@ -144,6 +172,7 @@ export async function pollServiceTarget(options: {
         ? await inspectRepositoryReadiness({
             repository: checkout.directory,
             integration: target.integration,
+            contracts: options.contracts,
           })
         : undefined;
       options.signal.throwIfAborted();

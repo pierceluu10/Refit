@@ -146,6 +146,8 @@ export async function runHostedTarget(options: {
       publishDraft: options.publishDraft,
       notify: options.notify,
       inspectReadiness: true,
+      // Shared by every target: each file is one pinned stripe/openapi version, checked on read.
+      contracts: join(options.directory, 'contracts'),
       onProgress: options.onProgress,
     });
     const outcome: HostedOutcome = {
