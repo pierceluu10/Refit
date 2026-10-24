@@ -272,6 +272,8 @@ export async function runHostedService(options: {
         if (!isDatabaseUnavailable(error)) throw error;
         await unavailable(error);
         options.signal.throwIfAborted();
+        // A worker told to stop before it reached PostgreSQL has no running job to wait for.
+        options.drain?.throwIfAborted();
       }
   };
   const store = await openStore();

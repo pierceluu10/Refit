@@ -24,6 +24,8 @@ const DATABASE = process.env.REFIT_POSTGRES_URL;
 const TENANCY = { accounts: ['first', 'second'], limits: DEFAULT_TENANCY_LIMITS };
 const WAIT_MS = 30_000;
 const POLL_MS = 50;
+// Well under the 5-second first outage retry, so a worker that retries again is caught.
+const BOOT_STOP_MS = 2_000;
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
@@ -129,6 +131,26 @@ function serve(pool: pg.Pool, directory: string, progress: string[]) {
   });
   return { service, controller, drain };
 }
+
+it('stops retrying PostgreSQL at boot on the first signal', async () => {
+  // Nothing listens on port 1, so every connection is refused.
+  const pool = new pg.Pool({ connectionString: 'postgres://refit:unused@127.0.0.1:1/refit' });
+  cleanups.push(() => pool.end());
+  const directory = await mkdtemp(join(tmpdir(), 'refit-hosted-drain-'));
+  cleanups.push(() => rm(directory, { recursive: true, force: true }));
+  const progress: string[] = [];
+  const retries = () => progress.filter((line) => line.startsWith('PostgreSQL is unavailable'));
+  const { service, drain } = serve(pool, directory, progress);
+  await until(() => retries().length > 0, 'a retry');
+  drain.abort();
+  let timer: NodeJS.Timeout | undefined;
+  const stopped = Promise.race([
+    service,
+    new Promise((resolve) => (timer = setTimeout(() => resolve('still retrying'), BOOT_STOP_MS))),
+  ]).finally(() => clearTimeout(timer));
+  await expect(stopped).rejects.toMatchObject({ name: 'AbortError' });
+  expect(retries()).toHaveLength(1);
+});
 
 it.skipIf(!DATABASE)(
   'claims no job while paused, keeps the first pause time and claims again after resume',
