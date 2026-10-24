@@ -169,6 +169,46 @@ it.each([
   ).toBeGreaterThan(0);
 });
 
+// P5's review probes: each shape can put a Stripe object into the literal before the last line reads it.
+it.each([
+  [
+    'an object filled by Object.assign',
+    'const plan = {};\nObject.assign(plan, item);\nexport const read = plan.price;',
+  ],
+  [
+    'an object passed to a function',
+    'const plan = { price: 1 };\nfill(plan);\nexport const read = plan.price;',
+  ],
+  [
+    'an object placed in another value',
+    'const plan = { price: 1 };\nfill({ data: { plan } });\nexport const read = plan.price;',
+  ],
+  [
+    'an element bound from find and filled',
+    'const TIERS = [{ price: 1 }];\nconst picked = TIERS.find((tier) => tier.price > 0)!;\nObject.assign(picked, item);\nexport const read = TIERS.find((tier) => tier.price > 0)?.price;',
+  ],
+  [
+    'an element from find passed to a function',
+    'const TIERS = [{ price: 1 }];\nfill(TIERS.find((tier) => tier.price > 0));\nexport const read = TIERS.find((tier) => tier.price > 0)?.price;',
+  ],
+  [
+    'a for-of element filled',
+    'const TIERS = [{ price: 1 }];\nfor (const tier of TIERS) Object.assign(tier, item);\nexport const read = TIERS[0].price;',
+  ],
+  [
+    'a forEach element filled',
+    'const TIERS = [{ price: 1 }];\nTIERS.forEach((tier) => Object.assign(tier, item));\nexport const read = TIERS[0].price;',
+  ],
+  [
+    'a copy of the elements bound and filled',
+    'const TIERS = [{ price: 1 }];\nconst active = TIERS.filter((tier) => tier.price > 0);\nObject.assign(active[0], item);\nexport const read = TIERS[0].price;',
+  ],
+])('keeps the read for review on %s', (_name, source) => {
+  const prefix = `${client}\ndeclare const item: any;\ndeclare function fill(value: unknown): void;\n`;
+  const line = `${prefix}${source}`.split('\n').length;
+  expect(reviewLines({ 'lib/stripe.ts': `${prefix}${source}` })).toContain(`lib/stripe.ts:${line}`);
+});
+
 it('keeps plan reads for review when an import of the same name cannot be resolved', () => {
   expect(
     reviewLines({

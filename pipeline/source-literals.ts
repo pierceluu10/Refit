@@ -38,7 +38,9 @@ const ELEMENT_CALLBACKS = new Set([
 // `const` object literal that is itself one. A constant whose elements or properties are read must
 // stay untouched everywhere it is referenced: only read through properties, indexes, `for…of` and
 // read-only array methods, exported or imported, never assigned into, deleted, placed in another
-// value or passed anywhere, so nothing can put a Stripe object into it. Anything else is not proven.
+// value or passed anywhere, so nothing can put a Stripe object into it. So must an element taken out
+// of it (a `find` result or a copy, a `for…of` variable, a callback's parameter): it is only read
+// through its properties, or, for a `find` result or a copy, returned. Anything else is not proven.
 export function sourceLiterals(options: {
   nodes: ts.Node[];
   symbol: (node: ts.Node) => ts.Symbol | undefined;
@@ -56,8 +58,12 @@ export function sourceLiterals(options: {
   // Names used where they resolve to no declaration in the scanned source: an import Refit could
   // not resolve, a global, `require(…).NAME`. A constant of that name may be changed there unseen.
   const unresolved = new Set<string>();
+  // `{ plan }` resolves to the property, not to the constant it places in the object.
+  const shorthand = new Set<string>();
   for (const node of nodes) {
     if (!ts.isIdentifier(node)) continue;
+    if (ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node)
+      shorthand.add(node.text);
     const binding = symbol(node);
     if (binding) references.set(binding, [...(references.get(binding) ?? []), node]);
     const declaration = binding?.declarations?.[0];
@@ -78,6 +84,7 @@ export function sourceLiterals(options: {
     untouched.set(binding, false);
     const result =
       !unresolved.has(binding.name) &&
+      !shorthand.has(binding.name) &&
       (references.get(binding) ?? []).every((reference) => {
         const parent = reference.parent;
         if (
@@ -91,7 +98,8 @@ export function sourceLiterals(options: {
         while (ts.isParenthesizedExpression(read.parent) || ts.isNonNullExpression(read.parent))
           read = read.parent;
         const outer = read.parent;
-        if (ts.isForOfStatement(outer) && outer.expression === read) return true;
+        if (ts.isForOfStatement(outer) && outer.expression === read)
+          return elementVariable(outer.initializer);
         // `X.property`, `X[index]`, or `X.find(…)` and the other read-only methods.
         if (
           !(ts.isPropertyAccessExpression(outer) && outer.expression === read) &&
@@ -99,16 +107,81 @@ export function sourceLiterals(options: {
         )
           return false;
         if (ts.isPropertyAccessExpression(outer) && ts.isCallExpression(outer.parent)) {
-          if (outer.parent.expression !== outer) return false;
+          const call = outer.parent;
+          if (call.expression !== outer) return false;
           if (!READ_METHODS.has(outer.name.text)) return false;
+          // An element or a copy of the elements leaves the call: it must only be read.
+          if (
+            (ELEMENT_METHODS.has(outer.name.text) || COPY_METHODS.has(outer.name.text)) &&
+            !accessed(call) &&
+            !returned(call)
+          )
+            return false;
+          const callback = call.arguments[0] && unwrap(call.arguments[0]);
+          const element =
+            ELEMENT_CALLBACKS.has(outer.name.text) &&
+            callback &&
+            (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))
+              ? callback.parameters[0]
+              : undefined;
+          if (element && !(ts.isIdentifier(element.name) && readThrough(element.name)))
+            return false;
         }
         return !written(outer);
       });
     untouched.set(binding, result);
     return result;
   }
-  // `X.a = …`, `X.a++`, `delete X.a`, `X.a.b = …` and destructuring targets write into X.
-  function written(access: ts.Expression): boolean {
+  // A `for…of` variable that receives the elements, read only through its properties.
+  function elementVariable(initializer: ts.ForInitializer) {
+    const [declaration] = ts.isVariableDeclarationList(initializer) ? initializer.declarations : [];
+    return Boolean(
+      declaration && ts.isIdentifier(declaration.name) && readThrough(declaration.name),
+    );
+  }
+  // Every use of a name that holds an element reads a property of it and changes nothing: it is
+  // never bound, passed or placed anywhere, where the element could be changed unseen.
+  function readThrough(name: ts.Identifier) {
+    const binding = symbol(name);
+    return Boolean(
+      binding &&
+      (references.get(binding) ?? []).every(
+        (reference) => reference === name || accessed(reference),
+      ),
+    );
+  }
+  // The value is returned: directly, as a conditional's branch or in a returned object literal.
+  function returned(value: ts.Expression) {
+    let current = value;
+    for (;;) {
+      const parent = current.parent;
+      if (
+        ts.isParenthesizedExpression(parent) ||
+        ts.isNonNullExpression(parent) ||
+        (ts.isConditionalExpression(parent) && parent.condition !== current)
+      )
+        current = parent;
+      else if (ts.isPropertyAssignment(parent) && parent.initializer === current)
+        current = parent.parent;
+      else
+        return (
+          ts.isReturnStatement(parent) || (ts.isArrowFunction(parent) && parent.body === current)
+        );
+    }
+  }
+  // The value is read through a property or an index that nothing assigns into or changes.
+  function accessed(value: ts.Expression) {
+    let current = value;
+    while (ts.isParenthesizedExpression(current.parent) || ts.isNonNullExpression(current.parent))
+      current = current.parent;
+    const parent = current.parent;
+    return (
+      (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) &&
+      parent.expression === current &&
+      !changed(parent)
+    );
+  }
+  const outermost = (access: ts.Expression) => {
     let current: ts.Expression = access;
     while (
       (ts.isPropertyAccessExpression(current.parent) ||
@@ -116,6 +189,12 @@ export function sourceLiterals(options: {
       current.parent.expression === current
     )
       current = current.parent;
+    return current;
+  };
+  // `X.a = …`, `X.a++`, `delete X.a`, `X.a.b = …`, destructuring targets and a method call that is
+  // not a read-only one change X.
+  function changed(access: ts.Expression): boolean {
+    const current = outermost(access);
     const parent = current.parent;
     if (
       (ts.isBinaryExpression(parent) &&
@@ -130,8 +209,17 @@ export function sourceLiterals(options: {
     )
       return true;
     // `X.list.find(…)`: a method call on a nested value must be a read-only one.
-    if (ts.isCallExpression(parent) && parent.expression === current)
-      return !(ts.isPropertyAccessExpression(current) && READ_METHODS.has(current.name.text));
+    return (
+      ts.isCallExpression(parent) &&
+      parent.expression === current &&
+      !(ts.isPropertyAccessExpression(current) && READ_METHODS.has(current.name.text))
+    );
+  }
+  function written(access: ts.Expression): boolean {
+    if (changed(access)) return true;
+    const current = outermost(access);
+    const parent = current.parent;
+    if (ts.isCallExpression(parent) && parent.expression === current) return false;
     // A nested object or array handed anywhere (a variable, an argument, another value) could be
     // changed through that alias; a primitive leaf or a spread copy cannot.
     return !ts.isSpreadAssignment(parent) && !ts.isSpreadElement(parent) && container(current);
@@ -240,7 +328,7 @@ export function sourceLiterals(options: {
     if (ts.isPropertyAccessExpression(current))
       return literalProperty(current.expression, current.name);
     if (!ts.isIdentifier(current)) return false;
-    const value = constant(current, false);
+    const value = constant(current);
     if (value && plainObject(value)) return true;
     // A callback parameter that receives the elements of a literal array.
     const declaration = symbol(current)?.valueDeclaration;
