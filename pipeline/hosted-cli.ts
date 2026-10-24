@@ -1,6 +1,11 @@
 import { parseArgs } from 'node:util';
 import type { Pool } from 'pg';
-import { aiBudgetLimit } from './ai-budget.ts';
+import {
+  aiBudgetConfiguration,
+  aiBudgetLimit,
+  summarizeAiLedger,
+  type AiLedgerSummary,
+} from './ai-budget.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { flyMachines } from './fly-machines.ts';
 import { githubAppConfiguration } from './github-app.ts';
@@ -36,20 +41,25 @@ const JOB_ID = /^[1-9]\d{0,15}$/;
 const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--job-machines] [--purge-uninstalled]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
+       refit hosted pause
+       refit hosted resume
        refit hosted inventory --repository <owner/name>
        refit hosted migrate [--dry-run]
        refit hosted accounts
+       refit hosted ai-budget [--limit <usd>] [--total-limit <usd>]
        refit hosted job
        refit hosted jobs [--target <id>] [--status ${JOB_STATUSES.join('|')}] [--since <iso>]
        refit hosted receipt <job>
        refit hosted targets
        refit hosted health
 Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_ACCOUNTS, the comma-separated GitHub accounts whose installations may enroll (default: REFIT_HOSTED_OWNER alone). Other accounts' installations are recorded as not allowed and nothing is cloned. Each installation runs one job at a time, at most REFIT_HOSTED_DAILY_JOBS (default 1440) jobs and REFIT_HOSTED_DAILY_INVENTORIES (default 500) inventories per UTC day. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation in PostgreSQL, and one ledger across all installations capped at REFIT_HOSTED_AI_BUDGET_USD (default: REFIT_AI_BUDGET_USD).
-approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges.
+approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges. On Fly, a scheduled poll whose base commit, approval and worker build (FLY_IMAGE_REF and the AI and draft settings) match the target's last finished, ready job reuses that receipt, runs nothing and does not count against the daily cap; a contract or documentation fetched from upstream always runs.
+pause stops every worker from starting jobs until resume, across deploys and restarts: running jobs finish, queued jobs wait and webhooks are still recorded. serve stops claiming on the first SIGINT or SIGTERM and exits once its running job finishes; a second signal stops the job.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
 With REFIT_HOSTED_APPROVAL_ISSUES=1, serve opens one issue on each installed repository of an allowed account that has no approval, showing what refit enroll shows (or a proposed .refit.json), and handles /refit approve <fingerprint-prefix> and /refit revoke comments from users with the admin or maintain role. It needs the App's Issues permission and issue_comment event.
 REFIT_HOSTED_LIFECYCLE=1 (off by default) follows repository renames, transfers and archiving and account renames, and stops a target GitHub no longer serves or whose name now belongs to another repository. Approvals never follow a rename or transfer. Renames and transfers need the App's repository event.
+ai-budget prints each AI ledger's limit, recorded spend and open reservations (requests that reserved their maximum cost and never settled). --limit moves every installation's ledger to a new limit and --total-limit moves the ledger across installations, keeping recorded spend; both refuse while a job runs. Then set REFIT_AI_BUDGET_USD and REFIT_HOSTED_AI_BUDGET_USD to the same values and restart the worker; until it restarts, its AI requests are refused because the limits differ.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
 inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
 --job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch or --publish-draft. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process.
@@ -88,6 +98,9 @@ function database() {
 }
 
 const time = (value: Date | null) => value?.toISOString() ?? '-';
+
+const ledgerLine = (summary: AiLedgerSummary) =>
+  `limit $${summary.limitUsd.toFixed(2)}, spent $${summary.spentUsd.toFixed(4)}, ${summary.reservations} open ${summary.reservations === 1 ? 'reservation' : 'reservations'} ($${summary.reservedUsd.toFixed(4)}).`;
 
 async function printJobs(pool: Pool, filter: Parameters<typeof listHostedJobs>[1]) {
   const { jobs, total } = await listHostedJobs(pool, filter);
@@ -181,6 +194,8 @@ try {
       'dry-run': { type: 'boolean' },
       status: { type: 'string' },
       since: { type: 'string' },
+      limit: { type: 'string' },
+      'total-limit': { type: 'string' },
       help: { type: 'boolean' },
     },
   });
@@ -204,6 +219,21 @@ try {
           ? `Enrolled and queued: ${enrolled.join(', ')}`
           : 'Not installed yet; installing the App on this repository enrolls it.',
       );
+    } finally {
+      await pool.end();
+    }
+  } else if (command === 'pause' || command === 'resume') {
+    const pool = database();
+    try {
+      const store = await openHostedStore(pool);
+      if (command === 'pause') {
+        const since = await store.pause();
+        const running = (await store.leases()).size;
+        console.log(
+          `Paused since ${since.toISOString()}; no job starts until refit hosted resume. ${running} running ${running === 1 ? 'job finishes' : 'jobs finish'} first.`,
+        );
+      } else
+        console.log((await store.resume()) ? 'Resumed; workers claim jobs again.' : 'Not paused.');
     } finally {
       await pool.end();
     }
@@ -282,6 +312,38 @@ try {
     } finally {
       await pool.end();
     }
+  } else if (command === 'ai-budget') {
+    const installationUsd =
+      values.limit === undefined ? undefined : aiBudgetLimit(values.limit, '--limit');
+    const totalUsd =
+      values['total-limit'] === undefined
+        ? undefined
+        : aiBudgetLimit(values['total-limit'], '--total-limit');
+    const pool = database();
+    try {
+      const store = await openHostedStore(pool);
+      if (installationUsd !== undefined || totalUsd !== undefined) {
+        const changed = await store.changeAiLimits(
+          { installationUsd, totalUsd },
+          aiBudgetConfiguration(process.env).directory,
+        );
+        for (const { installationId, summary } of changed.installations)
+          console.log(`Changed installation ${installationId}: ${ledgerLine(summary)}`);
+        if (changed.total) console.log(`Changed all installations: ${ledgerLine(changed.total)}`);
+        console.log(
+          'Set REFIT_AI_BUDGET_USD and REFIT_HOSTED_AI_BUDGET_USD to match and restart the worker; until then its AI requests are refused.',
+        );
+      } else {
+        const ledgers = await store.aiLedgerStates();
+        if (!ledgers.installations.length && !ledgers.total) console.log('No AI ledger recorded.');
+        for (const { installationId, state } of ledgers.installations)
+          console.log(`Installation ${installationId}: ${ledgerLine(summarizeAiLedger(state))}`);
+        if (ledgers.total)
+          console.log(`All installations: ${ledgerLine(summarizeAiLedger(ledgers.total))}`);
+      }
+    } finally {
+      await pool.end();
+    }
   } else if (command === 'accounts') {
     const tenancy = hostedTenancy(process.env);
     const pool = database();
@@ -343,9 +405,12 @@ try {
     );
     const pool = database();
     const controller = new AbortController();
-    const stop = () => controller.abort();
-    process.once('SIGINT', stop);
-    process.once('SIGTERM', stop);
+    const drain = new AbortController();
+    // The first signal lets the running job finish; the second, which Fly sends once kill_timeout
+    // passes, stops it.
+    const stop = () => (drain.signal.aborted ? controller.abort() : drain.abort());
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
     try {
       await runHostedService({
         database: pool,
@@ -363,6 +428,7 @@ try {
             : aiBudgetLimit(process.env.REFIT_HOSTED_AI_BUDGET_USD, 'REFIT_HOSTED_AI_BUDGET_USD'),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
+        build: process.env.FLY_IMAGE_REF?.trim() || undefined,
         contact: hostedContact(process.env.REFIT_HOSTED_CONTACT),
         jobMachines: values['job-machines'] ? jobMachines(process.env) : undefined,
         purgeUninstalled: values['purge-uninstalled'],
@@ -374,6 +440,7 @@ try {
         port: values.port === undefined ? undefined : Number(values.port),
         intervalSeconds: values.interval === undefined ? undefined : Number(values.interval),
         signal: controller.signal,
+        drain: drain.signal,
         onReady: (url) => log(`Listening at ${url}; webhook: /github/webhook`),
         onProgress: log,
       });
