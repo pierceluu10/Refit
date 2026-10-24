@@ -1,0 +1,227 @@
+{
+  "frozenAt": "2026-10-24",
+  "purpose": "P2 zero-spend AI eligibility re-probe of the tuned-set repositories that 40074110257 did not run: the reachable repositories of shards 57 and 59 (whose setup failed on an unreachable repository) and, last, SimplerDevelopment/SimplerDevelopment (out of memory in shard 22). Unchanged entries from p2-tuned-sets.json.",
+  "criteria": "The union of 2026-10-14-stripe-repos.json, 2026-10-15-stripe-heldout-repos.json, 2026-10-16-stripe-fresh-repos.json and 2026-10-16-stripe-active-repos.json, unchanged entries, duplicates kept once at their first set.",
+  "specs": [
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "Mangu-Commerce/madcaptees",
+      "stars": 0,
+      "commit": "ad29f774d0ffdc749a90f0268ea4d93f7b6eb488",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.7.0"
+    },
+    {
+      "repo": "mauricioyepesstudio/pros360era",
+      "stars": 0,
+      "commit": "5c7d72989016be97d77ef3efab0dc033782e158a",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.6.1"
+    },
+    {
+      "repo": "Mcgyver-ai/DMForge",
+      "stars": 0,
+      "commit": "84d4f4c35f78f25e8b0718aaeeaf84b388763b0e",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "yarn",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.4.0-beta.1"
+    },
+    {
+      "repo": "MeiyuTech/AET-App",
+      "stars": 0,
+      "commit": "b6e668be7c40f41c59e8122259c6e59761416f9c",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-01-27.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.6.0"
+    },
+    {
+      "repo": "mosnin/realestatecrm",
+      "stars": 0,
+      "commit": "75113c0d68f40df0999d2dd470b831ffde3c3665",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "pnpm",
+      "before": "2026-02-25.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.4.1"
+    },
+    {
+      "repo": "muhallimir/ampertalent",
+      "stars": 0,
+      "commit": "ba02c46a72249238776bbbf98c04875ec3cddfb1",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.10.0"
+    },
+    {
+      "repo": "offers-png/genid",
+      "stars": 0,
+      "commit": "0d401a6efe71b3aa7af890116b32d3930c1acdea",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.1.0"
+    },
+    {
+      "repo": "ondrej7lukac/fakturidias",
+      "stars": 0,
+      "commit": "329e2bf63b335c0588055e159f3e5bdb8805ec14",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.1"
+    },
+    {
+      "repo": "RaulRicco/CashBack",
+      "stars": 0,
+      "commit": "aacdd7564d2a19df515d6c079cd81453c516f642",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.5.0"
+    },
+    {
+      "repo": "User10-stab/meri-beauty",
+      "stars": 0,
+      "commit": "75bf214c0ee786a4eb73d04fb5c2b636a5629590",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-06-30.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.3.2"
+    },
+    {
+      "repo": "uzzaidev/Convoca",
+      "stars": 0,
+      "commit": "eb31d32581a553622cb15463bda88009e1c5f608",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^21.0.1"
+    },
+    {
+      "repo": "vetrivel44-bit/vetroai-frontend",
+      "stars": 0,
+      "commit": "535056e5cfc7023b6018f11d34b274e5fd4aec88",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.7.0"
+    },
+    {
+      "repo": "wsegbert65360/AcreLedger",
+      "stars": 0,
+      "commit": "42ced39b46bb66d19c2bf895fdb3cfdb7b4ac11f",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-08-27.basil",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^18.5.0"
+    },
+    {
+      "repo": "xtr-dev/payload-billing",
+      "stars": 0,
+      "commit": "07c5f0f2656fba04b38d881a1813aea5e8c87f76",
+      "owner": "Organization",
+      "authors90d": 8,
+      "packageManager": "pnpm",
+      "before": "2025-08-27.basil",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^18.5.0"
+    },
+    {
+      "repo": "YosraGhanmi/BrainTrain-",
+      "stars": 0,
+      "commit": "2e5998b220efae72a8571679092b679713b2840a",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2"
+    },
+    {
+      "repo": "SimplerDevelopment/SimplerDevelopment",
+      "stars": 13,
+      "commit": "2b6b7cc75ebb7872977f5487c2f05c5ca60c1c0c",
+      "before": "2026-02-25.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.4.1",
+      "packageManager": "none"
+    }
+  ]
+}
