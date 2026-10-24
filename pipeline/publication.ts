@@ -1,6 +1,6 @@
 import { GitHubRequestError, requestGitHub } from './github.ts';
 import { authenticateGitHubApp, type GitHubAppConfiguration } from './github-app.ts';
-import { createReviewArtifacts, NEEDS_REVIEW_PREFIX } from './review.ts';
+import { code, createReviewArtifacts, NEEDS_REVIEW_PREFIX, summaryList } from './review.ts';
 import { digest, isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { PublicationFile, validateMigration } from './validation.ts';
@@ -24,7 +24,19 @@ const MAX_BODY_CHARACTERS = 60_000;
 // Ends Refit's comment when it closes a draft the base no longer needs; a person who reopens that
 // draft keeps it open.
 const RESOLVED_MARKER = '<!-- refit-resolved -->';
+const SHORT_SHA = 7;
 const SHA = /^[a-f0-9]{40}$/;
+// The commit Refit last pushed to a draft branch, recorded in the draft: the lease for its next
+// update. While Refit moves the branch, the record names both the commit it leaves and the new one.
+const PUSHED_MARKER = '<!-- refit-pushed:';
+const PUSHED_RECORD = /\n?<!-- refit-pushed: ([a-f0-9]{40})(?: ([a-f0-9]{40}))? -->/g;
+const PROVIDER_MARKER = '<!-- refit-provider:';
+const BASE_MOVED_MARKER = '<!-- refit-base-moved:';
+const SUPERSEDED_MARKER = '<!-- refit-superseded -->';
+const OTHERS_COMMITS =
+  'The draft branch has commits Refit did not write, so Refit left it as it is.';
+const UPDATE_REFS =
+  'mutation($repositoryId: ID!, $refUpdates: [RefUpdate!]!) { updateRefs(input: { repositoryId: $repositoryId, refUpdates: $refUpdates }) { clientMutationId } }';
 const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const BRANCH =
   /^(?!\/)(?!.*(?:\.\.|@\{|\/\/|\.lock(?:\/|$)))[^\s~^:?*\[\\\x00-\x1f\x7f]+(?<![/.])$/;
@@ -35,6 +47,9 @@ type PublicationConfiguration = {
   integration?: string;
   // Publish a draft whose checks passed even though confirmed findings remain unmigrated.
   allowUnresolved?: boolean;
+  // Close Refit's older open drafts for the same provider and integration once this one is up to
+  // date. Off by default (owner decision, 2026-10-24).
+  supersedeDrafts?: boolean;
 } & ({ token: string; app?: never } | { app: GitHubAppConfiguration; token?: never });
 
 export function validateGitHubTarget(repository: string | undefined, base: string | undefined) {
@@ -84,18 +99,34 @@ async function publicationSession(options: PublicationConfiguration) {
   if (!token) throw new PipelineInputError('GitHub publication credentials are unavailable.');
   const request = (method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown) =>
     requestGitHub(token, method, `/repos/${options.repository}${path}`, body);
-  return { authentication, request };
+  const graphql = (query: string, variables: Record<string, unknown>) =>
+    requestGitHub(token, 'POST', '/graphql', { query, variables });
+  return { authentication, request, graphql };
 }
 
 type Session = Awaited<ReturnType<typeof publicationSession>>;
 
 // One draft per repository, base, integration and target version: a rerun, a retry or a push to
-// the base updates that draft instead of opening another.
+// the base updates that draft instead of opening another. A contract whose version is the same as
+// the baseline's (some providers never change info.version) is named by its snapshot instead.
 export function draftKey(
   report: Pick<Awaited<ReturnType<typeof runPipeline>>, 'provider' | 'apiVersion' | 'snapshots'>,
 ) {
-  return `draft:${report.provider}:${report.apiVersion.after ?? report.snapshots.after}`;
+  const { before, after } = report.apiVersion;
+  return `draft:${report.provider}:${after && after !== before ? after : report.snapshots.after}`;
 }
+
+function pushedCommits(body: unknown) {
+  if (typeof body !== 'string') return undefined;
+  const record = [...body.matchAll(PUSHED_RECORD)].at(-1);
+  return record?.slice(1).filter((commit): commit is string => Boolean(commit));
+}
+
+function withPushed(body: string, ...commits: string[]) {
+  return `${body.replace(PUSHED_RECORD, '')}\n${PUSHED_MARKER} ${commits.join(' ')} -->`;
+}
+
+const short = (commit: string) => commit.slice(0, SHORT_SHA);
 
 function draftBranch(
   key: string,
@@ -107,8 +138,24 @@ function draftBranch(
 }
 
 // The pull requests from a draft branch into the base. A merged one decides; otherwise the open
-// one, or the newest closed one. GitHub allows one open pull request per head and base.
+// one, or the newest closed one. GitHub allows one open pull request per head and base. A draft
+// Refit closed itself, as superseded, is not a person's decline: the next run opens a new one.
 async function draftPull(
+  request: Session['request'],
+  options: PublicationConfiguration,
+  branch: string,
+  authentication: Session['authentication'],
+) {
+  const pull = await latestDraftPull(request, options, branch);
+  if (!pull || !authentication || pull.state !== 'closed' || typeof pull.merged_at === 'string')
+    return pull;
+  const issue = object(await request('GET', `/issues/${pullUrl(pull, options).number}`));
+  return isObject(issue.closed_by) && issue.closed_by.login === authentication.publisher.login
+    ? undefined
+    : pull;
+}
+
+async function latestDraftPull(
   request: Session['request'],
   options: PublicationConfiguration,
   branch: string,
@@ -193,8 +240,21 @@ function draftOutcome(
   };
 }
 
+// Whether the branch tip is the last commit Refit pushed, as the draft records it. A draft from an
+// earlier release has no record; its tip counts as Refit's when it is Refit's own commit.
+async function ownHead(
+  pull: Record<string, unknown>,
+  head: string,
+  request: Session['request'],
+  authentication: Session['authentication'],
+) {
+  const pushed = pushedCommits(pull.body);
+  if (pushed) return pushed.includes(head);
+  return writtenByPublisher(object(await request('GET', `/git/commits/${head}`)), authentication);
+}
+
 // A draft a person closed or merged for this target stays as they left it, and one with commits a
-// person added, or opened by someone else, stays theirs: Refit makes no writes to either.
+// person added, or opened by someone else, stays theirs: Refit never force-pushes over them.
 async function heldDraft(
   pull: Record<string, unknown>,
   request: Session['request'],
@@ -215,11 +275,73 @@ async function heldDraft(
       leftUnchanged:
         'Someone else opened this pull request from the Refit branch, so Refit left it as it is.',
     });
-  if (!writtenByPublisher(object(await request('GET', `/git/commits/${head}`)), authentication))
-    return draftOutcome('existing', pull, head, context, {
-      leftUnchanged: 'The draft branch has commits Refit did not write, so Refit left it as it is.',
-    });
-  return undefined;
+  if (await ownHead(pull, head, request, authentication)) return undefined;
+  return draftOutcome('existing', pull, head, context, { leftUnchanged: OTHERS_COMMITS });
+}
+
+// When publication finds its branch held for someone else's commits, the draft also says if the
+// base has moved under it, and what needs updating.
+async function heldDraftNoted(
+  pull: Record<string, unknown>,
+  request: Session['request'],
+  context: Parameters<typeof draftOutcome>[3],
+  needs: string,
+) {
+  const held = await heldDraft(pull, request, context);
+  if (held?.leftUnchanged === OTHERS_COMMITS)
+    await noteBaseMoved(pull, held.head, request, context, needs);
+  return held;
+}
+
+// One comment, edited when the base moves again, so a held draft does not collect one per run.
+async function noteBaseMoved(
+  pull: Record<string, unknown>,
+  head: string,
+  request: Session['request'],
+  context: Parameters<typeof draftOutcome>[3],
+  needs: string,
+) {
+  const { options, revision, authentication } = context;
+  const comparison = object(await request('GET', `/compare/${revision}...${head}`));
+  if (comparison.status === 'ahead' || comparison.status === 'identical') return;
+  const number = pullUrl(pull, options).number;
+  const marker = `${BASE_MOVED_MARKER} ${revision} -->`;
+  const own = (await comments(request, number)).find(
+    (comment) =>
+      isObject(comment.user) &&
+      comment.user.login === authentication?.publisher.login &&
+      typeof comment.body === 'string' &&
+      comment.body.includes(BASE_MOVED_MARKER),
+  );
+  if (typeof own?.body === 'string' && own.body.includes(marker)) return;
+  const body = `\`${options.base}\` has moved to \`${short(revision)}\` since this draft was last updated, and the draft branch has commits Refit did not write. Refit force-pushes only over its own last commit, so it left the branch as it is. ${needs} To update the draft, merge \`${options.base}\` into this branch and resolve any conflicts; the check results in the description ran on the earlier base.\n\n${marker}`;
+  if (own) await request('PATCH', `/issues/comments/${Number(own.id)}`, { body });
+  else await request('POST', `/issues/${number}/comments`, { body });
+}
+
+// Moves Refit's draft branch only while it still points at `from`, the commit Refit last pushed:
+// an atomic lease, like git push --force-with-lease (owner decision, 2026-10-24). False when
+// someone else moved the branch first.
+async function leaseBranch(session: Session, branch: string, from: string, to: string) {
+  const repository = object(await session.request('GET', ''));
+  const result = object(
+    await session.graphql(UPDATE_REFS, {
+      repositoryId: repository.node_id,
+      refUpdates: [{ name: `refs/heads/${branch}`, beforeOid: from, afterOid: to, force: true }],
+    }),
+  );
+  if (!result.errors && isObject(result.data) && isObject(result.data.updateRefs)) return true;
+  const current = object(
+    await session.request('GET', `/git/ref/heads/${encodeURIComponent(branch)}`),
+  );
+  if (object(current.object).sha !== from) return false;
+  throw new PipelineInputError(
+    `GitHub did not move the migration branch: ${
+      Array.isArray(result.errors) && isObject(result.errors[0])
+        ? String(result.errors[0].message).slice(0, 300)
+        : 'it returned no result'
+    }. Inspect the remote branch before retrying.`,
+  );
 }
 
 export async function findExistingMigration(
@@ -237,9 +359,20 @@ export async function findExistingMigration(
   // Checked before generation, so a declined, merged or customer-edited draft spends no AI or
   // validation time.
   const branch = draftBranch(draftKey(report), authentication, options);
-  const own = await draftPull(request, options, branch);
+  const own = await draftPull(request, options, branch, authentication);
+  const files = report.findings
+    .filter((finding) => finding.confidence === 'confirmed')
+    .map((finding) => finding.file);
   const held =
-    own && (await heldDraft(own, request, { options, branch, revision, authentication }));
+    own &&
+    (await heldDraftNoted(
+      own,
+      request,
+      { options, branch, revision, authentication },
+      files.length
+        ? `On \`${options.base}\` at \`${short(revision)}\`, the usages this draft migrates are in ${summaryList([...new Set(files)].sort().map(code))}.`
+        : '',
+    ));
   if (held) return { ...held, validation: 'not-rerun' as const };
   const query = new URLSearchParams({ state: 'open', base: options.base, per_page: '100' });
   const pulls = await request('GET', `/pulls?${query}`);
@@ -347,18 +480,12 @@ export async function closeResolvedDraft(
     throw new PipelineInputError(
       'GitHub base differs from the monitored commit. Update the local checkout before closing a draft.',
     );
-  const pull = await draftPull(request, options, branch);
+  const pull = await draftPull(request, options, branch, authentication);
   if (!pull || pull.state !== 'open' || (await heldDraft(pull, request, context))) return undefined;
   const { number } = pullUrl(pull, options);
-  const comments = await request('GET', `/issues/${number}/comments?per_page=100`);
-  if (!Array.isArray(comments) || comments.length >= 100)
-    throw new PipelineInputError(
-      'Draft comment search is incomplete; inspect the pull request before retrying.',
-    );
   if (
-    comments.some(
+    (await comments(request, number)).some(
       (comment) =>
-        isObject(comment) &&
         isObject(comment.user) &&
         comment.user.login === authentication!.publisher.login &&
         typeof comment.body === 'string' &&
@@ -465,30 +592,75 @@ export async function publishDraft(
     throw new PipelineInputError(
       'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings (or --publish-unresolved).',
     );
-  const body = artifacts.files['pull-request.md'];
+  const provider = `${PROVIDER_MARKER} ${report.provider} -->`;
   const target = apiVersion.after ?? 'the target contract';
   return publishFiles(options, {
     revision: report.validation.revision,
     key: draftKey(report),
     files: report.publicationFiles,
     title: artifacts.manifest.title,
-    body,
+    body: `${artifacts.files['pull-request.md']}\n${provider}`,
     message: artifacts.commitMessage,
-    supersedes: {
-      // Refit's other migration drafts for this integration: an older target version, or a draft
-      // published before identity followed the target version.
-      matches: (other) =>
-        other.includes(MIGRATION_MARKER) &&
-        (options.integration
-          ? other.includes(`${INTEGRATION_MARKER}${options.integration} -->`)
-          : !other.includes(INTEGRATION_MARKER)),
-      note: `Refit keeps one draft per integration and updates it in place; that draft migrates this code to ${target} on the current \`${options.base}\`.`,
-    },
+    ...(options.supersedeDrafts
+      ? {
+          supersedes: {
+            // Refit's other migration drafts for this provider and integration, such as an older
+            // target version's. A draft that names no provider, from an earlier release, stays.
+            matches: (other: string) =>
+              other.includes(MIGRATION_MARKER) &&
+              other.includes(provider) &&
+              (options.integration
+                ? other.includes(`${INTEGRATION_MARKER}${options.integration} -->`)
+                : !other.includes(INTEGRATION_MARKER)),
+            note: `Refit keeps one draft per integration and updates it in place; that draft migrates this code to ${target} on the current \`${options.base}\`.`,
+          },
+        }
+      : {}),
   });
 }
 
+// GitHub's timeline shows the force-push but not why. Someone who reviewed the old commit learns
+// what changed under their review.
+async function noteReplacedCommit(
+  request: Session['request'],
+  number: number,
+  replaced: { from: string; baseMoved: boolean },
+  to: string,
+  context: Parameters<typeof draftOutcome>[3],
+) {
+  const { options, revision, authentication } = context;
+  const reviews = await request('GET', `/pulls/${number}/reviews?per_page=100`);
+  if (!Array.isArray(reviews) || reviews.length >= 100)
+    throw new PipelineInputError(
+      'Draft review search is incomplete; inspect the pull request before retrying.',
+    );
+  const reviewed = reviews.some(
+    (review) =>
+      isObject(review) &&
+      isObject(review.user) &&
+      review.user.login !== authentication?.publisher.login,
+  );
+  if (!reviewed) return;
+  const reason = replaced.baseMoved
+    ? `\`${options.base}\` moved to \`${short(revision)}\``
+    : 'the migration changed';
+  await request('POST', `/issues/${number}/comments`, {
+    body: `Refit replaced commit \`${short(replaced.from)}\` with \`${short(to)}\` because ${reason}. Reviews before this comment refer to \`${short(replaced.from)}\`; the description now shows the checks for \`${short(to)}\`.`,
+  });
+}
+
+async function comments(request: Session['request'], number: number) {
+  const list = await request('GET', `/issues/${number}/comments?per_page=100`);
+  if (!Array.isArray(list) || list.length >= 100)
+    throw new PipelineInputError(
+      'Draft comment search is incomplete; inspect the pull request before retrying.',
+    );
+  return list.filter(isObject);
+}
+
 // Closes the publisher's other open drafts on this base that this draft replaces, each with a
-// comment linking it. A draft with commits a person added stays open.
+// comment linking it. A draft with commits a person added stays open, and so does one a person
+// reopened after Refit closed it.
 async function closeSuperseded(
   session: Session,
   options: PublicationConfiguration,
@@ -521,10 +693,17 @@ async function closeSuperseded(
     )
       continue;
     const other = pullUrl(pull, options).number;
-    const head = object(await request('GET', `/git/commits/${sha(pull.head.sha)}`));
-    if (!writtenByPublisher(head, authentication)) continue;
+    if (!(await ownHead(pull, sha(pull.head.sha), request, authentication))) continue;
+    const closedBefore = (await comments(request, other)).some(
+      (comment) =>
+        isObject(comment.user) &&
+        comment.user.login === authentication?.publisher.login &&
+        typeof comment.body === 'string' &&
+        comment.body.includes(SUPERSEDED_MARKER),
+    );
+    if (closedBefore) continue;
     await request('POST', `/issues/${other}/comments`, {
-      body: `Superseded by #${number}. ${supersedes.note}`,
+      body: `Superseded by #${number}. ${supersedes.note}\n\n${SUPERSEDED_MARKER}`,
     });
     await request('PATCH', `/pulls/${other}`, { state: 'closed' });
     closed.push(other);
@@ -534,9 +713,10 @@ async function closeSuperseded(
 
 // Publishes validated files as one commit on a Refit branch from the validated revision and opens
 // a draft pull request. The branch follows the change's key, so a rerun finds its draft: Refit
-// moves its own branch to the new commit and refreshes the description, leaves a branch with
-// commits a person added as it is, and never reopens or replaces a draft a person closed or
-// merged. Refit never marks a pull request ready or merges it.
+// moves its own branch to the new commit, only while it still points at the commit Refit last
+// pushed, and refreshes the description; it leaves a branch with commits a person added as it is,
+// and never reopens or replaces a draft a person closed or merged. Refit never marks a pull
+// request ready or merges it.
 export async function publishFiles(
   options: ReturnType<typeof publicationConfiguration>,
   change: {
@@ -577,14 +757,22 @@ export async function publishFiles(
       );
   };
   const context = { options, branch, revision, authentication };
+  const needs = `Refit's patch for \`${options.base}\` at \`${short(revision)}\` changes ${summaryList(change.files.map((file) => code(file.path)))}.`;
+  // Someone else moved the branch during publication: leave it, and tell the draft if the base moved.
+  const leaveBranch = async () => {
+    const latest = await draftPull(request, options, branch, authentication);
+    const held = latest && (await heldDraftNoted(latest, request, context, needs));
+    if (held) return held;
+    throw new PipelineInputError('Migration branch changed during publication.');
+  };
   await checkBase();
-  let pull = await draftPull(request, options, branch);
-  const held = pull && (await heldDraft(pull, request, context));
+  let pull = await draftPull(request, options, branch, authentication);
+  const held = pull && (await heldDraftNoted(pull, request, context, needs));
   if (held) return held;
   const baseCommit = object(await request('GET', `/git/commits/${revision}`));
   const baseTree = sha(object(baseCommit.tree).sha);
-  const body = change.body;
-  if (body.length > MAX_BODY_CHARACTERS)
+  // The longest record of pushed commits names two.
+  if (withPushed(change.body, revision, revision).length > MAX_BODY_CHARACTERS)
     throw new PipelineInputError(
       'Draft description exceeds the publication size limit. Save a local review bundle instead.',
     );
@@ -616,6 +804,7 @@ export async function publishFiles(
     object(commit.parents[0]).sha === revision;
   let head = await reference(branch, true);
   let updated = false;
+  let replaced: { from: string; baseMoved: boolean } | undefined;
   if (!head) {
     const commit = await createCommit();
     await checkBase();
@@ -628,30 +817,41 @@ export async function publishFiles(
   } else {
     const current = object(await request('GET', `/git/commits/${head}`));
     if (!isCandidate(current)) {
-      if (!writtenByPublisher(current, authentication)) {
-        // Without the App, Refit cannot tell its own commits from a person's.
-        if (pull && !authentication)
-          return draftOutcome('existing', pull, head, context, {
-            leftUnchanged:
-              'Refit updates an existing draft only when it publishes as the GitHub App.',
-          });
+      // Without the App, Refit cannot tell its own commits from a person's.
+      if (pull && !authentication)
+        return draftOutcome('existing', pull, head, context, {
+          leftUnchanged:
+            'Refit updates an existing draft only when it publishes as the GitHub App.',
+        });
+      const own = pull
+        ? await ownHead(pull, head, request, authentication)
+        : writtenByPublisher(current, authentication);
+      if (!own) {
+        if (pull) return leaveBranch();
         throw new PipelineInputError(
           'Existing migration branch differs from the validated candidate. Refusing to overwrite it.',
         );
       }
-      // Refit's own single commit on an older base or an older patch: replace it.
+      // Refit's own commit on an older base or an older patch: replace it. The draft records both
+      // commits first, so a run cut short between the two writes still recognises the branch.
       const replacement = await createCommit();
       await checkBase();
-      if ((await reference(branch)) !== head)
-        throw new PipelineInputError('Migration branch changed during publication.');
-      await request('PATCH', `/git/refs/heads/${encodeURIComponent(branch)}`, {
-        sha: replacement,
-        force: true,
-      });
+      if (pull)
+        pull = object(
+          await request('PATCH', `/pulls/${pullUrl(pull, options).number}`, {
+            body: withPushed(String(pull.body), head, replacement),
+          }),
+        );
+      if (!(await leaseBranch(session, branch, head, replacement))) return leaveBranch();
+      replaced = {
+        from: head,
+        baseMoved: !Array.isArray(current.parents) || object(current.parents[0]).sha !== revision,
+      };
       head = replacement;
       updated = true;
     }
   }
+  const body = withPushed(change.body, head);
   if (!isCandidate(object(await request('GET', `/git/commits/${head}`))))
     throw new PipelineInputError(
       'Existing migration branch differs from the validated candidate. Refusing to overwrite it.',
@@ -675,7 +875,7 @@ export async function publishFiles(
       created = true;
     } catch (error) {
       if (!(error instanceof GitHubRequestError) || error.status !== 422) throw error;
-      pull = await draftPull(request, options, branch);
+      pull = await draftPull(request, options, branch, authentication);
       if (!pull) throw error;
     }
   } else if (updated || pull.title !== change.title || pull.body !== body) {
@@ -700,6 +900,7 @@ export async function publishFiles(
       'GitHub pull request response does not match the requested migration. Inspect the remote branch before retrying.',
     );
   const number = pullUrl(pull, options).number;
+  if (replaced) await noteReplacedCommit(request, number, replaced, head, context);
   const superseded =
     change.supersedes && authentication
       ? await closeSuperseded(session, options, branch, number, change.supersedes)
