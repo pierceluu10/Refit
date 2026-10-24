@@ -53,6 +53,7 @@ const READ_TOKEN = 'job-read-token';
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   transport.tokens = [];
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
@@ -62,6 +63,8 @@ afterEach(async () => {
 async function setup(machine: (created: FakeMachine) => void = () => undefined) {
   const root = await mkdtemp(join(tmpdir(), 'refit-runner-'));
   cleanups.push(() => rm(root, { recursive: true, force: true }));
+  // The first job expects doctor to stop for a missing image, so a gated run's image is not used.
+  vi.stubEnv('REFIT_DOCKER_IMAGE', undefined);
   const sample = await approvedRepository(root);
   transport.source = sample.source;
   transport.head = sample.head;

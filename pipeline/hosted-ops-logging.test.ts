@@ -242,8 +242,8 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
       expect.objectContaining({
         ...ids,
         job: 2,
-        level: 'info',
-        // The runner turns the aborted job's error into an interrupted receipt.
+        // The runner turns the aborted job's error into an interrupted receipt, a failed job.
+        level: 'error',
         message: 'interrupted: Error: Stopped while holding [redacted]',
       }),
       expect.objectContaining({
