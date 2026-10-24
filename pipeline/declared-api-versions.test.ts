@@ -144,6 +144,18 @@ it.each([
   );
 });
 
+// Eziox-Development/eziox-web src/routeTree.gen.ts: a TanStack route id, not Stripe's private field.
+it('keeps a traced literal pin verified next to an `_api` route path', () => {
+  const route = `export const routes = { id: '/_api/sitemap', path: '/_api/rss' };`;
+  expect(
+    evidence(
+      `${prefix} const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.customers.list();`,
+      STRIPE,
+      [{ path: 'routeTree.gen.ts', content: route }],
+    ).source.status,
+  ).toBe('verified');
+});
+
 it('does not use a shadowing parameter or a similarly named imported SDK as version evidence', () => {
   expect(
     evidence(

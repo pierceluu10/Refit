@@ -284,7 +284,9 @@ export function declaredApiVersions(options: {
     nodes.some(
       (node) =>
         ts.isSourceFile(node) &&
-        /setApiVersion|_setApiField|\b_api\b|_requestSender|Stripe-Version/i.test(node.text),
+        /\.(?:setApiVersion|_setApiField|_api|_requestSender)\b|['"`]Stripe-Version['"`]/i.test(
+          node.text,
+        ),
     );
   for (const node of nodes) {
     const creation = options.creation(node);
