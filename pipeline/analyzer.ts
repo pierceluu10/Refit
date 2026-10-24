@@ -6,6 +6,7 @@ import { declaredApiVersions } from './declared-api-versions.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
+import { sourceLiterals } from './source-literals.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
 import { factoryClients, proxyClient } from './factory-clients.ts';
@@ -324,6 +325,7 @@ export function analyzeRepository(
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) =>
     modules.member(node) ?? canonical(checker.getSymbolAtLocation(node));
+  const literals = sourceLiterals({ nodes, symbol });
   const stripeTypes =
     provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
@@ -1658,6 +1660,8 @@ export function analyzeRepository(
     const tracked = schema !== undefined;
     const webhook = webhooks?.origin(receiver);
     const provenance = sourceEvidence(receiver);
+    // An object the application writes as a literal (`PLANS.find(…).price`) is not a Stripe object.
+    if (!tracked && !provenance && !webhook && literals.literalObject(receiver)) return;
     const declaredType =
       provenance?.kind === 'declared-type' ||
       (provenance?.kind === 'unmapped-sdk' && Boolean(stripeTypes?.expressionSchema(receiver)));
