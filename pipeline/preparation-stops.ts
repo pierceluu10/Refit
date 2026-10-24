@@ -35,8 +35,8 @@ export const PREPARATION_STOPS = [
   {
     reason: 'unsupported-workspace',
     pattern:
-      /^npm workspaces require|^Automatic preparation supports at most 64 committed npm workspace|^Each workspace requires an explicit npm name|^npm links may only target|^Injected, runtime-managed or bundled pnpm|^pnpm configuration dependencies|^Root bundled dependencies/,
-    summary: 'the workspace layout needs files the installer does not receive',
+      /^Unsupported pnpm settings|^npm workspaces require|^Automatic preparation supports at most 64 committed npm workspace|^Each workspace requires an explicit npm name|^npm links may only target|^Injected, runtime-managed or bundled pnpm|^pnpm configuration dependencies|^Root bundled dependencies/,
+    summary: 'the workspace layout or pnpm settings need files the installer does not receive',
     action: CUSTOM_IMAGE,
   },
 ] as const;

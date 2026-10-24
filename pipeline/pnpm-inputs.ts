@@ -59,10 +59,11 @@ const LOCK_KEYS = new Set([
   'snapshots',
 ]);
 
-function configuration(value: Record<string, unknown>) {
-  if (Object.keys(value).some((key) => !CONFIGURATION_KEYS.has(key)))
+function configuration(value: Record<string, unknown>, source: string) {
+  const unsupported = Object.keys(value).filter((key) => !CONFIGURATION_KEYS.has(key));
+  if (unsupported.length)
     throw new PipelineInputError(
-      'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically.',
+      `Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and ${source} sets ${unsupported.map((key) => `"${key}"`).join(', ')}.`,
     );
   if (
     value.overrides !== undefined &&
@@ -178,11 +179,11 @@ export function validatePnpmInputs(
         ? `pnpm-lock.yaml is lockfile v6 (pnpm 8), but packageManager pins pnpm ${pin[1]}, which would migrate it. Run pnpm install with pnpm ${pin[1]} and commit the regenerated lockfile, or pin pnpm 8.`
         : `packageManager pins pnpm ${pin[1]}, which cannot install this lockfile. Pin pnpm 9–12, or remove the pin.`,
     );
-  const catalogs = configuration(workspace);
+  const catalogs = configuration(workspace, 'pnpm-workspace.yaml');
   if (manifest.pnpm !== undefined) {
     if (!isObject(manifest.pnpm))
       throw new PipelineInputError('pnpm manifest settings must be an object.');
-    configuration(manifest.pnpm);
+    configuration(manifest.pnpm, 'the "pnpm" field of package.json');
   }
   if (manifest.workspaces !== undefined)
     throw new PipelineInputError('pnpm workspaces must be declared only in pnpm-workspace.yaml.');
@@ -384,7 +385,7 @@ function registryGraph(document: Record<string, unknown>) {
   if (document.settings !== undefined) {
     if (!isObject(document.settings))
       throw new PipelineInputError('pnpm lockfile settings must be an object.');
-    configuration(document.settings);
+    configuration(document.settings, 'the settings of pnpm-lock.yaml');
   }
   if (
     ![9, '9.0', '6.0'].includes(document.lockfileVersion as string | number) ||

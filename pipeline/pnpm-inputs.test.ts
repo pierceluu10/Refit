@@ -365,3 +365,14 @@ it('names the declaration a pnpm lockfile has not caught up with', () => {
     'zod is in package.json dependencies but not in pnpm-lock.yaml.',
   );
 });
+it('names the unsupported pnpm setting and where it is set', () => {
+  // inventashif/hackerai at c48bdee patches three packages from its package.json "pnpm" field.
+  const sample = scenario();
+  sample.manifest.pnpm = {
+    onlyBuiltDependencies: ['better-sqlite3'],
+    patchedDependencies: { 'ai@6.0.200': 'patches/ai@6.0.200.patch' },
+  };
+  expect(() => validate(sample)).toThrow(
+    'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "patchedDependencies".',
+  );
+});

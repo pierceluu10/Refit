@@ -301,7 +301,7 @@ async function extractSnapshot(repository: string, revision: string, root: strin
   ).catch((error: unknown) => {
     if ((error as { code?: unknown }).code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER')
       throw new PipelineInputError(
-        `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit.`,
+        `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit. Stop committing build output, media or data files (or track them with Git LFS) so the committed tree fits.`,
       );
     throw error;
   });
