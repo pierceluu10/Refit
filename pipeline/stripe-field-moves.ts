@@ -1,6 +1,6 @@
 import ts from 'typescript-compiler';
 import { isObject, resolvableComponentSchema } from './specifications.ts';
-import type { SourceEdit } from './types.ts';
+import type { Removal, SourceEdit } from './types.ts';
 
 // A receiver that can be repeated without side effects: `invoice`, `this.invoice`, `data.items[0]`.
 function plainReceiver(expression: ts.Expression): boolean {
@@ -76,3 +76,59 @@ export const STRIPE_MOVE_REVIEW: Record<string, string> = {
   'invoice.payment_intent':
     'Stripe 2025-03-31.basil removed invoice.payment_intent: an invoice can have several payments, listed in invoice.payments (expand payments) or the Invoice Payments API. Picking one PaymentIntent changes behaviour, so Refit does not rewrite it. For a Payment Element client secret, Stripe documents invoice.confirmation_secret.client_secret (expand confirmation_secret). Source: https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices',
 };
+
+// Stripe schema names reused for a different object, whose old object lives on under a new name.
+// 2024-04-10 renamed Product `features` to `marketing_features`: its items, `product_feature`
+// ({ name }) until then, are `product_marketing_feature` from then on, and `product_feature` names
+// the Entitlements attachment. Source, read 2026-10-24:
+// https://docs.stripe.com/changelog/2024-04-10/renames-features-attribute-product-object
+const RENAMED_SCHEMAS = [
+  {
+    schema: 'product_feature',
+    renamed: 'product_marketing_feature',
+    owner: 'product',
+    from: 'features',
+    to: 'marketing_features',
+  },
+];
+
+function itemsRef(schemas: Record<string, unknown>, schema: string, property: string) {
+  const owner = schemas[schema];
+  const value =
+    isObject(owner) && isObject(owner.properties) ? owner.properties[property] : undefined;
+  const items = isObject(value) && isObject(value.items) ? value.items : undefined;
+  return items && typeof items.$ref === 'string' ? items.$ref : undefined;
+}
+
+// Without descriptions, which change between versions without changing the value.
+function shape(schema: unknown): string {
+  return JSON.stringify(schema, (key, value: unknown) =>
+    key === 'description' ? undefined : value,
+  );
+}
+
+// Drops removals that only follow a reused schema name: the field still exists, with the same shape,
+// on the renamed schema that the same owner field (renamed with it) now lists. The owner field's
+// own removal stays, so reads of it are still reported.
+export function withoutRenamedSchemaRemovals(
+  changes: Removal[],
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+) {
+  return changes.filter((change) => {
+    const rename = RENAMED_SCHEMAS.find((entry) => entry.schema === change.schema);
+    if (
+      !rename ||
+      itemsRef(before, rename.owner, rename.from) !== `#/components/schemas/${rename.schema}` ||
+      itemsRef(after, rename.owner, rename.to) !== `#/components/schemas/${rename.renamed}`
+    )
+      return true;
+    const old = before[rename.schema];
+    const current = after[rename.renamed];
+    const property = (schema: unknown) =>
+      isObject(schema) && isObject(schema.properties)
+        ? schema.properties[change.property]
+        : undefined;
+    return !(property(old) !== undefined && shape(property(old)) === shape(property(current)));
+  });
+}

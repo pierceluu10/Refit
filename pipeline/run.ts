@@ -12,7 +12,7 @@ import {
 } from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
 import { invoicePreviewMove } from './stripe-invoice-preview.ts';
-import { propertyExists } from './stripe-field-moves.ts';
+import { propertyExists, withoutRenamedSchemaRemovals } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
   MAX_SDK_RESOURCE_LENGTH,
@@ -130,7 +130,11 @@ async function runOpenApiPipeline(options: {
     before.document,
     after.document,
   );
-  const changes = findRemovedProperties(before.schemas, after.schemas, provider.id);
+  const removed = findRemovedProperties(before.schemas, after.schemas, provider.id);
+  const changes =
+    provider.packageName === STRIPE.packageName
+      ? withoutRenamedSchemaRemovals(removed, before.schemas, after.schemas)
+      : removed;
   const moves = validatePropertyRenames(provider, changes, before.schemas, after.schemas);
   const replacements = validateOperationReplacements(
     provider,
