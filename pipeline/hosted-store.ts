@@ -363,8 +363,6 @@ export async function openHostedStore(
       pool,
       async (client): Promise<{ job: number; retry: boolean; target: HostedTarget } | null> => {
         await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
-        // A paused worker starts nothing, not even a job whose worker stopped mid-lease.
-        if ((await client.query('SELECT 1 FROM refit_worker_pause')).rowCount) return null;
         await client.query(
           `UPDATE refit_jobs SET status = 'failed', finished_at = now(), lease_owner = NULL,
            receipt = jsonb_build_object('status', 'error', 'output', NULL,
@@ -372,6 +370,15 @@ export async function openHostedStore(
          WHERE status = 'running' AND lease_expires_at < now() AND attempts >= $1`,
           [MAX_LEASE_ATTEMPTS],
         );
+        // A paused worker starts nothing. A job whose worker stopped mid-lease goes back to the
+        // queue, keeping its attempts, so the drain check empties and resume continues it.
+        if ((await client.query('SELECT 1 FROM refit_worker_pause')).rowCount) {
+          await client.query(
+            `UPDATE refit_jobs SET status = 'queued', lease_owner = NULL, lease_expires_at = NULL
+             WHERE status = 'running' AND lease_expires_at < now()`,
+          );
+          return null;
+        }
         const { rows } = await client.query<{
           id: string;
           target_id: string;
