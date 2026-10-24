@@ -13,7 +13,7 @@ import { parseArgs, promisify } from 'node:util';
 const execute = promisify(execFile);
 
 export const ACTIVE_DAYS = 90;
-const METADATA_CONCURRENCY = 4;
+const METADATA_CONCURRENCY = 2;
 const TARGET = '2026-09-30.endive';
 const MAX_DISK_KB = 50 * 1024;
 const MIN_AUTHORS = 2;
