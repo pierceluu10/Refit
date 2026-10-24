@@ -140,6 +140,39 @@ export const auth = betterAuth({
   });
 });
 
+// O1's second reading: the fallback for a client the tracer cannot follow read a computed key as
+// absent and a repeated key by its first value, while the runtime sends the last.
+it.each([
+  [
+    'a computed key',
+    `{ ['apiVersion']: "2025-10-29.clover" }`,
+    /its options include \['apiVersion'\]/,
+  ],
+  [
+    'a repeated key',
+    `{ apiVersion: "2025-10-29.clover", apiVersion: "2025-09-30.clover" }`,
+    /its options set apiVersion 2 times/,
+  ],
+])('stops on %s in the options of a client handed to a plugin', async (_case, options, detail) => {
+  const root = await repository({
+    'package.json': manifest('^19.3.0', TESTS),
+    'package-lock.json': npmLock('19.3.1'),
+    'auth.ts': `import { betterAuth } from "better-auth"
+import { stripe } from "@better-auth/stripe"
+import Stripe from "stripe"
+
+const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, ${options})
+
+export const auth = betterAuth({ plugins: [stripe({ stripeClient })] })
+`,
+  });
+  const { proposal, stops } = await proposeStripeConfiguration(root);
+  expect(proposal).toBeNull();
+  expect(stops).toMatchObject([
+    { id: 'api-version-unreadable', detail: expect.stringMatching(detail) },
+  ]);
+});
+
 it('uses the default of the locked stripe-node release for a client with no apiVersion', async () => {
   // CapChris20/Retronix-Wallpapers-Startup: both functions create the client without options.
   const files = {
@@ -204,12 +237,232 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       {
         id: 'api-version-unreadable',
         detail:
-          'Refit cannot tell which Stripe API version the client at lib/stripe.ts:7 uses: its apiVersion is not a string literal Refit can read.',
+          "Refit cannot tell which Stripe API version the client at lib/stripe.ts:7 uses: its apiVersion is process.env.STRIPE_API_VERSION || '2023-10-16', which Refit cannot trace to one version.",
         action:
           "Write the apiVersion at lib/stripe.ts:7 as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).",
       },
     ],
   });
+});
+
+it('names the options a client is created with when Refit cannot read them', async () => {
+  const cases: { files: Record<string, string>; at: string; unread: string }[] = [
+    {
+      // hex22a/techwear-shop-nextjs app/lib/stripe.ts, app/lib/config.ts and app/lib/stripe.test.ts,
+      // whose require('./stripe') is what keeps the tracer from following the client.
+      files: {
+        'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./*'] } } }),
+        'app/lib/stripe.test.ts': `import { STRIPE_CONFIG } from '@/app/lib/config';
+
+describe('stripe', () => {
+  test('constructor', () => {
+    const expectedStripeConfig = STRIPE_CONFIG;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const actualStripe: typeof module = require('./stripe').stripe;
+    expect(actualStripe).toBeDefined();
+    expect(expectedStripeConfig).toBeDefined();
+  });
+});
+`,
+        'app/lib/stripe.ts': `import Stripe from "stripe";
+import { STRIPE_CONFIG } from './config';
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, STRIPE_CONFIG);
+`,
+        'app/lib/config.ts': `import { Stripe } from 'stripe';
+
+export const STRIPE_CONFIG: Stripe.StripeConfig = {
+  // https://github.com/stripe/stripe-node#configuration
+  apiVersion: '2025-11-17.clover',
+  appInfo: {
+    name: 'techwear-shop-demo',
+    url: 'https://techwear-shop-nextjs.vercel.app/',
+  },
+};
+`,
+      },
+      at: 'app/lib/stripe.ts:4',
+      unread: 'its options are STRIPE_CONFIG, which Refit cannot trace to an apiVersion',
+    },
+    {
+      // ahmedaliofficial/latest-nestjs-stripe lib/utils/stripe.utils.ts
+      files: {
+        'lib/utils/stripe.utils.ts': `import Stripe from 'stripe'
+import { StripeClient } from './stripe.interface'
+import { OPTIONS_TYPE } from './stripe.module-definition'
+
+export function createStripeClient({
+  apiKey,
+  config
+}: typeof OPTIONS_TYPE): StripeClient {
+  const client = new Stripe(apiKey, config)
+  return client
+}
+`,
+      },
+      at: 'lib/utils/stripe.utils.ts:9',
+      unread: 'its options are config, which Refit cannot trace to an apiVersion',
+    },
+    {
+      // wevm/curl.md src/api.ts
+      files: {
+        'src/api.ts': `import Stripe from 'stripe'
+import * as StripeUtils from '#lib/stripe.ts'
+
+export async function paymentMethods(c: any, customer: string) {
+  const stripe = new Stripe(
+    c.env.STRIPE_SECRET_KEY,
+    StripeUtils.stripeOptions(c.env.STRIPE_API_URL),
+  )
+  return stripe.paymentMethods.list({ customer, type: 'card' })
+}
+`,
+      },
+      at: 'src/api.ts:5',
+      unread:
+        'its options are StripeUtils.stripeOptions(c.env.STRIPE_API_URL), which Refit cannot trace to an apiVersion',
+    },
+  ];
+  for (const sample of cases) {
+    const root = await repository({
+      'package.json': manifest('^20.0.0', TESTS),
+      'package-lock.json': npmLock('20.0.0'),
+      ...sample.files,
+    });
+    expect((await proposeStripeConfiguration(root)).stops).toEqual([
+      {
+        id: 'api-version-unreadable',
+        detail: `Refit cannot tell which Stripe API version the client at ${sample.at} uses: ${sample.unread}.`,
+        action: `Write the apiVersion at ${sample.at} as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).`,
+      },
+    ]);
+  }
+});
+
+it('names the request argument it cannot read, with the version every client sends', async () => {
+  // BeigeTechLA/beige-tech-mobile-web-api-2 src/services/payment.service.js
+  const root = await repository({
+    'package.json': manifest('^12.18.0', TESTS),
+    'package-lock.json': npmLock('12.18.0'),
+    'src/services/payment.service.js': `const config = require("../config/config");
+const stripe = require("stripe")(config.stripe.secretKey);
+
+const updatePayment = async (paymentId, updateObject) => {
+  const updatedPayment = await Payment.findByIdAndUpdate(paymentId, updateObject, { new: true }).exec();
+  if (updatedPayment) {
+    const updatedPaymentIntent = await stripe.paymentIntents.update(
+      updatedPayment.intent_id,
+      updateObject
+    );
+    return updatedPaymentIntent;
+  }
+};
+
+module.exports = { updatePayment };
+`,
+  });
+  expect((await proposeStripeConfiguration(root)).stops).toEqual([
+    {
+      id: 'api-version-unreadable',
+      detail:
+        'Refit cannot tell which Stripe API version the request at src/services/payment.service.js:7 uses: it passes updateObject, and Refit cannot tell whether that sets apiVersion.',
+      action:
+        'If updateObject sets no apiVersion, commit a .refit.json that sets "apiVersion": "2022-11-15", the version your clients send (docs/REPOSITORY-SETUP.md).',
+    },
+  ]);
+});
+
+it('reports an unreadable request together with clients and requests on different versions', async () => {
+  // deniaiapp/deni-ai: stripe-node 23 clients with no apiVersion, checkout requests pinned to dahlia,
+  // and a portal tool that passes computed parameters.
+  const root = await repository({
+    'package.json': manifest('^23.0.0', TESTS),
+    'package-lock.json': npmLock('23.0.0'),
+    'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./src/*'] } } }),
+    'src/lib/stripe.ts': `import Stripe from "stripe";
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY ?? "";
+
+export const stripe = new Stripe(stripeSecretKey);
+`,
+    'src/lib/stripe-checkout.ts': `import type Stripe from "stripe";
+
+export const customCheckoutRequestOptions: Stripe.RequestOptions = {
+  apiVersion: "2026-03-25.dahlia",
+};
+`,
+    'src/server/api/routers/billing.ts': `import { stripe } from "@/lib/stripe";
+import { customCheckoutRequestOptions } from "@/lib/stripe-checkout";
+
+export async function checkoutSession(checkoutSessionId: string) {
+  const session = await stripe.checkout.sessions.retrieve(
+    checkoutSessionId,
+    {},
+    customCheckoutRequestOptions,
+  );
+  return session;
+}
+`,
+    'tools/stripe-portal-setup.ts': `import Stripe from "stripe";
+
+const secret = process.env.STRIPE_SECRET_KEY ?? "";
+const stripe = new Stripe(secret);
+
+function portalConfigurationParams(): Stripe.BillingPortal.ConfigurationCreateParams {
+  return { name: "Deni AI (plan changes in app)", features: {} };
+}
+
+async function setup(existing?: { id: string }) {
+  const params = portalConfigurationParams();
+  const configuration = existing
+    ? await stripe.billingPortal.configurations.update(existing.id, params)
+    : await stripe.billingPortal.configurations.create(params);
+  return configuration;
+}
+
+void setup();
+`,
+  });
+  expect((await proposeStripeConfiguration(root)).stops).toEqual([
+    {
+      id: 'api-version-unreadable',
+      detail:
+        'Refit cannot tell which Stripe API version the request at tools/stripe-portal-setup.ts:13 uses: it passes params, and Refit cannot tell whether that sets apiVersion.',
+      action:
+        'If params sets no apiVersion, commit a .refit.json that sets the version your clients send (docs/REPOSITORY-SETUP.md).',
+    },
+    {
+      id: 'api-version-several',
+      detail:
+        "This repository sends more than one Stripe API version (2026-03-25.dahlia at src/server/api/routers/billing.ts:5; stripe-node 23.0.0's default 2026-09-30.endive at src/lib/stripe.ts:5, tools/stripe-portal-setup.ts:4), and Refit moves one version at a time.",
+      action:
+        'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
+    },
+  ]);
+});
+
+it('keeps the literal fix for a request that sets apiVersion from a variable', async () => {
+  // Constructed: no repository in the sample sets a request apiVersion this way.
+  const root = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'package-lock.json': npmLock('22.1.1'),
+    'src/lib/stripe.ts': QUILL,
+    'src/customers.ts': `import { stripe } from './lib/stripe';
+
+export function createCustomer(email: string, version: string) {
+  return stripe.customers.create({ email }, { apiVersion: version });
+}
+`,
+  });
+  expect((await proposeStripeConfiguration(root)).stops).toEqual([
+    {
+      id: 'api-version-unreadable',
+      detail:
+        'Refit cannot tell which Stripe API version the request at src/customers.ts:4 uses: it sets apiVersion: version, which Refit cannot trace to one version.',
+      action:
+        "Write the request's apiVersion at src/customers.ts:4 as a string literal, or remove it so the request uses the client's version, or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).",
+    },
+  ]);
 });
 
 it('stops when clients send different versions, naming each', async () => {
@@ -258,8 +511,7 @@ it('stops without a lockfile', async () => {
 // pnpm and Yarn lockfiles cut to the importer and entry Refit reads for one workspace package.
 const pnpmLock = (directory: string, stripe: string) => `lockfileVersion: '9.0'
 importers:
-  .: {}
-  ${directory}:
+${directory === '.' ? '' : '  .: {}\n'}  ${directory}:
     dependencies:
       stripe:
         specifier: ^${stripe}
@@ -509,6 +761,185 @@ export default defineEventHandler(async (event) => {
       id: 'source-resolution',
       detail:
         'Refit found no Stripe client it can follow, because tsconfig.json extends ./.nuxt/tsconfig.json, which Refit does not read, so it cannot tell how imports resolve.',
+    },
+  ]);
+});
+
+// The P3 held-out sample (docs/overnight/P3.md): repositories no slice was written against.
+// jackytea/parameters-dev src/lib/billing/stripe.ts
+const LAZY_CLIENT = `import Stripe from 'stripe'
+
+let client: Stripe | null = null
+
+const stripeClient = (): Stripe => {
+  if (client) {
+    return client
+  }
+
+  const secretKey = process.env.STRIPE_SECRET_KEY
+
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured on this instance')
+  }
+
+  client = new Stripe(secretKey)
+
+  return client
+}
+
+const isStripeConfigured = (): boolean => {
+  return Boolean(process.env.STRIPE_SECRET_KEY)
+}
+
+export { isStripeConfigured, stripeClient }
+`;
+// Adarshagupta/cheatbit-desktop backend/server.js, lines 8, 102, 176, 1392 to 1397 and 2254, cut.
+// The tracer follows this client until the file reads require.main.
+const MAIN_MODULE_CLIENT = `const Stripe = require("stripe");
+
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
+const stripe = STRIPE_SECRET_KEY ? Stripe(STRIPE_SECRET_KEY) : null;
+
+if (require.main === module) {
+  startNodeServer().catch((error) => {
+    console.error("Failed to initialize PostgreSQL backend:", error);
+    process.exit(1);
+  });
+}
+
+async function createCheckout(customer) {
+  const session = await stripe.checkout.sessions.create({ customer, mode: "subscription" });
+  return session.url;
+}
+`;
+const UNFOLLOWED_ACTION =
+  "Nothing in your code needs to change: Refit follows a client created directly in a const declaration, such as const stripe = new Stripe(secretKey, { apiVersion: '<your API version>' }), so it stops here until it can follow this one.";
+
+it('blames a tsconfig only when it hides a client, and names a client it sees but cannot follow', async () => {
+  // cheatbit-desktop: mobile/ extends Expo's base tsconfig, but the only client is in backend/.
+  const desktop = await repository({
+    'package.json': manifest('^18.5.0', TESTS),
+    'package-lock.json': npmLock('18.5.0'),
+    'tsconfig.json': JSON.stringify({
+      compilerOptions: { allowJs: true },
+      include: ['electron/**/*', 'src/**/*'],
+    }),
+    'mobile/tsconfig.json': JSON.stringify({
+      extends: 'expo/tsconfig.base',
+      compilerOptions: { strict: true },
+    }),
+    'backend/server.js': MAIN_MODULE_CLIENT,
+  });
+  expect((await proposeStripeConfiguration(desktop)).stops).toEqual([
+    {
+      id: 'no-stripe-client',
+      detail:
+        'Refit sees a Stripe client created at backend/server.js:4, but cannot follow it to the calls that use it.',
+      action: UNFOLLOWED_ACTION,
+    },
+  ]);
+  // Constructed from the one above: several unfollowed clients are named together.
+  const both = await repository({
+    'package.json': manifest('^18.5.0', TESTS),
+    'package-lock.json': npmLock('18.5.0'),
+    'backend/server.js': MAIN_MODULE_CLIENT,
+    'backend/worker.js': MAIN_MODULE_CLIENT,
+  });
+  expect((await proposeStripeConfiguration(both)).stops).toEqual([
+    {
+      id: 'no-stripe-client',
+      detail:
+        'Refit sees Stripe clients created at backend/server.js:4, backend/worker.js:4, but cannot follow them to the calls that use them.',
+      action: UNFOLLOWED_ACTION.replace('this one', 'these'),
+    },
+  ]);
+  // jackytea/parameters-dev: tsconfig.json references "tsconfig.vite.json" without "./", which
+  // Refit does not read, so no import resolves under it; the client itself is followed elsewhere.
+  const referenced = await repository({
+    'package.json': manifest('^17.7.0', TESTS),
+    'pnpm-lock.yaml': pnpmLock('.', '17.7.0'),
+    'tsconfig.json': JSON.stringify({
+      compilerOptions: { strict: true, allowJs: true, paths: { '@/*': ['./src/*'] } },
+      include: ['**/*.ts', '**/*.tsx'],
+      references: [{ path: 'tsconfig.vite.json' }],
+    }),
+    'tsconfig.vite.json': JSON.stringify({
+      compilerOptions: { composite: true, module: 'ESNext', moduleResolution: 'bundler' },
+      include: ['vite.config.ts'],
+    }),
+    'src/lib/billing/stripe.ts': LAZY_CLIENT,
+  });
+  expect((await proposeStripeConfiguration(referenced)).stops).toEqual([
+    {
+      id: 'source-resolution',
+      detail:
+        'Refit found no Stripe client it can follow, because it cannot verify how imports resolve under tsconfig.json.',
+      action:
+        'Nothing in your code needs to change: Refit stops here until it can verify how tsconfig.json resolves imports.',
+    },
+  ]);
+  // Without that tsconfig, Refit follows the same client and generates.
+  const unreferenced = await repository({
+    'package.json': manifest('^17.7.0', TESTS),
+    'pnpm-lock.yaml': pnpmLock('.', '17.7.0'),
+    'src/lib/billing/stripe.ts': LAZY_CLIENT,
+  });
+  expect((await proposeStripeConfiguration(unreferenced)).stops).toEqual([]);
+});
+
+it('says a pinning stripe-node release Refit does not record sends its own version', async () => {
+  // uzzaidev/Convoca src/lib/stripe.ts, on stripe-node 21.0.1, a major the release table skips.
+  const pinning = await repository({
+    'package.json': manifest('^21.0.1', TESTS),
+    'pnpm-lock.yaml': pnpmLock('.', '21.0.1'),
+    'src/lib/stripe.ts': `import Stripe from "stripe";
+
+let _stripe: Stripe | null = null;
+
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error(
+        "STRIPE_SECRET_KEY não está definida. " +
+          "Configure no .env.local ou no dashboard da Vercel."
+      );
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      typescript: true,
+    });
+  }
+  return _stripe;
+}
+`,
+  });
+  expect((await proposeStripeConfiguration(pinning)).stops).toEqual([
+    {
+      id: 'api-version-account-default',
+      detail:
+        "The Stripe client at src/lib/stripe.ts:13 sets no apiVersion, so it sends the API version stripe-node 21.0.1 pins, and Refit's table of stripe-node releases does not record which one that is.",
+      action:
+        'Set apiVersion at src/lib/stripe.ts:13 to the version stripe-node 21.0.1 pins (its changelog names it), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).',
+    },
+  ]);
+  // Mangoz1x/GptRewrite pages/api/intent/[plan].js: stripe-node 11 sends the account's default.
+  const account = await repository({
+    'package.json': manifest('^11.10.0', TESTS),
+    'package-lock.json': npmLock('11.10.0'),
+    'pages/api/intent/[plan].js': `import { getCookies } from 'cookies-next';
+import db from "../../../mongo/interact";
+import { decrypt } from "../../../helpers/decrypt";
+import gateway from "stripe";
+
+const stripe = gateway(process.env.STRIPE_KEY);
+`,
+  });
+  expect((await proposeStripeConfiguration(account)).stops).toEqual([
+    {
+      id: 'api-version-account-default',
+      detail:
+        "The Stripe client at pages/api/intent/[plan].js:6 sets no apiVersion, and Refit does not know which version stripe-node 11.10.0 sends by default, so requests may use your Stripe account's default version.",
+      action:
+        'Set apiVersion at pages/api/intent/[plan].js:6 to the version your account uses, or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).',
     },
   ]);
 });
