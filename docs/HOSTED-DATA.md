@@ -21,7 +21,7 @@ Every table has row-level security enabled and no policies, so Supabase's Data A
 | `refit_targets`                   | repository, base and integration being monitored | Target id (a hash of repository and base, plus the integration id), repository, base, integration, installation, the approval fingerprint it was enrolled with, and `status` (`enrolled` or `cancelled`) with a message.                                                                                         |
 | `refit_jobs`                      | poll of a target                                 | Target, `status` (`queued`, `running`, `finished`, `failed`, `cancelled`), lease owner and expiry, attempt count, operator `retry` flag, creation and finish times, and the receipt as JSON: status, evidence path, message, checked-out revision and `refit doctor` status.                                     |
 
-The state directory holds `targets/<target id>/`: `github/` is the App-managed checkout and `runs/` the evidence of each job (manifests, patches, logs). Receipts point into `runs/`.
+The state directory holds `targets/<target id>/`: `github/` is the App-managed checkout and `runs/` the evidence of each job (manifests, patches, logs). Receipts point into `runs/`. `contracts/refit/stripe-<version>.json` holds the pinned Stripe contracts that generated configurations compare, shared by every target and checked against `data/stripe-openapi-versions.json` on each read.
 
 ## Retention
 
