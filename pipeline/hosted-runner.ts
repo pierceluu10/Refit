@@ -118,13 +118,20 @@ export async function runHostedTarget(options: {
       inspectReadiness: true,
       onProgress: options.onProgress,
     });
-    return {
+    const outcome: HostedOutcome = {
       status: 'finished',
       receipt: {
         ...summarizePoll(result),
         revision: 'checkout' in result ? result.checkout.revision : null,
         readiness: 'readiness' in result && result.readiness ? result.readiness.status : null,
       },
+    };
+    // A workflow error fails the job, so the failed-job notice reports it. A stop or lost lease
+    // during the workflow is an interruption, as it is before the workflow starts.
+    if (result.status !== 'processed' || result.result.manifest.status !== 'error') return outcome;
+    return {
+      status: 'failed',
+      receipt: { ...outcome.receipt, status: options.signal.aborted ? 'interrupted' : 'error' },
     };
   } catch (error) {
     if (!(error instanceof Error)) throw error;
