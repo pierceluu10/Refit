@@ -21,7 +21,7 @@ const execute = promisify(execFile);
 const USAGE =
   'Usage: tsx pipeline/agent-comparison-cli.ts --selection <selection.json> --output <new-dir> --budget <usd> [--agent claude|codex] [--model <id>] [--run-budget <usd>] [--max-turns N] [--env .env]';
 const AGENT_TOOLS = 'Read,Edit,Write,Glob,Grep';
-const DEFAULT_MODELS = { claude: 'claude-sonnet-5-5', codex: 'gpt-5.6-sol' };
+const DEFAULT_MODELS = { claude: 'claude-sonnet-5-5', codex: 'gpt-6.1-sol' };
 const DEFAULT_RUN_BUDGET_USD = 2;
 const DEFAULT_MAX_TURNS = 60;
 const IMAGE = 'node:22-alpine';
