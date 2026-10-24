@@ -1,0 +1,220 @@
+{
+  "frozenAt": "2026-10-24",
+  "purpose": "Laptop 3 AI run a on the dev-30 repositories engine-only run 40141783050 (main 3c3a63d) did not validate.",
+  "criteria": "Entries of subsets/dev-30.json whose row in run 40141783050 is not validated, in list order, positions 0 to 9.",
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "4lbatr0s/jiro",
+      "stars": 1,
+      "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+      "before": "2023-10-16",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^14.13.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "stars": 1,
+      "commit": "6b409f3db888e0792800d10942ea361e0a338500",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^16.12.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "stars": 65,
+      "commit": "cf8f84cc8bfc4b6fc35ae462deea9369ff7afc27",
+      "before": "2024-04-10",
+      "beforeSource": "SDK version",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ArhanAnsari/InspireGem",
+      "stars": 16,
+      "commit": "a6bf456cd830a5f5d7267d69407c5c0a5fcc8336",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "benlamiro/ShipGenAI",
+      "stars": 254,
+      "commit": "10037d3d3fcf47b5c637bc37ab9bb05872f6e6ab",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+      "stars": 4,
+      "commit": "982052f27557a18b93e2fe6cc7bd0b3308b6778f",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+      "stars": 6,
+      "commit": "3c91a83e792d84178c86be02a486cfb7f14b6d00",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^18.3.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Devanshjain2110/QueryPDF",
+      "stars": 4,
+      "commit": "66283a61d344b1785604f935ac85f437ab8e6ffe",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "next-by-stars"
+    },
+    {
+      "repo": "doganarif/build-it",
+      "stars": 4,
+      "commit": "7c1a3e5fff4f12e106658cc2a1fc409e00c455d4",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.0.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ggallon/type-last",
+      "stars": 2,
+      "commit": "f2c76e13f28f30e1b7ca09d4acb89087be6f7105",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "12.2.0",
+      "packageManager": "pnpm"
+    }
+  ]
+}
