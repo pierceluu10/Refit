@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Pool } from 'pg';
 import { afterEach, expect, it, vi } from 'vitest';
+import { readCpuTimes } from './hosted-cpu.ts';
 import { runHostedService } from './hosted-service.ts';
 import { DEFAULT_TENANCY_LIMITS } from './hosted-tenancy.ts';
 import type { ServicePoll } from './service-worker.ts';
@@ -55,15 +56,7 @@ function job(id: number) {
   };
 }
 
-it('logs a throttled job at error level and stores each job’s CPU steal in its receipt', async () => {
-  fake.claims = [job(1), job(2)];
-  // Job 1: 1294 of 2589 ticks stolen, as on refit-hosted during job 254. Job 2: 10 of 1000.
-  fake.samples = [
-    { steal: 468098, total: 2387153 },
-    { steal: 469392, total: 2389742 },
-    { steal: 100, total: 5000 },
-    { steal: 110, total: 6000 },
-  ];
+async function runJobs(count: number) {
   const finished: unknown[][] = [];
   fake.store = {
     allow: vi.fn(async () => ({ enrolled: [], cancelled: [] })),
@@ -101,11 +94,24 @@ it('logs a throttled job at error level and stores each job’s CPU steal in its
     controller.abort();
     await service;
   });
-  for (const deadline = Date.now() + WAIT_MS; finished.length < 2;) {
-    if (Date.now() > deadline) throw new Error('Timed out waiting for both jobs.');
+  for (const deadline = Date.now() + WAIT_MS; finished.length < count;) {
+    if (Date.now() > deadline) throw new Error(`Timed out waiting for ${count} jobs.`);
     await new Promise((resolve) => setTimeout(resolve, POLL_MS));
   }
 
+  return { finished, lines };
+}
+
+it('logs a throttled job at error level and stores each job’s CPU steal in its receipt', async () => {
+  fake.claims = [job(1), job(2)];
+  // Job 1: 1294 of 2589 ticks stolen, as on refit-hosted during job 254. Job 2: 10 of 1000.
+  fake.samples = [
+    { steal: 468098, total: 2387153 },
+    { steal: 469392, total: 2389742 },
+    { steal: 100, total: 5000 },
+    { steal: 110, total: 6000 },
+  ];
+  const { finished, lines } = await runJobs(2);
   console.log(JSON.stringify(lines, null, 2));
   expect(finished.map(([id, , status, receipt]) => [id, status, receipt])).toEqual([
     [1, 'finished', expect.objectContaining({ status: 'needs-review', cpuSteal: 0.5 })],
@@ -119,5 +125,23 @@ it('logs a throttled job at error level and stores each job’s CPU steal in its
       message:
         "CPU throttled: the host took 50% of this machine's CPU time during the job, so installs and checks ran slower and may have hit their time limits.",
     }),
+  ]);
+});
+
+it('stores the receipt without CPU steal when /proc/stat cannot be read', async () => {
+  fake.claims = [job(3)];
+  const denied = Object.assign(new Error("EACCES: permission denied, open '/proc/stat'"), {
+    code: 'EACCES',
+  });
+  vi.mocked(readCpuTimes).mockRejectedValueOnce(denied).mockRejectedValueOnce(denied);
+  const { finished, lines } = await runJobs(1);
+
+  console.log(JSON.stringify(lines, null, 2));
+  expect(finished.map(([id, , status, receipt]) => [id, status, receipt])).toEqual([
+    [3, 'finished', expect.not.objectContaining({ cpuSteal: expect.anything() })],
+  ]);
+  expect(lines.filter((line) => line.message.startsWith('CPU steal not measured:'))).toEqual([
+    expect.objectContaining({ job: 3, level: 'error' }),
+    expect.objectContaining({ job: 3, level: 'error' }),
   ]);
 });

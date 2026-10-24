@@ -312,11 +312,20 @@ export async function runHostedService(options: {
         ...(level && { level }),
       });
     // A job machine's CPU is not this machine's, so only in-VM jobs are measured.
-    const cpu = jobs ? null : await readCpuTimes();
+    // A diagnostic: an unreadable /proc/stat is logged and skipped, never allowed to lose the receipt.
+    const measureCpu = () =>
+      readCpuTimes().catch((error: unknown) => {
+        progress(
+          `CPU steal not measured: ${error instanceof Error ? error.message : String(error)}`,
+          'error',
+        );
+        return null;
+      });
+    const cpu = jobs ? null : await measureCpu();
     const started = Date.now();
     // Throttled installs and checks hit their time limits, which reads as the repository's failure.
     const cpuSteal = async () => {
-      const after = cpu && (await readCpuTimes());
+      const after = cpu && (await measureCpu());
       if (!cpu || !after || Date.now() - started < MIN_THROTTLE_SECONDS * MILLISECONDS_PER_SECOND)
         return {};
       const steal = stealShare(cpu, after);
