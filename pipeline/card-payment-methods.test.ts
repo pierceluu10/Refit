@@ -507,3 +507,21 @@ export const InvoiceSchema = { payment_method_types: { type: Array, required: fa
   expect(report.patch).toMatchObject({ status: 'proposed' });
   expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
 });
+
+// MeiyuTech/AET-App src/app/(frontend)/(aet-app)/api/stripe/create-payment-link/route.ts: endive
+// keeps payment_method_types on POST /v1/payment_links.
+it('leaves a variable that only reaches an SDK call still accepting the parameter', async () => {
+  const report = await run({
+    'checkout.js': `${checkout("['card']")}export async function link(price) {
+  const paymentLinkParams = {
+    payment_method_types: ['card', 'alipay'],
+    line_items: [{ price: price.id, quantity: 1 }],
+  };
+  paymentLinkParams.metadata = { source: 'aet' };
+  return stripe.paymentLinks.create(paymentLinkParams);
+}
+`,
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed' });
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});

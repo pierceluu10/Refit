@@ -76,12 +76,64 @@ export function removedParameterProperty(
 export function untracedRemovedParameters(
   nodes: ts.Node[],
   removals: RequestParameterRemoval[],
-  tracedBody: (object: ts.ObjectLiteralExpression) => boolean,
+  sdkOperation: (call: ts.CallExpression) => { resource: string; method: string } | undefined,
   file: (node: ts.Node) => string,
 ) {
   const removed = new Map(
     removals.filter((removal) => removal.cardReplacement).map((entry) => [entry.parameter, entry]),
   );
+  const removing = (parameter: string, call: ts.CallExpression) => {
+    const operation = sdkOperation(call);
+    return (
+      !operation ||
+      removals.some(
+        (entry) =>
+          entry.parameter === parameter &&
+          entry.resource === operation.resource &&
+          entry.method === operation.method,
+      )
+    );
+  };
+  const argument = (node: ts.Node) =>
+    ts.isCallExpression(node.parent) && node.parent.arguments.includes(node as ts.Expression);
+  // A local variable whose every use is a property access or a direct argument of a traced SDK
+  // call that still accepts the parameter, such as `stripe.paymentLinks.create(params)`.
+  const keptLocally = (object: ts.Expression, parameter: string) => {
+    let value: ts.Node = object;
+    while (
+      ts.isParenthesizedExpression(value.parent) ||
+      ts.isAsExpression(value.parent) ||
+      ts.isSatisfiesExpression(value.parent)
+    )
+      value = value.parent;
+    const declaration = value.parent;
+    if (
+      !ts.isVariableDeclaration(declaration) ||
+      declaration.initializer !== value ||
+      !ts.isIdentifier(declaration.name) ||
+      !ts.isVariableDeclarationList(declaration.parent) ||
+      !ts.isVariableStatement(declaration.parent.parent) ||
+      declaration.parent.parent.modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+      )
+    )
+      return false;
+    const name = declaration.name.text;
+    let kept = true;
+    const visit = (node: ts.Node): void => {
+      if (!kept) return;
+      if (ts.isIdentifier(node) && node.text === name && node !== declaration.name) {
+        const parent = node.parent;
+        kept =
+          (ts.isPropertyAccessExpression(parent) &&
+            parent.expression === node &&
+            parent.name.text !== parameter) ||
+          (argument(node) && !removing(parameter, parent as ts.CallExpression));
+      } else ts.forEachChild(node, visit);
+    };
+    visit(declaration.parent.parent.parent);
+    return kept;
+  };
   const sites: { property: ts.ObjectLiteralElementLike; removal: RequestParameterRemoval }[] = [];
   for (const node of nodes) {
     if (!(ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node))) continue;
@@ -92,7 +144,9 @@ export function untracedRemovedParameters(
       (ts.isPropertyAssignment(node) && ts.isObjectLiteralExpression(node.initializer)) ||
       !ts.isObjectLiteralExpression(node.parent) ||
       ts.isPropertyAssignment(node.parent.parent) ||
-      tracedBody(node.parent) ||
+      // A traced SDK body is checked against its own operation by the analyzer.
+      (argument(node.parent) && sdkOperation(node.parent.parent as ts.CallExpression)) ||
+      keptLocally(node.parent, removal.parameter) ||
       TEST_PATH.test(file(node))
     )
       continue;

@@ -1072,10 +1072,7 @@ export function analyzeRepository(
   for (const { property, removal } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
-    (object) =>
-      ts.isCallExpression(object.parent) &&
-      object.parent.arguments.includes(object) &&
-      Boolean(sdkCall(object.parent)),
+    sdkCall,
     (node) => location(node).file,
   ))
     findings.push({
