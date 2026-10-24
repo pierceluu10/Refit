@@ -526,7 +526,7 @@ export function createReviewArtifacts(
     ...reasons,
     ...UNTYPED_REQUEST_PROPERTIES.filter((entry) => keptProperties.includes(entry.property)).map(
       (entry) =>
-        `**Keeps sending ${code(`${entry.parent}.${entry.property}`)} unchanged.** stripe-node 13 removed it from its types, and Stripe's API reference does not document it at ${code(report.apiVersion.before ?? 'the current version')} or ${code(report.apiVersion.after ?? 'the target version')}, so Refit cannot confirm Stripe still applies it at the new version. The upgraded types accept it only as a spread object. Before merging, ${entry.check}`,
+        `**Keeps sending ${code(`${entry.parent}.${entry.property}`)} unchanged.** stripe-node 13 removed it from its types and [Stripe's API reference](${entry.reference}) no longer lists it, so Refit cannot confirm that Stripe still applies it at ${code(report.apiVersion.after ?? 'the target version')}. The patch only spreads it from its own object so the upgraded types accept it; the request is the same. Before merging, ${entry.check}`,
     ),
     ...('reviewTypeErrors' in validation && validation.reviewTypeErrors?.length
       ? [

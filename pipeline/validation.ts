@@ -42,6 +42,7 @@ import { compactPatch, renderPatch } from './patches.ts';
 import {
   crossesOpenEnums,
   crossesTypeRemovals,
+  KEEP_UNTYPED_REQUEST_PROPERTIES,
   OPEN_ENUM_REPAIR,
   OPEN_ENUM_RULE,
   keepsPartialRestore,
@@ -975,7 +976,7 @@ export async function validateMigration(options: {
       sdkUpgrade?.from &&
       sdkUpgrade.to &&
       (crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to) ||
-        crossesTypeRemovals(sdkUpgrade.from, sdkUpgrade.to))
+        (KEEP_UNTYPED_REQUEST_PROPERTIES && crossesTypeRemovals(sdkUpgrade.from, sdkUpgrade.to)))
         ? introducedTypeErrors(baselineRun, patched)
         : [];
     const openEnumErrors =

@@ -27,21 +27,25 @@ const below = (version: string, target: string) => {
 export const crossesOpenEnums = (from: string, to: string) =>
   below(from, OPEN_ENUM_SINCE) && !below(to, OPEN_ENUM_SINCE);
 
-// stripe-node 13.0.0 dropped request properties from its types that no API version removed: no
-// stripe/openapi spec since 2020-08-27 (v100) documents them, so the contract diff never reports
-// them, and the SDK's migration guide says to suppress the TypeScript error when the code still
-// sends one (https://github.com/stripe/stripe-node/wiki/Migration-guide-for-v13, read 2026-10-24).
+// stripe-node 13.0.0 dropped request properties from its types that no API version removed, so
+// the contract diff never reports them. Stripe's API reference no longer lists them
+// (https://docs.stripe.com/api/checkout/sessions/create.md?query=subscription_data, read
+// 2026-10-24: `subscription_data` has `trial_end` and `trial_period_days`, no `trial_from_plan`).
 // Checkout's `subscription_data.coupon` went in the same release but a version did remove it
-// (https://docs.stripe.com/changelog/2022-08-01/removes-subscription-data-create-checkout-session),
-// so it is not listed. The restore keeps sending each property unchanged, spread from its own
-// object literal so that the object's other properties are still checked.
+// (https://docs.stripe.com/changelog/2022-08-01/removes-subscription-data-create-checkout-session,
+// read 2026-10-24), so it is not listed. The restore keeps sending each property unchanged, spread
+// from its own object literal so that the object's other properties are still checked, and the
+// draft is [Needs review] with the check below.
+// Push 279 owner decision 4 (2026-10-24) ships this; it stays off until its default is flipped.
+export const KEEP_UNTYPED_REQUEST_PROPERTIES = false;
 export const TYPE_REMOVALS_SINCE = '13.0.0';
 export const UNTYPED_REQUEST_PROPERTIES = [
   {
     parent: 'subscription_data',
     property: 'trial_from_plan',
     type: 'SubscriptionData',
-    // What the draft asks the reviewer to confirm.
+    reference: 'https://docs.stripe.com/api/checkout/sessions/create',
+    // What the draft asks the reviewer to confirm (https://docs.stripe.com/payments/checkout/free-trials).
     check:
       'create a test-mode Checkout Session and check the subscription still starts with the trial, or send `subscription_data.trial_period_days` instead.',
   },
@@ -82,6 +86,7 @@ const literals = (path: string) => enums[path].map((value) => `'${value}'`).join
 export function openEnumRepair(
   files: { path: string; content: string }[],
   errors: TypeErrorAt[],
+  keepUntyped = KEEP_UNTYPED_REQUEST_PROPERTIES,
 ): { path: string; content: string }[] | undefined {
   if (!errors.length) return;
   const sources = new Map(
@@ -251,7 +256,7 @@ export function openEnumRepair(
     const position = source.getPositionOfLineAndCharacter(error.line - 1, error.column - 1);
     const node = innermost(source, position);
     let repaired = false;
-    const untyped = untypedRequestProperty(error);
+    const untyped = keepUntyped ? untypedRequestProperty(error) : undefined;
     if (untyped) {
       // The error sits on the property itself, inside the literal its parent property holds.
       const assignment = ancestor(node, ts.isPropertyAssignment);
@@ -341,8 +346,9 @@ export function openEnumRepair(
 export function restorableOpenEnumErrors<T extends TypeErrorAt>(
   files: { path: string; content: string }[],
   errors: T[],
+  keepUntyped = KEEP_UNTYPED_REQUEST_PROPERTIES,
 ) {
-  return errors.filter((error) => openEnumRepair(files, [error]));
+  return errors.filter((error) => openEnumRepair(files, [error], keepUntyped));
 }
 
 // A restored candidate whose checks still fail is kept, as the AI repair's starting point, only

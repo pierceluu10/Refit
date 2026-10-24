@@ -167,18 +167,43 @@ const untypedAt = (content: string, code: string, message: string) => ({
   message,
 });
 
+// afdon/music-app@1f49f3e8 app/api/create-checkout-session/route.ts: another course fork, with
+// a multi-line line item and no trailing commas.
+const route2 = `import Stripe from 'stripe';
+export async function POST() {
+    const session = await stripe.checkout.sessions.create({
+      allowed_payment_method_types: ['card'],
+      line_items: [
+        {
+          price: price.id,
+          quantity
+        }
+      ],
+      mode: 'subscription',
+      subscription_data: {
+        trial_from_plan: true,
+        metadata
+      },
+      cancel_url: \`\${getURL()}/\`
+    });
+}
+`;
+
 it('keeps sending a request property stripe-node 13 stopped typing, as a spread', () => {
-  for (const [code, message] of [
-    ['TS2322', OLD_MESSAGE],
-    ['TS2353', NEW_MESSAGE],
-  ]) {
-    const error = untypedAt(route, code, message);
-    expect(untypedRequestProperty(error)).toMatchObject({ property: 'trial_from_plan' });
-    const [repaired] = openEnumRepair([{ path: 'route.ts', content: route }], [error])!;
-    expect(repaired.content).toBe(
-      route.replace('trial_from_plan: true,', '...{ trial_from_plan: true },'),
-    );
-  }
+  for (const content of [route, route2])
+    for (const [code, message] of [
+      ['TS2322', OLD_MESSAGE],
+      ['TS2353', NEW_MESSAGE],
+    ]) {
+      const error = untypedAt(content, code, message);
+      expect(untypedRequestProperty(error)).toMatchObject({ property: 'trial_from_plan' });
+      const [repaired] = openEnumRepair([{ path: 'route.ts', content }], [error], true)!;
+      expect(repaired.content).toBe(
+        content.replace('trial_from_plan: true', '...{ trial_from_plan: true }'),
+      );
+      // Behind the flag, the error stays a regression as before the decision.
+      expect(openEnumRepair([{ path: 'route.ts', content }], [error], false)).toBeUndefined();
+    }
 });
 
 it('restores an untyped property and an open enum in one candidate', () => {
@@ -188,6 +213,7 @@ it('restores an untyped property and an open enum in one candidate', () => {
       at(types, 'types.ts', 'Stripe.PaymentMethod.Type]', 'TS2538'),
       untypedAt(route, 'TS2353', NEW_MESSAGE),
     ],
+    true,
   )!;
   expect(repaired.map((file) => file.path).sort()).toEqual(['route.ts', 'types.ts']);
 });
@@ -200,12 +226,15 @@ it('leaves request properties a version removed, or outside their parent, to the
     message: NEW_MESSAGE.replace('trial_from_plan', 'coupon'),
   };
   expect(untypedRequestProperty(couponError)).toBeUndefined();
-  expect(openEnumRepair([{ path: 'route.ts', content: coupon }], [couponError])).toBeUndefined();
+  expect(
+    openEnumRepair([{ path: 'route.ts', content: coupon }], [couponError], true),
+  ).toBeUndefined();
   const moved = route.replace('subscription_data: {', 'subscription_details: {');
   expect(
     openEnumRepair(
       [{ path: 'route.ts', content: moved }],
       [untypedAt(moved, 'TS2353', NEW_MESSAGE)],
+      true,
     ),
   ).toBeUndefined();
   // Another error with it, such as a missed period read, keeps the whole candidate unrestored.
@@ -216,6 +245,7 @@ it('leaves request properties a version removed, or outside their parent, to the
         untypedAt(route, 'TS2353', NEW_MESSAGE),
         at(admin, 'libs/admin.ts', 'id: price.id', 'TS2551'),
       ],
+      true,
     ),
   ).toBeUndefined();
 });

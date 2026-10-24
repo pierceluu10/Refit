@@ -337,6 +337,7 @@ it('marks a draft that keeps sending an untyped request property for review', as
   const body = artifacts.files['pull-request.md'];
   expect(body).toContain('**Keeps sending `subscription_data.trial_from_plan` unchanged.**');
   expect(body).toContain('`subscription_data.trial_period_days`');
+  expect(body).toContain('(https://docs.stripe.com/api/checkout/sessions/create)');
   // Only the property was kept, so nothing claims an enum restore.
   expect(body).not.toContain('OtherString');
 });

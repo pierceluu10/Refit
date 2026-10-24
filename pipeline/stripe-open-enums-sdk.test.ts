@@ -94,6 +94,7 @@ it.skipIf(!process.env.REFIT_STRIPE_SDK)(
     const [repaired] = openEnumRepair(
       [{ path: 'route.ts', content: original }],
       [{ file: 'route.ts', line: Number(line), column: Number(column), code, message }],
+      true,
     )!;
     expect(repaired.content).toContain('        ...{ trial_from_plan: true },\n        metadata,');
     expect(await upgraded(repaired.content)).toBe('');
