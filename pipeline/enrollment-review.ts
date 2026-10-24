@@ -1,4 +1,4 @@
-import { proposalSummary } from './enrollment-proposal.ts';
+import { generatedVersionCheck, proposalSummary } from './enrollment-proposal.ts';
 import type { inspectRepositoryEnrollment } from './repository-enrollment.ts';
 import { terminalText } from './workflow-presentation.ts';
 
@@ -40,7 +40,7 @@ export function enrollmentReviewText(enrollment: Enrollment) {
   const versions = enrollment.profiles
     .map(
       ({ id, apiVersion }) =>
-        `${id ? `${terminalText(id)}: ` : ''}${terminalText(apiVersion.reason)} Source: ${terminalText(apiVersion.source.status)} (${terminalText(apiVersion.policy)}).`,
+        `${id ? `${terminalText(id)}: ` : ''}${terminalText(apiVersion.reason)} ${enrollment.generated ? generatedVersionCheck(apiVersion.source) : `Source: ${terminalText(apiVersion.source.status)} (${terminalText(apiVersion.policy)}).`}`,
     )
     .join('\n');
   const files = enrollment.files
