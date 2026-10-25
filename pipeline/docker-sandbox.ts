@@ -12,22 +12,25 @@ const CONTAINER_USER = '65534:65534';
 export const PREPARATION_WORKSPACE_SIZE = '2g';
 export const PREPARATION_MEMORY = '3g';
 const MIB = 1024 * 1024;
-// Operators can enlarge offline validation for large dependency trees. Each profile keeps memory
-// above the workspace and the dependency archive at half of it, so the unpacked tree still fits.
+// Each profile keeps memory above the workspace and the dependency archive at half of it, so the
+// unpacked tree still fits. Operators on a smaller Docker host select a smaller profile.
 const VALIDATION_PROFILES = {
   '512m': { workspace: '512m', memory: '1g', archiveBytes: 256 * MIB },
   '1g': { workspace: '1g', memory: '2g', archiveBytes: 512 * MIB },
   '2g': { workspace: '2g', memory: '3g', archiveBytes: 1024 * MIB },
-  // Opt-in only: it raises the memory a container may claim on the Docker host.
   '4g': { workspace: '4g', memory: '5g', archiveBytes: 2048 * MIB },
 } as const;
+
+// Owner decision (2026-10-24, Push 279): the 4 GiB profile is the default for preparation and
+// validation, so a container may claim 5 GiB of the Docker host's memory.
+const DEFAULT_VALIDATION_PROFILE = '4g';
 
 export const MAX_VALIDATION_ARCHIVE_BYTES = Math.max(
   ...Object.values(VALIDATION_PROFILES).map((profile) => profile.archiveBytes),
 );
 
 export function validationProfile(value = process.env.REFIT_VALIDATION_WORKSPACE) {
-  const name = value?.trim() || '2g';
+  const name = value?.trim() || DEFAULT_VALIDATION_PROFILE;
   if (!Object.hasOwn(VALIDATION_PROFILES, name))
     throw new PipelineInputError(
       `REFIT_VALIDATION_WORKSPACE must be one of ${Object.keys(VALIDATION_PROFILES).join(', ')}.`,

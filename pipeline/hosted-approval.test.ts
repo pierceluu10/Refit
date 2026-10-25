@@ -534,6 +534,35 @@ it.skipIf(!DATABASE || !SAVED_CONTRACTS)(
 );
 
 it.skipIf(!DATABASE)(
+  'proposes the agents configuration when a Stripe-importing file of an unconfigured repository does not parse',
+  async () => {
+    const root = await repository({
+      bare: true,
+      from: GENERATED_REPOSITORY,
+      files: { 'src/billing.ts': "import Stripe from 'stripe';\nconst total = ;\n" },
+    });
+    const sample = await setup(root);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error('No contract download expected');
+      }),
+    );
+    await sample.process();
+    expect(github.issues.get(1)).toMatchObject({
+      title: 'Set up Refit for this repository',
+      state: 'open',
+    });
+    expect(github.issues.get(1)!.body).toContain('`refit agents --add stripe` writes');
+    expect((await sample.approvals.read()).issues).toEqual([
+      expect.objectContaining({ repository: REPOSITORY, state: 'proposal', issue: 1 }),
+    ]);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  },
+  60_000,
+);
+
+it.skipIf(!DATABASE)(
   'opens no issue when no provider with an agent is detected',
   async () => {
     const root = await repository({
