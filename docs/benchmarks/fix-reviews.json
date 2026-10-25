@@ -1783,6 +1783,21 @@
       }
     },
     {
+      "repo": "Sanjdcool/ApanStack-Newsletter",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40167139452 (feat/l3-webhook-dual-reads 1f5655e) vs 40167137930 (bench/l3-webhooks-base 8473b9f = main c8977b7 + subsets/l3-webhooks.json); the base run stopped at scan with no patch. migration.patch read in full with line endings ignored",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the two invoice.subscription reads in the private handlers handleInvoicePaid/handleInvoicePaymentFailed, which the route calls only with the narrowed event.data.object, go through getInvoiceSubscription (https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).",
+        "bothVersions": "yes: the helper returns invoice.subscription when the payload has it (old-version events), otherwise parent.subscription_details.subscription; the webhook endpoint version is not changed.",
+        "nothingUnrelated": "yes: the two reads and their import, the generated helper module, the acacia pin moved to endive, and stripe ^17.5.0 to ^23.0.0 with its lockfile.",
+        "pleaseCheck": "Validation: the baseline checks fail on the repository as committed, so nothing about the patch was proven by checks.",
+        "upgradeComplete": "yes: stripe ^17.5.0 to ^23.0.0 in package.json and the lockfile.",
+        "wouldMerge": "yes, once the repository's own baseline is fixed and the endpoint version is planned."
+      }
+    },
+    {
       "repo": "dalemoncayo/express-stripe",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40149707974, Refit 149aaad (this PR on subsets/l3-reads2-a.json; before 40148716985 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",

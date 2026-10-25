@@ -138,11 +138,11 @@ const provider = {
 };
 const header = `import Stripe from 'stripe';\nconst stripe = new Stripe('sk', { apiVersion: '2024-06-20' });\n`;
 
-function analyze(body: string) {
+function analyze(body: string, path = 'billing.ts') {
   const content = header + body;
   const repository = {
     root: '/field-moves',
-    files: [{ path: 'billing.ts', content }],
+    files: [{ path, content }],
     dependencies: [],
     lockfiles: [],
     warnings: [],
@@ -153,7 +153,13 @@ function analyze(body: string) {
     provider,
     schemas(false),
   );
-  return { ...result, patched: applySourceEdits(content, result.edits) };
+  return {
+    ...result,
+    patched: applySourceEdits(
+      content,
+      result.edits.filter((edit) => edit.file === path),
+    ),
+  };
 }
 
 function helper(planText?: string) {
@@ -1553,4 +1559,151 @@ export const ends: string = new Date((getSubscriptionPeriodEnd(invoice as any) a
     ],
   ]);
   expect(strictDiagnostics(files)).toEqual([]);
+});
+
+// Chivo1530/CHIVITO-AI-DEV app/api/stripe/webhook/route.js: each event's payload goes straight to
+// a private handler function.
+const HANDLERS = `export async function POST(body, signature) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  switch (event.type) {
+    case 'customer.subscription.created':
+    case 'customer.subscription.updated':
+      await handleSubscriptionChange(event.data.object);
+      break;
+    case 'invoice.payment_succeeded':
+      await handlePaymentSuccess(event.data.object);
+      break;
+  }
+}
+
+async function handleSubscriptionChange(subscription) {
+  return new Date(subscription.current_period_end * 1000);
+}
+
+async function handlePaymentSuccess(invoice) {
+  const subscriptionId = invoice.subscription;
+  return subscriptionId;
+}
+`;
+
+it('reads payloads passed to private handler functions through the helpers', () => {
+  const result = analyze(HANDLERS, 'route.js');
+  expect(result.findings).toMatchObject([
+    {
+      confidence: 'confirmed',
+      webhook: {
+        migration: { rule: 'stripe-subscription-periods-helper' },
+        schema: 'subscription',
+        eventTypes: ['customer.subscription.created', 'customer.subscription.updated'],
+      },
+    },
+    {
+      confidence: 'confirmed',
+      webhook: {
+        migration: { rule: 'stripe-invoice-subscription-helper' },
+        schema: 'invoice',
+        eventTypes: ['invoice.payment_succeeded'],
+      },
+    },
+  ]);
+  expect(result.patched).toContain(
+    '  return new Date((getSubscriptionPeriodEnd(subscription)) * 1000);',
+  );
+  expect(result.patched).toContain('  const subscriptionId = (getInvoiceSubscription(invoice));');
+});
+
+// createdbymax/Loopletter-Open-source-email-marketing-platform app/api/webhooks/stripe/route.ts:
+// the payload is cast to the application's own type, kept in a const and passed on.
+it('reads a typeof-narrowed handler parameter through one local', () => {
+  const result =
+    analyze(`type StripeInvoice = { id: string; subscription?: string | { id: string } | null };
+
+export async function POST(body: string, signature: string) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  switch (event.type) {
+    case 'invoice.paid': {
+      const invoice = event.data.object as StripeInvoice;
+      await handleInvoicePaid(invoice);
+      break;
+    }
+  }
+}
+
+async function handleInvoicePaid(invoice: StripeInvoice) {
+  let subscriptionId: string | null = null;
+  if (typeof invoice.subscription === 'string') {
+    subscriptionId = invoice.subscription;
+  }
+  return subscriptionId;
+}`);
+  expect(
+    result.findings.every(
+      (finding) =>
+        finding.confidence === 'confirmed' &&
+        finding.webhook?.migration?.rule === 'stripe-invoice-subscription-helper',
+    ),
+  ).toBe(true);
+  expect(result.patched).toContain(`  const invoiceSubscription = getInvoiceSubscription(invoice);
+  if (typeof invoiceSubscription === 'string') {
+    subscriptionId = invoiceSubscription;`);
+});
+
+it.each([
+  [
+    // nishantharkut/Uproot.AI src/app/api/stripe/webhook/route.js: the same handler also takes an
+    // SDK response.
+    'another call passes an SDK response',
+    `async function handlePaymentSuccess(invoice) {
+  return invoice.subscription;
+}
+export async function retry(id) {
+  return handlePaymentSuccess(await stripe.invoices.retrieve(id));
+}`,
+  ],
+  [
+    'the handler is exported',
+    'export async function handlePaymentSuccess(invoice) {\n  return invoice.subscription;\n}',
+  ],
+  [
+    'the handler is passed as a value',
+    `async function handlePaymentSuccess(invoice) {
+  return invoice.subscription;
+}
+export const handlers = [handlePaymentSuccess];`,
+  ],
+  [
+    'the handler writes the parameter',
+    `async function handlePaymentSuccess(invoice) {
+  invoice.subscription = invoice.subscription || null;
+  return invoice.subscription;
+}`,
+  ],
+  [
+    'a call is outside an event-type branch',
+    `async function handlePaymentSuccess(invoice) {
+  return invoice.subscription;
+}
+export function any(body, signature) {
+  return handlePaymentSuccess(stripe.webhooks.constructEvent(body, signature, 'whsec').data.object);
+}`,
+  ],
+  [
+    'two calls pass different schemas',
+    `async function handlePaymentSuccess(invoice) {
+  return invoice.subscription;
+}
+export function both(body, signature) {
+  const event = stripe.webhooks.constructEvent(body, signature, 'whsec');
+  if (event.type === 'checkout.session.completed') return handlePaymentSuccess(event.data.object);
+}`,
+  ],
+])('leaves a handler parameter to review when %s', (_shape, extra) => {
+  const result = analyze(
+    HANDLERS.replace(/\nasync function handlePaymentSuccess\(invoice\) \{[^}]*\}\n/, '\n') + extra,
+    'route.js',
+  );
+  const reads = result.findings.filter((finding) => finding.expression === '.subscription');
+  expect(reads.length).toBeGreaterThan(0);
+  expect(reads.every((finding) => finding.confidence === 'review' && !finding.webhook)).toBe(true);
+  expect(result.patched).not.toContain('getInvoiceSubscription(');
 });
