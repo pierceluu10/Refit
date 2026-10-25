@@ -126,11 +126,13 @@ it.each([
     { keepListed: true },
     'validation',
   ],
+  // Owner decision 1: the pin moves beside a parameter left for review, and pins that differ from
+  // the configured version all move to the target, so these runs reach validation.
   [
     '--publish-unresolved on a removed parameter',
     "payment_method_types: ['card_present']",
     { leave: true },
-    'scan',
+    'validation',
   ],
   [
     '--publish-unresolved on a card-only rename beside a removed parameter',
@@ -142,13 +144,13 @@ it.each([
     '--publish-unresolved with AI on a removed parameter',
     "payment_method_types: ['card_present']",
     { leave: true, ai: true },
-    'scan',
+    'validation',
   ],
   [
     '--publish-unresolved on an application pin the code contradicts',
     "payment_method_types: ['card']",
     { leave: true, apiVersion: '2026-07-30.basil' },
-    'scan',
+    'validation',
   ],
   ['AI on a removed parameter', "payment_method_types: ['card_present']", { ai: true }, 'scan'],
   ['an application pin the code contradicts', '', { apiVersion: '2026-07-30.basil' }, 'scan'],

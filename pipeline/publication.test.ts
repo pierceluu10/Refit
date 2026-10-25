@@ -103,11 +103,14 @@ it('publishes a webhook-only review as a [Needs review] draft only with --publis
   expect(body).toContain(
     '- [ ] Confirm which API version this code and account use before merging',
   );
-  // Code whose API-version declarations conflict still refuses, flag or not.
+  // Owner decision 1: conflicting pins are reviewed, not refused; without it they refuse (below,
+  // 'independently rejects conflicting or unverified strict source evidence').
   const conflict = await webhookReport();
   conflict.apiVersion.source.status = 'conflict';
   conflict.apiVersion.applicability = 'conflicts-with-code';
-  await expect(publishDraft(conflict, allowed)).rejects.toThrow(/Draft publication is blocked/);
+  expect(publicationWaiver(conflict, true)?.map(({ gate }) => gate)).toContain('api-version');
+  github();
+  await expect(publishDraft(conflict, allowed)).resolves.toMatchObject({ status: 'created' });
 });
 
 async function endpointReport(): Promise<Report> {
@@ -801,6 +804,20 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   regression.validation.status = regression.patch.validation = 'regression';
   expect(publicationWaiver(regression, true)).toBeUndefined();
   await expect(publishDraft(regression, allowed)).rejects.toThrow(/passing baseline/);
+});
+
+// Owner decision 1: a repository checked without its submodules says so, naming each one.
+it('lists every submodule Refit checked around as a reason to review', async () => {
+  const evidence = await report();
+  const validation = evidence.validation as typeof evidence.validation & { submodules: string[] };
+  validation.submodules = ['docs/site', 'packages/ui'];
+  const reviews = publicationWaiver(evidence, true)!;
+  expect(reviews.map(({ gate }) => gate)).toEqual(['submodules']);
+  const { manifest, files } = createReviewArtifacts(evidence, 'github', undefined, reviews);
+  expect(manifest.title).toMatch(/^\[Needs review\] /);
+  expect(files['pull-request.md']).toContain(
+    '- Refit checked this repository without its submodules, so nothing in them was scanned, built or tested. **Check:** Check out the submodules, run your checks on this branch, and confirm the code in each one works with this patch.\n  - `docs/site`\n  - `packages/ui`',
+  );
 });
 
 // Owner decision 8: a passing AI patch is never a validated draft.
