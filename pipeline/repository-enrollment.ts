@@ -2,7 +2,12 @@ import { lstat, mkdir, readdir, realpath, rm, writeFile } from 'node:fs/promises
 import { dirname, join, posix, resolve } from 'node:path';
 import { readCommittedFile, readCommittedRepository } from './committed-repository.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
-import { compareApiVersion, declaresVersion, validateApiVersion } from './api-version.ts';
+import {
+  apiVersionSourceBlocked,
+  compareApiVersion,
+  declaresVersion,
+  validateApiVersion,
+} from './api-version.ts';
 import { parseProviderAdapter, STRIPE, validateProviderMappings } from './providers.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { validateGitHubTarget } from './publication.ts';
@@ -248,7 +253,15 @@ async function inspectEnrollmentInputs(options: {
     if (
       (options.integration === undefined || entry.id === options.integration) &&
       apiVersion.applicability !== 'matches-before' &&
-      !options.acceptedApiVersions?.some((version) => declaresVersion(apiVersion.source, version))
+      !options.acceptedApiVersions?.some((version) =>
+        declaresVersion(apiVersion.source, version),
+      ) &&
+      // Owner decision 1: pins that send several versions all move, and the draft lists them.
+      !(
+        options.allowUntested &&
+        apiVersion.source.status === 'conflict' &&
+        !apiVersionSourceBlocked(apiVersion, true)
+      )
     )
       throw new PipelineInputError(
         `${integration ? `Integration ${integration}: ` : ''}${apiVersion.reason}`,

@@ -87,9 +87,12 @@ export function declaresVersion(source: ApiVersionSource, version: string) {
   );
 }
 
-export function apiVersionSourceBlocked(evidence: ApiVersionEvidence) {
+// With `reviewConflicts` (owner decision 1) code that pins several versions is not refused: the
+// patch moves every pin to the target and the draft lists each one, so only a source-verified
+// refusal blocks.
+export function apiVersionSourceBlocked(evidence: ApiVersionEvidence, reviewConflicts = false) {
   return (
-    evidence.source?.status === 'conflict' ||
+    (!reviewConflicts && evidence.source?.status === 'conflict') ||
     (evidence.policy === 'source-verified' && evidence.source?.status !== 'verified')
   );
 }

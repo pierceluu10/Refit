@@ -103,11 +103,14 @@ it('publishes a webhook-only review as a [Needs review] draft only with --publis
   expect(body).toContain(
     '- [ ] Confirm which API version this code and account use before merging',
   );
-  // Code whose API-version declarations conflict still refuses, flag or not.
+  // Owner decision 1: conflicting pins are reviewed, not refused; without it they refuse (below,
+  // 'independently rejects conflicting or unverified strict source evidence').
   const conflict = await webhookReport();
   conflict.apiVersion.source.status = 'conflict';
   conflict.apiVersion.applicability = 'conflicts-with-code';
-  await expect(publishDraft(conflict, allowed)).rejects.toThrow(/Draft publication is blocked/);
+  expect(publicationWaiver(conflict, true)?.map(({ gate }) => gate)).toContain('api-version');
+  github();
+  await expect(publishDraft(conflict, allowed)).resolves.toMatchObject({ status: 'created' });
 });
 
 async function endpointReport(): Promise<Report> {

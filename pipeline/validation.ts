@@ -610,7 +610,7 @@ export async function validateMigration(options: {
     aiPatch: undefined,
     assessment: undefined,
   });
-  if (apiVersionSourceBlocked(preflight.apiVersion))
+  if (apiVersionSourceBlocked(preflight.apiVersion, options.leaveReviewedFindings))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
   const reviewReason = options.leaveReviewedFindings
     ? undefined
