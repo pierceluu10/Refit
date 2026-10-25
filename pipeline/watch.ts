@@ -38,6 +38,7 @@ import { withGitHubCheckout, type GitHubCheckoutTarget } from './github-checkout
 import { gitEnvironment } from './git-environment.ts';
 import { REFIT_VERSION } from './migration-identity.ts';
 import { commentOnOwnDraft } from './publication.ts';
+import { GitHubRequestError } from './github.ts';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 30_000;
@@ -222,6 +223,8 @@ async function watchLocalOnce(
           'The advanced watch baseline does not match its recorded hash.',
         );
       configuration.apiVersion = advanced.apiVersion;
+      // Nobody attested this pin; only the code's own declarations, checked on every poll, back it.
+      configuration.apiVersionPolicy = 'source-verified';
     }
     const after = join(snapshots, `${snapshot.hash}.json`);
     try {
@@ -263,8 +266,9 @@ async function watchLocalOnce(
         revision,
         repositoryHash: scan.repository.hash,
         adapter: provider,
-        // A new release is a new target even when the changes Refit maps are the same: its draft
-        // replaces the older one (pipeline/publication.ts).
+        // A new release is a new target even when the changes Refit maps are the same: it gets its
+        // own draft (draftKey in pipeline/publication.ts). The older draft closes only with
+        // --supersede-drafts.
         apiVersion: {
           application: scan.apiVersion.application,
           before: scan.apiVersion.before,
@@ -350,11 +354,12 @@ async function watchLocalOnce(
         configuration.publication &&
         isObject(previous) &&
         OPEN_DRAFT_STATUSES.has(settled.status)
-          ? await postWeeklyStatus(previous, configuration.publication, {
-              base: configuration.publication.base,
-              revision,
-              target: scan.apiVersion.after,
-            })
+          ? await postWeeklyStatus(
+              previous,
+              configuration.publication,
+              { base: configuration.publication.base, revision, target: scan.apiVersion.after },
+              () => writeState(statePath, state),
+            )
           : undefined;
       if (options.weeklyStatus) await writeState(statePath, state);
       return {
@@ -458,11 +463,12 @@ async function watchLocalOnce(
 }
 
 // Posts the weekly note on the job's draft when a week has passed since the job finished or the
-// last note, and records when it checked on the job; returns the draft's URL when it posted.
+// last check, and records when it checked on the job; returns the draft's URL when it posted.
 async function postWeeklyStatus(
   job: Record<string, unknown>,
   publication: NonNullable<WorkflowOptions['publication']>,
   current: { base: string; revision: string; target: string | null },
+  save: () => Promise<void>,
 ) {
   if (typeof job.output !== 'string') return;
   const since = Date.parse(String(job.weeklyStatusAt ?? job.finishedAt));
@@ -480,16 +486,24 @@ async function postWeeklyStatus(
     typeof draft.branch !== 'string'
   )
     return;
-  const note = `Refit checked this draft again on ${new Date().toISOString().slice(0, 10)}. Nothing the patch depends on has changed since ${new Date(since).toISOString().slice(0, 10)}: \`${current.base}\` is still at \`${current.revision.slice(0, 7)}\`${current.target ? `, and the newest contract Refit has seen is still \`${current.target}\`` : ''}. The patch and the check results in the description still apply; Refit did not rerun the checks.
+  const note = `Refit checked this draft again on ${new Date().toISOString().slice(0, 10)}. \`${current.base}\` is at \`${current.revision.slice(0, 7)}\`${current.target ? ` and the newest contract Refit has seen targets \`${current.target}\`` : ''}, as on ${new Date(since).toISOString().slice(0, 10)}, so Refit did not regenerate the patch or rerun the checks. The check results in the description are from the run on that commit.
 
 Refit posts this once a week while the draft is open, because the service runs with \`--weekly-status\`.`;
-  const posted = await commentOnOwnDraft(
-    publication,
-    { number: draft.number, branch: draft.branch, revision: current.revision },
-    note,
-  );
+  // Recorded before posting, so a failed state write never posts the note twice.
   job.weeklyStatusAt = new Date().toISOString();
-  return posted ? draft.url : undefined;
+  await save();
+  try {
+    const posted = await commentOnOwnDraft(
+      publication,
+      { number: draft.number, branch: draft.branch, revision: current.revision },
+      note,
+    );
+    return posted ? draft.url : undefined;
+  } catch (error) {
+    // GitHub refusing the note skips this week's; it never fails the poll.
+    if (!(error instanceof GitHubRequestError)) throw error;
+    return undefined;
+  }
 }
 
 // Why a recorded job ended as it did, so a poll that reuses it can still say why.

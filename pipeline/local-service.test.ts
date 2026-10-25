@@ -73,7 +73,13 @@ afterEach(async () => {
 });
 async function start(
   targets = [target()],
-  options: { root?: string; once?: boolean; retryTargets?: string[] } = {},
+  options: {
+    root?: string;
+    once?: boolean;
+    retryTargets?: string[];
+    publishDraft?: boolean;
+    supersedeDrafts?: boolean;
+  } = {},
 ) {
   const root = options.root ?? (await mkdtemp(join(tmpdir(), 'refit-http-service-')));
   if (!options.root) roots.push(root);
@@ -94,6 +100,8 @@ async function start(
     onReady: ready,
     once: options.once,
     retryTargets: options.retryTargets,
+    publishDraft: options.publishDraft,
+    supersedeDrafts: options.supersedeDrafts,
   });
   services.push({ controller, completion });
   const url = await Promise.race([
@@ -165,6 +173,23 @@ it('runs configured installed targets, protects status and acknowledges concurre
   expect(await readFile(join(service.root, 'registry.json'), 'utf8')).not.toContain(
     'private-read-test-token',
   );
+});
+
+it('closes superseded drafts only when the service is asked to', async () => {
+  await (
+    await start([target()], { once: true, publishDraft: true })
+  ).completion;
+  await (
+    await start([target()], { once: true, publishDraft: true, supersedeDrafts: true })
+  ).completion;
+  const publications = vi
+    .mocked(watchOnce)
+    .mock.calls.map(([input]) => input.configuration.publication);
+  expect(publications).toMatchObject([
+    { repository: 'example/application', base: 'main', app: APP },
+    { repository: 'example/application', base: 'main', app: APP, supersedeDrafts: true },
+  ]);
+  expect(publications[0]).not.toHaveProperty('supersedeDrafts');
 });
 
 it('surfaces documentation-only changes in service status without describing a migration run', async () => {

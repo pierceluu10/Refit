@@ -398,6 +398,39 @@ it('stops a generated configuration whose contracts cannot be downloaded before 
   await expect(readdir(sample.contracts)).rejects.toMatchObject({ code: 'ENOENT' });
 });
 
+it('stops a generated configuration for review when a Stripe-importing file does not parse', async () => {
+  const sample = await setupGenerated();
+  await writeFile(
+    join(transport.source, 'src/billing.ts'),
+    "import Stripe from 'stripe';\nconst total = ;\n",
+  );
+  await commit();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => {
+      throw new Error('No contract download expected');
+    }),
+  );
+  const worker = vi.spyOn(watch, 'watchOnce');
+  const target = generatedTarget({
+    formatVersion: 2,
+    kind: 'refit-repository-approval',
+    repository: 'example/application',
+    base: 'main',
+    fingerprint: 'f'.repeat(64),
+    files: [],
+    integrations: ['stripe'],
+    reviewedRevision: transport.head,
+    approvedAt: '2026-10-24T00:00:00.000Z',
+  });
+  const stopped = pollServiceTarget({ ...sample.input, target, contracts: sample.contracts });
+  // A RepositoryApprovalError is what hosted jobs record as needs-review rather than error.
+  await expect(stopped).rejects.toBeInstanceOf(RepositoryApprovalError);
+  await expect(stopped).rejects.toThrow('src/billing.ts imports stripe but does not parse');
+  expect(globalThis.fetch).not.toHaveBeenCalled();
+  expect(worker).not.toHaveBeenCalled();
+});
+
 it.skipIf(!SAVED_CONTRACTS)(
   "downloads the generated configuration's contracts once, loads its approval and runs from the saved files",
   async () => {

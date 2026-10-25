@@ -228,7 +228,12 @@ it('generates a [Needs review] draft an earlier Refit release wrote again and up
     number: 1,
   });
   draft.body = writtenEarlier(draft.body);
-  expect(await findExistingMigration(earlier, await main(), options())).toBeUndefined();
+  expect(await findExistingMigration(earlier, await main(), options(), true)).toBeUndefined();
+  // A run with AI never generates it again, so a Refit release spends no AI budget.
+  expect(await findExistingMigration(earlier, await main(), options())).toMatchObject({
+    status: 'existing',
+    number: 1,
+  });
   // This release migrates what the earlier one left: the same draft, no longer for review.
   const current = await candidate('migrates the usage the earlier release left');
   expect(await publishDraft(current, options())).toMatchObject({ status: 'updated', number: 1 });
@@ -237,12 +242,35 @@ it('generates a [Needs review] draft an earlier Refit release wrote again and up
   expect(github.pulls(REPOSITORY)[0].body).toContain(`"refit": "${REFIT_VERSION}"`);
 });
 
+it('reports a [Needs review] draft an earlier release left on another branch as it is', async () => {
+  const earlier = await candidate();
+  earlier.patch.unresolvedFindings = 1;
+  const { branch } = await publishDraft(earlier, { ...options(), allowUnresolved: true });
+  // As a release that named draft branches differently left it.
+  const [draft] = github.pulls(REPOSITORY);
+  draft.body = writtenEarlier(draft.body);
+  draft.head = 'refit/legacy';
+  const bare = github.remote(REPOSITORY);
+  await execute('git', ['-C', bare, 'update-ref', 'refs/heads/refit/legacy', draft.headSha], {
+    env: isolated,
+  });
+  await execute('git', ['-C', bare, 'update-ref', '-d', `refs/heads/${branch}`], {
+    env: isolated,
+  });
+  // Generating it again would publish a second draft on the current branch.
+  expect(await findExistingMigration(earlier, await main(), options(), true)).toMatchObject({
+    status: 'existing',
+    number: 1,
+    branch: 'refit/legacy',
+  });
+});
+
 it('still finds a draft an earlier release wrote when nothing in it needs review', async () => {
   const report = await candidate();
   await publishDraft(report, options());
   const [draft] = github.pulls(REPOSITORY);
   draft.body = writtenEarlier(draft.body);
-  expect(await findExistingMigration(report, await main(), options())).toMatchObject({
+  expect(await findExistingMigration(report, await main(), options(), true)).toMatchObject({
     status: 'existing',
     number: 1,
     validation: 'not-rerun',
@@ -403,6 +431,14 @@ it('posts the weekly note only on an open draft Refit still owns', async () => {
   expect(
     await commentOnOwnDraft(options(), { ...target, branch: 'customer/feature' }, 'Wrong.'),
   ).toBe(false);
+  // One a person marked ready for review, or moved to another base, is theirs to follow.
+  const [pull] = github.pulls(REPOSITORY);
+  pull.draft = false;
+  expect(await commentOnOwnDraft(options(), target, 'Ready.')).toBe(false);
+  pull.draft = true;
+  pull.base = 'release';
+  expect(await commentOnOwnDraft(options(), target, 'Retargeted.')).toBe(false);
+  pull.base = 'main';
 
   const branch = join(root, 'branch');
   await execute(
@@ -474,38 +510,45 @@ function earlierDraft(
 }
 
 const providerMarker = (provider: string) => `<!-- refit-provider: ${provider} -->`;
+const targetMarker = (version: string) => `<!-- refit-target: ${version} -->`;
 
-it('closes older drafts only when asked, and only for the same provider and integration', async () => {
+it('closes older drafts only when asked, and only for the same provider, integration and an older target', async () => {
   const revision = await main();
   const report = await candidate();
   const same = providerMarker(report.provider);
-  const older = await earlierDraft(report, revision, 'older', [same]);
+  const earlier = targetMarker('2022-08-01');
+  const older = await earlierDraft(report, revision, 'older', [same, earlier]);
   await earlierDraft(report, revision, 'legacy', []);
-  await earlierDraft(report, revision, 'shopify', [providerMarker('shopify')]);
+  await earlierDraft(report, revision, 'shopify', [providerMarker('shopify'), earlier]);
   const other = await earlierDraft(
     report,
     revision,
     'other',
-    [same, `${INTEGRATION_MARKER}billing-stripe -->`],
+    [same, earlier, `${INTEGRATION_MARKER}billing-stripe -->`],
     'billing-stripe',
   );
-  const edited = await earlierDraft(report, revision, 'edited', [same]);
+  const edited = await earlierDraft(report, revision, 'edited', [same, earlier]);
   await addPersonCommit(edited.branch);
-  const ready = await earlierDraft(report, revision, 'ready', [same]);
+  const ready = await earlierDraft(report, revision, 'ready', [same, earlier]);
   github.pulls(REPOSITORY).find(({ number }) => number === ready.number)!.draft = false;
+  // A newer target's draft, which a retried job for this older target must leave open.
+  await earlierDraft(report, revision, 'newer', [same, targetMarker('2023-08-16')]);
+  await earlierDraft(report, revision, 'untargeted', [same]);
   const states = () => github.pulls(REPOSITORY).map(({ number, state }) => [number, state]);
 
   // Off by default.
   const current = await publishDraft(report, options());
-  expect(current).toMatchObject({ status: 'created', number: 7 });
+  expect(current).toMatchObject({ status: 'created', number: 9 });
   expect(current).not.toHaveProperty('superseded');
-  expect(github.pulls(REPOSITORY).find(({ number }) => number === 7)?.body).toContain(same);
+  expect(github.pulls(REPOSITORY).find(({ number }) => number === 9)?.body).toContain(
+    `${same}\n${targetMarker(report.apiVersion.after!)}`,
+  );
   expect(states().every(([, state]) => state === 'open')).toBe(true);
 
   const asked = { ...options(), supersedeDrafts: true };
   expect(await publishDraft(report, asked)).toMatchObject({
     status: 'existing',
-    number: 7,
+    number: 9,
     superseded: [older.number],
   });
   expect(states()).toEqual([
@@ -516,12 +559,14 @@ it('closes older drafts only when asked, and only for the same provider and inte
     [5, 'open'],
     [6, 'open'],
     [7, 'open'],
+    [8, 'open'],
+    [9, 'open'],
   ]);
   expect(github.comments(REPOSITORY)).toEqual([
     {
       issue: 1,
       user: BOT,
-      body: `Superseded by #7. Refit keeps one draft per integration and updates it in place; that draft migrates this code to ${report.apiVersion.after} on the current \`main\`.\n\n<!-- refit-superseded -->`,
+      body: `Superseded by #9. Refit keeps one draft per integration and updates it in place; that draft migrates this code to ${report.apiVersion.after} on the current \`main\`.\n\n<!-- refit-superseded -->`,
     },
   ]);
   expect(await branchTip(other.branch)).toBeTruthy();
@@ -529,7 +574,7 @@ it('closes older drafts only when asked, and only for the same provider and inte
   // A person reopens the closed draft: Refit leaves it open.
   github.reopenPull(REPOSITORY, older.number);
   const again = await publishDraft(report, asked);
-  expect(again).toMatchObject({ status: 'existing', number: 7 });
+  expect(again).toMatchObject({ status: 'existing', number: 9 });
   expect(again).not.toHaveProperty('superseded');
   expect(states()[0]).toEqual([1, 'open']);
   expect(github.comments(REPOSITORY)).toHaveLength(1);
@@ -538,11 +583,12 @@ it('closes older drafts only when asked, and only for the same provider and inte
 it('opens a new draft for a target whose draft Refit closed itself, unlike one a person closed', async () => {
   const revision = await main();
   const report = await candidate();
-  const older = await earlierDraft(report, revision, 'older', [providerMarker(report.provider)]);
+  const markers = [providerMarker(report.provider), targetMarker('2022-08-01')];
+  const older = await earlierDraft(report, revision, 'older', markers);
   await publishDraft(report, { ...options(), supersedeDrafts: true });
   expect(github.pulls(REPOSITORY)[0]).toMatchObject({ number: 1, state: 'closed' });
 
-  const reopened = await earlierDraft(report, revision, 'older', [providerMarker(report.provider)]);
+  const reopened = await earlierDraft(report, revision, 'older', markers);
   expect(reopened).toMatchObject({ status: 'created', number: 3, branch: older.branch });
 });
 
@@ -644,7 +690,23 @@ it('closes its draft when the customer migrates the reads without moving the pin
 it('stays quiet when the code already sends the target and Refit has no draft', async () => {
   await migrateByHand('2022-11-15');
   expect((await workflow()).manifest).toMatchObject({ status: 'up-to-date' });
+  // main moves on GitHub while the checkout is scanned: with no draft to close, that is no error.
+  await addPersonCommit('main');
+  expect((await workflow()).manifest).toMatchObject({ status: 'up-to-date' });
   expect(github.pulls(REPOSITORY)).toEqual([]);
+  expect(github.comments(REPOSITORY)).toEqual([]);
+});
+
+it('leaves a draft a person marked ready for review open when the customer migrates', async () => {
+  const report = await candidate();
+  await publishDraft(report, options());
+  github.pulls(REPOSITORY)[0].draft = false;
+  await migrateByHand(report.apiVersion.after!);
+  expect((await workflow()).manifest).toMatchObject({
+    status: 'up-to-date',
+    reason: 'The code already sends 2022-11-15 and uses none of what it breaks.',
+  });
+  expect(github.pulls(REPOSITORY)).toMatchObject([{ number: 1, state: 'open', draft: false }]);
   expect(github.comments(REPOSITORY)).toEqual([]);
 });
 

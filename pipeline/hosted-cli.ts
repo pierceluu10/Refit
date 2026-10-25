@@ -12,7 +12,7 @@ import { githubAppConfiguration } from './github-app.ts';
 import { openHostedPool } from './hosted-database.ts';
 import { hostedSchemaStatus, migrateHostedSchema } from './hosted-migrations.ts';
 import { UNINSTALL_GRACE_DAYS } from './hosted-retention.ts';
-import { runHostedJob } from './hosted-runner.ts';
+import { runForkedJob, runHostedJob, runHostedTarget } from './hosted-runner.ts';
 import {
   checkHostedHealth,
   hostedLogging,
@@ -24,7 +24,7 @@ import {
   readHostedReceipt,
 } from './hosted-ops.ts';
 import { runHostedService } from './hosted-service.ts';
-import { openHostedStore } from './hosted-store.ts';
+import { hostedAiPatch, openHostedStore } from './hosted-store.ts';
 import { hostedContact } from './hosted-setup.ts';
 import { hostedTenancy } from './hosted-tenancy.ts';
 import { openInventoryStore } from './inventory-store.ts';
@@ -38,7 +38,9 @@ import { terminalText } from './workflow-presentation.ts';
 const GITHUB_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const JOB_ID = /^[1-9]\d{0,15}$/;
-const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--publish-unresolved] [--job-machines] [--purge-uninstalled]
+// A job process's connections, for its AI ledger reservations.
+const JOB_PROCESS_CONNECTIONS = 2;
+const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--publish-unresolved] [--job-processes <n> | --job-machines] [--purge-uninstalled]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
        refit hosted pause
@@ -52,9 +54,10 @@ const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] 
        refit hosted receipt <job>
        refit hosted targets
        refit hosted health
-Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_ACCOUNTS, the comma-separated GitHub accounts whose installations may enroll (default: REFIT_HOSTED_OWNER alone). Other accounts' installations are recorded as not allowed and nothing is cloned. Each installation runs one job at a time, at most REFIT_HOSTED_DAILY_JOBS (default 1440) jobs and REFIT_HOSTED_DAILY_INVENTORIES (default 500) inventories per UTC day. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation in PostgreSQL, and one ledger across all installations capped at REFIT_HOSTED_AI_BUDGET_USD (default: REFIT_AI_BUDGET_USD).
+Requires REFIT_DATABASE_URL (PostgreSQL). serve also requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET, a different REFIT_SERVICE_TOKEN and REFIT_HOSTED_ACCOUNTS, the comma-separated GitHub accounts whose installations may enroll (default: REFIT_HOSTED_OWNER alone). Other accounts' installations are recorded as not allowed and nothing is cloned. Each installation runs at most REFIT_HOSTED_INSTALLATION_JOBS (default 1) jobs at a time, at most REFIT_HOSTED_DAILY_JOBS (default 1440) jobs and REFIT_HOSTED_DAILY_INVENTORIES (default 500) inventories per UTC day. --ai-patch uses OPENAI_API_KEY and OPENAI_MODEL with a separate REFIT_AI_BUDGET_USD ledger per installation in PostgreSQL, and one ledger across all installations capped at REFIT_HOSTED_AI_BUDGET_USD (default: REFIT_AI_BUDGET_USD).
 approve stores a receipt made by refit enroll. Installing the App on an approved repository enrolls it: the worker runs refit doctor, then scans and validates with the approved checks, and stores a job receipt. Installed repositories without an approval never run. Removing the repository or the installation cancels its targets and stops running jobs. --publish-draft opens draft PRs as Refit Agent; Refit never merges. --publish-unresolved turns the stops listed in docs/CLI.md into [Needs review] drafts; doctor's setup problems still stop a job, and a patch whose checks fail on it never publishes. On Fly, a scheduled poll whose base commit, approval and worker build (FLY_IMAGE_REF and the AI and draft settings) match the target's last finished, ready job reuses that receipt, runs nothing and does not count against the daily cap; a contract or documentation fetched from upstream always runs.
-pause stops every worker from starting jobs until resume, across deploys and restarts: running jobs finish, queued jobs wait and webhooks are still recorded. serve stops claiming on the first SIGINT or SIGTERM and exits once its running job finishes; a second signal stops the job.
+pause stops every worker from starting jobs until resume, across deploys and restarts: running jobs finish, queued jobs wait and webhooks are still recorded. serve stops claiming on the first SIGINT or SIGTERM and exits once its running jobs finish; a second signal stops them.
+--job-processes <n> runs each job in its own forked refit hosted job process, up to n at once, so a long scan never blocks /health, webhooks or lease renewals. Without it, serve runs one job at a time inside the serve process. A job process gets the worker's environment without REFIT_WEBHOOK_SECRET, REFIT_SERVICE_TOKEN and FLY_API_TOKEN.
 retry queues one fresh attempt for an enrolled target, permitting a cached failed job to run again; successful jobs remain cached. Approval and access gates still apply.
 migrate applies pending schema migrations, which serve also does on start; --dry-run lists them without applying anything. serve keeps running through PostgreSQL outages. With --purge-uninstalled it deletes an uninstalled installation's targets, jobs and evidence ${UNINSTALL_GRACE_DAYS} days after the uninstall; without it, nothing is deleted.
 With REFIT_HOSTED_APPROVAL_ISSUES=1, serve opens one issue on each installed repository of an allowed account that has no approval, showing what refit enroll shows (or a proposed .refit.json), and handles /refit approve <fingerprint-prefix> and /refit revoke comments from users with the admin or maintain role. It needs the App's Issues permission and issue_comment event.
@@ -62,7 +65,7 @@ REFIT_HOSTED_LIFECYCLE=1 (off by default) follows repository renames, transfers 
 ai-budget prints each AI ledger's limit, recorded spend and open reservations (requests that reserved their maximum cost and never settled). --limit moves every installation's ledger to a new limit and --total-limit moves the ledger across installations, keeping recorded spend; both refuse while a job runs. Then set REFIT_AI_BUDGET_USD and REFIT_HOSTED_AI_BUDGET_USD to the same values and restart the worker; until it restarts, its AI requests are refused because the limits differ.
 accounts lists every recorded installation, whether the serving worker allowed it, and today's usage against the caps. Run it with the worker's REFIT_HOSTED_ACCOUNTS (or REFIT_HOSTED_OWNER) and cap settings.
 inventory queues a read-only inventory of a repository installed by an allowed account, approved or not, and prints the stored one as JSON. The running worker takes it within its polling interval; an unchanged revision is not scanned again. Installing the App queues one for every repository it can read.
---job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch or --publish-draft. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process.
+--job-machines runs each job on its own Fly Machine in REFIT_JOB_APP, a separate Fly app with no secrets, using FLY_API_TOKEN for that app, REFIT_JOB_IMAGE (default FLY_IMAGE_REF), REFIT_JOB_REGION (default FLY_REGION) and the validation images in REFIT_HOSTED_IMAGES. It cannot be combined with --ai-patch, --publish-draft or --job-processes. job runs on such a machine: it reads REFIT_JOB_URL, REFIT_JOB_ID and REFIT_JOB_SECRET, runs that one job and reports to the control process. Forked by --job-processes, job instead takes its job over the IPC channel.
 jobs lists the newest ${JOBS_SHOWN} matching jobs. receipt prints one job's stored receipt and, on the machine that holds the evidence volume, its evidence files. targets lists each target's state, last job and last stored receipt. These commands only read PostgreSQL.
 health checks PostgreSQL, the Refit tables, the Docker daemon and every image in REFIT_HOSTED_IMAGES, and exits 1 if any check fails.
 REFIT_HOSTED_ALERTS=1 (off by default) makes serve monitor every approved, inventoried repository: it takes a new inventory after a default-branch push, a registry change or 24 hours (at most once per 10 minutes), and opens or updates one GitHub issue per repository and deadline 90, 30 and 7 days before it and when it passes. REFIT_HOSTED_ALERT_DIGEST=1 adds a weekly digest issue per repository listing every exposed deadline. It needs the App's Issues write permission, and push re-scans need the App's push event.
@@ -89,11 +92,13 @@ function jobMachines(environment: NodeJS.ProcessEnv) {
   };
 }
 
-function database() {
+function database(max?: number) {
   const connectionString = process.env.REFIT_DATABASE_URL;
   if (!connectionString) throw new PipelineInputError('REFIT_DATABASE_URL is required.');
-  return openHostedPool(connectionString, (error) =>
-    console.error(`[refit] PostgreSQL connection error: ${terminalText(error.message)}`),
+  return openHostedPool(
+    connectionString,
+    (error) => console.error(`[refit] PostgreSQL connection error: ${terminalText(error.message)}`),
+    max,
   );
 }
 
@@ -187,6 +192,7 @@ try {
       'publish-draft': { type: 'boolean' },
       'publish-unresolved': { type: 'boolean' },
       'job-machines': { type: 'boolean' },
+      'job-processes': { type: 'string' },
       'purge-uninstalled': { type: 'boolean' },
       approval: { type: 'string' },
       'approved-by': { type: 'string' },
@@ -262,6 +268,26 @@ try {
     } finally {
       await pool.end();
     }
+  } else if (command === 'job' && process.send) {
+    // Forked by serve --job-processes: the job arrives over IPC, credentials from the environment.
+    await runForkedJob(async ({ aiPatch: ai, aiTotalUsd, ...job }, signal, onProgress) => {
+      const app = githubAppConfiguration(process.env);
+      const { notify } = hostedLogging(process.env);
+      const aiPatch = assessmentConfiguration(ai, process.env);
+      const pool = aiPatch && database(JOB_PROCESS_CONNECTIONS);
+      try {
+        return await runHostedTarget({
+          ...job,
+          app,
+          aiPatch: pool && hostedAiPatch(pool, aiPatch, aiTotalUsd, job.target.installationId),
+          notify,
+          signal,
+          onProgress,
+        });
+      } finally {
+        await pool?.end();
+      }
+    });
   } else if (command === 'job') {
     const url = process.env.REFIT_JOB_URL;
     const job = process.env.REFIT_JOB_ID;
@@ -433,6 +459,8 @@ try {
         build: process.env.FLY_IMAGE_REF?.trim() || undefined,
         contact: hostedContact(process.env.REFIT_HOSTED_CONTACT),
         jobMachines: values['job-machines'] ? jobMachines(process.env) : undefined,
+        jobProcesses:
+          values['job-processes'] === undefined ? undefined : Number(values['job-processes']),
         purgeUninstalled: values['purge-uninstalled'],
         approvalIssues: process.env.REFIT_HOSTED_APPROVAL_ISSUES === '1',
         lifecycle: process.env.REFIT_HOSTED_LIFECYCLE === '1',

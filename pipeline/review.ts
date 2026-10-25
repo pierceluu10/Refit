@@ -44,12 +44,15 @@ const MAX_LISTED_SITES = 25;
 export const NO_OP_CHECK = 'node -e 0';
 // compareTypeCheck() in validation.ts lists these above the type checker's own output.
 const INTRODUCED_TYPE_ERRORS = 'Type errors this patch introduced:\n';
+// Refit's own reasons for stopping a check (containerCheck() in validation.ts). Any other error is the
+// Docker client's message, with the command line and the check's raw output, so it stays private.
+const REFIT_CHECK_STOP = /^Check (?:output )?exceeded /;
 // Checked on GitHub, 2026-10-24.
 const STRIPE_NODE_CHANGELOG = 'https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md';
 
 // A command that only type-checks, as `npx --no-install tsc --noEmit` does.
 function typeCheckOnly(command: string) {
-  return /^(?:npx (?:--no-install )?)?tsc\b/.test(command);
+  return /^(?:npx (?:--no-install )?)?tsc\b|^(?:npm|pnpm|yarn|bun) run type-?check$/.test(command);
 }
 // Gates whose check the checklist already words on its own.
 const CHECKLISTED_GATES = new Set<ReviewReason['gate']>([
@@ -319,7 +322,7 @@ function failedChecks(validation: Validation) {
       ([name, check, side]) =>
         `${name} ${
           check.status === 'error'
-            ? `could not finish on the ${side} code (${plainText((check.error ?? 'no result recorded').replace(/\.$/, ''))})`
+            ? `could not finish on the ${side} code (${check.error && REFIT_CHECK_STOP.test(check.error) ? plainText(check.error.replace(/\.$/, '')) : check.exitCode === null ? 'no result recorded' : `exit code ${check.exitCode}`})`
             : `failed on the ${side} code${check.exitCode === null ? '' : ` with exit code ${check.exitCode}`}`
         }`,
     );
@@ -761,10 +764,11 @@ export function createReviewArtifacts(
         ]
       : []),
   ];
-  // One expression can read more than one removed field; it is one site to check.
+  // One expression can read more than one removed field; it is one site to check. The rescan's
+  // lines are the migrated file's, which the draft shows; older reports have only the scan's.
   const untracedSites = [
     ...new Set(
-      unconfirmed.map(
+      (sites?.filter((site) => site.untraced) ?? unconfirmed).map(
         (finding) => `${code(`${finding.file}:${finding.line}`)} reads ${code(finding.expression)}`,
       ),
     ),
@@ -791,11 +795,13 @@ export function createReviewArtifacts(
   const confirmedLeft = [...unmigratedUsages.values()].filter((group) =>
     group.some((site) => site.confidence === 'confirmed'),
   ).length;
+  // Calls to changed operations that the rescan has no site for; only the run report lists them.
+  const unlisted = sites ? Math.max(0, unresolvedReads - unmigratedSites.length) : 0;
   // Why a [Needs review] draft needs review opens the body; the checklist at the end has the actions.
   const usagesLeft = [
     ...(unresolvedReads
       ? [
-          `${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes${sites && confirmedLeft !== unresolvedReads ? ` (${confirmedLeft ? `${confirmedLeft} confirmed, ${unresolvedReads - confirmedLeft}` : 'none confirmed; Refit'} traced ${confirmedLeft ? 'with less certainty' : 'them with less certainty'})` : ''} ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated: no rule changed ${unresolvedReads === 1 ? 'it' : 'them'}${passed ? `, and the checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}` : ''}. ${unmigratedSites.length ? `${unresolvedReads === 1 ? 'It is' : 'Each is'} listed under Left Unchanged.` : "The locations are in Refit's run report."}`,
+          `${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes${sites && !unlisted && confirmedLeft !== unresolvedReads ? ` (${confirmedLeft ? `${confirmedLeft} confirmed, ${unresolvedReads - confirmedLeft}` : 'none confirmed; Refit'} traced ${confirmedLeft ? 'with less certainty' : 'them with less certainty'})` : ''} ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated: no rule changed ${unresolvedReads === 1 ? 'it' : 'them'}${passed ? `, and the checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}` : ''}. ${unmigratedSites.length ? (unlisted ? `${unmigratedSites.length} ${unmigratedSites.length === 1 ? 'is' : 'are'} listed under Left Unchanged; the other ${unlisted} (${unlisted === 1 ? 'a call to a changed operation' : 'calls to changed operations'}) ${unlisted === 1 ? 'is' : 'are'} in Refit's run report.` : `${unresolvedReads === 1 ? 'It is' : 'Each is'} listed under Left Unchanged.`) : "The locations are in Refit's run report."}`,
         ]
       : []),
     ...(untracedSites.length

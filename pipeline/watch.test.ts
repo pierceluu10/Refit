@@ -9,6 +9,7 @@ import { runWorkflow } from './workflow.ts';
 import { documentationSourceId } from './documentation-sources.ts';
 import { compareOpenApi } from './openapi-diff.ts';
 import { commentOnOwnDraft } from './publication.ts';
+import { GitHubRequestError } from './github.ts';
 
 vi.mock('./workflow.ts', () => ({ runWorkflow: vi.fn() }));
 vi.mock('./publication.ts', async (importOriginal) => ({
@@ -313,6 +314,7 @@ export async function chargeHistory(paymentIntentId: string) {
   expect(vi.mocked(runWorkflow).mock.calls[0][0]).toMatchObject({
     before: join(await realpath(carried), baseline),
     apiVersion: '2022-11-15',
+    apiVersionPolicy: 'source-verified',
   });
   // A baseline file that no longer matches the state stops the watcher.
   await writeFile(join(carried, baseline), await readFile('pipeline/fixtures/before.json'));
@@ -411,9 +413,8 @@ it('comments on an open draft once a week only with weekly status on', async () 
   const [, draft, note] = vi.mocked(commentOnOwnDraft).mock.calls[0];
   expect(draft).toMatchObject({ number: 7, branch: DRAFT.branch });
   expect(note).toMatch(
-    /^Refit checked this draft again on 2026-10-08\. Nothing the patch depends on has changed since 2026-10-01: `main` is still at `[0-9a-f]{7}`/,
+    /^Refit checked this draft again on 2026-10-08\. `main` is at `[0-9a-f]{7}`.*, as on 2026-10-01, so Refit did not regenerate the patch or rerun the checks\./,
   );
-  expect(note).toContain('Refit did not rerun the checks.');
   // The next week counts from the note.
   expect(await poll(14)).not.toHaveProperty('weeklyStatus');
   expect(commentOnOwnDraft).toHaveBeenCalledTimes(1);
@@ -427,6 +428,16 @@ it('comments on an open draft once a week only with weekly status on', async () 
   expect(runWorkflow).toHaveBeenCalledTimes(1);
 });
 
+it('skips a week when GitHub refuses the note, without failing the poll or retrying it each poll', async () => {
+  const { poll } = await weeklyDraft();
+  vi.mocked(commentOnOwnDraft).mockRejectedValue(new GitHubRequestError(404, 'GET', '/pulls/7'));
+  expect(await poll(8)).toMatchObject({ status: 'already-processed' });
+  expect(await poll(9)).toMatchObject({ status: 'already-processed' });
+  expect(commentOnOwnDraft).toHaveBeenCalledTimes(1);
+  vi.mocked(commentOnOwnDraft).mockResolvedValue(true);
+  expect(await poll(15)).toMatchObject({ weeklyStatus: DRAFT.url });
+});
+
 it('starts the week for a draft job recorded before weekly notes, and never comments without a draft', async () => {
   const { input, first, poll } = await weeklyDraft();
   const path = join(input.stateDirectory, 'state.json');
@@ -436,7 +447,7 @@ it('starts the week for a draft job recorded before weekly notes, and never comm
   await poll(20);
   expect(commentOnOwnDraft).not.toHaveBeenCalled();
   expect(await poll(27)).toMatchObject({ weeklyStatus: DRAFT.url });
-  expect(vi.mocked(commentOnOwnDraft).mock.calls[0][2]).toContain('since 2026-10-20');
+  expect(vi.mocked(commentOnOwnDraft).mock.calls[0][2]).toContain('as on 2026-10-20');
 
   vi.mocked(commentOnOwnDraft).mockClear();
   const failed = await weeklyDraft('validation-failed');

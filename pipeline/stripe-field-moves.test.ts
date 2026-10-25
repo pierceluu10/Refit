@@ -172,15 +172,18 @@ it('reads every subscription period through the generated helper', () => {
     true,
   );
   expect(result.patched).toContain(
-    "import { getSubscriptionPeriodStart, getSubscriptionPeriodEnd } from './stripe-subscription-period';",
+    "import { getSubscriptionPeriodStart, getSubscriptionPeriodEnd } from './stripeSubscriptionPeriod';",
   );
   expect(result.patched).toContain(
     'return [(getSubscriptionPeriodStart(subscription)), (subscription == null ? undefined : getSubscriptionPeriodEnd(subscription))];',
   );
   expect(result.patched).not.toMatch(/Math\.(max|min)/);
   expect(
-    result.edits.find((edit) => edit.file === 'stripe-subscription-period.ts')?.replacement,
+    result.edits.find((edit) => edit.file === 'stripeSubscriptionPeriod.ts')?.replacement,
   ).toBe(subscriptionPeriodHelperModule('ts'));
+  // Convex pushes every file in its functions folder and rejects names with characters other than
+  // letters, digits, `_` and `.`.
+  expect(result.edits.every((edit) => /^[\w./]+$/.test(edit.file))).toBe(true);
   expect(result.findings.map((finding) => finding.subscriptionPeriod)).toEqual([
     { rareCase: 'flagged' },
     { rareCase: 'flagged' },
@@ -317,10 +320,10 @@ module.exports = { ends };
     result.edits.filter((edit) => edit.file === 'lib/billing.js'),
   );
   expect(patched).toContain(
-    "const Stripe = require('stripe');\nconst { getSubscriptionPeriodEnd } = require('./stripe-subscription-period');\nconst stripe = new Stripe(",
+    "const Stripe = require('stripe');\nconst { getSubscriptionPeriodEnd } = require('./stripeSubscriptionPeriod');\nconst stripe = new Stripe(",
   );
   expect(
-    result.edits.find((edit) => edit.file === 'lib/stripe-subscription-period.js')?.replacement,
+    result.edits.find((edit) => edit.file === 'lib/stripeSubscriptionPeriod.js')?.replacement,
   ).toBe(subscriptionPeriodHelperModule('cjs'));
 });
 
@@ -391,7 +394,7 @@ it('reads a webhook invoice.subscription through the generated helper for either
   expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
   expect(diff).toContain('+    return (getInvoiceSubscription(invoice));');
   expect(diff).toContain(
-    "+import { getSubscriptionPeriodEnd, getInvoiceSubscription } from './stripe-subscription-period';",
+    "+import { getSubscriptionPeriodEnd, getInvoiceSubscription } from './stripeSubscriptionPeriod';",
   );
   const helper = subscriptionPeriodHelperModule('cjs');
   const { getInvoiceSubscription } = new Function('module', `${helper}; return module.exports;`)(
@@ -619,7 +622,7 @@ it('proposes the field move and the API-version bump as one patch', async () => 
     sources: [
       {
         url: 'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
-        files: ['billing.ts', 'stripe-subscription-period.ts'],
+        files: ['billing.ts', 'stripeSubscriptionPeriod.ts'],
       },
     ],
   });
@@ -627,7 +630,7 @@ it('proposes the field move and the API-version bump as one patch', async () => 
   expect(diff).toContain("+const stripe = new Stripe('sk', { apiVersion: '2025-03-31.basil' });");
   expect(diff).toContain('return (getSubscriptionPeriodEnd(subscription));');
   expect(diff).toContain(
-    'diff --git "a/stripe-subscription-period.ts" "b/stripe-subscription-period.ts"\nnew file mode 100644\n--- /dev/null',
+    'diff --git "a/stripeSubscriptionPeriod.ts" "b/stripeSubscriptionPeriod.ts"\nnew file mode 100644\n--- /dev/null',
   );
 });
 
@@ -839,7 +842,7 @@ it('reads invoice line item and invoice item price IDs through the generated hel
     '+  return invoice.lines.data.map((line) => [(getInvoicePriceId(line)), (line == null ? undefined : getInvoicePriceId(line)), (getInvoicePriceId(item))]);',
   );
   expect(diff).toContain('+  return [line.price?.nickname, line.price?.id.length];');
-  expect(diff).toContain("+import { getInvoicePriceId } from './stripe-subscription-period';");
+  expect(diff).toContain("+import { getInvoicePriceId } from './stripeSubscriptionPeriod';");
   expect(diff).toContain('+export function getInvoicePriceId(line: object): string | undefined {');
   expect(report.patch).toMatchObject({
     warnings: expect.arrayContaining([expect.stringContaining('pricing.price_details.price')]),
@@ -891,7 +894,7 @@ it('reads Checkout Session shipping details through the generated helper', async
     '+  return [(getCheckoutShippingDetails(session)), (getCheckoutShippingDetails(session))?.address, session.shipping_details?.carrier];',
   );
   expect(diff).toContain(
-    "+import { getCheckoutShippingDetails } from './stripe-subscription-period';",
+    "+import { getCheckoutShippingDetails } from './stripeSubscriptionPeriod';",
   );
   expect(report.patch).toMatchObject({
     warnings: expect.arrayContaining([
