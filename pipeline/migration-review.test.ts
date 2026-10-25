@@ -6,7 +6,7 @@ import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { STRIPE } from './providers.ts';
-import { targetReached } from './migration-review.ts';
+import { removedParameterSites, targetReached } from './migration-review.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -203,4 +203,23 @@ export async function chargeHistory(paymentIntentId: string) {
   expect(
     targetReached(compared({ ...removal, removedProperty: `${change.property}_untracked` })),
   ).toBe(false);
+});
+
+it('names at most three calls that still send a removed parameter and counts the rest', () => {
+  const sends = (line: number) => ({
+    file: 'billing.js',
+    line,
+    column: 1,
+    changeId: 'removed-payment-method-types',
+    expression: 'checkout.sessions.create',
+    confidence: 'review' as const,
+    reason: 'Removed parameter.',
+    requestParameter: { operationId: 'PostCheckoutSessions', parameter: 'payment_method_types' },
+  });
+  expect(removedParameterSites([sends(4)])).toBe(
+    'The call: billing.js:4 sends payment_method_types.',
+  );
+  expect(removedParameterSites([1, 2, 3, 4, 5].map(sends))).toBe(
+    'The calls: billing.js:1 sends payment_method_types; billing.js:2 sends payment_method_types; billing.js:3 sends payment_method_types; and 2 more in the run report.',
+  );
 });
