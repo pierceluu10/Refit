@@ -81,6 +81,7 @@ const WRITES = new Set([
   'writeFileSync',
 ]);
 const TEMPORARY = new Set(['mkdtemp', 'mkdtempSync']);
+const FS_MODULES = new Set(['fs', 'fs/promises', 'node:fs', 'node:fs/promises']);
 const NETWORK = new Set(['WebSocket', 'XMLHttpRequest', 'EventSource']);
 const GLOBALS = new Set(['globalThis', 'global', 'window', 'self']);
 const PROCESS_CONTROL = new Set([
@@ -352,7 +353,9 @@ function testFileProblems(path: string, content: string, repositoryFiles: Set<st
       `${path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1} ${problem}`,
     );
   const temporary = new Set<string>();
-  const writers = new Set(WRITES);
+  // fs module objects, and local names bound to their file-writing functions.
+  const modules = new Set<string>();
+  const writers = new Set<string>();
   let importsTest = false;
   let tests = 0;
   const isCall = (node: ts.Node, names: Set<string>) =>
@@ -379,6 +382,25 @@ function testFileProblems(path: string, content: string, repositoryFiles: Set<st
       return inTemporary(node.left);
     return false;
   };
+  const fsModule = (node: ts.Expression): boolean => {
+    node = unwrap(node);
+    if (ts.isIdentifier(node)) return modules.has(node.text);
+    if (ts.isPropertyAccessExpression(node))
+      return node.name.text === 'promises' && fsModule(node.expression);
+    return (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteralLike(node.arguments[0]) &&
+      FS_MODULES.has(node.arguments[0].text)
+    );
+  };
+  const writer = (node: ts.Expression): boolean =>
+    ts.isIdentifier(node)
+      ? writers.has(node.text)
+      : (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) &&
+        WRITES.has(nameOf(node) ?? '') &&
+        fsModule(node.expression);
   const specifier = (node: ts.Node, text: string) => {
     if (text === 'node:test') importsTest = true;
     if (PACKAGES.has(text) || BUILTINS.has(text.replace(/^node:/, ''))) return;
@@ -401,9 +423,40 @@ function testFileProblems(path: string, content: string, repositoryFiles: Set<st
       const value = unwrap(binding.value);
       if (isCall(value, TEMPORARY) && underTmp((value as ts.CallExpression).arguments[0] ?? value))
         temporary.add(binding.name);
+      if (fsModule(value)) modules.add(binding.name);
+      if (writer(value)) writers.add(binding.name);
     }
-    if (ts.isImportSpecifier(node) && WRITES.has((node.propertyName ?? node.name).text))
-      writers.add(node.name.text);
+    // import fs, * as fs, { writeFile as save, promises } from fs modules
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteralLike(node.moduleSpecifier) &&
+      FS_MODULES.has(node.moduleSpecifier.text) &&
+      node.importClause
+    ) {
+      const { name, namedBindings } = node.importClause;
+      if (name) modules.add(name.text);
+      if (namedBindings && ts.isNamespaceImport(namedBindings))
+        modules.add(namedBindings.name.text);
+      if (namedBindings && ts.isNamedImports(namedBindings))
+        for (const element of namedBindings.elements) {
+          const imported = (element.propertyName ?? element.name).text;
+          if (WRITES.has(imported)) writers.add(element.name.text);
+          if (imported === 'promises') modules.add(element.name.text);
+        }
+    }
+    // const { writeFile: save, promises } = fs (or = await import('node:fs/promises'))
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isObjectBindingPattern(node.name) &&
+      node.initializer &&
+      fsModule(node.initializer)
+    )
+      for (const element of node.name.elements) {
+        const imported = nameOf(element.propertyName ?? element.name);
+        if (!ts.isIdentifier(element.name) || !imported) continue;
+        if (WRITES.has(imported)) writers.add(element.name.text);
+        if (imported === 'promises') modules.add(element.name.text);
+      }
     ts.forEachChild(node, collect);
   };
   collect(source);
@@ -432,19 +485,21 @@ function testFileProblems(path: string, content: string, repositoryFiles: Set<st
         at(node, `calls ${callee}`);
       else if (callee && TEMPORARY.has(callee) && !underTmp(node.arguments[0] ?? node))
         at(node, 'creates a directory outside os.tmpdir()');
-      else if (callee && writers.has(callee) && !inTemporary(node.arguments[0] ?? node))
+      else if (writer(node.expression) && !inTemporary(node.arguments[0] ?? node))
         at(node, `${callee} writes outside a temporary directory from mkdtemp`);
       if (callee && TEST_CALLS.has(callee) && ts.isIdentifier(node.expression)) tests++;
     } else if (
       (ts.isIdentifier(node) || ts.isPropertyAccessExpression(node)) &&
-      writers.has(nameOf(node) ?? '') &&
+      writer(node) &&
       !(ts.isCallExpression(node.parent) && node.parent.expression === node) &&
       !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node) &&
-      !ts.isImportSpecifier(node.parent)
+      !ts.isImportSpecifier(node.parent) &&
+      !ts.isBindingElement(node.parent) &&
+      !(ts.isVariableDeclaration(node.parent) && node.parent.name === node) &&
+      !(ts.isVariableDeclaration(node.parent) && node.parent.initializer === node)
     )
-      at(node, `refers to ${nameOf(node)} without calling it on a temporary path`);
-    if (ts.isBindingElement(node) && WRITES.has(nameOf(node.propertyName ?? node.name) ?? ''))
-      at(node, 'binds a file-writing function to another name');
+      // A writer passed around (a callback, promisify) could write anywhere.
+      at(node, `passes ${nameOf(node)} on instead of calling it on a temporary path`);
     if (ts.isNewExpression(node)) {
       const callee = nameOf(node.expression);
       if (callee && NETWORK.has(callee)) at(node, `opens a ${callee}`);

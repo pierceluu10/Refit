@@ -620,6 +620,17 @@ import Stripe from 'stripe';`,
   expect(
     parse([{ path: 'refit-behaviour/checkout.test.mjs', content: CHECKOUT_TEST }]).refusals,
   ).toEqual([]);
+  // Stripe fields and parameters that share a name with an fs function are not file writes.
+  const stripeFields = testFile(
+    `  const link = { link: { persistent_token: 'tok' } };
+  const { open } = { open: true };
+  assert.equal(link.link.persistent_token, 'tok');
+  assert.equal(open, true);
+  assert.equal({ status: 'open' }.status, 'open');`,
+  );
+  expect(
+    parse([{ path: 'refit-behaviour/fields.test.mjs', content: stripeFields }]).refusals,
+  ).toEqual([]);
 });
 
 it.each([
@@ -729,7 +740,36 @@ it.each([
         "import fs from 'node:fs';",
       ),
     },
-    'binds a file-writing function to another name',
+    'save writes outside a temporary directory',
+  ],
+  [
+    'a writer passed on',
+    {
+      content: testFile(
+        "  const save = promisify(fs.writeFile);\n  await save('x', '');",
+        "import fs from 'node:fs';\nimport { promisify } from 'node:util';",
+      ),
+    },
+    'passes writeFile on instead of calling it on a temporary path',
+  ],
+  [
+    'a write through fs.promises',
+    {
+      content: testFile(
+        "  await fsp.writeFile('/etc/hosts', '');",
+        "import { promises as fsp } from 'node:fs';",
+      ),
+    },
+    'writeFile writes outside a temporary directory',
+  ],
+  [
+    'a write through a dynamically imported fs',
+    {
+      content: testFile(
+        "  const fs = await import('node:fs/promises');\n  await fs.rm('lib', { recursive: true });",
+      ),
+    },
+    'rm writes outside a temporary directory',
   ],
   [
     'test.skip',
