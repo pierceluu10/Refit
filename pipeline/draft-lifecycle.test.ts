@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { startFakeGitHub, type FakeGitHub } from './fixtures/fake-github.ts';
 import { validatedReport } from './fixtures/publication-report.ts';
 import {
+  AI_PATCH_STOP,
   commentOnOwnDraft,
   draftKey,
   findExistingMigration,
@@ -228,8 +229,8 @@ it('generates a [Needs review] draft an earlier Refit release wrote again and up
     number: 1,
   });
   draft.body = writtenEarlier(draft.body);
-  expect(await findExistingMigration(earlier, await main(), options(), true)).toBeUndefined();
-  // A run with AI never generates it again, so a Refit release spends no AI budget.
+  expect(await findExistingMigration(earlier, await main(), options(), 'release')).toBeUndefined();
+  // Without refresh it is reported as it is.
   expect(await findExistingMigration(earlier, await main(), options())).toMatchObject({
     status: 'existing',
     number: 1,
@@ -240,6 +241,25 @@ it('generates a [Needs review] draft an earlier Refit release wrote again and up
   expect(github.pulls(REPOSITORY)).toHaveLength(1);
   expect(github.pulls(REPOSITORY)[0].title).not.toMatch(/Needs review/);
   expect(github.pulls(REPOSITORY)[0].body).toContain(`"refit": "${REFIT_VERSION}"`);
+});
+
+it('generates a rules-only [Needs review] draft again once for a run with AI', async () => {
+  const report = await candidate();
+  report.patch.unresolvedFindings = 1;
+  await publishDraft(report, { ...options(), allowUnresolved: true });
+  const [draft] = github.pulls(REPOSITORY);
+  // Written by this release, so only the AI refresh generates it again.
+  expect(await findExistingMigration(report, await main(), options(), 'release')).toMatchObject({
+    status: 'existing',
+    number: 1,
+  });
+  expect(await findExistingMigration(report, await main(), options(), 'ai')).toBeUndefined();
+  // Once an AI model worked on it, the draft lists the AI review item and is reported as it is.
+  draft.body = `${draft.body}\n${AI_PATCH_STOP}`;
+  expect(await findExistingMigration(report, await main(), options(), 'ai')).toMatchObject({
+    status: 'existing',
+    number: 1,
+  });
 });
 
 it('reports a [Needs review] draft an earlier release left on another branch as it is', async () => {
@@ -258,7 +278,7 @@ it('reports a [Needs review] draft an earlier release left on another branch as 
     env: isolated,
   });
   // Generating it again would publish a second draft on the current branch.
-  expect(await findExistingMigration(earlier, await main(), options(), true)).toMatchObject({
+  expect(await findExistingMigration(earlier, await main(), options(), 'release')).toMatchObject({
     status: 'existing',
     number: 1,
     branch: 'refit/legacy',
@@ -270,7 +290,7 @@ it('still finds a draft an earlier release wrote when nothing in it needs review
   await publishDraft(report, options());
   const [draft] = github.pulls(REPOSITORY);
   draft.body = writtenEarlier(draft.body);
-  expect(await findExistingMigration(report, await main(), options(), true)).toMatchObject({
+  expect(await findExistingMigration(report, await main(), options(), 'release')).toMatchObject({
     status: 'existing',
     number: 1,
     validation: 'not-rerun',

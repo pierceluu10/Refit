@@ -1,6 +1,39 @@
 {
   "source": "stripe/openapi v2526 openapi/spec3.sdk.json (2026-09-30.endive)",
-  "generated": "2026-10-14",
+  "generated": "2026-10-25",
+  "operationVersions": [
+    "2022-08-01",
+    "2022-11-15",
+    "2023-08-16",
+    "2023-10-16",
+    "2024-04-10",
+    "2024-06-20",
+    "2024-09-30.acacia",
+    "2024-10-28.acacia",
+    "2024-11-20.acacia",
+    "2024-12-18.acacia",
+    "2025-01-27.acacia",
+    "2025-02-24.acacia",
+    "2025-03-31.basil",
+    "2025-04-30.basil",
+    "2025-05-28.basil",
+    "2025-06-30.basil",
+    "2025-07-30.basil",
+    "2025-08-27.basil",
+    "2025-09-30.clover",
+    "2025-10-29.clover",
+    "2025-11-17.clover",
+    "2025-12-15.clover",
+    "2026-01-28.clover",
+    "2026-02-25.clover",
+    "2026-03-25.dahlia",
+    "2026-04-22.dahlia",
+    "2026-05-27.dahlia",
+    "2026-06-24.dahlia",
+    "2026-07-29.dahlia",
+    "2026-08-26.dahlia",
+    "2026-09-30.endive"
+  ],
   "classes": {
     "Aba": "funding_instructions_bank_transfer_aba_record",
     "AbaToggleSettings": "treasury_financial_accounts_resource_aba_toggle_settings",
@@ -585,5 +618,3517 @@
     "treasury.received_credit.failed": "treasury.received_credit",
     "treasury.received_credit.succeeded": "treasury.received_credit",
     "treasury.received_debit.created": "treasury.received_debit"
-  }
+  },
+  "operations": [
+    {
+      "schema": "account",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/account"
+    },
+    {
+      "schema": "account_link",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/account_links"
+    },
+    {
+      "schema": "account_session",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/account_sessions"
+    },
+    {
+      "schema": "account",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/accounts"
+    },
+    {
+      "schema": "account",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/accounts"
+    },
+    {
+      "schema": "account",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/accounts/{account}"
+    },
+    {
+      "schema": "account",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/accounts/{account}"
+    },
+    {
+      "schema": "account",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/accounts/{account}"
+    },
+    {
+      "schema": "account",
+      "method": "capabilities",
+      "operation": "get",
+      "path": "/v1/accounts/{account}/capabilities"
+    },
+    {
+      "schema": "capability",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/accounts/{account}/capabilities"
+    },
+    {
+      "schema": "capability",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/accounts/{account}/capabilities/{capability}"
+    },
+    {
+      "schema": "capability",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/capabilities/{capability}"
+    },
+    {
+      "schema": "external_account",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/accounts/{account}/external_accounts"
+    },
+    {
+      "schema": "external_account",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/external_accounts"
+    },
+    {
+      "schema": "bank_account",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/accounts/{account}/external_accounts/{id}"
+    },
+    {
+      "schema": "card",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/accounts/{account}/external_accounts/{id}"
+    },
+    {
+      "schema": "external_account",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/accounts/{account}/external_accounts/{id}"
+    },
+    {
+      "schema": "external_account",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/accounts/{account}/external_accounts/{id}"
+    },
+    {
+      "schema": "bank_account",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/external_accounts/{id}"
+    },
+    {
+      "schema": "card",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/external_accounts/{id}"
+    },
+    {
+      "schema": "external_account",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/external_accounts/{id}"
+    },
+    {
+      "schema": "login_link",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/login_links"
+    },
+    {
+      "schema": "account",
+      "method": "persons",
+      "operation": "get",
+      "path": "/v1/accounts/{account}/persons"
+    },
+    {
+      "schema": "person",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/accounts/{account}/persons"
+    },
+    {
+      "schema": "person",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/persons"
+    },
+    {
+      "schema": "person",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/accounts/{account}/persons/{person}"
+    },
+    {
+      "schema": "person",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/accounts/{account}/persons/{person}"
+    },
+    {
+      "schema": "person",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/persons/{person}"
+    },
+    {
+      "schema": "account",
+      "method": "reject",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/reject"
+    },
+    {
+      "schema": "account",
+      "method": "unreject",
+      "operation": "post",
+      "path": "/v1/accounts/{account}/unreject"
+    },
+    {
+      "schema": "apple_pay_domain",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/apple_pay/domains"
+    },
+    {
+      "schema": "apple_pay_domain",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/apple_pay/domains"
+    },
+    {
+      "schema": "apple_pay_domain",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/apple_pay/domains/{domain}"
+    },
+    {
+      "schema": "apple_pay_domain",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/apple_pay/domains/{domain}"
+    },
+    {
+      "schema": "application_fee",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/application_fees"
+    },
+    {
+      "schema": "fee_refund",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/application_fees/{fee}/refunds/{id}"
+    },
+    {
+      "schema": "fee_refund",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/application_fees/{fee}/refunds/{id}"
+    },
+    {
+      "schema": "application_fee",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/application_fees/{id}"
+    },
+    {
+      "schema": "fee_refund",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/application_fees/{id}/refunds"
+    },
+    {
+      "schema": "fee_refund",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/application_fees/{id}/refunds"
+    },
+    {
+      "schema": "apps.install",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/apps/installs"
+    },
+    {
+      "schema": "apps.install",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/apps/installs"
+    },
+    {
+      "schema": "apps.install",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/apps/installs/{id}"
+    },
+    {
+      "schema": "apps.install",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/apps/installs/{id}"
+    },
+    {
+      "schema": "apps.install",
+      "method": "uninstall",
+      "operation": "post",
+      "path": "/v1/apps/installs/{id}/uninstall"
+    },
+    {
+      "schema": "apps.secret",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/apps/secrets"
+    },
+    {
+      "schema": "apps.secret",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/apps/secrets"
+    },
+    {
+      "schema": "apps.secret",
+      "method": "delete_where",
+      "operation": "post",
+      "path": "/v1/apps/secrets/delete"
+    },
+    {
+      "schema": "apps.secret",
+      "method": "find",
+      "operation": "get",
+      "path": "/v1/apps/secrets/find"
+    },
+    {
+      "schema": "balance",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/balance"
+    },
+    {
+      "schema": "balance_settings",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/balance_settings"
+    },
+    {
+      "schema": "balance_settings",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/balance_settings"
+    },
+    {
+      "schema": "balance_transaction",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/balance_transactions"
+    },
+    {
+      "schema": "balance_transaction",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/balance_transactions/{id}"
+    },
+    {
+      "schema": "billing_portal.configuration",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/billing_portal/configurations"
+    },
+    {
+      "schema": "billing_portal.configuration",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/billing_portal/configurations"
+    },
+    {
+      "schema": "billing_portal.configuration",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/billing_portal/configurations/{configuration}"
+    },
+    {
+      "schema": "billing_portal.configuration",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/billing_portal/configurations/{configuration}"
+    },
+    {
+      "schema": "billing_portal.session",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/billing_portal/sessions"
+    },
+    {
+      "schema": "billing.alert",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/billing/alerts"
+    },
+    {
+      "schema": "billing.alert",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/billing/alerts"
+    },
+    {
+      "schema": "billing.alert",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/billing/alerts/{id}"
+    },
+    {
+      "schema": "billing.alert",
+      "method": "activate",
+      "operation": "post",
+      "path": "/v1/billing/alerts/{id}/activate"
+    },
+    {
+      "schema": "billing.alert",
+      "method": "archive",
+      "operation": "post",
+      "path": "/v1/billing/alerts/{id}/archive"
+    },
+    {
+      "schema": "billing.alert",
+      "method": "deactivate",
+      "operation": "post",
+      "path": "/v1/billing/alerts/{id}/deactivate"
+    },
+    {
+      "schema": "billing.credit_balance_summary",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/billing/credit_balance_summary"
+    },
+    {
+      "schema": "billing.credit_balance_transaction",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/billing/credit_balance_transactions"
+    },
+    {
+      "schema": "billing.credit_balance_transaction",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/billing/credit_balance_transactions/{id}"
+    },
+    {
+      "schema": "billing.credit_grant",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/billing/credit_grants"
+    },
+    {
+      "schema": "billing.credit_grant",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/billing/credit_grants"
+    },
+    {
+      "schema": "billing.credit_grant",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/billing/credit_grants/{id}"
+    },
+    {
+      "schema": "billing.credit_grant",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/billing/credit_grants/{id}"
+    },
+    {
+      "schema": "billing.credit_grant",
+      "method": "expire",
+      "operation": "post",
+      "path": "/v1/billing/credit_grants/{id}/expire"
+    },
+    {
+      "schema": "billing.credit_grant",
+      "method": "void_grant",
+      "operation": "post",
+      "path": "/v1/billing/credit_grants/{id}/void"
+    },
+    {
+      "schema": "billing.feedback_option",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/billing/feedback_options"
+    },
+    {
+      "schema": "billing.feedback_option",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/billing/feedback_options"
+    },
+    {
+      "schema": "billing.feedback_option",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/billing/feedback_options/{id}"
+    },
+    {
+      "schema": "billing.feedback_option",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/billing/feedback_options/{id}"
+    },
+    {
+      "schema": "billing.feedback_option",
+      "method": "deactivate",
+      "operation": "post",
+      "path": "/v1/billing/feedback_options/{id}/deactivate"
+    },
+    {
+      "schema": "billing.meter_event_adjustment",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/billing/meter_event_adjustments"
+    },
+    {
+      "schema": "billing.meter_event",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/billing/meter_events"
+    },
+    {
+      "schema": "billing.meter",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/billing/meters"
+    },
+    {
+      "schema": "billing.meter",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/billing/meters"
+    },
+    {
+      "schema": "billing.meter",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/billing/meters/{id}"
+    },
+    {
+      "schema": "billing.meter",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/billing/meters/{id}"
+    },
+    {
+      "schema": "billing.meter",
+      "method": "deactivate",
+      "operation": "post",
+      "path": "/v1/billing/meters/{id}/deactivate"
+    },
+    {
+      "schema": "billing.meter_event_summary",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/billing/meters/{id}/event_summaries"
+    },
+    {
+      "schema": "billing.meter",
+      "method": "reactivate",
+      "operation": "post",
+      "path": "/v1/billing/meters/{id}/reactivate"
+    },
+    {
+      "schema": "charge",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/charges"
+    },
+    {
+      "schema": "charge",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/charges"
+    },
+    {
+      "schema": "charge",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/charges/{charge}"
+    },
+    {
+      "schema": "charge",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/charges/{charge}"
+    },
+    {
+      "schema": "charge",
+      "method": "capture",
+      "operation": "post",
+      "path": "/v1/charges/{charge}/capture"
+    },
+    {
+      "schema": "charge",
+      "method": "search",
+      "operation": "get",
+      "path": "/v1/charges/search"
+    },
+    {
+      "schema": "checkout.session",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/checkout/sessions"
+    },
+    {
+      "schema": "checkout.session",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/checkout/sessions"
+    },
+    {
+      "schema": "checkout.session",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/checkout/sessions/{session}"
+    },
+    {
+      "schema": "checkout.session",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/checkout/sessions/{session}"
+    },
+    {
+      "schema": "checkout.session",
+      "method": "expire",
+      "operation": "post",
+      "path": "/v1/checkout/sessions/{session}/expire"
+    },
+    {
+      "schema": "checkout.session",
+      "method": "list_line_items",
+      "operation": "get",
+      "path": "/v1/checkout/sessions/{session}/line_items"
+    },
+    {
+      "schema": "climate.order",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/climate/orders"
+    },
+    {
+      "schema": "climate.order",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/climate/orders"
+    },
+    {
+      "schema": "climate.order",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/climate/orders/{order}"
+    },
+    {
+      "schema": "climate.order",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/climate/orders/{order}"
+    },
+    {
+      "schema": "climate.order",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/climate/orders/{order}/cancel"
+    },
+    {
+      "schema": "climate.product",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/climate/products"
+    },
+    {
+      "schema": "climate.product",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/climate/products/{product}"
+    },
+    {
+      "schema": "climate.supplier",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/climate/suppliers"
+    },
+    {
+      "schema": "climate.supplier",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/climate/suppliers/{supplier}"
+    },
+    {
+      "schema": "confirmation_token",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/confirmation_tokens/{confirmation_token}"
+    },
+    {
+      "schema": "country_spec",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/country_specs"
+    },
+    {
+      "schema": "country_spec",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/country_specs/{country}"
+    },
+    {
+      "schema": "coupon",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/coupons"
+    },
+    {
+      "schema": "coupon",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/coupons"
+    },
+    {
+      "schema": "coupon",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/coupons/{coupon}"
+    },
+    {
+      "schema": "coupon",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/coupons/{coupon}"
+    },
+    {
+      "schema": "coupon",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/coupons/{coupon}"
+    },
+    {
+      "schema": "credit_note",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/credit_notes"
+    },
+    {
+      "schema": "credit_note",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/credit_notes"
+    },
+    {
+      "schema": "credit_note_line_item",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/credit_notes/{credit_note}/lines"
+    },
+    {
+      "schema": "credit_note",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/credit_notes/{id}"
+    },
+    {
+      "schema": "credit_note",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/credit_notes/{id}"
+    },
+    {
+      "schema": "credit_note",
+      "method": "void_credit_note",
+      "operation": "post",
+      "path": "/v1/credit_notes/{id}/void"
+    },
+    {
+      "schema": "credit_note",
+      "method": "preview",
+      "operation": "get",
+      "path": "/v1/credit_notes/preview"
+    },
+    {
+      "schema": "credit_note",
+      "method": "preview_lines",
+      "operation": "get",
+      "path": "/v1/credit_notes/preview/lines"
+    },
+    {
+      "schema": "customer_session",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/customer_sessions"
+    },
+    {
+      "schema": "customer",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/customers"
+    },
+    {
+      "schema": "customer",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/customers"
+    },
+    {
+      "schema": "customer",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/customers/{customer}"
+    },
+    {
+      "schema": "customer",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/customers/{customer}"
+    },
+    {
+      "schema": "customer",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/customers/{customer}"
+    },
+    {
+      "schema": "customer",
+      "method": "balance_transactions",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/balance_transactions"
+    },
+    {
+      "schema": "customer_balance_transaction",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/balance_transactions"
+    },
+    {
+      "schema": "customer_balance_transaction",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/balance_transactions"
+    },
+    {
+      "schema": "customer_balance_transaction",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/balance_transactions/{transaction}"
+    },
+    {
+      "schema": "customer_balance_transaction",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/balance_transactions/{transaction}"
+    },
+    {
+      "schema": "cash_balance",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/cash_balance"
+    },
+    {
+      "schema": "cash_balance",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/cash_balance"
+    },
+    {
+      "schema": "customer_cash_balance_transaction",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/cash_balance_transactions"
+    },
+    {
+      "schema": "customer_cash_balance_transaction",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/cash_balance_transactions/{transaction}"
+    },
+    {
+      "schema": "customer",
+      "method": "delete_discount",
+      "operation": "delete",
+      "path": "/v1/customers/{customer}/discount"
+    },
+    {
+      "schema": "customer",
+      "method": "create_funding_instructions",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/funding_instructions"
+    },
+    {
+      "schema": "customer",
+      "method": "list_payment_methods",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/payment_methods"
+    },
+    {
+      "schema": "customer",
+      "method": "retrieve_payment_method",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/payment_methods/{payment_method}"
+    },
+    {
+      "schema": "payment_source",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/sources"
+    },
+    {
+      "schema": "payment_source",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/sources"
+    },
+    {
+      "schema": "bank_account",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/customers/{customer}/sources/{id}"
+    },
+    {
+      "schema": "card",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/customers/{customer}/sources/{id}"
+    },
+    {
+      "schema": "source",
+      "method": "detach",
+      "operation": "delete",
+      "path": "/v1/customers/{customer}/sources/{id}"
+    },
+    {
+      "schema": "payment_source",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/sources/{id}"
+    },
+    {
+      "schema": "bank_account",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/sources/{id}"
+    },
+    {
+      "schema": "card",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/sources/{id}"
+    },
+    {
+      "schema": "bank_account",
+      "method": "verify",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/sources/{id}/verify"
+    },
+    {
+      "schema": "tax_id",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/tax_ids"
+    },
+    {
+      "schema": "tax_id",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/customers/{customer}/tax_ids"
+    },
+    {
+      "schema": "tax_id",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/customers/{customer}/tax_ids/{id}"
+    },
+    {
+      "schema": "tax_id",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/customers/{customer}/tax_ids/{id}"
+    },
+    {
+      "schema": "customer",
+      "method": "search",
+      "operation": "get",
+      "path": "/v1/customers/search"
+    },
+    {
+      "schema": "dispute",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/disputes"
+    },
+    {
+      "schema": "dispute",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/disputes/{dispute}"
+    },
+    {
+      "schema": "dispute",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/disputes/{dispute}"
+    },
+    {
+      "schema": "dispute",
+      "method": "close",
+      "operation": "post",
+      "path": "/v1/disputes/{dispute}/close"
+    },
+    {
+      "schema": "entitlements.active_entitlement",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/entitlements/active_entitlements"
+    },
+    {
+      "schema": "entitlements.active_entitlement",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/entitlements/active_entitlements/{id}"
+    },
+    {
+      "schema": "entitlements.feature",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/entitlements/features"
+    },
+    {
+      "schema": "entitlements.feature",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/entitlements/features"
+    },
+    {
+      "schema": "entitlements.feature",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/entitlements/features/{id}"
+    },
+    {
+      "schema": "entitlements.feature",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/entitlements/features/{id}"
+    },
+    {
+      "schema": "ephemeral_key",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/ephemeral_keys"
+    },
+    {
+      "schema": "ephemeral_key",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/ephemeral_keys/{key}"
+    },
+    {
+      "schema": "event",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/events"
+    },
+    {
+      "schema": "event",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/events/{id}"
+    },
+    {
+      "schema": "exchange_rate",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/exchange_rates"
+    },
+    {
+      "schema": "exchange_rate",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/exchange_rates/{rate_id}"
+    },
+    {
+      "schema": "file_link",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/file_links"
+    },
+    {
+      "schema": "file_link",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/file_links"
+    },
+    {
+      "schema": "file_link",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/file_links/{link}"
+    },
+    {
+      "schema": "file_link",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/file_links/{link}"
+    },
+    {
+      "schema": "file",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/files"
+    },
+    {
+      "schema": "file",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/files"
+    },
+    {
+      "schema": "file",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/files/{file}"
+    },
+    {
+      "schema": "financial_connections.account",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/financial_connections/accounts"
+    },
+    {
+      "schema": "financial_connections.account",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/financial_connections/accounts/{account}"
+    },
+    {
+      "schema": "financial_connections.account",
+      "method": "disconnect",
+      "operation": "post",
+      "path": "/v1/financial_connections/accounts/{account}/disconnect"
+    },
+    {
+      "schema": "financial_connections.account",
+      "method": "list_owners",
+      "operation": "get",
+      "path": "/v1/financial_connections/accounts/{account}/owners"
+    },
+    {
+      "schema": "financial_connections.account",
+      "method": "refresh",
+      "operation": "post",
+      "path": "/v1/financial_connections/accounts/{account}/refresh"
+    },
+    {
+      "schema": "financial_connections.account",
+      "method": "subscribe",
+      "operation": "post",
+      "path": "/v1/financial_connections/accounts/{account}/subscribe"
+    },
+    {
+      "schema": "financial_connections.account",
+      "method": "unsubscribe",
+      "operation": "post",
+      "path": "/v1/financial_connections/accounts/{account}/unsubscribe"
+    },
+    {
+      "schema": "financial_connections.session",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/financial_connections/sessions"
+    },
+    {
+      "schema": "financial_connections.session",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/financial_connections/sessions/{session}"
+    },
+    {
+      "schema": "financial_connections.transaction",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/financial_connections/transactions"
+    },
+    {
+      "schema": "financial_connections.transaction",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/financial_connections/transactions/{transaction}"
+    },
+    {
+      "schema": "forwarding.request",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/forwarding/requests"
+    },
+    {
+      "schema": "forwarding.request",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/forwarding/requests"
+    },
+    {
+      "schema": "forwarding.request",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/forwarding/requests/{id}"
+    },
+    {
+      "schema": "identity.verification_report",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/identity/verification_reports"
+    },
+    {
+      "schema": "identity.verification_report",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/identity/verification_reports/{report}"
+    },
+    {
+      "schema": "identity.verification_session",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/identity/verification_sessions"
+    },
+    {
+      "schema": "identity.verification_session",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/identity/verification_sessions"
+    },
+    {
+      "schema": "identity.verification_session",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/identity/verification_sessions/{session}"
+    },
+    {
+      "schema": "identity.verification_session",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/identity/verification_sessions/{session}"
+    },
+    {
+      "schema": "identity.verification_session",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/identity/verification_sessions/{session}/cancel"
+    },
+    {
+      "schema": "identity.verification_session",
+      "method": "redact",
+      "operation": "post",
+      "path": "/v1/identity/verification_sessions/{session}/redact"
+    },
+    {
+      "schema": "invoice_payment",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/invoice_payments"
+    },
+    {
+      "schema": "invoice_payment",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/invoice_payments/{invoice_payment}"
+    },
+    {
+      "schema": "invoice_rendering_template",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/invoice_rendering_templates"
+    },
+    {
+      "schema": "invoice_rendering_template",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/invoice_rendering_templates/{template}"
+    },
+    {
+      "schema": "invoice_rendering_template",
+      "method": "archive",
+      "operation": "post",
+      "path": "/v1/invoice_rendering_templates/{template}/archive"
+    },
+    {
+      "schema": "invoice_rendering_template",
+      "method": "unarchive",
+      "operation": "post",
+      "path": "/v1/invoice_rendering_templates/{template}/unarchive"
+    },
+    {
+      "schema": "invoiceitem",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/invoiceitems"
+    },
+    {
+      "schema": "invoiceitem",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/invoiceitems"
+    },
+    {
+      "schema": "invoiceitem",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/invoiceitems/{invoiceitem}"
+    },
+    {
+      "schema": "invoiceitem",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/invoiceitems/{invoiceitem}"
+    },
+    {
+      "schema": "invoiceitem",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/invoiceitems/{invoiceitem}"
+    },
+    {
+      "schema": "invoice",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/invoices"
+    },
+    {
+      "schema": "invoice",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/invoices"
+    },
+    {
+      "schema": "invoice",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/invoices/{invoice}"
+    },
+    {
+      "schema": "invoice",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/invoices/{invoice}"
+    },
+    {
+      "schema": "invoice",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}"
+    },
+    {
+      "schema": "invoice",
+      "method": "add_lines",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/add_lines"
+    },
+    {
+      "schema": "invoice",
+      "method": "attach_payment",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/attach_payment"
+    },
+    {
+      "schema": "invoice",
+      "method": "finalize_invoice",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/finalize"
+    },
+    {
+      "schema": "line_item",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/invoices/{invoice}/lines"
+    },
+    {
+      "schema": "line_item",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/lines/{line_item_id}"
+    },
+    {
+      "schema": "invoice",
+      "method": "mark_uncollectible",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/mark_uncollectible"
+    },
+    {
+      "schema": "invoice",
+      "method": "pay",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/pay"
+    },
+    {
+      "schema": "invoice",
+      "method": "remove_lines",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/remove_lines"
+    },
+    {
+      "schema": "invoice",
+      "method": "send_invoice",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/send"
+    },
+    {
+      "schema": "invoice",
+      "method": "update_lines",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/update_lines"
+    },
+    {
+      "schema": "invoice",
+      "method": "void_invoice",
+      "operation": "post",
+      "path": "/v1/invoices/{invoice}/void"
+    },
+    {
+      "schema": "invoice",
+      "method": "create_preview",
+      "operation": "post",
+      "path": "/v1/invoices/create_preview"
+    },
+    {
+      "schema": "invoice",
+      "method": "search",
+      "operation": "get",
+      "path": "/v1/invoices/search"
+    },
+    {
+      "schema": "invoice",
+      "method": "upcoming",
+      "operation": "get",
+      "path": "/v1/invoices/upcoming"
+    },
+    {
+      "schema": "invoice",
+      "method": "upcomingLines",
+      "operation": "get",
+      "path": "/v1/invoices/upcoming/lines"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/issuing/authorizations"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/issuing/authorizations/{authorization}"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/issuing/authorizations/{authorization}"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "approve",
+      "operation": "post",
+      "path": "/v1/issuing/authorizations/{authorization}/approve"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "decline",
+      "operation": "post",
+      "path": "/v1/issuing/authorizations/{authorization}/decline"
+    },
+    {
+      "schema": "issuing.cardholder",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/issuing/cardholders"
+    },
+    {
+      "schema": "issuing.cardholder",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/issuing/cardholders"
+    },
+    {
+      "schema": "issuing.cardholder",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/issuing/cardholders/{cardholder}"
+    },
+    {
+      "schema": "issuing.cardholder",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/issuing/cardholders/{cardholder}"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/issuing/cards"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/issuing/cards"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/issuing/cards/{card}"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/issuing/cards/{card}"
+    },
+    {
+      "schema": "issuing.dispute",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/issuing/disputes"
+    },
+    {
+      "schema": "issuing.dispute",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/issuing/disputes"
+    },
+    {
+      "schema": "issuing.dispute",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/issuing/disputes/{dispute}"
+    },
+    {
+      "schema": "issuing.dispute",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/issuing/disputes/{dispute}"
+    },
+    {
+      "schema": "issuing.dispute",
+      "method": "submit",
+      "operation": "post",
+      "path": "/v1/issuing/disputes/{dispute}/submit"
+    },
+    {
+      "schema": "issuing.personalization_design",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/issuing/personalization_designs"
+    },
+    {
+      "schema": "issuing.personalization_design",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/issuing/personalization_designs"
+    },
+    {
+      "schema": "issuing.personalization_design",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/issuing/personalization_designs/{personalization_design}"
+    },
+    {
+      "schema": "issuing.personalization_design",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/issuing/personalization_designs/{personalization_design}"
+    },
+    {
+      "schema": "issuing.physical_bundle",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/issuing/physical_bundles"
+    },
+    {
+      "schema": "issuing.physical_bundle",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/issuing/physical_bundles/{physical_bundle}"
+    },
+    {
+      "schema": "issuing.token",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/issuing/tokens"
+    },
+    {
+      "schema": "issuing.token",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/issuing/tokens/{token}"
+    },
+    {
+      "schema": "issuing.token",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/issuing/tokens/{token}"
+    },
+    {
+      "schema": "issuing.transaction",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/issuing/transactions"
+    },
+    {
+      "schema": "issuing.transaction",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/issuing/transactions/{transaction}"
+    },
+    {
+      "schema": "issuing.transaction",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/issuing/transactions/{transaction}"
+    },
+    {
+      "schema": "mandate",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/mandates/{mandate}"
+    },
+    {
+      "schema": "order",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/orders"
+    },
+    {
+      "schema": "order",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/orders"
+    },
+    {
+      "schema": "order",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/orders/{id}"
+    },
+    {
+      "schema": "order",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/orders/{id}"
+    },
+    {
+      "schema": "order",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/orders/{id}/cancel"
+    },
+    {
+      "schema": "order",
+      "method": "list_line_items",
+      "operation": "get",
+      "path": "/v1/orders/{id}/line_items"
+    },
+    {
+      "schema": "order",
+      "method": "reopen",
+      "operation": "post",
+      "path": "/v1/orders/{id}/reopen"
+    },
+    {
+      "schema": "order",
+      "method": "submit",
+      "operation": "post",
+      "path": "/v1/orders/{id}/submit"
+    },
+    {
+      "schema": "payment_attempt_record",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payment_attempt_records"
+    },
+    {
+      "schema": "payment_attempt_record",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/payment_attempt_records/{id}"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payment_intents"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/payment_intents"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/payment_intents/{intent}"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/payment_intents/{intent}"
+    },
+    {
+      "schema": "payment_intent_amount_details_line_item",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payment_intents/{intent}/amount_details_line_items"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "apply_customer_balance",
+      "operation": "post",
+      "path": "/v1/payment_intents/{intent}/apply_customer_balance"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/payment_intents/{intent}/cancel"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "capture",
+      "operation": "post",
+      "path": "/v1/payment_intents/{intent}/capture"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "confirm",
+      "operation": "post",
+      "path": "/v1/payment_intents/{intent}/confirm"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "increment_authorization",
+      "operation": "post",
+      "path": "/v1/payment_intents/{intent}/increment_authorization"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "verify_microdeposits",
+      "operation": "post",
+      "path": "/v1/payment_intents/{intent}/verify_microdeposits"
+    },
+    {
+      "schema": "payment_intent",
+      "method": "search",
+      "operation": "get",
+      "path": "/v1/payment_intents/search"
+    },
+    {
+      "schema": "payment_link",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payment_links"
+    },
+    {
+      "schema": "payment_link",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/payment_links"
+    },
+    {
+      "schema": "payment_link",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/payment_links/{payment_link}"
+    },
+    {
+      "schema": "payment_link",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/payment_links/{payment_link}"
+    },
+    {
+      "schema": "payment_link",
+      "method": "list_line_items",
+      "operation": "get",
+      "path": "/v1/payment_links/{payment_link}/line_items"
+    },
+    {
+      "schema": "payment_method_configuration",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payment_method_configurations"
+    },
+    {
+      "schema": "payment_method_configuration",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/payment_method_configurations"
+    },
+    {
+      "schema": "payment_method_configuration",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/payment_method_configurations/{configuration}"
+    },
+    {
+      "schema": "payment_method_configuration",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/payment_method_configurations/{configuration}"
+    },
+    {
+      "schema": "payment_method_domain",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payment_method_domains"
+    },
+    {
+      "schema": "payment_method_domain",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/payment_method_domains"
+    },
+    {
+      "schema": "payment_method_domain",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/payment_method_domains/{payment_method_domain}"
+    },
+    {
+      "schema": "payment_method_domain",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/payment_method_domains/{payment_method_domain}"
+    },
+    {
+      "schema": "payment_method_domain",
+      "method": "validate",
+      "operation": "post",
+      "path": "/v1/payment_method_domains/{payment_method_domain}/validate"
+    },
+    {
+      "schema": "payment_method",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payment_methods"
+    },
+    {
+      "schema": "payment_method",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/payment_methods"
+    },
+    {
+      "schema": "payment_method",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/payment_methods/{payment_method}"
+    },
+    {
+      "schema": "payment_method",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/payment_methods/{payment_method}"
+    },
+    {
+      "schema": "payment_method",
+      "method": "attach",
+      "operation": "post",
+      "path": "/v1/payment_methods/{payment_method}/attach"
+    },
+    {
+      "schema": "payment_method",
+      "method": "detach",
+      "operation": "post",
+      "path": "/v1/payment_methods/{payment_method}/detach"
+    },
+    {
+      "schema": "payment_record",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payment_records"
+    },
+    {
+      "schema": "payment_record",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/payment_records/{id}"
+    },
+    {
+      "schema": "payment_record",
+      "method": "report_payment_attempt",
+      "operation": "post",
+      "path": "/v1/payment_records/{id}/report_payment_attempt"
+    },
+    {
+      "schema": "payment_record",
+      "method": "report_payment_attempt_canceled",
+      "operation": "post",
+      "path": "/v1/payment_records/{id}/report_payment_attempt_canceled"
+    },
+    {
+      "schema": "payment_record",
+      "method": "report_payment_attempt_failed",
+      "operation": "post",
+      "path": "/v1/payment_records/{id}/report_payment_attempt_failed"
+    },
+    {
+      "schema": "payment_record",
+      "method": "report_payment_attempt_guaranteed",
+      "operation": "post",
+      "path": "/v1/payment_records/{id}/report_payment_attempt_guaranteed"
+    },
+    {
+      "schema": "payment_record",
+      "method": "report_payment_attempt_informational",
+      "operation": "post",
+      "path": "/v1/payment_records/{id}/report_payment_attempt_informational"
+    },
+    {
+      "schema": "payment_record",
+      "method": "report_refund",
+      "operation": "post",
+      "path": "/v1/payment_records/{id}/report_refund"
+    },
+    {
+      "schema": "payment_record",
+      "method": "report_payment",
+      "operation": "post",
+      "path": "/v1/payment_records/report_payment"
+    },
+    {
+      "schema": "payout",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/payouts"
+    },
+    {
+      "schema": "payout",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/payouts"
+    },
+    {
+      "schema": "payout",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/payouts/{payout}"
+    },
+    {
+      "schema": "payout",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/payouts/{payout}"
+    },
+    {
+      "schema": "payout",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/payouts/{payout}/cancel"
+    },
+    {
+      "schema": "payout",
+      "method": "reverse",
+      "operation": "post",
+      "path": "/v1/payouts/{payout}/reverse"
+    },
+    {
+      "schema": "plan",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/plans"
+    },
+    {
+      "schema": "plan",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/plans"
+    },
+    {
+      "schema": "plan",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/plans/{plan}"
+    },
+    {
+      "schema": "plan",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/plans/{plan}"
+    },
+    {
+      "schema": "plan",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/plans/{plan}"
+    },
+    {
+      "schema": "price",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/prices"
+    },
+    {
+      "schema": "price",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/prices"
+    },
+    {
+      "schema": "price",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/prices/{price}"
+    },
+    {
+      "schema": "price",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/prices/{price}"
+    },
+    {
+      "schema": "price",
+      "method": "search",
+      "operation": "get",
+      "path": "/v1/prices/search"
+    },
+    {
+      "schema": "product_catalog.trial_offer",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/product_catalog/trial_offers"
+    },
+    {
+      "schema": "product_catalog.trial_offer",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/product_catalog/trial_offers"
+    },
+    {
+      "schema": "product_catalog.trial_offer",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/product_catalog/trial_offers/{id}"
+    },
+    {
+      "schema": "product_catalog.trial_offer",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/product_catalog/trial_offers/{id}"
+    },
+    {
+      "schema": "product",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/products"
+    },
+    {
+      "schema": "product",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/products"
+    },
+    {
+      "schema": "product",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/products/{id}"
+    },
+    {
+      "schema": "product",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/products/{id}"
+    },
+    {
+      "schema": "product",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/products/{id}"
+    },
+    {
+      "schema": "product_feature",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/products/{product}/features"
+    },
+    {
+      "schema": "product_feature",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/products/{product}/features"
+    },
+    {
+      "schema": "product_feature",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/products/{product}/features/{id}"
+    },
+    {
+      "schema": "product_feature",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/products/{product}/features/{id}"
+    },
+    {
+      "schema": "product",
+      "method": "search",
+      "operation": "get",
+      "path": "/v1/products/search"
+    },
+    {
+      "schema": "promotion_code",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/promotion_codes"
+    },
+    {
+      "schema": "promotion_code",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/promotion_codes"
+    },
+    {
+      "schema": "promotion_code",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/promotion_codes/{promotion_code}"
+    },
+    {
+      "schema": "promotion_code",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/promotion_codes/{promotion_code}"
+    },
+    {
+      "schema": "quote",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/quotes"
+    },
+    {
+      "schema": "quote",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/quotes"
+    },
+    {
+      "schema": "quote",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/quotes/{quote}"
+    },
+    {
+      "schema": "quote",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/quotes/{quote}"
+    },
+    {
+      "schema": "quote",
+      "method": "accept",
+      "operation": "post",
+      "path": "/v1/quotes/{quote}/accept"
+    },
+    {
+      "schema": "quote",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/quotes/{quote}/cancel"
+    },
+    {
+      "schema": "quote",
+      "method": "list_computed_upfront_line_items",
+      "operation": "get",
+      "path": "/v1/quotes/{quote}/computed_upfront_line_items"
+    },
+    {
+      "schema": "quote",
+      "method": "finalize_quote",
+      "operation": "post",
+      "path": "/v1/quotes/{quote}/finalize"
+    },
+    {
+      "schema": "quote",
+      "method": "list_line_items",
+      "operation": "get",
+      "path": "/v1/quotes/{quote}/line_items"
+    },
+    {
+      "schema": "quote",
+      "method": "pdf",
+      "operation": "get",
+      "path": "/v1/quotes/{quote}/pdf"
+    },
+    {
+      "schema": "radar.early_fraud_warning",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/radar/early_fraud_warnings"
+    },
+    {
+      "schema": "radar.early_fraud_warning",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/radar/early_fraud_warnings/{early_fraud_warning}"
+    },
+    {
+      "schema": "radar.payment_evaluation",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/radar/payment_evaluations"
+    },
+    {
+      "schema": "radar.value_list_item",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/radar/value_list_items"
+    },
+    {
+      "schema": "radar.value_list_item",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/radar/value_list_items"
+    },
+    {
+      "schema": "radar.value_list_item",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/radar/value_list_items/{item}"
+    },
+    {
+      "schema": "radar.value_list_item",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/radar/value_list_items/{item}"
+    },
+    {
+      "schema": "radar.value_list",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/radar/value_lists"
+    },
+    {
+      "schema": "radar.value_list",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/radar/value_lists"
+    },
+    {
+      "schema": "radar.value_list",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/radar/value_lists/{value_list}"
+    },
+    {
+      "schema": "radar.value_list",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/radar/value_lists/{value_list}"
+    },
+    {
+      "schema": "radar.value_list",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/radar/value_lists/{value_list}"
+    },
+    {
+      "schema": "refund",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/refunds"
+    },
+    {
+      "schema": "refund",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/refunds"
+    },
+    {
+      "schema": "refund",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/refunds/{refund}"
+    },
+    {
+      "schema": "refund",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/refunds/{refund}"
+    },
+    {
+      "schema": "refund",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/refunds/{refund}/cancel"
+    },
+    {
+      "schema": "reporting.report_run",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/reporting/report_runs"
+    },
+    {
+      "schema": "reporting.report_run",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/reporting/report_runs"
+    },
+    {
+      "schema": "reporting.report_run",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/reporting/report_runs/{report_run}"
+    },
+    {
+      "schema": "reporting.report_type",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/reporting/report_types"
+    },
+    {
+      "schema": "reporting.report_type",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/reporting/report_types/{report_type}"
+    },
+    {
+      "schema": "review",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/reviews"
+    },
+    {
+      "schema": "review",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/reviews/{review}"
+    },
+    {
+      "schema": "review",
+      "method": "approve",
+      "operation": "post",
+      "path": "/v1/reviews/{review}/approve"
+    },
+    {
+      "schema": "setup_attempt",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/setup_attempts"
+    },
+    {
+      "schema": "setup_intent",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/setup_intents"
+    },
+    {
+      "schema": "setup_intent",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/setup_intents"
+    },
+    {
+      "schema": "setup_intent",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/setup_intents/{intent}"
+    },
+    {
+      "schema": "setup_intent",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/setup_intents/{intent}"
+    },
+    {
+      "schema": "setup_intent",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/setup_intents/{intent}/cancel"
+    },
+    {
+      "schema": "setup_intent",
+      "method": "confirm",
+      "operation": "post",
+      "path": "/v1/setup_intents/{intent}/confirm"
+    },
+    {
+      "schema": "setup_intent",
+      "method": "verify_microdeposits",
+      "operation": "post",
+      "path": "/v1/setup_intents/{intent}/verify_microdeposits"
+    },
+    {
+      "schema": "shipping_rate",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/shipping_rates"
+    },
+    {
+      "schema": "shipping_rate",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/shipping_rates"
+    },
+    {
+      "schema": "shipping_rate",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/shipping_rates/{shipping_rate_token}"
+    },
+    {
+      "schema": "shipping_rate",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/shipping_rates/{shipping_rate_token}"
+    },
+    {
+      "schema": "scheduled_query_run",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/sigma/scheduled_query_runs"
+    },
+    {
+      "schema": "scheduled_query_run",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/sigma/scheduled_query_runs/{scheduled_query_run}"
+    },
+    {
+      "schema": "sku",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/skus"
+    },
+    {
+      "schema": "sku",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/skus"
+    },
+    {
+      "schema": "sku",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/skus/{id}"
+    },
+    {
+      "schema": "sku",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/skus/{id}"
+    },
+    {
+      "schema": "sku",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/skus/{id}"
+    },
+    {
+      "schema": "source",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/sources"
+    },
+    {
+      "schema": "source",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/sources/{source}"
+    },
+    {
+      "schema": "source",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/sources/{source}"
+    },
+    {
+      "schema": "source",
+      "method": "source_transactions",
+      "operation": "get",
+      "path": "/v1/sources/{source}/source_transactions"
+    },
+    {
+      "schema": "source",
+      "method": "verify",
+      "operation": "post",
+      "path": "/v1/sources/{source}/verify"
+    },
+    {
+      "schema": "subscription_item",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/subscription_items"
+    },
+    {
+      "schema": "subscription_item",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/subscription_items"
+    },
+    {
+      "schema": "subscription_item",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/subscription_items/{item}"
+    },
+    {
+      "schema": "subscription_item",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/subscription_items/{item}"
+    },
+    {
+      "schema": "subscription_item",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/subscription_items/{item}"
+    },
+    {
+      "schema": "subscription_item",
+      "method": "usage_record_summaries",
+      "operation": "get",
+      "path": "/v1/subscription_items/{subscription_item}/usage_record_summaries"
+    },
+    {
+      "schema": "usage_record_summary",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/subscription_items/{subscription_item}/usage_record_summaries"
+    },
+    {
+      "schema": "usage_record",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/subscription_items/{subscription_item}/usage_records"
+    },
+    {
+      "schema": "subscription_schedule",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/subscription_schedules"
+    },
+    {
+      "schema": "subscription_schedule",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/subscription_schedules"
+    },
+    {
+      "schema": "subscription_schedule",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/subscription_schedules/{schedule}"
+    },
+    {
+      "schema": "subscription_schedule",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/subscription_schedules/{schedule}"
+    },
+    {
+      "schema": "subscription_schedule",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/subscription_schedules/{schedule}/cancel"
+    },
+    {
+      "schema": "subscription_schedule",
+      "method": "release",
+      "operation": "post",
+      "path": "/v1/subscription_schedules/{schedule}/release"
+    },
+    {
+      "schema": "subscription",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/subscriptions"
+    },
+    {
+      "schema": "subscription",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/subscriptions"
+    },
+    {
+      "schema": "subscription",
+      "method": "cancel",
+      "operation": "delete",
+      "path": "/v1/subscriptions/{subscription_exposed_id}"
+    },
+    {
+      "schema": "subscription",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/subscriptions/{subscription_exposed_id}"
+    },
+    {
+      "schema": "subscription",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/subscriptions/{subscription_exposed_id}"
+    },
+    {
+      "schema": "subscription",
+      "method": "delete_discount",
+      "operation": "delete",
+      "path": "/v1/subscriptions/{subscription_exposed_id}/discount"
+    },
+    {
+      "schema": "subscription",
+      "method": "migrate",
+      "operation": "post",
+      "path": "/v1/subscriptions/{subscription}/migrate"
+    },
+    {
+      "schema": "subscription",
+      "method": "pause",
+      "operation": "post",
+      "path": "/v1/subscriptions/{subscription}/pause"
+    },
+    {
+      "schema": "subscription",
+      "method": "resume",
+      "operation": "post",
+      "path": "/v1/subscriptions/{subscription}/resume"
+    },
+    {
+      "schema": "subscription",
+      "method": "search",
+      "operation": "get",
+      "path": "/v1/subscriptions/search"
+    },
+    {
+      "schema": "tax_code",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/tax_codes"
+    },
+    {
+      "schema": "tax_code",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tax_codes/{id}"
+    },
+    {
+      "schema": "tax_id",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/tax_ids"
+    },
+    {
+      "schema": "tax_id",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/tax_ids"
+    },
+    {
+      "schema": "tax_id",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/tax_ids/{id}"
+    },
+    {
+      "schema": "tax_id",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tax_ids/{id}"
+    },
+    {
+      "schema": "tax_rate",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/tax_rates"
+    },
+    {
+      "schema": "tax_rate",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/tax_rates"
+    },
+    {
+      "schema": "tax_rate",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tax_rates/{tax_rate}"
+    },
+    {
+      "schema": "tax_rate",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/tax_rates/{tax_rate}"
+    },
+    {
+      "schema": "tax.association",
+      "method": "find",
+      "operation": "get",
+      "path": "/v1/tax/associations/find"
+    },
+    {
+      "schema": "tax.calculation",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/tax/calculations"
+    },
+    {
+      "schema": "tax.calculation",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tax/calculations/{calculation}"
+    },
+    {
+      "schema": "tax.calculation",
+      "method": "list_line_items",
+      "operation": "get",
+      "path": "/v1/tax/calculations/{calculation}/line_items"
+    },
+    {
+      "schema": "tax.location",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/tax/locations"
+    },
+    {
+      "schema": "tax.location",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/tax/locations"
+    },
+    {
+      "schema": "tax.location",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tax/locations/{location}"
+    },
+    {
+      "schema": "tax.registration",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/tax/registrations"
+    },
+    {
+      "schema": "tax.registration",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/tax/registrations"
+    },
+    {
+      "schema": "tax.registration",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tax/registrations/{id}"
+    },
+    {
+      "schema": "tax.registration",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/tax/registrations/{id}"
+    },
+    {
+      "schema": "tax.settings",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tax/settings"
+    },
+    {
+      "schema": "tax.settings",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/tax/settings"
+    },
+    {
+      "schema": "tax.transaction",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tax/transactions/{transaction}"
+    },
+    {
+      "schema": "tax.transaction",
+      "method": "list_line_items",
+      "operation": "get",
+      "path": "/v1/tax/transactions/{transaction}/line_items"
+    },
+    {
+      "schema": "tax.transaction",
+      "method": "create_from_calculation",
+      "operation": "post",
+      "path": "/v1/tax/transactions/create_from_calculation"
+    },
+    {
+      "schema": "tax.transaction",
+      "method": "create_reversal",
+      "operation": "post",
+      "path": "/v1/tax/transactions/create_reversal"
+    },
+    {
+      "schema": "terminal.configuration",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/terminal/configurations"
+    },
+    {
+      "schema": "terminal.configuration",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/terminal/configurations"
+    },
+    {
+      "schema": "terminal.configuration",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/terminal/configurations/{configuration}"
+    },
+    {
+      "schema": "terminal.configuration",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/terminal/configurations/{configuration}"
+    },
+    {
+      "schema": "terminal.configuration",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/terminal/configurations/{configuration}"
+    },
+    {
+      "schema": "terminal.connection_token",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/terminal/connection_tokens"
+    },
+    {
+      "schema": "terminal.location",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/terminal/locations"
+    },
+    {
+      "schema": "terminal.location",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/terminal/locations"
+    },
+    {
+      "schema": "terminal.location",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/terminal/locations/{location}"
+    },
+    {
+      "schema": "terminal.location",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/terminal/locations/{location}"
+    },
+    {
+      "schema": "terminal.location",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/terminal/locations/{location}"
+    },
+    {
+      "schema": "terminal.onboarding_link",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/terminal/onboarding_links"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/terminal/readers"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/terminal/readers"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/terminal/readers/{reader}"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/terminal/readers/{reader}"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "cancel_action",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}/cancel_action"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "collect_inputs",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}/collect_inputs"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "collect_payment_method",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}/collect_payment_method"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "confirm_payment_intent",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}/confirm_payment_intent"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "process_payment_intent",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}/process_payment_intent"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "process_setup_intent",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}/process_setup_intent"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "refund_payment",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}/refund_payment"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "set_reader_display",
+      "operation": "post",
+      "path": "/v1/terminal/readers/{reader}/set_reader_display"
+    },
+    {
+      "schema": "confirmation_token",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/test_helpers/confirmation_tokens"
+    },
+    {
+      "schema": "customer",
+      "method": "fund_cash_balance",
+      "operation": "post",
+      "path": "/v1/test_helpers/customers/{customer}/fund_cash_balance"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/authorizations"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "capture",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/authorizations/{authorization}/capture"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "expire",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/authorizations/{authorization}/expire"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "finalize_amount",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/authorizations/{authorization}/finalize_amount"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "respond",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/authorizations/{authorization}/fraud_challenges/respond"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "increment",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/authorizations/{authorization}/increment"
+    },
+    {
+      "schema": "issuing.authorization",
+      "method": "reverse",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/authorizations/{authorization}/reverse"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "deliver_card",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/cards/{card}/shipping/deliver"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "fail_card",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/cards/{card}/shipping/fail"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "return_card",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/cards/{card}/shipping/return"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "ship_card",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/cards/{card}/shipping/ship"
+    },
+    {
+      "schema": "issuing.card",
+      "method": "submit_card",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/cards/{card}/shipping/submit"
+    },
+    {
+      "schema": "issuing.personalization_design",
+      "method": "activate",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/personalization_designs/{personalization_design}/activate"
+    },
+    {
+      "schema": "issuing.personalization_design",
+      "method": "deactivate",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/personalization_designs/{personalization_design}/deactivate"
+    },
+    {
+      "schema": "issuing.personalization_design",
+      "method": "reject",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/personalization_designs/{personalization_design}/reject"
+    },
+    {
+      "schema": "issuing.transaction",
+      "method": "refund",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/transactions/{transaction}/refund"
+    },
+    {
+      "schema": "issuing.transaction",
+      "method": "create_force_capture",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/transactions/create_force_capture"
+    },
+    {
+      "schema": "issuing.transaction",
+      "method": "create_unlinked_refund",
+      "operation": "post",
+      "path": "/v1/test_helpers/issuing/transactions/create_unlinked_refund"
+    },
+    {
+      "schema": "refund",
+      "method": "expire",
+      "operation": "post",
+      "path": "/v1/test_helpers/refunds/{refund}/expire"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "present_payment_method",
+      "operation": "post",
+      "path": "/v1/test_helpers/terminal/readers/{reader}/present_payment_method"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "succeed_input_collection",
+      "operation": "post",
+      "path": "/v1/test_helpers/terminal/readers/{reader}/succeed_input_collection"
+    },
+    {
+      "schema": "terminal.reader",
+      "method": "timeout_input_collection",
+      "operation": "post",
+      "path": "/v1/test_helpers/terminal/readers/{reader}/timeout_input_collection"
+    },
+    {
+      "schema": "test_helpers.test_clock",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/test_helpers/test_clocks"
+    },
+    {
+      "schema": "test_helpers.test_clock",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/test_helpers/test_clocks"
+    },
+    {
+      "schema": "test_helpers.test_clock",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/test_helpers/test_clocks/{test_clock}"
+    },
+    {
+      "schema": "test_helpers.test_clock",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/test_helpers/test_clocks/{test_clock}"
+    },
+    {
+      "schema": "test_helpers.test_clock",
+      "method": "advance",
+      "operation": "post",
+      "path": "/v1/test_helpers/test_clocks/{test_clock}/advance"
+    },
+    {
+      "schema": "treasury.inbound_transfer",
+      "method": "fail",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/inbound_transfers/{id}/fail"
+    },
+    {
+      "schema": "treasury.inbound_transfer",
+      "method": "return_inbound_transfer",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/inbound_transfers/{id}/return"
+    },
+    {
+      "schema": "treasury.inbound_transfer",
+      "method": "succeed",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/inbound_transfers/{id}/succeed"
+    },
+    {
+      "schema": "treasury.outbound_payment",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/outbound_payments/{id}"
+    },
+    {
+      "schema": "treasury.outbound_payment",
+      "method": "fail",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/outbound_payments/{id}/fail"
+    },
+    {
+      "schema": "treasury.outbound_payment",
+      "method": "post",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/outbound_payments/{id}/post"
+    },
+    {
+      "schema": "treasury.outbound_payment",
+      "method": "return_outbound_payment",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/outbound_payments/{id}/return"
+    },
+    {
+      "schema": "treasury.outbound_transfer",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/outbound_transfers/{outbound_transfer}"
+    },
+    {
+      "schema": "treasury.outbound_transfer",
+      "method": "fail",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/outbound_transfers/{outbound_transfer}/fail"
+    },
+    {
+      "schema": "treasury.outbound_transfer",
+      "method": "post",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/outbound_transfers/{outbound_transfer}/post"
+    },
+    {
+      "schema": "treasury.outbound_transfer",
+      "method": "return_outbound_transfer",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/outbound_transfers/{outbound_transfer}/return"
+    },
+    {
+      "schema": "treasury.received_credit",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/received_credits"
+    },
+    {
+      "schema": "treasury.received_debit",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/test_helpers/treasury/received_debits"
+    },
+    {
+      "schema": "three_d_secure.authentication",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/three_d_secure/authentications"
+    },
+    {
+      "schema": "three_d_secure.authentication",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/three_d_secure/authentications"
+    },
+    {
+      "schema": "three_d_secure.authentication",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/three_d_secure/authentications/{authentication}"
+    },
+    {
+      "schema": "three_d_secure.authentication",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/three_d_secure/authentications/{authentication}/cancel"
+    },
+    {
+      "schema": "three_d_secure.authentication",
+      "method": "submit",
+      "operation": "post",
+      "path": "/v1/three_d_secure/authentications/{authentication}/submit"
+    },
+    {
+      "schema": "token",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/tokens"
+    },
+    {
+      "schema": "token",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/tokens/{token}"
+    },
+    {
+      "schema": "topup",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/topups"
+    },
+    {
+      "schema": "topup",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/topups"
+    },
+    {
+      "schema": "topup",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/topups/{topup}"
+    },
+    {
+      "schema": "topup",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/topups/{topup}"
+    },
+    {
+      "schema": "topup",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/topups/{topup}/cancel"
+    },
+    {
+      "schema": "transfer",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/transfers"
+    },
+    {
+      "schema": "transfer",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/transfers"
+    },
+    {
+      "schema": "transfer_reversal",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/transfers/{id}/reversals"
+    },
+    {
+      "schema": "transfer_reversal",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/transfers/{id}/reversals"
+    },
+    {
+      "schema": "transfer",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/transfers/{transfer}"
+    },
+    {
+      "schema": "transfer",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/transfers/{transfer}"
+    },
+    {
+      "schema": "transfer_reversal",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/transfers/{transfer}/reversals/{id}"
+    },
+    {
+      "schema": "transfer_reversal",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/transfers/{transfer}/reversals/{id}"
+    },
+    {
+      "schema": "treasury.credit_reversal",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/credit_reversals"
+    },
+    {
+      "schema": "treasury.credit_reversal",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/treasury/credit_reversals"
+    },
+    {
+      "schema": "treasury.credit_reversal",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/credit_reversals/{credit_reversal}"
+    },
+    {
+      "schema": "treasury.debit_reversal",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/debit_reversals"
+    },
+    {
+      "schema": "treasury.debit_reversal",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/treasury/debit_reversals"
+    },
+    {
+      "schema": "treasury.debit_reversal",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/debit_reversals/{debit_reversal}"
+    },
+    {
+      "schema": "treasury.financial_account",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/financial_accounts"
+    },
+    {
+      "schema": "treasury.financial_account",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/treasury/financial_accounts"
+    },
+    {
+      "schema": "treasury.financial_account",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/financial_accounts/{financial_account}"
+    },
+    {
+      "schema": "treasury.financial_account",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/treasury/financial_accounts/{financial_account}"
+    },
+    {
+      "schema": "treasury.financial_account",
+      "method": "close",
+      "operation": "post",
+      "path": "/v1/treasury/financial_accounts/{financial_account}/close"
+    },
+    {
+      "schema": "treasury.financial_account",
+      "method": "retrieve_features",
+      "operation": "get",
+      "path": "/v1/treasury/financial_accounts/{financial_account}/features"
+    },
+    {
+      "schema": "treasury.financial_account",
+      "method": "update_features",
+      "operation": "post",
+      "path": "/v1/treasury/financial_accounts/{financial_account}/features"
+    },
+    {
+      "schema": "treasury.inbound_transfer",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/inbound_transfers"
+    },
+    {
+      "schema": "treasury.inbound_transfer",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/treasury/inbound_transfers"
+    },
+    {
+      "schema": "treasury.inbound_transfer",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/inbound_transfers/{id}"
+    },
+    {
+      "schema": "treasury.inbound_transfer",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/treasury/inbound_transfers/{inbound_transfer}/cancel"
+    },
+    {
+      "schema": "treasury.outbound_payment",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/outbound_payments"
+    },
+    {
+      "schema": "treasury.outbound_payment",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/treasury/outbound_payments"
+    },
+    {
+      "schema": "treasury.outbound_payment",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/outbound_payments/{id}"
+    },
+    {
+      "schema": "treasury.outbound_payment",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/treasury/outbound_payments/{id}/cancel"
+    },
+    {
+      "schema": "treasury.outbound_transfer",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/outbound_transfers"
+    },
+    {
+      "schema": "treasury.outbound_transfer",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/treasury/outbound_transfers"
+    },
+    {
+      "schema": "treasury.outbound_transfer",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/outbound_transfers/{outbound_transfer}"
+    },
+    {
+      "schema": "treasury.outbound_transfer",
+      "method": "cancel",
+      "operation": "post",
+      "path": "/v1/treasury/outbound_transfers/{outbound_transfer}/cancel"
+    },
+    {
+      "schema": "treasury.received_credit",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/received_credits"
+    },
+    {
+      "schema": "treasury.received_credit",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/received_credits/{id}"
+    },
+    {
+      "schema": "treasury.received_debit",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/received_debits"
+    },
+    {
+      "schema": "treasury.received_debit",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/received_debits/{id}"
+    },
+    {
+      "schema": "treasury.transaction_entry",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/transaction_entries"
+    },
+    {
+      "schema": "treasury.transaction_entry",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/transaction_entries/{id}"
+    },
+    {
+      "schema": "treasury.transaction",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/treasury/transactions"
+    },
+    {
+      "schema": "treasury.transaction",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/treasury/transactions/{id}"
+    },
+    {
+      "schema": "webhook_endpoint",
+      "method": "list",
+      "operation": "get",
+      "path": "/v1/webhook_endpoints"
+    },
+    {
+      "schema": "webhook_endpoint",
+      "method": "create",
+      "operation": "post",
+      "path": "/v1/webhook_endpoints"
+    },
+    {
+      "schema": "webhook_endpoint",
+      "method": "delete",
+      "operation": "delete",
+      "path": "/v1/webhook_endpoints/{webhook_endpoint}"
+    },
+    {
+      "schema": "webhook_endpoint",
+      "method": "retrieve",
+      "operation": "get",
+      "path": "/v1/webhook_endpoints/{webhook_endpoint}"
+    },
+    {
+      "schema": "webhook_endpoint",
+      "method": "update",
+      "operation": "post",
+      "path": "/v1/webhook_endpoints/{webhook_endpoint}"
+    }
+  ]
 }
