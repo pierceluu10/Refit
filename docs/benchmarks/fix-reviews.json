@@ -1751,6 +1751,51 @@
         "upgradeComplete": "yes: stripe ^12.9.0 (lockfile 12.10.0) to ^23.0.0 in package.json and package-lock.json, and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
         "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
       }
+    },
+    {
+      "repo": "cesarolvr/journeylog-app",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149082713 (before, bench/l3-upgrade-base f0cac93) and 40150074779 (after, fix/l3-upgrade-two-lockfiles 022d871), docs/benchmarks/subsets/l3-upgrade-two-lockfiles.json, --keep-listed-payment-methods on both. Before: scan stop (removed request parameter). After: patch written, validation stops at preparation (two lockfiles), so the artifact has no migration.patch; the same patch was produced by runPipeline at 022d871 on the pinned clone and read in full, lockfiles included",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types (src/app/api/stripe/route.ts), the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, three clients' apiVersion 2025-01-27.acacia to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "1 findings left unchanged and listed in the draft; not read one by one here. Validation stops at preparation: the repository commits two lockfiles, which needs a custom validation image.",
+        "upgradeComplete": "yes: stripe ^17.1.0 to ^23.0.0 in package.json, package-lock.json (root entry and node_modules/stripe with registry SHA-512) and yarn.lock (stripe block replaced; @types/node@>=8.1.0 and undici-types blocks only the old stripe reached removed); both lockfiles locked 17.7.0.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 1 listed findings are checked."
+      }
+    },
+    {
+      "repo": "dubbl-org/dubbl",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149082713 (before, bench/l3-upgrade-base f0cac93) and 40150074779 (after, fix/l3-upgrade-two-lockfiles 022d871), docs/benchmarks/subsets/l3-upgrade-two-lockfiles.json, --keep-listed-payment-methods on both. Before: scan stop (removed request parameter). After: patch written, validation stops at preparation (two lockfiles), so the artifact has no migration.patch; the same patch was produced by runPipeline at 022d871 on the pinned clone and read in full, lockfiles included",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed (app/api/pay/[token]/checkout/route.ts), the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, no client sets apiVersion, so the stripe-node upgrade moves the version, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "6 findings left unchanged and listed in the draft; not read one by one here. Validation stops at preparation: the repository commits two lockfiles, which needs a custom validation image.",
+        "upgradeComplete": "yes: stripe ^20.4.0 to ^23.0.0 in package.json, package-lock.json and pnpm-lock.yaml (importer, package record and snapshot keep the (@types/node@20.19.35) peer qualifier); both lockfiles locked 20.4.0.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 6 listed findings are checked."
+      }
+    },
+    {
+      "repo": "ensarokumus/tldr-app",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149082713 (before, bench/l3-upgrade-base f0cac93) and 40150074779 (after, fix/l3-upgrade-two-lockfiles 022d871), docs/benchmarks/subsets/l3-upgrade-two-lockfiles.json, --keep-listed-payment-methods on both. Before: scan stop (removed request parameter). After: patch written, validation stops at preparation (two lockfiles), so the artifact has no migration.patch; the same patch was produced by runPipeline at 022d871 on the pinned clone and read in full, lockfiles included",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed (src/trpc/index.ts); webhook period reads through getSubscriptionPeriodEnd and invoice.subscription through getInvoiceSubscription inside the invoice.payment_succeeded branch, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/lib/stripe.ts apiVersion 2024-04-10 to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "4 findings left unchanged and listed in the draft; not read one by one here. Validation stops at preparation: the repository commits two lockfiles, which needs a custom validation image.",
+        "upgradeComplete": "yes: stripe ^15.12.0 to ^23.0.0 in package.json, package-lock.json and yarn.lock (qs block only the old stripe reached removed); both lockfiles locked 15.12.0.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 4 listed findings are checked."
+      }
     }
   ]
 }
