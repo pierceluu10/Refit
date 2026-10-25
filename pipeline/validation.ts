@@ -27,6 +27,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
 import { typeErrorKeys, typeErrors } from './type-errors.ts';
+import { baselineCheck } from './validation-baseline-cache.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import ts from 'typescript-compiler';
@@ -1168,18 +1169,35 @@ export async function validateMigration(options: {
           }),
         );
       });
-    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
-    const baselineRun: CheckResult = dependencyFailure
-      ? NOT_RUN
+    const recordedBaseline = dependencyFailure
+      ? undefined
       : await timed('baselineChecks', () =>
-          containerCheck({
-            directory: baselineDirectory,
-            image,
-            command: baselineCommand,
-            dependencies,
-            signal: options.signal,
-          }),
+          baselineCheck(
+            {
+              revision,
+              command: baselineCommand,
+              image,
+              // The bundle's signature, not its archive hash: a rebuild changes tar bytes, not packages.
+              dependencies: environment?.signature ?? null,
+              limits: validationLimits(),
+            },
+            () => {
+              options.onProgress?.('Running baseline checks in offline Docker...');
+              return containerCheck({
+                directory: baselineDirectory,
+                image,
+                command: baselineCommand,
+                dependencies,
+                signal: options.signal,
+              });
+            },
+          ),
         );
+    const baselineRun: CheckResult = recordedBaseline?.check ?? NOT_RUN;
+    if (recordedBaseline?.recordedAt)
+      options.onProgress?.(
+        `Reusing the baseline check result recorded ${recordedBaseline.recordedAt}.`,
+      );
     const advisory = advisoryTypeError(options.command);
     const typeCheckUnavailable = options.compareTypeErrors
       ? unavailableTypeCheck(options.command, baselineRun)
@@ -2023,6 +2041,10 @@ export async function validateMigration(options: {
       archiveHash,
       patchHash: digest(proposal.diff),
       baseline,
+      // REFIT_BASELINE_CHECK_CACHE_DIRECTORY: the baseline result an identical earlier run recorded.
+      ...(recordedBaseline?.recordedAt
+        ? { baselineReused: { recordedAt: recordedBaseline.recordedAt } }
+        : {}),
       patched,
       ...(generated ? { generated } : {}),
       ...(behaviour ? { behaviour } : {}),

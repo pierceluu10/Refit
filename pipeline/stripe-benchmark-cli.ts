@@ -154,6 +154,8 @@ const { rows: previous } = await openRunDirectory(
     environment: [
       'REFIT_VALIDATION_WORKSPACE',
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
+      // Rows may then carry baseline results an earlier run recorded (workflow.baselineReused).
+      'REFIT_BASELINE_CHECK_CACHE_DIRECTORY',
       ...(values.ai ? ['OPENAI_MODEL'] : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
@@ -541,6 +543,7 @@ async function benchmark(entry: Selected, index: number) {
       sdkUpgrade: report.patch?.sdkUpgrade,
       validation: report.validation?.status,
       baseline: report.validation?.baseline?.status,
+      ...(report.validation?.baselineReused ? { baselineReused: true } : {}),
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
