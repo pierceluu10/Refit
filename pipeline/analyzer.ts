@@ -17,6 +17,7 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import {
+  paymentMethodRule,
   removedParameterProperty,
   requestPropertyEdit,
   untracedRemovedParameters,
@@ -27,11 +28,7 @@ import {
   invoicePreviewEdits,
   type InvoicePreviewMove,
 } from './stripe-invoice-preview.ts';
-import {
-  CARD_PAYMENT_METHOD_RULE,
-  LISTED_PAYMENT_METHODS_RULE,
-  type RequestParameterRemoval,
-} from './request-removals.ts';
+import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
@@ -1027,26 +1024,12 @@ export function analyzeRepository(
       if (!property) continue;
       const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
       // Only the exact literal `['card']` has a reviewed replacement, and, where the repository
-      // opted in, a literal list of `card` plus other distinct methods (never `card_present`).
-      // run.ts keeps the edit only with the API version bump (and, for TypeScript, the SDK
-      // upgrade) in the same patch.
-      const methods =
-        ts.isPropertyAssignment(property) &&
-        ts.isArrayLiteralExpression(property.initializer) &&
-        property.initializer.elements.every(ts.isStringLiteralLike)
-          ? property.initializer.elements.map((element) => (element as ts.StringLiteralLike).text)
-          : undefined;
-      const rule =
-        methods?.length === 1 && methods[0] === 'card'
-          ? CARD_PAYMENT_METHOD_RULE
-          : removal.keepListed &&
-              methods &&
-              methods.length > 1 &&
-              methods.includes('card') &&
-              !methods.includes('card_present') &&
-              new Set(methods).size === methods.length
-            ? LISTED_PAYMENT_METHODS_RULE
-            : undefined;
+      // opted in, a literal list of `card` plus other distinct methods, or any other value
+      // expression that names no in-person method (request-migration.ts). run.ts keeps the edit
+      // only with the API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
+      const rule = removal.cardReplacement
+        ? paymentMethodRule(property, { keepListed: removal.keepListed, checker })
+        : undefined;
       // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
       // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
       const moved =
@@ -1065,13 +1048,15 @@ export function analyzeRepository(
           changeId: removal.id,
           rule: moved.rule,
         });
-      if (confirmed && removal.cardReplacement && rule && ts.isPropertyAssignment(property)) {
+      if (confirmed && removal.cardReplacement && rule) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
         edits.push({
           file: location(property).file,
           start: property.name.getStart(),
           end: property.name.getEnd(),
-          replacement: `${quote}${removal.cardReplacement}${quote}`,
+          replacement: ts.isShorthandPropertyAssignment(property)
+            ? `${removal.cardReplacement}: ${property.name.text}`
+            : `${quote}${removal.cardReplacement}${quote}`,
           changeId: removal.id,
           rule,
         });
@@ -1125,7 +1110,7 @@ export function analyzeRepository(
   }
   // A removed parameter set outside every traced SDK body stops for review, unless it is an exact
   // `['card']` in a local body only confirmed card-rule calls receive (request-migration.ts).
-  for (const { property, removal, rename } of untracedRemovedParameters(
+  for (const { property, removal, rule } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
     (node) => {
@@ -1139,16 +1124,20 @@ export function analyzeRepository(
       );
     },
     (node) => location(node).file,
+    checker,
   )) {
-    if (rename && ts.isPropertyAssignment(property)) {
+    const rename = Boolean(rule);
+    if (rule && (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))) {
       const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
       edits.push({
         file: location(property).file,
         start: property.name.getStart(),
         end: property.name.getEnd(),
-        replacement: `${quote}${removal.cardReplacement}${quote}`,
+        replacement: ts.isShorthandPropertyAssignment(property)
+          ? `${removal.cardReplacement}: ${property.name.text}`
+          : `${quote}${removal.cardReplacement}${quote}`,
         changeId: removal.id,
-        rule: CARD_PAYMENT_METHOD_RULE,
+        rule,
       });
     }
     findings.push({
@@ -1158,7 +1147,7 @@ export function analyzeRepository(
       confidence: rename ? 'confirmed' : 'review',
       requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
       reason: rename
-        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved card rule covers.'
+        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved payment method rule covers.'
         : 'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
     });
   }

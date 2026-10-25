@@ -35,6 +35,7 @@ import { validatePropertyRenames } from './provider-renames.ts';
 import {
   CARD_PAYMENT_METHOD_RULE,
   LISTED_PAYMENT_METHODS_RULE,
+  MOVED_PAYMENT_METHODS_RULE,
   PAYMENT_METHOD_RENAME_RULES,
   removedRequestParameters,
 } from './request-removals.ts';
@@ -324,6 +325,7 @@ async function runOpenApiPipeline(options: {
     (!patchRequested || !upgradeRequired || upgraded) &&
     !configuredMigrationProposal;
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
+  movedTo[MOVED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[PROMOTION_CODE_PROMOTION_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[PRODUCT_MARKETING_FEATURES_RULE] = movedTo[PROMOTION_CODE_PROMOTION_RULE];
   movedTo[INVOICE_PREVIEW_RULE] =
