@@ -17,6 +17,7 @@ export interface StripeOperation {
   method: string;
   schema: string;
   operationId?: string;
+  list?: true;
 }
 
 function camel(value: string) {
@@ -40,9 +41,27 @@ function responseSchema(spec: Record<string, unknown>, path: string, operation: 
         typeof reference === 'string' && reference.startsWith('#/components/schemas/'),
     )
     .map((reference) => reference.slice('#/components/schemas/'.length));
-  return schemas.length
+  // A list endpoint returns `{ object: 'list', data: [<schema>], … }` inline
+  // (https://docs.stripe.com/api/pagination, read 2026-10-25: `data` holds the listed objects).
+  const properties = isObject(schema) && isObject(schema.properties) ? schema.properties : {};
+  const data = isObject(properties.data) ? properties.data : undefined;
+  const object = isObject(properties.object) ? properties.object : undefined;
+  const item =
+    data?.type === 'array' && isObject(data.items) && typeof data.items.$ref === 'string'
+      ? data.items.$ref
+      : undefined;
+  const list =
+    !schemas.length &&
+    Array.isArray(object?.enum) &&
+    object.enum.length === 1 &&
+    object.enum[0] === 'list' &&
+    item?.startsWith('#/components/schemas/')
+      ? item.slice('#/components/schemas/'.length)
+      : undefined;
+  return schemas.length || list
     ? {
-        schemas,
+        schemas: list ? [list] : schemas,
+        ...(list ? { list: true as const } : {}),
         operationId: typeof entry.operationId === 'string' ? entry.operationId : undefined,
       }
     : undefined;
@@ -68,6 +87,8 @@ export function stripeOperations(
         continue;
       const response = responseSchema(beforeSpec, path, operation);
       if (!response?.schemas.includes(schema)) continue;
+      // Only `list` methods return a list of the schema; `search` and nested lists have other paths.
+      if (response.list && entry.method_type !== 'list') continue;
       const segments = path.split('/').slice(2);
       const parameter = segments.findIndex((segment) => segment.startsWith('{'));
       const resource = (parameter < 0 ? segments : segments.slice(0, parameter))
@@ -85,7 +106,13 @@ export function stripeOperations(
           resource,
           method,
           schema,
-          ...(response.operationId ? { operationId: response.operationId } : {}),
+          // A list call is traced for its elements only; its own request and contract are not
+          // mapped, as before.
+          ...(response.list
+            ? { list: true as const }
+            : response.operationId
+              ? { operationId: response.operationId }
+              : {}),
         });
     }
   }

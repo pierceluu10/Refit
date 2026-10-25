@@ -306,6 +306,8 @@ export function analyzeRepository(
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
   const arrayItems = new Map<ts.Symbol, string>();
+  // Bindings of awaited list calls, to the schema of their `data` elements.
+  const listResponses = new Map<ts.Symbol, string>();
   const origins = new Map<ts.Symbol, ts.CallExpression>();
   const wrappedResponses = new Map<ts.Symbol, ts.Symbol>();
   const edits: SourceEdit[] = [];
@@ -429,12 +431,40 @@ export function analyzeRepository(
         access.properties.some((property) => Boolean(property.questionDotToken)),
     };
   }
-  function responseCall(node: ts.Node) {
+  function mappedCall(node: ts.Node) {
     const call = sdkCall(node);
     if (call)
       return provider.operations.find(
         (operation) => operation.resource === call.resource && operation.method === call.method,
       );
+  }
+  // A call that returns one object of its schema.
+  function responseCall(node: ts.Node) {
+    const operation = mappedCall(node);
+    return operation?.list ? undefined : operation;
+  }
+  // A list call: only the elements of its `data` are objects of its schema.
+  function listCall(node: ts.Node) {
+    const operation = mappedCall(node);
+    return operation?.list ? operation : undefined;
+  }
+  // The element schema of `<list response>.data`: a const bound to an awaited list call, or the
+  // awaited call itself.
+  function listItemSchema(expression: ts.Expression): string | undefined {
+    if (ts.isIdentifier(expression)) return listResponses.get(symbol(expression)!);
+    if (
+      ts.isParenthesizedExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isSatisfiesExpression(expression)
+    )
+      return listItemSchema(expression.expression);
+    if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
+      const operation = listCall(expression.expression);
+      return operation
+        ? (resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema)
+        : undefined;
+    }
   }
   let webhooks: ReturnType<typeof stripeWebhookPayloads> | undefined;
   function arrayItemForExpression(expression: ts.Expression): string | undefined {
@@ -461,6 +491,9 @@ export function analyzeRepository(
     )
       return arrayItemForExpression(expression.left);
     if (ts.isPropertyAccessExpression(expression)) {
+      const listed =
+        expression.name.text === 'data' ? listItemSchema(expression.expression) : undefined;
+      if (listed) return listed;
       const parent = schemaForExpression(expression.expression);
       if (parent) return referencedArrayItemSchema(schemaDefinitions, parent, expression.name.text);
       const list = expression.expression;
@@ -698,6 +731,19 @@ export function analyzeRepository(
           ? symbol(awaited.expression)
           : undefined;
       const origin = wrapper && wrappers.has(wrapper) ? wrappers.get(wrapper)! : awaited;
+      const listed =
+        awaited && origin === awaited && ts.isAwaitExpression(value)
+          ? listCall(awaited)
+          : undefined;
+      if (listed) {
+        const target = symbol(node.name);
+        const schema = resolvableComponentSchema(schemaDefinitions, listed.schema) ?? listed.schema;
+        if (target && listResponses.get(target) !== schema) {
+          listResponses.set(target, schema);
+          origins.set(target, awaited!);
+          responseSchemasChanged = true;
+        }
+      }
       const operation = origin ? responseCall(origin) : undefined;
       if (operation && ts.isAwaitExpression(value)) {
         assignSchema(
@@ -1554,7 +1600,8 @@ export function analyzeRepository(
       const binding = symbol(expression);
       if (!binding || seen.has(binding)) return;
       const origin = origins.get(binding);
-      if (origin && responseCall(origin)) return { kind: 'sdk', call: origin };
+      if (origin && (responseCall(origin) || listCall(origin)))
+        return { kind: 'sdk', call: origin };
       const next = new Set([...seen, binding]);
       let declaration = binding.valueDeclaration;
       while (declaration && ts.isBindingElement(declaration))
@@ -1584,7 +1631,8 @@ export function analyzeRepository(
     if (ts.isAwaitExpression(expression)) {
       if (ts.isCallExpression(expression.expression)) {
         const call = expression.expression;
-        if (sdkCall(call)) return { kind: responseCall(call) ? 'sdk' : 'unmapped-sdk', call };
+        if (sdkCall(call))
+          return { kind: responseCall(call) || listCall(call) ? 'sdk' : 'unmapped-sdk', call };
         if (ts.isIdentifier(call.expression) && wrappers.has(symbol(call.expression)!))
           return {
             kind: 'sdk',

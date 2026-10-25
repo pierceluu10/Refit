@@ -17,7 +17,14 @@ export interface ProviderAdapter {
     property: string;
     requestArguments: number[];
   };
-  operations: { resource: string; method: string; schema: string; operationId?: string }[];
+  // `list`: the call returns a Stripe list object whose `data` holds `schema` objects.
+  operations: {
+    resource: string;
+    method: string;
+    schema: string;
+    operationId?: string;
+    list?: true;
+  }[];
   propertyRenames?: { schema: string; removed: string; replacement: string }[];
   requestPropertyRenames?: {
     resource: string;
@@ -200,7 +207,12 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
     const operationKeys = isObject(operation) ? Object.keys(operation).sort().join(',') : '';
     if (
       !isObject(operation) ||
-      !['method,resource,schema', 'method,operationId,resource,schema'].includes(operationKeys) ||
+      ![
+        'method,resource,schema',
+        'method,operationId,resource,schema',
+        'list,method,resource,schema',
+      ].includes(operationKeys) ||
+      (operation.list !== undefined && operation.list !== true) ||
       !validSdkResourcePath(operation.resource) ||
       typeof operation.method !== 'string' ||
       !SDK_IDENTIFIER.test(operation.method) ||
@@ -220,6 +232,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       method: operation.method,
       schema: operation.schema,
       ...(operation.operationId ? { operationId: operation.operationId } : {}),
+      ...(operation.list ? { list: true as const } : {}),
     };
   });
   const propertyRenames = value.propertyRenames;
