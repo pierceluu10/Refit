@@ -17,6 +17,7 @@ export interface StripeOperation {
   method: string;
   schema: string;
   operationId?: string;
+  list?: true;
 }
 
 function camel(value: string) {
@@ -31,6 +32,26 @@ function responseSchema(spec: Record<string, unknown>, path: string, operation: 
   const ok = (entry.responses as Record<string, unknown>)['200'];
   const json = isObject(ok) && isObject(ok.content) ? ok.content['application/json'] : undefined;
   const schema = isObject(json) ? json.schema : undefined;
+  // A list method returns `{ object: 'list', data: [<schema>], has_more, url }` and a search method
+  // `{ object: 'search_result', data: [<schema>], … }` (docs.stripe.com/api/pagination,
+  // /api/pagination/search): their items are the object.
+  const properties = isObject(schema) && isObject(schema.properties) ? schema.properties : {};
+  const object = properties.object;
+  const items = isObject(properties.data) ? properties.data.items : undefined;
+  if (
+    isObject(object) &&
+    Array.isArray(object.enum) &&
+    object.enum.length === 1 &&
+    (object.enum[0] === 'list' || object.enum[0] === 'search_result') &&
+    isObject(items) &&
+    typeof items.$ref === 'string' &&
+    items.$ref.startsWith('#/components/schemas/')
+  )
+    return {
+      schemas: [items.$ref.slice('#/components/schemas/'.length)],
+      list: true as const,
+      operationId: typeof entry.operationId === 'string' ? entry.operationId : undefined,
+    };
   // `customers.retrieve` returns `anyOf: [customer, deleted_customer]`; keep each referenced object.
   const options = isObject(schema) && Array.isArray(schema.anyOf) ? schema.anyOf : [schema];
   const schemas = options
@@ -68,7 +89,14 @@ export function stripeOperations(
         continue;
       const response = responseSchema(beforeSpec, path, operation);
       if (!response?.schemas.includes(schema)) continue;
-      const segments = path.split('/').slice(2);
+      // `/v1/customers/search` is `customers.search`, not a `search` sub-resource.
+      const segments = path
+        .split('/')
+        .slice(2)
+        .filter(
+          (segment, index, all) =>
+            !(name === 'search' && segment === 'search' && index === all.length - 1),
+        );
       const parameter = segments.findIndex((segment) => segment.startsWith('{'));
       const resource = (parameter < 0 ? segments : segments.slice(0, parameter))
         .map(camel)
@@ -86,6 +114,7 @@ export function stripeOperations(
           method,
           schema,
           ...(response.operationId ? { operationId: response.operationId } : {}),
+          ...('list' in response ? { list: true as const } : {}),
         });
     }
   }
