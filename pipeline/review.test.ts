@@ -387,3 +387,50 @@ it('counts only generated stripe-mock entries that ran on the original code', as
     'Generated stripe-mock checks passed on 1 of 2 exported functions.',
   );
 });
+
+it('lists breaking contract changes the reach gate let through, with their paths', async () => {
+  const value = await report();
+  value.specificationDiff = {
+    engine: 'oasdiff',
+    version: 'oasdiff 1.33.0',
+    coverage: 'Full oasdiff changelog.',
+    changes: [
+      {
+        id: 'request-property-removed',
+        level: 3,
+        operation: 'POST',
+        path: '/v1/checkout/sessions',
+        text: 'removed the request property `line_items/items/dynamic_tax_rates`',
+        reach: 'unused',
+        reachReason:
+          'No traced `checkout.sessions.create` call sends `line_items/items/dynamic_tax_rates`.',
+      },
+      {
+        id: 'request-property-removed',
+        level: 3,
+        operation: 'POST',
+        path: '/v1/checkout/sessions',
+        text: 'removed the request property `payment_method_types`',
+        reach: 'reached',
+        reachReason: 'The `checkout.sessions.create` call in app/api/stripe/route.ts sends it.',
+      },
+      {
+        id: 'response-property-enum-value-added',
+        level: 1,
+        operation: 'GET',
+        path: '/v1/charges',
+        text: 'added the new `x` enum value to the `status` response property',
+        reach: 'unused',
+        reachReason: 'No code reads `charge.status`.',
+      },
+    ],
+  };
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  expect(body).toContain('## Changed, Not Used By Traced Code');
+  expect(body).toContain(
+    '- `POST /v1/checkout/sessions` removed the request property \\`line\\_items/items/dynamic\\_tax\\_rates\\`: No traced \\`checkout.sessions.create\\` call sends \\`line\\_items/items/dynamic\\_tax\\_rates\\`.',
+  );
+  // A reached change blocks instead, and a non-breaking change is not listed.
+  expect(body).not.toContain('payment\\_method\\_types\\`: The');
+  expect(body).not.toContain('/v1/charges');
+});

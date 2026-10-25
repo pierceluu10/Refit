@@ -1,7 +1,8 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
-import { digest, type AddedProperty } from './specifications.ts';
+import { digest, isObject, type AddedProperty } from './specifications.ts';
+import { PASSING_REACH } from './operation-reach.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
@@ -569,6 +570,14 @@ export function createReviewArtifacts(
       ),
     ),
   ];
+  // Breaking contract changes the reach gate let through (operation-reach.ts), with their paths.
+  const unusedChanges = (report.specificationDiff?.changes ?? [])
+    .filter(isObject)
+    .filter((change) => PASSING_REACH.has(change.reach) && Number(change.level) >= 2)
+    .map(
+      (change) =>
+        `${code(`${change.operation} ${change.path}`)} ${plainText(String(change.text))}: ${plainText(String(change.reachReason))}`,
+    );
   // Provider pages that document the change, from the rule's source and attached vendor notes.
   const sourceUrls = [
     ...new Set(
@@ -762,6 +771,13 @@ export function createReviewArtifacts(
             '## Left Unchanged',
             `Refit could not trace these reads of removed field names to a ${plainText(provider)} object, so it did not change them. Check each one: a read of a ${plainText(provider)} object here breaks after the upgrade.`,
             siteList(untracedSites, siteLimit),
+          ]
+        : []),
+      ...(unusedChanges.length
+        ? [
+            '## Changed, Not Used By Traced Code',
+            'The target contract changes these parts in a breaking way. No traced call sends them and no read of them was found, a kept rule edit rewrites them, or reading them is unaffected, so they do not hold back this change. Each line gives the reason.',
+            siteList(unusedChanges, siteLimit),
           ]
         : []),
       '## Not Verified',

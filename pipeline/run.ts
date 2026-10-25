@@ -1,6 +1,8 @@
 import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
+import { annotateReach } from './operation-reach.ts';
+import { measureCoverage } from './sdk-coverage.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import {
@@ -363,10 +365,28 @@ async function runOpenApiPipeline(options: {
     for (const finding of analysis.findings)
       if (finding.requestParameter && editCovers(repository, renames, finding))
         finding.reason = `${finding.reason} The owner-approved rename to allowed_payment_method_types applies to this value, but ${gate}.`;
-  if (specificationDiff && provider.packageName === STRIPE.packageName)
+  if (specificationDiff && provider.packageName === STRIPE.packageName) {
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
     );
+    // A contract change blocks only where traced code reaches it (operation-reach.ts).
+    let untraced: string[] | undefined;
+    annotateReach(specificationDiff.changes, {
+      repository,
+      before: before.document,
+      calls: analysis.calls,
+      mappings: operationMappings,
+      untracedCalls: () =>
+        (untraced ??= measureCoverage(repository, 'stripe')
+          .filter((site) => site.likelySdk && !site.traced)
+          .map((site) => site.expression)),
+      readFindings: (removals) =>
+        analyzeRepository(repository, removals, provider, before.schemas).findings,
+      removals: changes,
+      edited: (file, offset) =>
+        edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
+    });
+  }
   const apiVersion = compareApiVersion(
     applicationApiVersion,
     before.document,
