@@ -116,11 +116,11 @@ Owner decision 22, confirmed by Furqan on 2026-10-22: a match in docs, examples,
 
 A path is outside application code when one of its directories (matched as a whole segment) or its file name is:
 
-| Reason | Paths | Why |
-|---|---|---|
-| `docs-site` | `doc/`, `docs/`, `website/`, `documentation/` | Documentation and marketing sites |
-| `example` | `example(s)/`, `sample(s)/`, `demo(s)/` | Sample code that is not the application |
-| `test-fixture` | `fixture(s)/`, `__fixtures__/`, `__mocks__/`, `testdata/`, `test-data/`, `mocks/` | Test data and mocks |
+| Reason         | Paths                                                                                                                                  | Why                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `docs-site`    | `doc/`, `docs/`, `website/`, `documentation/`                                                                                          | Documentation and marketing sites                  |
+| `example`      | `example(s)/`, `sample(s)/`, `demo(s)/`                                                                                                | Sample code that is not the application            |
+| `test-fixture` | `fixture(s)/`, `__fixtures__/`, `__mocks__/`, `testdata/`, `test-data/`, `mocks/`                                                      | Test data and mocks                                |
 | `build-output` | `out/`, `.next/`, `.nuxt/`, `.output/`, `.svelte-kit/`, `coverage/`, `.turbo/`, `dist/`, `build/`, and `*.min.js`, `*.bundle.js` files | Generated from the source, which is scanned itself |
 
 - **Vendored code:** `vendor/`, `vendors/`, `vendored/` and `third_party/` code ships with the application; it counts and keeps its `vendored` reason, without the "outside application code" label.
@@ -186,6 +186,7 @@ Owner decision, 2026-10-22: a deadline that has already passed **keeps failing**
 ```
 
 `Action` offers a draft pull request only where Refit has a fixer:
+
 - an OpenAI or Anthropic model with a concrete registry replacement: `refit serve --model-fixes`, for models written as a literal in a traced SDK call;
 - an API version of a provider with a Refit agent (Stripe, Shopify), through that agent's migration run.
 
@@ -331,7 +332,7 @@ With `--model-fixes`, the service maintains retiring OpenAI and Anthropic models
 
 1. Refit applies the [model replacement rule](#propose-model-replacements) to the committed snapshot. Uses that stop for review are never edited.
 2. It runs the repository's approved check command (its `.refit.json` `image`, `command`, `baselineCommand`, `prepareDependencies` and `compareTypeErrors`) before and after the change, in the same offline Docker sandbox and limits as contract migrations.
-3. When both runs pass and `--publish-draft` is set, it opens a draft pull request as Refit Agent. The description lists each replacement with its deadline and registry source, the check results, every use left for review, and what the checks cannot show. Without `--publish-draft`, the run is recorded as `validated`.
+3. When both runs pass and `--publish-draft` is set, it opens a draft pull request as Refit Agent. The description lists each replacement with its deadline and registry source, the check results, every use left for review, and what the checks cannot show. When the approved check is `node -e 0`, which runs no code, the draft is titled `[Needs review]` and opens with that reason (owner decision 1). Without `--publish-draft`, the run is recorded as `validated`.
 
 Refit never merges the pull request or marks it ready. A failing check publishes nothing. The outcome of each repository is saved in the service state under `modelFixes`, keyed by the replacements themselves (file, model and replacement). While their pull request stands, the same replacements are not validated or published again, even after new commits. A pull request a developer closes is not reopened for the same replacements. A new retiring model, or a registry change, starts a new run.
 

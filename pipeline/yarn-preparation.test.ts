@@ -688,8 +688,10 @@ if (args[0] === 'run') { process.stderr.write('ENOSPC: no space left on device, 
       cacheDirectory: join(root, 'cache'),
     }),
   ).rejects.toThrow(
-    'yarn dependency preparation ran out of space in its 2g workspace (ENOSPC). Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree. An operator can set REFIT_VALIDATION_WORKSPACE=4g',
+    'yarn dependency preparation ran out of space in its 4g workspace (ENOSPC). Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree. In .refit.json, remove "prepareDependencies"',
   );
+  // Under a smaller operator profile the message names the default 4 GiB one.
+  vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '2g');
   const npmRepository = await commit('npm', {
     'package.json': '{"name":"app","version":"1.0.0"}',
     'package-lock.json': JSON.stringify({

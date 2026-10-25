@@ -25,7 +25,7 @@ The inventory ran from a clean pinned worktree at `fda92e5` on an Apple M5 (10 c
 
 These facts are read from the code and set the shape of the model:
 
-- **One job at a time.** The worker claims a job and awaits it before claiming the next (`pipeline/hosted-service.ts`), so more vCPUs do not add throughput today.
+- **One job at a time by default.** Without `--job-processes`, the worker claims a job and runs it in its own process before claiming the next (`pipeline/hosted-service.ts`), so more vCPUs add no throughput. `--job-processes <n>` runs up to `n` jobs at once, each in a forked process with a 1536 MiB heap, and `REFIT_HOSTED_INSTALLATION_JOBS` (default 1) caps how many of one installation's jobs run at once. The model below is for one job at a time; parallel jobs were not measured.
 - **Every enrolled repository is polled every 300 s** (`DEFAULT_INTERVAL_SECONDS`). Each poll fetches the repository, captures the contract and runs a full scan, whether or not anything changed (`pipeline/watch.ts`).
 - **A migration runs only when the contract changed.** Preparation, baseline and patched checks each run in a container limited to one CPU and 3 GiB of memory, with a 2 GiB tmpfs workspace (`pipeline/docker-sandbox.ts`). Linux charges tmpfs pages to the container's memory limit, so the workspace counts inside the 3 GiB.
 - **Stage time limits:**
@@ -131,7 +131,7 @@ Each row also includes a 20 GB volume per machine.
 
 **Polling, not migrations, sets the size.** At a 300 s interval each repository costs 12 scans an hour, about 73 CPU seconds, while its migrations average about 0.2 s an hour. The scan is content-addressed (its run id hashes the contract, repository and adapter), so a poll whose repository commit and contract hash both match the last one could skip the scan entirely. That would make a poll cost only its fetches.
 
-On Fly, a hosted scheduled poll now skips everything, the managed fetch included, when the base branch head, approval and worker build match the last finished job and the contracts are committed files ([unchanged polls](HOSTED-RUNBOOK.md#unchanged-polls)). It costs one GitHub API read and two database queries. The rows above still describe a poll after a push, a deploy or an approval change, and every poll of a target whose contract is fetched from upstream.
+On Fly, a hosted scheduled poll now skips everything, the managed fetch included, when the base branch head, approval and worker build match the last finished job and the contracts are committed files ([unchanged polls](HOSTED-RUNBOOK.md#unchanged-polls)). It costs eight GitHub API requests (the App's repository access check and the base branch head, minting two installation tokens) and two database queries. The rows above still describe a poll after a push, a deploy or an approval change, and every poll of a target whose contract is fetched from upstream.
 
 These rows assume jobs spread across machines. Today one machine serves one owner (`REFIT_HOSTED_OWNER`); several machines need the job distribution and isolation PG3 and PG10 are building.
 

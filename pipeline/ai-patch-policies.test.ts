@@ -1010,7 +1010,7 @@ it('refuses an edit where one read keeps the old shape and another reads only th
 // Mangu-Commerce/madcaptees api/stripe/webhook.ts in re-probe 40078712515: the shipping-details
 // rule calls the helper once per read, so TypeScript cannot narrow it and repair asks the model.
 const HELPER_READS = `import Stripe from 'stripe';
-import { getCheckoutShippingDetails } from '../../stripe-subscription-period';
+import { getCheckoutShippingDetails } from '../../stripeSubscriptionPeriod';
 
 export async function record(session: Stripe.Checkout.Session, existing: unknown) {
   if (!existing) {

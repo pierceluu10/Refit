@@ -2,12 +2,17 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { CARD_PAYMENT_METHOD_WARNING, listedPaymentMethodWarning } from './patches.ts';
+import {
+  CARD_PAYMENT_METHOD_WARNING,
+  listedPaymentMethodWarning,
+  movedPaymentMethodWarning,
+} from './patches.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { droppedRequestParameters } from './validation.ts';
+import { removedParameterSites } from './migration-review.ts';
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -48,7 +53,7 @@ function contract(version: string, fields: string[]) {
 async function run(
   files: Record<string, string>,
   proposePatch = true,
-  keepListedPaymentMethods = false,
+  keepListedPaymentMethods?: boolean,
 ) {
   const root = await mkdtemp(join(tmpdir(), 'refit-card-methods-'));
   directories.push(root);
@@ -97,7 +102,7 @@ async function run(
     providerConfig,
     apiVersion: '2026-08-26.dahlia',
     proposePatch,
-    keepListedPaymentMethods,
+    ...(keepListedPaymentMethods === undefined ? {} : { keepListedPaymentMethods }),
   });
 }
 
@@ -108,6 +113,47 @@ const checkout = (
 const stripe = new Stripe(process.env.STRIPE_KEY, ${options});
 export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ${methods} });
 `;
+
+// The draft PR for a patch whose checks passed on both sides.
+function passedDraft(report: Awaited<ReturnType<typeof run>>, changes = report.changes) {
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
+  return createReviewArtifacts({
+    ...report,
+    changes,
+    publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
+    patch: { ...report.patch, validation: 'passed' },
+    validation: {
+      status: 'passed',
+      revision: 'a'.repeat(40),
+      image: `sha256:${'b'.repeat(64)}`,
+      runtime: {
+        configured: 'node:22-alpine',
+        image: 'node:22-alpine',
+        nodeVersion: '22.23.3',
+        declarations: [],
+        reason: 'The repository declares no Node.js version.',
+      },
+      command: ['npm', 'test'],
+      baselineCommand: ['npm', 'test'],
+      archiveHash: 'c'.repeat(64),
+      patchHash: digest(report.patch.diff),
+      baseline: check,
+      patched: check,
+      limits: {
+        timeoutMs: 120_000,
+        outputBytes: 1024 * 1024,
+        network: 'none',
+        workspace: '512m' as const,
+        memory: '1g' as const,
+      },
+      publishable: true,
+      attempts: [],
+      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
+      reason: 'Synthetic check results for artifact formatting tests.',
+    },
+  }).files['pull-request.md'];
+}
 
 // O1's reproduction: the price-policy fixture is a configured subscription-period migration
 // (acacia to basil), whose patch carries neither the pin nor the stripe-node upgrade, so the
@@ -199,7 +245,7 @@ it("moves ['card'] to allowed_payment_method_types together with the endive pin"
 it.each([
   ['without a literal API version pin', { 'checkout.js': checkout("['card']", '{}') }],
   [
-    'when another call sends card and PayPal',
+    'when another call sends card and PayPal and keep-listed is turned off',
     {
       'checkout.js':
         checkout("['card']") +
@@ -211,7 +257,7 @@ it.each([
     { 'checkout.ts': checkout("['card']") },
   ],
 ])('keeps stopping for review %s', async (_case, files) => {
-  const report = await run(files);
+  const report = await run(files, true, false);
   expect(report.patch).toMatchObject({
     status: 'not-generated',
     reason: expect.stringMatching(/parameter the target API version removed/),
@@ -225,46 +271,11 @@ it.each([
 it('tells the reviewer to keep cards enabled in the draft PR', async () => {
   const report = await run({ 'checkout.js': checkout("['card']") });
   if (!('diff' in report.patch)) throw new Error('Expected a patch');
-  const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
-  const description = createReviewArtifacts({
-    ...report,
+  const description = passedDraft(report, [
+    ...report.changes,
     // A full comparison also records removals this code never reads.
-    changes: [
-      ...report.changes,
-      { id: 'unread', schema: 'charge', property: 'legacy_field', pointer: '/charge/legacy_field' },
-    ],
-    publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
-    patch: { ...report.patch, validation: 'passed' },
-    validation: {
-      status: 'passed',
-      revision: 'a'.repeat(40),
-      image: `sha256:${'b'.repeat(64)}`,
-      runtime: {
-        configured: 'node:22-alpine',
-        image: 'node:22-alpine',
-        nodeVersion: '22.23.3',
-        declarations: [],
-        reason: 'The repository declares no Node.js version.',
-      },
-      command: ['npm', 'test'],
-      baselineCommand: ['npm', 'test'],
-      archiveHash: 'c'.repeat(64),
-      patchHash: digest(report.patch.diff),
-      baseline: check,
-      patched: check,
-      limits: {
-        timeoutMs: 120_000,
-        outputBytes: 1024 * 1024,
-        network: 'none',
-        workspace: '512m' as const,
-        memory: '1g' as const,
-      },
-      publishable: true,
-      attempts: [],
-      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
-      reason: 'Synthetic check results for artifact formatting tests.',
-    },
-  }).files['pull-request.md'];
+    { id: 'unread', schema: 'charge', property: 'legacy_field', pointer: '/charge/legacy_field' },
+  ]);
   expect(description).toContain(
     'moves to `allowed_payment_method_types` under the owner-approved policy',
   );
@@ -407,10 +418,10 @@ it('lets an AI repair keep the card-only renames without counting them as droppe
   ).toEqual(['payment_method_types']);
 });
 
-it('keeps a listed card-plus-methods value only where the repository opted in', async () => {
+it('keeps a listed card-plus-methods value by default, and not when keep-listed is off', async () => {
   const files = { 'checkout.js': checkout("['card', 'paypal']") };
-  expect((await run(files)).patch).toMatchObject({ status: 'not-generated' });
-  const report = await run(files, true, true);
+  expect((await run(files, true, false)).patch).toMatchObject({ status: 'not-generated' });
+  const report = await run(files);
   expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
   if (!('diff' in report.patch)) throw new Error('Expected a patch');
   expect(report.patch.diff).toContain(
@@ -424,57 +435,110 @@ it('keeps a listed card-plus-methods value only where the repository opted in', 
   expect(listedPaymentMethodWarning(['card', 'paypal'])).toContain(
     'so paypal may no longer be offered to some customers',
   );
-  const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
-  const description = createReviewArtifacts({
-    ...report,
-    publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
-    patch: { ...report.patch, validation: 'passed' },
-    validation: {
-      status: 'passed',
-      revision: 'a'.repeat(40),
-      image: `sha256:${'b'.repeat(64)}`,
-      runtime: {
-        configured: 'node:22-alpine',
-        image: 'node:22-alpine',
-        nodeVersion: '22.23.3',
-        declarations: [],
-        reason: 'The repository declares no Node.js version.',
-      },
-      command: ['npm', 'test'],
-      baselineCommand: ['npm', 'test'],
-      archiveHash: 'c'.repeat(64),
-      patchHash: digest(report.patch.diff),
-      baseline: check,
-      patched: check,
-      limits: {
-        timeoutMs: 120_000,
-        outputBytes: 1024 * 1024,
-        network: 'none',
-        workspace: '512m' as const,
-        memory: '1g' as const,
-      },
-      publishable: true,
-      attempts: [],
-      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
-      reason: 'Synthetic check results for artifact formatting tests.',
-    },
-  }).files['pull-request.md'];
+  const description = passedDraft(report);
   expect(description).toContain(
-    'Moves `[card, paypal]` from `payment_method_types` to `allowed_payment_method_types`, because this repository set `stripePaymentMethodTypes: "keep-listed"`',
+    'Moves `[card, paypal]` from `payment_method_types` to `allowed_payment_method_types` with the same methods, under the owner decision of 2026-10-24 to keep listed payment methods.',
   );
   expect(description).toContain('so `paypal` may no longer be offered to some customers');
 });
 
+// The lists nabarvn/documon and ASQUAREEE/intellico send from their tRPC Checkout procedures.
 it.each([
-  ["['card_present']"],
-  ["['paypal']"],
-  ["['card', 'card']"],
-  ["['card', 'card_present']"],
-  ["[...methods, 'card']"],
-  ['methods'],
-])('keeps stopping on %s even where the repository opted in', async (methods) => {
+  [
+    '["card", "paypal"]',
+    'so `paypal` may no longer be offered to some customers. Stripe offers only payment methods the account has enabled ([dynamic payment methods](https://docs.stripe.com/payments/payment-methods/dynamic-payment-methods)). Before merging, confirm it is enabled in the Stripe Dashboard or the payment method configuration this account uses, and still appears where you rely on it.',
+  ],
+  [
+    '["card","paypal","us_bank_account"]',
+    'so `paypal`, `us_bank_account` may no longer be offered to some customers. Stripe offers only payment methods the account has enabled ([dynamic payment methods](https://docs.stripe.com/payments/payment-methods/dynamic-payment-methods)). Before merging, confirm they are enabled in the Stripe Dashboard or the payment method configuration this account uses, and still appear where you rely on them.',
+  ],
+])('asks the reviewer to confirm the non-card methods of %s are enabled', async (methods, text) => {
+  const description = passedDraft(await run({ 'checkout.js': checkout(methods) }));
+  expect(description).toContain(text);
+});
+
+// Owner decision (2026-10-24): a computed list, a spread or a list without `card` moves with its
+// expression unchanged. The shapes are the ones the Push 279 repositories send (see the PR).
+it.each([
+  ['a variable', 'methods', "const methods = ['card', 'link'];"],
+  [
+    'a function call',
+    'paymentMethods(country)',
+    "const paymentMethods = (c) => (c === 'NL' ? ['card', 'ideal'] : ['card']);\nconst country = 'NL';",
+  ],
+  ['a spread', "[...methods, 'klarna']", "const methods = ['card'];"],
+  ['a conditional', "wallet ? ['card', 'cashapp'] : ['card']", 'const wallet = true;'],
+  ['a list without card', "['paypal']", ''],
+  ['a property', 'config.methods', "const config = { methods: ['card', 'us_bank_account'] };"],
+])('moves %s to allowed_payment_method_types unchanged', async (_shape, methods, setup) => {
+  const files = { 'checkout.js': `${setup}\n${checkout(methods)}` };
+  expect((await run(files, true, false)).patch).toMatchObject({ status: 'not-generated' });
+  const report = await run(files);
+  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain(`allowed_payment_method_types: ${methods} });`);
+  expect(report.patch.diff).not.toMatch(/^\+.*[^_]payment_method_types/m);
+  expect(report.patch.warnings).toContain(movedPaymentMethodWarning(methods));
+  expect(report.findings.some((finding) => finding.requestParameter)).toBe(false);
+});
+
+it('moves a shorthand list and names the moved expression in the draft', async () => {
+  const files = {
+    'checkout.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const checkout = (payment_method_types) => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types });
+`,
+  };
+  const report = await run(files, true, true);
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain(
+    "create({ mode: 'payment', allowed_payment_method_types: payment_method_types });",
+  );
+  expect(report.patch.warnings).toContain(movedPaymentMethodWarning('payment_method_types'));
+  const description = passedDraft(report);
+  expect(description).toContain(
+    'Moves `payment_method_types` from `payment_method_types` to `allowed_payment_method_types` unchanged',
+  );
+  expect(description).toContain(
+    'Refit cannot read which payment methods `payment_method_types` holds at runtime.',
+  );
+  expect(description).toContain(
+    'that each one is enabled in the Stripe Dashboard or the payment method configuration this account uses',
+  );
+  expect(description).toContain('Confirm the runtime values of `payment_method_types`');
+  expect(description).not.toContain('Confirm cards stay enabled');
+  expect(description).not.toContain("`['card']` moves to");
+});
+
+it.each([
+  ['an in-person literal', "['card_present']", ''],
+  ['an in-person method in a list', "['card', 'interac_present']", ''],
+  ['a repeated literal list', "['card', 'card']", ''],
+  ['an in-person method listed after card', "['card', 'card_present']", ''],
+  ['an empty list', '[]', ''],
+  ['a variable naming an in-person method', 'methods', "const methods = ['card_present'];"],
+  ['a spread of an in-person list', "[...terminal, 'card']", "const terminal = ['card_present'];"],
+  [
+    'a function returning an in-person list',
+    'methods()',
+    "function methods() { return ['card_present']; }",
+  ],
+  [
+    'a property naming an in-person method',
+    'config.methods',
+    "const config = { methods: ['card_present'] };",
+  ],
+])('keeps stopping on %s even where the repository opted in', async (_shape, methods, setup) => {
+  const report = await run({ 'checkout.js': `${setup}\n${checkout(methods)}` }, true, true);
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings.some((finding) => finding.requestParameter)).toBe(true);
+});
+
+it('keeps stopping on a body that already sends allowed_payment_method_types', async () => {
   const report = await run(
-    { 'checkout.js': `const methods = ['card'];\n${checkout(methods)}` },
+    {
+      'checkout.js': checkout("['card', 'paypal'], allowed_payment_method_types: ['card']"),
+    },
     true,
     true,
   );
@@ -482,6 +546,76 @@ it.each([
   expect(report.findings.some((finding) => finding.requestParameter)).toBe(true);
 });
 
+// Shaped like two Push 279 repositories: a Checkout body built in a local `sessionConfig` with a
+// computed list (geallenboy/ai-saas-template), and a typed SetupIntent params const with a list
+// from the request (qesmsep/noir-crm-dashboard).
+it('moves a computed list in a local body that only the creation call receives', async () => {
+  const report = await run(
+    {
+      'checkout.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export async function checkout(customerId, paymentMethods) {
+  const sessionConfig = {
+    customer: customerId,
+    payment_method_types: paymentMethods,
+    mode: 'payment',
+  };
+  sessionConfig.metadata = { source: 'app' };
+  return stripe.checkout.sessions.create(sessionConfig);
+}
+`,
+    },
+    true,
+    true,
+  );
+  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain('+    allowed_payment_method_types: paymentMethods,');
+  expect(report.patch.warnings).toContain(movedPaymentMethodWarning('paymentMethods'));
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+it.each([
+  [
+    'a body a helper returns',
+    `const params = (methods) => ({ mode: 'payment', payment_method_types: methods });
+export const checkout = (methods) => stripe.checkout.sessions.create(params(methods));`,
+  ],
+  [
+    'a list assigned onto the body',
+    `export const checkout = (methods) => {
+  const params = { mode: 'payment' };
+  params.payment_method_types = methods;
+  return stripe.checkout.sessions.create(params);
+};`,
+  ],
+  [
+    'an exported body',
+    `export const params = { mode: 'payment', payment_method_types: ['card', 'paypal'] };
+export const checkout = () => stripe.checkout.sessions.create(params);`,
+  ],
+  [
+    'a body that reaches another call too',
+    `export const checkout = (methods) => {
+  const params = { mode: 'payment', payment_method_types: methods };
+  log(params);
+  return stripe.checkout.sessions.create(params);
+};`,
+  ],
+])('keeps stopping on %s', async (_shape, code) => {
+  const report = await run(
+    {
+      'checkout.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+const log = console.log;
+${code}
+`,
+    },
+    true,
+    true,
+  );
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+});
 it('keeps the stop when another client sets a version the patch cannot move', async () => {
   const report = await run({
     'pinned.js': checkout("['card']"),
@@ -527,13 +661,16 @@ export const checkout = (line_items) =>
   stripe.checkout.sessions.create({ ...STRIPE_SESSION_CREATE_PARAMS, line_items });
 `;
 
+it('moves card and PayPal in a variable the call receives, and stops when keep-listed is off', async () => {
+  const files = { 'checkout.js': builtInVariable.replace('["card"]', '["card", "paypal"]') };
+  const report = await run(files);
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain('+    allowed_payment_method_types: ["card", "paypal"],');
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+  expect((await run(files, true, false)).patch).toMatchObject({ status: 'not-generated' });
+});
+
 it.each([
-  [
-    'in a variable the call receives, with PayPal',
-    { 'checkout.js': builtInVariable.replace('["card"]', '["card", "paypal"]') },
-    'checkout.js',
-    8,
-  ],
   [
     'in a variable a wrapper receives',
     {
@@ -628,6 +765,12 @@ export async function pay(kind) {
       },
     }),
   );
+  // The stop names the site without calling it a traced call.
+  expect(removedParameterSites(report.findings)).toMatch(
+    new RegExp(
+      `^Where: .*${file}:${line} sets payment_method_types outside a traced SDK request body`,
+    ),
+  );
 });
 
 it('ignores nested payment_settings lists, schema definitions and test files', async () => {
@@ -688,4 +831,26 @@ it('says which client keeps the card rename from riding with the pin', async () 
       ),
     },
   ]);
+});
+
+// An assignment onto a body was invisible: the card rule moved the pin while it still sent the
+// removed parameter. A Payment Links body still accepts it, as in a migration script that copies
+// `link.payment_method_types` onto `createPaymentLinkParams` (helloworld9912/Stripe-Account-Migration).
+it('stops on a list assigned onto a Checkout body and leaves one assigned onto a Payment Links body', async () => {
+  const assigned = (call: string) => ({
+    'checkout.js': `${checkout("['card']")}export async function other(link) {
+  const params = { line_items: [] };
+  params.payment_method_types = link.payment_method_types;
+  return stripe.${call}(params);
+}
+`,
+  });
+  const stopped = await run(assigned('checkout.sessions.create'));
+  expect(stopped.patch).toMatchObject({ status: 'not-generated' });
+  expect(
+    stopped.findings.filter((finding) => finding.requestParameter).map((finding) => finding.line),
+  ).toEqual([6]);
+  const links = await run(assigned('paymentLinks.create'));
+  expect(links.patch).toMatchObject({ status: 'proposed' });
+  expect(links.findings.filter((finding) => finding.requestParameter)).toEqual([]);
 });

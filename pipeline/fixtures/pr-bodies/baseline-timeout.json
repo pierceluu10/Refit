@@ -1,0 +1,1893 @@
+{
+  "formatVersion": 1,
+  "provider": "stripe-full",
+  "adapter": {
+    "id": "stripe-full",
+    "packageName": "stripe",
+    "defaultImport": true,
+    "namedExport": "Stripe",
+    "operations": [
+      {
+        "resource": "billingPortal.sessions",
+        "method": "create",
+        "schema": "billing_portal.session",
+        "operationId": "PostBillingPortalSessions"
+      },
+      {
+        "resource": "charges",
+        "method": "retrieve",
+        "schema": "charge",
+        "operationId": "GetChargesCharge"
+      },
+      {
+        "resource": "checkout.sessions",
+        "method": "create",
+        "schema": "checkout.session",
+        "operationId": "PostCheckoutSessions"
+      },
+      {
+        "resource": "checkout.sessions",
+        "method": "expire",
+        "schema": "checkout.session",
+        "operationId": "PostCheckoutSessionsSessionExpire"
+      },
+      {
+        "resource": "customers",
+        "method": "retrieve",
+        "schema": "customer",
+        "operationId": "GetCustomersCustomer"
+      },
+      {
+        "resource": "customers",
+        "method": "create",
+        "schema": "customer",
+        "operationId": "PostCustomers"
+      },
+      {
+        "resource": "invoices",
+        "method": "retrieve",
+        "schema": "invoice",
+        "operationId": "GetInvoicesInvoice"
+      },
+      {
+        "resource": "prices",
+        "method": "retrieve",
+        "schema": "price",
+        "operationId": "GetPricesPrice"
+      },
+      {
+        "resource": "subscriptions",
+        "method": "retrieve",
+        "schema": "subscription",
+        "operationId": "GetSubscriptionsSubscriptionExposedId"
+      }
+    ],
+    "constructorCalls": true,
+    "apiVersion": {
+      "constructorArgument": 1,
+      "property": "apiVersion",
+      "requestArguments": [1, 2]
+    }
+  },
+  "runId": "291e49f1a4074cce80ccf73c1f552adba76a69296c48331e5d738769a7ee4b8b",
+  "apiVersion": {
+    "application": "2024-12-18.acacia",
+    "before": "2024-12-18.acacia",
+    "after": "2026-09-30.endive",
+    "applicability": "matches-before",
+    "reason": "Application API version 2024-12-18.acacia matches the before contract.",
+    "policy": "operator-pin",
+    "source": {
+      "status": "verified",
+      "declarations": [
+        {
+          "file": "server/lib/stripe.js",
+          "line": 10,
+          "column": 22,
+          "kind": "constructor",
+          "value": "2024-12-18.acacia",
+          "status": "literal",
+          "reason": "Literal SDK constructor API-version option."
+        },
+        {
+          "file": "server/routes/billing.js",
+          "line": 93,
+          "column": 34,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/billing.js",
+          "line": 176,
+          "column": 36,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/billing.js",
+          "line": 209,
+          "column": 32,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/billing.js",
+          "line": 211,
+          "column": 23,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/billing.js",
+          "line": 218,
+          "column": 31,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/billing.js",
+          "line": 249,
+          "column": 31,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 27,
+          "column": 33,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 218,
+          "column": 54,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 338,
+          "column": 42,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 341,
+          "column": 37,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 381,
+          "column": 42,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 384,
+          "column": 37,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 396,
+          "column": 35,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 435,
+          "column": 43,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        }
+      ],
+      "reason": "All supported SDK constructor declarations and request overrides match the operator pin under the recorded adapter mapping."
+    }
+  },
+  "findings": [
+    {
+      "file": "server/routes/billing.js",
+      "line": 107,
+      "column": 30,
+      "changeId": "1e5555bbb20cc1823f543f0e",
+      "expression": ".unit_amount",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/billing.js",
+      "line": 110,
+      "column": 21,
+      "changeId": "1e5555bbb20cc1823f543f0e",
+      "expression": ".unit_amount",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 28,
+      "column": 25,
+      "changeId": "8aa322d4fab7131b93907458",
+      "expression": ".price",
+      "confidence": "review",
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 28,
+      "column": 25,
+      "changeId": "142dba6c71098a50fca6c32d",
+      "expression": ".price",
+      "confidence": "review",
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 29,
+      "column": 20,
+      "changeId": "8aa322d4fab7131b93907458",
+      "expression": ".price",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 29,
+      "column": 20,
+      "changeId": "142dba6c71098a50fca6c32d",
+      "expression": ".price",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 30,
+      "column": 25,
+      "changeId": "8aa322d4fab7131b93907458",
+      "expression": ".price",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 30,
+      "column": 25,
+      "changeId": "142dba6c71098a50fca6c32d",
+      "expression": ".price",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 61,
+      "column": 38,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 61,
+      "column": 38,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 62,
+      "column": 27,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 62,
+      "column": 27,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 62,
+      "column": 27,
+      "changeId": "1146b8e1503ca80070828f94",
+      "expression": ".subscription_details",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 63,
+      "column": 24,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 63,
+      "column": 24,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 67,
+      "column": 13,
+      "changeId": "253803f47cb664cc90879a61",
+      "expression": ".current_period_start",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 67,
+      "column": 49,
+      "changeId": "253803f47cb664cc90879a61",
+      "expression": ".current_period_start",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 67,
+      "column": 85,
+      "changeId": "253803f47cb664cc90879a61",
+      "expression": ".current_period_start",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 67,
+      "column": 112,
+      "changeId": "253803f47cb664cc90879a61",
+      "expression": ".current_period_start",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 68,
+      "column": 13,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 68,
+      "column": 47,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 68,
+      "column": 81,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 68,
+      "column": 106,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 247,
+      "column": 46,
+      "changeId": "253803f47cb664cc90879a61",
+      "expression": ".current_period_start",
+      "confidence": "confirmed",
+      "subscriptionPeriod": {
+        "rareCase": "item-in-code",
+        "selection": "items.data[0]"
+      },
+      "webhook": {
+        "migration": {
+          "rule": "stripe-subscription-periods-helper"
+        },
+        "schema": "subscription",
+        "eventTypes": ["customer.subscription.updated"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed subscription.current_period_start read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 248,
+      "column": 44,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "confirmed",
+      "subscriptionPeriod": {
+        "rareCase": "item-in-code",
+        "selection": "items.data[0]"
+      },
+      "webhook": {
+        "migration": {
+          "rule": "stripe-subscription-periods-helper"
+        },
+        "schema": "subscription",
+        "eventTypes": ["customer.subscription.updated"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed subscription.current_period_end read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 315,
+      "column": 81,
+      "changeId": "89e8d4c00b4d967a02861251",
+      "expression": ".charge",
+      "confidence": "review",
+      "webhook": {
+        "eventTypes": ["charge.dispute.created", "charge.refunded"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 339,
+      "column": 25,
+      "changeId": "f33e187bcbb0f333d0c48f1d",
+      "expression": ".invoice",
+      "confidence": "confirmed",
+      "reason": "Removed field read on a statically traced stripe-full charge response."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 340,
+      "column": 48,
+      "changeId": "f33e187bcbb0f333d0c48f1d",
+      "expression": ".invoice",
+      "confidence": "confirmed",
+      "reason": "Removed field read on a statically traced stripe-full charge response."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 341,
+      "column": 62,
+      "changeId": "f33e187bcbb0f333d0c48f1d",
+      "expression": ".invoice",
+      "confidence": "confirmed",
+      "reason": "Removed field read on a statically traced stripe-full charge response."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 342,
+      "column": 31,
+      "changeId": "f33e187bcbb0f333d0c48f1d",
+      "expression": ".invoice",
+      "confidence": "confirmed",
+      "reason": "Removed field read on a statically traced stripe-full charge response."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 343,
+      "column": 42,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 343,
+      "column": 42,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 381,
+      "column": 66,
+      "changeId": "89e8d4c00b4d967a02861251",
+      "expression": ".charge",
+      "confidence": "review",
+      "webhook": {
+        "eventTypes": ["charge.dispute.closed"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 382,
+      "column": 25,
+      "changeId": "f33e187bcbb0f333d0c48f1d",
+      "expression": ".invoice",
+      "confidence": "confirmed",
+      "reason": "Removed field read on a statically traced stripe-full charge response."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 383,
+      "column": 48,
+      "changeId": "f33e187bcbb0f333d0c48f1d",
+      "expression": ".invoice",
+      "confidence": "confirmed",
+      "reason": "Removed field read on a statically traced stripe-full charge response."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 384,
+      "column": 62,
+      "changeId": "f33e187bcbb0f333d0c48f1d",
+      "expression": ".invoice",
+      "confidence": "confirmed",
+      "reason": "Removed field read on a statically traced stripe-full charge response."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 385,
+      "column": 31,
+      "changeId": "f33e187bcbb0f333d0c48f1d",
+      "expression": ".invoice",
+      "confidence": "confirmed",
+      "reason": "Removed field read on a statically traced stripe-full charge response."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 386,
+      "column": 42,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 386,
+      "column": 42,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 409,
+      "column": 21,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.payment_failed"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 413,
+      "column": 28,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.payment_failed"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 420,
+      "column": 21,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 426,
+      "column": 27,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 435,
+      "column": 73,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 448,
+      "column": 55,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 452,
+      "column": 59,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 458,
+      "column": 38,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 466,
+      "column": 32,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 487,
+      "column": 31,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 494,
+      "column": 59,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 506,
+      "column": 59,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/routes/stripe-webhooks.js",
+      "line": 515,
+      "column": 63,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "confirmed",
+      "webhook": {
+        "schema": "invoice",
+        "eventTypes": ["invoice.paid"],
+        "origin": {
+          "file": "server/routes/stripe-webhooks.js",
+          "line": 83,
+          "column": 17
+        },
+        "apiVersion": "unverified"
+      },
+      "reason": "Removed invoice.subscription read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 201,
+      "column": 20,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 201,
+      "column": 20,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 208,
+      "column": 20,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 208,
+      "column": 20,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 215,
+      "column": 20,
+      "changeId": "253803f47cb664cc90879a61",
+      "expression": ".current_period_start",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 216,
+      "column": 20,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 223,
+      "column": 20,
+      "changeId": "253803f47cb664cc90879a61",
+      "expression": ".current_period_start",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 224,
+      "column": 20,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 227,
+      "column": 20,
+      "changeId": "eefe4ea32b74e64919fbc645",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "server/__tests__/stripe-webhooks.test.js",
+      "line": 227,
+      "column": 20,
+      "changeId": "e57f26ccd809b93316d0a9aa",
+      "expression": ".subscription",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    }
+  ],
+  "operationChanges": [],
+  "patch": {
+    "generator": "deterministic",
+    "summary": "Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.",
+    "status": "proposed",
+    "edits": 5,
+    "unresolvedFindings": 60,
+    "diff": "diff --git \"a/server/lib/stripe.js\" \"b/server/lib/stripe.js\"\n--- \"a/server/lib/stripe.js\"\n+++ \"b/server/lib/stripe.js\"\n@@ -1,39 +1,39 @@\n-import Stripe from 'stripe';\n-import { config } from '../config.js';\n-import logger from './logger.js';\n-\n-let stripe = null;\n-\n-export function getStripe() {\n-    if (!stripe && config.stripeSecretKey) {\n-        try {\n-            stripe = new Stripe(config.stripeSecretKey, {\n-                apiVersion: '2024-12-18.acacia',\n-            });\n-        } catch (err) {\n-            logger.warn({ err }, 'Failed to initialize Stripe client');\n-        }\n-    }\n-    if (!stripe && config.stripeSecretKey) {\n-        logger.warn('getStripe() returned null but STRIPE_SECRET_KEY is configured');\n-    }\n-    return stripe;\n-}\n-\n-/**\n- * Billing is enabled only when BOTH halves of the Stripe pair are present.\n- *\n- * The secret key alone is enough to open a checkout and charge a card, but\n- * without the webhook signing secret every event Stripe sends back is refused\n- * (stripe-webhooks.js answers 503), so no licence is issued and no e-mail is\n- * sent: the customer pays and receives nothing. In production the boot audit\n- * already refuses to start in that state (startup-secrets-check.js), which is\n- * why this never reached the live instance — but a self-hosted or staging\n- * instance running outside production had no such guard, and this module\n- * disagreed with the shell, which has always required both before advertising\n- * a priced plan (index.js). One predicate, one answer: a half-configured\n- * install advertises Free and answers 503 on checkout, which is the truth.\n- */\n-export function isStripeEnabled() {\n-    return !!config.stripeSecretKey && !!config.stripeWebhookSecret;\n-}\n+import Stripe from 'stripe';\n+import { config } from '../config.js';\n+import logger from './logger.js';\n+\n+let stripe = null;\n+\n+export function getStripe() {\n+    if (!stripe && config.stripeSecretKey) {\n+        try {\n+            stripe = new Stripe(config.stripeSecretKey, {\n+                apiVersion: '2026-09-30.endive',\n+            });\n+        } catch (err) {\n+            logger.warn({ err }, 'Failed to initialize Stripe client');\n+        }\n+    }\n+    if (!stripe && config.stripeSecretKey) {\n+        logger.warn('getStripe() returned null but STRIPE_SECRET_KEY is configured');\n+    }\n+    return stripe;\n+}\n+\n+/**\n+ * Billing is enabled only when BOTH halves of the Stripe pair are present.\n+ *\n+ * The secret key alone is enough to open a checkout and charge a card, but\n+ * without the webhook signing secret every event Stripe sends back is refused\n+ * (stripe-webhooks.js answers 503), so no licence is issued and no e-mail is\n+ * sent: the customer pays and receives nothing. In production the boot audit\n+ * already refuses to start in that state (startup-secrets-check.js), which is\n+ * why this never reached the live instance — but a self-hosted or staging\n+ * instance running outside production had no such guard, and this module\n+ * disagreed with the shell, which has always required both before advertising\n+ * a priced plan (index.js). One predicate, one answer: a half-configured\n+ * install advertises Free and answers 503 on checkout, which is the truth.\n+ */\n+export function isStripeEnabled() {\n+    return !!config.stripeSecretKey && !!config.stripeWebhookSecret;\n+}\ndiff --git \"a/server/routes/stripe-webhooks.js\" \"b/server/routes/stripe-webhooks.js\"\n--- \"a/server/routes/stripe-webhooks.js\"\n+++ \"b/server/routes/stripe-webhooks.js\"\n@@ -1,533 +1,534 @@\n-import { getStripe, isStripeEnabled } from '../lib/stripe.js';\n-import { config } from '../config.js';\n-import db from '../db.js';\n-import logger from '../lib/logger.js';\n-import { issueLicenseForCheckout } from '../lib/license-issuer.js';\n-\n-const VALID_TIERS = new Set(['free', 'pro', 'enterprise']);\n-\n-// A refund or chargeback suspends access, but the Stripe subscription itself\n-// is untouched and keeps producing `customer.subscription.updated` events with\n-// status 'active'. Letting those through would silently restore the tier of a\n-// customer who took their money back, so the hold survives until it is cleared\n-// deliberately — `charge.dispute.closed` with status 'won', or an operator.\n-const HOLD_STATUSES = new Set(['refunded', 'disputed']);\n-\n-/**\n- * Cross-check the tier from session/subscription metadata against the actual\n- * price object's metadata. If they disagree, log a warning and prefer the\n- * price's tier (it's the source of truth — session metadata can be stale or\n- * tampered if the Stripe account is compromised). Falls back to the supplied\n- * `metadataTier` if we can't fetch the price (e.g. line items missing).\n- */\n-async function reconcileTierFromPrice(stripe, sessionOrSub, metadataTier, sessionId) {\n-    try {\n-        let priceTier = null;\n-        if (sessionId) {\n-            const items = await stripe.checkout.sessions.listLineItems(sessionId, { expand: ['data.price'], limit: 5 });\n-            priceTier = items.data?.[0]?.price?.metadata?.tier || null;\n-        } else if (sessionOrSub?.items?.data?.[0]?.price?.metadata?.tier) {\n-            priceTier = sessionOrSub.items.data[0].price.metadata.tier;\n-        }\n-        if (priceTier && VALID_TIERS.has(priceTier)) {\n-            if (metadataTier && metadataTier !== priceTier) {\n-                logger.warn({ priceTier, metadataTier }, 'Stripe webhook: tier mismatch between session metadata and price metadata; using price metadata');\n-            }\n-            return priceTier;\n-        }\n-    } catch (err) {\n-        logger.warn({ err }, 'Stripe webhook: failed to reconcile tier from price; using metadata fallback');\n-    }\n-    return VALID_TIERS.has(metadataTier) ? metadataTier : 'pro';\n-}\n-\n-/**\n- * Read both shapes Stripe has sent since 2025-03-31.basil, once, at the door.\n- *\n- * The endpoint pins no API version, so events render at the account default.\n- * From basil onward `current_period_start/end` left the Subscription object\n- * for its items, and the invoice→subscription pointer moved from\n- * `invoice.subscription` to `invoice.parent.subscription_details.subscription`.\n- * Every handler below reads the older names; on a basil-default account a\n- * first purchase still works (it reads only session.*) while renewals,\n- * dunning and delayed-payment completions silently no-op and\n- * `customer.subscription.updated` throws on `new Date(undefined)`. Filling\n- * the older names from the newer ones here is smaller and safer than\n- * touching a dozen call sites, and it does nothing on a pre-basil payload.\n- */\n-export function normaliseStripeEventShape(event) {\n-    const obj = event?.data?.object;\n-    if (!obj || typeof obj !== 'object') return event;\n-    if (obj.object === 'invoice' && !obj.subscription) {\n-        const viaParent = obj.parent?.subscription_details?.subscription;\n-        if (viaParent) obj.subscription = typeof viaParent === 'string' ? viaParent : viaParent.id;\n-    }\n-    if (obj.object === 'subscription') {\n-        const item = obj.items?.data?.[0];\n-        if (obj.current_period_start == null && item?.current_period_start != null) obj.current_period_start = item.current_period_start;\n-        if (obj.current_period_end == null && item?.current_period_end != null) obj.current_period_end = item.current_period_end;\n-    }\n-    return event;\n-}\n-\n-export async function stripeWebhookHandler(req, res) {\n-    if (!isStripeEnabled() || !config.stripeWebhookSecret) {\n-        return res.status(503).json({ error: 'Stripe webhooks not configured' });\n-    }\n-\n-    const stripe = getStripe();\n-    const sig = req.headers['stripe-signature'];\n-\n-    let event;\n-    try {\n-        event = stripe.webhooks.constructEvent(req.body, sig, config.stripeWebhookSecret);\n-    } catch (err) {\n-        logger.error({ err }, 'Stripe webhook signature verification failed');\n-        return res.status(400).json({ error: 'Invalid signature' });\n-    }\n-    normaliseStripeEventShape(event);\n-\n-    // Idempotency: Stripe retries up to 5 times. Use INSERT OR IGNORE so the\n-    // check-then-insert is one atomic statement (no race window between two\n-    // concurrent retries). `changes` reports 0 when the event id was already\n-    // present, in which case we reply 200 and skip further processing.\n-    //\n-    // Important: we wrap the idempotency insert + synchronous DB mutations\n-    // for this event in a single better-sqlite3 transaction. If any of those\n-    // synchronous writes throws, SQLite rolls back the idempotency row so a\n-    // Stripe retry will reprocess the event fresh rather than see it as\n-    // already-handled. Async side effects (Stripe API calls, license\n-    // issuance + email) are performed OUTSIDE the transaction — their order\n-    // is: idempotency INSERT + DB writes (inside txn) → email (after commit).\n-    // If the async license issuance throws, we remove the idempotency row\n-    // explicitly so the next retry can proceed.\n-    let deduped = false;\n-    const runIdempotentDbWork = db.transaction(() => {\n-        const result = db.prepare(\n-            'INSERT OR IGNORE INTO webhook_events (id, source, type, processed_at) VALUES (?, ?, ?, ?)'\n-        ).run(event.id, 'stripe', event.type, Date.now());\n-        if (result.changes === 0) {\n-            deduped = true;\n-            return null;\n-        }\n-        // Only the sync DB writes that depend on the event body run here. The\n-        // per-event-type async handling (Stripe API calls, license emission)\n-        // runs outside, after commit. We return a structured \"pending\" record\n-        // the caller uses to drive the async phase.\n-        return { kind: 'committed' };\n-    });\n-\n-    let ledgerResult;\n-    try {\n-        ledgerResult = runIdempotentDbWork();\n-    } catch (err) {\n-        logger.error({ err, eventId: event.id }, 'Stripe webhook: idempotency ledger transaction failed');\n-        return res.status(500).json({ error: 'Webhook ledger failure' });\n-    }\n-\n-    if (deduped || ledgerResult === null) {\n-        return res.json({ received: true, deduped: true });\n-    }\n-\n-    // Helper: remove the idempotency row when async processing fails, so the\n-    // next Stripe retry reprocesses the event rather than being deduped.\n-    const forgetIdempotency = () => {\n-        try {\n-            db.prepare('DELETE FROM webhook_events WHERE id = ? AND source = ?').run(event.id, 'stripe');\n-        } catch (cleanupErr) {\n-            logger.error({ err: cleanupErr, eventId: event.id }, 'Stripe webhook: failed to roll back idempotency row after async failure');\n-        }\n-    };\n-\n-    try {\n-        switch (event.type) {\n-            case 'checkout.session.completed': {\n-                const session = event.data.object;\n-                const userId = parseInt(session.metadata?.userId);\n-                const rawTier = session.metadata?.tier || 'pro';\n-                const tier = await reconcileTierFromPrice(stripe, session, rawTier, session.id);\n-                // billingPeriod comes from the checkout session metadata\n-                // (routes/billing.js ~line 89); default 'monthly' covers older\n-                // clients/webhooks that predate the yearly toggle. The emailed\n-                // license's validity must match what was actually paid for — a\n-                // monthly $19 sub must not carry a 12-month irrevocable key.\n-                const billingPeriod = session.metadata?.billingPeriod === 'yearly' ? 'yearly' : 'monthly';\n-                const licenseMonths = billingPeriod === 'yearly' ? 12 : 1;\n-\n-                // A completed session is not a settled payment. Delayed\n-                // payment methods complete the session with payment_status\n-                // 'unpaid' and settle (or fail) later. Granting here emailed a\n-                // 1-12 month offline-verifiable license BEFORE the money\n-                // arrived: if the invoice then failed, `past_due` removed SaaS\n-                // access while the emailed key kept working. Park the row as\n-                // 'incomplete' instead and let invoice.paid promote it.\n-                // Stripe's enum is paid | unpaid | no_payment_required. Match\n-                // the one bad value explicitly rather than allowlisting the\n-                // good ones, so a session that omits the field entirely keeps\n-                // its previous behaviour instead of silently never granting.\n-                const paymentPending = session.payment_status === 'unpaid';\n-\n-                if (userId && paymentPending) {\n-                    db.prepare(`\n-                        INSERT INTO user_subscriptions (user_id, tier, stripe_customer_id, stripe_subscription_id, status, billing_period)\n-                        VALUES (?, 'free', ?, ?, 'incomplete', ?)\n-                        ON CONFLICT(user_id) DO UPDATE SET\n-                            stripe_customer_id = ?, stripe_subscription_id = ?, status = 'incomplete', billing_period = ?, updated_at = datetime('now')\n-                    `).run(userId, session.customer, session.subscription, billingPeriod, session.customer, session.subscription, billingPeriod);\n-                    logger.info(\n-                        { userId, sessionId: session.id, paymentStatus: session.payment_status },\n-                        'stripe-webhook: checkout completed but payment not settled — deferring tier grant and license to invoice.paid'\n-                    );\n-                    break;\n-                }\n-\n-                if (userId) {\n-                    // Synchronous subscription write wrapped in a transaction so\n-                    // a failure here rolls back cleanly before we attempt license\n-                    // issuance. We run it via db.transaction purely for atomicity\n-                    // of the upsert itself — the parent idempotency insert is\n-                    // already committed at this point because better-sqlite3\n-                    // cannot span async boundaries within a single transaction.\n-                    try {\n-                        db.transaction(() => {\n-                            db.prepare(`\n-                                INSERT INTO user_subscriptions (user_id, tier, stripe_customer_id, stripe_subscription_id, status, billing_period)\n-                                VALUES (?, ?, ?, ?, 'active', ?)\n-                                ON CONFLICT(user_id) DO UPDATE SET\n-                                    tier = ?, stripe_customer_id = ?, stripe_subscription_id = ?, status = 'active', billing_period = ?, updated_at = datetime('now')\n-                            `).run(userId, tier, session.customer, session.subscription, billingPeriod, tier, session.customer, session.subscription, billingPeriod);\n-                        })();\n-                    } catch (err) {\n-                        logger.error({ err, sessionId: session.id }, 'stripe-webhook: subscription upsert failed — rolling back idempotency');\n-                        forgetIdempotency();\n-                        return res.status(500).json({ error: 'Subscription write failed' });\n-                    }\n-\n-                    // Issue + email license AFTER DB commit. If license issuance\n-                    // throws, roll back the idempotency row so Stripe's retry\n-                    // can reprocess this event fresh and we get another shot at\n-                    // emitting the license. The subscription upsert above is\n-                    // idempotent (ON CONFLICT DO UPDATE) so re-running it on\n-                    // retry is safe — we don't need to undo it.\n-                    //\n-                    // Note: issueLicenseForCheckout swallows its OWN errors\n-                    // (email failures, signing-key issues) and does not throw\n-                    // in those cases — so only an unexpected failure such as\n-                    // Stripe customer retrieval timing out will land here.\n-                    try {\n-                        const stripeCustomer = await stripe.customers.retrieve(session.customer);\n-                        const user = db.prepare('SELECT email FROM users WHERE id = ?').get(userId);\n-                        const recipientEmail = stripeCustomer.email || user?.email;\n-                        if (recipientEmail) {\n-                            await issueLicenseForCheckout({\n-                                userId,\n-                                email: recipientEmail,\n-                                tier,\n-                                seats: parseInt(session.metadata?.seats) || 1,\n-                                months: licenseMonths,\n-                                stripeSubscriptionId: session.subscription,\n-                                stripeSessionId: session.id,\n-                            });\n-                        } else {\n-                            logger.warn({ userId, sessionId: session.id }, 'stripe-webhook: no email for license delivery');\n-                        }\n-                    } catch (err) {\n-                        logger.error({ err, sessionId: session.id }, 'stripe-webhook: license issuance failed — rolling back idempotency so Stripe retry can reprocess');\n-                        forgetIdempotency();\n-                        return res.status(500).json({ error: 'License issuance failed' });\n-                    }\n-                }\n-                break;\n-            }\n-\n-            case 'customer.subscription.updated': {\n-                const sub = event.data.object;\n-                const rawSubTier = sub.metadata?.tier || (sub.items?.data?.[0]?.price?.metadata?.tier) || 'pro';\n-                const tier = await reconcileTierFromPrice(stripe, sub, rawSubTier, null);\n-                const periodStart = new Date(sub.current_period_start * 1000).toISOString();\n-                const periodEnd = new Date(sub.current_period_end * 1000).toISOString();\n-\n-                // Never let a routine subscription update lift a refund/dispute\n-                // hold. The customer opening the billing portal is enough to\n-                // produce this event, and Stripe reports the subscription as\n-                // 'active' throughout — the money is still gone.\n-                const current = db.prepare(\n-                    'SELECT status FROM user_subscriptions WHERE stripe_subscription_id = ?'\n-                ).get(sub.id);\n-\n-                // 'incomplete' is invoice.paid's only record that a delayed\n-                // payment (SEPA, ACH, Boleto) still owes a licence. Stripe does\n-                // not order subscription.updated against invoice.paid, so if\n-                // this landed first it granted the tier before the money was\n-                // confirmed and invoice.paid then found nothing to settle — no\n-                // key was ever issued. Periods are safe to record; the tier and\n-                // an 'active' status are invoice.paid's to grant. A failure\n-                // status (past_due, incomplete_expired, …) still lands.\n-                if (current?.status === 'incomplete') {\n-                    const promotes = sub.status === 'active' || sub.status === 'trialing';\n-                    db.prepare(`\n-                        UPDATE user_subscriptions SET\n-                            ${promotes ? '' : 'status = ?,'} current_period_start = ?, current_period_end = ?, updated_at = datetime('now')\n-                        WHERE stripe_subscription_id = ?\n-                    `).run(...(promotes ? [] : [sub.status]), periodStart, periodEnd, sub.id);\n-                    break;\n-                }\n-\n-                if (current && HOLD_STATUSES.has(current.status)) {\n-                    db.prepare(`\n-                        UPDATE user_subscriptions SET\n-                            current_period_start = ?, current_period_end = ?, updated_at = datetime('now')\n-                        WHERE stripe_subscription_id = ?\n-                    `).run(periodStart, periodEnd, sub.id);\n-                    logger.warn(\n-                        { subscriptionId: sub.id, heldStatus: current.status },\n-                        'stripe-webhook: subscription update ignored — billing hold in effect'\n-                    );\n-                    break;\n-                }\n-\n-                db.prepare(`\n-                    UPDATE user_subscriptions SET\n-                        tier = ?, status = ?, current_period_start = ?, current_period_end = ?, updated_at = datetime('now')\n-                    WHERE stripe_subscription_id = ?\n-                `).run(tier, sub.status, periodStart, periodEnd, sub.id);\n-                break;\n-            }\n-\n-            case 'customer.subscription.deleted': {\n-                const sub = event.data.object;\n-                db.prepare(`\n-                    UPDATE user_subscriptions SET tier = 'free', status = 'cancelled', updated_at = datetime('now')\n-                    WHERE stripe_subscription_id = ?\n-                `).run(sub.id);\n-                break;\n-            }\n-\n-            // Refunding an invoice does NOT cancel the subscription in Stripe,\n-            // so without these two handlers a refunded or charged-back customer\n-            // kept status='active' and full paid capability indefinitely.\n-            // Both suspend SaaS access immediately; the already-emailed offline\n-            // license key remains valid until its own expiry, which is why\n-            // license.js mints a `lid` for a future revocation list.\n-            case 'charge.refunded':\n-            case 'charge.dispute.created': {\n-                const object = event.data.object;\n-                const chargeId = event.type === 'charge.refunded' ? object.id : object.charge;\n-                const nextStatus = event.type === 'charge.refunded' ? 'refunded' : 'disputed';\n-\n-                // Stripe fires `charge.refunded` for PARTIAL refunds too, with\n-                // `refunded: false`. A goodwill credit on an otherwise-paid\n-                // invoice must not strip a paying customer of their tier, so\n-                // only a full refund suspends access.\n-                if (event.type === 'charge.refunded' && object.refunded !== true) {\n-                    logger.info(\n-                        { chargeId, amount: object.amount, amountRefunded: object.amount_refunded },\n-                        'stripe-webhook: partial refund recorded, access unchanged'\n-                    );\n-                    break;\n-                }\n-\n-                let subscriptionId = null;\n-                try {\n-                    // Always re-fetch through the SDK client, which is pinned to\n-                    // an API version that still carries `charge.invoice`. The\n-                    // event payload renders at the ACCOUNT default, and from\n-                    // 2025-03-31.basil a charge has no `invoice` field: a full\n-                    // refund then found no subscription and left the customer\n-                    // on the paid tier.\n-                    const charge = await stripe.charges.retrieve(chargeId);\n-                    if (charge?.invoice) {\n-                        const invoice = typeof charge.invoice === 'string'\n-                            ? await stripe.invoices.retrieve(charge.invoice)\n-                            : charge.invoice;\n-                        subscriptionId = invoice?.subscription || null;\n-                    }\n-                } catch (err) {\n-                    logger.error({ err, chargeId, eventType: event.type }, 'stripe-webhook: could not resolve subscription for refund/dispute');\n-                    forgetIdempotency();\n-                    return res.status(500).json({ error: 'Refund resolution failed' });\n-                }\n-\n-                if (!subscriptionId) {\n-                    // A one-off charge with no subscription — nothing to suspend.\n-                    logger.info({ chargeId, eventType: event.type }, 'stripe-webhook: refund/dispute has no subscription');\n-                    break;\n-                }\n-\n-                const result = db.prepare(`\n-                    UPDATE user_subscriptions SET tier = 'free', status = ?, updated_at = datetime('now')\n-                    WHERE stripe_subscription_id = ?\n-                `).run(nextStatus, subscriptionId);\n-                logger.warn(\n-                    { subscriptionId, eventType: event.type, rowsUpdated: result.changes },\n-                    'stripe-webhook: subscription downgraded to free after refund/dispute'\n-                );\n-                break;\n-            }\n-\n-            // The only automatic way out of a hold. A dispute resolved in the\n-            // operator's favour means the money stayed, so the tier is restored\n-            // from Stripe rather than from our own (deliberately downgraded)\n-            // row. A lost dispute leaves the hold exactly where it is.\n-            case 'charge.dispute.closed': {\n-                const dispute = event.data.object;\n-                if (dispute.status !== 'won') {\n-                    logger.info({ disputeId: dispute.id, status: dispute.status }, 'stripe-webhook: dispute closed without a win, hold stands');\n-                    break;\n-                }\n-\n-                let subscriptionId = null;\n-                try {\n-                    const charge = await stripe.charges.retrieve(dispute.charge);\n-                    if (charge?.invoice) {\n-                        const invoice = typeof charge.invoice === 'string'\n-                            ? await stripe.invoices.retrieve(charge.invoice)\n-                            : charge.invoice;\n-                        subscriptionId = invoice?.subscription || null;\n-                    }\n-                } catch (err) {\n-                    logger.error({ err, disputeId: dispute.id }, 'stripe-webhook: could not resolve subscription for won dispute');\n-                    forgetIdempotency();\n-                    return res.status(500).json({ error: 'Dispute resolution failed' });\n-                }\n-\n-                if (!subscriptionId) break;\n-\n-                const sub = await stripe.subscriptions.retrieve(subscriptionId);\n-                const rawTier = sub.metadata?.tier || sub.items?.data?.[0]?.price?.metadata?.tier || 'pro';\n-                const tier = await reconcileTierFromPrice(stripe, sub, rawTier, null);\n-                db.prepare(`\n-                    UPDATE user_subscriptions SET tier = ?, status = ?, updated_at = datetime('now')\n-                    WHERE stripe_subscription_id = ? AND status = 'disputed'\n-                `).run(tier, sub.status, subscriptionId);\n-                logger.warn({ subscriptionId, tier }, 'stripe-webhook: dispute won, access restored');\n-                break;\n-            }\n-\n-            case 'invoice.payment_failed': {\n-                const invoice = event.data.object;\n-                if (invoice.subscription) {\n-                    db.prepare(`\n-                        UPDATE user_subscriptions SET status = 'past_due', updated_at = datetime('now')\n-                        WHERE stripe_subscription_id = ? AND status NOT IN ('refunded', 'disputed')\n-                    `).run(invoice.subscription);\n-                }\n-                break;\n-            }\n-\n-            case 'invoice.paid': {\n-                const invoice = event.data.object;\n-                if (invoice.subscription) {\n-                    // Read BEFORE the UPDATE: 'incomplete' means the checkout\n-                    // handler deferred the grant because the payment had not\n-                    // settled, so this invoice is the moment it becomes real.\n-                    const deferred = db.prepare(\n-                        \"SELECT user_id, billing_period FROM user_subscriptions WHERE stripe_subscription_id = ? AND status = 'incomplete'\"\n-                    ).get(invoice.subscription);\n-\n-                    // The 'incomplete' marker is this event's ONLY record that a\n-                    // licence is still owed. Clearing it before the key is issued\n-                    // meant a failed issuance (which 500s so Stripe retries) came\n-                    // back to a row that no longer looked deferred — the customer\n-                    // had paid by SEPA or Boleto and silently never got a key.\n-                    // Status is flipped after issuance for exactly that reason.\n-                    if (deferred?.user_id) {\n-                        const sub = await stripe.subscriptions.retrieve(invoice.subscription);\n-                        const rawTier = sub.metadata?.tier || sub.items?.data?.[0]?.price?.metadata?.tier || 'pro';\n-                        const tier = await reconcileTierFromPrice(stripe, sub, rawTier, null);\n-\n-                        const user = db.prepare('SELECT email FROM users WHERE id = ?').get(deferred.user_id);\n-                        const recipientEmail = invoice.customer_email || user?.email;\n-                        if (recipientEmail) {\n-                            await issueLicenseForCheckout({\n-                                userId: deferred.user_id,\n-                                email: recipientEmail,\n-                                tier,\n-                                seats: 1,\n-                                months: deferred.billing_period === 'yearly' ? 12 : 1,\n-                                stripeSubscriptionId: invoice.subscription,\n-                                stripeSessionId: invoice.id,\n-                            });\n-                        } else {\n-                            logger.warn({ subscriptionId: invoice.subscription, invoiceId: invoice.id }, 'stripe-webhook: no email for deferred license delivery');\n-                        }\n-\n-                        db.prepare(`\n-                            UPDATE user_subscriptions SET tier = ?, status = 'active', updated_at = datetime('now')\n-                            WHERE stripe_subscription_id = ?\n-                        `).run(tier, invoice.subscription);\n-                    } else {\n-                        // A renewal paying does not settle a refund or a\n-                        // dispute on an earlier invoice: the hold stays until\n-                        // charge.dispute.closed (won) or the operator lifts it.\n-                        db.prepare(`\n-                            UPDATE user_subscriptions SET status = 'active', updated_at = datetime('now')\n-                            WHERE stripe_subscription_id = ? AND status NOT IN ('refunded', 'disputed')\n-                        `).run(invoice.subscription);\n-                    }\n-\n-                    // Renewal license reissue: an emailed key's validity\n-                    // matches exactly what was paid for (1 month, or 12 for\n-                    // yearly — see checkout.session.completed above and\n-                    // license.js's calendar-month exp), so each paid renewal\n-                    // invoice needs its own fresh one. This applies to BOTH\n-                    // billing periods: a yearly customer's year-2 renewal is\n-                    // this exact event, and without a reissue here they'd pay\n-                    // and never receive a new key.\n-                    //\n-                    // billing_reason='subscription_cycle' is Stripe's marker\n-                    // for a recurring renewal invoice, as opposed to\n-                    // 'subscription_create' — which fires for that SAME\n-                    // subscription's very first invoice and would otherwise\n-                    // double-email a brand-new subscriber alongside the\n-                    // checkout.session.completed handler above.\n-                    if (invoice.billing_reason === 'subscription_cycle') {\n-                        const subRow = db.prepare(\n-                            'SELECT user_id, tier, status, billing_period FROM user_subscriptions WHERE stripe_subscription_id = ?'\n-                        ).get(invoice.subscription);\n-\n-                        // A held row carries tier 'free': reissuing from it\n-                        // emailed \"thank you for subscribing to the Free plan\"\n-                        // with a Free key to a customer mid-dispute.\n-                        const held = subRow && HOLD_STATUSES.has(subRow.status);\n-                        if (held) {\n-                            logger.warn({ subscriptionId: invoice.subscription, status: subRow.status }, 'stripe-webhook: renewal paid on a held subscription — no licence reissued');\n-                        }\n-                        if (subRow?.user_id && !held && subRow.tier !== 'free') {\n-                            const user = db.prepare('SELECT email FROM users WHERE id = ?').get(subRow.user_id);\n-                            const recipientEmail = invoice.customer_email || user?.email;\n-                            if (recipientEmail) {\n-                                await issueLicenseForCheckout({\n-                                    userId: subRow.user_id,\n-                                    email: recipientEmail,\n-                                    tier: subRow.tier,\n-                                    seats: 1,\n-                                    months: subRow.billing_period === 'yearly' ? 12 : 1,\n-                                    stripeSubscriptionId: invoice.subscription,\n-                                    // invoice.id is the natural idempotency key\n-                                    // for a renewal reissue — one license per\n-                                    // paid invoice, mirroring\n-                                    // issueLicenseForCheckout's per-checkout-\n-                                    // session idempotency for initial issuance.\n-                                    stripeSessionId: invoice.id,\n-                                });\n-                            } else {\n-                                logger.warn({ subscriptionId: invoice.subscription, invoiceId: invoice.id }, 'stripe-webhook: no email for renewal license delivery');\n-                            }\n-                        }\n-                    }\n-                }\n-                break;\n-            }\n-        }\n-\n-        res.json({ received: true });\n-    } catch (err) {\n-        logger.error({ err, eventType: event.type }, 'Stripe webhook processing error');\n-        // Async failure on a non-checkout event path (e.g. failing UPDATE on a\n-        // subscription row). Remove the idempotency row so Stripe's retry can\n-        // reprocess the event fresh rather than being silently deduped.\n-        forgetIdempotency();\n-        res.status(500).json({ error: 'Webhook processing failed' });\n-    }\n-}\n+import { getStripe, isStripeEnabled } from '../lib/stripe.js';\n+import { config } from '../config.js';\n+import db from '../db.js';\n+import logger from '../lib/logger.js';\n+import { issueLicenseForCheckout } from '../lib/license-issuer.js';\n+import { getSubscriptionPeriodStart, getSubscriptionPeriodEnd } from './stripe-subscription-period.js';\n+\n+const VALID_TIERS = new Set(['free', 'pro', 'enterprise']);\n+\n+// A refund or chargeback suspends access, but the Stripe subscription itself\n+// is untouched and keeps producing `customer.subscription.updated` events with\n+// status 'active'. Letting those through would silently restore the tier of a\n+// customer who took their money back, so the hold survives until it is cleared\n+// deliberately — `charge.dispute.closed` with status 'won', or an operator.\n+const HOLD_STATUSES = new Set(['refunded', 'disputed']);\n+\n+/**\n+ * Cross-check the tier from session/subscription metadata against the actual\n+ * price object's metadata. If they disagree, log a warning and prefer the\n+ * price's tier (it's the source of truth — session metadata can be stale or\n+ * tampered if the Stripe account is compromised). Falls back to the supplied\n+ * `metadataTier` if we can't fetch the price (e.g. line items missing).\n+ */\n+async function reconcileTierFromPrice(stripe, sessionOrSub, metadataTier, sessionId) {\n+    try {\n+        let priceTier = null;\n+        if (sessionId) {\n+            const items = await stripe.checkout.sessions.listLineItems(sessionId, { expand: ['data.price'], limit: 5 });\n+            priceTier = items.data?.[0]?.price?.metadata?.tier || null;\n+        } else if (sessionOrSub?.items?.data?.[0]?.price?.metadata?.tier) {\n+            priceTier = sessionOrSub.items.data[0].price.metadata.tier;\n+        }\n+        if (priceTier && VALID_TIERS.has(priceTier)) {\n+            if (metadataTier && metadataTier !== priceTier) {\n+                logger.warn({ priceTier, metadataTier }, 'Stripe webhook: tier mismatch between session metadata and price metadata; using price metadata');\n+            }\n+            return priceTier;\n+        }\n+    } catch (err) {\n+        logger.warn({ err }, 'Stripe webhook: failed to reconcile tier from price; using metadata fallback');\n+    }\n+    return VALID_TIERS.has(metadataTier) ? metadataTier : 'pro';\n+}\n+\n+/**\n+ * Read both shapes Stripe has sent since 2025-03-31.basil, once, at the door.\n+ *\n+ * The endpoint pins no API version, so events render at the account default.\n+ * From basil onward `current_period_start/end` left the Subscription object\n+ * for its items, and the invoice→subscription pointer moved from\n+ * `invoice.subscription` to `invoice.parent.subscription_details.subscription`.\n+ * Every handler below reads the older names; on a basil-default account a\n+ * first purchase still works (it reads only session.*) while renewals,\n+ * dunning and delayed-payment completions silently no-op and\n+ * `customer.subscription.updated` throws on `new Date(undefined)`. Filling\n+ * the older names from the newer ones here is smaller and safer than\n+ * touching a dozen call sites, and it does nothing on a pre-basil payload.\n+ */\n+export function normaliseStripeEventShape(event) {\n+    const obj = event?.data?.object;\n+    if (!obj || typeof obj !== 'object') return event;\n+    if (obj.object === 'invoice' && !obj.subscription) {\n+        const viaParent = obj.parent?.subscription_details?.subscription;\n+        if (viaParent) obj.subscription = typeof viaParent === 'string' ? viaParent : viaParent.id;\n+    }\n+    if (obj.object === 'subscription') {\n+        const item = obj.items?.data?.[0];\n+        if (obj.current_period_start == null && item?.current_period_start != null) obj.current_period_start = item.current_period_start;\n+        if (obj.current_period_end == null && item?.current_period_end != null) obj.current_period_end = item.current_period_end;\n+    }\n+    return event;\n+}\n+\n+export async function stripeWebhookHandler(req, res) {\n+    if (!isStripeEnabled() || !config.stripeWebhookSecret) {\n+        return res.status(503).json({ error: 'Stripe webhooks not configured' });\n+    }\n+\n+    const stripe = getStripe();\n+    const sig = req.headers['stripe-signature'];\n+\n+    let event;\n+    try {\n+        event = stripe.webhooks.constructEvent(req.body, sig, config.stripeWebhookSecret);\n+    } catch (err) {\n+        logger.error({ err }, 'Stripe webhook signature verification failed');\n+        return res.status(400).json({ error: 'Invalid signature' });\n+    }\n+    normaliseStripeEventShape(event);\n+\n+    // Idempotency: Stripe retries up to 5 times. Use INSERT OR IGNORE so the\n+    // check-then-insert is one atomic statement (no race window between two\n+    // concurrent retries). `changes` reports 0 when the event id was already\n+    // present, in which case we reply 200 and skip further processing.\n+    //\n+    // Important: we wrap the idempotency insert + synchronous DB mutations\n+    // for this event in a single better-sqlite3 transaction. If any of those\n+    // synchronous writes throws, SQLite rolls back the idempotency row so a\n+    // Stripe retry will reprocess the event fresh rather than see it as\n+    // already-handled. Async side effects (Stripe API calls, license\n+    // issuance + email) are performed OUTSIDE the transaction — their order\n+    // is: idempotency INSERT + DB writes (inside txn) → email (after commit).\n+    // If the async license issuance throws, we remove the idempotency row\n+    // explicitly so the next retry can proceed.\n+    let deduped = false;\n+    const runIdempotentDbWork = db.transaction(() => {\n+        const result = db.prepare(\n+            'INSERT OR IGNORE INTO webhook_events (id, source, type, processed_at) VALUES (?, ?, ?, ?)'\n+        ).run(event.id, 'stripe', event.type, Date.now());\n+        if (result.changes === 0) {\n+            deduped = true;\n+            return null;\n+        }\n+        // Only the sync DB writes that depend on the event body run here. The\n+        // per-event-type async handling (Stripe API calls, license emission)\n+        // runs outside, after commit. We return a structured \"pending\" record\n+        // the caller uses to drive the async phase.\n+        return { kind: 'committed' };\n+    });\n+\n+    let ledgerResult;\n+    try {\n+        ledgerResult = runIdempotentDbWork();\n+    } catch (err) {\n+        logger.error({ err, eventId: event.id }, 'Stripe webhook: idempotency ledger transaction failed');\n+        return res.status(500).json({ error: 'Webhook ledger failure' });\n+    }\n+\n+    if (deduped || ledgerResult === null) {\n+        return res.json({ received: true, deduped: true });\n+    }\n+\n+    // Helper: remove the idempotency row when async processing fails, so the\n+    // next Stripe retry reprocesses the event rather than being deduped.\n+    const forgetIdempotency = () => {\n+        try {\n+            db.prepare('DELETE FROM webhook_events WHERE id = ? AND source = ?').run(event.id, 'stripe');\n+        } catch (cleanupErr) {\n+            logger.error({ err: cleanupErr, eventId: event.id }, 'Stripe webhook: failed to roll back idempotency row after async failure');\n+        }\n+    };\n+\n+    try {\n+        switch (event.type) {\n+            case 'checkout.session.completed': {\n+                const session = event.data.object;\n+                const userId = parseInt(session.metadata?.userId);\n+                const rawTier = session.metadata?.tier || 'pro';\n+                const tier = await reconcileTierFromPrice(stripe, session, rawTier, session.id);\n+                // billingPeriod comes from the checkout session metadata\n+                // (routes/billing.js ~line 89); default 'monthly' covers older\n+                // clients/webhooks that predate the yearly toggle. The emailed\n+                // license's validity must match what was actually paid for — a\n+                // monthly $19 sub must not carry a 12-month irrevocable key.\n+                const billingPeriod = session.metadata?.billingPeriod === 'yearly' ? 'yearly' : 'monthly';\n+                const licenseMonths = billingPeriod === 'yearly' ? 12 : 1;\n+\n+                // A completed session is not a settled payment. Delayed\n+                // payment methods complete the session with payment_status\n+                // 'unpaid' and settle (or fail) later. Granting here emailed a\n+                // 1-12 month offline-verifiable license BEFORE the money\n+                // arrived: if the invoice then failed, `past_due` removed SaaS\n+                // access while the emailed key kept working. Park the row as\n+                // 'incomplete' instead and let invoice.paid promote it.\n+                // Stripe's enum is paid | unpaid | no_payment_required. Match\n+                // the one bad value explicitly rather than allowlisting the\n+                // good ones, so a session that omits the field entirely keeps\n+                // its previous behaviour instead of silently never granting.\n+                const paymentPending = session.payment_status === 'unpaid';\n+\n+                if (userId && paymentPending) {\n+                    db.prepare(`\n+                        INSERT INTO user_subscriptions (user_id, tier, stripe_customer_id, stripe_subscription_id, status, billing_period)\n+                        VALUES (?, 'free', ?, ?, 'incomplete', ?)\n+                        ON CONFLICT(user_id) DO UPDATE SET\n+                            stripe_customer_id = ?, stripe_subscription_id = ?, status = 'incomplete', billing_period = ?, updated_at = datetime('now')\n+                    `).run(userId, session.customer, session.subscription, billingPeriod, session.customer, session.subscription, billingPeriod);\n+                    logger.info(\n+                        { userId, sessionId: session.id, paymentStatus: session.payment_status },\n+                        'stripe-webhook: checkout completed but payment not settled — deferring tier grant and license to invoice.paid'\n+                    );\n+                    break;\n+                }\n+\n+                if (userId) {\n+                    // Synchronous subscription write wrapped in a transaction so\n+                    // a failure here rolls back cleanly before we attempt license\n+                    // issuance. We run it via db.transaction purely for atomicity\n+                    // of the upsert itself — the parent idempotency insert is\n+                    // already committed at this point because better-sqlite3\n+                    // cannot span async boundaries within a single transaction.\n+                    try {\n+                        db.transaction(() => {\n+                            db.prepare(`\n+                                INSERT INTO user_subscriptions (user_id, tier, stripe_customer_id, stripe_subscription_id, status, billing_period)\n+                                VALUES (?, ?, ?, ?, 'active', ?)\n+                                ON CONFLICT(user_id) DO UPDATE SET\n+                                    tier = ?, stripe_customer_id = ?, stripe_subscription_id = ?, status = 'active', billing_period = ?, updated_at = datetime('now')\n+                            `).run(userId, tier, session.customer, session.subscription, billingPeriod, tier, session.customer, session.subscription, billingPeriod);\n+                        })();\n+                    } catch (err) {\n+                        logger.error({ err, sessionId: session.id }, 'stripe-webhook: subscription upsert failed — rolling back idempotency');\n+                        forgetIdempotency();\n+                        return res.status(500).json({ error: 'Subscription write failed' });\n+                    }\n+\n+                    // Issue + email license AFTER DB commit. If license issuance\n+                    // throws, roll back the idempotency row so Stripe's retry\n+                    // can reprocess this event fresh and we get another shot at\n+                    // emitting the license. The subscription upsert above is\n+                    // idempotent (ON CONFLICT DO UPDATE) so re-running it on\n+                    // retry is safe — we don't need to undo it.\n+                    //\n+                    // Note: issueLicenseForCheckout swallows its OWN errors\n+                    // (email failures, signing-key issues) and does not throw\n+                    // in those cases — so only an unexpected failure such as\n+                    // Stripe customer retrieval timing out will land here.\n+                    try {\n+                        const stripeCustomer = await stripe.customers.retrieve(session.customer);\n+                        const user = db.prepare('SELECT email FROM users WHERE id = ?').get(userId);\n+                        const recipientEmail = stripeCustomer.email || user?.email;\n+                        if (recipientEmail) {\n+                            await issueLicenseForCheckout({\n+                                userId,\n+                                email: recipientEmail,\n+                                tier,\n+                                seats: parseInt(session.metadata?.seats) || 1,\n+                                months: licenseMonths,\n+                                stripeSubscriptionId: session.subscription,\n+                                stripeSessionId: session.id,\n+                            });\n+                        } else {\n+                            logger.warn({ userId, sessionId: session.id }, 'stripe-webhook: no email for license delivery');\n+                        }\n+                    } catch (err) {\n+                        logger.error({ err, sessionId: session.id }, 'stripe-webhook: license issuance failed — rolling back idempotency so Stripe retry can reprocess');\n+                        forgetIdempotency();\n+                        return res.status(500).json({ error: 'License issuance failed' });\n+                    }\n+                }\n+                break;\n+            }\n+\n+            case 'customer.subscription.updated': {\n+                const sub = event.data.object;\n+                const rawSubTier = sub.metadata?.tier || (sub.items?.data?.[0]?.price?.metadata?.tier) || 'pro';\n+                const tier = await reconcileTierFromPrice(stripe, sub, rawSubTier, null);\n+                const periodStart = new Date((getSubscriptionPeriodStart(sub, (items) => items[0])) * 1000).toISOString();\n+                const periodEnd = new Date((getSubscriptionPeriodEnd(sub, (items) => items[0])) * 1000).toISOString();\n+\n+                // Never let a routine subscription update lift a refund/dispute\n+                // hold. The customer opening the billing portal is enough to\n+                // produce this event, and Stripe reports the subscription as\n+                // 'active' throughout — the money is still gone.\n+                const current = db.prepare(\n+                    'SELECT status FROM user_subscriptions WHERE stripe_subscription_id = ?'\n+                ).get(sub.id);\n+\n+                // 'incomplete' is invoice.paid's only record that a delayed\n+                // payment (SEPA, ACH, Boleto) still owes a licence. Stripe does\n+                // not order subscription.updated against invoice.paid, so if\n+                // this landed first it granted the tier before the money was\n+                // confirmed and invoice.paid then found nothing to settle — no\n+                // key was ever issued. Periods are safe to record; the tier and\n+                // an 'active' status are invoice.paid's to grant. A failure\n+                // status (past_due, incomplete_expired, …) still lands.\n+                if (current?.status === 'incomplete') {\n+                    const promotes = sub.status === 'active' || sub.status === 'trialing';\n+                    db.prepare(`\n+                        UPDATE user_subscriptions SET\n+                            ${promotes ? '' : 'status = ?,'} current_period_start = ?, current_period_end = ?, updated_at = datetime('now')\n+                        WHERE stripe_subscription_id = ?\n+                    `).run(...(promotes ? [] : [sub.status]), periodStart, periodEnd, sub.id);\n+                    break;\n+                }\n+\n+                if (current && HOLD_STATUSES.has(current.status)) {\n+                    db.prepare(`\n+                        UPDATE user_subscriptions SET\n+                            current_period_start = ?, current_period_end = ?, updated_at = datetime('now')\n+                        WHERE stripe_subscription_id = ?\n+                    `).run(periodStart, periodEnd, sub.id);\n+                    logger.warn(\n+                        { subscriptionId: sub.id, heldStatus: current.status },\n+                        'stripe-webhook: subscription update ignored — billing hold in effect'\n+                    );\n+                    break;\n+                }\n+\n+                db.prepare(`\n+                    UPDATE user_subscriptions SET\n+                        tier = ?, status = ?, current_period_start = ?, current_period_end = ?, updated_at = datetime('now')\n+                    WHERE stripe_subscription_id = ?\n+                `).run(tier, sub.status, periodStart, periodEnd, sub.id);\n+                break;\n+            }\n+\n+            case 'customer.subscription.deleted': {\n+                const sub = event.data.object;\n+                db.prepare(`\n+                    UPDATE user_subscriptions SET tier = 'free', status = 'cancelled', updated_at = datetime('now')\n+                    WHERE stripe_subscription_id = ?\n+                `).run(sub.id);\n+                break;\n+            }\n+\n+            // Refunding an invoice does NOT cancel the subscription in Stripe,\n+            // so without these two handlers a refunded or charged-back customer\n+            // kept status='active' and full paid capability indefinitely.\n+            // Both suspend SaaS access immediately; the already-emailed offline\n+            // license key remains valid until its own expiry, which is why\n+            // license.js mints a `lid` for a future revocation list.\n+            case 'charge.refunded':\n+            case 'charge.dispute.created': {\n+                const object = event.data.object;\n+                const chargeId = event.type === 'charge.refunded' ? object.id : object.charge;\n+                const nextStatus = event.type === 'charge.refunded' ? 'refunded' : 'disputed';\n+\n+                // Stripe fires `charge.refunded` for PARTIAL refunds too, with\n+                // `refunded: false`. A goodwill credit on an otherwise-paid\n+                // invoice must not strip a paying customer of their tier, so\n+                // only a full refund suspends access.\n+                if (event.type === 'charge.refunded' && object.refunded !== true) {\n+                    logger.info(\n+                        { chargeId, amount: object.amount, amountRefunded: object.amount_refunded },\n+                        'stripe-webhook: partial refund recorded, access unchanged'\n+                    );\n+                    break;\n+                }\n+\n+                let subscriptionId = null;\n+                try {\n+                    // Always re-fetch through the SDK client, which is pinned to\n+                    // an API version that still carries `charge.invoice`. The\n+                    // event payload renders at the ACCOUNT default, and from\n+                    // 2025-03-31.basil a charge has no `invoice` field: a full\n+                    // refund then found no subscription and left the customer\n+                    // on the paid tier.\n+                    const charge = await stripe.charges.retrieve(chargeId);\n+                    if (charge?.invoice) {\n+                        const invoice = typeof charge.invoice === 'string'\n+                            ? await stripe.invoices.retrieve(charge.invoice)\n+                            : charge.invoice;\n+                        subscriptionId = invoice?.subscription || null;\n+                    }\n+                } catch (err) {\n+                    logger.error({ err, chargeId, eventType: event.type }, 'stripe-webhook: could not resolve subscription for refund/dispute');\n+                    forgetIdempotency();\n+                    return res.status(500).json({ error: 'Refund resolution failed' });\n+                }\n+\n+                if (!subscriptionId) {\n+                    // A one-off charge with no subscription — nothing to suspend.\n+                    logger.info({ chargeId, eventType: event.type }, 'stripe-webhook: refund/dispute has no subscription');\n+                    break;\n+                }\n+\n+                const result = db.prepare(`\n+                    UPDATE user_subscriptions SET tier = 'free', status = ?, updated_at = datetime('now')\n+                    WHERE stripe_subscription_id = ?\n+                `).run(nextStatus, subscriptionId);\n+                logger.warn(\n+                    { subscriptionId, eventType: event.type, rowsUpdated: result.changes },\n+                    'stripe-webhook: subscription downgraded to free after refund/dispute'\n+                );\n+                break;\n+            }\n+\n+            // The only automatic way out of a hold. A dispute resolved in the\n+            // operator's favour means the money stayed, so the tier is restored\n+            // from Stripe rather than from our own (deliberately downgraded)\n+            // row. A lost dispute leaves the hold exactly where it is.\n+            case 'charge.dispute.closed': {\n+                const dispute = event.data.object;\n+                if (dispute.status !== 'won') {\n+                    logger.info({ disputeId: dispute.id, status: dispute.status }, 'stripe-webhook: dispute closed without a win, hold stands');\n+                    break;\n+                }\n+\n+                let subscriptionId = null;\n+                try {\n+                    const charge = await stripe.charges.retrieve(dispute.charge);\n+                    if (charge?.invoice) {\n+                        const invoice = typeof charge.invoice === 'string'\n+                            ? await stripe.invoices.retrieve(charge.invoice)\n+                            : charge.invoice;\n+                        subscriptionId = invoice?.subscription || null;\n+                    }\n+                } catch (err) {\n+                    logger.error({ err, disputeId: dispute.id }, 'stripe-webhook: could not resolve subscription for won dispute');\n+                    forgetIdempotency();\n+                    return res.status(500).json({ error: 'Dispute resolution failed' });\n+                }\n+\n+                if (!subscriptionId) break;\n+\n+                const sub = await stripe.subscriptions.retrieve(subscriptionId);\n+                const rawTier = sub.metadata?.tier || sub.items?.data?.[0]?.price?.metadata?.tier || 'pro';\n+                const tier = await reconcileTierFromPrice(stripe, sub, rawTier, null);\n+                db.prepare(`\n+                    UPDATE user_subscriptions SET tier = ?, status = ?, updated_at = datetime('now')\n+                    WHERE stripe_subscription_id = ? AND status = 'disputed'\n+                `).run(tier, sub.status, subscriptionId);\n+                logger.warn({ subscriptionId, tier }, 'stripe-webhook: dispute won, access restored');\n+                break;\n+            }\n+\n+            case 'invoice.payment_failed': {\n+                const invoice = event.data.object;\n+                if (invoice.subscription) {\n+                    db.prepare(`\n+                        UPDATE user_subscriptions SET status = 'past_due', updated_at = datetime('now')\n+                        WHERE stripe_subscription_id = ? AND status NOT IN ('refunded', 'disputed')\n+                    `).run(invoice.subscription);\n+                }\n+                break;\n+            }\n+\n+            case 'invoice.paid': {\n+                const invoice = event.data.object;\n+                if (invoice.subscription) {\n+                    // Read BEFORE the UPDATE: 'incomplete' means the checkout\n+                    // handler deferred the grant because the payment had not\n+                    // settled, so this invoice is the moment it becomes real.\n+                    const deferred = db.prepare(\n+                        \"SELECT user_id, billing_period FROM user_subscriptions WHERE stripe_subscription_id = ? AND status = 'incomplete'\"\n+                    ).get(invoice.subscription);\n+\n+                    // The 'incomplete' marker is this event's ONLY record that a\n+                    // licence is still owed. Clearing it before the key is issued\n+                    // meant a failed issuance (which 500s so Stripe retries) came\n+                    // back to a row that no longer looked deferred — the customer\n+                    // had paid by SEPA or Boleto and silently never got a key.\n+                    // Status is flipped after issuance for exactly that reason.\n+                    if (deferred?.user_id) {\n+                        const sub = await stripe.subscriptions.retrieve(invoice.subscription);\n+                        const rawTier = sub.metadata?.tier || sub.items?.data?.[0]?.price?.metadata?.tier || 'pro';\n+                        const tier = await reconcileTierFromPrice(stripe, sub, rawTier, null);\n+\n+                        const user = db.prepare('SELECT email FROM users WHERE id = ?').get(deferred.user_id);\n+                        const recipientEmail = invoice.customer_email || user?.email;\n+                        if (recipientEmail) {\n+                            await issueLicenseForCheckout({\n+                                userId: deferred.user_id,\n+                                email: recipientEmail,\n+                                tier,\n+                                seats: 1,\n+                                months: deferred.billing_period === 'yearly' ? 12 : 1,\n+                                stripeSubscriptionId: invoice.subscription,\n+                                stripeSessionId: invoice.id,\n+                            });\n+                        } else {\n+                            logger.warn({ subscriptionId: invoice.subscription, invoiceId: invoice.id }, 'stripe-webhook: no email for deferred license delivery');\n+                        }\n+\n+                        db.prepare(`\n+                            UPDATE user_subscriptions SET tier = ?, status = 'active', updated_at = datetime('now')\n+                            WHERE stripe_subscription_id = ?\n+                        `).run(tier, invoice.subscription);\n+                    } else {\n+                        // A renewal paying does not settle a refund or a\n+                        // dispute on an earlier invoice: the hold stays until\n+                        // charge.dispute.closed (won) or the operator lifts it.\n+                        db.prepare(`\n+                            UPDATE user_subscriptions SET status = 'active', updated_at = datetime('now')\n+                            WHERE stripe_subscription_id = ? AND status NOT IN ('refunded', 'disputed')\n+                        `).run(invoice.subscription);\n+                    }\n+\n+                    // Renewal license reissue: an emailed key's validity\n+                    // matches exactly what was paid for (1 month, or 12 for\n+                    // yearly — see checkout.session.completed above and\n+                    // license.js's calendar-month exp), so each paid renewal\n+                    // invoice needs its own fresh one. This applies to BOTH\n+                    // billing periods: a yearly customer's year-2 renewal is\n+                    // this exact event, and without a reissue here they'd pay\n+                    // and never receive a new key.\n+                    //\n+                    // billing_reason='subscription_cycle' is Stripe's marker\n+                    // for a recurring renewal invoice, as opposed to\n+                    // 'subscription_create' — which fires for that SAME\n+                    // subscription's very first invoice and would otherwise\n+                    // double-email a brand-new subscriber alongside the\n+                    // checkout.session.completed handler above.\n+                    if (invoice.billing_reason === 'subscription_cycle') {\n+                        const subRow = db.prepare(\n+                            'SELECT user_id, tier, status, billing_period FROM user_subscriptions WHERE stripe_subscription_id = ?'\n+                        ).get(invoice.subscription);\n+\n+                        // A held row carries tier 'free': reissuing from it\n+                        // emailed \"thank you for subscribing to the Free plan\"\n+                        // with a Free key to a customer mid-dispute.\n+                        const held = subRow && HOLD_STATUSES.has(subRow.status);\n+                        if (held) {\n+                            logger.warn({ subscriptionId: invoice.subscription, status: subRow.status }, 'stripe-webhook: renewal paid on a held subscription — no licence reissued');\n+                        }\n+                        if (subRow?.user_id && !held && subRow.tier !== 'free') {\n+                            const user = db.prepare('SELECT email FROM users WHERE id = ?').get(subRow.user_id);\n+                            const recipientEmail = invoice.customer_email || user?.email;\n+                            if (recipientEmail) {\n+                                await issueLicenseForCheckout({\n+                                    userId: subRow.user_id,\n+                                    email: recipientEmail,\n+                                    tier: subRow.tier,\n+                                    seats: 1,\n+                                    months: subRow.billing_period === 'yearly' ? 12 : 1,\n+                                    stripeSubscriptionId: invoice.subscription,\n+                                    // invoice.id is the natural idempotency key\n+                                    // for a renewal reissue — one license per\n+                                    // paid invoice, mirroring\n+                                    // issueLicenseForCheckout's per-checkout-\n+                                    // session idempotency for initial issuance.\n+                                    stripeSessionId: invoice.id,\n+                                });\n+                            } else {\n+                                logger.warn({ subscriptionId: invoice.subscription, invoiceId: invoice.id }, 'stripe-webhook: no email for renewal license delivery');\n+                            }\n+                        }\n+                    }\n+                }\n+                break;\n+            }\n+        }\n+\n+        res.json({ received: true });\n+    } catch (err) {\n+        logger.error({ err, eventType: event.type }, 'Stripe webhook processing error');\n+        // Async failure on a non-checkout event path (e.g. failing UPDATE on a\n+        // subscription row). Remove the idempotency row so Stripe's retry can\n+        // reprocess the event fresh rather than being silently deduped.\n+        forgetIdempotency();\n+        res.status(500).json({ error: 'Webhook processing failed' });\n+    }\n+}\ndiff --git \"a/server/routes/stripe-subscription-period.js\" \"b/server/routes/stripe-subscription-period.js\"\nnew file mode 100644\n--- /dev/null\n+++ \"b/server/routes/stripe-subscription-period.js\"\n@@ -0,0 +1,78 @@\n+function subscriptionPeriod(subscription, field, planItem) {\n+  const legacy = Reflect.get(subscription, field);\n+  if (typeof legacy === 'number') return legacy;\n+  const list = Reflect.get(subscription, 'items');\n+  const data = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n+  const items = (Array.isArray(data) ? data : []).filter(\n+    (item) => typeof item === 'object' && item !== null,\n+  );\n+  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n+  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n+  const value = chosen ? Reflect.get(chosen, field) : undefined;\n+  return typeof value === 'number' ? value : undefined;\n+}\n+\n+export function getSubscriptionPeriodStart(subscription, planItem) {\n+  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n+}\n+\n+export function getSubscriptionPeriodEnd(subscription, planItem) {\n+  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n+}\n+\n+// The old top-level field when present (old-version payloads), otherwise the new location.\n+export function getInvoiceSubscription(invoice) {\n+  const legacy = Reflect.get(invoice, 'subscription');\n+  const parent = Reflect.get(invoice, 'parent');\n+  const details =\n+    parent && typeof parent === 'object' ? Reflect.get(parent, 'subscription_details') : undefined;\n+  const moved =\n+    details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;\n+  return (legacy !== undefined ? legacy : (moved ?? null));\n+}\n+\n+// The old Price object's ID when present (old-version payloads), otherwise the price at\n+// pricing.price_details: an ID, or a Price when expanded.\n+export function getInvoicePriceId(line) {\n+  const legacy = Reflect.get(line, 'price');\n+  const pricing = legacy === undefined ? Reflect.get(line, 'pricing') : undefined;\n+  const details =\n+    pricing && typeof pricing === 'object' && Reflect.get(pricing, 'type') === 'price_details'\n+      ? Reflect.get(pricing, 'price_details')\n+      : undefined;\n+  const price =\n+    legacy !== undefined ? legacy : details && typeof details === 'object' ? Reflect.get(details, 'price') : undefined;\n+  const id = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;\n+  return typeof id === 'string' ? id : undefined;\n+}\n+\n+// The old top-level field when present (old-version payloads), otherwise\n+// collected_information.shipping_details, which holds only address and name.\n+export function getCheckoutShippingDetails(session) {\n+  const legacy = Reflect.get(session, 'shipping_details');\n+  const collected = Reflect.get(session, 'collected_information');\n+  const moved =\n+    collected && typeof collected === 'object' ? Reflect.get(collected, 'shipping_details') : undefined;\n+  return (legacy !== undefined ? legacy : (moved ?? null));\n+}\n+\n+// The old auto-expanded Coupon's ID when present (old-version payloads), otherwise the coupon a\n+// promotion code's promotion or a discount's source holds: an ID, or a Coupon when expanded.\n+export function getCouponId(value) {\n+  const legacy = Reflect.get(value, 'coupon');\n+  const holder =\n+    legacy === undefined ? (Reflect.get(value, 'promotion') ?? Reflect.get(value, 'source')) : undefined;\n+  const moved =\n+    holder && typeof holder === 'object' && Reflect.get(holder, 'type') === 'coupon'\n+      ? Reflect.get(holder, 'coupon')\n+      : undefined;\n+  const coupon = legacy !== undefined ? legacy : moved;\n+  const id = coupon && typeof coupon === 'object' ? Reflect.get(coupon, 'id') : coupon;\n+  return typeof id === 'string' ? id : undefined;\n+}\n+\n+// The old features list when present (old-version payloads), otherwise marketing_features.\n+export function getProductMarketingFeatures(product) {\n+  const legacy = Reflect.get(product, 'features');\n+  return (legacy !== undefined ? legacy : Reflect.get(product, 'marketing_features'));\n+}\n",
+    "validation": "error",
+    "warnings": [
+      "Subscription periods are read through a generated helper: the old subscription-level field when present (old-version events), otherwise the period every item shares, otherwise the item the application already selects or the configured price policy. Webhook endpoints are not changed.",
+      "The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.",
+      "Patch contains source code. Review it for sensitive content before sharing."
+    ],
+    "sources": [
+      {
+        "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end",
+        "files": ["server/routes/stripe-webhooks.js", "server/routes/stripe-subscription-period.js"]
+      }
+    ],
+    "unresolvedSites": [
+      {
+        "file": "server/routes/billing.js",
+        "line": 107,
+        "changeId": "1e5555bbb20cc1823f543f0e",
+        "expression": ".unit_amount",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/billing.js",
+        "line": 110,
+        "changeId": "1e5555bbb20cc1823f543f0e",
+        "expression": ".unit_amount",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 29,
+        "changeId": "8aa322d4fab7131b93907458",
+        "expression": ".price",
+        "confidence": "review"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 29,
+        "changeId": "142dba6c71098a50fca6c32d",
+        "expression": ".price",
+        "confidence": "review"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 30,
+        "changeId": "8aa322d4fab7131b93907458",
+        "expression": ".price",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 30,
+        "changeId": "142dba6c71098a50fca6c32d",
+        "expression": ".price",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 31,
+        "changeId": "8aa322d4fab7131b93907458",
+        "expression": ".price",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 31,
+        "changeId": "142dba6c71098a50fca6c32d",
+        "expression": ".price",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 62,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 62,
+        "changeId": "e57f26ccd809b93316d0a9aa",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 63,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 63,
+        "changeId": "e57f26ccd809b93316d0a9aa",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 63,
+        "changeId": "1146b8e1503ca80070828f94",
+        "expression": ".subscription_details",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 64,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 64,
+        "changeId": "e57f26ccd809b93316d0a9aa",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 68,
+        "changeId": "253803f47cb664cc90879a61",
+        "expression": ".current_period_start",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 68,
+        "changeId": "253803f47cb664cc90879a61",
+        "expression": ".current_period_start",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 68,
+        "changeId": "253803f47cb664cc90879a61",
+        "expression": ".current_period_start",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 68,
+        "changeId": "253803f47cb664cc90879a61",
+        "expression": ".current_period_start",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 69,
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "expression": ".current_period_end",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 69,
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "expression": ".current_period_end",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 69,
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "expression": ".current_period_end",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 69,
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "expression": ".current_period_end",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 316,
+        "changeId": "89e8d4c00b4d967a02861251",
+        "expression": ".charge",
+        "confidence": "review"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 340,
+        "changeId": "f33e187bcbb0f333d0c48f1d",
+        "expression": ".invoice",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 341,
+        "changeId": "f33e187bcbb0f333d0c48f1d",
+        "expression": ".invoice",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 342,
+        "changeId": "f33e187bcbb0f333d0c48f1d",
+        "expression": ".invoice",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 343,
+        "changeId": "f33e187bcbb0f333d0c48f1d",
+        "expression": ".invoice",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 344,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 344,
+        "changeId": "e57f26ccd809b93316d0a9aa",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 382,
+        "changeId": "89e8d4c00b4d967a02861251",
+        "expression": ".charge",
+        "confidence": "review"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 383,
+        "changeId": "f33e187bcbb0f333d0c48f1d",
+        "expression": ".invoice",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 384,
+        "changeId": "f33e187bcbb0f333d0c48f1d",
+        "expression": ".invoice",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 385,
+        "changeId": "f33e187bcbb0f333d0c48f1d",
+        "expression": ".invoice",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 386,
+        "changeId": "f33e187bcbb0f333d0c48f1d",
+        "expression": ".invoice",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 387,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 387,
+        "changeId": "e57f26ccd809b93316d0a9aa",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 410,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 414,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 421,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 427,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 436,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 449,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 453,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 459,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 467,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 488,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 495,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 507,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/routes/stripe-webhooks.js",
+        "line": 516,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "confirmed"
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 201,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 201,
+        "changeId": "e57f26ccd809b93316d0a9aa",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 208,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 208,
+        "changeId": "e57f26ccd809b93316d0a9aa",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 215,
+        "changeId": "253803f47cb664cc90879a61",
+        "expression": ".current_period_start",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 216,
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "expression": ".current_period_end",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 223,
+        "changeId": "253803f47cb664cc90879a61",
+        "expression": ".current_period_start",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 224,
+        "changeId": "1b1240130d2bdc263d4cb66a",
+        "expression": ".current_period_end",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 227,
+        "changeId": "eefe4ea32b74e64919fbc645",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "server/__tests__/stripe-webhooks.test.js",
+        "line": 227,
+        "changeId": "e57f26ccd809b93316d0a9aa",
+        "expression": ".subscription",
+        "confidence": "review",
+        "untraced": true
+      }
+    ]
+  },
+  "validation": {
+    "status": "error",
+    "revision": "982052f27557a18b93e2fe6cc7bd0b3308b6778f",
+    "image": "sha256:ae59e9992c6b3e963dd9dac9c476287048177ad8f90ac646669afb738705f56d",
+    "runtime": {
+      "configured": "node:22-alpine",
+      "image": "node:22-alpine",
+      "nodeVersion": "22.23.4",
+      "declarations": [
+        {
+          "source": "engines.node",
+          "value": ">=22.14 <25"
+        }
+      ],
+      "reason": "The configured image satisfies engines.node \">=22.14 <25\"."
+    },
+    "environment": {
+      "formatVersion": 1,
+      "kind": "refit-npm-environment",
+      "signature": "2b4565e86ee517930ce8f634c5bd7188026e23182116290f4d1d2a12880d4eda",
+      "recipeVersion": 5,
+      "image": "sha256:ae59e9992c6b3e963dd9dac9c476287048177ad8f90ac646669afb738705f56d",
+      "packageHash": "869be9203f40a5e3740c494c1830b24281b1396c0face32d56b773e28cd7bb4a",
+      "lockHash": "3b7b7130f2f43f78a1b5c8fd0053118ded6d30d71b42c71dd8a83b5712fa1669",
+      "packages": 994,
+      "manager": "npm",
+      "nodeVersion": "v22.23.4",
+      "npmVersion": "10.9.9",
+      "archiveHash": "fa70a2120f9e95ea321645ff7f883f9e8dac57d66afefb559915bfb6e90c5f29",
+      "archiveBytes": 628137472,
+      "installation": {
+        "network": "bridge",
+        "lifecycleScripts": false,
+        "registry": "https://registry.npmjs.org",
+        "timeoutMs": 300000,
+        "workspace": "2g",
+        "memory": "3g"
+      },
+      "validation": {
+        "network": "none"
+      },
+      "reused": false
+    },
+    "command": ["npm", "test"],
+    "baselineCommand": ["npm", "test"],
+    "archiveHash": "a195926f96c8d682c746eb1119d9ace2b4d84babafcd9953df377b8e99e30961",
+    "patchHash": "dd2d0482f3343a111c85bfeabf25e41d3631ed4976bf71f9fef8d9e766e79d3a",
+    "baseline": {
+      "status": "error",
+      "exitCode": null,
+      "stdout": "",
+      "stderr": "",
+      "error": "Check exceeded 120 seconds; the container was stopped."
+    },
+    "patched": {
+      "status": "not-run",
+      "exitCode": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    "attempts": [],
+    "repair": {
+      "limit": 0,
+      "requested": 0,
+      "stopReason": "baseline-failed",
+      "error": null
+    },
+    "limits": {
+      "timeoutMs": 120000,
+      "outputBytes": 1048576,
+      "network": "none",
+      "workspace": "2g",
+      "memory": "3g"
+    },
+    "publishable": false,
+    "reason": "Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review."
+  },
+  "changes": [
+    {
+      "id": "ae20e0ef7d981ee2a4f28a49",
+      "schema": "account_payments_settings",
+      "property": "statement_descriptor_prefix_kana",
+      "pointer": "/components/schemas/account_payments_settings/properties/statement_descriptor_prefix_kana",
+      "type": "string"
+    },
+    {
+      "id": "08bc349f48ea907f9b0750c1",
+      "schema": "account_payments_settings",
+      "property": "statement_descriptor_prefix_kanji",
+      "pointer": "/components/schemas/account_payments_settings/properties/statement_descriptor_prefix_kanji",
+      "type": "string"
+    },
+    {
+      "id": "69ad9688b225581ecee77a82",
+      "schema": "bank_connections_resource_link_account_session_filters",
+      "property": "countries",
+      "pointer": "/components/schemas/bank_connections_resource_link_account_session_filters/properties/countries"
+    },
+    {
+      "id": "362b044b9da7cc7d61f00264",
+      "schema": "card",
+      "property": "iin",
+      "pointer": "/components/schemas/card/properties/iin",
+      "type": "string"
+    },
+    {
+      "id": "f33e187bcbb0f333d0c48f1d",
+      "schema": "charge",
+      "property": "invoice",
+      "pointer": "/components/schemas/charge/properties/invoice"
+    },
+    {
+      "id": "f586a0984a78bb51937c8b90",
+      "schema": "checkout.session",
+      "property": "shipping_details",
+      "pointer": "/components/schemas/checkout.session/properties/shipping_details"
+    },
+    {
+      "id": "351f828f582195dbfcdf59eb",
+      "schema": "credit_note",
+      "property": "refund",
+      "pointer": "/components/schemas/credit_note/properties/refund"
+    },
+    {
+      "id": "5f996ea1a7998d4341c45fe9",
+      "schema": "credit_note",
+      "property": "tax_amounts",
+      "pointer": "/components/schemas/credit_note/properties/tax_amounts"
+    },
+    {
+      "id": "29a91ef79397003600332f6c",
+      "schema": "credit_note_line_item",
+      "property": "amount_excluding_tax",
+      "pointer": "/components/schemas/credit_note_line_item/properties/amount_excluding_tax"
+    },
+    {
+      "id": "888eede2e3767edae9523b5d",
+      "schema": "credit_note_line_item",
+      "property": "tax_amounts",
+      "pointer": "/components/schemas/credit_note_line_item/properties/tax_amounts"
+    },
+    {
+      "id": "c2698d269f9b8a4ab063938f",
+      "schema": "credit_note_line_item",
+      "property": "unit_amount_excluding_tax",
+      "pointer": "/components/schemas/credit_note_line_item/properties/unit_amount_excluding_tax",
+      "type": "string"
+    },
+    {
+      "id": "3576ff07f5049e2824e7d83f",
+      "schema": "deleted_discount",
+      "property": "coupon",
+      "pointer": "/components/schemas/deleted_discount/properties/coupon"
+    },
+    {
+      "id": "50b053f844c827a5f495e810",
+      "schema": "discount",
+      "property": "coupon",
+      "pointer": "/components/schemas/discount/properties/coupon"
+    },
+    {
+      "id": "b1ab1826ca6eb0e7106f9c98",
+      "schema": "invoice",
+      "property": "application_fee_amount",
+      "pointer": "/components/schemas/invoice/properties/application_fee_amount"
+    },
+    {
+      "id": "89e8d4c00b4d967a02861251",
+      "schema": "invoice",
+      "property": "charge",
+      "pointer": "/components/schemas/invoice/properties/charge"
+    },
+    {
+      "id": "6cf1ca39c012db642b72ef9f",
+      "schema": "invoice",
+      "property": "discount",
+      "pointer": "/components/schemas/invoice/properties/discount"
+    },
+    {
+      "id": "c01f32e9232f40ca218d8b91",
+      "schema": "invoice",
+      "property": "paid",
+      "pointer": "/components/schemas/invoice/properties/paid"
+    },
+    {
+      "id": "ce7ea18b1ffa6c9fe303a220",
+      "schema": "invoice",
+      "property": "paid_out_of_band",
+      "pointer": "/components/schemas/invoice/properties/paid_out_of_band"
+    },
+    {
+      "id": "5870216e6b8680d2f517daa2",
+      "schema": "invoice",
+      "property": "payment_intent",
+      "pointer": "/components/schemas/invoice/properties/payment_intent"
+    },
+    {
+      "id": "86755ae6ce368ad9a1ef3a8c",
+      "schema": "invoice",
+      "property": "quote",
+      "pointer": "/components/schemas/invoice/properties/quote"
+    },
+    {
+      "id": "eefe4ea32b74e64919fbc645",
+      "schema": "invoice",
+      "property": "subscription",
+      "pointer": "/components/schemas/invoice/properties/subscription"
+    },
+    {
+      "id": "1146b8e1503ca80070828f94",
+      "schema": "invoice",
+      "property": "subscription_details",
+      "pointer": "/components/schemas/invoice/properties/subscription_details"
+    },
+    {
+      "id": "b9f5304f0ba60c79af04c877",
+      "schema": "invoice",
+      "property": "subscription_proration_date",
+      "pointer": "/components/schemas/invoice/properties/subscription_proration_date"
+    },
+    {
+      "id": "7f4aa732b2af68160b84cf84",
+      "schema": "invoice",
+      "property": "tax",
+      "pointer": "/components/schemas/invoice/properties/tax"
+    },
+    {
+      "id": "0740e43cdfc1f45fda78bbba",
+      "schema": "invoice",
+      "property": "total_tax_amounts",
+      "pointer": "/components/schemas/invoice/properties/total_tax_amounts"
+    },
+    {
+      "id": "72bc5f4e651d3a5467bde394",
+      "schema": "invoice",
+      "property": "transfer_data",
+      "pointer": "/components/schemas/invoice/properties/transfer_data"
+    },
+    {
+      "id": "8aa322d4fab7131b93907458",
+      "schema": "invoiceitem",
+      "property": "price",
+      "pointer": "/components/schemas/invoiceitem/properties/price"
+    },
+    {
+      "id": "e57f26ccd809b93316d0a9aa",
+      "schema": "invoiceitem",
+      "property": "subscription",
+      "pointer": "/components/schemas/invoiceitem/properties/subscription"
+    },
+    {
+      "id": "6ee03cdb68c23f9988174e74",
+      "schema": "invoiceitem",
+      "property": "subscription_item",
+      "pointer": "/components/schemas/invoiceitem/properties/subscription_item",
+      "type": "string"
+    },
+    {
+      "id": "1e5555bbb20cc1823f543f0e",
+      "schema": "invoiceitem",
+      "property": "unit_amount",
+      "pointer": "/components/schemas/invoiceitem/properties/unit_amount"
+    },
+    {
+      "id": "10aacf2cf0b86f798684be2a",
+      "schema": "invoiceitem",
+      "property": "unit_amount_decimal",
+      "pointer": "/components/schemas/invoiceitem/properties/unit_amount_decimal",
+      "type": "string"
+    },
+    {
+      "id": "8238cf3d932480d82cc2cc57",
+      "schema": "issuing.settlement",
+      "property": "interchange_fees",
+      "pointer": "/components/schemas/issuing.settlement/properties/interchange_fees"
+    },
+    {
+      "id": "ae2e98d63b658986c0e7d931",
+      "schema": "issuing.settlement",
+      "property": "net_total",
+      "pointer": "/components/schemas/issuing.settlement/properties/net_total"
+    },
+    {
+      "id": "fdd5278cfd335c95fe575974",
+      "schema": "issuing.settlement",
+      "property": "network_fees",
+      "pointer": "/components/schemas/issuing.settlement/properties/network_fees"
+    },
+    {
+      "id": "09b630e5156b445640bd7b58",
+      "schema": "issuing.settlement",
+      "property": "transaction_volume",
+      "pointer": "/components/schemas/issuing.settlement/properties/transaction_volume"
+    },
+    {
+      "id": "68ded20071fca74723bd742d",
+      "schema": "line_item",
+      "property": "amount_excluding_tax",
+      "pointer": "/components/schemas/line_item/properties/amount_excluding_tax"
+    },
+    {
+      "id": "8e5ac970186bd4c873e78bf9",
+      "schema": "line_item",
+      "property": "invoice_item",
+      "pointer": "/components/schemas/line_item/properties/invoice_item"
+    },
+    {
+      "id": "142dba6c71098a50fca6c32d",
+      "schema": "line_item",
+      "property": "price",
+      "pointer": "/components/schemas/line_item/properties/price"
+    },
+    {
+      "id": "c5cf14a3ba4601e132157ff9",
+      "schema": "line_item",
+      "property": "proration",
+      "pointer": "/components/schemas/line_item/properties/proration"
+    },
+    {
+      "id": "556246e9db525d8364d92b4b",
+      "schema": "line_item",
+      "property": "proration_details",
+      "pointer": "/components/schemas/line_item/properties/proration_details"
+    },
+    {
+      "id": "c71db20fdcb07a87ac1cb250",
+      "schema": "line_item",
+      "property": "subscription_item",
+      "pointer": "/components/schemas/line_item/properties/subscription_item"
+    },
+    {
+      "id": "7712007a1571b1c97f2c00bb",
+      "schema": "line_item",
+      "property": "tax_amounts",
+      "pointer": "/components/schemas/line_item/properties/tax_amounts"
+    },
+    {
+      "id": "7e3dfb6a17c95e64c511333b",
+      "schema": "line_item",
+      "property": "tax_rates",
+      "pointer": "/components/schemas/line_item/properties/tax_rates"
+    },
+    {
+      "id": "7b677ca734a24cfd40d67814",
+      "schema": "line_item",
+      "property": "type",
+      "pointer": "/components/schemas/line_item/properties/type",
+      "type": "string"
+    },
+    {
+      "id": "47ce52a5dc871a07aab81de6",
+      "schema": "line_item",
+      "property": "unit_amount_excluding_tax",
+      "pointer": "/components/schemas/line_item/properties/unit_amount_excluding_tax",
+      "type": "string"
+    },
+    {
+      "id": "8331fe280790dc72a46d32ca",
+      "schema": "payment_intent",
+      "property": "invoice",
+      "pointer": "/components/schemas/payment_intent/properties/invoice"
+    },
+    {
+      "id": "f25fc417b1ef31cfbcb6ac22",
+      "schema": "payment_intent_payment_method_options_us_bank_account",
+      "property": "preferred_settlement_speed",
+      "pointer": "/components/schemas/payment_intent_payment_method_options_us_bank_account/properties/preferred_settlement_speed",
+      "type": "string"
+    },
+    {
+      "id": "87016ebe4e944b905317bd72",
+      "schema": "plan",
+      "property": "aggregate_usage",
+      "pointer": "/components/schemas/plan/properties/aggregate_usage",
+      "type": "string"
+    },
+    {
+      "id": "215357c66085f28784d70de0",
+      "schema": "promotion_code",
+      "property": "coupon",
+      "pointer": "/components/schemas/promotion_code/properties/coupon"
+    },
+    {
+      "id": "326a3a1b90cd0302738236cf",
+      "schema": "recurring",
+      "property": "aggregate_usage",
+      "pointer": "/components/schemas/recurring/properties/aggregate_usage",
+      "type": "string"
+    },
+    {
+      "id": "1b1240130d2bdc263d4cb66a",
+      "schema": "subscription",
+      "property": "current_period_end",
+      "pointer": "/components/schemas/subscription/properties/current_period_end"
+    },
+    {
+      "id": "253803f47cb664cc90879a61",
+      "schema": "subscription",
+      "property": "current_period_start",
+      "pointer": "/components/schemas/subscription/properties/current_period_start"
+    },
+    {
+      "id": "b36bab440cd56250c973ba11",
+      "schema": "subscription",
+      "property": "discount",
+      "pointer": "/components/schemas/subscription/properties/discount"
+    },
+    {
+      "id": "6bfe84242c9c733516e63533",
+      "schema": "subscription_schedule_phase_configuration",
+      "property": "coupon",
+      "pointer": "/components/schemas/subscription_schedule_phase_configuration/properties/coupon"
+    }
+  ],
+  "storedResult": "refit-bench run 40081277373 at Refit 56cecbe: shard-8/run/repos/brunobola-portfolio__GitHub-Repo-Manager/run/report.json",
+  "storedResultNote": "Code from https://github.com/brunobola-portfolio/GitHub-Repo-Manager at 982052f27557a18b93e2fe6cc7bd0b3308b6778f, Apache-2.0 (https://github.com/brunobola-portfolio/GitHub-Repo-Manager/blob/982052f27557a18b93e2fe6cc7bd0b3308b6778f/LICENSE). Shows a check that could not finish on the original code, 24 traced usages left of which 21 are confirmed, and 19 untraced reads. Lockfile hunks are cut to their first lines; patchHash is recomputed for the cut diff."
+}

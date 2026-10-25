@@ -91,11 +91,8 @@ it.each([
         },
       },
     ]);
-    expect(result.edits.map((edit) => edit.file).sort()).toEqual([
-      'handler.ts',
-      'handler.ts',
-      'stripe-subscription-period.ts',
-    ]);
+    // The read and the helper written into the one file that calls it.
+    expect(result.edits.map((edit) => edit.file)).toEqual(['handler.ts', 'handler.ts']);
     expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
       true,
     );
@@ -147,11 +144,8 @@ it.each([
       confidence: 'confirmed',
       webhook: { schema: 'subscription', eventTypes: ['customer.subscription.updated'] },
     });
-    expect(result.edits.map((edit) => edit.file).sort()).toEqual([
-      'handler.ts',
-      'handler.ts',
-      'stripe-subscription-period.ts',
-    ]);
+    // The read and the helper written into the one file that calls it.
+    expect(result.edits.map((edit) => edit.file)).toEqual(['handler.ts', 'handler.ts']);
     expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
       true,
     );
