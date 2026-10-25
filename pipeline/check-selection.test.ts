@@ -8,12 +8,13 @@ import {
   gradeEvidence,
   REFIT_TSC,
   SCOPED_TSCONFIG,
+  advisoryTypeError,
   selectCheck,
-  setAsideTypeError,
   TESTS_FAILED,
   TYPE_CHECK,
   TYPE_CHECK_STARTED,
   typeCheckCommand,
+  unavailableTypeCheck,
 } from './check-selection.ts';
 import { readRepository } from './repository.ts';
 
@@ -577,26 +578,99 @@ it('runs the type check part of a chain alone on a patch whose tests were alread
   expect(typeCheckCommand(['npm', 'test'])).toBeUndefined();
 });
 
-it('sets aside JavaScript type errors only for a scoped check, which caps the grade at D', async () => {
+it('treats JavaScript type errors a generated check finds as advisory, grading from the rest', async () => {
   const rocart = await repository(ROCART);
   const { command } = await selectCheck(rocart);
-  const setAside = setAsideTypeError(command!);
-  expect([setAside?.('api/server.js'), setAside?.('api/apply-discount.ts')]).toEqual([true, false]);
-  expect(setAsideTypeError(TYPE_CHECK)).toBeUndefined();
-  const first =
-    "api/server.js(9,3): error TS2322: Type 'string | PaymentIntent' is not assignable to type 'string'.";
+  const advisory = advisoryTypeError(command!);
+  expect([advisory?.('api/server.js'), advisory?.('api/apply-discount.ts')]).toEqual([true, false]);
+  expect(advisoryTypeError(TYPE_CHECK)).toBeUndefined();
+  // bhaveshchhimwal/PopIn at 90d47d3, refit-bench run 40155034890: stripe-node 23 types an expandable
+  // field as string | PaymentIntent, which the JavaScript passes on as a string.
+  const popIn = {
+    file: 'api/server.js',
+    text: "api/server.js(100,11): error TS2322: Type 'string | PaymentIntent' is not assignable to type 'string'.",
+  };
+  // The file with the advisory error no longer counts as type-checked; the other one still does.
   expect(
     await gradeEvidence({
       repository: rocart,
       command: command!,
       changedFiles: ['api/server.js'],
-      setAside: [first],
+      advisory: [popIn],
     }),
   ).toEqual({
     letter: 'D',
     level: 'none',
-    reason: `The type check passed only by setting aside a new type error in JavaScript the repository does not type-check, first ${first}.`,
+    reason: `The type check does not cover api/server.js, and no generated check ran it. The generated type check reports an advisory type error this patch introduces in JavaScript the repository never type-checks, first ${popIn.text}.`,
   });
+  expect(
+    (
+      await gradeEvidence({
+        repository: rocart,
+        command: command!,
+        changedFiles: ['api/create-payment-intent.js'],
+        advisory: [popIn],
+      })
+    ).letter,
+  ).toBe('C');
+  // ArkanaDeck/arcana-marketplace at 2c72311: its Stripe tests reach the changed file, so the grade
+  // stays B with its advisory errors (api/*.js still pin 2024-06-20 against stripe-node 23).
+  const arkana = await repository({
+    'package.json': manifest({ test: 'vitest run' }),
+    'package-lock.json': '{}',
+    'tsconfig.json': JSON.stringify({ compilerOptions: { strict: true }, include: ['src'] }),
+    'api/billing.js':
+      "import Stripe from 'stripe';\nexport const stripe = new Stripe('sk', { apiVersion: '2024-06-20' });\n",
+    'tests/billing.test.js':
+      "import { stripe } from '../api/billing.js';\nit('loads', () => stripe);\n",
+  });
+  const arkanaCheck = (await selectCheck(arkana)).command!;
+  expect(
+    (
+      await gradeEvidence({
+        repository: arkana,
+        command: arkanaCheck,
+        changedFiles: ['api/billing.js'],
+        advisory: [
+          {
+            file: 'api/billing.js',
+            text: `api/billing.js(31,50): error TS2322: Type '"2024-06-20"' is not assignable to type '"2026-09-30.endive"'.`,
+          },
+        ],
+      })
+    ).letter,
+  ).toBe('B');
+});
+
+it('counts a generated type check that fails on configuration as unavailable, never as a failure', () => {
+  // cyberdreadx/cyberpunk-grok-api at b1dc85c, refit-bench run 40155034890: the extended base's rootDir
+  // rejected listed importers, so tsc checked nothing.
+  const command = [
+    'sh',
+    '-c',
+    chain('npm test', scopedScript('npx --no-install tsc')),
+    'refit-check',
+    '{}',
+  ];
+  const run = (stdout: string, exitCode = 2) => ({ status: 'failed', exitCode, stdout });
+  expect(
+    unavailableTypeCheck(
+      command,
+      run(
+        `✓ src/lib/createMode.test.ts\n${TYPE_CHECK_STARTED}\nerror TS6059: File '/workspace/scripts/backfill-legacy-sub-credits.ts' is not under 'rootDir' '/workspace/api'.\n`,
+      ),
+    ),
+  ).toBe(
+    "error TS6059: File '/workspace/scripts/backfill-legacy-sub-credits.ts' is not under 'rootDir' '/workspace/api'.",
+  );
+  expect(unavailableTypeCheck(command, run(`${TYPE_CHECK_STARTED}\nKilled\n`, 137))).toBe(
+    'tsc failed without a diagnostic',
+  );
+  // Type errors in files mean it checked; the repository's own tsc -p . is never Refit-generated.
+  expect(
+    unavailableTypeCheck(command, run(`${TYPE_CHECK_STARTED}\napi/a.ts(1,1): error TS2322: x\n`)),
+  ).toBeUndefined();
+  expect(unavailableTypeCheck(TYPE_CHECK, run('error TS6059: x'))).toBeUndefined();
 });
 
 it('counts only the listed test files as reaching the changed code', async () => {

@@ -479,12 +479,30 @@ export function failingPart(command: readonly string[], output: string) {
       };
 }
 
-// Which type errors a check reports only because Refit added the type check: in a scoped check,
-// JavaScript files, which the repository's own build never type-checks. They are listed for
-// review instead of failing the patch (a stricter stripe-node typing is not a runtime break).
-export function setAsideTypeError(command: readonly string[]) {
-  return command[0] === 'sh' && (command[2] ?? '').includes(SCOPED_TSCONFIG)
-    ? (file: string) => JAVASCRIPT_FILE.test(file)
+const scopedCheck = (command: readonly string[]) =>
+  command[0] === 'sh' && (command[2] ?? '').includes(SCOPED_TSCONFIG);
+
+// Type errors a Refit-generated check finds in JavaScript (L2 master's policy, board #300): the
+// repository never type-checks its JavaScript, so an error the patch introduces there is advisory.
+// It does not fail the check; the draft states it and is [Needs review].
+export function advisoryTypeError(command: readonly string[]) {
+  return scopedCheck(command) ? (file: string) => JAVASCRIPT_FILE.test(file) : undefined;
+}
+
+// Why a Refit-generated type check is unavailable on the original code: a configuration error
+// (TS5xxx, TS6xxx) or a failure with no diagnostics means it checked nothing, so it is never counted
+// and the repository's own tests decide.
+export function unavailableTypeCheck(
+  command: readonly string[],
+  run: { status: string; exitCode: number | null; stdout: string },
+) {
+  if (!scopedCheck(command) || run.status === 'error' || run.status === 'not-run') return undefined;
+  const start = run.stdout.lastIndexOf(TYPE_CHECK_STARTED);
+  const output = start < 0 ? run.stdout : run.stdout.slice(start);
+  const configuration = /^.*\berror TS[56]\d{3}\b.*$/m.exec(output)?.[0].trim();
+  if (configuration) return configuration.slice(0, 300);
+  return run.exitCode !== 0 && !/\(\d+,\d+\): error TS\d+/.test(output)
+    ? 'tsc failed without a diagnostic'
     : undefined;
 }
 
@@ -546,8 +564,11 @@ export async function gradeEvidence(options: {
   // Tests that already failed on the original code: why, and whether the type check that ran after
   // them passed on both sides. They prove nothing about the patch, so only the type check can.
   testsBroken?: { reason: string; typeCheck: { passed: boolean; detail?: string } };
-  // Type errors the patch introduced that did not fail the check (setAsideTypeError), formatted.
-  setAside?: string[];
+  // Advisory type errors the patch introduced (advisoryTypeError): a file with one does not count as
+  // type-checked, and the reason states them.
+  advisory?: { file: string; text: string }[];
+  // Why the generated type check was unavailable, if it was; it then counts for nothing.
+  typeCheckUnavailable?: string;
 }): Promise<EvidenceGrade> {
   if (options.behaviour?.passed && options.behaviour.coversEveryChangedLine)
     return { letter: 'A', level: 'behaviour-tests', reason: options.behaviour.reason };
@@ -556,32 +577,51 @@ export async function gradeEvidence(options: {
   const kinds = checkKinds(options.command, scripts);
   const graph = importGraph(options.repository);
   const changed = options.changedFiles.filter((path) => SOURCE_FILE.test(path));
-  const setAside = options.setAside?.length
-    ? `the type check passed only by setting aside ${options.setAside.length === 1 ? 'a new type error' : `${options.setAside.length} new type errors`} in JavaScript the repository does not type-check, first ${options.setAside[0]}`
-    : undefined;
+  const advisory = options.advisory ?? [];
+  const notes = [
+    options.typeCheckUnavailable
+      ? `The generated type check is unavailable (${options.typeCheckUnavailable}), so it counts for nothing.`
+      : '',
+    advisory.length
+      ? `The generated type check reports ${advisory.length === 1 ? 'an advisory type error' : `${advisory.length} advisory type errors`} this patch introduces in JavaScript the repository never type-checks, first ${advisory[0].text}.`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const withNotes = (reason: string) => (notes ? `${reason} ${notes}` : reason);
+  const typeChecked = () =>
+    options.typeCheckUnavailable
+      ? new Set<string>()
+      : new Set(
+          [...checkedProgram(root, options.command, graph)].filter(
+            (path) => !advisory.some((error) => error.file === path),
+          ),
+        );
   if (options.testsBroken) {
     const { reason, typeCheck } = options.testsBroken;
-    const typed = checkedProgram(root, options.command, graph);
+    const typed = typeChecked();
     const unchecked = changed.filter((path) => !typed.has(path));
-    return typeCheck.passed && changed.length && !unchecked.length && !setAside
+    return typeCheck.passed && changed.length && !unchecked.length
       ? {
           letter: 'C',
           level: 'type-check',
-          reason: `${reason} The tests were broken before the patch, so they prove nothing about it; tsc type-checks ${list(changed)} and passed on both sides.`,
+          reason: withNotes(
+            `${reason} The tests were broken before the patch, so they prove nothing about it; tsc type-checks ${list(changed)} and passed on both sides.`,
+          ),
         }
       : {
           letter: 'D',
           level: 'none',
-          reason: `${reason} The tests were broken before the patch, and ${!typeCheck.passed ? (typeCheck.detail ?? 'the type check did not pass on both sides') : !changed.length ? 'the patch changes no source file a check could reach' : unchecked.length ? `the type check does not cover ${list(unchecked)}` : setAside}.`,
+          reason: withNotes(
+            `${reason} The tests were broken before the patch, and ${!typeCheck.passed ? (typeCheck.detail ?? 'the type check did not pass on both sides') : !changed.length ? 'the patch changes no source file a check could reach' : `the type check does not cover ${list(unchecked)}`}.`,
+          ),
         };
   }
   const listed = listedTests(options.command);
   const tested = kinds.has('tests')
     ? reach(graph, listed.length ? listed : testFiles(options.repository))
     : new Set<string>();
-  const typed = kinds.has('typecheck')
-    ? checkedProgram(root, options.command, graph)
-    : new Set<string>();
+  const typed = kinds.has('typecheck') ? typeChecked() : new Set<string>();
   const reached = changed.filter((path) => tested.has(path));
   const untested = changed.filter((path) => !tested.has(path));
   const unchecked = untested.filter((path) => !typed.has(path));
@@ -589,25 +629,21 @@ export async function gradeEvidence(options: {
     return {
       letter: 'B',
       level: 'stripe-tests',
-      reason: `The repository's tests reach every changed file (${list(changed)}).${setAside ? ` ${setAside[0].toUpperCase()}${setAside.slice(1)}.` : ''}`,
-    };
-  if (changed.length && !unchecked.length && setAside)
-    return {
-      letter: 'D',
-      level: 'none',
-      reason: `${setAside[0].toUpperCase()}${setAside.slice(1)}.`,
+      reason: withNotes(`The repository's tests reach every changed file (${list(changed)}).`),
     };
   if (changed.length && !unchecked.length)
     return {
       letter: 'C',
       level: 'type-check',
-      reason: `${
-        !kinds.has('tests')
-          ? ''
-          : reached.length
-            ? `The tests reach ${list(reached)} but not ${list(untested)}. `
-            : 'The tests pass but reach none of the changed files. '
-      }tsc type-checks ${list(untested)}; no test ran that code.`,
+      reason: withNotes(
+        `${
+          !kinds.has('tests')
+            ? ''
+            : reached.length
+              ? `The tests reach ${list(reached)} but not ${list(untested)}. `
+              : 'The tests pass but reach none of the changed files. '
+        }tsc type-checks ${list(untested)}; no test ran that code.`,
+      ),
     };
   // Only functions that ran on both sides count; an unavailable generated check adds nothing.
   const ran = options.generated?.status === 'passed' ? options.generated.ran : 0;
@@ -627,6 +663,6 @@ export async function gradeEvidence(options: {
   return {
     letter: 'D',
     level: generatedNote.startsWith(';') ? 'generated-check' : 'none',
-    reason: `${missed}${generatedNote}.`,
+    reason: withNotes(`${missed}${generatedNote}.`),
   };
 }

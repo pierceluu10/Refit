@@ -613,8 +613,23 @@ export function createReviewArtifacts(
   const unchecked =
     validation.status === 'passed' && (grade?.letter === 'D' || grade?.level === 'none');
   const keptProperties = validation.repair?.keptProperties ?? [];
+  // Type errors a Refit-generated check found in JavaScript the repository never type-checks: they do
+  // not fail validation, so the draft states each one for review (L2 master's policy, board #300).
+  const advisoryTypeErrors =
+    'advisoryTypeErrors' in validation && Array.isArray(validation.advisoryTypeErrors)
+      ? (validation.advisoryTypeErrors as {
+          file: string;
+          line: number;
+          code: string;
+          message: string;
+        }[])
+      : [];
   const needsReview = Boolean(
-    reviews?.length || patch.unresolvedFindings || keptProperties.length || unchecked,
+    reviews?.length ||
+    patch.unresolvedFindings ||
+    keptProperties.length ||
+    unchecked ||
+    advisoryTypeErrors.length,
   );
   const prefix = needsReview ? NEEDS_REVIEW_PREFIX : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
@@ -847,6 +862,16 @@ export function createReviewArtifacts(
     ...(unchecked
       ? [
           `**No check reached all of the changed code.** ${plainText(grade!.reason)} Run the code this patch changes once before merging.`,
+        ]
+      : []),
+    ...(advisoryTypeErrors.length
+      ? [
+          `**Advisory type errors.** Refit's generated type check reports ${advisoryTypeErrors.length === 1 ? 'a type error' : `${advisoryTypeErrors.length} type errors`} this patch introduces in JavaScript your build never type-checks; they did not fail validation. Check each one: ${advisoryTypeErrors
+            .map(
+              (error) =>
+                `${code(`${error.file}:${error.line}`)} ${error.code} ${plainText(error.message)}`,
+            )
+            .join('; ')}.`,
         ]
       : []),
     ...(shopify?.deprecated ?? []).map(
