@@ -42,6 +42,10 @@ const INTRODUCED_TYPE_ERRORS = 'Type errors this patch introduced:\n';
 const REFIT_CHECK_STOP = /^Check (?:output )?exceeded /;
 // Checked on GitHub, 2026-10-24.
 const STRIPE_NODE_CHANGELOG = 'https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md';
+// Read 2026-10-25: "Only payment methods that you enabled can be shown to your customers." The
+// Checkout API reference says allowed_payment_method_types filters this dynamically eligible set.
+const DYNAMIC_PAYMENT_METHODS =
+  'https://docs.stripe.com/payments/payment-methods/dynamic-payment-methods';
 
 // A command that only type-checks, as `npx --no-install tsc --noEmit` does.
 function typeCheckOnly(command: string) {
@@ -722,15 +726,11 @@ export function createReviewArtifacts(
           `${code('allowed_payment_method_types')} filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.`,
         ]
       : []),
-    ...listedMethods.map(
-      (methods) =>
-        `Stripe now filters ${code(`[${methods}]`)} by each buyer's eligibility (country, currency, amount, device), so ${summaryList(
-          methods
-            .split(', ')
-            .filter((method) => method !== 'card')
-            .map(code),
-        )} may no longer be offered to some customers. Before merging, confirm they still appear where you rely on them.`,
-    ),
+    ...listedMethods.map((methods) => {
+      const others = methods.split(', ').filter((method) => method !== 'card');
+      const one = others.length === 1;
+      return `Stripe now filters ${code(`[${methods}]`)} by each buyer's eligibility (country, currency, amount, device), so ${summaryList(others.map(code))} may no longer be offered to some customers. Stripe offers only payment methods the account has enabled ([dynamic payment methods](${DYNAMIC_PAYMENT_METHODS})). Before merging, confirm ${one ? 'it is' : 'they are'} enabled in the Stripe Dashboard or the payment method configuration this account uses, and ${one ? 'still appears' : 'still appear'} where you rely on ${one ? 'it' : 'them'}.`;
+    }),
     ...(upgrade &&
     report.adapter.packageName === 'stripe' &&
     upgrade.from.split('.')[0] !== upgrade.to.split('.')[0]
@@ -740,7 +740,7 @@ export function createReviewArtifacts(
       : []),
     ...movedExpressions.map(
       (expression) =>
-        `Refit cannot read which payment methods ${code(expression)} holds at runtime. Stripe now filters them by each buyer's eligibility (country, currency, amount, device). Before merging, confirm it holds only methods this call accepts in ${code('allowed_payment_method_types')} and that each one is still offered where you rely on it.`,
+        `Refit cannot read which payment methods ${code(expression)} holds at runtime. Stripe now filters them by each buyer's eligibility (country, currency, amount, device), and offers only payment methods the account has enabled ([dynamic payment methods](${DYNAMIC_PAYMENT_METHODS})). Before merging, confirm it holds only methods this call accepts in ${code('allowed_payment_method_types')}, that each one is enabled in the Stripe Dashboard or the payment method configuration this account uses, and that each one is still offered where you rely on it.`,
     ),
     ...(subscriptionPolicy
       ? [
