@@ -435,6 +435,14 @@ Rerun with a replaced key at `22b4ab3`: GitHub Actions run 40158922107, same inp
 - **Every row's status, stage, reason, review gates and patch equal the AI-off run.** No AI diff was checked or published, so none is labelled.
 - **One clear miss:** FlowCraft `src/app/api/subscription/route.ts:71` still reads `s.current_period_end` on a listed subscription, which Stripe removed in basil, although the rules' patch adds a `getSubscriptionPeriodEnd` helper for it. The run recorded no reason for the empty proposals.
 
+Why: a request rebuilt locally from the shard's report, specifications and changelog notes held the target, the helper and both docs.stripe.com pages, and an empty or truncated answer is refused, not counted as no proposal; so the model chose zero edits. The instructions called an untraced read something to edit only when the code proves the object, and nothing pointed it at the rules' helper. `0839fc4` records the model's summary, uncertainties and response id for an empty coverage proposal and adds that guidance. Run 40166116141 at `0839fc4`, same inputs:
+
+- **Spend: $0.2014192.** No HTTP 401.
+- **FlowCraft: AI kept and validated** ($0.059447). The one AI line is `src/app/api/subscription/route.ts:73`, `s.current_period_end` to `getSubscriptionPeriodEnd(s)`, after which `pnpm test` passed on the original and migrated code. **Correct** against [the basil period change](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end): the helper reads the old field, then the period every item shares; with items whose periods differ it reads undefined, because it chose no item. The draft adds the `ai-patch` gate and, because the patch is no longer rules-only, `webhook-api-version` for the rules' webhook lines; unresolved findings go from 5 to 4.
+- **build-it, spotify-clone, DocuChat and dota2-helper: no proposal, correctly.** The recorded reasons: build-it's `.subscription` reads are Prisma models, DocuChat's `.price` reads are its plan table, dota2-helper's `.description` reads are Dota data, and the contract-change calls do not read or send what changed (spotify-clone's `customers.update` address stays, as the owner policy requires).
+- Every other row has the same status, stage, reason, gates and patch as the AI-off run 40156098317. financehb is still refused over 64 KiB; type-last spent $0.02872 in the repair loop.
+- **Not fixed here:** FlowCraft's adapter maps `subscriptions.retrieve` but not `subscriptions.list`, which is why the rules could not trace that read.
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.
