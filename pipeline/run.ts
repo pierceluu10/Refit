@@ -114,6 +114,8 @@ async function runOpenApiPipeline(options: {
   keepListedPaymentMethods?: boolean;
   // Shopify only: propose the SDK major upgrade a target version needs (docs/SHOPIFY-SDK-UPGRADE.md).
   shopifySdkUpgrade?: boolean;
+  // Validation only: subscription-period reads its patched type check rejected (analyzer.ts).
+  typeCheckedPeriodReads?: { file: string; position: number }[];
   onProgress?: (message: string) => void;
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
@@ -201,7 +203,7 @@ async function runOpenApiPipeline(options: {
     requestRenames,
     moves,
     parameterRemovals,
-    { invoicePreview },
+    { invoicePreview, typeCheckedPeriodReads: options.typeCheckedPeriodReads },
   );
   const stripePackage =
     provider.packageName === STRIPE.packageName
@@ -374,6 +376,13 @@ async function runOpenApiPipeline(options: {
       (finding.subscriptionPeriod || HELPER_RULES.has(finding.webhook?.migration?.rule ?? '')) &&
       !editCovers(repository, kept, finding)
     ) {
+      // Only its helper edit made a type-checked read confirmed.
+      if (finding.typeChecked) {
+        finding.confidence = 'review';
+        finding.reason =
+          'The upgraded stripe-node types reject this subscription period read, but the period helper could not be applied here; inspect manually.';
+        delete finding.typeChecked;
+      }
       delete finding.subscriptionPeriod;
       if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
         delete finding.webhook!.migration;
