@@ -579,6 +579,7 @@ const PROCESS_INPUTS: JobProcessInputs = {
   repairAttempts: 2,
   publishDraft: true,
   publishUnresolved: true,
+  supersedeDrafts: true,
   aiPatch: true,
   aiTotalUsd: 5,
 };
