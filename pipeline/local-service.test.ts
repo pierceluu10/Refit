@@ -375,8 +375,9 @@ it.each([
   { retryTargets: ['demo', 'demo'], once: true, message: 'unique configured target ids' },
   { retryTargets: ['unknown'], once: true, message: 'unique configured target ids' },
   { retryTargets: [''], once: true, message: 'unique configured target ids' },
+  { weeklyStatus: true, once: true, message: '--weekly-status requires --publish-draft' },
 ])(
-  'rejects an invalid retry selection before service or worker side effects: $retryTargets, once=$once',
+  'rejects invalid poll options before service or worker side effects: $message',
   async (selection) => {
     const root = join(tmpdir(), `refit-invalid-retry-${randomUUID()}`);
     await expect(

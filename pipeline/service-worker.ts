@@ -103,7 +103,7 @@ export function summarizePoll(result: ServicePoll) {
           ].join(' ')
         : result.status === 'documentation-changed'
           ? `Provider documentation changed. Refit saved a unified diff and did not start a migration. The prior API workflow status remains ${result.previousStatus}.`
-          : `Saved worker result reused; checks were not rerun.${result.previousReason ? ` That run recorded: ${result.previousReason}` : ''}`,
+          : `Saved worker result reused; checks were not rerun.${result.previousReason ? ` That run recorded: ${result.previousReason}` : ''}${result.weeklyStatus ? ` Weekly status posted on ${result.weeklyStatus}.` : ''}`,
   };
 }
 
@@ -115,6 +115,7 @@ export async function pollServiceTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  weeklyStatus?: boolean;
   supersedeDrafts?: boolean;
   retry?: boolean;
   // Runs refit doctor on the approved checkout first; blocked setup stops before scanning.
@@ -146,6 +147,7 @@ export async function pollServiceTarget(options: {
       stateDirectory: options.stateDirectory,
       syncGitHub: targetGitHub,
       retry: options.retry,
+      weeklyStatus: options.weeklyStatus,
       onProgress: options.onProgress,
     });
   if (
@@ -194,6 +196,7 @@ export async function pollServiceTarget(options: {
         documentationSources: target.documentationSources,
         stateDirectory: options.stateDirectory,
         retry: options.retry,
+        weeklyStatus: options.weeklyStatus,
         onProgress: options.onProgress,
       });
       // The approved checks, which model fixes reuse for this repository.

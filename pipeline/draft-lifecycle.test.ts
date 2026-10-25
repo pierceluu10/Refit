@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { startFakeGitHub, type FakeGitHub } from './fixtures/fake-github.ts';
 import { validatedReport } from './fixtures/publication-report.ts';
 import {
+  commentOnOwnDraft,
   draftKey,
   findExistingMigration,
   publicationConfiguration,
@@ -416,6 +417,50 @@ it('leaves a pull request someone else opened from the Refit branch to them', as
   });
   expect(await branchTip(draft.branch)).toBe(tip);
   expect(github.comments(REPOSITORY)).toEqual([]);
+});
+
+it('posts the weekly note only on an open draft Refit still owns', async () => {
+  const draft = await publishDraft(await candidate(), options());
+  const revision = await main();
+  const target = { number: draft.number, branch: draft.branch, revision };
+  expect(await commentOnOwnDraft(options(), target, 'Still current.')).toBe(true);
+  expect(github.comments(REPOSITORY)).toEqual([
+    { issue: 1, body: 'Still current.\n\n<!-- refit-weekly-status -->', user: BOT },
+  ]);
+  // A pull request number that now belongs to another branch is not Refit's draft.
+  expect(
+    await commentOnOwnDraft(options(), { ...target, branch: 'customer/feature' }, 'Wrong.'),
+  ).toBe(false);
+  // One a person marked ready for review, or moved to another base, is theirs to follow.
+  const [pull] = github.pulls(REPOSITORY);
+  pull.draft = false;
+  expect(await commentOnOwnDraft(options(), target, 'Ready.')).toBe(false);
+  pull.draft = true;
+  pull.base = 'release';
+  expect(await commentOnOwnDraft(options(), target, 'Retargeted.')).toBe(false);
+  pull.base = 'main';
+
+  const branch = join(root, 'branch');
+  await execute(
+    'git',
+    ['clone', '--quiet', '--branch', draft.branch, github.remote(REPOSITORY), branch],
+    { env: isolated },
+  );
+  await writeFile(join(branch, 'billing.ts'), '// reviewed by the customer\n');
+  await git(branch, ['commit', '--quiet', '-am', 'fix: keep the reviewed charge history']);
+  await github.pushBranch(REPOSITORY, draft.branch, branch);
+  expect(await commentOnOwnDraft(options(), target, 'Edited.')).toBe(false);
+
+  const other = await publishDraft(await candidate(), options('billing-stripe'));
+  github.closePull(REPOSITORY, other.number);
+  expect(
+    await commentOnOwnDraft(
+      options('billing-stripe'),
+      { number: other.number, branch: other.branch, revision },
+      'Closed.',
+    ),
+  ).toBe(false);
+  expect(github.comments(REPOSITORY)).toHaveLength(1);
 });
 
 it('never reopens or replaces a draft a person closed, and stays quiet once one is merged', async () => {
