@@ -6,7 +6,7 @@ import { BEHAVIOUR_DIRECTORY } from './behaviour-tests.ts';
 import { listOpenApiOperations } from './openapi-operations.ts';
 import { MAX_INPUT_BYTES, MAX_OUTPUT_TOKENS, requestStructuredOutput } from './openai.ts';
 import { generatedImportMap } from './generated-checks.ts';
-import { bodySchema, local } from './request-removals.ts';
+import { bodySchema, local, type RequestParameterRemoval } from './request-removals.ts';
 import { digest, findAddedProperties, isObject, parseObject } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type Repository } from './types.ts';
 
@@ -232,6 +232,8 @@ export function behaviourTestRequest(options: {
   repository: Repository;
   findings: Finding[];
   changes: Removal[];
+  // run.ts drops `requestParameter` from a finding a kept rule edit covers; the removal it cites stays.
+  removals: RequestParameterRemoval[];
   before: Specification;
   after: Specification;
 }) {
@@ -248,14 +250,16 @@ export function behaviourTestRequest(options: {
   const cited = options.changes.filter((change) =>
     confirmed.some((finding) => finding.changeId === change.id),
   );
+  const removed = (finding: Finding) => {
+    const removal = options.removals.find((candidate) => candidate.id === finding.changeId);
+    return removal && { operationId: removal.operationId, parameter: removal.parameter };
+  };
   const parameters = [
     ...new Map(
       confirmed
-        .filter((finding) => finding.requestParameter)
-        .map((finding) => [
-          `${finding.requestParameter!.operationId}.${finding.requestParameter!.parameter}`,
-          finding.requestParameter!,
-        ]),
+        .map(removed)
+        .filter((parameter) => parameter !== undefined)
+        .map((parameter) => [`${parameter.operationId}.${parameter.parameter}`, parameter]),
     ).values(),
   ];
   const version = (specification: Specification) =>
@@ -269,8 +273,8 @@ export function behaviourTestRequest(options: {
       line: finding.line,
       column: finding.column,
       expression: finding.expression.slice(0, 200),
-      change: finding.requestParameter
-        ? { kind: 'removed-request-parameter', ...finding.requestParameter }
+      change: removed(finding)
+        ? { kind: 'removed-request-parameter', ...removed(finding) }
         : (() => {
             const change = cited.find((candidate) => candidate.id === finding.changeId);
             return {
@@ -627,6 +631,8 @@ export async function writeBehaviourTests(options: {
   repository: Repository;
   findings: Finding[];
   changes: Removal[];
+  // run.ts drops `requestParameter` from a finding a kept rule edit covers; the removal it cites stays.
+  removals: RequestParameterRemoval[];
   before: Specification;
   after: Specification;
   ai: BehaviourTestWriter;

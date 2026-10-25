@@ -2078,6 +2078,7 @@ export async function validateMigration(options: {
                 repository: originalSources,
                 findings: preflight.findings,
                 changes: preflight.changes,
+                removals: requestRemovals,
                 before: beforeSpecification,
                 after: afterSpecification,
                 ai: options.behaviourTestWriter!,
