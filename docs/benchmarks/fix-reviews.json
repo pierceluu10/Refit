@@ -1751,6 +1751,21 @@
         "upgradeComplete": "yes: stripe ^12.9.0 (lockfile 12.10.0) to ^23.0.0 in package.json and package-lock.json, and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
         "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
       }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40181894267 (dev-30 offset 0-14, main c88faee, ai=true gpt-6.1-sol, cap $5); coverage AI outcome kept, $0.038. migration.patch read in full; the AI-written hunk separated from the rules' hunks",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the AI writes const periodEnd = subscription ? getSubscriptionPeriodEnd(subscription) : undefined and uses it for both the test and the read of current_period_end (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end); the rules wrote the other period read and the helper.",
+        "bothVersions": "yes: the generated helper reads the old field when present, otherwise the period the items share.",
+        "nothingUnrelated": "yes: the one expression, nothing else; no test or package file.",
+        "pleaseCheck": "AI-written, so the draft is [Needs review] (decision 8). The subscription is entitled[0] ?? the newest of a Stripe.Subscription[] parameter, which the tracer does not follow through ??.",
+        "upgradeComplete": "yes, as in the rules' patch.",
+        "wouldMerge": "yes after review."
+      }
     }
   ]
 }
