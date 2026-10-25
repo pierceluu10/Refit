@@ -2,6 +2,7 @@ import { posix } from 'node:path';
 import ts from 'typescript-compiler';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { syntaxErrors } from './analyzer.ts';
+import { BEHAVIOUR_DIRECTORY } from './behaviour-tests.ts';
 import { listOpenApiOperations } from './openapi-operations.ts';
 import { MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
 import { generatedImportMap } from './generated-checks.ts';
@@ -11,8 +12,7 @@ import { PipelineInputError, type Finding, type Removal, type Repository } from 
 
 // Behaviour tests (grade A evidence): one model request per repository writes node:test files from
 // the ORIGINAL code and the contract change only. The model never sees a patch, so its tests are an
-// independent check of whatever migration validation later runs them against.
-export const BEHAVIOUR_DIRECTORY = 'refit-behaviour';
+// independent check of whatever migration validation later runs them against (behaviour-tests.ts).
 const MAX_FILES = 4;
 const MAX_FILE_BYTES = 32 * 1024;
 const MAX_TEXT = 2000;

@@ -12,11 +12,18 @@ import {
   writeBehaviourTests,
   type BehaviourTestFile,
 } from './behaviour-test-writer.ts';
-import { generatedImportMap, typescriptDirectory, writeHarness } from './generated-checks.ts';
+import {
+  changedStripeLines,
+  compareBehaviourRuns,
+  writeBehaviourHarness,
+} from './behaviour-tests.ts';
+import { typescriptDirectory } from './generated-checks.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { digest, readSpecification } from './specifications.ts';
+import type { Finding } from './types.ts';
+import type { CheckResult } from './validation.ts';
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -802,10 +809,11 @@ it('refuses every file when one breaks the contract, and answers that do not mat
   ).toThrow();
 });
 
-// SIMULATED harness, not stripe-mock and not the real SDK: stripe-node's request shape (an HTTPS
-// request to api.stripe.com, the form body written after secureConnect) answered by a loopback
-// stand-in that, like stripe-mock, rejects a parameter its API version does not define. The
-// two-version stripe-mock harness runs the same files in offline Docker on refit-bench.
+// SIMULATED stripe-mock and SDK, real harness: the harness's own runner, reporter, V8 coverage and
+// grading (behaviour-tests.ts) run outside Docker against a loopback stand-in that, like stripe-mock,
+// rejects a parameter its API version does not define, with stripe-node's request shape (an HTTPS
+// request to api.stripe.com, the form body written after secureConnect). The two-version
+// stripe-mock harness runs the same files in offline Docker on refit-bench.
 const SDK = `import https from 'node:https';
 const form = (value, prefix) => Array.isArray(value)
   ? value.flatMap((item, index) => form(item, prefix + '[' + index + ']'))
@@ -829,61 +837,43 @@ export default class Stripe {
   }
 }
 `;
-const RECORD = `import https from 'node:https';
-const requests = [];
-globalThis.__refitStripe = { requests, reset: () => { requests.length = 0; } };
-const parse = (text) => {
-  const result = {};
-  for (const pair of text ? text.split('&') : []) {
-    const [key, value] = pair.split('=').map(decodeURIComponent);
-    const path = key.replace(/\\]/g, '').split('[');
-    let node = result;
-    path.forEach((part, index) => {
-      if (index === path.length - 1) node[part] = value;
-      else node = node[part] ??= /^\\d+$/.test(path[index + 1]) ? [] : {};
-    });
-  }
-  return result;
+const PACKAGE = {
+  'node_modules/stripe/package.json': JSON.stringify({
+    name: 'stripe',
+    type: 'module',
+    main: 'index.js',
+  }),
+  'node_modules/stripe/index.js': SDK,
 };
-const request = https.request;
-https.request = function (options, ...rest) {
-  const req = request.call(this, options, ...rest);
-  if (options?.host !== 'api.stripe.com') return req;
-  const end = req.end;
-  req.end = function (body, ...args) {
-    const [path, query = ''] = options.path.split('?');
-    requests.push({ method: options.method, path, query: parse(query), body: parse(body ?? ''), stripeVersion: options.headers['Stripe-Version'] });
-    return end.call(this, body, ...args);
-  };
-  return req;
+const PARAMETERS = {
+  before: [...CHECKOUT_FIELDS, 'payment_method_types'],
+  after: [...CHECKOUT_FIELDS, 'allowed_payment_method_types'],
 };
-`;
 
-async function simulate(
-  repositoryFiles: Record<string, string>,
+async function harness(
   tests: BehaviourTestFile[],
-  parameters: string[],
+  findings: Finding[],
+  patchedClient: string,
+  sides = { original: 'before', patched: 'after' } as const,
 ) {
   const root = await mkdtemp(join(tmpdir(), 'refit-behaviour-run-'));
   roots.push(root);
-  const app = join(root, 'app');
+  const app = async (name: string, client: string) => {
+    for (const [path, content] of Object.entries({ ...PACKAGE, 'lib/stripe-client.ts': client })) {
+      await mkdir(dirname(join(root, name, path)), { recursive: true });
+      await writeFile(join(root, name, path), content);
+    }
+    return readRepository(join(root, name), 'stripe');
+  };
+  const sources = {
+    original: await app('original', DOCSFLOW_CLIENT),
+    patched: await app('patched', patchedClient),
+  };
+  const changed = changedStripeLines(sources.original, sources.patched, findings);
   const tools = join(root, 'tools');
-  for (const [path, content] of Object.entries({
-    ...repositoryFiles,
-    'node_modules/stripe/package.json': JSON.stringify({
-      name: 'stripe',
-      type: 'module',
-      main: 'index.js',
-    }),
-    'node_modules/stripe/index.js': SDK,
-    ...Object.fromEntries(tests.map((file) => [file.path, file.content])),
-  })) {
-    await mkdir(dirname(join(app, path)), { recursive: true });
-    await writeFile(join(app, path), content);
-  }
   await mkdir(tools);
-  await writeHarness(tools, [], generatedImportMap(await readRepository(app)));
-  await writeFile(join(tools, 'record.mjs'), RECORD);
+  await writeBehaviourHarness(tools, tests, changed, sources);
+  let parameters = PARAMETERS.before;
   const server = createServer((request, response) => {
     let body = '';
     request.on('data', (chunk) => (body += chunk));
@@ -912,48 +902,42 @@ async function simulate(
     });
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  try {
-    const { stdout } = await execute(
-      process.execPath,
-      [
-        '--import',
-        join(tools, 'redirect.mjs'),
-        '--import',
-        join(tools, 'record.mjs'),
-        '--test',
-        ...tests.map((file) => join(app, file.path)),
-      ],
-      {
-        cwd: app,
-        timeout: 30_000,
-        env: {
-          ...process.env,
-          NODE_OPTIONS: '',
-          REFIT_STRIPE_MOCK_PORT: String((server.address() as { port: number }).port),
-          REFIT_GENERATED_ROOT: `${app}/`,
-          REFIT_TYPESCRIPT: join(typescriptDirectory(), 'lib', 'typescript.js'),
-          STRIPE_SECRET_KEY: 'sk_test_123',
-        },
+  // One side as the sandbox runs it: the tests copied in, then the harness's runner.
+  const run = async (side: 'original' | 'patched'): Promise<CheckResult> => {
+    const directory = sources[side].root;
+    parameters = PARAMETERS[sides[side]];
+    await mkdir(join(directory, 'refit-behaviour'), { recursive: true });
+    for (const test of tests) await writeFile(join(directory, test.path), test.content);
+    const { stdout, stderr } = await execute(process.execPath, [join(tools, 'behaviour.mjs')], {
+      env: {
+        ...process.env,
+        NODE_OPTIONS: '',
+        REFIT_STRIPE_MOCK_PORT: String((server.address() as { port: number }).port),
+        REFIT_GENERATED_ROOT: `${directory}/`,
+        REFIT_GENERATED_SIDE: side === 'original' ? 'before' : 'after',
+        REFIT_TYPESCRIPT: join(typescriptDirectory(), 'lib', 'typescript.js'),
+        STRIPE_SECRET_KEY: 'sk_test_123',
       },
-    );
-    return { status: 'passed', output: stdout };
-  } catch (error) {
-    if ((error as { code?: unknown }).code !== 1) throw error;
-    return { status: 'failed', output: String((error as { stdout?: unknown }).stdout) };
+      timeout: 60_000,
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    return { status: 'passed', exitCode: 0, stdout, stderr };
+  };
+  try {
+    const original = await run('original');
+    const patched = await run('patched');
+    return compareBehaviourRuns({ tests, changed, sources, original, patched });
   } finally {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   }
 }
 
-it('SIMULATED harness: the generated test passes the original and the correct patch, and fails known-wrong patches (nicuk/docsflow at 3e6fd71)', async () => {
+it("SIMULATED stripe-mock: the generated test gives grade A to the card rule's patch and counts known-wrong patches as regressions (nicuk/docsflow at 3e6fd71)", async () => {
   const sample = await scenario('docsflow');
   respond(CHECKOUT_ANSWER);
   const { record, files } = await writeBehaviourTests({ ...sample.inputs, ai: ai(sample.root) });
   expect(record.status).toBe('generated');
-  const before = [...CHECKOUT_FIELDS, 'payment_method_types'];
-  const after = [...CHECKOUT_FIELDS, 'allowed_payment_method_types'];
-  const patched = (source: string) => ({ 'lib/stripe-client.ts': source });
   // The card rule's migration (docs/STRIPE-PAYMENT-METHOD-TYPES.md) with the endive pin.
   const correct = DOCSFLOW_CLIENT.replace('2025-08-27.basil', '2026-09-30.endive').replace(
     "payment_method_types: ['card']",
@@ -962,16 +946,22 @@ it('SIMULATED harness: the generated test passes the original and the correct pa
   // Deleting the removed parameter, which owner policy forbids, and not migrating at all.
   const dropped = correct.replace("      allowed_payment_method_types: ['card'],\n", '');
   const unmigrated = DOCSFLOW_CLIENT.replace('2025-08-27.basil', '2026-09-30.endive');
-  expect(correct).not.toBe(DOCSFLOW_CLIENT);
   expect(dropped).not.toContain('payment_method_types');
-  expect(await simulate(DOCSFLOW, files, before)).toMatchObject({ status: 'passed' });
-  expect(await simulate(patched(correct), files, after)).toMatchObject({ status: 'passed' });
-  const deleted = await simulate(patched(dropped), files, after);
-  expect(deleted).toMatchObject({ status: 'failed' });
-  expect(deleted.output).toContain('Expected values to be strictly deep-equal');
-  const kept = await simulate(patched(unmigrated), files, after);
-  expect(kept).toMatchObject({ status: 'failed' });
-  expect(kept.output).toContain('Received unknown parameter: payment_method_types');
-  // The original code fails on the after version too, so the test sees the API change.
-  expect(await simulate(DOCSFLOW, files, after)).toMatchObject({ status: 'failed' });
-}, 60_000);
+  const findings = sample.report.findings;
+  const passed = await harness(files, findings, correct);
+  expect(passed).toMatchObject({ status: 'passed', grade: 'A', missing: [], regressions: [] });
+  // Both changed lines (the pin and the parameter) ran on both sides.
+  expect(passed.coverage!.covered).toEqual({
+    original: { 'lib/stripe-client.ts': [7, 31] },
+    patched: { 'lib/stripe-client.ts': [7, 31] },
+  });
+  const deleted = await harness(files, findings, dropped);
+  expect(deleted).toMatchObject({ status: 'regression', grade: null });
+  expect(deleted.regressions[0].error).toContain('Expected values to be strictly deep-equal');
+  const kept = await harness(files, findings, unmigrated);
+  expect(kept).toMatchObject({ status: 'regression', grade: null });
+  expect(kept.regressions[0].error).toContain('Expected values to be strictly equal');
+  // The unchanged code against the after version fails the same test: it sees the API change.
+  const unchanged = await harness(files, findings, DOCSFLOW_CLIENT);
+  expect(unchanged).toMatchObject({ status: 'regression' });
+}, 120_000);

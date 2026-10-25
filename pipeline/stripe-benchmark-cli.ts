@@ -514,6 +514,19 @@ async function benchmark(entry: Selected, index: number) {
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,
       behaviourTestWriter: report.validation?.behaviourTestWriter,
+      // The harness's verdict on those tests, without its per-side output.
+      ...(report.validation?.behaviour
+        ? {
+            behaviour: {
+              status: report.validation.behaviour.status,
+              reason: report.validation.behaviour.reason,
+              grade: report.validation.behaviour.grade,
+              missing: report.validation.behaviour.missing?.slice(0, 20),
+              regressions: report.validation.behaviour.regressions,
+              uncoveredLines: report.validation.behaviour.coverage?.missing,
+            },
+          }
+        : {}),
       baselineStop: report.validation?.baselineStop?.reason,
       checkErrors: {
         baseline: report.validation?.baseline?.error,

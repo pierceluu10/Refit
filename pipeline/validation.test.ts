@@ -725,6 +725,12 @@ test('returns the charge history', async () => {
       status: 'generated',
       files: [{ path: 'refit-behaviour/history.test.mjs', sha256: digest(test) }],
     });
+    // The written files reach the harness, which needs the stripe-mock settings this run lacks.
+    expect(report.validation.behaviour).toMatchObject({
+      status: 'unavailable',
+      grade: null,
+      tests: [{ path: 'refit-behaviour/history.test.mjs', sha256: digest(test) }],
+    });
     const sent = fetcher.mock.calls.find(([url]) => !url.endsWith('/input_tokens'))!;
     const evidence = JSON.parse(JSON.parse(String(sent[1]!.body)).input[0].content);
     expect(evidence.files).toEqual([{ path: 'billing.js', content: SOURCE }]);
