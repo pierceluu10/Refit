@@ -12,10 +12,11 @@ const LOCKFILES = ['package-lock.json', PNPM_LOCKFILE, YARN_LOCKFILE];
 // The nested package that Refit prepares and checks instead of the repository root: every file the
 // scan reports (findings and API-version declarations) belongs to it, as the nearest package.json
 // above the file that declares the SDK, where Node resolves the SDK from, and it commits its own
-// lockfile. Otherwise undefined, and preparation and checks use the repository root as before.
+// lockfile (`committed` answers for a repository-relative path). Otherwise undefined, and
+// preparation and checks use the repository root as before.
 export function sdkPackageDirectory(
   report: Pick<PipelineReport, 'findings' | 'apiVersion' | 'repository'>,
-  repository: Pick<CommittedRepository, 'entries'>,
+  committed: (path: string) => boolean,
 ) {
   const packages = report.repository.dependencies
     .map((dependency) => dirname(dependency.file))
@@ -27,8 +28,7 @@ export function sdkPackageDirectory(
   );
   const [directory] = owners;
   if (owners.size !== 1 || directory === undefined || directory === '.') return undefined;
-  const paths = new Set(repository.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1)));
-  return LOCKFILES.some((lockfile) => paths.has(`${directory}/${lockfile}`))
+  return LOCKFILES.some((lockfile) => committed(`${directory}/${lockfile}`))
     ? directory
     : undefined;
 }

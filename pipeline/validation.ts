@@ -640,7 +640,10 @@ export async function validateMigration(options: {
   );
   if (reviewReason) throw new PipelineInputError(reviewReason);
   // Stripe code in one nested package with its own lockfile is prepared and checked there.
-  const packageDirectory = sdkPackageDirectory(preflight, snapshot);
+  const committedPaths = new Set(
+    snapshot.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1)),
+  );
+  const packageDirectory = sdkPackageDirectory(preflight, (path) => committedPaths.has(path));
   const sandbox: CheckSandbox = { timeoutMs, packageDirectory };
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);

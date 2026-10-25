@@ -14,7 +14,6 @@ import {
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
-import { readCommittedRepository } from './committed-repository.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { sdkPackageDirectory } from './preparation-packages.ts';
 import { readRepository } from './repository.ts';
@@ -394,8 +393,9 @@ async function benchmark(entry: Selected, index: number) {
   }
   // Stripe code in one nested package with its own lockfile is prepared and checked there, with
   // that package's own checks, as validation does (pipeline/preparation-packages.ts).
-  const committed = await readCommittedRepository(directory).catch(() => undefined);
-  const packageDirectory = committed && sdkPackageDirectory(fullReport, committed);
+  const packageDirectory = sdkPackageDirectory(fullReport, (path) =>
+    existsSync(join(directory, path)),
+  );
   if (packageDirectory) result.packageDirectory = packageDirectory;
   const checkRoot = join(directory, packageDirectory ?? '');
   const manifest = JSON.parse(

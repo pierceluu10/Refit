@@ -36,7 +36,7 @@ function decide(layout: {
         source: { declarations: (layout.declarations ?? []).map((file) => ({ file })) },
       },
     } as unknown as Parameters<typeof sdkPackageDirectory>[0],
-    { entries: layout.committed.map((path) => `100644 blob ${'0'.repeat(40)}\t${path}`) },
+    (path) => layout.committed.includes(path),
   );
 }
 
@@ -324,6 +324,7 @@ it('validates Stripe code in a nested package there, under the configured check 
   const root = await mkdtemp(join(tmpdir(), 'refit-package-validation-'));
   roots.push(root);
   const calls = await fakeDocker(root);
+  vi.stubEnv('REFIT_DEPENDENCY_CACHE_DIRECTORY', join(root, 'cache'));
   const repository = join(root, 'repository');
   // Shaped like different-ai/embedbase at fb0afda5e8c2ad0212ea8c0dfa495be9865221d5: no root
   // package.json, and a dashboard project with its own lockfile.
