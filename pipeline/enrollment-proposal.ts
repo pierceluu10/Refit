@@ -574,10 +574,18 @@ export async function proposeStripeConfiguration(directory: string) {
     });
   if (stops.length || Array.isArray(version) || !check.kind) return { proposal: null, stops };
   const target = latestStripeContract().version;
-  const checked =
-    check.kind === 'tests'
-      ? `the test script in ${MANIFEST}, run with ${manager}`
-      : 'tsc over tsconfig.json, failing only on new type errors';
+  const typeChecked =
+    check.typeCheck === 'project'
+      ? 'tsc over tsconfig.json, failing only on new type errors'
+      : check.typeCheck === 'scoped'
+        ? 'tsc over the Stripe code, failing only on new type errors'
+        : undefined;
+  const checked = [
+    check.kind === 'tests' ? `the test script in ${MANIFEST}, run with ${manager}` : undefined,
+    typeChecked,
+  ]
+    .filter(Boolean)
+    .join(', then ');
   const proposal: StripeProposal = {
     configuration: {
       formatVersion: 2,

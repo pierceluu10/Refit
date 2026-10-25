@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import {
+  behaviourGrade,
   changedStripeLines,
   compareBehaviourRuns,
   lineCoverage,
@@ -13,6 +14,7 @@ import {
   writeBehaviourHarness,
   type BehaviourTest,
 } from './behaviour-tests.ts';
+import { gradeEvidence } from './check-selection.ts';
 import { typescriptDirectory, writeHarness } from './generated-checks.ts';
 import { readRepository } from './repository.ts';
 import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
@@ -310,10 +312,11 @@ async function simulatedStripeMock() {
         response.statusCode = 400;
         response.end(
           JSON.stringify({
+            // stripe-mock's wording (refit-bench run 40148812652), which names no parameter.
             error: {
               type: 'invalid_request_error',
-              param,
-              message: `Received unknown parameter: ${param}`,
+              message:
+                'Request validation error: validator failed: additional properties are not allowed',
             },
           }),
         );
@@ -574,7 +577,7 @@ it('catches a patch that keeps payment_method_types and one that reads a moved f
     regressions: [
       {
         id: 'refit-behaviour/payments.test.mjs > creates a Checkout Session for the order and returns its URL',
-        error: expect.stringContaining('Received unknown parameter: payment_method_types'),
+        error: expect.stringContaining('additional properties are not allowed'),
       },
     ],
   });
@@ -655,4 +658,77 @@ it('reports a side that did not finish as unavailable and counts nothing', () =>
     grade: null,
     regressions: [],
   });
+});
+
+it('gives gradeEvidence grade A only for a result that passed and ran every changed Stripe line', async () => {
+  const repository = { root: '/nonexistent', files: [] } as never;
+  const result = {
+    status: 'passed',
+    grade: 'A' as 'A' | null,
+    missing: [] as string[],
+    tests: [{ path: 'refit-behaviour/payments.test.mjs' }],
+    coverage: {
+      changedLines: {
+        original: { 'controller/payment/payment.js': [29] },
+        patched: { 'controller/payment/payment.js': [29], 'lib/stripe.ts': [3] },
+      },
+    },
+  };
+  const grade = (behaviour: typeof result) =>
+    gradeEvidence({
+      repository,
+      command: ['node', '-e', '0'],
+      changedFiles: ['controller/payment/payment.js'],
+      behaviour: behaviourGrade(behaviour),
+    });
+  expect(await grade(result)).toEqual({
+    letter: 'A',
+    level: 'behaviour-tests',
+    reason:
+      'Behaviour tests (refit-behaviour/payments.test.mjs) passed on the original code against the before-version stripe-mock and on the patched code against the after-version stripe-mock, and ran every changed Stripe line on both sides (1 original, 2 patched).',
+  });
+  const partial = {
+    ...result,
+    grade: null,
+    missing: [
+      'lib/stripe.ts line 3 did not run on the patched code against the after-version stripe-mock.',
+    ],
+  };
+  expect(behaviourGrade(partial)).toEqual({
+    passed: true,
+    coversEveryChangedLine: false,
+    reason:
+      'Behaviour tests did not give grade A: lib/stripe.ts line 3 did not run on the patched code against the after-version stripe-mock.',
+  });
+  expect((await grade(partial)).letter).toBe('D');
+});
+
+it('needs the same tests on both sides', () => {
+  const sources = {
+    original: { root: '/r', files: [] },
+    patched: { root: '/r', files: [] },
+  } as never;
+  const output = (...ids: string[]) => ({
+    status: 'passed' as const,
+    exitCode: 0,
+    stdout: [
+      ...ids.map(
+        (id) =>
+          `REFIT_BEHAVIOUR_TEST=${JSON.stringify({ file: 'refit-behaviour/payments.test.mjs', id, ok: true })}`,
+      ),
+      'REFIT_BEHAVIOUR_EXIT=0',
+      'REFIT_BEHAVIOUR_COVERAGE={}',
+      'REFIT_BEHAVIOUR_DONE',
+    ].join('\n'),
+    stderr: '',
+  });
+  const result = compareBehaviourRuns({
+    tests: TESTS,
+    changed: { original: {}, patched: {} },
+    sources,
+    original: output('a', 'b'),
+    patched: output('a'),
+  });
+  expect(result).toMatchObject({ status: 'not-passing', grade: null, regressions: [] });
+  expect(result.missing[0]).toBe('b ran on one side only.');
 });

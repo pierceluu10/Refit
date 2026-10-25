@@ -9,6 +9,7 @@ import {
   compareGeneratedRuns,
   generatedCommand,
   generatedEntryPoints,
+  generatedEnvironment,
   generatedImportMap,
   generatedResults,
   stageMockDocument,
@@ -717,6 +718,101 @@ it('loads a patch that adds the helper module and counts only a throwing call (s
         },
       ],
     });
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+// ummarikar/boilerplate-club at b30b456ffbf67a32110999be6227244687c73227, lib/supabase/admin.ts:
+// the Supabase client created at import; createClient is a stand-in with supabase-js's check.
+const SUPABASE_ADMIN = `import { createClient } from "./client";
+import { stripe } from "../stripe";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+);
+
+export const subscriptionStatus = async (subscriptionId: string) =>
+  (await stripe.subscriptions.retrieve(subscriptionId)).status;
+`;
+// emman-tt/tilios-backend at b554dcb083a058353c5d849d668d5ddf9c5159b2, services/stripe.js.
+const TILIOS_STRIPE = `import Stripe from 'stripe'
+import dotenv from 'dotenv'
+dotenv.config()
+export const stripe = new Stripe(process.env.STRIPE_SECRET)
+`;
+
+it('gives placeholders to the credentials and addresses the code reads, so clients created at import load', async () => {
+  const repository = {
+    root: '/r',
+    files: [
+      { path: 'lib/supabase/admin.ts', content: SUPABASE_ADMIN },
+      { path: 'services/stripe.js', content: TILIOS_STRIPE },
+      {
+        path: 'server.js',
+        content:
+          "const { STRIPE_WEBHOOK_SECRET, PORT = 3000 } = process.env;\nconst flag = process.env['FEATURE_ENABLED'];\n",
+      },
+    ],
+  } as never;
+  expect(generatedEnvironment(repository)).toEqual({
+    NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:9/refit-placeholder',
+    STRIPE_SECRET: 'refit_placeholder_secret',
+    STRIPE_WEBHOOK_SECRET: 'refit_placeholder_secret',
+    SUPABASE_SERVICE_ROLE_KEY: 'refit_placeholder_secret',
+  });
+  const root = await mkdtemp(join(tmpdir(), 'refit-generated-environment-'));
+  roots.push(root);
+  const app = join(root, 'app');
+  const files: Record<string, string> = {
+    'lib/supabase/admin.ts': SUPABASE_ADMIN,
+    'lib/supabase/client.ts':
+      "export const createClient = (url: string, key: string) => { if (!url) throw new Error('supabaseUrl is required.'); return { url, key }; };\n",
+    'lib/stripe.ts': PERIOD_FILES['libs/stripe.ts'],
+  };
+  for (const [path, content] of Object.entries(files)) {
+    await mkdir(dirname(join(app, path)), { recursive: true });
+    await writeFile(join(app, path), content);
+  }
+  const imports = generatedImportMap(await readRepository(app, 'stripe'));
+  const server = createServer((_, response) => {
+    response.setHeader('Content-Type', 'application/json');
+    response.end(JSON.stringify({ id: 'sub_1', status: 'active' }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const run = async (environment: Record<string, string>) => {
+    const tools = await mkdtemp(join(root, 'tools-'));
+    await writeHarness(
+      tools,
+      [{ file: 'lib/supabase/admin.ts', name: 'subscriptionStatus', parameters: 1 }],
+      imports,
+      imports,
+      environment,
+    );
+    const { stdout } = await execute(
+      process.execPath,
+      ['--import', join(tools, 'redirect.mjs'), join(tools, 'harness.mjs')],
+      {
+        env: {
+          ...process.env,
+          REFIT_STRIPE_MOCK_PORT: String((server.address() as { port: number }).port),
+          REFIT_GENERATED_ROOT: `${await realpath(app)}/`,
+          REFIT_TYPESCRIPT: join(typescriptDirectory(), 'lib', 'typescript.js'),
+        },
+        timeout: 10_000,
+      },
+    );
+    return generatedResults(stdout).get('lib/supabase/admin.ts#subscriptionStatus');
+  };
+  try {
+    expect(await run({})).toEqual({
+      ok: false,
+      phase: 'load',
+      error: 'Error: supabaseUrl is required.',
+    });
+    expect(await run(generatedEnvironment(repository))).toEqual({ ok: true });
   } finally {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));

@@ -274,24 +274,42 @@ export async function forkAtCommit(
 // The workflow's stops that need only its scan, decided on the scan `refit run` makes with the
 // same inputs, so the benchmark starts `refit run` only for repositories that get past them. A
 // scan that fails here returns undefined and is left to `refit run`, which records the error.
-export async function workflowScanStop(
-  inputs: {
-    repository: string;
-    before: string;
-    after: string;
-    apiVersion: string;
-    providerConfig: string;
-    keepListedPaymentMethods?: boolean;
-  },
+type ScanInputs = {
+  repository: string;
+  before: string;
+  after: string;
+  apiVersion: string;
+  providerConfig: string;
+  keepListedPaymentMethods?: boolean;
+};
+
+// The workflow's scan stage: why it stops, if it does, and the proposed patch.
+export async function workflowScan(
+  inputs: ScanInputs,
   aiPatch: boolean,
   leaveRequestParameters: boolean,
 ) {
   return runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters }).then(
-    (scan) =>
-      scanReviewReason(scan, aiPatch, leaveRequestParameters) ??
-      proposalReviewReason(scan, aiPatch),
-    () => undefined,
+    (scan) => ({
+      stop:
+        scanReviewReason(scan, aiPatch, leaveRequestParameters) ??
+        proposalReviewReason(scan, aiPatch),
+      patch: scan.patch,
+    }),
+    (error: unknown) => ({
+      stop: undefined,
+      patch: undefined,
+      error: error instanceof Error ? error.message : String(error),
+    }),
   );
+}
+
+export async function workflowScanStop(
+  inputs: ScanInputs,
+  aiPatch: boolean,
+  leaveRequestParameters: boolean,
+) {
+  return (await workflowScan(inputs, aiPatch, leaveRequestParameters)).stop;
 }
 
 // Why a `refit run` child left no manifest: the harness time limit stopped it, a signal killed

@@ -2,8 +2,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
-import { STRIPE_IMPORT } from './check-selection.ts';
+import { STRIPE_IMPORT, type BehaviourEvidence } from './check-selection.ts';
 import {
+  generatedEnvironment,
   generatedImportMap,
   MOCK_PORT,
   sandboxTranspile,
@@ -292,6 +293,7 @@ export async function writeBehaviourHarness(
     [],
     behaviourImportMap(sources.original, tests),
     behaviourImportMap(sources.patched, tests),
+    generatedEnvironment(sources.original, sources.patched),
   );
   await writeFile(join(directory, 'reporter.mjs'), REPORTER, { mode: 0o444 });
   await writeFile(join(directory, 'behaviour.mjs'), RUNNER, { mode: 0o444 });
@@ -425,6 +427,14 @@ export function compareBehaviourRuns(options: {
         .map((test) => ({ id: test.id, error: after.get(test.id)!.error ?? 'No error recorded.' }));
   const missing: string[] = [];
   if (broken) missing.push(broken);
+  // The same files must run the same tests on both sides.
+  const oneSided = broken
+    ? []
+    : [
+        ...[...before.keys()].filter((id) => !after.has(id)),
+        ...[...after.keys()].filter((id) => !before.has(id)),
+      ];
+  for (const id of oneSided) missing.push(`${id} ran on one side only.`);
   for (const side of sides) {
     if (side.broken) continue;
     if (!side.output.tests.length) missing.push(`No test ran on ${sideText[side.side]}.`);
@@ -465,9 +475,11 @@ export function compareBehaviourRuns(options: {
     0,
   );
   if (!changedCount) missing.push('The patch changes no executable Stripe line.');
-  const allPass = sides.every(
-    (side) => !side.broken && side.output.tests.length > 0 && side.output.tests.every(passing),
-  );
+  const allPass =
+    !oneSided.length &&
+    sides.every(
+      (side) => !side.broken && side.output.tests.length > 0 && side.output.tests.every(passing),
+    );
   const status = broken
     ? ('unavailable' as const)
     : regressions.length
@@ -507,5 +519,26 @@ export function compareBehaviourRuns(options: {
         stderr: string;
       }
     >,
+  };
+}
+
+// Grade A's input for check-selection's gradeEvidence: the tests passed on both sides and every
+// changed Stripe line ran on both. Anything less keeps the checks' own grade.
+export function behaviourGrade(result: {
+  status: string;
+  grade: 'A' | null;
+  missing: string[];
+  tests: { path: string }[];
+  coverage?: { changedLines: Record<Side, LinesByFile> };
+}): BehaviourEvidence {
+  const count = (side: Side) =>
+    Object.values(result.coverage?.changedLines[side] ?? {}).flat().length;
+  return {
+    passed: result.status === 'passed',
+    coversEveryChangedLine: result.grade === 'A',
+    reason:
+      result.grade === 'A'
+        ? `Behaviour tests (${result.tests.map((test) => test.path).join(', ')}) passed on ${sideText.original} and on ${sideText.patched}, and ran every changed Stripe line on both sides (${count('original')} original, ${count('patched')} patched).`
+        : `Behaviour tests did not give grade A: ${result.missing[0] ?? 'no reason recorded.'}`,
   };
 }

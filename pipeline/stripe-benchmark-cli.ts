@@ -14,7 +14,7 @@ import {
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
-import { selectCheck } from './check-selection.ts';
+import { selectCheck, ungradedEvidence } from './check-selection.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
@@ -26,7 +26,7 @@ import {
   stripeOperations,
   summaryTable,
   workflowExitReason,
-  workflowScanStop,
+  workflowScan,
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { AiPolicyStop } from './ai-patches.ts';
@@ -34,6 +34,7 @@ import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { publicationConfiguration, publishDraft } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+import { typeErrors } from './validation.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 
 const execute = promisify(execFile);
@@ -43,18 +44,16 @@ const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
-// `file(line,col): error TSxxxx: message`, keyed without the position so moved lines still match.
-const TYPE_ERROR = /^(.+?)\(\d+,\d+\): error (TS\d+): (.*)$/;
-
-function typeErrors(output: unknown) {
-  return new Set(
-    String(output ?? '')
-      .split('\n')
-      .map((line) => TYPE_ERROR.exec(line.trim()))
-      .filter((match): match is RegExpExecArray => Boolean(match))
-      .map((match) => `${match[1]} ${match[2]} ${match[3]}`),
+// Type errors keyed without the position, so moved lines still match.
+const typeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
+  new Set(
+    typeErrors({
+      status: 'failed',
+      exitCode: null,
+      stdout: check?.stdout ?? '',
+      stderr: check?.stderr ?? '',
+    }).map((error) => error.key),
   );
-}
 
 interface Selected {
   repo: string;
@@ -415,11 +414,12 @@ async function benchmark(entry: Selected, index: number) {
     ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some((lockfile) =>
       existsSync(join(directory, lockfile)),
     ) && Boolean(declared.stripe);
-  // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without a
-  // test script or type check there is none, and the repository is not validated.
+  // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,
+  // the patch is still proposed and graded D.
   const selection = await selectCheck(repository);
   result.checkSelection = {
     kind: selection.kind,
+    ...(selection.typeCheck ? { typeCheck: selection.typeCheck } : {}),
     reason: selection.reason,
     stripeFiles: selection.stripeFiles.length,
     testedStripeFiles: selection.testedStripeFiles.length,
@@ -427,7 +427,7 @@ async function benchmark(entry: Selected, index: number) {
   };
   result.validatable = checkable && Boolean(selection.command);
   result.checks = !checkable ? 'none' : (selection.kind ?? 'generated-only');
-  if (values.validate && checkable && selection.command) {
+  if (values.validate && checkable) {
     const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
     const generatedChecks =
       existsSync(fixtures(entry.before)) && existsSync(fixtures(latest))
@@ -447,11 +447,11 @@ async function benchmark(entry: Selected, index: number) {
     const productionPasses = !production.error && !production.stop;
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(productionPasses ? { fullDiff: true } : {}), ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(productionPasses ? { fullDiff: true } : {}), ...(selection.compareTypeErrors ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
     // Scan-stage stops run no repository code, so `refit run` starts only for repositories past them.
-    const stop = await workflowScanStop(
+    const scan = await workflowScan(
       {
         repository: directory,
         before,
@@ -463,9 +463,12 @@ async function benchmark(entry: Selected, index: number) {
       Boolean(ai),
       leaveRequestParameters,
     );
+    const stop = scan.stop;
+    // A repository with no check keeps its patch, graded D, for a [Needs review] draft.
+    const noCheck = !stop && !command;
     lap('workflowScan');
     let exit: string | undefined;
-    if (!stop) {
+    if (!stop && command) {
       const validationStarted = Date.now();
       try {
         await execute(
@@ -504,12 +507,27 @@ async function benchmark(entry: Selected, index: number) {
       result.validationSeconds = Math.round((Date.now() - validationStarted) / 1000);
       lap('workflow');
     }
+    // The full patch, which the row truncates, stays in the run's artifact like a workflow's scan.
+    if (noCheck && scan.patch) {
+      await mkdir(bundle, { recursive: true });
+      await writeFile(join(bundle, 'scan.json'), json({ patch: scan.patch }));
+    }
     const outcome = stop
       ? { status: 'needs-review', stage: 'scan', reason: stop }
-      : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
+      : noCheck
+        ? scan.patch
+          ? {
+              status: 'needs-review',
+              stage: 'checks',
+              reason: `No check can run, so the patch is kept as grade D. ${selection.reason}`,
+            }
+          : { status: 'error', stage: 'scan', error: { message: scan.error } }
+        : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
     const report = stop
       ? {}
-      : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
+      : noCheck
+        ? { patch: scan.patch, validation: { grade: ungradedEvidence(selection.reason) } }
+        : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
     const generated = report.validation?.generated;
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
@@ -528,19 +546,6 @@ async function benchmark(entry: Selected, index: number) {
       grade: report.validation?.grade,
       behaviourTestWriter: report.validation?.behaviourTestWriter,
       stripeOnly: report.validation?.stripeOnly,
-      // The harness's verdict on those tests, without its per-side output.
-      ...(report.validation?.behaviour
-        ? {
-            behaviour: {
-              status: report.validation.behaviour.status,
-              reason: report.validation.behaviour.reason,
-              grade: report.validation.behaviour.grade,
-              missing: report.validation.behaviour.missing?.slice(0, 20),
-              regressions: report.validation.behaviour.regressions,
-              uncoveredLines: report.validation.behaviour.coverage?.missing,
-            },
-          }
-        : {}),
       baselineStop: report.validation?.baselineStop?.reason,
       checkErrors: {
         baseline: report.validation?.baseline?.error,
@@ -548,13 +553,13 @@ async function benchmark(entry: Selected, index: number) {
       },
       checkFailures: report.validation?.checkFailures,
       timings: report.validation?.timings,
-      ...(result.checks === 'typecheck' && report.validation?.patched
+      ...(report.validation?.compareTypeErrors && report.validation?.patched
         ? {
             typeErrors: {
-              baseline: typeErrors(report.validation.baseline?.stdout).size,
-              patched: typeErrors(report.validation.patched.stdout).size,
-              introduced: [...typeErrors(report.validation.patched.stdout)].filter(
-                (error) => !typeErrors(report.validation.baseline?.stdout).has(error),
+              baseline: typeErrorKeys(report.validation.baseline).size,
+              patched: typeErrorKeys(report.validation.patched).size,
+              introduced: [...typeErrorKeys(report.validation.patched)].filter(
+                (error) => !typeErrorKeys(report.validation.baseline).has(error),
               ),
             },
           }
@@ -573,6 +578,17 @@ async function benchmark(entry: Selected, index: number) {
               notRunnable: generated.notRunnable,
               unavailableEntries: generated.unavailableEntries,
               regressions: generated.regressions,
+            },
+          }
+        : {}),
+      ...(report.validation?.behaviour
+        ? {
+            behaviour: {
+              status: report.validation.behaviour.status,
+              grade: report.validation.behaviour.grade,
+              missing: report.validation.behaviour.missing,
+              regressions: report.validation.behaviour.regressions,
+              tests: report.validation.behaviour.tests,
             },
           }
         : {}),

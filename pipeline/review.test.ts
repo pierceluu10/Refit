@@ -408,30 +408,38 @@ it('counts only generated stripe-mock entries that ran on the original code', as
   );
 });
 
-it('shows the evidence grade and holds a draft no check reached for review', async () => {
+it('shows the evidence grade and holds a grade-D draft for review', async () => {
   const value = await report();
   value.validation.status = 'passed';
   value.patch.validation = 'passed';
   value.validation.patched = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
   value.validation.grade = {
+    letter: 'C',
     level: 'type-check',
-    reason:
-      'npx --no-install tsc --noEmit type-checks every changed file (src/billing.ts); no changed code ran.',
+    reason: 'tsc type-checks src/billing.ts; no test ran that code.',
   };
   const typed = createReviewArtifacts(value);
   expect(typed.manifest.title).not.toMatch(/^\[Needs review\] /);
-  expect(typed.files['pull-request.md']).toContain('- Evidence Grade: **Type-checked only.** ');
+  expect(typed.files['pull-request.md']).toContain('- Evidence Grade: **C, Type-checked only.** ');
   // A JavaScript repository whose tsconfig omits checkJs: tsc passed without reading the change.
   value.validation.grade = {
+    letter: 'D',
     level: 'none',
-    reason:
-      'npx --no-install tsc --noEmit reaches none of the changed code, and no generated check ran it.',
+    reason: 'The type check does not cover src/billing.js, and no generated check ran it.',
   };
   const unchecked = createReviewArtifacts(value);
   expect(unchecked.manifest.title).toMatch(/^\[Needs review\] /);
   const body = unchecked.files['pull-request.md'];
-  expect(body).toContain('- Evidence Grade: **No meaningful check.** ');
+  expect(body).toContain('- Evidence Grade: **D, No meaningful check.** ');
   expect(body).toContain(
-    '**No check reached the changed code.** npx --no-install tsc --noEmit reaches none of the changed code, and no generated check ran it. Run the code this patch changes once before merging.',
+    '**No check reached all of the changed code.** The type check does not cover src/billing.js, and no generated check ran it. Run the code this patch changes once before merging.',
   );
+  // Generated stripe-mock checks alone are grade D too.
+  value.validation.grade = {
+    letter: 'D',
+    level: 'generated-check',
+    reason:
+      'No test reaches src/billing.js; only the generated stripe-mock checks ran changed code (1 exported function).',
+  };
+  expect(createReviewArtifacts(value).manifest.title).toMatch(/^\[Needs review\] /);
 });
