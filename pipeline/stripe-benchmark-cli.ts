@@ -53,10 +53,9 @@ const MAX_RECORDED_CHANGES = 500;
 // Type errors keyed without the position, so moved lines still match.
 const typeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
   new Set(
-    typeErrors({
-      stdout: check?.stdout ?? '',
-      stderr: check?.stderr ?? '',
-    }).map((error) => error.key),
+    typeErrors({ stdout: check?.stdout ?? '', stderr: check?.stderr ?? '' }).map(
+      (error) => error.key,
+    ),
   );
 
 interface Selected {
@@ -572,10 +571,28 @@ async function benchmark(entry: Selected, index: number) {
       ...(generated
         ? {
             generated: {
+              status: generated.status,
+              reason: generated.reason,
               baseline: generated.baseline?.status,
               patched: generated.patched?.status,
               entryPoints: generated.entryPoints?.length ?? 0,
-              uncoveredFindings: generated.uncoveredFindings?.length ?? 0,
+              ran: generated.ran,
+              uncoveredFindings: generated.uncoveredFindings ?? 0,
+              // Per-function errors, so a run's results say why functions could not run.
+              notRunnable: generated.notRunnable,
+              unavailableEntries: generated.unavailableEntries,
+              regressions: generated.regressions,
+            },
+          }
+        : {}),
+      ...(report.validation?.behaviour
+        ? {
+            behaviour: {
+              status: report.validation.behaviour.status,
+              grade: report.validation.behaviour.grade,
+              missing: report.validation.behaviour.missing,
+              regressions: report.validation.behaviour.regressions,
+              tests: report.validation.behaviour.tests,
             },
           }
         : {}),

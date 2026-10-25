@@ -469,7 +469,10 @@ it('counts only generated stripe-mock entries that ran on the original code', as
     claim: 'Synthetic generated checks.',
     entryPoints: [entry, { ...entry, name: 'refund' }],
     uncoveredFindings: 0,
+    status: notRunnable.length === 2 ? ('not-runnable' as const) : ('passed' as const),
+    ran: 2 - notRunnable.length,
     notRunnable,
+    unavailableEntries: [],
     regressions: [],
     baseline: { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' },
     patched: { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' },
@@ -485,6 +488,23 @@ it('counts only generated stripe-mock entries that ran on the original code', as
   );
   expect(body([missing])).toContain(
     'Generated stripe-mock checks passed on 1 of 2 exported functions.',
+  );
+  // A broken generated check is reported with its reason and counts neither way.
+  const unavailable = createReviewArtifacts({
+    ...value,
+    validation: {
+      ...value.validation,
+      generated: {
+        ...generated([]),
+        status: 'unavailable' as const,
+        reason:
+          'Generated checks could not be set up: Error response from daemon: No such image: stripe/stripe-mock:latest',
+        ran: 0,
+      },
+    },
+  }).files['pull-request.md'];
+  expect(unavailable).toContain(
+    'Generated stripe-mock checks were unavailable, so they count neither for nor against this patch: Generated checks could not be set up: Error response from daemon: No such image: stripe/stripe-mock:latest',
   );
 });
 
