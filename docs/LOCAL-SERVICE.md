@@ -30,7 +30,7 @@ refit serve --env .env --config examples/local-service.refit.json \
   --once --publish-draft
 ```
 
-The supplied profile replays the historical Stripe `PaymentIntent.charges` removal; it does not announce a new live Stripe change. It authenticates the installed App, fetches the GitHub base into a private managed checkout, then checks for an existing migration. A matching App draft on the current monitored revision is reused, with generation and checks explicitly marked as not rerun. The older PR #3 predates the approved configuration merge and is not proof of coverage for the current base. It never merges that PR or edits your normal checkout.
+The supplied profile replays the historical Stripe `PaymentIntent.charges` removal; it does not announce a new live Stripe change. It authenticates the installed App, fetches the GitHub base into a private managed checkout, then checks for an existing migration. A matching App draft on the current monitored revision is reused, with generation and checks explicitly marked as not rerun. The older PR #3 predates the approved configuration merge and is not proof of coverage for the current base. It never merges that PR or edits your normal checkout. Refit updates its own draft in place, moving the branch only while it still points at the commit Refit last pushed, and leaves a branch with anyone else's commits as it is. `--supersede-drafts` (with `--publish-draft`) also closes Refit's older open drafts for the same provider and integration, with a comment linking the new one; it is off by default.
 
 For continuous monitoring, omit `--once`:
 
@@ -39,6 +39,8 @@ refit serve --env .env --config examples/local-service.refit.json \
   --state ~/.refit/evaluations/local-service-app-0.10-2026-10-14 \
   --interval 300 --publish-draft
 ```
+
+By default Refit turns its stops into `[Needs review]` drafts with the rules' patch and every reason, as `refit run` does ([CLI guide](CLI.md)); a patch whose checks ran and did not pass never publishes. Add `--publish-validated-only` to publish validated drafts only. Add `--weekly-status` (with `--publish-draft`) for a short weekly comment on each open Refit draft whose job nothing has changed. It is off by default and does not change the service state's identity; see [automation state](AUTOMATION.md#state-recovery-and-errors).
 
 The service binds **127.0.0.1:8787**. It confirms each configured installation through GitHub at startup and on every poll, so already-installed repositories work without an incoming webhook. Configured targets run sequentially; a failed target does not prevent the others from running. An accepted installation change wakes the next poll; revoked access cancels the affected in-flight worker. The GitHub API remains the authority for granting access.
 

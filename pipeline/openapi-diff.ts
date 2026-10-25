@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import type { ProviderAdapter } from './providers.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import { isRemovedOperationChange } from './openapi-operations.ts';
+import { PASSING_REACH, RESPONSE_REMOVALS } from './operation-reach.ts';
 import { PipelineInputError } from './types.ts';
 import type { Removal, Finding, Location } from './types.ts';
 import {
@@ -22,10 +23,6 @@ const DIFF_TIMEOUT_MS = 30_000;
 // Raw oasdiff output; real Stripe version pairs report ~100,000 entries (~85 MB) before filtering.
 const MAX_DIFF_BYTES = 256 * 1024 * 1024;
 const RESPONSE_ENUM_ADDITION = 'response-property-enum-value-added';
-const RESPONSE_REMOVALS = new Set([
-  'response-required-property-removed',
-  'response-optional-property-removed',
-]);
 
 function responseRemovalLocation(change: Record<string, unknown>, before: object) {
   if (
@@ -141,6 +138,19 @@ export function expansionLocation(change: Record<string, unknown>, before: objec
   return node && expansions.length ? { expansions } : undefined;
 }
 
+// A removed response property that is one of `changes`, which the scanner searches the code for.
+export function isTrackedResponseRemoval(entry: unknown, changes: Removal[]) {
+  return (
+    isObject(entry) &&
+    typeof entry.id === 'string' &&
+    RESPONSE_REMOVALS.has(entry.id) &&
+    changes.some(
+      (change) =>
+        entry.responseSchema === change.schema && entry.removedProperty === change.property,
+    )
+  );
+}
+
 export function unmappedBreakingChanges(
   diff: { engine: string; changes: unknown[] } | undefined,
   changes: Removal[],
@@ -164,22 +174,18 @@ export function unmappedBreakingChanges(
       isObject(entry) &&
       Number(entry.level) >= 2 &&
       !unreachable(entry) &&
+      // Traced code does not reach what changed, or a kept rule edit handles it (operation-reach.ts).
+      !PASSING_REACH.has(entry.reach) &&
       !isHandledOperationRemoval(entry, operationChanges) &&
       !isHandledRequestRename(entry, requestChanges) &&
-      !(
-        typeof entry.id === 'string' &&
-        RESPONSE_REMOVALS.has(entry.id) &&
-        affected.some(
-          (change) =>
-            entry.responseSchema === change.schema && entry.removedProperty === change.property,
-        )
-      ),
+      !isTrackedResponseRemoval(entry, affected),
   );
 }
 
 // Stripe can add values to open response enums without a version change
-// (https://docs.stripe.com/api/versioning#enums), so for Stripe they are not breaking on their own;
-// switchedEnumAdditions re-adds the ones the code switches over.
+// (https://docs.stripe.com/api/versioning#enums), so for Stripe they are listed as compatible and
+// not breaking on their own; switchedEnumAdditions adds the ones the code switches over or compares
+// (owner decision 6, 2026-10-24).
 export async function compareOpenApi(
   before: object,
   after: object,
@@ -214,10 +220,9 @@ export async function compareOpenApi(
     // Informational entries are dropped unless they locate a removed field or operation.
     const kept = (changes as Record<string, unknown>[]).filter(
       (change) =>
-        !(options.openResponseEnums && change.id === RESPONSE_ENUM_ADDITION) &&
-        (Number(change.level) >= 2 ||
-          RESPONSE_REMOVALS.has(String(change.id)) ||
-          isRemovedOperationChange(change)),
+        Number(change.level) >= 2 ||
+        RESPONSE_REMOVALS.has(String(change.id)) ||
+        isRemovedOperationChange(change),
     );
     return {
       engine: 'oasdiff' as const,
@@ -226,8 +231,14 @@ export async function compareOpenApi(
         ...change,
         ...responseRemovalLocation(change, before),
         ...expansionLocation(change, before),
+        ...(options.openResponseEnums &&
+          change.id === RESPONSE_ENUM_ADDITION && {
+            reach: 'compatible',
+            reachReason:
+              'Stripe can add values to an open response enum without a version change (https://docs.stripe.com/api/versioning#enums). A new value blocks only where traced code switches over or compares the field.',
+          }),
       })),
-      coverage: `Breaking contract changes reported by oasdiff (levels 2 and 3, plus removed fields and operations); ${changes.length - kept.length} other entries are not listed${options.openResponseEnums ? ', including Stripe response enum additions, which block only where the code switches over the field' : ''}. Documentation-only edits are not classified as code migrations. Mapping to application code remains bounded by the selected adapter and analyzer.`,
+      coverage: `Breaking contract changes reported by oasdiff (levels 2 and 3, plus removed fields and operations); ${changes.length - kept.length} other entries are not listed.${options.openResponseEnums ? ' Stripe response enum additions are listed as compatible; they block only where traced code switches over or compares the field.' : ''} Documentation-only edits are not classified as code migrations. Mapping to application code remains bounded by the selected adapter and analyzer.`,
     };
   } catch (cause) {
     if (cause instanceof PipelineInputError) throw cause;
@@ -352,9 +363,10 @@ function enumValues(schemas: Record<string, unknown>, schema: string, property: 
   return values;
 }
 
-// New response enum values on fields the code switches over or checks exhaustively.
+// New response enum values on fields the code switches over, checks exhaustively or compares with
+// string literals.
 export function switchedEnumAdditions(
-  checks: (Location & { schema: string; property: string })[],
+  checks: (Location & { schema: string; property: string; compare?: true })[],
   before: Record<string, unknown>,
   after: Record<string, unknown>,
 ) {
@@ -369,7 +381,7 @@ export function switchedEnumAdditions(
           {
             id: RESPONSE_ENUM_ADDITION,
             level: 3,
-            text: `added ${added.map((value) => `\`${value}\``).join(', ')} to the \`${check.schema}.${check.property}\` enum, which ${check.file}:${check.line} checks exhaustively`,
+            text: `added ${added.map((value) => `\`${value}\``).join(', ')} to the \`${check.schema}.${check.property}\` enum, which ${check.file}:${check.line} ${check.compare ? 'compares with string literals' : 'checks exhaustively'}`,
             responseSchema: check.schema,
             property: check.property,
             values: added,

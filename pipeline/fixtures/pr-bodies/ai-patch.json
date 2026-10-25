@@ -135,6 +135,7 @@
     }
   ],
   "operationChanges": [],
+  "operationImpacts": [],
   "patch": {
     "status": "proposed",
     "provider": "openai",

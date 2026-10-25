@@ -3,10 +3,12 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
+  AI_PATCH_STOP,
   findExistingMigration,
   publicationConfiguration,
   publishDraft,
   publicationWaiver,
+  publishUnresolved,
 } from './publication.ts';
 import { createReviewArtifacts } from './review.ts';
 import { migrationIdentity } from './migration-identity.ts';
@@ -14,7 +16,8 @@ import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import type { validateMigration } from './validation.ts';
 import * as githubApp from './github-app.ts';
-import { repositoryDependencyFailure } from './dependency-preparation.ts';
+import { DependencyPreparationError, preparationFailure } from './dependency-preparation.ts';
+import { validatedReport } from './fixtures/publication-report.ts';
 import { PipelineInputError } from './types.ts';
 
 const REVISION = 'a'.repeat(40);
@@ -24,60 +27,7 @@ const HEAD = 'd'.repeat(40);
 const OPTIONS = publicationConfiguration('example/application', 'main', 'test-token');
 type Report = Awaited<ReturnType<typeof validateMigration>>;
 
-async function report(): Promise<Report> {
-  const scan = await runPipeline({
-    repository: resolve('pipeline/fixtures/repository'),
-    before: resolve('pipeline/fixtures/before.json'),
-    after: resolve('pipeline/fixtures/after.json'),
-    apiVersion: '2022-08-01',
-    proposePatch: true,
-  });
-  if (!('diff' in scan.patch)) throw new Error('Expected fixture patch');
-  const source = await readFile('pipeline/fixtures/repository/billing.ts', 'utf8');
-  return {
-    ...scan,
-    patch: { ...scan.patch, validation: 'passed' },
-    publicationFiles: [
-      {
-        path: 'billing.ts',
-        mode: '100644',
-        content: source.replace(
-          'intent.charges.data',
-          '(await stripe.charges.list({ payment_intent: intent.id })).data',
-        ),
-      },
-    ],
-    validation: {
-      status: 'passed',
-      revision: REVISION,
-      image: `sha256:${'e'.repeat(64)}`,
-      runtime: {
-        configured: 'node:22-alpine',
-        image: 'node:22-alpine',
-        nodeVersion: '22.23.3',
-        declarations: [],
-        reason: 'The repository declares no Node.js version.',
-      },
-      command: ['npm', 'test'],
-      baselineCommand: ['npm', 'test'],
-      archiveHash: 'f'.repeat(64),
-      patchHash: digest(scan.patch.diff),
-      baseline: { status: 'passed', exitCode: 0, stdout: 'PRIVATE LOG', stderr: '' },
-      patched: { status: 'passed', exitCode: 0, stdout: '', stderr: '' },
-      limits: {
-        timeoutMs: 120000,
-        outputBytes: 1048576,
-        network: 'none',
-        workspace: '512m' as const,
-        memory: '1g' as const,
-      },
-      publishable: false,
-      attempts: [],
-      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
-      reason: 'Controlled publication test evidence.',
-    },
-  };
-}
+const report = () => validatedReport(REVISION);
 
 it('refuses webhook publication even with otherwise passing validation evidence', async () => {
   const evidence = await report();
@@ -114,7 +64,8 @@ it('publishes a webhook-only review as a [Needs review] draft only with --publis
   expect(await publishDraft(evidence, allowed)).toMatchObject({ status: 'created', draft: true });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   expect(request.body.title).toMatch(/^\[Needs review\] /);
-  expect(request.body.body).toMatch(/^## Webhook API version not verified/);
+  expect(request.body.body).toMatch(/^## Why this needs review\n/);
+  expect(request.body.body).toContain('\n## Webhook API version not verified\n');
   expect(request.body.body).toContain('Dashboard > Developers > Webhooks');
   expect(request.body.body).toContain(
     `\`${finding.file}:${finding.line}\` (\`payment_intent.succeeded\`)`,
@@ -128,16 +79,35 @@ it('publishes a webhook-only review as a [Needs review] draft only with --publis
   expect(JSON.parse(local.files['report.json']).waivedGates[0].gate).toBe('webhook-api-version');
   expect(local.manifest).toMatchObject({ waivedGates: ['webhook-api-version'] });
 
-  // The waiver covers only the webhook version: any other review reason still refuses.
+  // Owner decision 1: a second review reason joins the draft instead of refusing it.
   const skipped = await webhookReport();
   skipped.skippedFiles = ['src/broken.ts'];
-  expect(publicationWaiver(skipped, true)).toBeUndefined();
-  await expect(publishDraft(skipped, allowed)).rejects.toThrow(/migration-policy/);
-  const unknownVersion = await webhookReport();
-  unknownVersion.apiVersion.applicability = 'unknown';
-  await expect(publishDraft(unknownVersion, allowed)).rejects.toThrow(
-    /Draft publication is blocked/,
+  skipped.apiVersion.applicability = 'unknown';
+  expect(publicationWaiver(skipped, true)?.map(({ gate }) => gate)).toEqual([
+    'webhook-api-version',
+    'source-evidence',
+    'api-version',
+  ]);
+  await expect(publishDraft(skipped, OPTIONS)).rejects.toThrow(/migration-policy/);
+  const both = github();
+  await publishDraft(skipped, allowed);
+  const body = String(
+    both.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!.body.body,
   );
+  expect(body).toContain('Unparseable source files were skipped.');
+  expect(body).toContain('  - `src/broken.ts`');
+  // Owner decision 7: the draft is the only thing Refit opens on a customer's repository.
+  expect(both.calls.filter((call) => call.method === 'POST' && call.path === '/issues')).toEqual(
+    [],
+  );
+  expect(body).toContain(
+    '- [ ] Confirm which API version this code and account use before merging',
+  );
+  // Code whose API-version declarations conflict still refuses, flag or not.
+  const conflict = await webhookReport();
+  conflict.apiVersion.source.status = 'conflict';
+  conflict.apiVersion.applicability = 'conflicts-with-code';
+  await expect(publishDraft(conflict, allowed)).rejects.toThrow(/Draft publication is blocked/);
 });
 
 async function endpointReport(): Promise<Report> {
@@ -254,8 +224,10 @@ function github() {
     raceRef: false,
     racePull: false,
     moveBaseOnCommit: false,
-    moveHeadOnPullList: false,
+    moveHeadOnCommitRead: false,
     author: 'example',
+    // Other open pull requests on the base, which a new App draft may supersede.
+    others: [] as Record<string, unknown>[],
   };
   const calls: { method: string; path: string; body: Record<string, unknown> }[] = [];
   const fetch = vi.fn(async (input: string, options: RequestInit) => {
@@ -278,11 +250,13 @@ function github() {
         : response({}, 404);
     if (method === 'GET' && path === `/git/commits/${REVISION}`)
       return response({ tree: { sha: BASE_TREE } });
-    if (method === 'GET' && path === `/git/commits/${HEAD}`)
+    if (method === 'GET' && path === `/git/commits/${HEAD}`) {
+      if (state.moveHeadOnCommitRead) state.head = REVISION;
       return response({
         tree: { sha: state.tree },
         parents: state.parents.map((sha) => ({ sha })),
       });
+    }
     if (method === 'POST' && path === '/git/trees') return response({ sha: PATCH_TREE }, 201);
     if (method === 'POST' && path === '/git/commits') {
       if (state.moveBaseOnCommit) state.base = HEAD;
@@ -294,10 +268,13 @@ function github() {
       return response({}, state.raceRef ? 422 : 201);
     }
     if (method === 'GET' && path === '/pulls') {
+      expect(url.searchParams.get('base')).toBe('main');
+      if (url.searchParams.get('state') === 'open') {
+        expect(url.searchParams.has('head')).toBe(false);
+        return response([...(state.pull?.state === 'open' ? [state.pull] : []), ...state.others]);
+      }
       expect(url.searchParams.get('state')).toBe('all');
       expect(url.searchParams.get('head')).toMatch(/^example:refit\//);
-      expect(url.searchParams.get('base')).toBe('main');
-      if (state.moveHeadOnPullList) state.head = REVISION;
       return response(state.pull ? [state.pull] : []);
     }
     if (method === 'POST' && path === '/pulls') {
@@ -305,6 +282,8 @@ function github() {
       state.pull = {
         number: 17,
         html_url: 'https://github.com/example/application/pull/17',
+        title: body.title,
+        body: body.body,
         head: { sha: state.head },
         base: { ref: 'main' },
         draft: true,
@@ -403,23 +382,18 @@ it('blocks request publication independently when usage evidence is unsupported 
   expect(remote.fetch).not.toHaveBeenCalled();
 });
 
-it('reuses an existing PR even after a human closes it or marks it ready', async () => {
+it('reuses an open draft a person marked ready, and never writes to one they closed or merged', async () => {
   const remote = github();
   const value = await report();
   await publishDraft(value, OPTIONS);
-  remote.state.pull!.state = 'closed';
   remote.state.pull!.draft = false;
-  expect(await publishDraft(value, OPTIONS)).toMatchObject({
-    status: 'existing',
-    state: 'closed',
-    draft: false,
-  });
-  expect(
-    remote.calls.filter((call) => call.method === 'POST' && call.path === '/pulls'),
-  ).toHaveLength(1);
-  expect(
-    remote.calls.filter((call) => call.method === 'POST' && call.path === '/git/refs'),
-  ).toHaveLength(1);
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'existing', draft: false });
+  remote.state.pull!.state = 'closed';
+  const writes = remote.calls.filter((call) => call.method !== 'GET').length;
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'closed', state: 'closed' });
+  remote.state.pull!.merged_at = '2026-10-24T08:00:00Z';
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'merged', state: 'closed' });
+  expect(remote.calls.filter((call) => call.method !== 'GET')).toHaveLength(writes);
 });
 
 it('publishes separate named integrations against the same base without sharing branch or PR markers', async () => {
@@ -479,7 +453,7 @@ it('publishes a passing draft with unresolved findings only when explicitly allo
   });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   expect(request.body.body).toContain(
-    '2 confirmed usages of the breaking changes are still unmigrated.',
+    "2 usages of the breaking changes are still unmigrated: no rule changed them, and the checks passed without them. The locations are in Refit's run report.",
   );
   value.validation.status = value.patch.validation = 'regression';
   await expect(publishDraft(value, { ...OPTIONS, allowUnresolved: true })).rejects.toThrow(
@@ -520,7 +494,7 @@ it('rechecks the base before creating a branch and checks the head before creati
   expect(remote.calls.some((call) => call.path === '/git/refs')).toBe(false);
   remote.state.moveBaseOnCommit = false;
   remote.state.base = REVISION;
-  remote.state.moveHeadOnPullList = true;
+  remote.state.moveHeadOnCommitRead = true;
   await expect(publishDraft(await report(), OPTIONS)).rejects.toThrow(/branch changed/);
   expect(remote.calls.some((call) => call.path === '/pulls' && call.method === 'POST')).toBe(false);
 });
@@ -533,11 +507,29 @@ it.each(['tree', 'parents'] as const)(
     if (key === 'tree') remote.state.tree = BASE_TREE;
     else remote.state.parents = [HEAD];
     await expect(publishDraft(await report(), OPTIONS)).rejects.toThrow(/Refusing to overwrite/);
-    expect(remote.calls.some((call) => call.path === '/git/refs' || call.path === '/pulls')).toBe(
-      false,
-    );
+    expect(
+      remote.calls.some(
+        (call) =>
+          call.method !== 'GET' && (call.path.startsWith('/git/refs') || call.path === '/pulls'),
+      ),
+    ).toBe(false);
   },
 );
+
+it('leaves an open draft as it is when a personal token cannot tell its own commits apart', async () => {
+  const remote = github();
+  const value = await report();
+  await publishDraft(value, OPTIONS);
+  remote.state.tree = BASE_TREE;
+  const writes = remote.calls.filter((call) => call.method !== 'GET' && call.path !== '/git/trees');
+  expect(await publishDraft(value, OPTIONS)).toMatchObject({
+    status: 'existing',
+    leftUnchanged: 'Refit updates an existing draft only when it publishes as the GitHub App.',
+  });
+  expect(
+    remote.calls.filter((call) => call.method !== 'GET' && call.path !== '/git/trees'),
+  ).toEqual(writes);
+});
 
 it('recovers after a failed PR request without exposing the response body or creating another branch', async () => {
   const remote = github();
@@ -612,18 +604,21 @@ it('discovers equivalent App drafts before generation while ignoring foreign aut
   });
   const fetcher = vi.fn(async (input: string, options: RequestInit) => {
     expect(options.method).toBe('GET');
-    const path = new URL(input).pathname;
-    const response = path.endsWith('/pulls')
-      ? [
-          makePull(1, `"runId": "${value.runId}"`, 'someone-else'),
-          makePull(3, `"runId": "${value.runId}"`),
-          makePull(2, `<!-- refit-migration:${migrationIdentity(value, REVISION)} -->`),
-        ]
-      : path.includes('/git/commits/')
-        ? { parents: [{ sha: REVISION }] }
-        : path.endsWith('/main')
-          ? { object: { sha: REVISION } }
-          : { object: { sha: HEAD } };
+    const url = new URL(input);
+    const path = url.pathname;
+    const response = url.searchParams.has('head')
+      ? []
+      : path.endsWith('/pulls')
+        ? [
+            makePull(1, `"runId": "${value.runId}"`, 'someone-else'),
+            makePull(3, `"runId": "${value.runId}"`),
+            makePull(2, `<!-- refit-migration:${migrationIdentity(value, REVISION)} -->`),
+          ]
+        : path.includes('/git/commits/')
+          ? { parents: [{ sha: REVISION }] }
+          : path.endsWith('/main')
+            ? { object: { sha: REVISION } }
+            : { object: { sha: HEAD } };
     return new Response(JSON.stringify(response));
   });
   vi.stubGlobal('fetch', fetcher);
@@ -642,7 +637,7 @@ it('discovers equivalent App drafts before generation while ignoring foreign aut
     validation: 'not-rerun',
     publisher: { login: 'refit-agent[bot]' },
   });
-  expect(fetcher).toHaveBeenCalledTimes(5);
+  expect(fetcher).toHaveBeenCalledTimes(6);
 });
 
 it('discovers only the selected integration draft and refuses unscoped legacy matches for named profiles', async () => {
@@ -664,14 +659,17 @@ it('discovers only the selected integration draft and refuses unscoped legacy ma
   }));
   const fetcher = vi.fn(async (input: string, options: RequestInit) => {
     expect(options.method).toBe('GET');
-    const path = new URL(input).pathname;
+    const url = new URL(input);
+    const path = url.pathname;
     return new Response(
       JSON.stringify(
-        path.endsWith('/pulls')
-          ? pulls
-          : path.includes('/git/commits/')
-            ? { parents: [{ sha: REVISION }] }
-            : { object: { sha: path.endsWith('/main') ? REVISION : HEAD } },
+        url.searchParams.has('head')
+          ? []
+          : path.endsWith('/pulls')
+            ? pulls
+            : path.includes('/git/commits/')
+              ? { parents: [{ sha: REVISION }] }
+              : { object: { sha: path.endsWith('/main') ? REVISION : HEAD } },
       ),
     );
   });
@@ -720,7 +718,7 @@ async function untestedReport(): Promise<Report> {
     status: 'untested',
     baseline: notRun,
     patched: notRun,
-    dependencyFailure: repositoryDependencyFailure(
+    dependencyFailure: preparationFailure(
       new PipelineInputError(
         'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
       ),
@@ -742,8 +740,12 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   expect(await publishDraft(evidence, allowed)).toMatchObject({ status: 'created', draft: true });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   expect(request.body.title).toMatch(/^\[Needs review\] /);
+  expect(request.body.body).toMatch(/^## Why this needs review\n/);
+  expect(request.body.body).toContain(
+    '- Refit ran no checks: preparing the dependencies failed because the committed lockfile is out of sync with package.json.',
+  );
   expect(request.body.body).toMatch(
-    /^## Untested: checks did not run\n\n\*\*Refit did not run any checks on this patch\.\*\*/,
+    /\n## Untested: checks did not run\n\n\*\*Refit did not run any checks on this patch\.\*\*/,
   );
   expect(request.body.body).toContain('the committed lockfile is out of sync with package.json');
   expect(request.body.body).toContain(
@@ -760,13 +762,11 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   );
   expect(JSON.parse(local.files['report.json']).waivedGates[0]).toMatchObject({
     gate: 'dependency-preparation',
-    reason: 'lockfile-out-of-sync',
+    failure: { reason: 'lockfile-out-of-sync' },
   });
   expect(local.manifest).toMatchObject({ waivedGates: ['dependency-preparation'] });
 
-  // Every other gate still refuses, and so do failures that are not a repository-side reason.
-  const skipped = await untestedReport();
-  skipped.skippedFiles = ['src/broken.ts'];
+  // Owner decision 1: other reasons join the untested draft, and an AI patch says so.
   const webhook = await untestedReport();
   webhook.findings[0].webhook = {
     schema: 'payment_intent',
@@ -774,28 +774,81 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
     origin: { file: 'webhook.ts', line: 1, column: 1 },
     apiVersion: 'unverified',
   };
+  webhook.patch.generator = 'openai' as typeof webhook.patch.generator;
+  expect(publicationWaiver(webhook, true)?.map(({ gate }) => gate)).toEqual([
+    'dependency-preparation',
+    'ai-patch',
+    'webhook-api-version',
+  ]);
+  // Untested with no recorded preparation failure says nothing about why; it never publishes.
   const unclassified = await untestedReport();
   delete unclassified.validation.dependencyFailure;
-  const ai = await untestedReport();
-  ai.patch.generator = 'openai' as typeof ai.patch.generator;
-  for (const value of [skipped, webhook, unclassified, ai]) {
-    expect(publicationWaiver(value, true)).toBeUndefined();
-    await expect(publishDraft(value, allowed)).rejects.toThrow();
-  }
-  const unknownVersion = await untestedReport();
-  unknownVersion.apiVersion.applicability = 'unknown';
-  await expect(publishDraft(unknownVersion, allowed)).rejects.toThrow(
-    /Draft publication is blocked/,
-  );
+  expect(publicationWaiver(unclassified, true)).toBeUndefined();
+  await expect(publishDraft(unclassified, allowed)).rejects.toThrow(/passing baseline/);
   const regression = await untestedReport();
   regression.validation.status = regression.patch.validation = 'regression';
   expect(publicationWaiver(regression, true)).toBeUndefined();
   await expect(publishDraft(regression, allowed)).rejects.toThrow(/passing baseline/);
 });
 
+// Owner decision 8: a passing AI patch is never a validated draft.
+it('refuses to publish a passing AI patch as validated, and publishes it for review', async () => {
+  const evidence = await report();
+  evidence.patch.generator = 'openai' as typeof evidence.patch.generator;
+  expect(evidence.validation.status).toBe('passed');
+  const refused = github();
+  await expect(publishDraft(evidence, OPTIONS)).rejects.toThrow(AI_PATCH_STOP);
+  expect(refused.fetch).not.toHaveBeenCalled();
+  const remote = github();
+  expect(await publishDraft(evidence, { ...OPTIONS, allowUnresolved: true })).toMatchObject({
+    status: 'created',
+  });
+  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
+  expect(request.body.title).toMatch(/^\[Needs review\] /);
+});
+
+it('says the checks passed on the original when only the upgraded lockfile could not be installed', async () => {
+  const evidence = await untestedReport();
+  evidence.validation.baseline = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
+  const { files } = createReviewArtifacts(
+    evidence,
+    'github',
+    undefined,
+    publicationWaiver(evidence, true),
+  );
+  const body = files['pull-request.md'];
+  expect(body).toContain(
+    '- Refit did not run the checks on this patch: preparing its upgraded dependencies failed because the committed lockfile is out of sync with package.json. They passed on the original code.',
+  );
+  expect(body).toMatch(
+    /\n## Untested: checks did not run\n\n\*\*Refit did not run any checks on this patch\.\*\* `npm test` passed on the original code, but the upgraded lockfile this patch writes could not be installed because the committed lockfile is out of sync with package\.json, so the patched code was not built or tested\./,
+  );
+  expect(body).toContain(
+    '`npm test` passed on the original code. **Not run on this patch: installing its upgraded lockfile failed (`lockfile-out-of-sync`); this patch is untested.**',
+  );
+  expect(body).toContain(
+    'Install the upgraded dependencies and run your checks: Refit could not run them on this patch.',
+  );
+  expect(body).not.toContain('neither the original nor the patched code');
+  // The generic reason says Refit could not install it, without repeating itself.
+  evidence.validation.dependencyFailure = {
+    ...evidence.validation.dependencyFailure!,
+    ...preparationFailure(new DependencyPreparationError('npm dependency preparation failed (1).')),
+  };
+  const generic = createReviewArtifacts(
+    evidence,
+    'github',
+    undefined,
+    publicationWaiver(evidence, true),
+  ).files['pull-request.md'];
+  expect(generic).toContain(
+    '`npm test` passed on the original code, but Refit could not install the upgraded lockfile this patch writes in its sandbox, so the patched code was not built or tested.',
+  );
+});
+
 // The request-rename fixture plus `items.archive`, whose target contract drops `note`: the rename
 // migrates `legacy_name`, and the archive call still sends the removed `note`.
-async function parameterScan(leaveRequestParameters?: boolean) {
+async function parameterScan(leaveReviewedFindings?: boolean) {
   const fixture = resolve('pipeline/fixtures/request-renames');
   const root = await mkdtemp(join(tmpdir(), 'refit-parameter-'));
   try {
@@ -853,7 +906,7 @@ export async function archiveItem(id: string, note: string) {
       providerConfig: join(root, 'provider.json'),
       apiVersion: '1',
       proposePatch: true,
-      leaveRequestParameters,
+      leaveReviewedFindings,
     });
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -907,8 +960,9 @@ it('migrates around a removed request parameter only when asked, and leaves it t
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   const body = String(request.body.body);
   expect(request.body.title).toMatch(/^\[Needs review\] /);
+  expect(body).toMatch(/^## Why this needs review\n/);
   expect(body).toMatch(
-    /^## Removed request parameters left for you\n\n\*\*Don't merge until you change the calls below\.\*\*/,
+    /\n## Removed request parameters left for you\n\n\*\*Don't merge until you change the calls below\.\*\*/,
   );
   expect(body).toContain('no longer accepts `note`, and this patch still sends it');
   expect(body).toContain('No reviewed replacement for `note` exists.');
@@ -940,13 +994,25 @@ it('migrates around a removed request parameter only when asked, and leaves it t
 
   const skipped = await parameterReport();
   skipped.skippedFiles = ['src/broken.ts'];
-  const ai = await parameterReport();
-  ai.patch.generator = 'openai' as typeof ai.patch.generator;
-  for (const value of [skipped, ai]) {
-    expect(publicationWaiver(value, true)).toBeUndefined();
-    await expect(publishDraft(value, allowed)).rejects.toThrow();
-  }
+  expect(publicationWaiver(skipped, true)?.map(({ gate }) => gate)).toEqual([
+    'source-evidence',
+    'removed-request-parameter',
+  ]);
   const regression = await parameterReport();
   regression.validation.status = regression.patch.validation = 'regression';
-  await expect(publishDraft(regression, allowed)).rejects.toThrow(/passing baseline/);
+  expect(publicationWaiver(regression, true)).toBeUndefined();
+  const refusedRegression = github();
+  await expect(publishDraft(regression, allowed)).rejects.toThrow(
+    /removed\. No reviewed replacement/,
+  );
+  expect(refusedRegression.fetch).not.toHaveBeenCalled();
+});
+
+it('publishes for review by default and refuses both publication flags together', () => {
+  expect(publishUnresolved({})).toBe(true);
+  expect(publishUnresolved({ 'publish-unresolved': true })).toBe(true);
+  expect(publishUnresolved({ 'publish-validated-only': true })).toBe(false);
+  expect(() =>
+    publishUnresolved({ 'publish-unresolved': true, 'publish-validated-only': true }),
+  ).toThrow('Choose either --publish-unresolved or --publish-validated-only.');
 });

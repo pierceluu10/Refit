@@ -2,7 +2,7 @@ fix(stripe): migrate removed Stripe API fields
 
 Stripe API 2026-09-30.endive removes fields this code reads. AI
 (gpt-5.4-mini-2026-03-17), checked by Refit, migrates 3 confirmed usages
-in 1 file so the code keeps working after the upgrade.
+in 1 file.
 
 - convex/stripe.ts: Migrates reads of subscription.current_period_end,
   invoice.subscription to the documented new locations.
