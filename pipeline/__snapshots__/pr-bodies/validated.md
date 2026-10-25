@@ -1,6 +1,6 @@
 ## Overview
 
-Stripe API 2026-09-30.endive removes request fields this code sends. A deterministic Refit rule migrates 1 confirmed usage in 1 file so the code keeps working after the upgrade. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
+Stripe API 2026-09-30.endive removes request fields this code sends. A deterministic Refit rule migrates 1 confirmed usage in 1 file. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
 
 ## API Impact & Spec Changes
 
@@ -14,6 +14,7 @@ Stripe API 2026-09-30.endive removes request fields this code sends. A determini
 - `package.json`: Upgrades `stripe` from `20.4.1` to `23.0.0`.
 - `package-lock.json`: Upgrades `stripe` from `20.4.1` to `23.0.0`.
 - Review: `allowed_payment_method_types` filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.
+- Review: Upgrades `stripe` across major versions, `20.4.1` to `23.0.0`; [its changelog](https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md) lists type and behavior changes the checks may not cover.
 
 ## Code Changes
 
@@ -53,13 +54,14 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 
+- Evidence Strength: **Type-checked only.** No code ran except the generated stripe-mock checks below.
 - Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` passed on the original and migrated code in offline Docker. Generated stripe-mock checks passed on 1 of 1 exported functions.
-- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 confirmed usages of the breaking changes remain.
+- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 usages of the breaking changes remain.
 - Security Scans: Not run.
 
 ## Not Verified
 
-- Refit made no request to Stripe. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.
+- Refit made no request to Stripe, and `npx --no-install tsc --noEmit --pretty false -p .` runs none of this repository's code; only the generated stripe-mock checks called any of it.
 - Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.
 
 ## Rollback
@@ -73,7 +75,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
 - [ ] Confirm cards stay enabled in the Stripe Dashboard.
-- [ ] Confirm `npx --no-install tsc --noEmit --pretty false -p .` exercises the code this patch changes, or add a test that does.
+- [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.
 
 ## Related Telemetry
 
