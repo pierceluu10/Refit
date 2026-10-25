@@ -682,7 +682,13 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
         target.comments
           .flatMap((entry, index) =>
             entry.issue === pull.number
-              ? [{ id: index + 1, body: entry.body, user: { login: entry.user } }]
+              ? [
+                  {
+                    id: index + 1,
+                    body: entry.body,
+                    user: { login: entry.user, type: entry.user === BOT_LOGIN ? 'Bot' : 'User' },
+                  },
+                ]
               : [],
           )
           .slice((page - 1) * size, page * size),

@@ -1,5 +1,9 @@
 import type { GeneratedChecks } from './generated-checks.ts';
-import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
+import {
+  migrationReviewReason,
+  targetReached,
+  withoutRequestParameters,
+} from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -8,6 +12,7 @@ import { basename, join } from 'node:path';
 import { createArtifactDirectory } from './artifacts.ts';
 import { readProviderAdapter } from './providers.ts';
 import {
+  closeResolvedDraft,
   findExistingMigration,
   publishDraft,
   type publicationConfiguration,
@@ -31,6 +36,8 @@ import { countBreakingOperationUsages } from './provider-operations.ts';
 import type { ApiVersionPolicy } from './api-version.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
+const NO_USAGE_REASON =
+  'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
 
 type Stage = 'inputs' | 'scan' | 'validation' | 'publication';
 type Status =
@@ -41,6 +48,7 @@ type Status =
   | 'draft-updated'
   | 'draft-closed'
   | 'existing-pr'
+  | 'up-to-date'
   | 'error';
 
 // How a found or published draft ends the run. A draft a person closed or merged is final for its
@@ -101,8 +109,7 @@ export function scanReviewReason(
   );
   if (unmapped.length)
     return `${unmapped.length} breaking contract changes are outside the supported migration rules. Review the recorded contract report before proposing a patch.`;
-  if (!scan.findings.some((finding) => finding.confidence === 'confirmed'))
-    return 'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
+  if (!scan.findings.some((finding) => finding.confidence === 'confirmed')) return NO_USAGE_REASON;
 }
 
 // Checked after the existing-PR lookup, which only publication runs.
@@ -257,19 +264,62 @@ export async function runWorkflow(options: {
     const scan = await runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
-    const reviewReason = scanReviewReason(scan, Boolean(options.aiPatch), leaveRequestParameters);
-    if (reviewReason) return await finish('needs-review', reviewReason, runId);
-    if (publication?.app) {
-      options.signal?.throwIfAborted();
-      options.onProgress?.('Checking for an existing Refit Agent migration...');
+    // The commit a clean checkout is at, which publication checks against GitHub.
+    const checkoutRevision = async () => {
       const execute = promisify(execFile);
       const git = (argumentsList: string[]) =>
         execute('git', ['-c', 'core.fsmonitor=false', '-C', options.repository, ...argumentsList], {
           timeout: PREFLIGHT_GIT_TIMEOUT_MS,
           env: gitEnvironment(),
         });
-      if (!(await git(['status', '--porcelain', '--untracked-files=all'])).stdout) {
-        const revision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
+      if ((await git(['status', '--porcelain', '--untracked-files=all'])).stdout) return undefined;
+      return (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
+    };
+    // The customer migrated the code themselves: Refit's open draft for this target no longer applies.
+    const closeResolved = async (why: string) => {
+      if (!publication?.app) return undefined;
+      const revision = await checkoutRevision();
+      if (!revision) return undefined;
+      stage = 'publication';
+      options.onProgress?.('Checking whether a Refit Agent draft no longer applies...');
+      const closed = await closeResolvedDraft(
+        scan,
+        revision,
+        publication,
+        `Refit is closing this draft. On \`${publication.base}\` at ${revision.slice(0, 12)}, ${why}, so this migration no longer applies. If you reopen it, Refit leaves it open.`,
+      );
+      if (closed) await save('publication.json', `${JSON.stringify(closed, null, 2)}\n`);
+      else stage = 'scan';
+      return closed;
+    };
+    const target = scan.apiVersion.after ?? 'the target contract';
+    if (targetReached(scan)) {
+      const closed = await closeResolved(
+        `the code already sends ${target} and uses none of what it breaks`,
+      );
+      return await finish(
+        'up-to-date',
+        `The code already sends ${target} and uses none of what it breaks.${closed ? ` Refit closed its draft ${closed.url}.` : ''}`,
+        runId,
+      );
+    }
+    const reviewReason = scanReviewReason(scan, Boolean(options.aiPatch), leaveRequestParameters);
+    // Untraced reads keep the draft open: it lists them for review.
+    if (reviewReason === NO_USAGE_REASON && !scan.findings.length) {
+      const closed = await closeResolved('Refit no longer finds the usages this draft migrated');
+      if (closed)
+        return await finish(
+          'draft-closed',
+          `Refit no longer finds the usages ${closed.url} migrated, so it closed that draft.`,
+          runId,
+        );
+    }
+    if (reviewReason) return await finish('needs-review', reviewReason, runId);
+    if (publication?.app) {
+      options.signal?.throwIfAborted();
+      options.onProgress?.('Checking for an existing Refit Agent migration...');
+      const revision = await checkoutRevision();
+      if (revision) {
         const existing = await findExistingMigration(scan, revision, publication);
         if (existing) {
           stage = 'publication';

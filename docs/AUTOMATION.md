@@ -112,7 +112,7 @@ refit watch --config /absolute/path/stripe.refit.json \
   --latest-stripe --once
 ```
 
-Stripe discovery polls the latest Git commit touching its published specification and downloads at the immutable SHA. Starting at today's baseline detects future changes only. Published contract changes do not establish which API version your account or SDK uses. Refit does not advance the baseline after a PR; choose a new baseline and state directory after reviewing the migration.
+Stripe discovery polls the latest Git commit touching its published specification and downloads at the immutable SHA. Starting at today's baseline detects future changes only. Published contract changes do not establish which API version your account or SDK uses. Once the code sends the target and uses none of what it breaks, as after a merged Refit draft, the watcher compares later releases with that target instead ([After the merge](PULL-REQUESTS.md#after-the-merge)); the state directory keeps it.
 
 ### A live Stripe change caught by the worker (October 21)
 

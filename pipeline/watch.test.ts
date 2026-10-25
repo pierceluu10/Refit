@@ -1,10 +1,10 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { watchOnce } from './watch.ts';
+import { watchCarryOver, watchedApiVersions, watchOnce } from './watch.ts';
 import { runWorkflow } from './workflow.ts';
 import { documentationSourceId } from './documentation-sources.ts';
 import { compareOpenApi } from './openapi-diff.ts';
@@ -35,7 +35,7 @@ async function options() {
 }
 function result(
   input: Parameters<typeof runWorkflow>[0],
-  status: 'validated' | 'validation-failed' = 'validated',
+  status: 'validated' | 'validation-failed' | 'up-to-date' = 'validated',
 ) {
   return {
     directory: input.output,
@@ -216,6 +216,108 @@ it.each([true, false])(
     expect(runWorkflow).toHaveBeenCalledTimes(2);
   },
 );
+
+it('compares the next release with the target the code reached, across a carried-over state', async () => {
+  const input = await options();
+  const root = dirname(input.source.path);
+  const repository = join(root, 'repository');
+  await cp(input.configuration.repository, repository, { recursive: true });
+  // billing.ts as a merged Refit draft leaves it: migrated reads and the pin moved to 2022-11-15.
+  await writeFile(
+    join(repository, 'billing.ts'),
+    `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
+export async function chargeHistory(paymentIntentId: string) {
+  const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  return (await stripe.charges.list({ payment_intent: intent.id })).data;
+}
+`,
+  );
+  const git = (arguments_: string[]) => execute('git', ['-C', repository, ...arguments_]);
+  await git(['init', '-b', 'main']);
+  await git(['add', '.']);
+  await git([
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.test',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-m',
+    'fix: merge the Refit draft',
+  ]);
+  const configuration = { ...input.configuration, repository, apiVersion: '2022-08-01' };
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'up-to-date'));
+
+  const reached = await watchOnce({ ...input, configuration });
+  expect(reached).toMatchObject({
+    status: 'processed',
+    baselineAdvanced: { from: '2022-08-01', to: '2022-11-15' },
+  });
+  const state = JSON.parse(await readFile(join(input.stateDirectory, 'state.json'), 'utf8'));
+  expect(state.baseline).toMatchObject({ hash: reached.sourceHash, apiVersion: '2022-11-15' });
+  const baseline = join('snapshots', `${reached.sourceHash}.baseline.json`);
+  expect(await watchCarryOver(input.stateDirectory)).toContain(baseline);
+  expect(await watchedApiVersions(input.stateDirectory)).toEqual(['2022-11-15']);
+  // A later commit before the next release is quiet and runs nothing.
+  await writeFile(join(repository, 'README.md'), 'Billing\n');
+  await git(['add', 'README.md']);
+  await git([
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.test',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-m',
+    'docs: readme',
+  ]);
+  expect(await watchOnce({ ...input, configuration })).toMatchObject({
+    status: 'already-processed',
+    previousStatus: 'up-to-date',
+    output: null,
+  });
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+
+  // A job machine starts from the carried-over files only.
+  const carried = join(root, 'carried');
+  for (const file of await watchCarryOver(input.stateDirectory))
+    await cp(join(input.stateDirectory, file), join(carried, file), { recursive: true });
+  const release = JSON.parse(await readFile(input.source.path, 'utf8'));
+  release.info.version = '2023-08-16';
+  release.components.schemas.refund = {
+    type: 'object',
+    properties: { id: { type: 'string' } },
+  };
+  await writeFile(input.source.path, JSON.stringify(release));
+  vi.mocked(runWorkflow).mockClear();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value));
+  const next = await watchOnce({ ...input, stateDirectory: carried, configuration });
+  expect(next.status).toBe('processed');
+  expect(next).not.toHaveProperty('baselineAdvanced');
+  expect(await watchedApiVersions(carried)).toEqual(['2022-11-15', '2023-08-16']);
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(runWorkflow).mock.calls[0][0]).toMatchObject({
+    before: join(await realpath(carried), baseline),
+    apiVersion: '2022-11-15',
+    apiVersionPolicy: 'source-verified',
+  });
+  // A baseline file that no longer matches the state stops the watcher.
+  await writeFile(join(carried, baseline), await readFile('pipeline/fixtures/before.json'));
+  await writeFile(
+    input.source.path,
+    JSON.stringify({
+      ...release,
+      info: { ...release.info, version: '2024-04-10' },
+      components: { schemas: { ...release.components.schemas, dispute: { type: 'object' } } },
+    }),
+  );
+  await expect(watchOnce({ ...input, stateDirectory: carried, configuration })).rejects.toThrow(
+    'The advanced watch baseline does not match its recorded hash.',
+  );
+});
 
 it('preserves failed jobs and permits one explicit retry with a fresh evidence directory', async () => {
   const input = await options();

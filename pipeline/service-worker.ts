@@ -11,7 +11,7 @@ import type { ServiceTarget } from './service-configuration.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { SlackSend } from './slack.ts';
-import { watchOnce } from './watch.ts';
+import { watchedApiVersions, watchOnce } from './watch.ts';
 import { lstat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { hasErrorCode } from './state-files.ts';
@@ -163,11 +163,13 @@ export async function pollServiceTarget(options: {
     async (checkout) => {
       if (options.contracts) await saveGeneratedContracts(checkout.directory, options.contracts);
       options.signal.throwIfAborted();
+      const acceptedApiVersions = await watchedApiVersions(options.stateDirectory);
       const profile = await loadApprovedRepository({
         repository: checkout.directory,
         approval: target.approval,
         integration: target.integration,
         stateDirectory: options.stateDirectory,
+        acceptedApiVersions,
         contracts: options.contracts,
       });
       options.signal.throwIfAborted();
@@ -179,6 +181,7 @@ export async function pollServiceTarget(options: {
             repository: checkout.directory,
             integration: target.integration,
             contracts: options.contracts,
+            acceptedApiVersions,
           })
         : undefined;
       options.signal.throwIfAborted();

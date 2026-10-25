@@ -148,6 +148,82 @@ it('aggregates dirty Git, API-version and Docker setup failures with actionable 
   ).toBe(true);
 });
 
+it('passes the API-version check for a version the service already watches, as after a merged draft', async () => {
+  const sample = await setup();
+  const providerPath = join(sample.repository, 'provider.json');
+  const provider = JSON.parse(await readFile(providerPath, 'utf8'));
+  provider.apiVersion = { constructorArgument: 0, property: 'apiVersion', requestArguments: [] };
+  await writeFile(providerPath, JSON.stringify(provider));
+  // The committed configuration still pins 1; the merged draft moved the client to 2.
+  await writeFile(
+    join(sample.repository, 'src/client.ts'),
+    "import { Catalog } from '@example/catalog'; export const catalog = new Catalog({ apiVersion: '2' });",
+  );
+  await commit(sample.repository);
+  const versionCheck = async (acceptedApiVersions?: string[]) =>
+    (
+      await inspectRepositoryReadiness({ repository: sample.repository, acceptedApiVersions })
+    ).checks.find((check) => check.id === 'api-version');
+  expect(await versionCheck()).toMatchObject({ status: 'blocked' });
+  expect(await versionCheck(['3'])).toMatchObject({ status: 'blocked' });
+  expect(await versionCheck(['2'])).toMatchObject({
+    status: 'passed',
+    action: null,
+    detail: expect.stringContaining('The code declares 2, which this service already watches'),
+  });
+});
+
+it('lets a merged draft past migration coverage while a change no rule covers still blocks', async () => {
+  const sample = await setup();
+  for (const file of ['before.json', 'after.json'])
+    await cp(resolve(`pipeline/fixtures/${file}`), join(sample.repository, file));
+  // billing.ts as the merged draft leaves it: the charges read migrated and the pin moved.
+  await writeFile(
+    join(sample.repository, 'billing.ts'),
+    `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
+export async function chargeHistory(paymentIntentId: string) {
+  const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  return (await stripe.charges.list({ payment_intent: intent.id })).data;
+}
+`,
+  );
+  const { providerConfig: _providerConfig, ...configuration } = sample.configuration;
+  await writeFile(
+    join(sample.repository, '.refit.json'),
+    JSON.stringify({ ...configuration, apiVersion: '2022-08-01', fullDiff: true }),
+  );
+  await commit(sample.repository);
+  const removal = {
+    id: 'response-optional-property-removed',
+    text: 'removed the optional property `charges` from the response with the `200` status',
+    level: 2,
+    responseSchema: 'payment_intent',
+    removedProperty: 'charges',
+  };
+  const coverage = async (...changes: unknown[]) => {
+    await writeFile(
+      join(sample.binaries, 'oasdiff'),
+      `#!${process.execPath}\nconsole.log(process.argv[2] === '--version' ? 'oasdiff-test' : ${JSON.stringify(JSON.stringify(changes))});`,
+      { mode: 0o755 },
+    );
+    const result = await inspectRepositoryReadiness({
+      repository: sample.repository,
+      acceptedApiVersions: ['2022-11-15'],
+    });
+    expect(result.checks.find((check) => check.id === 'api-version')?.status).toBe('passed');
+    return result.checks.find((check) => check.id === 'migration-coverage')?.status;
+  };
+  expect(await coverage(removal)).toBeUndefined();
+  expect(
+    await coverage(removal, {
+      id: 'new-required-request-parameter',
+      text: 'added the new required request parameter',
+      level: 3,
+    }),
+  ).toBe('blocked');
+});
+
 it('accepts version-tolerant webhook period reads without a price policy', async () => {
   const sample = await setup();
   const webhook = resolve('pipeline/fixtures/stripe-webhooks');
