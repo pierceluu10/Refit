@@ -17,7 +17,15 @@ export interface ProviderAdapter {
     property: string;
     requestArguments: number[];
   };
-  operations: { resource: string; method: string; schema: string; operationId?: string }[];
+  // `list`: the method returns a list or search result whose `data` holds `schema` objects, and iterating
+  // the call auto-paginates them (docs.stripe.com/api/pagination, /search and /auto).
+  operations: {
+    resource: string;
+    method: string;
+    schema: string;
+    operationId?: string;
+    list?: true;
+  }[];
   propertyRenames?: { schema: string; removed: string; replacement: string }[];
   requestPropertyRenames?: {
     resource: string;
@@ -200,7 +208,13 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
     const operationKeys = isObject(operation) ? Object.keys(operation).sort().join(',') : '';
     if (
       !isObject(operation) ||
-      !['method,resource,schema', 'method,operationId,resource,schema'].includes(operationKeys) ||
+      ![
+        'method,resource,schema',
+        'method,operationId,resource,schema',
+        'list,method,resource,schema',
+        'list,method,operationId,resource,schema',
+      ].includes(operationKeys) ||
+      (operation.list !== undefined && operation.list !== true) ||
       !validSdkResourcePath(operation.resource) ||
       typeof operation.method !== 'string' ||
       !SDK_IDENTIFIER.test(operation.method) ||
@@ -210,7 +224,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       (operation.operationId !== undefined && !validOperationId(operation.operationId))
     )
       throw new PipelineInputError(
-        'Each provider operation must specify an identifier-style resource path, method and schema strings, with an optional printable OpenAPI operationId.',
+        'Each provider operation must specify an identifier-style resource path, method and schema strings, with an optional printable OpenAPI operationId and an optional list: true.',
       );
     const key = `${operation.resource}.${operation.method}`;
     if (seen.has(key)) throw new PipelineInputError(`Duplicate provider operation: ${key}`);
@@ -220,6 +234,7 @@ export function parseProviderAdapter(value: Record<string, unknown>): ProviderAd
       method: operation.method,
       schema: operation.schema,
       ...(operation.operationId ? { operationId: operation.operationId } : {}),
+      ...(operation.list ? { list: true as const } : {}),
     };
   });
   const propertyRenames = value.propertyRenames;

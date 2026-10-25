@@ -42,6 +42,17 @@ These facts are read from the code and set the shape of the model:
 
 - **Prepared dependency bundles are capped.** After writing a new bundle, preparation evicts the least recently used bundles until the cache fits `REFIT_DEPENDENCY_CACHE_GIB` (default 8 GiB). A bundle another job is preparing, reusing or copying is never evicted, and an entry over the cap on its own is kept, so the cache can exceed the cap by the bundles in use plus one staging archive (up to 2 GiB) per running preparation. `fly.toml` puts the cache at `/data/dependencies` on the volume with an 8 GiB cap. Before 2026-10-25 it was unset, so bundles went to `/root/.refit/dependencies` on the 8 GB root disk: about 55 bundles from about 70 jobs filled 7.6 GB in 50 minutes, and 50 jobs then failed with `ENOSPC` during validation. The volume is 40 GB as the operator reported on 2026-10-25 (not checked here); 8 GiB of cache, about 16 bundles at the measured median, peaks near 16 GiB with four jobs staging and leaves the rest for `/data/docker` and `/data/state`. Validation still copies each archive into a temporary directory on the root disk for the length of the job (one for the original code, one more when the patch changes the lockfile), so four jobs with large archives can still use several GiB there.
 
+- **Target state is mostly two copies of the contracts.** Each hosted target keeps a watch state under `/data/state/targets/<id>/`. A Stripe scan with the full contract diff on (2024-06-20 to 2026-09-30.endive) records 64,779 oasdiff changes, which are 97% of its JSON. Since 2026-10-25 the run's `scan.json` and `report.json` and the poll's `observations/<hash>.json` are written gzip-compressed (`scan.json.gz`, `report.json.gz`, `<hash>.json.gz`); every reader takes both forms. Measured on `Shivamrai15/lms` at its frozen held-out commit (`refit watch --once`, Docker off, so the job stopped after the scan) and on the `report.json` of `tejashVaishnav/Fast-saas-next.js-boilerplate` from refit-bench run 40151479708:
+
+  | File                         | Before   | After   |
+  | ---------------------------- | -------- | ------- |
+  | `runs/<job>-<n>/scan.json`   | 90.9 MB  | 2.13 MB |
+  | `runs/<job>-<n>/report.json` | 95.5 MB  | 2.49 MB |
+  | `observations/<hash>.json`   | 92.7 MB  | 2.15 MB |
+  | Those three together         | 279.1 MB | 6.8 MB  |
+
+  Compressing one file took 0.2–0.4 s. What is left per target is about 31 MB of contracts: the snapshot and baseline (8.9 and 6.8 MB) and the run's own `before.json` and `after.json`, uncompressed because the scan reads them. That is about 38 MB per target with one run, against about 310 MB before, or about 8 GB for 205 targets instead of about 64 GB. Files written before the change stay as they are: an uncompressed observation is removed on its source's next full poll (a deploy makes every target poll once), but old run directories are evidence and are kept until an operator removes them.
+
 ## Fly facts used
 
 From [pricing](https://docs.fly.io/about/pricing), [CPU performance](https://docs.fly.io/machines/cpu-performance) and [machine sizing](https://docs.fly.io/machines/guides-examples/machine-sizing), read on 2026-10-22 (iad prices; Fly's monthly prices are 720 hours):
