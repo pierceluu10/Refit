@@ -1,5 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
@@ -128,8 +129,14 @@ export async function saveStripeContract(directory: string, version: string) {
     );
   const path = join(resolve(directory), stripeContractFile(version));
   await mkdir(join(resolve(directory), 'refit'), { recursive: true, mode: 0o700 });
-  const partial = `${path}.${process.pid}.partial`;
-  await writeFile(partial, encodeSnapshot(snapshot), { flag: 'wx', mode: 0o600 });
-  await rename(partial, path);
+  // Unique per attempt: a restarted worker can have the PID of one that crashed mid-write.
+  const partial = `${path}.${randomUUID()}.partial`;
+  try {
+    await writeFile(partial, encodeSnapshot(snapshot), { flag: 'wx', mode: 0o600 });
+    await rename(partial, path);
+  } catch (error) {
+    await rm(partial, { force: true });
+    throw error;
+  }
   return readStripeContract(directory, version);
 }
