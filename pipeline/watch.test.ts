@@ -1,15 +1,21 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { watchOnce } from './watch.ts';
+import { watchCarryOver, watchedApiVersions, watchOnce } from './watch.ts';
 import { runWorkflow } from './workflow.ts';
 import { documentationSourceId } from './documentation-sources.ts';
 import { compareOpenApi } from './openapi-diff.ts';
+import { commentOnOwnDraft } from './publication.ts';
+import { GitHubRequestError } from './github.ts';
 
 vi.mock('./workflow.ts', () => ({ runWorkflow: vi.fn() }));
+vi.mock('./publication.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./publication.ts')>()),
+  commentOnOwnDraft: vi.fn(),
+}));
 vi.mock('./openapi-diff.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./openapi-diff.ts')>()),
   compareOpenApi: vi.fn(),
@@ -35,7 +41,7 @@ async function options() {
 }
 function result(
   input: Parameters<typeof runWorkflow>[0],
-  status: 'validated' | 'validation-failed' = 'validated',
+  status: 'validated' | 'validation-failed' | 'up-to-date' | 'draft-created' = 'validated',
 ) {
   return {
     directory: input.output,
@@ -56,6 +62,7 @@ function result(
 afterEach(async () => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -66,11 +73,16 @@ it('processes a change once across worker restarts and ignores documentation-onl
   const again = await watchOnce({ ...input });
   expect(again.status).toBe('already-processed');
   const document = JSON.parse(await readFile(input.source.path, 'utf8'));
-  document.info = { title: 'A documentation-only edit' };
+  document.info = { ...document.info, title: 'A documentation-only edit' };
   await writeFile(input.source.path, JSON.stringify(document));
   expect((await watchOnce(input)).status).toBe('already-processed');
   expect((await watchOnce({ ...input, retry: true })).status).toBe('already-processed');
   expect(runWorkflow).toHaveBeenCalledTimes(1);
+  // A new release is a new target even when its changes are the same.
+  document.info.version = '2023-08-16';
+  await writeFile(input.source.path, JSON.stringify(document));
+  expect((await watchOnce(input)).status).toBe('processed');
+  expect(runWorkflow).toHaveBeenCalledTimes(2);
   expect(await readFile(join(input.stateDirectory, 'state.json'), 'utf8')).not.toContain('apiKey');
 });
 
@@ -217,14 +229,230 @@ it.each([true, false])(
   },
 );
 
+it('compares the next release with the target the code reached, across a carried-over state', async () => {
+  const input = await options();
+  const root = dirname(input.source.path);
+  const repository = join(root, 'repository');
+  await cp(input.configuration.repository, repository, { recursive: true });
+  // billing.ts as a merged Refit draft leaves it: migrated reads and the pin moved to 2022-11-15.
+  await writeFile(
+    join(repository, 'billing.ts'),
+    `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
+export async function chargeHistory(paymentIntentId: string) {
+  const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  return (await stripe.charges.list({ payment_intent: intent.id })).data;
+}
+`,
+  );
+  const git = (arguments_: string[]) => execute('git', ['-C', repository, ...arguments_]);
+  await git(['init', '-b', 'main']);
+  await git(['add', '.']);
+  await git([
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.test',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-m',
+    'fix: merge the Refit draft',
+  ]);
+  const configuration = { ...input.configuration, repository, apiVersion: '2022-08-01' };
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'up-to-date'));
+
+  const reached = await watchOnce({ ...input, configuration });
+  expect(reached).toMatchObject({
+    status: 'processed',
+    baselineAdvanced: { from: '2022-08-01', to: '2022-11-15' },
+  });
+  const state = JSON.parse(await readFile(join(input.stateDirectory, 'state.json'), 'utf8'));
+  expect(state.baseline).toMatchObject({ hash: reached.sourceHash, apiVersion: '2022-11-15' });
+  const baseline = join('snapshots', `${reached.sourceHash}.baseline.json`);
+  expect(await watchCarryOver(input.stateDirectory)).toContain(baseline);
+  expect(await watchedApiVersions(input.stateDirectory)).toEqual(['2022-11-15']);
+  // A later commit before the next release is quiet and runs nothing.
+  await writeFile(join(repository, 'README.md'), 'Billing\n');
+  await git(['add', 'README.md']);
+  await git([
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.test',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-m',
+    'docs: readme',
+  ]);
+  expect(await watchOnce({ ...input, configuration })).toMatchObject({
+    status: 'already-processed',
+    previousStatus: 'up-to-date',
+    output: null,
+  });
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+
+  // A job machine starts from the carried-over files only.
+  const carried = join(root, 'carried');
+  for (const file of await watchCarryOver(input.stateDirectory))
+    await cp(join(input.stateDirectory, file), join(carried, file), { recursive: true });
+  const release = JSON.parse(await readFile(input.source.path, 'utf8'));
+  release.info.version = '2023-08-16';
+  release.components.schemas.refund = {
+    type: 'object',
+    properties: { id: { type: 'string' } },
+  };
+  await writeFile(input.source.path, JSON.stringify(release));
+  vi.mocked(runWorkflow).mockClear();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value));
+  const next = await watchOnce({ ...input, stateDirectory: carried, configuration });
+  expect(next.status).toBe('processed');
+  expect(next).not.toHaveProperty('baselineAdvanced');
+  expect(await watchedApiVersions(carried)).toEqual(['2022-11-15', '2023-08-16']);
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(runWorkflow).mock.calls[0][0]).toMatchObject({
+    before: join(await realpath(carried), baseline),
+    apiVersion: '2022-11-15',
+    apiVersionPolicy: 'source-verified',
+  });
+  // A baseline file that no longer matches the state stops the watcher.
+  await writeFile(join(carried, baseline), await readFile('pipeline/fixtures/before.json'));
+  await writeFile(
+    input.source.path,
+    JSON.stringify({
+      ...release,
+      info: { ...release.info, version: '2024-04-10' },
+      components: { schemas: { ...release.components.schemas, dispute: { type: 'object' } } },
+    }),
+  );
+  await expect(watchOnce({ ...input, stateDirectory: carried, configuration })).rejects.toThrow(
+    'The advanced watch baseline does not match its recorded hash.',
+  );
+});
+
 it('preserves failed jobs and permits one explicit retry with a fresh evidence directory', async () => {
   const input = await options();
   vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'validation-failed'));
   const first = await watchOnce(input);
-  await watchOnce(input);
+  // A reused job keeps why it ended, so the status a person reads still says it.
+  expect(await watchOnce(input)).toMatchObject({
+    status: 'already-processed',
+    previousStatus: 'validation-failed',
+    previousReason: 'Controlled worker result',
+  });
   const retry = await watchOnce({ ...input, retry: true });
   expect(runWorkflow).toHaveBeenCalledTimes(2);
   expect(first.output).not.toBe(retry.output);
+});
+
+// As state from before a Refit upgrade records the job.
+async function recordedEarlier(input: Awaited<ReturnType<typeof options>>, jobKey: string) {
+  const path = join(input.stateDirectory, 'state.json');
+  const state = JSON.parse(await readFile(path, 'utf8'));
+  state.jobs[jobKey].refit = '0.0.1';
+  await writeFile(path, JSON.stringify(state));
+}
+
+it('runs a draft job once more after a Refit release, then reuses it', async () => {
+  const input = await options();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'draft-created'));
+  const first = await watchOnce(input);
+  expect(await watchOnce(input)).toMatchObject({ status: 'already-processed' });
+  await recordedEarlier(input, first.jobKey);
+  expect(await watchOnce(input)).toMatchObject({ status: 'processed', jobKey: first.jobKey });
+  expect(await watchOnce(input)).toMatchObject({ status: 'already-processed' });
+  expect(runWorkflow).toHaveBeenCalledTimes(2);
+});
+
+it('reuses a job without a draft that an earlier Refit release recorded', async () => {
+  const input = await options();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'validation-failed'));
+  const first = await watchOnce(input);
+  await recordedEarlier(input, first.jobKey);
+  expect(await watchOnce(input)).toMatchObject({
+    status: 'already-processed',
+    previousStatus: 'validation-failed',
+  });
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+});
+
+const DRAFT = {
+  url: 'https://github.com/example/application/pull/7',
+  number: 7,
+  branch: 'refit/stripe-2023-08-16',
+};
+// A worker run that opened DRAFT, polled with weekly status on at the given days of October.
+async function weeklyDraft(status: Parameters<typeof result>[1] = 'draft-created') {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-01T12:00:00Z'));
+  const input = await options();
+  const publication = { repository: 'example/application', base: 'main', token: 'unused-token' };
+  const configuration = { ...input.configuration, publication };
+  vi.mocked(runWorkflow).mockImplementation(async (value) => {
+    await mkdir(value.output, { recursive: true });
+    await writeFile(join(value.output, 'publication.json'), JSON.stringify(DRAFT));
+    return result(value, status);
+  });
+  vi.mocked(commentOnOwnDraft).mockResolvedValue(true);
+  const first = await watchOnce({ ...input, configuration });
+  const poll = (day: number, weeklyStatus = true) => {
+    vi.setSystemTime(new Date(`2026-10-${String(day).padStart(2, '0')}T12:00:00Z`));
+    return watchOnce({ ...input, configuration, weeklyStatus });
+  };
+  return { input, first, poll };
+}
+
+it('comments on an open draft once a week only with weekly status on', async () => {
+  const { poll } = await weeklyDraft();
+  expect(await poll(7)).not.toHaveProperty('weeklyStatus');
+  expect(await poll(8, false)).not.toHaveProperty('weeklyStatus');
+  expect(commentOnOwnDraft).not.toHaveBeenCalled();
+  expect(await poll(8)).toMatchObject({ status: 'already-processed', weeklyStatus: DRAFT.url });
+  expect(commentOnOwnDraft).toHaveBeenCalledTimes(1);
+  const [, draft, note] = vi.mocked(commentOnOwnDraft).mock.calls[0];
+  expect(draft).toMatchObject({ number: 7, branch: DRAFT.branch });
+  expect(note).toMatch(
+    /^Refit checked this draft again on 2026-10-08\. `main` is at `[0-9a-f]{7}`.*, as on 2026-10-01, so Refit did not regenerate the patch or rerun the checks\./,
+  );
+  // The next week counts from the note.
+  expect(await poll(14)).not.toHaveProperty('weeklyStatus');
+  expect(commentOnOwnDraft).toHaveBeenCalledTimes(1);
+  // A draft that is closed or a person changed gets no note; Refit looks again a week later.
+  vi.mocked(commentOnOwnDraft).mockResolvedValue(false);
+  expect(await poll(15)).not.toHaveProperty('weeklyStatus');
+  expect(await poll(21)).not.toHaveProperty('weeklyStatus');
+  expect(commentOnOwnDraft).toHaveBeenCalledTimes(2);
+  expect(await poll(22)).not.toHaveProperty('weeklyStatus');
+  expect(commentOnOwnDraft).toHaveBeenCalledTimes(3);
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+});
+
+it('skips a week when GitHub refuses the note, without failing the poll or retrying it each poll', async () => {
+  const { poll } = await weeklyDraft();
+  vi.mocked(commentOnOwnDraft).mockRejectedValue(new GitHubRequestError(404, 'GET', '/pulls/7'));
+  expect(await poll(8)).toMatchObject({ status: 'already-processed' });
+  expect(await poll(9)).toMatchObject({ status: 'already-processed' });
+  expect(commentOnOwnDraft).toHaveBeenCalledTimes(1);
+  vi.mocked(commentOnOwnDraft).mockResolvedValue(true);
+  expect(await poll(15)).toMatchObject({ weeklyStatus: DRAFT.url });
+});
+
+it('starts the week for a draft job recorded before weekly notes, and never comments without a draft', async () => {
+  const { input, first, poll } = await weeklyDraft();
+  const path = join(input.stateDirectory, 'state.json');
+  const state = JSON.parse(await readFile(path, 'utf8'));
+  delete state.jobs[first.jobKey].finishedAt;
+  await writeFile(path, JSON.stringify(state));
+  await poll(20);
+  expect(commentOnOwnDraft).not.toHaveBeenCalled();
+  expect(await poll(27)).toMatchObject({ weeklyStatus: DRAFT.url });
+  expect(vi.mocked(commentOnOwnDraft).mock.calls[0][2]).toContain('as on 2026-10-20');
+
+  vi.mocked(commentOnOwnDraft).mockClear();
+  const failed = await weeklyDraft('validation-failed');
+  expect(await failed.poll(30)).toMatchObject({ previousStatus: 'validation-failed' });
+  expect(commentOnOwnDraft).not.toHaveBeenCalled();
 });
 
 it('uses the captured input instead of forwarding a run configuration discovery flag', async () => {
@@ -245,7 +473,11 @@ it('marks interrupted jobs for review instead of silently regenerating or publis
   state.jobs[first.jobKey].status = 'running';
   await writeFile(path, JSON.stringify(state));
   const resumed = await watchOnce(input);
-  expect(resumed).toMatchObject({ status: 'already-processed', previousStatus: 'interrupted' });
+  expect(resumed).toMatchObject({
+    status: 'already-processed',
+    previousStatus: 'interrupted',
+    previousReason: expect.stringMatching(/^\w*Error: /),
+  });
   expect(runWorkflow).toHaveBeenCalledTimes(1);
 });
 

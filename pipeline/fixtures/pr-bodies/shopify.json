@@ -72,6 +72,7 @@
     }
   ],
   "operationChanges": [],
+  "operationImpacts": [],
   "patch": {
     "generator": "deterministic",
     "summary": "Move the pinned Shopify Admin API version to 2026-04. Every traced GraphQL document validates against the 2026-04 schema and no selected field changes type.",

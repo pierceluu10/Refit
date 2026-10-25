@@ -66,7 +66,7 @@ Sent when `REFIT_SLACK_WEBHOOK_URL` is set and a job ends `failed`, at most once
 
 Either the worker process is not listening, or its event loop is busy. `fly status` and `fly logs`: a crash loop shows the same error at every boot. The Machine restarts on a non-zero exit, up to 10 times in 5 minutes, then stays stopped. See [restore after a crash](#restore-after-a-crash).
 
-Without `--job-processes` in `REFIT_HOSTED_FLAGS`, each job runs inside the worker process, and a scan of a large repository holds its event loop for minutes. `/health` then misses Fly's 5-second timeout, GitHub webhook deliveries time out, and lease renewals wait until the scan ends, although the worker is running. `fly logs` shows the job's progress lines resuming afterwards. `--job-processes <n>` runs each job in its own process, so the worker keeps answering; an inventory still runs inside the worker.
+Without `--job-processes` in `REFIT_HOSTED_FLAGS`, each job runs inside the worker process, and a scan of a large repository holds its event loop for minutes. `/health` then misses Fly's 5-second timeout, GitHub webhook deliveries time out, and lease renewals wait until the scan ends, although the worker is running. `fly logs` shows the job's progress lines resuming afterwards. `--job-processes <n>` runs each job and each inventory in its own process, so the worker keeps answering. An inventory process that has not reported 10 seconds after the 300-second inventory cap is stopped and, 10 seconds later, killed; the inventory's `error` then starts with `JobProcessError: Inventory took longer than 300 seconds`, and it runs again only on the next push, the daily re-scan or `refit hosted inventory`.
 
 ### `refit hosted health` failures
 
