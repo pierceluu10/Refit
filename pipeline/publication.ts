@@ -678,6 +678,15 @@ export function publicationWaiver(
     sdkUpgrade !== undefined &&
     ('skipped' in sdkUpgrade || !stripeNodeDefaultVersion(sdkUpgrade.from));
   const before = code(report.apiVersion.before ?? 'the before contract');
+  const kept = 'keptApiVersion' in patch && patch.keptApiVersion === true;
+  // The pins a patch moves: literals older than the target.
+  const olderPins = declarations.flatMap((declaration): ReviewSite[] =>
+    declaration.status === 'literal' &&
+    declaration.value !== null &&
+    declaration.value < targetVersion
+      ? [{ file: declaration.file, line: declaration.line, detail: declaration.value }]
+      : [],
+  );
   const impacts: ReviewSite[] = report.operationImpacts.flatMap((impact) =>
     impact.usages.map((usage) => ({
       file: usage.file,
@@ -769,7 +778,18 @@ export function publicationWaiver(
                 : (report.skippedFiles ?? []).map((file) => ({ file, line: 0 }))) as ReviewSite[],
             },
     ),
-    ...(report.apiVersion.applicability === 'matches-before'
+    ...(kept
+      ? [
+          {
+            gate: 'api-version-kept' as const,
+            reason: `${checks} failed on the patch that moved the API version to ${code(targetVersion)}, so this patch leaves every pin listed here and the stripe package unchanged. It keeps only edits that work under either version; Refit compared the ${before} contract with ${code(targetVersion)}.`,
+            check: `Move each pin listed here to ${code(targetVersion)}, upgrade stripe-node if its types need it, and fix what ${checks} then reports before merging.`,
+            sites: olderPins,
+          },
+        ]
+      : []),
+    ...(report.apiVersion.applicability === 'matches-before' ||
+    (kept && report.apiVersion.source.status === 'conflict')
       ? []
       : report.apiVersion.source.status === 'conflict'
         ? [
@@ -777,14 +797,7 @@ export function publicationWaiver(
               gate: 'api-version' as const,
               reason: `Not every API-version pin in this code sends the configured ${code(report.apiVersion.application!)}. The patch moves every pin listed here (its line before this patch and the version it sent) to ${code(targetVersion)}; Refit compared the ${before} contract with it.`,
               check: `Confirm every client and request listed here should send ${code(targetVersion)}, and check by hand the code behind each pin that is not ${before}: Refit compared only that contract with the target.`,
-              // Only the pins the patch changes: literals older than the target.
-              sites: report.apiVersion.source.declarations.flatMap((declaration): ReviewSite[] =>
-                declaration.status === 'literal' &&
-                declaration.value !== null &&
-                declaration.value < targetVersion
-                  ? [{ file: declaration.file, line: declaration.line, detail: declaration.value }]
-                  : [],
-              ),
+              sites: olderPins,
             },
           ]
         : [

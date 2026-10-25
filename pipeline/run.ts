@@ -106,6 +106,10 @@ async function runOpenApiPipeline(options: {
   // Owner decision 1: write the rules' patch around every finding that needs review, which stays
   // unresolved and unedited, instead of stopping; AI never runs beside such a finding.
   leaveReviewedFindings?: boolean;
+  // Owner decision 1 fallback: leave every API-version pin and the stripe package as they are, so
+  // the patch keeps only edits that work under either version (the workflow's retry after a
+  // regression).
+  keepApiVersion?: boolean;
   // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
   keepListedPaymentMethods?: boolean;
   // Shopify only: propose the SDK major upgrade a target version needs (docs/SHOPIFY-SDK-UPGRADE.md).
@@ -241,9 +245,10 @@ async function runOpenApiPipeline(options: {
   // Stripe versions start with their date, so string order is release order, and a pin newer than
   // the target is never moved back.
   const movesPin = (value: string) =>
-    options.leaveReviewedFindings
+    !options.keepApiVersion &&
+    (options.leaveReviewedFindings
       ? typeof targetVersion === 'string' && value < targetVersion
-      : targetVersion !== applicationApiVersion && value === applicationApiVersion;
+      : targetVersion !== applicationApiVersion && value === applicationApiVersion);
   // A pin the application does not send that is also a webhook endpoint's api_version stays, as
   // moving it would move that endpoint; it is listed as unresolved with why.
   const endpointPin = (entry: { value: string | null; endpoint?: true }) =>
@@ -281,6 +286,7 @@ async function runOpenApiPipeline(options: {
   // `apiVersion: null` (the account default) is unknown, not absent, and never counts.
   const constructors = apiVersionDeclarations.filter((entry) => entry.kind === 'constructor');
   const sdkPinned =
+    !options.keepApiVersion &&
     provider.packageName === STRIPE.packageName &&
     Boolean(applicationApiVersion) &&
     typeof targetVersion === 'string' &&
@@ -407,15 +413,17 @@ async function runOpenApiPipeline(options: {
   );
   const gate = movedTo[CARD_PAYMENT_METHOD_RULE]
     ? undefined
-    : configuredMigrationProposal
-      ? 'this patch applies a configured migration, which does not move the API version'
-      : !everyPinMoves && unresolved
-        ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
-        : !bumpsVersion
-          ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
-          : cardUpgrade && 'reason' in cardUpgrade
-            ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
-            : undefined;
+    : options.keepApiVersion
+      ? 'the patch that moved the API version failed the repository checks, so this one leaves every pin unchanged'
+      : configuredMigrationProposal
+        ? 'this patch applies a configured migration, which does not move the API version'
+        : !everyPinMoves && unresolved
+          ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
+          : !bumpsVersion
+            ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
+            : cardUpgrade && 'reason' in cardUpgrade
+              ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
+              : undefined;
   if (gate)
     for (const finding of analysis.findings)
       if (finding.requestParameter && editCovers(repository, renames, finding))
@@ -586,6 +594,7 @@ async function runOpenApiPipeline(options: {
               : {}),
             // AI repairs start again from the original code and must keep these rule edits.
             ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
+            ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
           }
         : {
             status: 'not-generated' as const,

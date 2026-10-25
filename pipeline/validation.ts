@@ -371,9 +371,15 @@ async function prepareCandidateDependencies(
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
   await command('git', ['add', '-A'], candidateDirectory);
+  // A large tree would make the commit start `git gc --auto` in the background, which can still be
+  // writing packs when the .git directory is removed below (ENOTEMPTY).
   await command(
     'git',
     [
+      '-c',
+      'gc.auto=0',
+      '-c',
+      'maintenance.auto=false',
       '-c',
       'user.name=Refit',
       '-c',
@@ -574,6 +580,7 @@ export async function validateMigration(options: {
   generatedChecks?: GeneratedChecks;
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
+  keepApiVersion?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
   // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
