@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
+import { compressEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const directories: string[] = [];
@@ -43,8 +44,14 @@ function validated(reason: string) {
 }
 
 // Writes a run's results.json and, when a diff is given, acme/shop's run bundle: report.json, or
-// scan.json and its manifest entry for a run that stopped before validation.
-async function run(results: unknown[], diff?: string, stoppedBeforeValidation = false) {
+// scan.json (gzipped as scan.json.gz when `compressed`) and its manifest entry for a run that
+// stopped before validation.
+async function run(
+  results: unknown[],
+  diff?: string,
+  stoppedBeforeValidation = false,
+  compressed = false,
+) {
   const directory = await mkdtemp(join(tmpdir(), 'refit-compare-'));
   directories.push(directory);
   await writeFile(join(directory, 'results.json'), JSON.stringify(results));
@@ -55,12 +62,11 @@ async function run(results: unknown[], diff?: string, stoppedBeforeValidation = 
       await writeFile(join(bundle, 'report.json'), JSON.stringify({ patch: { diff } }));
     else {
       const scan = JSON.stringify({ runId: 'same', patch: { status: 'proposed', diff } });
-      await writeFile(join(bundle, 'scan.json'), scan);
-      const sha256 = createHash('sha256').update(scan).digest('hex');
-      await writeFile(
-        join(bundle, 'manifest.json'),
-        JSON.stringify({ files: [{ path: 'scan.json', sha256 }] }),
-      );
+      const content = compressed ? await compressEvidence(scan) : scan;
+      const path = compressed ? 'scan.json.gz' : 'scan.json';
+      await writeFile(join(bundle, path), content);
+      const sha256 = createHash('sha256').update(content).digest('hex');
+      await writeFile(join(bundle, 'manifest.json'), JSON.stringify({ files: [{ path, sha256 }] }));
     }
   }
   return join(directory, 'results.json');
@@ -121,13 +127,13 @@ it('hashes the proposed patch and scan.json of runs that stopped before validati
     checks: 'tests',
     workflow: { status: 'error', stage: 'validation' },
   };
-  const compare = async (first: string, second: string) =>
+  const compare = async (first: string, second: string, compressed = false) =>
     JSON.parse(
       (
         await execute(process.execPath, [
           'scripts/stripe-benchmark-compare.mjs',
           await run([stopped], first, true),
-          await run([stopped], second, true),
+          await run([stopped], second, true, compressed),
           '--details',
           '--json',
         ])
@@ -140,4 +146,9 @@ it('hashes the proposed patch and scan.json of runs that stopped before validati
     diff: expect.stringMatching(/^[0-9a-f]{12}$/),
   });
   expect((await compare('a', 'b')).differs).toEqual(['scan', 'diff']);
+  // A compressed scan.json.gz compares equal to the same scan written before compression.
+  const mixed = await compare('a', 'a', true);
+  expect(mixed.differs).toEqual([]);
+  expect(mixed.fields[1].scan).toBe(same.fields[0].scan);
+  expect((await compare('a', 'b', true)).differs).toEqual(['scan', 'diff']);
 });

@@ -1,4 +1,5 @@
 import { YARN_LOCKFILE, parseYarnLock } from './yarn-lock.ts';
+import { existsSync } from 'node:fs';
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import {
@@ -80,7 +81,11 @@ export async function readRepository(
         continue;
       }
       if (entry.isDirectory()) {
-        if (!EXCLUDED_DIRECTORIES.has(entry.name)) await visit(path);
+        // A checked-out submodule (or any nested repository) has its own .git; `git archive`, which
+        // validation reads, leaves its files out, so every scan leaves them out too.
+        const nested = existsSync(join(path, '.git'));
+        if (nested) repository.warnings.push(`Skipped submodule: ${relative(root, path)}`);
+        if (!EXCLUDED_DIRECTORIES.has(entry.name) && !nested) await visit(path);
         else excludedPaths.push(relative(root, path));
         continue;
       }
