@@ -30,14 +30,23 @@ import {
 } from './state-files.ts';
 import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
+import { targetReached } from './migration-review.ts';
+import { specificationVersion } from './api-version.ts';
 import { verifyArtifacts } from './verification.ts';
 import { PipelineInputError } from './types.ts';
 import { withGitHubCheckout, type GitHubCheckoutTarget } from './github-checkout.ts';
 import { gitEnvironment } from './git-environment.ts';
+import { REFIT_VERSION } from './migration-identity.ts';
+import { commentOnOwnDraft } from './publication.ts';
+import { GitHubRequestError } from './github.ts';
 
 const execute = promisify(execFile);
 const GIT_TIMEOUT_MS = 30_000;
 const RETRYABLE_STATUSES = new Set(['error', 'validation-failed', 'interrupted', 'needs-review']);
+// Outcomes with an open draft: after a Refit release, one more run lets the workflow refresh a
+// [Needs review] draft the earlier release wrote. A current draft is found before generation.
+const OPEN_DRAFT_STATUSES = new Set(['draft-created', 'draft-updated', 'existing-pr']);
+const WEEK_MS = 7 * 24 * 60 * 60 * 1_000;
 type WorkflowOptions = Parameters<typeof runWorkflow>[0];
 export interface WatchOptions {
   configuration: Omit<WorkflowOptions, 'repository' | 'output' | 'after' | 'latestStripe'> & {
@@ -49,6 +58,8 @@ export interface WatchOptions {
   retry?: boolean;
   onProgress?: (message: string) => void;
   syncGitHub?: GitHubCheckoutTarget;
+  // Off by default: once a week, a short comment on an open draft whose job nothing has changed.
+  weeklyStatus?: boolean;
 }
 
 interface DocumentationChange {
@@ -171,6 +182,7 @@ async function watchLocalOnce(
         'Watch state belongs to another configuration or is invalid. Choose a fresh state directory.',
       );
     const jobs = state.jobs;
+    const advanced = advancedBaseline(state.baseline);
     if (state.documentation !== undefined && !isObject(state.documentation))
       throw new PipelineInputError('Watch documentation source state is invalid.');
     const documentationState = isObject(state.documentation) ? state.documentation : {};
@@ -204,6 +216,16 @@ async function watchLocalOnce(
     if ((await readSpecification(baseline)).hash !== before.hash)
       throw new PipelineInputError('The baseline changed while capturing watch inputs.');
     configuration.before = baseline;
+    if (advanced) {
+      configuration.before = join(snapshots, `${advanced.hash}.baseline.json`);
+      if ((await readSpecification(configuration.before)).hash !== advanced.hash)
+        throw new PipelineInputError(
+          'The advanced watch baseline does not match its recorded hash.',
+        );
+      configuration.apiVersion = advanced.apiVersion;
+      // Nobody attested this pin; only the code's own declarations, checked on every poll, back it.
+      configuration.apiVersionPolicy = 'source-verified';
+    }
     const after = join(snapshots, `${snapshot.hash}.json`);
     try {
       await writeFile(after, `${JSON.stringify(snapshot)}\n`, { flag: 'wx', mode: 0o600 });
@@ -244,9 +266,13 @@ async function watchLocalOnce(
         revision,
         repositoryHash: scan.repository.hash,
         adapter: provider,
+        // A new release is a new target even when the changes Refit maps are the same: it gets its
+        // own draft (draftKey in pipeline/publication.ts). The older draft closes only with
+        // --supersede-drafts.
         apiVersion: {
           application: scan.apiVersion.application,
           before: scan.apiVersion.before,
+          after: scan.apiVersion.after,
           applicability: scan.apiVersion.applicability,
         },
         changes: scan.changes.map((change) => change.id),
@@ -285,13 +311,27 @@ async function watchLocalOnce(
         )
           throw new PipelineInputError('Interrupted job has mismatched evidence.');
         previous.status = manifest.status;
+        if (typeof manifest.reason === 'string') previous.reason = manifest.reason;
       } catch (error) {
         if (!(error instanceof Error)) throw error;
         previous.status = 'interrupted';
         previous.error = { name: error.name, message: error.message };
       }
     }
-    if (isObject(previous) && !(options.retry && RETRYABLE_STATUSES.has(String(previous.status)))) {
+    // Once the code reached this target, a new commit has nothing to compare until the next release.
+    const settled =
+      advanced?.hash === snapshot.hash
+        ? { status: 'up-to-date', output: null }
+        : isObject(previous) &&
+            !(options.retry && RETRYABLE_STATUSES.has(String(previous.status))) &&
+            !(OPEN_DRAFT_STATUSES.has(String(previous.status)) && previous.refit !== REFIT_VERSION)
+          ? {
+              status: String(previous.status),
+              output: typeof previous.output === 'string' ? previous.output : null,
+              reason: jobReason(previous),
+            }
+          : undefined;
+    if (settled) {
       if (documentationSources.length) state.documentation = capturedDocumentation.state;
       await writeState(statePath, state);
       if (capturedDocumentation.changes.length)
@@ -300,17 +340,33 @@ async function watchLocalOnce(
           provider: provider.id,
           jobKey,
           sourceHash: snapshot.hash,
-          previousStatus: String(previous.status),
+          previousStatus: settled.status,
+          ...(settled.reason ? { previousReason: settled.reason } : {}),
           output: join(observations, 'documentation'),
           documentationChanges: capturedDocumentation.changes,
         };
+      const weeklyStatus =
+        options.weeklyStatus &&
+        configuration.publication &&
+        isObject(previous) &&
+        OPEN_DRAFT_STATUSES.has(settled.status)
+          ? await postWeeklyStatus(
+              previous,
+              configuration.publication,
+              { base: configuration.publication.base, revision, target: scan.apiVersion.after },
+              () => writeState(statePath, state),
+            )
+          : undefined;
+      if (options.weeklyStatus) await writeState(statePath, state);
       return {
         status: 'already-processed' as const,
         provider: provider.id,
         jobKey,
         sourceHash: snapshot.hash,
-        previousStatus: String(previous.status),
-        output: typeof previous.output === 'string' ? previous.output : null,
+        previousStatus: settled.status,
+        ...(settled.reason ? { previousReason: settled.reason } : {}),
+        output: settled.output,
+        ...(weeklyStatus ? { weeklyStatus } : {}),
       };
     }
     const attempt =
@@ -324,6 +380,7 @@ async function watchLocalOnce(
       output,
       runId: scan.runId,
       sourceHash: snapshot.hash,
+      refit: REFIT_VERSION,
     };
     await writeState(statePath, state);
     const confirmedUsageCount = scan.findings.filter(
@@ -340,8 +397,31 @@ async function watchLocalOnce(
         onProgress: options.onProgress,
         documentationSnapshots: capturedDocumentation.snapshotPaths,
       });
-      jobs[jobKey] = { ...(jobs[jobKey] as object), status: result.manifest.status };
+      jobs[jobKey] = {
+        ...(jobs[jobKey] as object),
+        status: result.manifest.status,
+        reason: result.manifest.reason,
+        finishedAt: new Date().toISOString(),
+      };
       if (documentationSources.length) state.documentation = capturedDocumentation.state;
+      // The code reached the target, by a merged draft or by hand: compare the next release with it.
+      const reached =
+        result.manifest.status === 'up-to-date' && targetReached(scan)
+          ? { hash: snapshot.hash, apiVersion: scan.apiVersion.after!, revision }
+          : undefined;
+      if (reached) {
+        const path = join(snapshots, `${reached.hash}.baseline.json`);
+        try {
+          await writeFile(path, await readFile(after, 'utf8'), { flag: 'wx', mode: 0o600 });
+        } catch (error) {
+          if (!hasErrorCode(error, 'EEXIST')) throw error;
+        }
+        if ((await readSpecification(path)).hash !== reached.hash)
+          throw new PipelineInputError(
+            'The advanced watch baseline does not match its recorded hash.',
+          );
+        state.baseline = reached;
+      }
       await writeState(statePath, state);
       return {
         status: 'processed' as const,
@@ -354,6 +434,14 @@ async function watchLocalOnce(
           : {}),
         ...(capturedDocumentation.baselines.length
           ? { documentationBaselines: capturedDocumentation.baselines }
+          : {}),
+        ...(reached
+          ? {
+              baselineAdvanced: {
+                from: configuration.apiVersion ?? null,
+                to: reached.apiVersion,
+              },
+            }
           : {}),
         result,
       };
@@ -368,6 +456,90 @@ async function watchLocalOnce(
       throw error;
     }
   });
+}
+
+// Posts the weekly note on the job's draft when a week has passed since the job finished or the
+// last check, and records when it checked on the job; returns the draft's URL when it posted.
+async function postWeeklyStatus(
+  job: Record<string, unknown>,
+  publication: NonNullable<WorkflowOptions['publication']>,
+  current: { base: string; revision: string; target: string | null },
+  save: () => Promise<void>,
+) {
+  if (typeof job.output !== 'string') return;
+  const since = Date.parse(String(job.weeklyStatusAt ?? job.finishedAt));
+  // A job recorded before weekly notes existed starts its week now.
+  if (Number.isNaN(since)) {
+    job.weeklyStatusAt = new Date().toISOString();
+    return;
+  }
+  if (Date.now() - since < WEEK_MS) return;
+  const draft = await readState(join(job.output, 'publication.json'));
+  if (
+    !isObject(draft) ||
+    typeof draft.url !== 'string' ||
+    typeof draft.number !== 'number' ||
+    typeof draft.branch !== 'string'
+  )
+    return;
+  const note = `Refit checked this draft again on ${new Date().toISOString().slice(0, 10)}. \`${current.base}\` is at \`${current.revision.slice(0, 7)}\`${current.target ? ` and the newest contract Refit has seen targets \`${current.target}\`` : ''}, as on ${new Date(since).toISOString().slice(0, 10)}, so Refit did not regenerate the patch or rerun the checks. The check results in the description are from the run on that commit.
+
+Refit posts this once a week while the draft is open, because the service runs with \`--weekly-status\`.`;
+  // Recorded before posting, so a failed state write never posts the note twice.
+  job.weeklyStatusAt = new Date().toISOString();
+  await save();
+  try {
+    const posted = await commentOnOwnDraft(
+      publication,
+      { number: draft.number, branch: draft.branch, revision: current.revision },
+      note,
+    );
+    return posted ? draft.url : undefined;
+  } catch (error) {
+    // GitHub refusing the note skips this week's; it never fails the poll.
+    if (!(error instanceof GitHubRequestError)) throw error;
+    return undefined;
+  }
+}
+
+// Why a recorded job ended as it did, so a poll that reuses it can still say why.
+function jobReason(job: Record<string, unknown>) {
+  if (isObject(job.error) && typeof job.error.message === 'string')
+    return `${String(job.error.name)}: ${job.error.message}`;
+  return typeof job.reason === 'string' ? job.reason : undefined;
+}
+
+// The baseline a reached target replaced the configured one with; the configured baseline is part
+// of the state's signature, so changing it starts a fresh state.
+function advancedBaseline(value: unknown) {
+  if (value === undefined) return undefined;
+  if (
+    !isObject(value) ||
+    typeof value.hash !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(value.hash) ||
+    typeof value.apiVersion !== 'string' ||
+    !value.apiVersion
+  )
+    throw new PipelineInputError(
+      'Watch baseline state is invalid. Choose a fresh state directory.',
+    );
+  return { hash: value.hash, apiVersion: value.apiVersion };
+}
+
+// The API versions code under this watcher may send besides the configured one: the target it last
+// captured, which a merged draft moves the pin to, and the baseline a reached target replaced.
+export async function watchedApiVersions(directory: string) {
+  const state = await readState(join(directory, 'state.json'));
+  if (!state) return [];
+  const versions = [advancedBaseline(state.baseline)?.apiVersion];
+  if (typeof state.lastSource === 'string')
+    versions.push(
+      specificationVersion(
+        (await readSpecification(join(directory, 'snapshots', `${state.lastSource}.json`)))
+          .document,
+      ) ?? undefined,
+    );
+  return [...new Set(versions.filter((version) => version !== undefined))];
 }
 
 async function captureDocumentationSources(

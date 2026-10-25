@@ -1,6 +1,10 @@
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { Finding } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
+import { declaresVersion } from './api-version.ts';
+import { countBreakingOperationUsages } from './provider-operations.ts';
+import { isTrackedResponseRemoval, unmappedBreakingChanges } from './openapi-diff.ts';
+import type { runPipeline } from './run.ts';
 import { HELPER_RULES, SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 
 const DECLARED_TYPE_REVIEW_REASON =
@@ -9,6 +13,9 @@ const TYPE_EVIDENCE_REVIEW_REASON =
   'TypeScript types confirm reads of removed Stripe fields that Refit could not trace to an SDK response or a narrowed webhook event. Types, and casts in particular, do not establish provenance; automatic migration, AI and publication require traced source evidence.';
 export const REMOVED_REQUEST_PARAMETER_REVIEW_REASON =
   'A traced SDK request sends a parameter the target API version removed. No reviewed replacement exists, and dropping or replacing it changes request behavior; automatic migration, AI and publication stop for review.';
+const MAX_REASON_SITES = 3;
+// How analyzer.ts ends the expression of a removed parameter set in an object no traced call receives.
+const UNTRACED_BODY = ' outside a traced SDK request body';
 const SKIPPED_SOURCE_REVIEW_REASON =
   'Unparseable source files were skipped. Their API usage and mutations are unknown; automatic migration, AI and publication require a complete source scan.';
 
@@ -67,6 +74,35 @@ export function migrationReviewReason(
   if (evidence.findings.some((finding) => finding.typeEvidence)) return TYPE_EVIDENCE_REVIEW_REASON;
 }
 
+// Where traced calls still send a removed request parameter, and where an object Refit could not
+// trace to a call sets it, so a stop says what to look at.
+export function removedParameterSites(findings: Finding[]) {
+  const removals = findings.filter((finding) => finding.requestParameter);
+  const sites = removals.map((finding) =>
+    finding.expression.endsWith(UNTRACED_BODY)
+      ? `${finding.file}:${finding.line} sets ${finding.expression}`
+      : `${finding.file}:${finding.line} sends ${finding.requestParameter!.parameter}`,
+  );
+  const lead = removals.some((finding) => finding.expression.endsWith(UNTRACED_BODY))
+    ? 'Where'
+    : sites.length === 1
+      ? 'The call'
+      : 'The calls';
+  return `${lead}: ${sites.slice(0, MAX_REASON_SITES).join('; ')}${sites.length > MAX_REASON_SITES ? `; and ${sites.length - MAX_REASON_SITES} more in the run report` : ''}.`;
+}
+
+// Where a rescan of the migrated code still finds each usage, so the draft can list them.
+export function unresolvedSites(findings: Finding[]) {
+  return findings.map(({ file, line, changeId, expression, confidence, untraced }) => ({
+    file,
+    line,
+    changeId,
+    expression,
+    confidence,
+    ...(untraced ? { untraced } : {}),
+  }));
+}
+
 // With --publish-unresolved, a deterministic migration proceeds around traced calls that still send
 // a removed request parameter: they stay unresolved and the draft lists them for the owner.
 export function withoutRequestParameters<T extends { findings: Finding[] }>(evidence: T): T {
@@ -74,4 +110,40 @@ export function withoutRequestParameters<T extends { findings: Finding[] }>(evid
     ...evidence,
     findings: evidence.findings.filter((finding) => !finding.requestParameter),
   };
+}
+
+// The code already sends the target version and Refit finds nothing the target breaks, traced or
+// not: a merged Refit draft, or the customer's own migration. Every breaking change outside the
+// migration rules still stops for review, except a removed response field the scanner searched
+// the code for and found no read of, as after a merged draft that migrated it.
+export function targetReached(
+  scan: Pick<
+    Awaited<ReturnType<typeof runPipeline>>,
+    | 'apiVersion'
+    | 'findings'
+    | 'operationImpacts'
+    | 'specificationDiff'
+    | 'changes'
+    | 'operationChanges'
+    | 'requestChanges'
+    | 'expandedFields'
+  > & { skippedFiles?: string[] },
+) {
+  const target = scan.apiVersion.after;
+  return Boolean(
+    target &&
+    target !== scan.apiVersion.before &&
+    declaresVersion(scan.apiVersion.source, target) &&
+    !scan.skippedFiles?.length &&
+    !scan.findings.length &&
+    !countBreakingOperationUsages(scan.operationImpacts) &&
+    unmappedBreakingChanges(
+      scan.specificationDiff,
+      scan.changes,
+      scan.findings,
+      scan.operationChanges,
+      scan.requestChanges,
+      scan.expandedFields,
+    ).every((entry) => isTrackedResponseRemoval(entry, scan.changes)),
+  );
 }
