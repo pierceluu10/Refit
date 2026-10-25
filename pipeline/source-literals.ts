@@ -1,4 +1,5 @@
 import ts from 'typescript-compiler';
+import { sourceRequests } from './source-requests.ts';
 import { sourceRows } from './source-rows.ts';
 
 // Read-only array methods: they return an element, a copy or a value, and never change the array.
@@ -45,8 +46,10 @@ const ELEMENT_CALLBACKS = new Set([
 export function sourceLiterals(options: {
   nodes: ts.Node[];
   symbol: (node: ts.Node) => ts.Symbol | undefined;
+  // The repository path of a node's file.
+  file: (node: ts.Node) => string;
 }) {
-  const { nodes, symbol } = options;
+  const { nodes, symbol, file } = options;
   const unwrap = (node: ts.Expression): ts.Expression =>
     ts.isParenthesizedExpression(node) ||
     ts.isAsExpression(node) ||
@@ -452,8 +455,11 @@ export function sourceLiterals(options: {
     return undefined;
   }
   const rows = sourceRows({ symbol, nodes, references, shorthand });
-  // Rows a database client returns are not Stripe objects either (`pipeline/source-rows.ts`).
+  const requests = sourceRequests({ symbol, nodes, references, file });
+  // Rows a database client returns are not Stripe objects either (`pipeline/source-rows.ts`), nor
+  // is what a request handler's sender posted (`pipeline/source-requests.ts`).
   return {
-    literalObject: (expression: ts.Expression) => literalObject(expression) || rows.row(expression),
+    literalObject: (expression: ts.Expression) =>
+      literalObject(expression) || rows.row(expression) || requests.value(expression),
   };
 }

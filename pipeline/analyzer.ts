@@ -313,7 +313,7 @@ export function analyzeRepository(
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) =>
     modules.member(node) ?? canonical(checker.getSymbolAtLocation(node));
-  const literals = sourceLiterals({ nodes, symbol });
+  const literals = sourceLiterals({ nodes, symbol, file: (node) => location(node).file });
   const stripeTypes =
     provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
