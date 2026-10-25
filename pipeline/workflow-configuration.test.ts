@@ -139,6 +139,8 @@ it('lets an explicit CLI API version override configuration and records after-ve
       resolve(fixture, 'after.json'),
       '--api-version',
       '2022-11-15',
+      // Keeps the version mismatch a stop; by default it joins a draft's review reasons.
+      '--publish-validated-only',
       '--output',
       join(root, 'evidence'),
     ]),

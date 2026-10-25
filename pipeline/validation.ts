@@ -1,4 +1,4 @@
-import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -22,7 +22,7 @@ import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
-import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
+import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
@@ -95,6 +95,7 @@ export interface CheckResult {
   stderr: string;
   error?: string;
 }
+const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
 const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
 
@@ -491,10 +492,9 @@ async function generatedStripeChecks(options: {
     },
   };
   await writeHarness(tools, entries, options.imports);
-  const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {
-    if (!entries.length) return notRun;
+    if (!entries.length) return NOT_RUN;
     options.onProgress?.(
       `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
     );
@@ -572,13 +572,13 @@ export async function validateMigration(options: {
   fullDiff?: boolean;
   repairAttempts?: number;
   generatedChecks?: GeneratedChecks;
-  // --publish-unresolved: see withoutRequestParameters.
-  leaveRequestParameters?: boolean;
+  // Owner decision 1: see runPipeline.
+  leaveReviewedFindings?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
-  // --publish-unresolved: a repository-side dependency preparation failure skips the checks and
-  // returns the deterministic patch as `untested` instead of throwing.
-  recordDependencyFailures?: boolean;
+  // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
+  // no evidence, the patch is still applied and returned untested instead of throwing or dropped.
+  recordUntested?: boolean;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -610,14 +610,9 @@ export async function validateMigration(options: {
   });
   if (apiVersionSourceBlocked(preflight.apiVersion))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
-  const reviewReason = migrationReviewReason(
-    options.leaveRequestParameters && !options.aiPatch
-      ? withoutRequestParameters(preflight)
-      : preflight,
-    true,
-    true,
-    Boolean(options.aiPatch),
-  );
+  const reviewReason = options.leaveReviewedFindings
+    ? undefined
+    : migrationReviewReason(preflight, true, true, Boolean(options.aiPatch));
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
@@ -665,6 +660,23 @@ export async function validateMigration(options: {
         }),
       );
     const proposed = independent ? ahead(() => propose(true)) : undefined;
+    // With recordUntested, a patched lockfile Refit cannot install leaves the initial patch
+    // untested (owner decision 1) instead of ending the run.
+    const preparePatched = async (directory: string, untested: boolean, signal?: AbortSignal) => {
+      try {
+        return {
+          ...(await timed('candidatePreparation', () =>
+            prepareCandidateDependencies(directory, root, image, { ...options, signal }),
+          )),
+          dependencyFailure: undefined,
+        };
+      } catch (error) {
+        const failure = untested && options.recordUntested ? preparationFailure(error) : undefined;
+        if (!failure) throw error;
+        options.onProgress?.(`Preparing the patched dependencies failed: ${failure.summary}`);
+        return { dependencies: undefined, environment: undefined, dependencyFailure: failure };
+      }
+    };
     // A patch that changes the lockfile prepares its own dependencies; that install starts now.
     const candidateInstall =
       proposed && options.prepareDependencies
@@ -674,20 +686,14 @@ export async function validateMigration(options: {
             if (!diff || !packageDiff(diff)) return undefined;
             const directory = await sandboxInput(root, 'candidate-');
             await applyPatch(archive, directory, `${directory}.patch`, diff);
-            return {
-              directory,
-              ...(await timed('candidatePreparation', () =>
-                prepareCandidateDependencies(directory, root, image, {
-                  ...options,
-                  signal: speculation.signal,
-                }),
-              )),
-            };
+            return { directory, ...(await preparePatched(directory, true, speculation.signal)) };
           })
         : undefined;
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
-    let dependencyFailure: ReturnType<typeof repositoryDependencyFailure> = undefined;
+    let dependencyFailure: ReturnType<typeof preparationFailure> = undefined;
+    // The baseline checks failed with recordUntested: the patch is built but its checks never run.
+    let untestedBaseline = false;
     let prepared: Awaited<ReturnType<typeof prepareDependencies>> | undefined;
     if (options.prepareDependencies)
       try {
@@ -700,9 +706,7 @@ export async function validateMigration(options: {
           }),
         );
       } catch (error) {
-        dependencyFailure = options.recordDependencyFailures
-          ? repositoryDependencyFailure(error)
-          : undefined;
+        dependencyFailure = options.recordUntested ? preparationFailure(error) : undefined;
         if (!dependencyFailure) throw error;
         options.onProgress?.(`Dependency preparation failed: ${dependencyFailure.summary}`);
       }
@@ -719,12 +723,15 @@ export async function validateMigration(options: {
       originalSources: Awaited<ReturnType<typeof readRepository>>,
       report: Report,
       install?: Promise<Install>,
-    ) => timed('candidates', () => buildCandidate(diff, originalSources, report, install));
+      untested = false,
+    ) =>
+      timed('candidates', () => buildCandidate(diff, originalSources, report, install, untested));
     const buildCandidate = async (
       diff: string,
       originalSources: Awaited<ReturnType<typeof readRepository>>,
       report: Report,
-      install?: Promise<Install>,
+      install: Promise<Install> | undefined,
+      untested: boolean,
     ) => {
       // The install started with the proposal, for this diff, when the patch changes the lockfile.
       const installed = install && (await install);
@@ -736,12 +743,18 @@ export async function validateMigration(options: {
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
-      if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure)
-        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
-          installed ??
-          (await timed('candidatePreparation', () =>
-            prepareCandidateDependencies(patchedDirectory, root, image, options),
-          )));
+      let candidateFailure: ReturnType<typeof preparationFailure>;
+      if (
+        packageDiff(diff) &&
+        options.prepareDependencies &&
+        !dependencyFailure &&
+        !untestedBaseline
+      )
+        ({
+          dependencies: candidateDependencies,
+          environment: candidateEnvironment,
+          dependencyFailure: candidateFailure,
+        } = installed ?? (await preparePatched(patchedDirectory, untested, options.signal)));
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -806,6 +819,7 @@ export async function validateMigration(options: {
         directory: patchedDirectory,
         dependencies: candidateDependencies,
         environment: candidateEnvironment,
+        dependencyFailure: candidateFailure,
       };
     };
     options.signal?.throwIfAborted();
@@ -821,6 +835,7 @@ export async function validateMigration(options: {
               await readRepository(baselineDirectory, earlyReport.adapter.packageName),
               earlyReport,
               candidateInstall,
+              true,
             ),
           )
         : undefined;
@@ -828,6 +843,7 @@ export async function validateMigration(options: {
       speculativeCandidate &&
       ahead(async () => {
         const candidate = await speculativeCandidate;
+        if (candidate.dependencyFailure) return NOT_RUN;
         return timed('patchedChecks', () =>
           containerCheck({
             directory: candidate.directory,
@@ -840,7 +856,7 @@ export async function validateMigration(options: {
       });
     if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
     const baselineRun: CheckResult = dependencyFailure
-      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
+      ? NOT_RUN
       : await timed('baselineChecks', () =>
           containerCheck({
             directory: baselineDirectory,
@@ -851,6 +867,8 @@ export async function validateMigration(options: {
           }),
         );
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    untestedBaseline =
+      Boolean(options.recordUntested) && !dependencyFailure && baseline.status !== 'passed';
     options.signal?.throwIfAborted();
     const report = earlyReport || (await propose(baseline.status === 'passed'));
     const configuredEndpointProposal = report.operationChanges.some(
@@ -878,11 +896,13 @@ export async function validateMigration(options: {
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
     const initialCandidate =
-      baseline.status === 'passed' || dependencyFailure
+      baseline.status === 'passed' || dependencyFailure || (untestedBaseline && proposal.diff)
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
-            : prepareCandidate(proposal.diff, originalSources, report))
+            : prepareCandidate(proposal.diff, originalSources, report, undefined, true))
         : undefined;
+    // The patched lockfile could not be installed, so the patch is written but never checked.
+    dependencyFailure ??= initialCandidate?.dependencyFailure;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
     let candidateSources = initialCandidate?.sources;
@@ -891,7 +911,7 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
-    const runPatched = initialCandidate && !dependencyFailure;
+    const runPatched = initialCandidate && baseline.status === 'passed' && !dependencyFailure;
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
@@ -907,7 +927,7 @@ export async function validateMigration(options: {
                 }),
               )),
         )
-      : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+      : NOT_RUN;
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
       attempts.push({
@@ -1357,7 +1377,7 @@ export async function validateSourcePatch(options: {
       signal: options.signal,
     });
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
-    let patched: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+    let patched: CheckResult = NOT_RUN;
     let candidateEnvironment: Record<string, unknown> | undefined;
     if (baseline.status === 'passed') {
       options.signal?.throwIfAborted();

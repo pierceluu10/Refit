@@ -4,6 +4,7 @@ import { assessmentConfiguration } from './assessment.ts';
 import { DEFAULT_LEAD_DAYS, parseLeadDays } from './deadline-alerts.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { runLocalService, validateServiceSecret } from './local-service.ts';
+import { publishUnresolved } from './publication.ts';
 import { readServiceConfiguration } from './service-configuration.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
@@ -17,7 +18,7 @@ const REVIEW_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft [--supersede-drafts] [--weekly-status]] [--deadline-alerts [--deadline-lead-days 90,30,7]] [--model-fixes] [--json]';
+  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft [--supersede-drafts] [--weekly-status]] [--publish-unresolved | --publish-validated-only] [--deadline-alerts [--deadline-lead-days 90,30,7]] [--model-fixes] [--json]';
 
 try {
   const { values } = parseArgs({
@@ -31,6 +32,8 @@ try {
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
+      'publish-unresolved': { type: 'boolean' },
+      'publish-validated-only': { type: 'boolean' },
       'weekly-status': { type: 'boolean' },
       'supersede-drafts': { type: 'boolean' },
       'deadline-alerts': { type: 'boolean' },
@@ -42,7 +45,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nRuns on 127.0.0.1:8787 by default; signed webhooks use /github/webhook and authenticated status uses /status. Requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN. Configured targets are confirmed through GitHub before execution. Installation webhooks wake or cancel their workers; other installed repositories are recorded without execution. --once polls all targets and closes the HTTP listener. --retry-target requires --once and polls only the named targets, permitting failed jobs one fresh attempt; successful jobs remain cached. Approval and access gates still apply. AI and draft PR publication require explicit opt-in. --supersede-drafts closes Refit's older open drafts for the same provider and integration once the new draft is up to date. --weekly-status, with --publish-draft, comments once a week on each open Refit draft whose base commit and newest contract are unchanged, saying so and that the checks were not rerun. --deadline-alerts opens or updates one GitHub issue per enrolled repository and registry deadline at the lead times (default 90,30,7 days); it needs the App's Issues write permission. --model-fixes replaces retiring OpenAI and Anthropic models in each enrolled repository without asking first, validates the change with that repository's approved checks in offline Docker and, with --publish-draft, opens a draft pull request; Refit never merges it.`,
+      `${USAGE}\nRuns on 127.0.0.1:8787 by default; signed webhooks use /github/webhook and authenticated status uses /status. Requires GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_FILE, REFIT_WEBHOOK_SECRET and a different REFIT_SERVICE_TOKEN. Configured targets are confirmed through GitHub before execution. Installation webhooks wake or cancel their workers; other installed repositories are recorded without execution. --once polls all targets and closes the HTTP listener. --retry-target requires --once and polls only the named targets, permitting failed jobs one fresh attempt; successful jobs remain cached. Approval and access gates still apply. AI and draft PR publication require explicit opt-in. Refit turns the stops listed in docs/CLI.md into [Needs review] drafts with the best patch, every unresolved usage and the reason, by default; --publish-validated-only publishes validated drafts only. A patch whose checks fail on it never publishes. --supersede-drafts closes Refit's older open drafts for the same provider and integration once the new draft is up to date. --weekly-status, with --publish-draft, comments once a week on each open Refit draft whose base commit and newest contract are unchanged, saying so and that the checks were not rerun. --deadline-alerts opens or updates one GitHub issue per enrolled repository and registry deadline at the lead times (default 90,30,7 days); it needs the App's Issues write permission. --model-fixes replaces retiring OpenAI and Anthropic models in each enrolled repository without asking first, validates the change with that repository's approved checks in offline Docker and, with --publish-draft, opens a draft pull request; Refit never merges it.`,
     );
   else {
     if (!values.config || !values.state) throw new PipelineInputError(USAGE);
@@ -90,6 +93,7 @@ try {
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
+        publishUnresolved: publishUnresolved(values),
         weeklyStatus: values['weekly-status'],
         supersedeDrafts: values['supersede-drafts'],
         deadlineAlerts,
