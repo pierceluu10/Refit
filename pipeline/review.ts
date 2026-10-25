@@ -6,7 +6,7 @@ import { PASSING_REACH } from './operation-reach.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
-import { INTEGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
+import { INTEGRATION_MARKER, MIGRATION_MARKER, migrationIdentity } from './migration-identity.ts';
 import type { publicationWaiver } from './publication.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR } from './stripe-open-enums.ts';
@@ -34,7 +34,7 @@ function plainText(value: string) {
   return value.replace(/[\x00-\x1f\x7f]/g, ' ').replace(/[\\`*_{}\[\]<>#|]/g, '\\$&');
 }
 
-function code(value: string) {
+export function code(value: string) {
   const content = value.replace(/[\x00-\x1f\x7f]/g, ' ');
   const fence = '`'.repeat(
     Math.max(1, ...(content.match(/`+/g) ?? []).map((run) => run.length + 1)),
@@ -42,7 +42,7 @@ function code(value: string) {
   return `${fence}${content}${fence}`;
 }
 
-function summaryList(values: string[]) {
+export function summaryList(values: string[]) {
   const visible = values.slice(0, MAX_SUMMARY_ITEMS);
   const remaining = values.length - visible.length;
   return `${visible.join(', ')}${remaining ? `, and ${remaining} more` : ''}`;
@@ -797,7 +797,7 @@ export function createReviewArtifacts(
           : []),
       ].join('\n'),
       ...(integration ? [`${INTEGRATION_MARKER}${integration} -->`] : []),
-      `<!-- refit-migration:${migrationIdentity(report, validation.revision, integration)} -->`,
+      `${MIGRATION_MARKER}${migrationIdentity(report, validation.revision, integration)} -->`,
       `<!-- refit-evidence "runId": "${report.runId}", "patchHash": "${validation.patchHash}" -->`,
     ].join('\n\n') + '\n';
   // Shorter diffs first, then shorter site lists, until the body fits.

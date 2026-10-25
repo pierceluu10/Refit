@@ -2,6 +2,7 @@ import { digest } from './specifications.ts';
 import type { runPipeline } from './run.ts';
 
 export const INTEGRATION_MARKER = '<!-- refit-integration:';
+export const MIGRATION_MARKER = '<!-- refit-migration:';
 
 export function migrationIdentity(
   report: Pick<Awaited<ReturnType<typeof runPipeline>>, 'adapter' | 'findings'>,

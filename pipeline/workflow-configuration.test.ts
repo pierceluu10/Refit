@@ -218,6 +218,33 @@ it('requires explicit publication and complete app configuration before starting
     stderr: expect.stringContaining('require --publish-draft'),
   });
   await expect(
+    execute(process.execPath, [...arguments_.slice(0, -1), '--supersede-drafts']),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('--supersede-drafts require --publish-draft'),
+  });
+  const publish = ['--publish-draft', '--github', 'example/application', '--base', 'main'];
+  await expect(
+    execute(process.execPath, [...arguments_.slice(0, -1), ...publish, '--supersede-drafts']),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('--supersede-drafts requires --github-app.'),
+  });
+  await expect(
+    execute(process.execPath, [
+      bin,
+      'serve',
+      '--config',
+      path,
+      '--state',
+      join(root, 'state'),
+      '--supersede-drafts',
+    ]),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('--supersede-drafts requires --publish-draft.'),
+  });
+  await expect(
     execute(
       process.execPath,
       [...arguments_, '--publish-draft', '--github', 'example/application', '--base', 'main'],

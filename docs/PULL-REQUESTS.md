@@ -23,7 +23,24 @@ Conventional Commits, under 70 characters, with no trailing punctuation: `fix(<s
 
 The body stays under 16,000 characters. Site lists show 25 entries and say how many more are in `report.json`. When a body is still too long, Refit cuts the code changes to 40 lines, then to 20 lines with 10 sites per list, then leaves them out, and says so under Code Changes. Model-fix drafts follow the same budget. [PR body examples](PR-BODY-EXAMPLES.md) shows each shape regenerated from stored results.
 
-Two hidden comments follow: the migration identity Refit uses to find its own open draft, and the run ID and patch hash.
+Hidden comments follow: the migration identity Refit uses to find its own open draft, the run ID and patch hash, the provider (`<!-- refit-provider: <id> -->`), the target API version (`<!-- refit-target: <version> -->`) and the commit Refit last pushed to the branch (`<!-- refit-pushed: <sha> -->`).
+
+## One draft per target version
+
+Refit keeps one draft per repository, base branch, integration and target API version (`draftKey()` and `publishFiles()` in `pipeline/publication.ts`). A provider whose contract keeps the same version is keyed by its breaking changes instead, so an upstream edit that changes none of them keeps the same draft. The branch name is derived from those alone, not from the commit, the run or the patch bytes, so a rerun, a retry or a push to the base finds the same draft. With the GitHub App, Refit then does one of these:
+
+| What GitHub holds | What Refit does |
+|---|---|
+| No draft for this target | Opens one: a single commit on the validated base, as Refit Agent |
+| Its open draft, same base and patch | Nothing. Before generation, a matching draft also skips AI and validation |
+| Its open draft on an older base, or with an older patch | Validates the current base and replaces its own commit with one on the new base. It moves the branch only while the branch still points at the commit Refit last pushed (a lease, like `git push --force-with-lease`), then refreshes the title and description. Same pull request number. If someone other than Refit reviewed the replaced commit, a comment names the old and new commits and why |
+| A draft with commits a person added (or a merge or rebase of the base) | Leaves the branch and description as they are and reports it, before generation. If the base has moved under the branch, one comment on the draft says so and asks for the base to be merged in. Before generation it names the files where Refit's scan of the new base finds usages to migrate, and asks to check the draft covers each; during publication, the files Refit's current patch changes. Refit edits that comment when the base moves again. A push that lands while Refit is updating the branch loses Refit the lease and ends the same way. Refit reads the branch itself, not the pull request's reported head, which GitHub may update a moment late |
+| A pull request someone else opened from the Refit branch | Leaves it to them |
+| A draft a person closed without merging | Nothing: no reopen, no new draft for that target. Reopening it lets Refit update it again. A draft Refit closed itself as superseded is not a decline: if its target comes back, Refit opens a new draft |
+| A merged draft | Nothing for that target |
+| Another open Refit draft for this provider and integration on the same base, from an older target version | Nothing by default. With `--supersede-drafts` (owner decision, Pierce, 2026-10-24, board #300), comments `Superseded by #N` with the reason and closes it, once the new draft is up to date. Refit closes it first, then comments. A draft with commits a person added stays open, and so do one a person marked ready for review, one a person reopened after Refit closed it, one from an earlier release that names no provider or target, and one whose target is the same as or newer than this draft's, so a retried job for an older target never closes a newer draft. Versions are compared in natural order (`2025-03-31.basil` before `2025-04-30.basil`, `1.9.0` before `1.10.0`) |
+
+Refit recognizes its own commit by the draft's record of the last commit it pushed (`<!-- refit-pushed: <sha> -->`). Before a move, Refit re-reads the draft and adds the new commit to the record, so an interrupted run, or another Refit run updating the same draft at once, still recognizes the branch; after the move it writes the description and posts any reviewer notice at once. A draft from an earlier release has no record, and a branch with no open draft has none to read; there Refit falls back to one parent and the App bot as both author and committer, and leases the tip it read. It never merges, never marks a draft ready, and never writes to a draft a person closed. A run with a personal token cannot tell its own commit from a person's, so it reports an existing draft as it is and refuses to overwrite a branch without one. Other integrations in the same repository have their own drafts. Tests: `pipeline/draft-lifecycle.test.ts` runs each row against simulated GitHub with real Git objects.
 
 ## Commit message
 

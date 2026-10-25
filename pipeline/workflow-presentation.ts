@@ -11,6 +11,8 @@ const TITLES: Record<Result['manifest']['status'], string> = {
   'validation-failed': 'Migration validation failed',
   validated: 'Migration validated',
   'draft-created': 'Draft PR ready',
+  'draft-updated': 'Draft PR updated',
+  'draft-closed': 'Draft PR closed',
   'existing-pr': 'Existing PR found',
   error: 'Refit could not complete this run',
 };
