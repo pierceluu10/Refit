@@ -514,6 +514,7 @@ async function benchmark(entry: Selected, index: number) {
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,
       behaviourTestWriter: report.validation?.behaviourTestWriter,
+      stripeOnly: report.validation?.stripeOnly,
       // The harness's verdict on those tests, without its per-side output.
       ...(report.validation?.behaviour
         ? {
