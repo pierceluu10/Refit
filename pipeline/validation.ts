@@ -2,7 +2,7 @@ import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -377,12 +377,11 @@ function committedMode(entries: readonly string[], path: string, content: string
   return metadata[0] as PublicationFile['mode'];
 }
 
-// Copies prepared dependencies into the validation snapshot and returns their environment.
+// Checks the archive preparation copied into the validation snapshot and returns its environment.
 async function snapshotDependencies(
   prepared: Awaited<ReturnType<typeof prepareDependencies>>,
   destination: string,
 ) {
-  await copyFile(prepared.archive, destination);
   const copied = await inspectArtifactFile(destination, validationProfile().archiveBytes);
   if (
     copied.sha256 !== prepared.environment.archiveHash ||
@@ -420,14 +419,15 @@ async function prepareCandidateDependencies(
     ],
     candidateDirectory,
   );
+  const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
   const prepared = await prepareDependencies({
     repository: candidateDirectory,
     image,
+    copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
   });
   await rm(join(candidateDirectory, '.git'), { recursive: true, force: true });
-  const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
   return { dependencies, environment: await snapshotDependencies(prepared, dependencies) };
 }
 
@@ -734,6 +734,7 @@ export async function validateMigration(options: {
           prepareDependencies({
             repository,
             image,
+            copyArchiveTo: join(root, 'dependencies.tar'),
             signal: options.signal,
             onProgress: options.onProgress,
           }),
@@ -1476,13 +1477,14 @@ export async function validateSourcePatch(options: {
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
     if (options.prepareDependencies) {
+      dependencies = join(root, 'dependencies.tar');
       const prepared = await prepareDependencies({
         repository: snapshot.directory,
         image,
+        copyArchiveTo: dependencies,
         signal: options.signal,
         onProgress: options.onProgress,
       });
-      dependencies = join(root, 'dependencies.tar');
       environment = await snapshotDependencies(prepared, dependencies);
     }
     options.signal?.throwIfAborted();
