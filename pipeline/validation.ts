@@ -92,6 +92,7 @@ export interface CheckResult {
   stderr: string;
   error?: string;
 }
+const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
 const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
 
@@ -488,10 +489,9 @@ async function generatedStripeChecks(options: {
     },
   };
   await writeHarness(tools, entries, options.imports);
-  const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {
-    if (!entries.length) return notRun;
+    if (!entries.length) return NOT_RUN;
     options.onProgress?.(
       `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
     );
@@ -657,6 +657,23 @@ export async function validateMigration(options: {
         }),
       );
     const proposed = independent ? ahead(() => propose(true)) : undefined;
+    // With recordUntested, a patched lockfile Refit cannot install leaves the initial patch
+    // untested (owner decision 1) instead of ending the run.
+    const preparePatched = async (directory: string, untested: boolean, signal?: AbortSignal) => {
+      try {
+        return {
+          ...(await timed('candidatePreparation', () =>
+            prepareCandidateDependencies(directory, root, image, { ...options, signal }),
+          )),
+          dependencyFailure: undefined,
+        };
+      } catch (error) {
+        const failure = untested && options.recordUntested ? preparationFailure(error) : undefined;
+        if (!failure) throw error;
+        options.onProgress?.(`Preparing the patched dependencies failed: ${failure.summary}`);
+        return { dependencies: undefined, environment: undefined, dependencyFailure: failure };
+      }
+    };
     // A patch that changes the lockfile prepares its own dependencies; that install starts now.
     const candidateInstall =
       proposed && options.prepareDependencies
@@ -666,15 +683,7 @@ export async function validateMigration(options: {
             if (!diff || !packageDiff(diff)) return undefined;
             const directory = await sandboxInput(root, 'candidate-');
             await applyPatch(archive, directory, `${directory}.patch`, diff);
-            return {
-              directory,
-              ...(await timed('candidatePreparation', () =>
-                prepareCandidateDependencies(directory, root, image, {
-                  ...options,
-                  signal: speculation.signal,
-                }),
-              )),
-            };
+            return { directory, ...(await preparePatched(directory, true, speculation.signal)) };
           })
         : undefined;
     let dependencies: string | undefined;
@@ -711,12 +720,15 @@ export async function validateMigration(options: {
       originalSources: Awaited<ReturnType<typeof readRepository>>,
       report: Report,
       install?: Promise<Install>,
-    ) => timed('candidates', () => buildCandidate(diff, originalSources, report, install));
+      untested = false,
+    ) =>
+      timed('candidates', () => buildCandidate(diff, originalSources, report, install, untested));
     const buildCandidate = async (
       diff: string,
       originalSources: Awaited<ReturnType<typeof readRepository>>,
       report: Report,
-      install?: Promise<Install>,
+      install: Promise<Install> | undefined,
+      untested: boolean,
     ) => {
       // The install started with the proposal, for this diff, when the patch changes the lockfile.
       const installed = install && (await install);
@@ -728,17 +740,18 @@ export async function validateMigration(options: {
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
+      let candidateFailure: ReturnType<typeof preparationFailure>;
       if (
         packageDiff(diff) &&
         options.prepareDependencies &&
         !dependencyFailure &&
         !untestedBaseline
       )
-        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
-          installed ??
-          (await timed('candidatePreparation', () =>
-            prepareCandidateDependencies(patchedDirectory, root, image, options),
-          )));
+        ({
+          dependencies: candidateDependencies,
+          environment: candidateEnvironment,
+          dependencyFailure: candidateFailure,
+        } = installed ?? (await preparePatched(patchedDirectory, untested, options.signal)));
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -803,6 +816,7 @@ export async function validateMigration(options: {
         directory: patchedDirectory,
         dependencies: candidateDependencies,
         environment: candidateEnvironment,
+        dependencyFailure: candidateFailure,
       };
     };
     options.signal?.throwIfAborted();
@@ -818,6 +832,7 @@ export async function validateMigration(options: {
               await readRepository(baselineDirectory, earlyReport.adapter.packageName),
               earlyReport,
               candidateInstall,
+              true,
             ),
           )
         : undefined;
@@ -825,6 +840,7 @@ export async function validateMigration(options: {
       speculativeCandidate &&
       ahead(async () => {
         const candidate = await speculativeCandidate;
+        if (candidate.dependencyFailure) return NOT_RUN;
         return timed('patchedChecks', () =>
           containerCheck({
             directory: candidate.directory,
@@ -837,7 +853,7 @@ export async function validateMigration(options: {
       });
     if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
     const baselineRun: CheckResult = dependencyFailure
-      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
+      ? NOT_RUN
       : await timed('baselineChecks', () =>
           containerCheck({
             directory: baselineDirectory,
@@ -880,8 +896,10 @@ export async function validateMigration(options: {
       baseline.status === 'passed' || dependencyFailure || (untestedBaseline && proposal.diff)
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
-            : prepareCandidate(proposal.diff, originalSources, report))
+            : prepareCandidate(proposal.diff, originalSources, report, undefined, true))
         : undefined;
+    // The patched lockfile could not be installed, so the patch is written but never checked.
+    dependencyFailure ??= initialCandidate?.dependencyFailure;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
     let candidateSources = initialCandidate?.sources;
@@ -890,7 +908,7 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
-    const runPatched = initialCandidate && baseline.status === 'passed';
+    const runPatched = initialCandidate && baseline.status === 'passed' && !dependencyFailure;
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
@@ -906,7 +924,7 @@ export async function validateMigration(options: {
                 }),
               )),
         )
-      : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+      : NOT_RUN;
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
       attempts.push({
@@ -1345,7 +1363,7 @@ export async function validateSourcePatch(options: {
       signal: options.signal,
     });
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
-    let patched: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+    let patched: CheckResult = NOT_RUN;
     let candidateEnvironment: Record<string, unknown> | undefined;
     if (baseline.status === 'passed') {
       options.signal?.throwIfAborted();

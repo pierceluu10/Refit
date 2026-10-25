@@ -627,7 +627,10 @@ export function publicationWaiver(
       ? [
           {
             gate: 'dependency-preparation' as const,
-            reason: `Refit ran no checks: preparing the dependencies failed because ${failure.summary}.`,
+            reason:
+              validation.baseline.status === 'passed'
+                ? `Refit did not run the checks on this patch: preparing its upgraded dependencies failed because ${failure.summary}. They passed on the original code.`
+                : `Refit ran no checks: preparing the dependencies failed because ${failure.summary}.`,
             check: failure.action,
             failure,
           },
