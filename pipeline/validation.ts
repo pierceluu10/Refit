@@ -415,9 +415,15 @@ async function prepareCandidateDependencies(
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
   await command('git', ['add', '-A'], candidateDirectory);
+  // A large tree would make the commit start `git gc --auto` in the background, which can still be
+  // writing packs when the .git directory is removed below (ENOTEMPTY).
   await command(
     'git',
     [
+      '-c',
+      'gc.auto=0',
+      '-c',
+      'maintenance.auto=false',
       '-c',
       'user.name=Refit',
       '-c',
@@ -619,6 +625,7 @@ export async function validateMigration(options: {
   generatedChecks?: GeneratedChecks;
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
+  keepApiVersion?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
   // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
@@ -643,7 +650,9 @@ export async function validateMigration(options: {
     if (applicability.applicability !== 'matches-before')
       throw new PipelineInputError(`Automated publication is blocked. ${applicability.reason}`);
   }
-  const snapshot = await readCommittedRepository(options.repository);
+  const snapshot = await readCommittedRepository(options.repository, {
+    submodules: options.leaveReviewedFindings,
+  });
   const repository = snapshot.directory;
   const preflight = await runPipeline({
     ...options,
@@ -653,7 +662,7 @@ export async function validateMigration(options: {
     aiPatch: undefined,
     assessment: undefined,
   });
-  if (apiVersionSourceBlocked(preflight.apiVersion))
+  if (apiVersionSourceBlocked(preflight.apiVersion, options.leaveReviewedFindings))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
   const reviewReason = options.leaveReviewedFindings
     ? undefined
@@ -746,6 +755,7 @@ export async function validateMigration(options: {
           prepareDependencies({
             repository,
             image,
+            submodules: options.leaveReviewedFindings,
             copyArchiveTo: join(root, 'dependencies.tar'),
             signal: options.signal,
             onProgress: options.onProgress,
@@ -820,8 +830,9 @@ export async function validateMigration(options: {
         { configured: shopify || Boolean(report.adapter.apiVersion), declarations },
         report.apiVersion.policy,
       );
+      // Owner decision 1: pins that conflicted in the committed code may still conflict.
       if (
-        apiVersionSourceBlocked(candidateVersion) ||
+        apiVersionSourceBlocked(candidateVersion, options.leaveReviewedFindings) ||
         (report.apiVersion.source.status === 'verified' &&
           candidateVersion.source.status !== 'verified')
       )
@@ -1508,6 +1519,8 @@ export async function validateMigration(options: {
       runtime,
       ...(environment ? { environment } : {}),
       ...(dependencyFailure ? { dependencyFailure } : {}),
+      // Left out of the snapshot (owner decision 1): nothing in them was scanned, built or tested.
+      ...(snapshot.submodules.length ? { submodules: snapshot.submodules } : {}),
       ...(candidateEnvironment ? { patchedEnvironment: candidateEnvironment } : {}),
       command: options.command,
       baselineCommand,

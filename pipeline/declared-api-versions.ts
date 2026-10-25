@@ -23,8 +23,9 @@ export function declaredApiVersions(options: {
   canonical: (symbol: ts.Symbol | undefined) => ts.Symbol | undefined;
   location: (node: ts.Node) => Location;
   references?: BindingReferences;
-  // Receives the text span of each literal version, for a patch that bumps it.
-  literals?: { file: string; start: number; end: number; value: string }[];
+  // Receives the text span of each literal version, for a patch that bumps it. `endpoint` marks a
+  // literal that also sets a webhook endpoint's api_version, so moving it changes that endpoint.
+  literals?: { file: string; start: number; end: number; value: string; endpoint?: true }[];
 }): ApiVersionDeclaration[] {
   const mapping = options.provider.apiVersion;
   if (!mapping) return [];
@@ -269,13 +270,27 @@ export function declaredApiVersions(options: {
     options.references,
   );
   const declarations: ApiVersionDeclaration[] = [];
+  // shortcut: only `api_version: <expression>` is followed, not `{ api_version }` shorthand.
+  const endpointLiterals = new Set(
+    nodes
+      .filter(
+        (node): node is ts.PropertyAssignment =>
+          ts.isPropertyAssignment(node) &&
+          (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) &&
+          node.name.text === 'api_version',
+      )
+      .map((node) => resolve(node.initializer)),
+  );
   const literalSpan = (node: ts.Expression, value: string) =>
     options.literals?.push({
       file: location(node).file,
       start: node.getStart() + 1,
       end: node.getEnd() - 1,
       value,
+      ...(endpointLiterals.has(node) ? { endpoint: true as const } : {}),
     });
+  const endpoint = (node: ts.Expression | undefined) =>
+    node && endpointLiterals.has(node) ? { endpoint: true as const } : {};
   // stripe-node fixes a client's API version at construction; `setApiVersion`, a write to its
   // private `_api` or a raw `Stripe-Version` header can still change what it sends, so any of them
   // anywhere leaves every Stripe constructor's version unknown. Only a header being sent counts
@@ -322,6 +337,7 @@ export function declaredApiVersions(options: {
               ? 'setApiVersion, a write to the private _api field or a raw Stripe-Version header elsewhere in the repository can change the version this client sends.'
               : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
         ...(result.status === 'absent' && !uncertain ? { absent: true as const } : {}),
+        ...endpoint(result.node),
       });
     }
     if (!ts.isCallExpression(node)) continue;
@@ -342,6 +358,7 @@ export function declaredApiVersions(options: {
         value: result.value,
         status: 'literal',
         reason: 'Literal per-request API-version override.',
+        ...endpoint(result.node),
       });
     }
     if (unknown || !literal.length)

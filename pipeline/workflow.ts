@@ -25,7 +25,7 @@ import { createReviewArtifacts, NEEDS_REVIEW_PREFIX } from './review.ts';
 import { runPipeline } from './run.ts';
 import { type SlackSend, workflowNotice } from './slack.ts';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
-import { digest, readSpecification } from './specifications.ts';
+import { digest, isObject, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { validateMigration } from './validation.ts';
@@ -47,6 +47,9 @@ const NO_USAGE_REASON =
   'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
 const NO_PATCH_NOTE =
   'Refit opens a [Needs review] draft wherever it used to stop, but this run has no code change to publish.';
+
+const REGRESSION_NOTE =
+  "Refit's patch failed the repository checks, so it is kept with this run's artifacts as evidence and not published.";
 
 type Stage = 'inputs' | 'scan' | 'validation' | 'publication';
 type Status =
@@ -93,8 +96,8 @@ function publicationOutcome(
 // The workflow's stops that need only its scan, checked in this order before dependency
 // preparation or validation. The Stripe benchmark applies them before it starts `refit run`.
 // With `leaveReviewedFindings` (owner decision 1) the draft carries a stop's reasons instead, so
-// it holds only when no patch can, or when the code's API-version declarations conflict or a
-// source-verified policy refuses them, which validation and publication refuse too.
+// it holds only when no patch can, or when a source-verified policy refuses the code's API-version
+// declarations, which validation and publication refuse too. Conflicting pins all move.
 export function scanReviewReason(
   scan: Awaited<ReturnType<typeof runPipeline>>,
   aiPatch: boolean,
@@ -102,7 +105,7 @@ export function scanReviewReason(
 ) {
   const reason = scanStop(scan, aiPatch);
   if (!reason || !leaveReviewedFindings) return reason;
-  if (apiVersionSourceBlocked(scan.apiVersion)) return scan.apiVersion.reason;
+  if (apiVersionSourceBlocked(scan.apiVersion, true)) return scan.apiVersion.reason;
   const aiWrites =
     aiPatch &&
     !reviewBlocksAi(scan) &&
@@ -131,6 +134,17 @@ function scanStop(scan: Awaited<ReturnType<typeof runPipeline>>, aiPatch: boolea
   if (unmapped.length)
     return `${unmapped.length} breaking contract changes are outside the supported migration rules. Review the recorded contract report before proposing a patch.`;
   if (!scan.findings.some((finding) => finding.confidence === 'confirmed')) return NO_USAGE_REASON;
+}
+
+// The rules' patch moved a pin or upgraded stripe-node.
+function movesApiVersion(report: Awaited<ReturnType<typeof validateMigration>>) {
+  const { patch } = report;
+  return (
+    patch.generator === 'deterministic' &&
+    (('ruleEdits' in patch &&
+      patch.ruleEdits?.some((edit) => edit.rule === 'stripe-api-version')) ||
+      ('sdkUpgrade' in patch && isObject(patch.sdkUpgrade) && 'from' in patch.sdkUpgrade))
+  );
 }
 
 // Checked after the existing-PR lookup, which only publication runs.
@@ -369,23 +383,39 @@ export async function runWorkflow(options: {
     stage = 'validation';
     options.signal?.throwIfAborted();
     options.onProgress?.('Validating the committed repository snapshot...');
-    const report = await validateMigration({
-      ...inputs,
-      image: options.image,
-      command: options.command,
-      baselineCommand: options.baselineCommand,
-      prepareDependencies: options.prepareDependencies,
-      generatedChecks: options.generatedChecks,
-      compareTypeErrors: options.compareTypeErrors,
-      assessment: options.assessment,
-      aiPatch: options.aiPatch,
-      documentationSnapshots: options.documentationSnapshots,
-      repairAttempts: options.repairAttempts,
-      leaveReviewedFindings: allowUnresolved,
-      recordUntested: allowUnresolved,
-      onProgress: options.onProgress,
-      signal: options.signal,
-    });
+    const validate = (keepApiVersion: boolean) =>
+      validateMigration({
+        ...inputs,
+        keepApiVersion,
+        image: options.image,
+        command: options.command,
+        baselineCommand: options.baselineCommand,
+        prepareDependencies: options.prepareDependencies,
+        generatedChecks: options.generatedChecks,
+        compareTypeErrors: options.compareTypeErrors,
+        assessment: options.assessment,
+        aiPatch: options.aiPatch,
+        documentationSnapshots: options.documentationSnapshots,
+        repairAttempts: options.repairAttempts,
+        leaveReviewedFindings: allowUnresolved,
+        recordUntested: allowUnresolved,
+        onProgress: options.onProgress,
+        signal: options.signal,
+      });
+    let report = await validate(false);
+    // Owner decision 1: a rules' patch that moved the API version and then failed the checks is
+    // retried without the move, keeping the edits that work under either version.
+    if (allowUnresolved && report.validation.status === 'regression' && movesApiVersion(report)) {
+      options.onProgress?.(
+        'The patch failed the checks. Validating it without the API-version move...',
+      );
+      // Without the move there may be nothing to patch; the regression then stands.
+      const kept = await validate(true).catch((error: unknown) => {
+        if (error instanceof PipelineInputError) return undefined;
+        throw error;
+      });
+      if (kept?.validation.status === 'passed' && kept.publicationFiles.length) report = kept;
+    }
     runId = report.runId;
     validation = report.validation.status;
     const reviews = publicationWaiver(report, allowUnresolved, options.doctor);
@@ -393,6 +423,13 @@ export async function runWorkflow(options: {
     const review = createReviewArtifacts(report, 'local', options.integration, reviews);
     needsReview = review.manifest.title.startsWith(NEEDS_REVIEW_PREFIX);
     for (const [path, content] of Object.entries(review.files)) await save(path, content);
+    // Where the scan alone would have stopped, the run ends as that stop's draft did before
+    // owner decision 1, with the failed patch kept as evidence and never published.
+    const stop =
+      allowUnresolved && report.validation.status === 'regression'
+        ? scanReviewReason(scan, Boolean(options.aiPatch), false)
+        : undefined;
+    if (stop) return await finish('needs-review', `${stop} ${REGRESSION_NOTE}`, runId);
     if (report.validation.status !== 'passed' && !reviews)
       return await finish(
         'validation-failed',
