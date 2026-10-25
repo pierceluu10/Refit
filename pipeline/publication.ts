@@ -693,6 +693,17 @@ export function publicationWaiver(
     !generatedRan
       ? [{ gate: 'no-checks' as const, ...NO_OP_REVIEW }]
       : []),
+    ...(validation.submodules?.length
+      ? [
+          {
+            gate: 'submodules' as const,
+            reason: `Refit checked this repository without its ${validation.submodules.length === 1 ? 'submodule, so nothing in it was' : 'submodules, so nothing in them was'} scanned, built or tested.`,
+            check:
+              'Check out the submodules, run your checks on this branch, and confirm the code in each one works with this patch.',
+            sites: validation.submodules.map((path): ReviewSite => ({ file: path, line: 0 })),
+          },
+        ]
+      : []),
     ...(patch.generator === 'openai' ? [{ gate: 'ai-patch' as const, ...AI_PATCH_REVIEW }] : []),
     ...migrationReviewReasons(report, deterministic).map((entry) =>
       entry.reason === WEBHOOK_REVIEW_REASON

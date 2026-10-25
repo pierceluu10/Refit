@@ -393,6 +393,8 @@ async function installDependencies(
 export async function prepareDependencies(options: {
   repository: string;
   image: string;
+  // Prepare the committed root without its submodules, as validation checks it (owner decision 1).
+  submodules?: boolean;
   cacheDirectory?: string;
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
@@ -407,7 +409,9 @@ export async function prepareDependencies(options: {
 async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
-  const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository)
+  const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository, {
+    submodules: options.submodules,
+  })
     .then(readPreparationInputs)
     .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;

@@ -153,7 +153,9 @@ async function inspectEnrollmentInputs(options: {
   allowUntested?: boolean;
 }) {
   const target = validateGitHubTarget(options.github, options.base);
-  const snapshot = await readCommittedRepository(options.repository);
+  const snapshot = await readCommittedRepository(options.repository, {
+    submodules: options.allowUntested,
+  });
   const generated = snapshot.entries.some(
     (entry) => entry.slice(entry.indexOf('\t') + 1) === REPOSITORY_CONFIGURATION,
   )

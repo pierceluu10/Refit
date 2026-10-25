@@ -598,7 +598,9 @@ export async function validateMigration(options: {
     if (applicability.applicability !== 'matches-before')
       throw new PipelineInputError(`Automated publication is blocked. ${applicability.reason}`);
   }
-  const snapshot = await readCommittedRepository(options.repository);
+  const snapshot = await readCommittedRepository(options.repository, {
+    submodules: options.leaveReviewedFindings,
+  });
   const repository = snapshot.directory;
   const preflight = await runPipeline({
     ...options,
@@ -701,6 +703,7 @@ export async function validateMigration(options: {
           prepareDependencies({
             repository,
             image,
+            submodules: options.leaveReviewedFindings,
             signal: options.signal,
             onProgress: options.onProgress,
           }),
@@ -1267,6 +1270,8 @@ export async function validateMigration(options: {
       runtime,
       ...(environment ? { environment } : {}),
       ...(dependencyFailure ? { dependencyFailure } : {}),
+      // Left out of the snapshot (owner decision 1): nothing in them was scanned, built or tested.
+      ...(snapshot.submodules.length ? { submodules: snapshot.submodules } : {}),
       ...(candidateEnvironment ? { patchedEnvironment: candidateEnvironment } : {}),
       command: options.command,
       baselineCommand,

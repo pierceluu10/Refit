@@ -791,6 +791,20 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   await expect(publishDraft(regression, allowed)).rejects.toThrow(/passing baseline/);
 });
 
+// Owner decision 1: a repository checked without its submodules says so, naming each one.
+it('lists every submodule Refit checked around as a reason to review', async () => {
+  const evidence = await report();
+  const validation = evidence.validation as typeof evidence.validation & { submodules: string[] };
+  validation.submodules = ['docs/site', 'packages/ui'];
+  const reviews = publicationWaiver(evidence, true)!;
+  expect(reviews.map(({ gate }) => gate)).toEqual(['submodules']);
+  const { manifest, files } = createReviewArtifacts(evidence, 'github', undefined, reviews);
+  expect(manifest.title).toMatch(/^\[Needs review\] /);
+  expect(files['pull-request.md']).toContain(
+    '- Refit checked this repository without its submodules, so nothing in them was scanned, built or tested. **Check:** Check out the submodules, run your checks on this branch, and confirm the code in each one works with this patch.\n  - `docs/site`\n  - `packages/ui`',
+  );
+});
+
 // Owner decision 8: a passing AI patch is never a validated draft.
 it('refuses to publish a passing AI patch as validated, and publishes it for review', async () => {
   const evidence = await report();
