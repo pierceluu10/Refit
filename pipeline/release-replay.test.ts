@@ -400,7 +400,7 @@ it('writes nothing to GitHub for a release the code does not use, and keeps one 
   // Polling again reuses the result and still says why it stopped.
   expect(await poll()).toEqual({
     ...stop,
-    message: `Saved worker result reused; checks were not rerun. ${stop.message}`,
+    message: `Saved worker result reused; checks were not rerun. That run recorded: ${stop.message}`,
   });
   await push('README.md', 'Billing and wallets\n', 'docs: readme');
   expect(await poll()).toMatchObject({ status: 'needs-review', message: stop.message });
