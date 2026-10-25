@@ -1,9 +1,11 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
+import { DependencyPreparationError, prepareDependencies } from './dependency-preparation.ts';
 import {
   codeDiff,
   packageDiff,
@@ -11,9 +13,15 @@ import {
   stripePackageUpgrade,
 } from './stripe-package-upgrade.ts';
 
+vi.mock('./dependency-preparation.ts', async (original) => {
+  const actual = await original<typeof import('./dependency-preparation.ts')>();
+  return { ...actual, prepareDependencies: vi.fn(actual.prepareDependencies) };
+});
+
 const roots: string[] = [];
 afterEach(async () => {
   vi.unstubAllGlobals();
+  vi.mocked(prepareDependencies).mockReset();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -827,6 +835,79 @@ it.skipIf(
     ]);
   },
   900_000,
+);
+
+it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
+  'leaves an upgrade untested when its patched lockfile cannot be installed, only when asked',
+  async () => {
+    registry();
+    const repository = await project();
+    await writeFile(join(repository, 'billing.ts'), SOURCE);
+    const git = (args: string[]) =>
+      execute('git', ['-C', repository, '-c', 'commit.gpgsign=false', ...args]);
+    await git(['init', '-q', '-b', 'main']);
+    await git(['add', '.']);
+    await git([
+      '-c',
+      'user.name=Refit Tests',
+      '-c',
+      'user.email=tests@refit.local',
+      'commit',
+      '-qm',
+      'seed',
+    ]);
+    const root = await mkdtemp(join(tmpdir(), 'refit-sdk-upgrade-untested-'));
+    roots.push(root);
+    await writeFile(join(root, 'before.json'), JSON.stringify(SUBSCRIPTION(false)));
+    await writeFile(join(root, 'after.json'), JSON.stringify(SUBSCRIPTION(true)));
+    await writeFile(join(root, 'provider.json'), JSON.stringify(PROVIDER));
+    // The original lockfile installs (an empty archive); the upgraded one exceeds the sandbox.
+    const archive = join(root, 'dependencies.tar');
+    await execute('tar', ['-cf', archive, '-T', '/dev/null']);
+    const content = await readFile(archive);
+    const tooLarge = new DependencyPreparationError('Dependency archive exceeds 1024 MiB.');
+    vi.mocked(prepareDependencies).mockImplementation(async (input) => {
+      if (basename(input.repository).startsWith('candidate-')) throw tooLarge;
+      return {
+        directory: root,
+        archive,
+        environment: {
+          archiveHash: createHash('sha256').update(content).digest('hex'),
+          archiveBytes: content.length,
+        },
+        reused: false,
+      } as unknown as Awaited<ReturnType<typeof prepareDependencies>>;
+    });
+    const { validateMigration } = await import('./validation.ts');
+    const input = {
+      repository,
+      before: join(root, 'before.json'),
+      after: join(root, 'after.json'),
+      providerConfig: join(root, 'provider.json'),
+      apiVersion: '2024-06-20',
+      image: process.env.REFIT_DOCKER_IMAGE!,
+      prepareDependencies: true,
+      command: ['node', '-e', 'process.exit(0)'],
+    };
+    await expect(validateMigration(input)).rejects.toBe(tooLarge);
+
+    const report = await validateMigration({ ...input, recordUntested: true });
+    console.log(JSON.stringify(report.validation, null, 2).slice(0, 4000));
+    expect(report.patch).toMatchObject({ sdkUpgrade: { from: '12.18.0', to: TARGET } });
+    expect(report.validation).toMatchObject({
+      status: 'untested',
+      baseline: { status: 'passed' },
+      patched: { status: 'not-run' },
+      dependencyFailure: { reason: 'dependency-archive-limit' },
+    });
+    expect(report.publicationFiles.map((file) => file.path).sort()).toEqual([
+      'billing.ts',
+      'package-lock.json',
+      'package.json',
+      'stripeSubscriptionPeriod.ts',
+    ]);
+  },
+  300_000,
 );
 
 // pnpm 8 writes lockfile v6: root sections at the top level, `/name@version` records with `dev` flags.

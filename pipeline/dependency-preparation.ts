@@ -233,10 +233,71 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       "Run your own tests and type check on this branch before merging; Refit's sandbox could not hold this dependency tree.",
   },
 ] as const;
+export const OTHER_DEPENDENCY_FAILURE = {
+  reason: 'preparation-failed',
+  summary: 'Refit could not install them in its sandbox',
+  action: () =>
+    'Install the dependencies and run your own tests and type check on this branch before merging; Refit ran none.',
+};
 
-export function repositoryDependencyFailure(error: unknown) {
+// An absolute path in a refusal names the host or container layout, never the repository's files:
+// alone, after `unix://` or `file://`, in a `:`-separated list, or with spaces before a further `/`.
+// A `/` inside a word, a URL, base64 (`sha512-…+/…`) or an alias (`@/lib`) is not one.
+const ABSOLUTE_PATH = /(?:(?<![\w.~/@+-])|(?<=:\/\/))\/[\w.@+~-](?:[\w.@+~/-]| (?=[\w.@+~-]+\/))*/g;
+
+// Docker or the network failed, not the repository's install: the job fails and is retried. 125
+// is `docker run` itself failing (a name conflict, denied mounts, the host out of space); 137 and
+// 143 are kills from outside the container.
+const HOST_EXIT_CODES = new Set([125, 137, 143]);
+const HOST_FAILURE =
+  /Cannot connect to the Docker daemon|error during connect|Mounts denied|overlay[\s\S]*(?:ENOSPC|no space left)/i;
+const REGISTRY_UNREACHABLE =
+  /\b(?:EAI_AGAIN|ENOTFOUND|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|ERR_SOCKET_TIMEOUT)\b|socket hang up/;
+
+export class PreparationHostError extends PipelineInputError {
+  override name = 'PreparationHostError';
+}
+
+// The error a failed install raises when Refit's host, not the repository, caused it.
+export function hostInstallFailure(
+  manager: string,
+  result: { code: number | null; signal: NodeJS.Signals | null },
+  stderr: string,
+) {
+  const tail = stderr.slice(-MAX_ERROR_CHARACTERS);
+  if (
+    HOST_EXIT_CODES.has(result.code ?? 0) ||
+    result.signal === 'SIGKILL' ||
+    result.signal === 'SIGTERM' ||
+    HOST_FAILURE.test(stderr)
+  )
+    return new PreparationHostError(
+      `Docker could not run ${manager} dependency preparation (${result.code ?? result.signal}). ${tail}`,
+    );
+  if (REGISTRY_UNREACHABLE.test(stderr))
+    return new PreparationHostError(
+      `${manager} could not reach the package registry during dependency preparation. ${tail}`,
+    );
+  return undefined;
+}
+
+// A refusal of the repository's committed inputs is the repository's to fix, so a patch can be
+// published untested beside it.
+function repositoryRefusal(error: unknown): never {
+  throw error instanceof PipelineInputError && !(error instanceof DependencyPreparationError)
+    ? new DependencyPreparationError(error.message, { cause: error })
+    : error;
+}
+
+// Why preparation refused, for a patch published untested (owner decision 1, 2026-10-24): a named
+// repository-side cause with its fix, or any other refusal of the repository's inputs or install.
+// Refit's own errors (state locks, the dependency cache, Docker, settings, cancellation) return
+// undefined, so the job fails and is retried instead of publishing an untested patch.
+export function preparationFailure(error: unknown) {
   if (!(error instanceof PipelineInputError)) return undefined;
-  const failure = REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message));
+  const failure =
+    REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message)) ??
+    (error instanceof DependencyPreparationError ? OTHER_DEPENDENCY_FAILURE : undefined);
   if (!failure) return undefined;
   const lockfile = /pnpm/i.test(error.message)
     ? 'pnpm-lock.yaml'
@@ -247,7 +308,7 @@ export function repositoryDependencyFailure(error: unknown) {
     reason: failure.reason,
     summary: failure.summary,
     action: failure.action(lockfile),
-    message: error.message,
+    message: error.message.replace(ABSOLUTE_PATH, '[path]'),
   };
 }
 
@@ -308,6 +369,8 @@ async function installDependencies(
       throw new DependencyPreparationError(
         `Dependency preparation exceeded ${timeoutSeconds} seconds. Set REFIT_DEPENDENCY_TIMEOUT_SECONDS (up to ${MAX_INSTALL_TIMEOUT_SECONDS}) for a larger dependency tree.`,
       );
+    const host = result.code !== 0 ? hostInstallFailure(inputs.manager, result, stderr) : undefined;
+    if (host) throw host;
     const { workspace } = preparationProfile();
     if (result.code !== 0 && /\bENOSPC\b/.test(stderr))
       throw new DependencyPreparationError(
@@ -384,8 +447,9 @@ export async function prepareDependencies(options: {
 async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
-  const snapshot = await readCommittedRepository(options.repository);
-  const { files, workspaceContents, inputs } = await readPreparationInputs(snapshot);
+  const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository)
+    .then(readPreparationInputs)
+    .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;
   const image = DOCKER_IMAGE_ID.test(options.image)
     ? options.image

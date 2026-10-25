@@ -1,8 +1,7 @@
 fix(stripe): migrate removed invoice.subscription reads
 
 Stripe API 2026-09-30.endive removes fields this code reads. A
-deterministic Refit rule migrates 1 confirmed usage in 1 file so the
-code keeps working after the upgrade.
+deterministic Refit rule migrates 1 confirmed usage in 1 file.
 
 - convex/stripe.ts: Migrates reads of invoice.subscription to the
   documented new locations. Moves the pinned API version from 2024-06-20
@@ -12,8 +11,10 @@ code keeps working after the upgrade.
 - package.json: Upgrades stripe from 16.5.0 to 23.0.0.
 - package-lock.json: Upgrades stripe from 16.5.0 to 23.0.0.
 
-Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
-original and migrated code in offline Docker.
+Checks: npx --no-install tsc --noEmit --pretty false -p . reported 1
+existing type error on the original code, counted by file, code and
+message, and no error with a new file, code and message on the migrated
+code, in offline Docker.
 
 Source: https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects
 
