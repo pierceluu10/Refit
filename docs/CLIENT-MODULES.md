@@ -51,15 +51,70 @@ const stripe = getStripe();
 await getStripe().subscriptions.retrieve(id);
 ```
 
-The factory may be a function declaration or a `const` arrow or function expression, with any parameters; it may throw. A module `let` holder counts only when every assignment to it is a client or `null`/`undefined` (`=`, `??=`, `||=`), and `return client ?? (client = new Stripe(...))` works too. `const stripe = key ? new Stripe(key) : null` is a client as well. Each constructor behind a factory declares that factory's API version, so a literal `apiVersion` is read and bumped as for a direct client. `stripe!.customers.create(...)` traces like `stripe.customers.create(...)`.
+The factory may be a function declaration or a `const` arrow or function expression, with any parameters; it may throw. A module `let` holder counts only when every assignment to it is a client or `null`/`undefined` (`=`, `??=`, `||=`), all in its own file, and it is not exported (`export let`, `export { stripe }` or `export default stripe`); and `return client ?? (client = new Stripe(...))` works too. `const stripe = key ? new Stripe(key) : null` is a client as well. Each constructor behind a factory declares that factory's API version, so a literal `apiVersion` is read and bumped as for a direct client. `stripe!.customers.create(...)` traces like `stripe.customers.create(...)`.
 
 An `async` factory counts when every call to it is awaited at once (`const stripe = await getStripe()`, `(await getStripe()).customers.create(...)`), including one that awaits its key before filling a lazy holder. If any call stores, returns or passes the promise, or calls it optionally, the whole factory stays a review case. A factory also stays a review case when it is a generator, returns anything else on any path, is reassigned, or its holder is written any other way (destructuring, `++`, a non-client value).
+
+## Types and re-exported names
+
+A client module often exports types, and names it re-exports from other modules, beside the client. An importer that takes only those does not unlink the client from its other importers:
+
+```ts
+// client.ts
+import Stripe from 'stripe';
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-02-24.acacia',
+});
+export type Plan = 'monthly' | 'annual';
+export { PLAN_LIMIT } from './limits';
+
+// Each of these importers keeps `stripe` linked everywhere else:
+import type { Plan } from './client.js';
+import { type Plan, stripe } from './client.js';
+import { Plan } from './client.js'; // a type, without the `type` keyword
+import { PLAN_LIMIT } from './client.js';
+```
+
+- `import type` and `import { type … }` never take a module value.
+- A name imported without `type` counts as a type only when the TypeScript checker finds no value behind it: an interface, a type alias, or a namespace that holds only types. Declarations merge, so a type that shares its name with a `const`, `let`, function, class, enum or a namespace with values (`namespace` or `declare namespace`) is a value, as is a destructured export such as `export const { client } = clients`. Importing one of those marks the module escaping, like any other name the module does not export as a supported client.
+- A name the module re-exports with `export { name } from './other.js'` is the other module's binding. It links to that module's export when it is a supported one; otherwise the other module, not this one, is marked escaping. Importing a name the module re-exports from a package that is not scanned marks this module escaping.
+
+Re-exporting a client still marks the client module escaping, so barrels stay review cases: `export { stripe } from './client.js'`, `export { default as stripe } from './client.js'` and `export * from './client.js'` expose the client to importers Refit does not follow.
+A `Proxy` export whose only trap is `get` and forwards every read to the client is the client too:
+
+```ts
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const client = getStripe();
+    const value = Reflect.get(client, prop, client);
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
+```
+
+The trap may read `client[prop]` or `Reflect.get(client, prop)` (with the trap's receiver or the client itself), name the client in a `const` first, fill a lazy holder first (`if (!_stripe) _stripe = getStripeClient()`), and bind methods to that same client, through a ternary or an `if (typeof value === 'function') return value.bind(client)`. Any other statement, a binding to another object, a mutable local or a holder that can hold anything else leaves the export untraced.
+
+A `let` holder of that kind is the client itself where it is used directly, in a module or a function:
+
+```ts
+let stripe: Stripe | null = null;
+if (typeof window === 'undefined') stripe = new Stripe(key, { apiVersion: '2025-06-30.basil' });
+
+export async function portal(customer: string) {
+  if (!stripe) throw new Error('Stripe is not initialized');
+  return stripe.billingPortal.sessions.create({ customer });
+}
+```
+
+`let stripe; try { stripe = getStripe(); } catch { … }` works the same way. The holder declares the version of the constructors assigned to it. It counts only while every read keeps the client inside it: a member read (`stripe.customers`, `stripe!.customers`), a return, a write, or a test of whether it is set (`!stripe`, `if (stripe)`, `stripe === null`). A holder that is copied (`const copy = stripe`), passed to a function, stored in an object or exported stays untraced where it is used directly.
+
+Model fixes (`refit deadlines --propose-model-fixes`, `refit serve --model-fixes`) do not use these lazy Proxy shapes (a `const` local, bound methods, the client as its own `Reflect.get` receiver, a Proxy over a filled holder) or holders used as the client: requests on such OpenAI and Anthropic clients stay listed but not edited, as before.
 
 ## Boundaries
 
 Only scanned source files are resolved. Relative imports and supported repository `paths`/`baseUrl` mappings share the same graph. Exact paths, unique extensionless file/index paths and unambiguous `.js` → `.ts`, `.mjs` → `.mts` and `.cjs` → `.cts` paths are supported. Ambiguous source/output pairs are refused. See [configured aliases and runtime boundaries](SOURCE-ALIASES.md).
 
-Clients and constructor aliases must be immutable. Static CommonJS exports must be unambiguous top-level assignments to unshadowed globals; literal export objects may contain only supported identifier bindings. Namespace imports, re-exports, spreads, accessors, computed exports, changing the export object, shadowed or exposed loaders, unconfigured or unresolved aliases, dynamic imports and factory wrappers outside the shapes above remain review cases. Refit does not reproduce a bundler's module interop or a package's export map.
+Clients and constructor aliases must be immutable. Static CommonJS exports must be unambiguous top-level assignments to unshadowed globals; literal export objects may contain only supported identifier bindings. Namespace imports, re-exports of a client (see above), spreads, accessors, computed exports, changing the export object, shadowed or exposed loaders, unconfigured or unresolved aliases, dynamic imports and factory wrappers outside the shapes above remain review cases. Refit does not reproduce a bundler's module interop or a package's export map.
 
 A confirmed finding means the usage was traced under the recorded adapter, not that arbitrary application behavior is proven. Strict source-version policy still requires resolvable matching options. Checks must exercise the application's intended contracts.
 

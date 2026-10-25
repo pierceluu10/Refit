@@ -6,7 +6,8 @@ import {
   validateNpmLock,
 } from './npm-lock.ts';
 import { readCommittedFile } from './committed-repository.ts';
-import { parseDocumentObject, parseObject } from './specifications.ts';
+import { digest, parseDocumentObject, parseObject } from './specifications.ts';
+import { BUN_LOCKFILE, npmLockFromBun } from './bun-lock.ts';
 import { PipelineInputError } from './types.ts';
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
 import { PNPM_WORKSPACE, validatePnpmInputs } from './pnpm-inputs.ts';
@@ -39,15 +40,32 @@ export interface PreparationIdentity {
   workspaceOptionalLinks?: Record<string, string>;
   legacyPeerDeps?: true;
   platformPackages?: number;
+  // The committed bun.lock that npm ci installs, translated (bun-lock.ts).
+  bunLockHash?: string;
+  // Committed pnpm patch files by path, with the SHA-256 pnpm-lock.yaml records for each.
+  patchHashes?: Record<string, string>;
 }
 
 export async function readPreparationInputs(
   snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  // Node resolves modules up the directory tree, so a nested package's preparation refuses a
+  // tracked node_modules anywhere in its repository, as the root's does.
+  repositoryEntries = snapshot.entries,
 ) {
   const paths = snapshot.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1));
-  const pnpm = paths.includes(PNPM_LOCKFILE);
-  const yarn = paths.includes(YARN_LOCKFILE);
+  const committed = ['package-lock.json', PNPM_LOCKFILE, YARN_LOCKFILE].filter((file) =>
+    paths.includes(file),
+  );
+  const chosen =
+    committed.length > 1 && paths.includes('package.json')
+      ? await installedLockfile(snapshot, paths, committed)
+      : undefined;
+  const lockfiles = chosen ? [chosen] : committed;
+  const pnpm = lockfiles.includes(PNPM_LOCKFILE);
+  const yarn = lockfiles.includes(YARN_LOCKFILE);
   const lockfile = pnpm ? PNPM_LOCKFILE : yarn ? YARN_LOCKFILE : 'package-lock.json';
+  // Bun reads bun.lock before bun.lockb, so a committed binary lockfile beside it is never used.
+  const bun = !lockfiles.length && paths.includes(BUN_LOCKFILE);
   if (!paths.includes('package.json')) {
     const nested = paths.filter((path) =>
       /^[^/]+\/(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/.test(path),
@@ -60,17 +78,20 @@ export async function readPreparationInputs(
     throw new PipelineInputError(
       `The repository commits ${YARN_RC} but no ${YARN_LOCKFILE}, so the dependency versions to verify are unknown. Run yarn install and commit the ${YARN_LOCKFILE} it writes.`,
     );
-  if (!paths.includes(lockfile))
+  if (!paths.includes(lockfile) && !bun)
     throw new PipelineInputError(
       'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown. Run npm install, pnpm install or yarn install and commit the package-lock.json, pnpm-lock.yaml or yarn.lock it writes.',
     );
-  const lockfiles = ['package-lock.json', PNPM_LOCKFILE, YARN_LOCKFILE].filter((file) =>
-    paths.includes(file),
-  );
+  if (bun && paths.includes('bunfig.toml'))
+    throw new PipelineInputError(
+      'Automatic preparation does not read bunfig.toml, which can change the registry or the node_modules layout Bun installs. Validate with a custom image.',
+    );
   const pnpmHook = pnpm
     ? paths.find((path) => /^\.pnpmfile\.[cm]?js$/.test(path.split('/').at(-1)!))
     : undefined;
-  const trackedModules = paths.find((path) => path.split('/').includes('node_modules'));
+  const trackedModules = repositoryEntries
+    .map((entry) => entry.slice(entry.indexOf('\t') + 1))
+    .find((path) => path.split('/').includes('node_modules'));
   const conflict = paths.includes('npm-shrinkwrap.json')
     ? 'commits npm-shrinkwrap.json'
     : lockfiles.length > 1
@@ -132,12 +153,20 @@ export async function readPreparationInputs(
   if (
     !pnpm &&
     manifest.packageManager !== undefined &&
-    (typeof manifest.packageManager !== 'string' || !manifest.packageManager.startsWith('npm@'))
+    (typeof manifest.packageManager !== 'string' ||
+      !manifest.packageManager.startsWith(bun ? 'bun@' : 'npm@'))
   )
     throw new PipelineInputError(
-      'The declared package manager differs from the committed npm lockfile.',
+      `The declared package manager differs from the committed ${bun ? 'bun' : 'npm'} lockfile.`,
     );
-  const lockContent = await readCommittedFile(snapshot, lockfile, MAX_LOCK_BYTES);
+  const bunContent = bun
+    ? await readCommittedFile(snapshot, BUN_LOCKFILE, MAX_LOCK_BYTES)
+    : undefined;
+  // npm ci installs the translation: the same packages at the same paths, verified by integrity.
+  const lockContent =
+    bunContent === undefined
+      ? await readCommittedFile(snapshot, lockfile, MAX_LOCK_BYTES)
+      : npmLockFromBun(packageContent, bunContent);
   const workspaceContent =
     pnpm && paths.includes(PNPM_WORKSPACE)
       ? await readCommittedFile(snapshot, PNPM_WORKSPACE, MAX_PACKAGE_BYTES)
@@ -161,8 +190,11 @@ export async function readPreparationInputs(
     : {
         ...validateNpmLock(packageContent, lockContent, workspaceContents),
         manager: 'npm',
-        ...npmPin(manifest.packageManager),
-        ...(paths.includes('.npmrc') &&
+        ...(bunContent === undefined
+          ? npmPin(manifest.packageManager)
+          : { bunLockHash: digest(bunContent) }),
+        ...(bunContent === undefined &&
+        paths.includes('.npmrc') &&
         legacyPeerDeps(await readCommittedFile(snapshot, '.npmrc', MAX_PACKAGE_BYTES))
           ? { legacyPeerDeps: true as const }
           : {}),
@@ -175,11 +207,76 @@ export async function readPreparationInputs(
     ),
   ]);
   if (workspaceContent !== undefined) files.set(PNPM_WORKSPACE, workspaceContent);
+  // pnpm applies each committed patch whose hash pnpm-lock.yaml records; nothing else is patched.
+  for (const [path, hash] of Object.entries(inputs.patchHashes ?? {})) {
+    const content = await readCommittedFile(snapshot, path, MAX_PACKAGE_BYTES);
+    if (digest(content) !== hash)
+      throw new PipelineInputError(
+        `The committed ${path} differs from the patch hash pnpm-lock.yaml records. Run pnpm install and commit the updated pnpm-lock.yaml.`,
+      );
+    files.set(path, content);
+  }
   return {
     files,
     workspaceContents,
     inputs,
   };
+}
+
+const MANAGER_LOCKFILES: Record<string, string> = {
+  npm: 'package-lock.json',
+  pnpm: PNPM_LOCKFILE,
+  yarn: YARN_LOCKFILE,
+};
+// A command in a workflow step that installs the project's dependencies, by manager. A global tool
+// install (`npm install -g pnpm`) installs no project dependencies.
+const PROJECT_INSTALLS: [string, RegExp][] = [
+  ['npm', /^npm\s+(?:ci|clean-install|install|i)(?:\s|$)/],
+  ['pnpm', /^pnpm\s+(?:install|i)(?:\s|$)/],
+  ['yarn', /^yarn(?:\s+install)?(?:\s+-\S+)*$/],
+  ['bun', /^bun\s+(?:install|i|ci)(?:\s|$)/],
+];
+
+// Every shell command a workflow file could run, read line by line rather than as YAML: a file
+// GitHub cannot parse never runs, and a heredoc inside a `run` block is still read.
+function workflowCommands(text: string) {
+  return text.split(/\r?\n/).flatMap((line) =>
+    line
+      .trim()
+      .replace(/^(?:-\s*)?(?:run:\s*[|>]?[-+]?\s*)?/, '')
+      .split(/&&|\|\||[;|]/)
+      .map((command) => command.trim().replace(/^(?:[A-Za-z_]\w*=\S*\s+)*/, '')),
+  );
+}
+
+// The lockfile of the manager package.json pins, when the repository commits several and its own
+// GitHub workflows install dependencies with that manager and no other: Refit installs as its CI
+// does. Anything else (no pin, no workflow install, another manager's install) keeps refusing.
+async function installedLockfile(
+  snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  paths: string[],
+  committed: string[],
+) {
+  const manifest = parseObject(
+    await readCommittedFile(snapshot, 'package.json', MAX_PACKAGE_BYTES),
+    'package.json',
+  );
+  const manager =
+    typeof manifest.packageManager === 'string'
+      ? /^(npm|pnpm|yarn)@\d/.exec(manifest.packageManager)?.[1]
+      : undefined;
+  const workflows = paths.filter((path) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(path));
+  if (!manager || !committed.includes(MANAGER_LOCKFILES[manager]) || workflows.length > 64)
+    return undefined;
+  const installers = new Set<string>();
+  for (const path of workflows)
+    for (const command of workflowCommands(
+      await readCommittedFile(snapshot, path, MAX_PACKAGE_BYTES),
+    ))
+      if (!/\s(?:-g|--global)(?:\s|$)/.test(command))
+        for (const [name, pattern] of PROJECT_INSTALLS)
+          if (pattern.test(command)) installers.add(name);
+  return installers.size === 1 && installers.has(manager) ? MANAGER_LOCKFILES[manager] : undefined;
 }
 
 // The committed .npmrc stays out of the install, so it cannot change the registry or credentials.

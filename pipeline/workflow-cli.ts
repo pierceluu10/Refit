@@ -132,6 +132,7 @@ try {
         values['baseline-command'] !== undefined
           ? parseCheckCommand(values['baseline-command'], '--baseline-command')
           : configuration?.baselineCommand,
+      checkTimeoutSeconds: configuration?.checkTimeoutSeconds,
       providerConfig: values['provider-config'] ?? configuration?.providerConfig,
       apiVersion: values['api-version'] ?? configuration?.apiVersion,
       apiVersionPolicy: validateApiVersionPolicy(

@@ -32,6 +32,7 @@ import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
+  PERIOD_HELPERS,
   HELPER_GLOBALS,
   HELPER_NAMES,
   subscriptionPeriodHelperEdit,
@@ -286,9 +287,22 @@ export function analyzeRepository(
   // jsconfig is unverified, so a caller can report those calls for review instead of missing
   // them. Analyses that can lead to edits keep the default, which treats them as unknown imports.
   // `invoicePreview`: the contract-checked move of Stripe's removed upcoming invoice call.
-  options: { traceUnverifiedPackageImports?: boolean; invoicePreview?: InvoicePreviewMove } = {},
+  // `typeCheckedPeriodReads`: where validation's patched type check rejected a `current_period_*`
+  // read on Subscription (file and offset of the property name); those reads take the period helper.
+  // `modelFixClients`: trace only the client shapes the model-fix edits were decided on (AGENTS.md),
+  // leaving lazy Proxy clients with a local or bound methods, a Proxy over a filled holder and a
+  // holder used as the client to stop for review.
+  options: {
+    traceUnverifiedPackageImports?: boolean;
+    invoicePreview?: InvoicePreviewMove;
+    typeCheckedPeriodReads?: { file: string; position: number }[];
+    modelFixClients?: boolean;
+  } = {},
 ) {
   const { sources, resolution, program, checker } = analysisProgram(repository);
+  const typeCheckedPeriodReads = new Set(
+    (options.typeCheckedPeriodReads ?? []).map((read) => `${read.file}\0${read.position}`),
+  );
   const findings: Finding[] = [];
   const imports: Location[] = [];
   const calls: (Location & { method: string })[] = [];
@@ -349,7 +363,7 @@ export function analyzeRepository(
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) =>
     modules.member(node) ?? canonical(checker.getSymbolAtLocation(node));
-  const literals = sourceLiterals({ nodes, symbol });
+  const literals = sourceLiterals({ nodes, symbol, file: (node) => location(node).file });
   const stripeTypes =
     provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
@@ -521,18 +535,27 @@ export function analyzeRepository(
       ts.isAsExpression(expression) ||
       ts.isTypeAssertionExpression(expression) ||
       ts.isNonNullExpression(expression) ||
-      ts.isSatisfiesExpression(expression)
+      ts.isSatisfiesExpression(expression) ||
+      awaitedField(expression)
     )
       return arrayItemForExpression(expression.expression);
     return undefined;
   }
+  // `await session.line_items.data`: a field of a response is a plain value, so awaiting it
+  // returns the value itself.
+  function awaitedField(expression: ts.Expression): expression is ts.AwaitExpression {
+    return (
+      ts.isAwaitExpression(expression) &&
+      (ts.isPropertyAccessExpression(expression.expression) ||
+        ts.isElementAccessExpression(expression.expression))
+    );
+  }
   function arrayIteration(node: ts.CallExpression) {
     const method = node.expression;
+    // `items?.map(…)` runs the callback on the same elements whenever it runs at all.
     const paged = autoPaging(node, 'autoPagingEach');
     if (
-      node.questionDotToken ||
       !ts.isPropertyAccessExpression(method) ||
-      method.questionDotToken ||
       (!paged && !ARRAY_ITERATION_METHODS.has(method.name.text)) ||
       node.arguments.length !== 1
     )
@@ -586,6 +609,7 @@ export function analyzeRepository(
       return (
         schemaForExpression(expression.expression) ?? stripeTypes?.expressionSchema(expression)
       );
+    if (awaitedField(expression)) return schemaForExpression(expression.expression);
     if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
       const operation = responseCall(expression.expression);
       return operation && !operation.list
@@ -629,10 +653,18 @@ export function analyzeRepository(
       if (sdk.creation(node.expression)) clients.add(binding);
   }
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
-  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
+  const base = options.modelFixClients;
+  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation, base });
   for (const declaration of declarations) {
-    const binding = clientBinding(proxyClient(declaration.initializer) ?? declaration.initializer);
-    if (binding && clients.has(binding)) add(clients, declaration.name);
+    const forwarded = proxyClient(declaration.initializer, base);
+    const binding = clientBinding(forwarded ?? declaration.initializer);
+    // A Proxy reads its holder on every access, so a holder that only ever holds the client
+    // (filled in the trap or by a factory) forwards to that client.
+    if (
+      binding &&
+      (clients.has(binding) || (!base && forwarded && factoryBindings.holders.has(binding)))
+    )
+      add(clients, declaration.name);
   }
   const helperBindings = helperClients({
     nodes,
@@ -646,6 +678,7 @@ export function analyzeRepository(
     rootBinding: classBindings.rootBinding,
     aliases: [...classBindings.aliases, ...helperBindings.aliases],
     localArgument: helperBindings.localArgument,
+    held: factoryBindings.held,
   };
   webhooks =
     provider.packageName === 'stripe'
@@ -1290,6 +1323,19 @@ export function analyzeRepository(
     edits.push(edit);
     return true;
   }
+  // Reads sharing a hoisted helper local plan the same declaration; it is added once.
+  function addPlanned(planned: SourceEdit[]) {
+    return planned.every(
+      (edit) =>
+        edits.some(
+          (other) =>
+            other.file === edit.file &&
+            other.start === edit.start &&
+            other.end === edit.end &&
+            other.replacement === edit.replacement,
+        ) || addEdit(edit),
+    );
+  }
   const periodPlans = new Map<
     ts.Node,
     { rareCase: PeriodRareCase; text?: string; selection?: string }
@@ -1396,14 +1442,19 @@ export function analyzeRepository(
     node: ts.Node,
     receiver: ts.Expression,
     change: Removal,
+    typeChecked = false,
   ): SourceEdit['rule'] | undefined {
     const provenance = sourceEvidence(receiver)?.kind;
-    // Every subscription-period read (SDK response, webhook payload or Stripe.*-typed value) goes
-    // through the generated helper, which reads either API version.
+    // Every subscription-period read (SDK response, webhook payload, Stripe.*-typed value, or a read
+    // the upgraded types reject on Subscription) goes through the generated helper, which reads
+    // either API version.
     if (
       provider.packageName === STRIPE.packageName &&
       change.schema === 'subscription' &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+      (webhooks?.origin(receiver) ||
+        provenance === 'declared-type' ||
+        provenance === 'sdk' ||
+        typeChecked)
     ) {
       const plan = periodPlan(node);
       const edit = subscriptionPeriodHelperEdit(node, location(node).file, change.id, plan.text);
@@ -1425,18 +1476,7 @@ export function analyzeRepository(
         (!expandsField('subscription') && (provenance === 'declared-type' || provenance === 'sdk')))
     ) {
       const planned = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
-      // Reads sharing a hoisted local plan the same declaration; it is added once.
-      const added = planned?.every(
-        (edit) =>
-          edits.some(
-            (other) =>
-              other.file === edit.file &&
-              other.start === edit.start &&
-              other.end === edit.end &&
-              other.replacement === edit.replacement,
-          ) || addEdit(edit),
-      );
-      if (planned && added) return planned[0].rule;
+      if (planned && addPlanned(planned)) return planned[0].rule;
     }
     // `line.price.id` on invoice line items and invoice items: the ID moved under `pricing`.
     if (
@@ -1481,8 +1521,8 @@ export function analyzeRepository(
       ) &&
       (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
     ) {
-      const edit = checkoutShippingHelperEdit(node, location(node).file, change.id);
-      if (edit && addEdit(edit)) return edit.rule;
+      const planned = checkoutShippingHelperEdit(node, location(node).file, change.id);
+      if (planned && addPlanned(planned)) return planned[0].rule;
     }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
@@ -1760,13 +1800,22 @@ export function analyzeRepository(
     const sourceClient =
       provenance && 'call' in provenance ? sdkCall(provenance.call)?.client : undefined;
     const classClient = sourceClient && classBindings!.client(sourceClient);
+    const checkedRead =
+      ts.isPropertyAccessExpression(node) &&
+      typeCheckedPeriodReads.has(`${location(node).file}\0${node.name.getStart()}`);
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
-      if (!tracked && !providerDetected) continue;
+      if (!tracked && !providerDetected && !checkedRead) continue;
       // Unresolved Stripe receivers are flagged only where files work with Stripe; if none are
       // identifiable, every same-named read stays flagged.
-      if (!tracked && stripeTypes && stripeFiles.size && !stripeFiles.has(node.getSourceFile()))
+      if (
+        !tracked &&
+        !checkedRead &&
+        stripeTypes &&
+        stripeFiles.size &&
+        !stripeFiles.has(node.getSourceFile())
+      )
         continue;
       const directCall = (expression: ts.Expression): ts.CallExpression | undefined => {
         if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression))
@@ -1797,7 +1846,16 @@ export function analyzeRepository(
         (!webhook || webhook.schema !== undefined) &&
         (provenance?.kind !== 'unmapped-sdk' || declaredType),
       );
-      const migration = confirmed ? propose(node, receiver, change) : undefined;
+      // The type checker resolved the receiver to Subscription, and the helper returns the field the
+      // object holds at runtime, so neither tracing nor mutation evidence is needed for this read.
+      const typeChecked =
+        !confirmed &&
+        checkedRead &&
+        change.schema === 'subscription' &&
+        Object.hasOwn(PERIOD_HELPERS, change.property);
+      const migration =
+        confirmed || typeChecked ? propose(node, receiver, change, typeChecked) : undefined;
+      const checkedMigration = typeChecked && migration !== undefined;
       if (property === undefined && !tracked) continue;
       const file = location(node).file;
       const moveReview =
@@ -1812,10 +1870,11 @@ export function analyzeRepository(
         ...location(node),
         changeId: change.id,
         expression: property === undefined ? '[computed property]' : `.${property}`,
-        confidence: confirmed ? 'confirmed' : 'review',
+        confidence: confirmed || checkedMigration ? 'confirmed' : 'review',
         ...(sourceClient ? helperEvidence(sourceClient, mutated) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
-        ...(tracked || provenance || iterationCallback(receiver)
+        ...(checkedMigration ? { typeChecked: true as const } : {}),
+        ...(tracked || provenance || checkedMigration || iterationCallback(receiver)
           ? {}
           : { untraced: true as const }),
         ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE && periodPlans.get(node)
@@ -1852,17 +1911,19 @@ export function analyzeRepository(
             }
           : {}),
         reason:
-          (declaredType && confirmed
-            ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
-            : declaredType
-              ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
-              : confirmed && webhook
-                ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
-                : confirmed
-                  ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
-                  : uncertainMutation
-                    ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                    : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
+          (checkedMigration
+            ? `Removed subscription.${change.property} read that the upgraded stripe-node types reject on Subscription. Refit's tracer did not reach its receiver, so the version-tolerant period helper reads it.`
+            : declaredType && confirmed
+              ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
+              : declaredType
+                ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
+                : confirmed && webhook
+                  ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
+                  : confirmed
+                    ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
+                    : uncertainMutation
+                      ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
+                      : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
           (moveReview ? ` ${moveReview}` : ''),
       });
     }

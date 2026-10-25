@@ -3,8 +3,11 @@ import ts from 'typescript-compiler';
 // `new Proxy(target, { get: (_, key) => client[key] })`, or the same with `Reflect.get(client, key)`
 // or `Reflect.get(client, key, receiver)`, forwards every read to `client`; returns that expression.
 // The trap may first fill `client` (`client ??= make()` or `if (!client) client = make()`); that
-// write is checked wherever `client` is. Any other trap or trap body is not one.
-export function proxyClient(expression: ts.Expression): ts.Expression | undefined {
+// write is checked wherever `client` is. It may name the client in a `const` first
+// (`const client = getStripe()`), and may bind methods to that same client before returning them.
+// Any other trap or trap body is not one. `base` refuses the local, the binding and the client as
+// its own Reflect receiver, as before they were added (model-fix edits, see `modelFixClients`).
+export function proxyClient(expression: ts.Expression, base = false): ts.Expression | undefined {
   const unwrap = (node: ts.Expression): ts.Expression =>
     ts.isParenthesizedExpression(node) ||
     ts.isAsExpression(node) ||
@@ -36,19 +39,103 @@ export function proxyClient(expression: ts.Expression): ts.Expression | undefine
   if (get.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)) return;
   const key = get.parameters[1]?.name;
   if (!key || !ts.isIdentifier(key) || !get.body) return;
-  const statements = ts.isBlock(get.body) ? [...get.body.statements] : [];
-  const last = statements.pop();
-  const body = ts.isBlock(get.body)
-    ? last && ts.isReturnStatement(last) && last.expression
-    : get.body;
-  if (!body || statements.length > 1) return;
-  const read = unwrap(body);
   const named = (node: ts.Node | undefined, name: string | undefined) => {
     const current = node && ts.isExpression(node) ? unwrap(node) : node;
     return Boolean(current && name && ts.isIdentifier(current) && current.text === name);
   };
+  // `const name = value;`, one declaration.
+  const local = (statement: ts.Statement | undefined) => {
+    if (
+      !statement ||
+      !ts.isVariableStatement(statement) ||
+      !(statement.declarationList.flags & ts.NodeFlags.Const) ||
+      statement.declarationList.declarations.length !== 1
+    )
+      return;
+    const [declaration] = statement.declarationList.declarations;
+    return ts.isIdentifier(declaration.name) && declaration.initializer
+      ? { name: declaration.name.text, value: declaration.initializer }
+      : undefined;
+  };
+  // The body is `[fill;] [const client = value;] return read;`, or ends with the read bound for
+  // methods: `const result = read; return typeof result === 'function' ? result.bind(client) :
+  // result;` or `… if (typeof result === 'function') return result.bind(client); return result;`.
+  const statements = ts.isBlock(get.body) ? [...get.body.statements] : [];
+  const last = statements.pop();
+  let body = ts.isBlock(get.body)
+    ? last && ts.isReturnStatement(last) && last.expression
+    : get.body;
+  if (!body) return;
+  const isFunction = (node: ts.Expression, name?: string) =>
+    ts.isBinaryExpression(node) &&
+    [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken].includes(
+      node.operatorToken.kind,
+    ) &&
+    ts.isTypeOfExpression(node.left) &&
+    (name === undefined || named(node.left.expression, name)) &&
+    ts.isStringLiteral(node.right) &&
+    node.right.text === 'function';
+  const binding = (node: ts.Node | undefined, name: string) => {
+    const call = node && ts.isExpression(node) ? unwrap(node) : undefined;
+    if (
+      !call ||
+      !ts.isCallExpression(call) ||
+      call.questionDotToken ||
+      call.arguments.length !== 1 ||
+      !ts.isPropertyAccessExpression(call.expression) ||
+      call.expression.questionDotToken ||
+      call.expression.name.text !== 'bind' ||
+      !named(call.expression.expression, name)
+    )
+      return;
+    const receiver = unwrap(call.arguments[0]);
+    return ts.isIdentifier(receiver) ? receiver.text : undefined;
+  };
+  const previous = statements.at(-1);
+  const check =
+    previous &&
+    ts.isIfStatement(previous) &&
+    !previous.elseStatement &&
+    isFunction(previous.expression)
+      ? (statements.pop() as ts.IfStatement)
+      : undefined;
+  let bound: string | undefined;
+  if (check || ts.isConditionalExpression(unwrap(body))) {
+    const result = local(statements.pop());
+    if (!result) return;
+    const returned = unwrap(body);
+    if (check) {
+      const then =
+        ts.isBlock(check.thenStatement) && check.thenStatement.statements.length === 1
+          ? check.thenStatement.statements[0]
+          : check.thenStatement;
+      if (
+        !isFunction(check.expression, result.name) ||
+        !named(returned, result.name) ||
+        !ts.isReturnStatement(then)
+      )
+        return;
+      bound = binding(then.expression, result.name);
+    } else if (ts.isConditionalExpression(returned)) {
+      if (!isFunction(returned.condition, result.name) || !named(returned.whenFalse, result.name))
+        return;
+      bound = binding(returned.whenTrue, result.name);
+    }
+    if (!bound) return;
+    body = result.value;
+  }
+  const client = local(statements.at(-1)) ? local(statements.pop()) : undefined;
+  if (statements.length > 1) return;
+  const [fill] = statements;
+  const read = unwrap(body);
   const receiver = get.parameters[2]?.name;
-  const target =
+  const selfReceiver =
+    ts.isCallExpression(read) &&
+    read.arguments.length === 3 &&
+    ts.isIdentifier(unwrap(read.arguments[0])) &&
+    named(read.arguments[2], (unwrap(read.arguments[0]) as ts.Identifier).text);
+  if (base && (bound !== undefined || client || selfReceiver)) return;
+  const object =
     ts.isElementAccessExpression(read) &&
     !read.questionDotToken &&
     named(read.argumentExpression, key.text)
@@ -61,12 +148,17 @@ export function proxyClient(expression: ts.Expression): ts.Expression | undefine
           named(read.arguments[1], key.text) &&
           (read.arguments.length === 2 ||
             (read.arguments.length === 3 &&
-              receiver &&
-              ts.isIdentifier(receiver) &&
-              named(read.arguments[2], receiver.text)))
+              // The trap's receiver, or the client itself (an ordinary read of the client).
+              ((receiver && ts.isIdentifier(receiver) && named(read.arguments[2], receiver.text)) ||
+                selfReceiver)))
         ? unwrap(read.arguments[0])
         : undefined;
-  if (!target || (statements.length && !fills(statements[0], target))) return;
+  if (!object) return;
+  // Methods may be bound only to the very object they were read from.
+  if (bound !== undefined && !named(object, bound)) return;
+  if (client && !named(object, client.name)) return;
+  const target = client ? unwrap(client.value) : object;
+  if (fill && !fills(fill, target)) return;
   return target;
 }
 
@@ -105,12 +197,15 @@ type Value = 'client' | 'null' | undefined;
 // (or null), a module `let` or static property holder that is only ever assigned clients
 // (`_stripe ??= new Stripe(key)`), or a constant like `key ? new Stripe(key) : null`. An async factory counts only when every call to it
 // is awaited at once. Any other write to the holder or the factory, a generator, or a return of
-// anything else leaves the client untraced.
+// anything else leaves the client untraced. A holder that is exported or written from another
+// file is not one. Unless `base`, a `let` holder whose every read keeps the client inside it is
+// itself that client.
 export function factoryClients(options: {
   nodes: ts.Node[];
   clients: Set<ts.Symbol>;
   symbol: (node: ts.Node) => ts.Symbol | undefined;
   creation: (node: ts.Node) => Creation | undefined;
+  base?: boolean;
 }) {
   const { nodes, clients, symbol, creation } = options;
   const factories = new Map<ts.Symbol, Factory>();
@@ -124,6 +219,8 @@ export function factoryClients(options: {
   })[] = [];
   const writes = new Map<ts.Symbol, ts.Expression[]>();
   const rejected = new Set<ts.Symbol>();
+  // Holders read somewhere that can pass the client out (a copy, an argument, an export).
+  const escaped = new Set<ts.Symbol>();
   const asyncFactories = new Set<ts.Symbol>();
   const wrappers = new Set<ts.Symbol>();
 
@@ -165,6 +262,51 @@ export function factoryClients(options: {
         : undefined;
   const combine = (values: Value[]): Value =>
     values.includes(undefined) ? undefined : values.includes('client') ? 'client' : 'null';
+  // A read that keeps the value inside: a member read, a return, a write, or a test of whether it
+  // is set (`!holder`, `if (holder)`, `holder === null`), directly or through `??`, `||`, `&&`, `?:`.
+  function kept(node: ts.Node): boolean {
+    let child = node;
+    let parent = node.parent;
+    while (
+      ts.isParenthesizedExpression(parent) ||
+      ts.isNonNullExpression(parent) ||
+      ts.isAsExpression(parent) ||
+      ts.isSatisfiesExpression(parent) ||
+      ts.isTypeAssertionExpression(parent)
+    ) {
+      child = parent;
+      parent = parent.parent;
+    }
+    if (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent))
+      return parent.expression === child;
+    if (ts.isReturnStatement(parent) || (ts.isArrowFunction(parent) && parent.body === child))
+      return true;
+    if (ts.isPrefixUnaryExpression(parent))
+      return parent.operator === ts.SyntaxKind.ExclamationToken;
+    if (ts.isTypeOfExpression(parent)) return true;
+    if (ts.isIfStatement(parent) || ts.isWhileStatement(parent) || ts.isDoStatement(parent))
+      return parent.expression === child;
+    if (ts.isConditionalExpression(parent)) return parent.condition === child || kept(parent);
+    if (!ts.isBinaryExpression(parent)) return false;
+    const operator = parent.operatorToken.kind;
+    if (assignment(parent)) return parent.left === child;
+    if (
+      [
+        ts.SyntaxKind.EqualsEqualsEqualsToken,
+        ts.SyntaxKind.ExclamationEqualsEqualsToken,
+        ts.SyntaxKind.EqualsEqualsToken,
+        ts.SyntaxKind.ExclamationEqualsToken,
+      ].includes(operator)
+    )
+      return true;
+    return (
+      [
+        ts.SyntaxKind.QuestionQuestionToken,
+        ts.SyntaxKind.BarBarToken,
+        ts.SyntaxKind.AmpersandAmpersandToken,
+      ].includes(operator) && kept(parent)
+    );
+  }
 
   // An async factory's call is a promise; only `await factory()` is the client.
   function factoryCall(expression: ts.Expression) {
@@ -278,7 +420,16 @@ export function factoryClients(options: {
       conditionals.push(
         node as ts.VariableDeclaration & { name: ts.Identifier; initializer: ts.Expression },
       );
-    else if (!constant && !ts.isForInStatement(list.parent) && !ts.isForOfStatement(list.parent))
+    else if (
+      !constant &&
+      !ts.isForInStatement(list.parent) &&
+      !ts.isForOfStatement(list.parent) &&
+      // An exported holder can be replaced through the module's exports.
+      !(
+        ts.isVariableStatement(list.parent) &&
+        list.parent.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
+      )
+    )
       candidateHolders.set(binding, node);
   }
   for (const [binding, factory] of candidateFactories)
@@ -293,6 +444,16 @@ export function factoryClients(options: {
     while (ts.isParenthesizedExpression(parent)) parent = parent.parent;
     if (node.questionDotToken || !ts.isAwaitExpression(parent)) rejected.add(binding);
   }
+  // `{ stripe }` resolves to the property, not the variable it reads, so match it by name.
+  for (const node of nodes)
+    if (ts.isShorthandPropertyAssignment(node))
+      for (const [binding, declaration] of candidateHolders)
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.name.text === node.name.text &&
+          declaration.getSourceFile() === node.getSourceFile()
+        )
+          escaped.add(binding);
   // Holders and factories may only be written by a plain replacement of the whole binding.
   for (const node of nodes) {
     if (!ts.isIdentifier(node)) continue;
@@ -319,8 +480,16 @@ export function factoryClients(options: {
       child = parent;
       parent = parent.parent;
     }
+    const holder = candidateHolders.get(binding);
+    if (holder && (ts.isExportSpecifier(node.parent) || ts.isExportAssignment(node.parent)))
+      rejected.add(binding);
+    else if (holder && node.parent !== holder && !kept(node)) escaped.add(binding);
     if (assignment(parent) && parent.left === child) {
-      if (child === target && replacing(parent))
+      if (
+        child === target &&
+        replacing(parent) &&
+        (!holder || parent.getSourceFile() === holder.getSourceFile())
+      )
         writes.set(binding, [...(writes.get(binding) ?? []), parent.right]);
       else rejected.add(binding);
     } else if (
@@ -350,7 +519,7 @@ export function factoryClients(options: {
       continue;
     const made = symbol(parameter.name);
     const [result, ...rest] = returns(wrapper);
-    const target = result && !rest.length ? proxyClient(result) : undefined;
+    const target = result && !rest.length ? proxyClient(result, options.base) : undefined;
     const local = target && ts.isIdentifier(target) ? symbol(target) : undefined;
     const declaration = local && candidateHolders.get(local);
     if (
@@ -436,5 +605,19 @@ export function factoryClients(options: {
       for (const sdk of found) if (!creations.has(sdk)) creations.set(sdk, binding);
     }
   }
-  return { factories, holders, creations, call: factoryCall };
+  // `let stripe = null; if (key) stripe = new Stripe(key);` read only as `stripe.customers…` (or
+  // tested, or returned) is the client itself, and declares the version of what it holds.
+  const held = new Set<ts.Symbol>();
+  if (!options.base)
+    for (const binding of holders) {
+      const declaration = candidateHolders.get(binding)!;
+      if (!ts.isVariableDeclaration(declaration) || escaped.has(binding)) continue;
+      clients.add(binding);
+      held.add(binding);
+      const found: Creation[] = [];
+      for (const write of [declaration.initializer, ...(writes.get(binding) ?? [])])
+        if (write) value(write, found);
+      for (const sdk of found) if (!creations.has(sdk)) creations.set(sdk, binding);
+    }
+  return { factories, holders, held, creations, call: factoryCall };
 }

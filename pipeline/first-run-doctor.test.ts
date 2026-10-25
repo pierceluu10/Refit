@@ -154,28 +154,37 @@ it('names the uncommitted files and the commands that save missing contracts', a
 });
 
 // Shaped like Stripe's dahlia and endive Checkout Session create bodies (card-payment-methods.test.ts).
-const checkoutContract = (version: string, fields: string[]) => ({
+const body = (fields: string[]) => ({
+  content: {
+    'application/x-www-form-urlencoded': {
+      schema: { type: 'object', properties: Object.fromEntries(fields.map((name) => [name, {}])) },
+    },
+  },
+});
+// `subscriptionFields` adds the subscription update body, as basil's removal of `coupon` there.
+const checkoutContract = (version: string, fields: string[], subscriptionFields?: string[]) => ({
   openapi: '3.0.0',
   info: { version },
   paths: {
     '/v1/checkout/sessions': {
-      post: {
-        operationId: 'PostCheckoutSessions',
-        requestBody: {
-          content: {
-            'application/x-www-form-urlencoded': {
-              schema: {
-                type: 'object',
-                properties: Object.fromEntries(fields.map((name) => [name, {}])),
-              },
+      post: { operationId: 'PostCheckoutSessions', requestBody: body(fields) },
+    },
+    ...(subscriptionFields
+      ? {
+          '/v1/subscriptions/{subscription_exposed_id}': {
+            post: {
+              operationId: 'PostSubscriptionsSubscriptionExposedId',
+              requestBody: body(subscriptionFields),
             },
           },
-        },
-      },
-    },
+        }
+      : {}),
   },
   components: {
-    schemas: { 'checkout.session': { type: 'object', properties: { id: { type: 'string' } } } },
+    schemas: {
+      'checkout.session': { type: 'object', properties: { id: { type: 'string' } } },
+      subscription: { type: 'object', properties: { id: { type: 'string' } } },
+    },
   },
 });
 
@@ -228,14 +237,68 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
   for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
   await commit(app);
   const report = await inspectRepositoryReadiness({ repository: app });
-  expect(report.checks.find((check) => check.id === 'source-provenance')?.action).toBe(
-    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including listed and computed lists.',
-  );
+  // kalibani/HireFazz sends the same ['card', 'paypal'] list from trpc/index.ts.
+  expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
+    detail:
+      'Code sets a request parameter that API version 2026-09-30.endive removes, and Refit leaves it in place: payment_method_types at checkout.js:3.',
+    action:
+      'Remove or replace it yourself. docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.',
+  });
   // Before: "Verify the application client/account version and configure an exact
   // before-contract API-version pin."
   expect(report.checks.find((check) => check.id === 'api-version')?.action).toBe(
     'Confirm your client and account use 2026-08-26.dahlia, then add "apiVersion": "2026-08-26.dahlia" to the stripe integration in .refit.json.',
   );
+});
+
+it('names every removed parameter Refit leaves, including a card list the version gate holds', async () => {
+  const app = await repository();
+  await mkdir(join(app, 'refit'));
+  // geallenboy/ai-saas-template's ['card'] has the owner-approved rename, but Refit cannot
+  // resolve the client's apiVersion, so the rename does not apply; boristenkes/shop.co-style
+  // `coupon` has a documented replacement that Refit does not apply on a subscription update.
+  const files = {
+    'package.json': JSON.stringify({ dependencies: { stripe: '22.6.2' } }),
+    'billing.js': [
+      "import Stripe from 'stripe';",
+      'const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: process.env.STRIPE_API_VERSION });',
+      "export const checkout = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });",
+      "export const discount = (id) => stripe.subscriptions.update(id, { coupon: 'SAVE10' });",
+      '',
+    ].join('\n'),
+    'refit/stripe-before.json': JSON.stringify(
+      checkoutContract('2026-08-26.dahlia', ['mode', 'payment_method_types'], ['coupon']),
+    ),
+    'refit/stripe-after.json': JSON.stringify(
+      checkoutContract(
+        '2026-09-30.endive',
+        ['mode', 'allowed_payment_method_types'],
+        ['discounts'],
+      ),
+    ),
+    'refit/stripe.provider.json': JSON.stringify({
+      ...checkoutProvider,
+      operations: [
+        ...checkoutProvider.operations,
+        {
+          resource: 'subscriptions',
+          method: 'update',
+          schema: 'subscription',
+          operationId: 'PostSubscriptionsSubscriptionExposedId',
+        },
+      ],
+    }),
+    '.refit.json': JSON.stringify(stripeConfiguration),
+  };
+  for (const [path, content] of Object.entries(files)) await writeFile(join(app, path), content);
+  await commit(app);
+  const report = await inspectRepositoryReadiness({ repository: app });
+  expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
+    detail:
+      'Code sets request parameters that API version 2026-09-30.endive removes, and Refit leaves them in place: payment_method_types at billing.js:3 and coupon at billing.js:4.',
+    action:
+      'Remove or replace each one yourself. docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.',
+  });
 });
 
 it('tells the person which changes Refit cannot migrate, without asking for an adapter rule first', async () => {
@@ -414,6 +477,12 @@ export async function GET(request: NextRequest) {
 
 it('tells the person to commit or remove a submodule, not to commit or stash files', async () => {
   const app = await repository({ formatVersion: 2, integrations: [integration('catalog')] });
+  // .gitmodules declares it, so clones fetch files this commit does not hold.
+  await writeFile(
+    join(app, '.gitmodules'),
+    '[submodule "plugin"]\n\tpath = vendor/plugin\n\turl = https://example.invalid/plugin.git\n',
+  );
+  await execute('git', ['-C', app, 'add', '.gitmodules']);
   await execute('git', [
     '-C',
     app,

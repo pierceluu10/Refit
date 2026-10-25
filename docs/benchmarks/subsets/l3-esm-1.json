@@ -1,0 +1,226 @@
+{
+  "frozenAt": "2026-10-24",
+  "purpose": "Push 279, PR #284: the repositories in push-279-affected.json (minus heldout-30.json) that the type-only import check can reach, plus the repositories its new test fixtures are modelled on, which must not change.",
+  "criteria": "Reach: a source-only scan of the 249 non-held-out entries comparing sourceBindings on main 6a43f26 and on fix/f1-module-exports; a repository is reached when a module that main marks escaping and the branch does not declares a Stripe constructor call or a transparent one-argument wrapper. Only akn3107/whatsapp-store-creator qualifies (lib/order-cancellation.ts). Controls: 9 of the entries whose module shapes the new tests copy (import type and inline type names taken from a module that constructs a client; a named or star re-export of such a module). The reach scan read files only and never ran repository code. Entries unchanged, in this order.",
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "akn3107/whatsapp-store-creator",
+      "stars": 1,
+      "commit": "ab3287d3e70c600eeaba29d7ce570a9f3c37bb17",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^13.9.0",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "guillermolg00/nextjs-stripe-store",
+      "stars": 9,
+      "commit": "9426a03562ab796a2b1be04536f6c550c791ecb6",
+      "before": "2024-06-20",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^16.0.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "papay0/Ideate.build",
+      "stars": 2,
+      "commit": "0828257abf70f7d175c241e35829a7b247718751",
+      "before": "2025-12-15.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.1.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Eziox-Development/eziox-web",
+      "stars": 2,
+      "commit": "1b42f1e2b2fa6729c402409c3aa52c8e67071cff",
+      "before": "2026-01-28.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.3.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "beindigital-products/wedillybird",
+      "stars": 0,
+      "commit": "4efeeed8e8d112cdddf9cabfde80003f9dbdfd9a",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.0"
+    },
+    {
+      "repo": "Ankit-Sharma1011/Quill",
+      "stars": 3,
+      "commit": "bdd4055bf5887ba1c25ba22dcf68fb8e7e53e4e2",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.1.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Princegupta101/SwiftScribe",
+      "stars": 2,
+      "commit": "feb6c1096c671e1ada720457f07cdd55f24464b5",
+      "before": "2024-04-10",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^15.1.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "kondax-com/Bocker",
+      "stars": 1,
+      "commit": "084bfee71fa441fac8850a11b5ade649e9005bb4",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.7.0"
+    },
+    {
+      "repo": "pretzelai/stripe-no-webhooks",
+      "stars": 102,
+      "commit": "1b30651bf7872de9748539a5fdbf77323dba3108",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "marketstandard/onix",
+      "stars": 2,
+      "commit": "10099b4bc216002f176f8523c25fd9de00b1da0e",
+      "before": "2024-06-20",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^14.21.0",
+      "packageManager": "yarn"
+    }
+  ]
+}

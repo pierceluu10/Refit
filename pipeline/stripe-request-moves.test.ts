@@ -210,6 +210,8 @@ async function promotionReport(file: string) {
     join(repository, 'package.json'),
     JSON.stringify({ dependencies: { stripe: '18.1.1' } }),
   );
+  // Refit never upgrades stripe-node beside a bun lockfile, so these runs need no registry.
+  await writeFile(join(repository, 'bun.lockb'), '');
   await writeFile(
     join(repository, file),
     `import Stripe from 'stripe';
@@ -252,7 +254,7 @@ it('moves the promotion code coupon with the pin in a JavaScript project', async
 });
 
 it('keeps the promotion code coupon for review in TypeScript without the stripe-node upgrade', async () => {
-  // No lockfile, so the upgrade whose types accept promotion cannot be prepared.
+  // Only a bun lockfile, so the upgrade whose types accept promotion cannot be prepared.
   const report = await promotionReport('promotion.ts');
   expect('diff' in report.patch ? report.patch.diff : '').not.toContain('promotion: {');
   expect(report.findings[0].requestParameter).toBeDefined();

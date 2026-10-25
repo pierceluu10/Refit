@@ -19,7 +19,12 @@ import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { TEST_PATH } from './source-paths.ts';
 import { readRepository } from './repository.ts';
-import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
+import {
+  validateCheckCommand,
+  validateCheckTimeout,
+  validateRepairAttempts,
+} from './validation-options.ts';
+import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
@@ -27,8 +32,10 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
 import { typeErrorKeys, typeErrors } from './type-errors.ts';
+import { baselineCheck } from './validation-baseline-cache.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
+import ts from 'typescript-compiler';
 import {
   extractStripeMock,
   generatedCommand,
@@ -98,9 +105,11 @@ export interface PublicationFile {
 
 const execute = promisify(execFile);
 const PROCESS_TIMEOUT_MS = 30_000;
-const CHECK_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
-const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
+const MAX_COMMAND_OUTPUT_BYTES = 50 * 1024 * 1024;
+// Committed source is copied into the validation workspace beside the unpacked dependency archive.
+// The 4 GiB workspace holds a 2 GiB archive and 256 MiB of source; smaller profiles keep 50 MiB.
+const sourceArchiveBytes = () => (validationProfile().workspace === '4g' ? 256 : 50) * 1024 * 1024;
 const MAX_REPAIR_LOG_CHARACTERS = 4096;
 
 export interface ValidationAttempt {
@@ -234,6 +243,55 @@ export function subscriptionPeriodRead(error: { message: string }) {
   return SUBSCRIPTION_PERIOD_READ.test(error.message);
 }
 
+// stripe-node's own types prove these reads are on a Stripe Subscription, so validation re-proposes
+// them through the version-tolerant period helper, which returns the old field when the object has
+// it and the items' shared period otherwise; with items on different periods it returns undefined,
+// as the removed field did (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end,
+// read 2026-10-24: the fields "are no longer available on the subscription resource").
+export const TYPE_CHECKED_PERIOD_READS = true;
+
+// Where each rejected read sits in the original source: the error's position in the patched file,
+// moved back across the proposal's edits. Undefined when an error is not a plain property read the
+// edits left alone, or the patched file is not exactly the original with those edits.
+export function typeCheckedPeriodReads(
+  errors: { file: string; line: number; column: number; code: string; message: string }[],
+  patched: { path: string; content: string }[],
+  original: { path: string; content: string }[],
+  edits: SourceEdit[],
+) {
+  const reads: { file: string; position: number }[] = [];
+  for (const error of errors) {
+    const after = patched.find((file) => file.path === error.file)?.content;
+    const before = original.find((file) => file.path === error.file)?.content;
+    if (
+      !['TS2339', 'TS2551'].includes(error.code) ||
+      !subscriptionPeriodRead(error) ||
+      after === undefined ||
+      before === undefined
+    )
+      return;
+    const fileEdits = edits
+      .filter((edit) => edit.file === error.file)
+      .sort((a, b) => a.start - b.start);
+    let rebuilt = before;
+    for (const edit of [...fileEdits].reverse())
+      rebuilt = rebuilt.slice(0, edit.start) + edit.replacement + rebuilt.slice(edit.end);
+    if (rebuilt !== after) return;
+    const starts = ts.createSourceFile(error.file, after, ts.ScriptTarget.Latest).getLineStarts();
+    const offset = (starts[error.line - 1] ?? NaN) + error.column - 1;
+    if (!(offset >= 0 && offset < (starts[error.line] ?? after.length + 1))) return;
+    let shift = 0;
+    for (const edit of fileEdits) {
+      const start = edit.start + shift;
+      if (offset < start) break;
+      if (offset < start + edit.replacement.length) return;
+      shift += edit.replacement.length - (edit.end - edit.start);
+    }
+    reads.push({ file: error.file, position: offset - shift });
+  }
+  return reads;
+}
+
 const formatTypeError = (error: ReturnType<typeof typeErrors>[number]) =>
   `${error.file}(${error.line},${error.column}): error ${error.code}: ${error.message}`;
 
@@ -266,7 +324,7 @@ async function command(binary: string, args: string[], cwd?: string) {
   return execute(binary, args, {
     cwd,
     timeout: PROCESS_TIMEOUT_MS,
-    maxBuffer: MAX_ARCHIVE_BYTES,
+    maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
     encoding: 'utf8',
     env: binary === 'git' ? gitEnvironment() : undefined,
   });
@@ -275,6 +333,11 @@ async function command(binary: string, args: string[], cwd?: string) {
 // Refit's compiler, which a scoped type check runs in a repository that installs none
 // (check-selection.ts REFIT_TSC).
 const typescriptMount = () => [{ source: typescriptDirectory(), target: '/refit/typescript' }];
+// How long each check may run, and the nested package it runs in (preparation-packages.ts).
+interface CheckSandbox {
+  timeoutMs: number;
+  packageDirectory?: string;
+}
 
 async function containerCheck({
   directory,
@@ -283,6 +346,8 @@ async function containerCheck({
   dependencies,
   readOnlyMounts = typescriptMount(),
   signal,
+  timeoutMs,
+  packageDirectory,
 }: {
   directory: string;
   image: string;
@@ -290,7 +355,7 @@ async function containerCheck({
   dependencies?: string;
   readOnlyMounts?: { source: string; target: string }[];
   signal?: AbortSignal;
-}): Promise<CheckResult> {
+} & CheckSandbox): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
   await removeExpiredSandboxContainers();
   try {
@@ -302,12 +367,13 @@ async function containerCheck({
         image,
         command: argumentsList,
         network: 'none',
-        timeoutMs: CHECK_TIMEOUT_MS,
+        timeoutMs,
         dependencies,
         readOnlyMounts,
+        packageDirectory,
       }),
       {
-        timeout: CHECK_TIMEOUT_MS,
+        timeout: timeoutMs,
         maxBuffer: MAX_OUTPUT_BYTES,
         encoding: 'utf8',
         // The Docker client forwards SIGTERM to the container, where a process that ignores it keeps
@@ -336,7 +402,7 @@ async function containerCheck({
         failure.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
           ? `Check output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MiB; the container was stopped.`
           : failure.killed
-            ? `Check exceeded ${CHECK_TIMEOUT_MS / 1000} seconds; the container was stopped.`
+            ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
             : failure.message,
     };
   } finally {
@@ -377,19 +443,20 @@ async function roomForTwoSandboxes() {
 // Archives the committed revision under `root` and extracts it as the baseline directory.
 async function extractSnapshot(repository: string, revision: string, root: string) {
   const archive = join(root, 'source.tar');
+  const sourceBytes = sourceArchiveBytes();
   const archiveResult = await execute(
     'git',
     ['-C', repository, 'archive', '--format=tar', revision],
     {
       encoding: 'buffer',
       timeout: PROCESS_TIMEOUT_MS,
-      maxBuffer: MAX_ARCHIVE_BYTES,
+      maxBuffer: sourceBytes,
       env: gitEnvironment(),
     },
   ).catch((error: unknown) => {
     if ((error as { code?: unknown }).code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER')
       throw new PipelineInputError(
-        `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit.`,
+        `Committed source exceeds the ${sourceBytes / 1024 / 1024} MiB validation archive limit. Stop committing build output, media or data files (or track them with Git LFS) so the committed tree fits.`,
       );
     throw error;
   });
@@ -450,7 +517,11 @@ async function prepareCandidateDependencies(
   candidateDirectory: string,
   root: string,
   image: string,
-  options: { signal?: AbortSignal; onProgress?: (message: string) => void },
+  options: {
+    signal?: AbortSignal;
+    onProgress?: (message: string) => void;
+    packageDirectory?: string;
+  },
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
   await command('git', ['add', '-A'], candidateDirectory);
@@ -480,6 +551,7 @@ async function prepareCandidateDependencies(
   const prepared = await prepareDependencies({
     repository: candidateDirectory,
     image,
+    packageDirectory: options.packageDirectory,
     copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
@@ -622,8 +694,8 @@ function namedBaselineStop(status: string, baselineRun: CheckResult) {
     : {};
 }
 
-const validationLimits = () => ({
-  timeoutMs: CHECK_TIMEOUT_MS,
+const validationLimits = (timeoutMs: number) => ({
+  timeoutMs,
   outputBytes: MAX_OUTPUT_BYTES,
   network: 'none',
   workspace: validationProfile().workspace,
@@ -658,6 +730,7 @@ async function generatedStripeChecks(options: {
   patched: Awaited<ReturnType<typeof readRepository>>;
   findings: Parameters<typeof generatedEntryPoints>[1];
   runs: { directory: string; contract: string; side: 'before' | 'after'; dependencies?: string }[];
+  sandbox: CheckSandbox;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -766,6 +839,7 @@ async function runGeneratedStripeChecks(
       dependencies: run.dependencies ?? options.dependencies,
       readOnlyMounts: mock.mounts(run.side),
       signal: options.signal,
+      ...options.sandbox,
     });
   };
   const results = (await roomForTwoSandboxes())
@@ -796,6 +870,8 @@ export async function runBehaviourTests(options: {
   patched: { directory: string; contract: string; repository: Repository; dependencies?: string };
   // Files where Refit traced Stripe usage; with files importing stripe, they are the Stripe code.
   findings?: readonly Pick<Finding, 'file'>[];
+  // The repository's check time limit and nested package; the default limit without one.
+  sandbox?: CheckSandbox;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -820,6 +896,7 @@ export async function runBehaviourTests(options: {
       dependencies: input.dependencies,
       readOnlyMounts: mock.mounts(side),
       signal: options.signal,
+      ...(options.sandbox ?? { timeoutMs: validateCheckTimeout() * 1000 }),
     });
   };
   const [original, patched] = (await roomForTwoSandboxes())
@@ -891,6 +968,8 @@ export async function validateMigration(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  // .refit.json checkTimeoutSeconds: how long each check may run (validation-options.ts).
+  checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   compareTypeErrors?: boolean;
   assessment?: AiOptions;
@@ -922,6 +1001,7 @@ export async function validateMigration(options: {
 }) {
   validateCheckCommand(options.command);
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
+  const timeoutMs = validateCheckTimeout(options.checkTimeoutSeconds) * 1000;
   const repairLimit = validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
   if (options.requireApiVersionMatch) {
     const [before, after] = await Promise.all([
@@ -954,6 +1034,9 @@ export async function validateMigration(options: {
     ? undefined
     : migrationReviewReason(preflight, true, true, Boolean(options.aiPatch));
   if (reviewReason) throw new PipelineInputError(reviewReason);
+  // Stripe code in one nested package with its own lockfile is prepared and checked there.
+  const packageDirectory = sdkPackageDirectory(preflight, committedFiles(snapshot.entries));
+  const sandbox: CheckSandbox = { timeoutMs, packageDirectory };
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
@@ -1006,7 +1089,11 @@ export async function validateMigration(options: {
       try {
         return {
           ...(await timed('candidatePreparation', () =>
-            prepareCandidateDependencies(directory, root, image, { ...options, signal }),
+            prepareCandidateDependencies(directory, root, image, {
+              ...options,
+              packageDirectory,
+              signal,
+            }),
           )),
           dependencyFailure: undefined,
         };
@@ -1023,7 +1110,7 @@ export async function validateMigration(options: {
         ? ahead(async () => {
             const { patch } = await proposed;
             const diff = 'diff' in patch ? patch.diff : '';
-            if (!diff || !packageDiff(diff)) return undefined;
+            if (!diff || !packageDiff(diff, packageDirectory)) return undefined;
             const directory = await sandboxInput(root, 'candidate-');
             await applyPatch(archive, directory, `${directory}.patch`, diff);
             return { directory, ...(await preparePatched(directory, true, speculation.signal)) };
@@ -1041,6 +1128,7 @@ export async function validateMigration(options: {
           prepareDependencies({
             repository,
             image,
+            packageDirectory,
             submodules: options.leaveReviewedFindings,
             copyArchiveTo: join(root, 'dependencies.tar'),
             signal: options.signal,
@@ -1063,6 +1151,8 @@ export async function validateMigration(options: {
       );
     }
     type Report = Awaited<ReturnType<typeof runPipeline>>;
+    type ProposedReport = Report & { patch: Extract<Report['patch'], { diff: string }> };
+    const hasDiff = (entry: Report): entry is ProposedReport => 'diff' in entry.patch;
     type Install = Awaited<NonNullable<typeof candidateInstall>>;
     const prepareCandidate = (
       diff: string,
@@ -1091,7 +1181,7 @@ export async function validateMigration(options: {
       let candidateEnvironment: Record<string, unknown> | undefined;
       let candidateFailure: ReturnType<typeof preparationFailure>;
       if (
-        packageDiff(diff) &&
+        packageDiff(diff, packageDirectory) &&
         options.prepareDependencies &&
         !dependencyFailure &&
         !untestedBaseline
@@ -1131,7 +1221,10 @@ export async function validateMigration(options: {
         );
       const publicationFiles: PublicationFile[] = [];
       const packageFiles = await Promise.all(
-        PACKAGE_FILES.map(async (path) => ({
+        [
+          ...PACKAGE_FILES,
+          ...(packageDirectory ? PACKAGE_FILES.map((file) => `${packageDirectory}/${file}`) : []),
+        ].map(async (path) => ({
           path,
           before: await readFile(join(baselineDirectory, path), 'utf8').catch(() => undefined),
           after: await readFile(join(patchedDirectory, path), 'utf8').catch(() => undefined),
@@ -1198,21 +1291,40 @@ export async function validateMigration(options: {
             command: options.command,
             dependencies: candidate.dependencies,
             signal: speculation.signal,
+            ...sandbox,
           }),
         );
       });
-    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
-    const baselineRun: CheckResult = dependencyFailure
-      ? NOT_RUN
+    const recordedBaseline = dependencyFailure
+      ? undefined
       : await timed('baselineChecks', () =>
-          containerCheck({
-            directory: baselineDirectory,
-            image,
-            command: baselineCommand,
-            dependencies,
-            signal: options.signal,
-          }),
+          baselineCheck(
+            {
+              revision,
+              command: baselineCommand,
+              image,
+              // The bundle's signature, not its archive hash: a rebuild changes tar bytes, not packages.
+              dependencies: environment?.signature ?? null,
+              limits: validationLimits(sandbox.timeoutMs),
+            },
+            () => {
+              options.onProgress?.('Running baseline checks in offline Docker...');
+              return containerCheck({
+                directory: baselineDirectory,
+                image,
+                command: baselineCommand,
+                dependencies,
+                signal: options.signal,
+                ...sandbox,
+              });
+            },
+          ),
         );
+    const baselineRun: CheckResult = recordedBaseline?.check ?? NOT_RUN;
+    if (recordedBaseline?.recordedAt)
+      options.onProgress?.(
+        `Reusing the baseline check result recorded ${recordedBaseline.recordedAt}.`,
+      );
     const advisory = advisoryTypeError(options.command);
     const typeCheckUnavailable = options.compareTypeErrors
       ? unavailableTypeCheck(options.command, baselineRun)
@@ -1236,28 +1348,30 @@ export async function validateMigration(options: {
       baseline.status !== 'passed' &&
       !testsBroken;
     options.signal?.throwIfAborted();
-    const report = earlyReport || (await propose(baseline.status === 'passed'));
-    const configuredEndpointProposal = report.operationChanges.some(
+    const initialReport = earlyReport || (await propose(baseline.status === 'passed'));
+    const configuredEndpointProposal = initialReport.operationChanges.some(
       (change) => change.usages.length > 0,
     );
-    const configuredRequestProposal = report.requestChanges?.some(
+    const configuredRequestProposal = initialReport.requestChanges?.some(
       (change) => change.usages.length > 0,
     );
     const [beforeSpecification, afterSpecification] = await Promise.all([
       readSpecification(options.before),
       readSpecification(options.after),
     ]);
-    if (beforeSpecification.hash !== report.snapshots.before)
+    if (beforeSpecification.hash !== initialReport.snapshots.before)
       throw new PipelineInputError('Baseline specification changed during validation.');
-    if (afterSpecification.hash !== report.snapshots.after)
+    if (afterSpecification.hash !== initialReport.snapshots.after)
       throw new PipelineInputError('Current specification changed during validation.');
     if (
-      !('diff' in report.patch) ||
-      (!report.patch.diff && (baseline.status === 'passed' || dependencyFailure))
+      !hasDiff(initialReport) ||
+      (!initialReport.patch.diff && (baseline.status === 'passed' || dependencyFailure))
     )
       throw new PipelineInputError(
         'No supported patch proposal is available for this committed revision.',
       );
+    // A type-checked period-read restore below may replace it with a new proposal.
+    let report: ProposedReport = initialReport;
     let proposal = report.patch;
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
@@ -1305,6 +1419,7 @@ export async function validateMigration(options: {
                   command: options.command,
                   dependencies: initialCandidate.dependencies,
                   signal: options.signal,
+                  ...sandbox,
                 }),
               )),
         )
@@ -1339,6 +1454,8 @@ export async function validateMigration(options: {
       error: string | null;
       // The open-enum restore applied to part of the errors before an AI repair of the rest.
       openEnumRestored?: boolean;
+      // Subscription-period reads moved to the helper because the patched type check rejected them.
+      typeCheckedPeriodReads?: number;
       // Request properties stripe-node 13 stopped typing, which the restore keeps sending unchanged.
       keptProperties?: string[];
       // The restore kept only such properties and changed no enum types.
@@ -1367,6 +1484,86 @@ export async function validateMigration(options: {
       'sdkUpgrade' in report.patch
         ? (report.patch.sdkUpgrade as { from?: string; to?: string } | undefined)
         : undefined;
+    // Subscription-period reads the upgraded types reject (TYPE_CHECKED_PERIOD_READS) are proposed
+    // again through the period helper. The result is kept when the checks then pass, or fail only on
+    // other errors the first candidate already had, which the restores and repairs below may fix.
+    const periodErrors =
+      TYPE_CHECKED_PERIOD_READS &&
+      baseline.status === 'passed' &&
+      patched.status === 'failed' &&
+      options.compareTypeErrors &&
+      candidateSources &&
+      sdkUpgrade?.to &&
+      'generator' in report.patch &&
+      report.patch.generator === 'deterministic' &&
+      'ruleEdits' in report.patch
+        ? introducedTypeErrors(baselineRun, patched).filter(subscriptionPeriodRead)
+        : [];
+    const checkedReads =
+      periodErrors.length && candidateSources && 'ruleEdits' in report.patch
+        ? typeCheckedPeriodReads(
+            periodErrors,
+            candidateSources.files,
+            originalSources.files,
+            report.patch.ruleEdits as SourceEdit[],
+          )
+        : undefined;
+    if (checkedReads?.length) {
+      const reproposed = await timed('proposal', () =>
+        runPipeline({
+          ...options,
+          repository: baselineDirectory,
+          proposePatch: true,
+          aiPatch: undefined,
+          assessment: undefined,
+          onProgress: undefined,
+          typeCheckedPeriodReads: checkedReads,
+        }),
+      );
+      const covered =
+        reproposed.findings.filter((finding) => finding.typeChecked).length >=
+        new Set(checkedReads.map((read) => `${read.file}\0${read.position}`)).size;
+      if (hasDiff(reproposed) && reproposed.patch.diff && covered) {
+        options.onProgress?.(
+          'Moving type-checked subscription period reads to the helper; running checks in offline Docker...',
+        );
+        const prepared = await prepareCandidate(reproposed.patch.diff, originalSources, reproposed);
+        const check = compared(
+          await timed('patchedChecks', () =>
+            containerCheck({
+              directory: prepared.directory,
+              image,
+              command: options.command,
+              dependencies: prepared.dependencies,
+              signal: options.signal,
+              ...sandbox,
+            }),
+          ),
+        );
+        const earlier = new Set(
+          introducedTypeErrors(baselineRun, patched).map((error) => error.key),
+        );
+        const left = introducedTypeErrors(baselineRun, check);
+        if (
+          check.status === 'passed' ||
+          (check.status === 'failed' &&
+            left.length > 0 &&
+            left.every((error) => earlier.has(error.key) && !subscriptionPeriodRead(error)))
+        ) {
+          report = reproposed;
+          proposal = reproposed.patch;
+          publicationFiles = prepared.publicationFiles;
+          candidateDirectory = prepared.directory;
+          candidateSources = prepared.sources;
+          candidateDependencies = prepared.dependencies;
+          candidateEnvironment = prepared.environment;
+          ruleSources = prepared.sources.files;
+          patched = check;
+          recordAttempt();
+          repair.typeCheckedPeriodReads = checkedReads.length;
+        }
+      }
+    }
     const introducedByRules =
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
@@ -1418,6 +1615,7 @@ export async function validateMigration(options: {
             command: options.command,
             dependencies: prepared.dependencies,
             signal: options.signal,
+            ...sandbox,
           }),
         ),
       );
@@ -1585,6 +1783,7 @@ export async function validateMigration(options: {
           const check = compared(
             await timed('patchedChecks', () =>
               containerCheck({
+                ...sandbox,
                 directory: prepared.directory,
                 image,
                 command: options.command,
@@ -1746,6 +1945,7 @@ export async function validateMigration(options: {
               command: options.command,
               dependencies: preparedCandidate.dependencies,
               signal: options.signal,
+              ...sandbox,
             }),
           ),
         );
@@ -1795,9 +1995,27 @@ export async function validateMigration(options: {
                   dependencies: candidateDependencies,
                 },
               ],
+              sandbox,
               onProgress: options.onProgress,
               signal: options.signal,
             }),
+          )
+        : undefined;
+    // With the tests broken before the patch, only the chain's type check runs on it.
+    const brokenTestsCommand = testsBroken ? typeCheckCommand(options.command) : undefined;
+    const brokenTestsTypeCheck =
+      brokenTestsCommand && initialCandidate && !dependencyFailure
+        ? compared(
+            await timed('patchedChecks', () =>
+              containerCheck({
+                directory: initialCandidate.directory,
+                image,
+                command: brokenTestsCommand,
+                dependencies: initialCandidate.dependencies,
+                signal: options.signal,
+                ...sandbox,
+              }),
+            ),
           )
         : undefined;
     let generated = await generatedFor();
@@ -1825,22 +2043,6 @@ export async function validateMigration(options: {
         generated = await generatedFor();
       }
     }
-    // With the tests broken before the patch, only the chain's type check runs on it.
-    const brokenTestsCommand = testsBroken ? typeCheckCommand(options.command) : undefined;
-    const brokenTestsTypeCheck =
-      brokenTestsCommand && initialCandidate && !dependencyFailure
-        ? compared(
-            await timed('patchedChecks', () =>
-              containerCheck({
-                directory: initialCandidate.directory,
-                image,
-                command: brokenTestsCommand,
-                dependencies: initialCandidate.dependencies,
-                signal: options.signal,
-              }),
-            ),
-          )
-        : undefined;
     const stripeOnly =
       dependencyFailure && candidateDirectory && candidateSources && behaviourWanted
         ? await timed('stripeOnlyPreparation', () =>
@@ -1905,6 +2107,7 @@ export async function validateMigration(options: {
                   stripeOnly?.dependencies?.patched ?? candidateDependencies ?? dependencies,
               },
               findings: report.findings,
+              sandbox,
               onProgress: options.onProgress,
               signal: options.signal,
             }),
@@ -2030,6 +2233,10 @@ export async function validateMigration(options: {
       archiveHash,
       patchHash: digest(proposal.diff),
       baseline,
+      // REFIT_BASELINE_CHECK_CACHE_DIRECTORY: the baseline result an identical earlier run recorded.
+      ...(recordedBaseline?.recordedAt
+        ? { baselineReused: { recordedAt: recordedBaseline.recordedAt } }
+        : {}),
       patched,
       ...(generated ? { generated } : {}),
       ...(stripeOnly ? { stripeOnly: stripeOnly.record } : {}),
@@ -2051,7 +2258,8 @@ export async function validateMigration(options: {
         : {}),
       ...failures,
       ...(Object.keys(timings).length ? { timings } : {}),
-      limits: validationLimits(),
+      ...(packageDirectory ? { packageDirectory } : {}),
+      limits: validationLimits(timeoutMs),
       publishable: false,
       reason:
         'Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review.',
@@ -2082,6 +2290,7 @@ export async function validateSourcePatch(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   compareTypeErrors?: boolean;
   onProgress?: (message: string) => void;
@@ -2089,6 +2298,9 @@ export async function validateSourcePatch(options: {
 }) {
   validateCheckCommand(options.command);
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
+  const sandbox: CheckSandbox = {
+    timeoutMs: validateCheckTimeout(options.checkTimeoutSeconds) * 1000,
+  };
   const snapshot = await readCommittedRepository(options.repository);
   const { revision, entries } = snapshot;
   const runtime = await selectValidationRuntime(snapshot, options.image);
@@ -2146,6 +2358,7 @@ export async function validateSourcePatch(options: {
       command: baselineCommand,
       dependencies,
       signal: options.signal,
+      ...sandbox,
     });
     const { baseline, compared } = typeCheckComparison(
       baselineRun,
@@ -2168,6 +2381,7 @@ export async function validateSourcePatch(options: {
           command: options.command,
           dependencies: candidateDependencies,
           signal: options.signal,
+          ...sandbox,
         }),
       );
     }
@@ -2189,7 +2403,7 @@ export async function validateSourcePatch(options: {
       publicationFiles,
       ...namedBaselineStop(status, baselineRun),
       ...checkFailures(baselineCommand, options.command, baseline, patched),
-      limits: validationLimits(),
+      limits: validationLimits(sandbox.timeoutMs),
     };
   } finally {
     await rm(root, { recursive: true, force: true });

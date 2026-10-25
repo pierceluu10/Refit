@@ -69,9 +69,10 @@ export interface StripeProposal {
 const at = (location: Location) => `${location.file}:${location.line}`;
 
 // Names at most a few places, so a proposal over many clients stays one readable line.
-function listed(names: string[]) {
-  const named = names.slice(0, MAX_PLACES).join(', ');
-  return names.length > MAX_PLACES ? `${named} and ${names.length - MAX_PLACES} more` : named;
+export function listed(names: string[]) {
+  if (names.length > MAX_PLACES)
+    return `${names.slice(0, MAX_PLACES).join(', ')} and ${names.length - MAX_PLACES} more`;
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names.join('');
 }
 
 const places = (locations: Location[]) => listed(locations.map(at));
@@ -487,10 +488,10 @@ function applicationVersion(
   const sources = [
     ...(pinned.length ? [`set at ${places(pinned)}`] : []),
     ...(releases.length
-      ? [`the default of stripe-node ${releases.join(' and ')}, which the lockfile records`]
+      ? [`the default of stripe-node ${listed(releases)}, which the lockfile records`]
       : []),
   ];
-  const source = `${used.length > 1 ? 'the oldest version ' : ''}${sources.join(' and ')}${unfollowed.length ? `; Refit cannot follow every use of the client at ${places(unfollowed)}, so check that no request there sends another version` : ''}`;
+  const source = `${used.length > 1 ? 'the oldest version ' : ''}${sources.join(', and ')}${unfollowed.length ? `; Refit cannot follow every use of the client at ${places(unfollowed)}, so check that no request there sends another version` : ''}`;
   if (!unread.length && !requests.length) return { value: oldest, source, reviews };
   // Only with allowUntested. A client whose version Refit cannot read may still send its
   // stripe-node default (an unset environment variable), when one lockfile installs them all.

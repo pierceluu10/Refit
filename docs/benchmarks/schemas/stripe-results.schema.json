@@ -77,6 +77,12 @@
       "checks": {
         "enum": ["none", "tests", "typecheck", "generated-only"]
       },
+      "packageDirectory": {
+        "type": "string",
+        "minLength": 1,
+        "x-added": "2026-10-25",
+        "description": "The nested package whose own lockfile and checks validation uses (pipeline/preparation-packages.ts); absent when it uses the repository root."
+      },
       "validationSeconds": {
         "$ref": "common.schema.json#/$defs/count"
       },
@@ -110,6 +116,10 @@
             "type": "boolean",
             "x-added": "2026-10-24",
             "description": "True when the workflow itself ran with the full contract diff, because production mode did not stop before validation."
+          },
+          "baselineReused": {
+            "type": "boolean",
+            "description": "Present and true when the baseline check result was not run here but reused from an identical earlier run (REFIT_BASELINE_CHECK_CACHE_DIRECTORY)."
           }
         }
       },

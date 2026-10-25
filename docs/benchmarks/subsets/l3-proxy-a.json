@@ -1,0 +1,223 @@
+{
+  "criteria": "Laptop 3, PR #269 and cached-factory holders. Eligible: subsets/push-279-affected.json minus subsets/heldout-30.json (249). Selected: every eligible repository whose non-test source (no test, tests, __tests__, e2e or spec directory, no .test. or .spec. file) assigns `new Stripe(` to an existing binding (`x = new Stripe(`, `x ??= new Stripe(`, `x ||= new Stripe(`), by grep over shallow clones at the pinned commits (18), plus mykha1129/AI-Agent, the one other eligible repository in subsets/f1-proxy-clients.json (19). Entries unchanged, in push-279-affected order, split into a (first 10) and b (last 9).",
+  "frozenAt": "2026-10-24",
+  "purpose": "Before/after evidence for PR #269 (lazy Proxy Stripe clients) and Stripe clients held in a `let` holder; engine only.",
+  "repos": [
+    {
+      "repo": "hackerai-tech/hackerai",
+      "stars": 794,
+      "commit": "49c12ea6b7e0ff2b0485b9b978e758f1d9f6b2ab",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "22.6.2",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "nirholas/crypto-data-aggregator",
+      "stars": 30,
+      "commit": "c6b3852dfddfa279d2c6ad5b91a1eb9cd50e0027",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.4.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "michaelshimeles/goshenpay-backend",
+      "stars": 13,
+      "commit": "4ef2f58af2418c7090dbc1002d956e57e754fd96",
+      "before": "2024-09-30.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.2.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "SimplerDevelopment/SimplerDevelopment",
+      "stars": 13,
+      "commit": "2b6b7cc75ebb7872977f5487c2f05c5ca60c1c0c",
+      "before": "2026-02-25.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.4.1",
+      "packageManager": "none"
+    },
+    {
+      "repo": "profullstack/vibe-stack",
+      "stars": 11,
+      "commit": "26b774d586c917fe6d56f1d6ec958b212652ebf0",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.22.0",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "gr8monk3ys/link-flame",
+      "stars": 8,
+      "commit": "742dfb7dd3a6ffe14a89b93bd17497a674a09ce6",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.7.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+      "stars": 6,
+      "commit": "3c91a83e792d84178c86be02a486cfb7f14b6d00",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^18.3.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Traviseric/arxmint",
+      "stars": 5,
+      "commit": "57ff097ca08ddb0310b4f9068b28ccc28787959a",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.0.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+      "stars": 4,
+      "commit": "982052f27557a18b93e2fe6cc7bd0b3308b6778f",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "mykha1129/AI-Agent",
+      "stars": 3,
+      "commit": "5da7352c94253147fa9f7057b72e8ad5dd7a89ac",
+      "before": "2025-08-27.basil",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^18.1.1",
+      "packageManager": "npm"
+    }
+  ],
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ]
+}

@@ -1,0 +1,211 @@
+{
+  "frozenAt": "2026-10-24",
+  "purpose": "Push 279 L3: every row the type-checked subscription-period restore can reach. It runs only when the baseline check passes and the patched type check fails, which is a validation regression.",
+  "criteria": "Entries of subsets/push-279-affected.json not in subsets/heldout-30.json whose row in refit-bench run 40117208880 (Refit 604cb81, four tuned sets, default flags, no AI) has workflow.validation \"regression\". Entries unchanged, in list order.",
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "Kanba-co/kanba",
+      "stars": 661,
+      "commit": "d5dfe822a503dcf87e14e687e4a13a0baffc9fe3",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "iggy-tech/product-hunt-clone-final",
+      "stars": 59,
+      "commit": "85b3a0fa123b4a722d6ab963bf9a0d4c4e6de1c9",
+      "before": "2024-04-10",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "mrwebwork/spotify",
+      "stars": 46,
+      "commit": "91cfa45df898fef97f66fb5125009e86872633a0",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "nicitaacom/19_spotify-clone",
+      "stars": 28,
+      "commit": "83f0ac9695188b3a8679dd5c7e0af78ac7749a3d",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "kpirabaharan/Spotify-Clone",
+      "stars": 18,
+      "commit": "ca169ffc0105236ff07800908e36b229f22f2bb9",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "adityayaduvanshi/Full-Stack-Music-Web-App",
+      "stars": 43,
+      "commit": "90e902f43863d09fc6451f8c7f50fed7c096bcc3",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^12.8.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "afdon/music-app",
+      "stars": 2,
+      "commit": "1f49f3e8ef88138c49ad7e876cad7fb55b8cb666",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^12.8.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "AlefeSk8/Spotify-Clone-Next.js",
+      "stars": 2,
+      "commit": "9b5d9ccc9740a51cab5249adee5dac5a8c112f91",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^12.9.0",
+      "packageManager": "yarn"
+    },
+    {
+      "repo": "Mangu-Commerce/madcaptees",
+      "stars": 0,
+      "commit": "ad29f774d0ffdc749a90f0268ea4d93f7b6eb488",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.7.0"
+    }
+  ]
+}

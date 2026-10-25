@@ -2250,7 +2250,19 @@ export async function proposeModelReplacements(
       ...(await readRepository(directory, adapter.packageName)),
       files: repository.files,
     };
-    const confirmedAnalysis = analyzeRepository(snapshot, [], adapter);
+    // Model fixes trace only the client shapes their decision covered; the rest stop below.
+    const clientShapes = { modelFixClients: true };
+    const confirmedAnalysis = analyzeRepository(
+      snapshot,
+      [],
+      adapter,
+      {},
+      [],
+      [],
+      [],
+      [],
+      clientShapes,
+    );
     // Where a file importing the SDK has a tsconfig or jsconfig Refit cannot read (one extending
     // a generated `.svelte-kit/tsconfig.json`, say), the import may be an alias, so its calls are
     // not confirmed. They are traced anyway and stop for review rather than going unreported.
@@ -2258,6 +2270,7 @@ export async function proposeModelReplacements(
       (file) => sdkImported(file.content, adapter.packageName) && program.unverifiedFile(file.path),
     )
       ? analyzeRepository(snapshot, [], adapter, {}, [], [], [], [], {
+          ...clientShapes,
           traceUnverifiedPackageImports: true,
         })
       : confirmedAnalysis;

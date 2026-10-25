@@ -17,6 +17,7 @@ import { assessmentConfiguration } from './assessment.ts';
 import { selectCheck, ungradedEvidence } from './check-selection.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PASSING_REACH } from './operation-reach.ts';
+import { sdkPackageDirectory } from './preparation-packages.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
@@ -30,6 +31,7 @@ import {
   workflowScan,
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
+import { validationProfile } from './docker-sandbox.ts';
 import { AiPolicyStop } from './ai-patches.ts';
 import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 import { githubAppConfiguration } from './github-app.ts';
@@ -40,24 +42,19 @@ import {
   publishUnresolved,
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
-import { typeErrors } from './type-errors.ts';
+import { typeErrorKeys } from './type-errors.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
-// Type errors keyed without the position, so moved lines still match.
-const typeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
-  new Set(
-    typeErrors({ stdout: check?.stdout ?? '', stderr: check?.stderr ?? '' }).map(
-      (error) => error.key,
-    ),
-  );
+const reportedTypeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
+  typeErrorKeys({ stdout: check?.stdout ?? '', stderr: check?.stderr ?? '' });
 
 interface Selected {
   repo: string;
@@ -96,12 +93,18 @@ const { values } = parseArgs({
     // Continue an interrupted run in the same --output; see docs/BENCHMARK-HARNESS.md.
     resume: { type: 'boolean' },
     'allow-dirty': { type: 'boolean' },
+    // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
+    'validation-workspace': { type: 'string' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 if (values.publish && !values.validate)
   throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
 if (values.env) process.loadEnvFile(values.env);
+if (values['validation-workspace']) {
+  validationProfile(values['validation-workspace']);
+  process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
+}
 if (values['behaviour-tests'] && (!values.env || !values.validate))
   throw new PipelineInputError(
     '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
@@ -170,6 +173,8 @@ const { rows: previous } = await openRunDirectory(
     environment: [
       'REFIT_VALIDATION_WORKSPACE',
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
+      // Rows may then carry baseline results an earlier run recorded (workflow.baselineReused).
+      'REFIT_BASELINE_CHECK_CACHE_DIRECTORY',
       ...(values.ai || writer ? ['OPENAI_MODEL'] : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
@@ -385,8 +390,10 @@ async function benchmark(entry: Selected, index: number) {
     log('no mapped Stripe methods');
     return;
   }
+  let fullReport: Awaited<ReturnType<typeof runPipeline>>;
   try {
-    result.fullAdapter = summarize(await runPipeline({ ...inputs, providerConfig: adapterPath }));
+    fullReport = await runPipeline({ ...inputs, providerConfig: adapterPath });
+    result.fullAdapter = summarize(fullReport);
   } catch (error) {
     result.fullAdapter = { error: message(error) };
     log('full-adapter scan failed');
@@ -424,15 +431,23 @@ async function benchmark(entry: Selected, index: number) {
     log('not affected');
     return;
   }
+  // Stripe code in one nested package with its own lockfile is prepared and checked there, with
+  // that package's own checks, as validation does (pipeline/preparation-packages.ts).
+  const packageDirectory = sdkPackageDirectory(fullReport, (path) =>
+    existsSync(join(directory, path)),
+  );
+  if (packageDirectory) result.packageDirectory = packageDirectory;
+  const checkRoot = join(directory, packageDirectory ?? '');
   const manifest = JSON.parse(
-    await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
+    await readFile(join(checkRoot, 'package.json'), 'utf8').catch(() => '{}'),
   );
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
   const checkable =
-    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some((lockfile) =>
-      existsSync(join(directory, lockfile)),
+    // A bun.lock is installed through its npm translation (bun-lock.ts).
+    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
+      existsSync(join(checkRoot, lockfile)),
     ) && Boolean(declared.stripe);
   // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,
   // the patch is still proposed and graded D.
@@ -561,7 +576,9 @@ async function benchmark(entry: Selected, index: number) {
       unresolvedFindings: report.patch?.unresolvedFindings,
       sdkUpgrade: report.patch?.sdkUpgrade,
       validation: report.validation?.status,
+      packageDirectory: report.validation?.packageDirectory,
       baseline: report.validation?.baseline?.status,
+      ...(report.validation?.baselineReused ? { baselineReused: true } : {}),
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,
       behaviourTestWriter: report.validation?.behaviourTestWriter,
@@ -578,10 +595,10 @@ async function benchmark(entry: Selected, index: number) {
       ...(report.validation?.compareTypeErrors && report.validation?.patched
         ? {
             typeErrors: {
-              baseline: typeErrorKeys(report.validation.baseline).size,
-              patched: typeErrorKeys(report.validation.patched).size,
-              introduced: [...typeErrorKeys(report.validation.patched)].filter(
-                (error) => !typeErrorKeys(report.validation.baseline).has(error),
+              baseline: reportedTypeErrorKeys(report.validation.baseline).size,
+              patched: reportedTypeErrorKeys(report.validation.patched).size,
+              introduced: [...reportedTypeErrorKeys(report.validation.patched)].filter(
+                (error) => !reportedTypeErrorKeys(report.validation.baseline).has(error),
               ),
             },
           }

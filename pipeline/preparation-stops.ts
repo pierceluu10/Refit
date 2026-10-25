@@ -28,15 +28,15 @@ export const PREPARATION_STOPS = [
   {
     reason: 'unsupported-lockfile',
     pattern:
-      /^Automatic preparation requires a root npm lockfile version 2 or 3|^npm preparation inputs exceed|^Automatic preparation reads dependencies only from the repository root/,
+      /^Automatic preparation requires a root npm lockfile version 2 or 3|^npm preparation inputs exceed|^Automatic preparation reads dependencies only from the repository root|^Automatic preparation reads a bun\.lock only|^Automatic preparation does not read bunfig\.toml/,
     summary: 'the lockfile is too old, too large or not at the repository root',
     action: `Commit a root package-lock.json written by npm 7 or later (lockfile version 2 or 3, at most 20,000 packages), or: ${CUSTOM_IMAGE}`,
   },
   {
     reason: 'unsupported-workspace',
     pattern:
-      /^npm workspaces require|^Automatic preparation supports at most 64 committed npm workspace|^Each workspace requires an explicit npm name|^npm links may only target|^Injected, runtime-managed or bundled pnpm|^pnpm configuration dependencies|^Root bundled dependencies/,
-    summary: 'the workspace layout needs files the installer does not receive',
+      /^Unsupported pnpm settings|^npm workspaces require|^Automatic preparation supports at most 64 committed npm workspace|^Each workspace requires an explicit npm name|^npm links may only target|^Injected, runtime-managed or bundled pnpm|^pnpm configuration dependencies|^Root bundled dependencies/,
+    summary: 'the workspace layout or pnpm settings need files the installer does not receive',
     action: CUSTOM_IMAGE,
   },
 ] as const;
