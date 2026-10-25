@@ -556,6 +556,17 @@ async function benchmark(entry: Selected, index: number) {
             },
           }
         : {}),
+      ...(report.validation?.behaviour
+        ? {
+            behaviour: {
+              status: report.validation.behaviour.status,
+              grade: report.validation.behaviour.grade,
+              missing: report.validation.behaviour.missing,
+              regressions: report.validation.behaviour.regressions,
+              tests: report.validation.behaviour.tests,
+            },
+          }
+        : {}),
       repairAttempts: report.validation?.repair?.requested ?? 0,
       aiCostUsd: report.patch?.budget?.costUsd,
       diff: report.patch?.diff?.slice(0, 8000),
