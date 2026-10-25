@@ -8,7 +8,7 @@ import { createReviewArtifacts, writeReviewBundle } from './review.ts';
 import { validatedReport } from './fixtures/publication-report.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
-import type { validateMigration } from './validation.ts';
+import { compareTypeCheck, type validateMigration } from './validation.ts';
 
 const directories: string[] = [];
 type Report = Awaited<ReturnType<typeof validateMigration>>;
@@ -78,8 +78,69 @@ it('accepts a compared typecheck that exits nonzero on errors that predate the p
   };
   expect(() => createReviewArtifacts(passed)).toThrow('two successful check results');
   const compared = { ...passed, validation: { ...passed.validation, compareTypeErrors: true } };
-  expect(createReviewArtifacts(compared).files['pull-request.md']).toContain('passed');
+  expect(createReviewArtifacts(compared).files['pull-request.md']).toContain(
+    '`npm test` reported 1 existing type error on the original code, counted by file, code and message, and no error with a new file, code and message on the migrated code, in offline Docker.',
+  );
 });
+
+// Convex templates such as webdevcody/thumbnail-critique and
+// projectplannerai/nextjs-clerk-convex-stripe-resend-template commit no convex/_generated folder,
+// so tsc reports the same missing modules before and after the patch, and untyped handler
+// parameters the same way on every line. The gate compares file, code and message, so the text
+// counts errors that way too.
+const missingModule = (file: string, line: number) =>
+  `${file}(${line},29): error TS2307: Cannot find module './_generated/server' or its corresponding type declarations.`;
+const untypedContext = (line: number) =>
+  `convex/stripe.ts(${line},20): error TS7006: Parameter 'ctx' implicitly has an 'any' type.`;
+const existing = (count: number, migrated = 'no error with a new file, code and message') =>
+  `reported ${count} existing type error${count === 1 ? '' : 's'} on the original code, counted by file, code and message, and ${migrated} on the migrated code, in offline Docker.`;
+it.each([
+  [
+    [missingModule('convex/stripe.ts', 3), missingModule('convex/http.ts', 2)],
+    [missingModule('convex/stripe.ts', 4), missingModule('convex/http.ts', 2)],
+    existing(2),
+  ],
+  [[missingModule('convex/users.ts', 1)], [missingModule('convex/users.ts', 1)], existing(1)],
+  [
+    [missingModule('convex/stripe.ts', 3), missingModule('convex/http.ts', 2)],
+    [missingModule('convex/http.ts', 2)],
+    existing(2),
+  ],
+  [[missingModule('convex/stripe.ts', 3)], [], existing(1, 'no type errors')],
+  [
+    [untypedContext(8), untypedContext(21)],
+    [untypedContext(8), untypedContext(21), untypedContext(34)],
+    existing(1),
+  ],
+])(
+  'says how many existing type errors a compared typecheck reported (%#)',
+  async (before, after, text) => {
+    const base = await report();
+    const command = ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'];
+    const check = (errors: string[]) => ({
+      status: 'passed' as const,
+      exitCode: errors.length ? 2 : 0,
+      stdout: errors.join('\n'),
+      stderr: '',
+    });
+    const body = createReviewArtifacts({
+      ...base,
+      patch: { ...base.patch, validation: 'passed' },
+      validation: {
+        ...base.validation,
+        status: 'passed',
+        compareTypeErrors: true,
+        command,
+        baselineCommand: command,
+        baseline: check(before),
+        patched: check(after),
+      },
+    }).files['pull-request.md'];
+    expect(compareTypeCheck(check(before), check(after)).status).toBe('passed');
+    expect(body).toContain(`- Test Suite Output: \`${command.join(' ')}\` ${text}`);
+    expect(body).not.toContain('passed on the original and migrated code');
+  },
+);
 
 it('exports regression evidence without implying that checks passed or a PR exists', async () => {
   const artifacts = createReviewArtifacts(await report());
@@ -773,11 +834,99 @@ it('lists breaking contract changes the reach gate let through, with their paths
     ],
   };
   const body = createReviewArtifacts(value).files['pull-request.md'];
-  expect(body).toContain('## Changed, Not Used By Traced Code');
+  expect(body).toContain(
+    '## Changed, Not Used By Traced Code\n\n1 contract change no traced code reaches.\n\n<details>\n<summary>Show the change</summary>\n\nThe target contract changes these parts',
+  );
   expect(body).toContain(
     '- `POST /v1/checkout/sessions` removed the request property \\`line\\_items/items/dynamic\\_tax\\_rates\\`: No traced \\`checkout.sessions.create\\` call sends \\`line\\_items/items/dynamic\\_tax\\_rates\\`.',
   );
   // A reached change blocks instead, and a non-breaking change is not listed.
   expect(body).not.toContain('payment\\_method\\_types\\`: The');
   expect(body).not.toContain('/v1/charges');
+});
+
+// A Checkout-only app such as nabarvn/documon never calls Payment Intents or Setup Intents, so the
+// endive removals of their payment_method_types parameter (changelog read 2026-10-25) reach nothing.
+// A Checkout app whose `['card']` list the card rule moves (as laxmanclo/multi-agent-kit's), with
+// an uppercase currency literal the currency rule lowercases and a lowercase one already in the
+// new format, plus a SetupIntent removal nothing sends: the count says which is which.
+it('counts each reason a contract change does not hold back the patch', async () => {
+  const value = await report();
+  const change = (path: string, text: string, reach: string, reachReason: string) => ({
+    id: 'request-property-removed',
+    level: 3,
+    operation: 'POST',
+    path,
+    text,
+    reach,
+    reachReason,
+  });
+  const currency = 'the `currency` request property `format` changed from `none` to `currency`';
+  value.specificationDiff = {
+    engine: 'oasdiff',
+    version: 'oasdiff 1.33.0',
+    coverage: 'Full oasdiff changelog.',
+    changes: [
+      change(
+        '/v1/setup_intents',
+        'removed the request property `payment_method_types`',
+        'unused',
+        'No traced call sends it.',
+      ),
+      change(
+        '/v1/checkout/sessions',
+        'removed the request property `payment_method_types`',
+        'handled',
+        'The card rule moves it.',
+      ),
+      change('/v1/prices', currency, 'handled', 'The currency rule lowercases it.'),
+      change(
+        '/v1/payment_intents',
+        currency,
+        'compatible',
+        'Every traced call sends a lowercase code.',
+      ),
+    ],
+  };
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  expect(body).toContain(
+    "## Changed, Not Used By Traced Code\n\n4 contract changes do not hold back this patch: 1 that no traced code reaches, 2 that Refit's kept rule edits handle and 1 that traced code uses in a way the change does not break.\n\n<details>\n<summary>Show the 4 changes</summary>",
+  );
+});
+
+it('collapses the unreached contract changes under a count', async () => {
+  const value = await report();
+  const removals = [
+    'POST /v1/payment_intents',
+    'POST /v1/payment_intents/{intent}',
+    'POST /v1/payment_intents/{intent}/confirm',
+    'POST /v1/setup_intents',
+    'POST /v1/setup_intents/{intent}',
+  ].map((operation) => ({
+    id: 'request-property-removed',
+    level: 3,
+    operation: operation.split(' ')[0],
+    path: operation.split(' ')[1],
+    text: 'removed the request property `payment_method_types`',
+    reach: 'unused',
+    reachReason: 'No traced call sends `payment_method_types` to this operation.',
+  }));
+  value.specificationDiff = {
+    engine: 'oasdiff',
+    version: 'oasdiff 1.33.0',
+    coverage: 'Full oasdiff changelog.',
+    changes: removals,
+  };
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  const section = body.slice(
+    body.indexOf('## Changed, Not Used By Traced Code'),
+    body.indexOf('## Not Verified'),
+  );
+  expect(section).toMatch(
+    /^## Changed, Not Used By Traced Code\n\n5 contract changes no traced code reaches\.\n\n<details>\n<summary>Show the 5 changes<\/summary>\n\n/,
+  );
+  // Every listed change sits inside the collapsed block, which closes before the next section.
+  expect(section.trimEnd().endsWith('</details>')).toBe(true);
+  expect(section.slice(section.indexOf('<details>')).match(/^- /gm)).toHaveLength(5);
+  expect(section.slice(0, section.indexOf('<details>'))).not.toContain('- ');
 });
