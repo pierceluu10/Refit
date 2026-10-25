@@ -66,11 +66,16 @@ it('processes a change once across worker restarts and ignores documentation-onl
   const again = await watchOnce({ ...input });
   expect(again.status).toBe('already-processed');
   const document = JSON.parse(await readFile(input.source.path, 'utf8'));
-  document.info = { title: 'A documentation-only edit' };
+  document.info = { ...document.info, title: 'A documentation-only edit' };
   await writeFile(input.source.path, JSON.stringify(document));
   expect((await watchOnce(input)).status).toBe('already-processed');
   expect((await watchOnce({ ...input, retry: true })).status).toBe('already-processed');
   expect(runWorkflow).toHaveBeenCalledTimes(1);
+  // A new release is a new target even when its changes are the same.
+  document.info.version = '2023-08-16';
+  await writeFile(input.source.path, JSON.stringify(document));
+  expect((await watchOnce(input)).status).toBe('processed');
+  expect(runWorkflow).toHaveBeenCalledTimes(2);
   expect(await readFile(join(input.stateDirectory, 'state.json'), 'utf8')).not.toContain('apiKey');
 });
 
