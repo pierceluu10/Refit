@@ -4,7 +4,7 @@ import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { syntaxErrors } from './analyzer.ts';
 import { listOpenApiOperations } from './openapi-operations.ts';
 import { MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
-import { buildPatchContext } from './patch-context.ts';
+import { generatedImportMap } from './generated-checks.ts';
 import { bodySchema, local } from './request-removals.ts';
 import { digest, findAddedProperties, isObject, parseObject } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type Repository } from './types.ts';
@@ -170,7 +170,7 @@ export interface BehaviourTestRecord {
   usage: AiUsage | null;
   costUsd: number | null;
   findings: number;
-  context: { files: string[]; omitted: { path: string; bytes: number }[]; note?: string };
+  context: { files: string[]; omitted: { path: string; bytes: number }[] };
   files: { path: string; sha256: string; bytes: number; findingIds: string[] }[];
   uncoveredFindings: string[];
   summary?: string;
@@ -291,15 +291,15 @@ export function behaviourTestRequest(options: {
     },
     files,
   };
-  let imported: Repository['files'] = [];
-  let note: string | undefined;
-  try {
-    imported = buildPatchContext(options.repository, modules);
-  } catch (error) {
-    // Context is only a reading aid; without it the modules under test are still complete.
-    if (!(error instanceof PipelineInputError)) throw error;
-    note = error.message;
-  }
+  // Imported modules nearest first, resolved as the sandbox resolves them (generatedImportMap).
+  const imports = generatedImportMap(options.repository);
+  const reached = [...modules];
+  for (const path of reached)
+    for (const target of Object.values(imports[path] ?? {}))
+      if (!reached.includes(target)) reached.push(target);
+  const imported = reached
+    .slice(modules.size)
+    .map((path) => options.repository.files.find((file) => file.path === path)!);
   const contextFiles: { path: string; content: string }[] = [];
   const omitted: { path: string; bytes: number }[] = [];
   let room = CONTEXT_BYTES;
@@ -326,11 +326,7 @@ export function behaviourTestRequest(options: {
     schema: SCHEMA,
     evidence: request,
     findingIds: [...ids.values()],
-    context: {
-      files: contextFiles.map((file) => file.path),
-      omitted,
-      ...(note ? { note } : {}),
-    },
+    context: { files: contextFiles.map((file) => file.path), omitted },
   };
 }
 
