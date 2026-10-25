@@ -165,7 +165,7 @@ export function subscriptionPeriodRead(error: { message: string }) {
 // it and the items' shared period otherwise; with items on different periods it returns undefined,
 // as the removed field did (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end,
 // read 2026-10-24: the fields "are no longer available on the subscription resource").
-export const TYPE_CHECKED_PERIOD_READS = false;
+export const TYPE_CHECKED_PERIOD_READS = true;
 
 // Where each rejected read sits in the original source: the error's position in the patched file,
 // moved back across the proposal's edits. Undefined when an error is not a plain property read the
