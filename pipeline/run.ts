@@ -1,7 +1,8 @@
 import {
   migrationReviewReason,
+  migrationReviewReasons,
+  reviewBlocksAi,
   unresolvedSites,
-  withoutRequestParameters,
 } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
@@ -102,8 +103,9 @@ async function runOpenApiPipeline(options: {
   documentationSnapshots?: readonly string[];
   // Stripe package directory for type evidence; defaults to the installed package.
   stripePackage?: string;
-  // Deterministic only: leave traced calls that send a removed request parameter unresolved.
-  leaveRequestParameters?: boolean;
+  // Owner decision 1: write the rules' patch around every finding that needs review, which stays
+  // unresolved and unedited, instead of stopping; AI never runs beside such a finding.
+  leaveReviewedFindings?: boolean;
   // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
   keepListedPaymentMethods?: boolean;
   // Shopify only: propose the SDK major upgrade a target version needs (docs/SHOPIFY-SDK-UPGRADE.md).
@@ -331,7 +333,7 @@ async function runOpenApiPipeline(options: {
   movedTo[INVOICE_PREVIEW_RULE] =
     bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
   // The period helper reads either API version, so it does not depend on the version pin.
-  const edits = [
+  const kept = [
     ...analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]),
     // A lowercase currency code is valid under either API version, so it needs no pin gate.
     ...(specificationDiff && provider.packageName === STRIPE.packageName
@@ -342,12 +344,11 @@ async function runOpenApiPipeline(options: {
         })
       : []),
   ];
-  const ruleEdits = edits.filter(isFieldMove);
   // A read counts as migrated only while its helper edit is kept.
   for (const finding of analysis.findings)
     if (
       (finding.subscriptionPeriod || HELPER_RULES.has(finding.webhook?.migration?.rule ?? '')) &&
-      !editCovers(repository, edits, finding)
+      !editCovers(repository, kept, finding)
     ) {
       delete finding.subscriptionPeriod;
       if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
@@ -355,12 +356,24 @@ async function runOpenApiPipeline(options: {
     }
   // A removed request parameter the kept card-only rename covers no longer stops the run.
   for (const finding of analysis.findings)
-    if (finding.requestParameter && editCovers(repository, edits, finding))
+    if (finding.requestParameter && editCovers(repository, kept, finding))
       delete finding.requestParameter;
   // So does the removed upcoming invoice call a kept createPreview rewrite covers.
   for (const finding of analysis.findings)
-    if (finding.changeId === INVOICE_PREVIEW_RULE && editCovers(repository, edits, finding))
+    if (finding.changeId === INVOICE_PREVIEW_RULE && editCovers(repository, kept, finding))
       delete finding.contractReview;
+  // Owner decision 1 (2026-10-24): a finding that needs review is never edited. The rules' patch
+  // goes around it, and the draft lists it with its reason.
+  const reviewed = options.leaveReviewedFindings
+    ? migrationReviewReasons(
+        { findings: analysis.findings, skippedFiles, adapter: provider },
+        true,
+      ).flatMap((entry) => entry.findings)
+    : [];
+  const edits = kept.filter(
+    (edit) => !reviewed.some((finding) => editCovers(repository, [edit], finding)),
+  );
+  const ruleEdits = edits.filter(isFieldMove);
   // A dropped payment-method rename tells the customer which gate dropped it (F2).
   const renames = analyzedEdits.filter((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? ''));
   const unresolved = apiVersionDeclarations.find(
@@ -464,10 +477,12 @@ async function runOpenApiPipeline(options: {
   const aiFindings = analysis.findings.filter(
     (finding) => finding.confidence === 'confirmed' && !editCovers(repository, ruleEdits, finding),
   );
+  const reviewEvidence = { findings: analysis.findings, skippedFiles, adapter: provider };
   const useAi =
     Boolean(options.aiPatch) &&
     !configuredMigrationProposal &&
-    (aiFindings.length > 0 || operationImpacts.length > 0);
+    (aiFindings.length > 0 || operationImpacts.length > 0) &&
+    !(options.leaveReviewedFindings && reviewBlocksAi({ ...reviewEvidence, operationImpacts }));
   const deterministicRequested =
     options.proposePatch ||
     (options.aiPatch && !useAi && (configuredMigrationProposal || ruleEdits.length > 0));
@@ -494,15 +509,11 @@ async function runOpenApiPipeline(options: {
         // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
       ).findings
     : [];
-  const reviewEvidence = { findings: analysis.findings, skippedFiles, adapter: provider };
-  const reviewReason = migrationReviewReason(
-    options.leaveRequestParameters && !useAi
-      ? withoutRequestParameters(reviewEvidence)
-      : reviewEvidence,
-    true,
-    true,
-    useAi,
+  const reviews = migrationReviewReasons(reviewEvidence, true, true, useAi).map(
+    (entry) => entry.reason,
   );
+  // Under decision 1 every reason is recorded and none stops the rules' patch.
+  const reviewReason = options.leaveReviewedFindings ? undefined : reviews[0];
   const advisoryReviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
   if (useAi && !operationImpacts.length && !reviewReason)
     options.onProgress?.('Requesting an AI migration proposal...');
@@ -672,7 +683,7 @@ async function runOpenApiPipeline(options: {
     warnings: [
       ...repository.warnings,
       ...sourceWarnings,
-      ...(reviewReason ? [reviewReason!] : []),
+      ...(options.leaveReviewedFindings ? reviews : reviews.slice(0, 1)),
       ...skippedFiles.map(
         (file) => `Skipped unparseable file; its API usage was not scanned. ${file}`,
       ),

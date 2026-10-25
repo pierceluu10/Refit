@@ -145,6 +145,7 @@
     }
   ],
   "operationChanges": [],
+  "operationImpacts": [],
   "patch": {
     "generator": "deterministic",
     "summary": "Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.",
