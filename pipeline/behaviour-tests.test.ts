@@ -702,3 +702,33 @@ it('gives gradeEvidence grade A only for a result that passed and ran every chan
   });
   expect((await grade(partial)).letter).toBe('D');
 });
+
+it('needs the same tests on both sides', () => {
+  const sources = {
+    original: { root: '/r', files: [] },
+    patched: { root: '/r', files: [] },
+  } as never;
+  const output = (...ids: string[]) => ({
+    status: 'passed' as const,
+    exitCode: 0,
+    stdout: [
+      ...ids.map(
+        (id) =>
+          `REFIT_BEHAVIOUR_TEST=${JSON.stringify({ file: 'refit-behaviour/payments.test.mjs', id, ok: true })}`,
+      ),
+      'REFIT_BEHAVIOUR_EXIT=0',
+      'REFIT_BEHAVIOUR_COVERAGE={}',
+      'REFIT_BEHAVIOUR_DONE',
+    ].join('\n'),
+    stderr: '',
+  });
+  const result = compareBehaviourRuns({
+    tests: TESTS,
+    changed: { original: {}, patched: {} },
+    sources,
+    original: output('a', 'b'),
+    patched: output('a'),
+  });
+  expect(result).toMatchObject({ status: 'not-passing', grade: null, regressions: [] });
+  expect(result.missing[0]).toBe('b ran on one side only.');
+});

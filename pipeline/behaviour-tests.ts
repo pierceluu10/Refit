@@ -427,6 +427,14 @@ export function compareBehaviourRuns(options: {
         .map((test) => ({ id: test.id, error: after.get(test.id)!.error ?? 'No error recorded.' }));
   const missing: string[] = [];
   if (broken) missing.push(broken);
+  // The same files must run the same tests on both sides.
+  const oneSided = broken
+    ? []
+    : [
+        ...[...before.keys()].filter((id) => !after.has(id)),
+        ...[...after.keys()].filter((id) => !before.has(id)),
+      ];
+  for (const id of oneSided) missing.push(`${id} ran on one side only.`);
   for (const side of sides) {
     if (side.broken) continue;
     if (!side.output.tests.length) missing.push(`No test ran on ${sideText[side.side]}.`);
@@ -467,9 +475,11 @@ export function compareBehaviourRuns(options: {
     0,
   );
   if (!changedCount) missing.push('The patch changes no executable Stripe line.');
-  const allPass = sides.every(
-    (side) => !side.broken && side.output.tests.length > 0 && side.output.tests.every(passing),
-  );
+  const allPass =
+    !oneSided.length &&
+    sides.every(
+      (side) => !side.broken && side.output.tests.length > 0 && side.output.tests.every(passing),
+    );
   const status = broken
     ? ('unavailable' as const)
     : regressions.length
