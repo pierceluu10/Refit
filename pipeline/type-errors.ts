@@ -15,3 +15,8 @@ export function typeErrors(check: { stdout: string; stderr: string }) {
       key: `${match[1]} ${match[4]} ${match[5]}`,
     }));
 }
+
+// The errors a compared type check matches: one per file, code and message.
+export function typeErrorKeys(check: { stdout: string; stderr: string }) {
+  return new Set(typeErrors(check).map((error) => error.key));
+}

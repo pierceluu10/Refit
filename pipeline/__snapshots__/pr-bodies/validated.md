@@ -55,7 +55,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 ## Automated Verification Gates
 
 - Evidence Strength: **Type-checked only.** No code ran except the generated stripe-mock checks below.
-- Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` reported the same 3 existing type errors on the original and migrated code and none new, in offline Docker. Generated stripe-mock checks passed on 1 of 1 exported functions.
+- Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` reported 3 existing type errors on the original code, counted by file, code and message, and no error with a new file, code and message on the migrated code, in offline Docker. Generated stripe-mock checks passed on 1 of 1 exported functions.
 - Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 usages of the breaking changes remain.
 - Security Scans: Not run.
 

@@ -24,7 +24,7 @@ import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
-import { typeErrors } from './type-errors.ts';
+import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -101,7 +101,7 @@ const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', st
 // With compareTypeErrors, the original code's type errors are the baseline: a typecheck that
 // reports errors still ran, and the patched check fails only on errors the patch introduced.
 function introducedTypeErrors(baseline: CheckResult, patched: CheckResult) {
-  const before = new Set(typeErrors(baseline).map((error) => error.key));
+  const before = typeErrorKeys(baseline);
   return typeErrors(patched).filter((error) => !before.has(error.key));
 }
 

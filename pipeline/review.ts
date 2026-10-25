@@ -21,7 +21,7 @@ import {
   movedPaymentMethodExpressions,
   PAYMENT_METHOD_TYPES_CHANGELOG,
 } from './patches.ts';
-import { typeErrors } from './type-errors.ts';
+import { typeErrorKeys } from './type-errors.ts';
 import { HELPER_NAMES } from './stripe-subscription-periods.ts';
 
 // The entry for one gate, when the draft has it.
@@ -366,31 +366,37 @@ function failedChecks(validation: Validation) {
   }`;
 }
 
-// How much a validation shows, from what ran; Refit does not measure which lines a repository's own
-// command reaches.
-// A compared typecheck passes on tsc's nonzero exit when every error it reports predates the patch,
-// so it says how many it reported instead of that it passed.
+// A compared typecheck passes on tsc's nonzero exit when no error has a file, code and message the
+// original code's errors lack, so it says what the gate compared instead of that it passed.
+export function existingTypeErrors(validation: {
+  compareTypeErrors?: boolean;
+  baseline: { exitCode: number | null; stdout: string; stderr: string };
+  patched: { exitCode: number | null; stdout: string; stderr: string };
+}) {
+  if (
+    !validation.compareTypeErrors ||
+    [validation.baseline, validation.patched].every((check) => check.exitCode === 0)
+  )
+    return undefined;
+  const before = typeErrorKeys(validation.baseline).size;
+  return `reported ${before} existing type error${before === 1 ? '' : 's'} on the original code, counted by file, code and message, and ${typeErrorKeys(validation.patched).size ? 'no error with a new file, code and message' : 'no type errors'} on the migrated code`;
+}
+
 function passedChecks(validation: Validation) {
   const [original, migrated] = [validation.baselineCommand, validation.command].map((command) =>
     code(command.join(' ')),
   );
   const sameCommand = original === migrated;
-  if (
-    !validation.compareTypeErrors ||
-    [validation.baseline, validation.patched].every((check) => check.exitCode === 0)
-  )
-    return sameCommand
-      ? `${migrated} passed on the original and migrated code in offline Docker.`
-      : `${original} passed on the original and ${migrated} on the migrated code in offline Docker.`;
-  const [before, after] = [validation.baseline, validation.patched].map(
-    (check) => typeErrors(check).length,
-  );
-  const existing = `existing type error${before === 1 ? '' : 's'}`;
-  return before === after
-    ? `${sameCommand ? migrated : `${original} on the original and ${migrated} on the migrated code`} reported the same ${before} ${existing}${sameCommand ? ' on the original and migrated code' : ''} and none new, in offline Docker.`
-    : `${original} reported ${before} ${existing} on the original code and ${sameCommand ? '' : `${migrated} `}${after || 'none'} on the migrated code, none of them new, in offline Docker.`;
+  const existing = existingTypeErrors(validation);
+  if (existing)
+    return `${sameCommand ? migrated : `${original} on the original and ${migrated} on the migrated code`} ${existing}, in offline Docker.`;
+  return sameCommand
+    ? `${migrated} passed on the original and migrated code in offline Docker.`
+    : `${original} passed on the original and ${migrated} on the migrated code in offline Docker.`;
 }
 
+// How much a validation shows, from what ran; Refit does not measure which lines a repository's own
+// command reaches.
 function evidenceStrength(validation: Validation, generated: boolean) {
   if (validation.status !== 'passed')
     return '**None.** The checks did not pass, so nothing in this patch is verified.';
@@ -880,13 +886,32 @@ export function createReviewArtifacts(
     ),
   ];
   // Breaking contract changes the reach gate let through (operation-reach.ts), with their paths.
-  const unusedChanges = (report.specificationDiff?.changes ?? [])
+  const passingChanges = (report.specificationDiff?.changes ?? [])
     .filter(isObject)
-    .filter((change) => PASSING_REACH.has(change.reach) && Number(change.level) >= 2)
-    .map(
-      (change) =>
-        `${code(`${change.operation} ${change.path}`)} ${plainText(String(change.text))}: ${plainText(String(change.reachReason))}`,
-    );
+    .filter((change) => PASSING_REACH.has(change.reach) && Number(change.level) >= 2);
+  // Each kind of reach that lets a breaking change through, worded to follow a count.
+  const reachCounts = (
+    [
+      ['unused', 'no traced code reaches'],
+      ['handled', "Refit's kept rule edits handle"],
+      ['compatible', 'traced code uses in a way the change does not break'],
+    ] as const
+  ).flatMap(([reach, text]) => {
+    const count = passingChanges.filter((change) => change.reach === reach).length;
+    return count ? [{ count, text }] : [];
+  });
+  const changeCount = `${passingChanges.length} contract change${passingChanges.length === 1 ? '' : 's'}`;
+  const unusedSummary =
+    reachCounts.length === 1
+      ? `${changeCount} ${reachCounts[0].text}.`
+      : `${changeCount} do not hold back this patch: ${reachCounts
+          .map(({ count, text }) => `${count} that ${text}`)
+          .join(', ')
+          .replace(/, ([^,]*)$/, ' and $1')}.`;
+  const unusedChanges = passingChanges.map(
+    (change) =>
+      `${code(`${change.operation} ${change.path}`)} ${plainText(String(change.text))}: ${plainText(String(change.reachReason))}`,
+  );
   const unmigratedSites = [...unmigratedUsages.values()].map((group) => {
     const fields = new Set(
       group.flatMap((site) => {
@@ -1196,7 +1221,7 @@ export function createReviewArtifacts(
       ...(unusedChanges.length
         ? [
             '## Changed, Not Used By Traced Code',
-            `${unusedChanges.length} contract change${unusedChanges.length === 1 ? '' : 's'} no traced code reaches.`,
+            unusedSummary,
             // Collapsed: a full comparison can list dozens, which would bury the sections below.
             `<details>\n<summary>Show the ${unusedChanges.length === 1 ? 'change' : `${unusedChanges.length} changes`}</summary>`,
             'The target contract changes these parts in a breaking way. No traced call sends them and no read of them was found, a kept rule edit rewrites them, or reading them is unaffected, so they do not hold back this change. Each line gives the reason.',
