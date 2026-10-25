@@ -11,7 +11,7 @@ import {
   parseBehaviourTests,
   writeBehaviourTests,
   type BehaviourTestFile,
-} from './behaviour-tests.ts';
+} from './behaviour-test-writer.ts';
 import { generatedImportMap, typescriptDirectory, writeHarness } from './generated-checks.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
 import { readRepository } from './repository.ts';

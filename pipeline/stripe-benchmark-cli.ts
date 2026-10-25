@@ -476,7 +476,7 @@ async function benchmark(entry: Selected, index: number) {
                   '1',
                 ]
               : []),
-            ...(values['behaviour-tests'] ? ['--behaviour-tests'] : []),
+            ...(values['behaviour-tests'] ? ['--write-behaviour-tests'] : []),
             // Saves [Needs review] artifacts for waivable stops so they can be published below.
             ...(values['publish-unresolved'] ? ['--publish-unresolved'] : []),
             '--quiet',
@@ -513,7 +513,7 @@ async function benchmark(entry: Selected, index: number) {
       baseline: report.validation?.baseline?.status,
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,
-      behaviourTests: report.validation?.behaviourTests,
+      behaviourTestWriter: report.validation?.behaviourTestWriter,
       baselineStop: report.validation?.baselineStop?.reason,
       checkErrors: {
         baseline: report.validation?.baseline?.error,

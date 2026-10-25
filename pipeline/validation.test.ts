@@ -714,14 +714,14 @@ test('returns the charge history', async () => {
       ...options,
       repository: root,
       command: ['node', '--version'],
-      behaviourTests: {
+      behaviourTestWriter: {
         apiKey: 'test-key',
         model: 'gpt-6.1-sol',
         budget: { directory: ledger, limitUsd: 1 },
       },
     });
     expect(report.validation.status).toBe('passed');
-    expect(report.validation.behaviourTests).toMatchObject({
+    expect(report.validation.behaviourTestWriter).toMatchObject({
       status: 'generated',
       files: [{ path: 'refit-behaviour/history.test.mjs', sha256: digest(test) }],
     });
