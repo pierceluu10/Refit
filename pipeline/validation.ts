@@ -41,11 +41,14 @@ import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.t
 import { compactPatch, renderPatch } from './patches.ts';
 import {
   crossesOpenEnums,
+  crossesTypeRemovals,
+  KEEP_UNTYPED_REQUEST_PROPERTIES,
   OPEN_ENUM_REPAIR,
   OPEN_ENUM_RULE,
   keepsPartialRestore,
   openEnumRepair,
   restorableOpenEnumErrors,
+  untypedRequestProperty,
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
@@ -937,6 +940,10 @@ export async function validateMigration(options: {
       error: string | null;
       // The open-enum restore applied to part of the errors before an AI repair of the rest.
       openEnumRestored?: boolean;
+      // Request properties stripe-node 13 stopped typing, which the restore keeps sending unchanged.
+      keptProperties?: string[];
+      // The restore kept only such properties and changed no enum types.
+      enumsUnchanged?: boolean;
     } = {
       limit: repairLimit,
       requested: 0,
@@ -955,7 +962,8 @@ export async function validateMigration(options: {
     // deterministic repair restores their known literals where the upgraded types reject them. It
     // is kept when every introduced error is that shape and the checks then pass, or, before an AI
     // repair of a rules proposal, when the checks then fail only on the errors it left alone: the
-    // model then repairs those errors on the restored candidate instead of all of them.
+    // model then repairs those errors on the restored candidate instead of all of them. The same
+    // restore keeps sending the request properties stripe-node 13.0.0 stopped typing.
     const sdkUpgrade =
       'sdkUpgrade' in report.patch
         ? (report.patch.sdkUpgrade as { from?: string; to?: string } | undefined)
@@ -967,7 +975,8 @@ export async function validateMigration(options: {
       candidateSources &&
       sdkUpgrade?.from &&
       sdkUpgrade.to &&
-      crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to)
+      (crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to) ||
+        (KEEP_UNTYPED_REQUEST_PROPERTIES && crossesTypeRemovals(sdkUpgrade.from, sdkUpgrade.to)))
         ? introducedTypeErrors(baselineRun, patched)
         : [];
     const openEnumErrors =
@@ -1030,6 +1039,11 @@ export async function validateMigration(options: {
         candidateEnvironment = prepared.environment;
         patched = check;
         recordAttempt();
+        const kept = openEnumErrors.flatMap((error) => untypedRequestProperty(error) ?? []);
+        if (kept.length) {
+          repair.keptProperties = [...new Set(kept.map((entry) => entry.property))];
+          if (kept.length === openEnumErrors.length) repair.enumsUnchanged = true;
+        }
         if (check.status === 'passed') repair.stopReason = OPEN_ENUM_REPAIR;
         else {
           repair.openEnumRestored = true;

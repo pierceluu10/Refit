@@ -16,7 +16,7 @@ import {
 import type { publicationWaiver } from './publication.ts';
 import { movedPaymentMethodExpressions } from './patches.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
-import { OPEN_ENUM_REPAIR } from './stripe-open-enums.ts';
+import { OPEN_ENUM_REPAIR, UNTYPED_REQUEST_PROPERTIES } from './stripe-open-enums.ts';
 import { PAYMENT_METHOD_TYPES_CHANGELOG } from './patches.ts';
 
 type PublicationWaiver = NonNullable<ReturnType<typeof publicationWaiver>>;
@@ -480,7 +480,8 @@ export function createReviewArtifacts(
   const scope = (
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
   ).toLowerCase();
-  const needsReview = Boolean(waiver || patch.unresolvedFindings);
+  const keptProperties = validation.repair?.keptProperties ?? [];
+  const needsReview = Boolean(waiver || patch.unresolvedFindings || keptProperties.length);
   const prefix = needsReview ? NEEDS_REVIEW_PREFIX : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
   const title =
@@ -658,8 +659,9 @@ export function createReviewArtifacts(
             // A configured replacement keeps the HTTP method; its contract signature must match.
             `Retires ${code(`${entry.resource}.${entry.method}`)} (${code(`${entry.httpMethod} ${entry.path}`)}) in favor of ${code(`${entry.replacementResource}.${entry.replacementMethod}`)} (${code(`${entry.httpMethod} ${entry.replacementPath}`)}).`,
         ),
-        ...(validation.repair?.stopReason === OPEN_ENUM_REPAIR ||
-        validation.repair?.openEnumRestored
+        ...((validation.repair?.stopReason === OPEN_ENUM_REPAIR ||
+          validation.repair?.openEnumRestored) &&
+        !validation.repair.enumsUnchanged
           ? [
               `Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with ${code('OtherString')}, using ${code('Extract<…>')} types where the upgraded types rejected this code. Runtime code is unchanged: a value Stripe adds later still reaches this code unchecked, as it did before the upgrade.`,
             ]
@@ -683,6 +685,10 @@ export function createReviewArtifacts(
         `Deprecated on ${after}, still served: ${code(entry.split(':')[0])}${plainText(entry.slice(entry.indexOf(':')))}`,
     ),
     ...reasons,
+    ...UNTYPED_REQUEST_PROPERTIES.filter((entry) => keptProperties.includes(entry.property)).map(
+      (entry) =>
+        `**Keeps sending ${code(`${entry.parent}.${entry.property}`)} unchanged.** stripe-node 13 removed it from its types and [Stripe's API reference](${entry.reference}) no longer lists it, so Refit cannot confirm that Stripe still applies it at ${code(report.apiVersion.after ?? 'the target version')}. The patch only spreads it from its own object so the upgraded types accept it; the request is the same. Before merging, ${entry.check}`,
+    ),
     ...('reviewTypeErrors' in validation && validation.reviewTypeErrors?.length
       ? [
           `**The upgraded SDK types reject these comparisons, often misspelled webhook event names that never matched.** Refit does not change event names; fix them by hand: ${summaryList([...new Set(validation.reviewTypeErrors.map((error) => code(`${error.file}:${error.line}`)))])}.`,
