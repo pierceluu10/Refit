@@ -1137,7 +1137,7 @@ export async function validateMigration(options: {
     const configuredPeriods = report.findings.some(
       (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
     );
-    // Owner decisions 1 and 8 (2026-10-25): once the rules' patch passes its checks, AI attempts
+    // Owner decisions 1 and 8 (2026-10-24): once the rules' patch passes its checks, AI attempts
     // what the rules left (coverage stops) on top of it, the rules' lines frozen, unless a safety
     // stop holds. It is kept only if its checks pass, after repair; otherwise the rules' patch
     // stays the result and the attempt is recorded.
@@ -1383,6 +1383,8 @@ export async function validateMigration(options: {
             : options.compareTypeErrors && candidateSources
               ? { files: candidateSources.files, rules: ruleSources }
               : undefined,
+          // So a coverage repair's rescan still counts calls sending a removed parameter.
+          rules && coverage ? requestRemovals : [],
         );
         charge(candidate);
         // The SDK upgrade is deterministic; repairs change only code and keep it.

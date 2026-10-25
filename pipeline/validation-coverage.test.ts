@@ -576,6 +576,34 @@ it.each(COVERAGE)(
   },
 );
 
+it.each(REMOVED_PARAMETER.map((shape) => [shape.name, shape] as const))(
+  'keeps a coverage patch its repair fixed for %s, with the removed parameter still unresolved',
+  async (_name, shape) => {
+    const fix = shape.fix!;
+    const { requests } = network((request, count) => [
+      edit(fix, request, count === 1 ? `${fix.replacement} /* ${BREAKS} */` : fix.replacement),
+    ]);
+    const { report, publication } = await run(shape, true);
+    console.log(shape.name, 'AI repaired:', JSON.stringify(report.validation.coverageAi, null, 2));
+    expect(requests).toHaveLength(2);
+    expect(report.validation).toMatchObject({
+      status: 'passed',
+      aiCostUsd: 2 * REQUEST_COST,
+      coverageAi: { outcome: 'kept', costUsd: 2 * REQUEST_COST },
+      repair: { requested: 1 },
+    });
+    expect(publication[fix.file]).toContain(fix.replacement);
+    expect(publication[fix.file]).not.toContain(BREAKS);
+    expect(publication[fix.file]).toContain("payment_method_types: ['card_present']");
+    expect(report.patch.unresolvedSites).toContainEqual(
+      expect.objectContaining({
+        file: fix.file,
+        expression: expect.stringContaining('payment_method_types'),
+      }),
+    );
+  },
+);
+
 it('records what a declined coverage request cost and keeps the rules-only draft (palashb01/DocuChat)', async () => {
   // DocuChat's untraced reads are a local plan table's own field, not Stripe's.
   const shape: Shape = {
