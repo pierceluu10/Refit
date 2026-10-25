@@ -186,9 +186,14 @@ export async function chargeHistory(paymentIntentId: string) {
     responseSchema: change.schema,
     removedProperty: change.property,
   };
-  const compared = (...changes: unknown[]) => ({
+  const compared = (...changes: Record<string, unknown>[]) => ({
     ...scan,
-    specificationDiff: { ...scan.specificationDiff, engine: 'oasdiff', changes },
+    specificationDiff: {
+      engine: 'oasdiff' as const,
+      version: 'oasdiff-test',
+      changes,
+      coverage: 'Simulated full comparison.',
+    },
   });
   expect(targetReached(compared(removal))).toBe(true);
   // A change no rule covers, such as a newly required request parameter, still stops for review.
