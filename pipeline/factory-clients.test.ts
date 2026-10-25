@@ -297,8 +297,9 @@ it.each([
 
 // Lazy Proxy clients from the tuned Stripe sets, as written (messages shortened, version added).
 it.each([
+  // TAIRED1/hackerai app/api/stripe.ts
   [
-    'a local client with methods bound by a ternary (TAIRED1/hackerai app/api/stripe.ts)',
+    'a local client with methods bound by a ternary',
     `let stripeClient: Stripe | null = null;
 export function getStripe(): Stripe {
   if (stripeClient) return stripeClient;
@@ -317,8 +318,9 @@ export const stripe = new Proxy({} as Stripe, {
   },
 });`,
   ],
+  // mwakidenis/TicketHub lib/stripe.ts
   [
-    'a local client with methods bound by an if (mwakidenis/TicketHub lib/stripe.ts)',
+    'a local client with methods bound by an if',
     `let stripeInstance: Stripe | null = null
 export function getStripe(): Stripe {
   if (!stripeInstance) {
@@ -337,8 +339,9 @@ export const stripe = new Proxy({} as Stripe, {
   },
 })`,
   ],
+  // DIFFERENCECODE/product_landing_page src/lib/stripe.ts
   [
-    'a cast local client (DIFFERENCECODE/product_landing_page src/lib/stripe.ts)',
+    'a cast local client',
     `let _stripe: Stripe | null = null;
 export function getStripe(): Stripe {
   if (_stripe) return _stripe;
@@ -355,8 +358,9 @@ export const stripe = new Proxy({} as Stripe, {
   },
 }) as Stripe;`,
   ],
+  // trentas/saas-scaffolding lib/stripe.ts
   [
-    'a module holder filled in the trap (trentas/saas-scaffolding lib/stripe.ts)',
+    'a module holder filled in the trap',
     `function getStripeClient() {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error('STRIPE_SECRET_KEY is not set');
@@ -371,8 +375,9 @@ export const stripe = new Proxy({} as Stripe, {
   },
 });`,
   ],
+  // openshiporg/openfront-restaurant lib/stripe.ts
   [
-    'a module holder filled in a block (openshiporg/openfront-restaurant lib/stripe.ts)',
+    'a module holder filled in a block',
     `const getStripeClient = () => {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) {
@@ -545,6 +550,208 @@ it('leaves a lazy wrapper call untraced when its function does not return a clie
   const result = analyze({
     'lazy-client.ts': wrapper(''),
     'route.ts': `import Stripe from 'stripe';\nimport { lazy } from './lazy-client.ts';\nconst stripe = lazy(() => ({}) as Stripe);\n${read('stripe')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+it('traces a lazy wrapper whose trap binds methods to its own local', () => {
+  const source = wrapper('').replace(
+    'return Reflect.get(instance as object, prop, receiver);',
+    "const value = Reflect.get(instance as object, prop, instance);\n      return typeof value === 'function' ? value.bind(instance) : value;",
+  );
+  const result = analyze({
+    'lazy-client.ts': source,
+    'route.ts': `import Stripe from 'stripe';\nimport { lazy } from './lazy-client.ts';\nconst stripe = lazy(() => new Stripe('key', ${options}));\n${read('stripe')}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'route.ts', confidence: 'confirmed' }]);
+  expect(result.apiVersionDeclarations).toMatchObject([
+    { file: 'route.ts', kind: 'constructor', status: 'literal', value: ORIGINAL },
+    { file: 'route.ts', kind: 'request', status: 'inherited' },
+  ]);
+});
+
+// A Proxy reads its holder on every access; a constant copies it once, before it is filled.
+it('leaves a constant copy of a module holder untraced', () => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';
+let _stripe: Stripe | null = null;
+export function init() { if (!_stripe) _stripe = new Stripe('key', ${options}); }
+export const stripe = _stripe;`,
+    'billing.ts': `import { stripe } from './client.ts';\n${read('stripe!')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+// Cached factories from the affected Stripe sets, as written (messages shortened, version set).
+it.each([
+  // EngMajdSayedTaha/reelspy lib/billing/stripe.ts
+  [
+    'a guarded block fill and an early null',
+    `let cached: Stripe | null = null;
+export function getStripe(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!key) return null;
+  if (!cached) {
+    cached = new Stripe(key, ${options});
+  }
+  return cached;
+}`,
+  ],
+  // yuens1002/artisan-roast lib/services/stripe.ts
+  [
+    'an early return of the holder, two sources and a reset',
+    `let _stripe: Stripe | null = null;
+async function loadStripeCredentials() { return { secretKey: 'key' }; }
+export async function getStripe(): Promise<Stripe | null> {
+  if (_stripe) return _stripe;
+  const envKey = process.env.STRIPE_SECRET_KEY;
+  if (envKey) {
+    _stripe = new Stripe(envKey, ${options});
+    return _stripe;
+  }
+  const dbCreds = await loadStripeCredentials();
+  if (dbCreds?.secretKey) {
+    _stripe = new Stripe(dbCreds.secretKey, ${options});
+    return _stripe;
+  }
+  return null;
+}
+export function resetStripeClient(): void {
+  _stripe = null;
+}`,
+  ],
+  [
+    'a fill with ||=',
+    `let cached: Stripe | undefined;
+export async function getStripe() { cached ||= new Stripe('key', ${options}); return cached; }`,
+  ],
+])('traces a cached factory with %s', (_name, factory) => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';\n${factory}`,
+    'billing.ts': `import { getStripe } from './client.ts';\n${read('(await getStripe())!')}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+  const constructors = result.apiVersionDeclarations.filter(
+    (entry) => entry.kind === 'constructor',
+  );
+  expect(constructors.length).toBeGreaterThan(0);
+  for (const entry of constructors)
+    expect(entry).toMatchObject({ file: 'client.ts', status: 'literal', value: ORIGINAL });
+});
+
+// `let` holders used as the client itself, from the affected Stripe sets (messages shortened).
+it.each([
+  // createdbymax/Loopletter-Open-source-email-marketing-platform lib/stripe.server.ts
+  [
+    'a module holder set under a guard',
+    `let stripe: Stripe | null = null;
+if (typeof window === 'undefined') {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', ${options});
+}
+export async function history() {
+  if (!stripe) {
+    throw new Error('Stripe is not initialized');
+  }
+  const intent = await stripe.paymentIntents.retrieve('pi');
+  return intent.charges.data;
+}`,
+  ],
+  // profullstack/vibe-stack src/routes/stripe-payments.js
+  [
+    'a module holder set in a try',
+    `let stripe;
+try {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, ${options});
+} catch (error) {
+  console.error('Failed to initialize Stripe client:', error);
+}
+${read('stripe')}`,
+  ],
+])('traces %s as the client with its version', (_name, source) => {
+  const result = analyze({ 'billing.ts': `import Stripe from 'stripe';\n${source}` });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+  expect(result.apiVersionDeclarations).toMatchObject([
+    { kind: 'constructor', status: 'literal', value: ORIGINAL },
+    { kind: 'request', status: 'inherited' },
+  ]);
+});
+
+// IramMcFly/kitchen-soft-platform app/api/webhooks/stripe/route.ts over its lib/stripe.ts.
+it('traces a local holder filled from a cached factory in a try', () => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';
+let stripeClient: Stripe | null = null;
+export function getStripeClient() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured');
+  }
+  if (!stripeClient) {
+    stripeClient = new Stripe(secretKey, ${options});
+  }
+  return stripeClient;
+}`,
+    'billing.ts': `import { getStripeClient } from './client.ts';
+export async function history() {
+  let stripe;
+  try {
+    stripe = getStripeClient();
+  } catch {
+    return null;
+  }
+  const intent = await stripe.paymentIntents.retrieve('pi');
+  return intent.charges.data;
+}`,
+  });
+  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
+  expect(result.apiVersionDeclarations).toMatchObject([
+    { file: 'client.ts', kind: 'constructor', status: 'literal', value: ORIGINAL },
+    { file: 'billing.ts', kind: 'request', status: 'inherited' },
+  ]);
+});
+
+const holder = (extra: string, modifier = '') => `import Stripe from 'stripe';
+${modifier}let stripe: Stripe | null = null;
+export function getStripe() { if (!stripe) stripe = new Stripe('key', ${options}); return stripe; }
+${extra}
+${read('stripe!')}`;
+it.each([
+  ['exported', holder('', 'export ')],
+  ['exported by name', holder('export { stripe };')],
+  ['exported as the default', holder('export default stripe;')],
+  ['reassigned to something else', holder('export function reset() { stripe = {} as Stripe; }')],
+])('leaves a holder that is %s untraced, directly and through its getter', (_name, source) => {
+  const result = analyze({
+    'client.ts': source,
+    'billing.ts': `import { getStripe } from './client.ts';\n${read('getStripe()!')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+it('leaves a static holder written from another module untraced', () => {
+  const result = analyze({
+    'client.ts': `import Stripe from 'stripe';
+export class Billing {
+  static client: Stripe | null = null;
+  static get() { Billing.client ??= new Stripe('key', ${options}); return Billing.client; }
+}`,
+    'setup.ts': `import Stripe from 'stripe';\nimport { Billing } from './client.ts';\nBilling.client = new Stripe('other', { apiVersion: '2023-10-16' });`,
+    'billing.ts': `import { Billing } from './client.ts';\n${read('Billing.get()!')}`,
+  });
+  expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
+});
+
+it.each([
+  ['passed to a function', 'console.log(stripe);'],
+  ['copied', 'export const copy = stripe;'],
+  ['stored in an object', 'export const clients = { stripe };'],
+])('does not use a holder %s as the client itself', (_name, extra) => {
+  const result = analyze({
+    'billing.ts': `import Stripe from 'stripe';
+let stripe: Stripe | null = null;
+if (process.env.KEY) stripe = new Stripe(process.env.KEY, ${options});
+${extra}
+${read('stripe!')}`,
   });
   expect(result.findings.filter((entry) => entry.confidence === 'confirmed')).toEqual([]);
 });

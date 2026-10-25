@@ -253,7 +253,14 @@ export function analyzeRepository(
   // jsconfig is unverified, so a caller can report those calls for review instead of missing
   // them. Analyses that can lead to edits keep the default, which treats them as unknown imports.
   // `invoicePreview`: the contract-checked move of Stripe's removed upcoming invoice call.
-  options: { traceUnverifiedPackageImports?: boolean; invoicePreview?: InvoicePreviewMove } = {},
+  // `modelFixClients`: trace only the client shapes the model-fix edits were decided on (AGENTS.md),
+  // leaving lazy Proxy clients with a local or bound methods, a Proxy over a filled holder and a
+  // holder used as the client to stop for review.
+  options: {
+    traceUnverifiedPackageImports?: boolean;
+    invoicePreview?: InvoicePreviewMove;
+    modelFixClients?: boolean;
+  } = {},
 ) {
   const { sources, resolution, program, checker } = analysisProgram(repository);
   const findings: Finding[] = [];
@@ -553,13 +560,17 @@ export function analyzeRepository(
       if (sdk.creation(node.expression)) clients.add(binding);
   }
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
-  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
+  const base = options.modelFixClients;
+  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation, base });
   for (const declaration of declarations) {
-    const forwarded = proxyClient(declaration.initializer);
+    const forwarded = proxyClient(declaration.initializer, base);
     const binding = clientBinding(forwarded ?? declaration.initializer);
     // A Proxy reads its holder on every access, so a holder that only ever holds the client
     // (filled in the trap or by a factory) forwards to that client.
-    if (binding && (clients.has(binding) || (forwarded && factoryBindings.holders.has(binding))))
+    if (
+      binding &&
+      (clients.has(binding) || (!base && forwarded && factoryBindings.holders.has(binding)))
+    )
       add(clients, declaration.name);
   }
   const helperBindings = helperClients({
@@ -574,6 +585,7 @@ export function analyzeRepository(
     rootBinding: classBindings.rootBinding,
     aliases: [...classBindings.aliases, ...helperBindings.aliases],
     localArgument: helperBindings.localArgument,
+    held: factoryBindings.held,
   };
   webhooks =
     provider.packageName === 'stripe'
