@@ -26,7 +26,10 @@ const fake = vi.hoisted(() => ({
   store: {} as Record<string, ReturnType<typeof vi.fn>>,
   inventoryReads: [] as (string | undefined)[],
 }));
-vi.mock('./hosted-store.ts', () => ({ openHostedStore: vi.fn(async () => fake.store) }));
+vi.mock('./hosted-store.ts', async (original) => ({
+  ...(await original<typeof import('./hosted-store.ts')>()),
+  openHostedStore: vi.fn(async () => fake.store),
+}));
 vi.mock('./inventory-store.ts', () => ({
   openInventoryStore: vi.fn(() => ({
     request: vi.fn(async () => 0),

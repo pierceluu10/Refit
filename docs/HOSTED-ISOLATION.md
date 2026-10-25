@@ -12,24 +12,24 @@ With `--job-machines`, the code a customer's checks run sits on a separate VM th
 
 ## The model
 
-| | Control process (`refit-hosted`) | Job machine (`REFIT_JOB_APP`) |
-|---|---|---|
-| Runs | webhooks, `/status`, leases, the job queue, the reaper | one job: `refit doctor`, scan, offline Docker validation (the existing `pollServiceTarget` path) |
-| Holds | `REFIT_DATABASE_URL`, the App private key, webhook and service secrets, the Fly API token for the job app | that job's inputs only (below) |
-| Lives | always on | from job start until it reports, fails, is cancelled or times out |
+|       | Control process (`refit-hosted`)                                                                          | Job machine (`REFIT_JOB_APP`)                                                                    |
+| ----- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Runs  | webhooks, `/status`, leases, the job queue, the reaper                                                    | one job: `refit doctor`, scan, offline Docker validation (the existing `pollServiceTarget` path) |
+| Holds | `REFIT_DATABASE_URL`, the App private key, webhook and service secrets, the Fly API token for the job app | that job's inputs only (below)                                                                   |
+| Lives | always on                                                                                                 | from job start until it reports, fails, is cancelled or times out                                |
 
 The job app is a **separate Fly app with no secrets**. This is required, not a convention: Fly injects an app's secrets into every Machine of that app, including Machines created through the Machines API ([Fly secrets](https://docs.fly.io/apps/secrets)). `refit hosted serve` refuses a `REFIT_JOB_APP` equal to `FLY_APP_NAME`.
 
 ### What a job machine receives
 
-| Input | How |
-|---|---|
-| Job ID, job-channel URL, a per-job 256-bit secret | Machine environment |
-| Validation images to pull (`REFIT_HOSTED_IMAGES`) | Machine environment; the entrypoint pulls them before the job, and validation runs with `--pull never` |
-| The target (repository, base, integration) and its stored approval | Fetched from the job channel |
-| A GitHub installation token with `contents: read` on that one repository, valid for at most an hour | Fetched from the job channel; minted by the control process when it confirms repository access |
+| Input                                                                                                                          | How                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Job ID, job-channel URL, a per-job 256-bit secret                                                                              | Machine environment                                                                                                                            |
+| Validation images to pull (`REFIT_HOSTED_IMAGES`)                                                                              | Machine environment; the entrypoint pulls them before the job, and validation runs with `--pull never`                                         |
+| The target (repository, base, integration) and its stored approval                                                             | Fetched from the job channel                                                                                                                   |
+| A GitHub installation token with `contents: read` on that one repository, valid for at most an hour                            | Fetched from the job channel; minted by the control process when it confirms repository access                                                 |
 | The target's carried watch state: `state.json`, the last captured specification, baselines and current documentation snapshots | Fetched from the job channel (`watchCarryOver` in `pipeline/watch.ts`), so a result for an unchanged revision is reused instead of revalidated |
-| A deadline | Fetched from the job channel; the machine aborts the job itself when it passes |
+| A deadline                                                                                                                     | Fetched from the job channel; the machine aborts the job itself when it passes                                                                 |
 
 It never receives database credentials, the App private key, the webhook or service secrets, the Fly API token, another target's state, or a token that can write. The job command deletes the channel secret from its environment before it runs anything.
 
@@ -45,15 +45,15 @@ It never receives database credentials, the App private key, the webhook or serv
 
 ### Every way a job ends
 
-| Ending | What happens | Test |
-|---|---|---|
-| Report accepted | Receipt stored; machine destroyed | `runs a job on its own machine with only a read token…`, `runs an installed repository on a job machine…` |
-| Job cancelled (repository or installation removed) or worker stopping | `interrupted` receipt; machine destroyed | `destroys the machine when the job is cancelled`, `destroys a running job machine when its repository is removed` |
-| Timeout (60 minutes) | `error` receipt; machine destroyed; the machine also stops itself at its deadline | `destroys the machine when the job times out` |
-| Machine exits without a report (crash, out of memory) | Detected by polling the machine every 15 seconds; `error` receipt at once instead of waiting for the timeout | `fails the job at once when its machine exits without a report` |
-| Control process crashes | On every pass, the reaper lists `refit=job` machines and destroys each whose job is neither running in this process nor leased by another live worker. The job's lease expires, it is reclaimed and runs on a new machine | `reaps job machines that no live job owns`, `after a control crash, reaps the orphaned machine and reruns its job on a new one` |
-| Evidence over 64 MiB | HTTP 413; the job fails; nothing is written | `caps the evidence a machine can return and the state it receives` |
-| Carried state over 64 MiB | The job fails before any machine is created | same |
+| Ending                                                                | What happens                                                                                                                                                                                                              | Test                                                                                                                            |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Report accepted                                                       | Receipt stored; machine destroyed                                                                                                                                                                                         | `runs a job on its own machine with only a read token…`, `runs an installed repository on a job machine…`                       |
+| Job cancelled (repository or installation removed) or worker stopping | `interrupted` receipt; machine destroyed                                                                                                                                                                                  | `destroys the machine when the job is cancelled`, `destroys a running job machine when its repository is removed`               |
+| Timeout (60 minutes)                                                  | `error` receipt; machine destroyed; the machine also stops itself at its deadline                                                                                                                                         | `destroys the machine when the job times out`                                                                                   |
+| Machine exits without a report (crash, out of memory)                 | Detected by polling the machine every 15 seconds; `error` receipt at once instead of waiting for the timeout                                                                                                              | `fails the job at once when its machine exits without a report`                                                                 |
+| Control process crashes                                               | On every pass, the reaper lists `refit=job` machines and destroys each whose job is neither running in this process nor leased by another live worker. The job's lease expires, it is reclaimed and runs on a new machine | `reaps job machines that no live job owns`, `after a control crash, reaps the orphaned machine and reruns its job on a new one` |
+| Evidence over 64 MiB                                                  | HTTP 413; the job fails; nothing is written                                                                                                                                                                               | `caps the evidence a machine can return and the state it receives`                                                              |
+| Carried state over 64 MiB                                             | The job fails before any machine is created                                                                                                                                                                               | same                                                                                                                            |
 
 ### The job channel
 
@@ -73,13 +73,13 @@ What isolation does not cover: a compromised job machine can still write a wrong
 
 `--job-machines` reads:
 
-| Variable | Meaning |
-|---|---|
-| `REFIT_JOB_APP` | The job app. Must differ from `FLY_APP_NAME`. |
-| `FLY_API_TOKEN` | A token scoped to the job app (`fly tokens create deploy -a <job app>`), so the control process cannot change its own app with it. |
-| `REFIT_JOB_IMAGE` | Image for job machines. Defaults to `FLY_IMAGE_REF`, the image the control process runs. |
-| `REFIT_JOB_REGION` | Defaults to `FLY_REGION`, so the job channel stays in one region. |
-| `REFIT_HOSTED_IMAGES` | Validation images each job machine pulls. |
+| Variable              | Meaning                                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `REFIT_JOB_APP`       | The job app. Must differ from `FLY_APP_NAME`.                                                                                      |
+| `FLY_API_TOKEN`       | A token scoped to the job app (`fly tokens create deploy -a <job app>`), so the control process cannot change its own app with it. |
+| `REFIT_JOB_IMAGE`     | Image for job machines. Defaults to `FLY_IMAGE_REF`, the image the control process runs.                                           |
+| `REFIT_JOB_REGION`    | Defaults to `FLY_REGION`, so the job channel stays in one region.                                                                  |
+| `REFIT_HOSTED_IMAGES` | Validation images each job machine pulls.                                                                                          |
 
 `--job-machines` refuses `--ai-patch` and `--publish-draft`:
 
@@ -88,23 +88,22 @@ What isolation does not cover: a compromised job machine can still write a wrong
 
 ## Machine size and region
 
-| Setting | Value | Why |
-|---|---|---|
-| Guest | `shared`, 2 CPUs, 4096 MB (`JOB_GUEST`) | The same as the control VM today. The default validation profile gives the container 3 GiB of memory with its 2 GiB workspace on tmpfs, beside `dockerd` and the Node worker. |
-| Larger profile | 8192 MB | Needed only with `REFIT_VALIDATION_WORKSPACE=4g` (a 5 GiB container); not configurable yet. |
-| Region | The control's region (`iad` today) | Inputs and evidence cross the private network once per job; one region keeps that fast. |
-| Root filesystem | Fly default | Docker data and the checkout live on the machine's root filesystem and disappear with it. |
+| Setting         | Value                                   | Why                                                                                                                                                                            |
+| --------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Guest           | `shared`, 4 CPUs, 8192 MB (`JOB_GUEST`) | The default validation profile (4 GiB, owner decision 2026-10-24) gives the container 5 GiB of memory with its 4 GiB workspace on tmpfs, beside `dockerd` and the Node worker. |
+| Region          | The control's region (`iad` today)      | Inputs and evidence cross the private network once per job; one region keeps that fast.                                                                                        |
+| Root filesystem | Fly default                             | Docker data and the checkout live on the machine's root filesystem and disappear with it.                                                                                      |
 
 ## Added latency per job
 
 Measured in the simulated flow on an Apple M5 laptop shared with other benchmark sessions, 20 runs per row, from a clean checkout of commit `15784e6`, with `npx tsx pipeline/hosted-runner-latency.ts --runs 20`. The simulated machine reports at once, so the time is all overhead: reading carried state, the create and destroy calls to a local Machines API, the input download, the evidence upload and storing it.
 
-| Scenario | Carried state | Evidence returned | Median | p95 |
-|---|---|---|---|---|
-| first job, nothing carried | 0 KiB | 256 KiB | 7 ms | 36 ms |
-| cached poll | 64 KiB | 16 KiB | 4 ms | 7 ms |
-| Stripe-sized snapshot carried | 8 MiB | 1 MiB | 58 ms | 69 ms |
-| new Stripe snapshot returned | 16 MiB | 16 MiB | 246 ms | 348 ms |
+| Scenario                      | Carried state | Evidence returned | Median | p95    |
+| ----------------------------- | ------------- | ----------------- | ------ | ------ |
+| first job, nothing carried    | 0 KiB         | 256 KiB           | 7 ms   | 36 ms  |
+| cached poll                   | 64 KiB        | 16 KiB            | 4 ms   | 7 ms   |
+| Stripe-sized snapshot carried | 8 MiB         | 1 MiB             | 58 ms  | 69 ms  |
+| new Stripe snapshot returned  | 16 MiB        | 16 MiB            | 246 ms | 348 ms |
 
 An earlier run of the then-uncommitted script gave medians of 9, 7, 56 and 230 ms and p95 values up to 490 ms; the laptop was shared, so treat the p95 column as noisy.
 
