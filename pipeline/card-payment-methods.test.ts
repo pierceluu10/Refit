@@ -114,6 +114,47 @@ const stripe = new Stripe(process.env.STRIPE_KEY, ${options});
 export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ${methods} });
 `;
 
+// The draft PR for a patch whose checks passed on both sides.
+function passedDraft(report: Awaited<ReturnType<typeof run>>, changes = report.changes) {
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
+  return createReviewArtifacts({
+    ...report,
+    changes,
+    publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
+    patch: { ...report.patch, validation: 'passed' },
+    validation: {
+      status: 'passed',
+      revision: 'a'.repeat(40),
+      image: `sha256:${'b'.repeat(64)}`,
+      runtime: {
+        configured: 'node:22-alpine',
+        image: 'node:22-alpine',
+        nodeVersion: '22.23.3',
+        declarations: [],
+        reason: 'The repository declares no Node.js version.',
+      },
+      command: ['npm', 'test'],
+      baselineCommand: ['npm', 'test'],
+      archiveHash: 'c'.repeat(64),
+      patchHash: digest(report.patch.diff),
+      baseline: check,
+      patched: check,
+      limits: {
+        timeoutMs: 120_000,
+        outputBytes: 1024 * 1024,
+        network: 'none',
+        workspace: '512m' as const,
+        memory: '1g' as const,
+      },
+      publishable: true,
+      attempts: [],
+      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
+      reason: 'Synthetic check results for artifact formatting tests.',
+    },
+  }).files['pull-request.md'];
+}
+
 // O1's reproduction: the price-policy fixture is a configured subscription-period migration
 // (acacia to basil), whose patch carries neither the pin nor the stripe-node upgrade, so the
 // rename would ship allowed_payment_method_types on acacia, which rejects it.
@@ -230,46 +271,11 @@ it.each([
 it('tells the reviewer to keep cards enabled in the draft PR', async () => {
   const report = await run({ 'checkout.js': checkout("['card']") });
   if (!('diff' in report.patch)) throw new Error('Expected a patch');
-  const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
-  const description = createReviewArtifacts({
-    ...report,
+  const description = passedDraft(report, [
+    ...report.changes,
     // A full comparison also records removals this code never reads.
-    changes: [
-      ...report.changes,
-      { id: 'unread', schema: 'charge', property: 'legacy_field', pointer: '/charge/legacy_field' },
-    ],
-    publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
-    patch: { ...report.patch, validation: 'passed' },
-    validation: {
-      status: 'passed',
-      revision: 'a'.repeat(40),
-      image: `sha256:${'b'.repeat(64)}`,
-      runtime: {
-        configured: 'node:22-alpine',
-        image: 'node:22-alpine',
-        nodeVersion: '22.23.3',
-        declarations: [],
-        reason: 'The repository declares no Node.js version.',
-      },
-      command: ['npm', 'test'],
-      baselineCommand: ['npm', 'test'],
-      archiveHash: 'c'.repeat(64),
-      patchHash: digest(report.patch.diff),
-      baseline: check,
-      patched: check,
-      limits: {
-        timeoutMs: 120_000,
-        outputBytes: 1024 * 1024,
-        network: 'none',
-        workspace: '512m' as const,
-        memory: '1g' as const,
-      },
-      publishable: true,
-      attempts: [],
-      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
-      reason: 'Synthetic check results for artifact formatting tests.',
-    },
-  }).files['pull-request.md'];
+    { id: 'unread', schema: 'charge', property: 'legacy_field', pointer: '/charge/legacy_field' },
+  ]);
   expect(description).toContain(
     'moves to `allowed_payment_method_types` under the owner-approved policy',
   );
@@ -429,45 +435,26 @@ it('keeps a listed card-plus-methods value by default, and not when keep-listed 
   expect(listedPaymentMethodWarning(['card', 'paypal'])).toContain(
     'so paypal may no longer be offered to some customers',
   );
-  const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
-  const description = createReviewArtifacts({
-    ...report,
-    publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
-    patch: { ...report.patch, validation: 'passed' },
-    validation: {
-      status: 'passed',
-      revision: 'a'.repeat(40),
-      image: `sha256:${'b'.repeat(64)}`,
-      runtime: {
-        configured: 'node:22-alpine',
-        image: 'node:22-alpine',
-        nodeVersion: '22.23.3',
-        declarations: [],
-        reason: 'The repository declares no Node.js version.',
-      },
-      command: ['npm', 'test'],
-      baselineCommand: ['npm', 'test'],
-      archiveHash: 'c'.repeat(64),
-      patchHash: digest(report.patch.diff),
-      baseline: check,
-      patched: check,
-      limits: {
-        timeoutMs: 120_000,
-        outputBytes: 1024 * 1024,
-        network: 'none',
-        workspace: '512m' as const,
-        memory: '1g' as const,
-      },
-      publishable: true,
-      attempts: [],
-      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
-      reason: 'Synthetic check results for artifact formatting tests.',
-    },
-  }).files['pull-request.md'];
+  const description = passedDraft(report);
   expect(description).toContain(
     'Moves `[card, paypal]` from `payment_method_types` to `allowed_payment_method_types` with the same methods, under the owner decision of 2026-10-24 to keep listed payment methods.',
   );
   expect(description).toContain('so `paypal` may no longer be offered to some customers');
+});
+
+// The lists nabarvn/documon and ASQUAREEE/intellico send from their tRPC Checkout procedures.
+it.each([
+  [
+    '["card", "paypal"]',
+    'so `paypal` may no longer be offered to some customers. Stripe offers only payment methods the account has enabled ([dynamic payment methods](https://docs.stripe.com/payments/payment-methods/dynamic-payment-methods)). Before merging, confirm it is enabled in the Stripe Dashboard or the payment method configuration this account uses, and still appears where you rely on it.',
+  ],
+  [
+    '["card","paypal","us_bank_account"]',
+    'so `paypal`, `us_bank_account` may no longer be offered to some customers. Stripe offers only payment methods the account has enabled ([dynamic payment methods](https://docs.stripe.com/payments/payment-methods/dynamic-payment-methods)). Before merging, confirm they are enabled in the Stripe Dashboard or the payment method configuration this account uses, and still appear where you rely on them.',
+  ],
+])('asks the reviewer to confirm the non-card methods of %s are enabled', async (methods, text) => {
+  const description = passedDraft(await run({ 'checkout.js': checkout(methods) }));
+  expect(description).toContain(text);
 });
 
 // Owner decision (2026-10-24): a computed list, a spread or a list without `card` moves with its
@@ -508,46 +495,15 @@ export const checkout = (payment_method_types) => stripe.checkout.sessions.creat
     "create({ mode: 'payment', allowed_payment_method_types: payment_method_types });",
   );
   expect(report.patch.warnings).toContain(movedPaymentMethodWarning('payment_method_types'));
-  const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
-  const description = createReviewArtifacts({
-    ...report,
-    publicationFiles: [{ path: 'checkout.js', mode: '100644', content: 'export {};' }],
-    patch: { ...report.patch, validation: 'passed' },
-    validation: {
-      status: 'passed',
-      revision: 'a'.repeat(40),
-      image: `sha256:${'b'.repeat(64)}`,
-      runtime: {
-        configured: 'node:22-alpine',
-        image: 'node:22-alpine',
-        nodeVersion: '22.23.3',
-        declarations: [],
-        reason: 'The repository declares no Node.js version.',
-      },
-      command: ['npm', 'test'],
-      baselineCommand: ['npm', 'test'],
-      archiveHash: 'c'.repeat(64),
-      patchHash: digest(report.patch.diff),
-      baseline: check,
-      patched: check,
-      limits: {
-        timeoutMs: 120_000,
-        outputBytes: 1024 * 1024,
-        network: 'none',
-        workspace: '512m' as const,
-        memory: '1g' as const,
-      },
-      publishable: true,
-      attempts: [],
-      repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
-      reason: 'Synthetic check results for artifact formatting tests.',
-    },
-  }).files['pull-request.md'];
+  const description = passedDraft(report);
   expect(description).toContain(
     'Moves `payment_method_types` from `payment_method_types` to `allowed_payment_method_types` unchanged',
   );
   expect(description).toContain(
     'Refit cannot read which payment methods `payment_method_types` holds at runtime.',
+  );
+  expect(description).toContain(
+    'that each one is enabled in the Stripe Dashboard or the payment method configuration this account uses',
   );
   expect(description).toContain('Confirm the runtime values of `payment_method_types`');
   expect(description).not.toContain('Confirm cards stay enabled');

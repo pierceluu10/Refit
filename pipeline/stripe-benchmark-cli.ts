@@ -39,8 +39,9 @@ import {
   publishUnresolved,
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
-import { typeErrors } from './validation.ts';
+import { typeErrorKeys } from './type-errors.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const USAGE =
@@ -49,16 +50,8 @@ const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
-// Type errors keyed without the position, so moved lines still match.
-const typeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
-  new Set(
-    typeErrors({
-      status: 'failed',
-      exitCode: null,
-      stdout: check?.stdout ?? '',
-      stderr: check?.stderr ?? '',
-    }).map((error) => error.key),
-  );
+const reportedTypeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
+  typeErrorKeys({ stdout: check?.stdout ?? '', stderr: check?.stderr ?? '' });
 
 interface Selected {
   repo: string;
@@ -525,7 +518,7 @@ async function benchmark(entry: Selected, index: number) {
       ? {}
       : noCheck
         ? { patch: scan.patch, validation: { grade: ungradedEvidence(selection.reason) } }
-        : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
+        : JSON.parse((await readEvidence(bundle, 'report.json')) ?? '{}');
     const generated = report.validation?.generated;
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
@@ -555,10 +548,10 @@ async function benchmark(entry: Selected, index: number) {
       ...(report.validation?.compareTypeErrors && report.validation?.patched
         ? {
             typeErrors: {
-              baseline: typeErrorKeys(report.validation.baseline).size,
-              patched: typeErrorKeys(report.validation.patched).size,
-              introduced: [...typeErrorKeys(report.validation.patched)].filter(
-                (error) => !typeErrorKeys(report.validation.baseline).has(error),
+              baseline: reportedTypeErrorKeys(report.validation.baseline).size,
+              patched: reportedTypeErrorKeys(report.validation.patched).size,
+              introduced: [...reportedTypeErrorKeys(report.validation.patched)].filter(
+                (error) => !reportedTypeErrorKeys(report.validation.baseline).has(error),
               ),
             },
           }
@@ -574,7 +567,26 @@ async function benchmark(entry: Selected, index: number) {
           }
         : {}),
       repairAttempts: report.validation?.repair?.requested ?? 0,
-      aiCostUsd: report.patch?.budget?.costUsd,
+      // Why repair stopped early, such as an AI policy stop; a first-request stop is `error`.
+      ...(report.validation?.repair?.error ? { repairError: report.validation.repair.error } : {}),
+      // Every AI request of the run, refused and repair requests included.
+      aiCostUsd: report.validation?.aiCostUsd ?? report.patch?.budget?.costUsd,
+      ...(report.validation?.coverageAi
+        ? {
+            coverageAi: {
+              outcome: report.validation.coverageAi.outcome,
+              costUsd: report.validation.coverageAi.costUsd,
+              targets: report.validation.coverageAi.targets,
+              resolved: report.validation.coverageAi.resolved,
+              error: report.validation.coverageAi.error,
+              response: report.validation.coverageAi.response,
+              repair: report.validation.coverageAi.repair?.stopReason,
+              // The proposal its checks refused, which the result leaves out.
+              diff: report.validation.coverageAi.attempts?.at(-1)?.diff?.slice(0, 8000),
+              check: report.validation.coverageAi.attempts?.at(-1)?.check?.status,
+            },
+          }
+        : {}),
       diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };

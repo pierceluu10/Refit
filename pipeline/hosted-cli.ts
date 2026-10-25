@@ -50,7 +50,7 @@ const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const JOB_ID = /^[1-9]\d{0,15}$/;
 // A job process's connections, for its AI ledger reservations.
 const JOB_PROCESS_CONNECTIONS = 2;
-const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft] [--publish-unresolved | --publish-validated-only] [--job-processes <n> | --job-machines] [--purge-uninstalled]
+const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft [--supersede-drafts]] [--publish-unresolved | --publish-validated-only] [--job-processes <n> | --job-machines] [--purge-uninstalled]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
        refit hosted reconcile
@@ -202,6 +202,7 @@ try {
       'ai-patch': { type: 'boolean' },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
+      'supersede-drafts': { type: 'boolean' },
       'publish-unresolved': { type: 'boolean' },
       'publish-validated-only': { type: 'boolean' },
       'job-machines': { type: 'boolean' },
@@ -509,6 +510,7 @@ try {
         repairAttempts: Number(values['repair-attempts'] ?? 0),
         publishDraft: values['publish-draft'],
         publishUnresolved: publishUnresolved(values),
+        supersedeDrafts: values['supersede-drafts'],
         build: process.env.FLY_IMAGE_REF?.trim() || undefined,
         contact: hostedContact(process.env.REFIT_HOSTED_CONTACT),
         jobMachines: values['job-machines'] ? jobMachines(process.env) : undefined,

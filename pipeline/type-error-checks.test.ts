@@ -5,9 +5,9 @@ import {
   rejectedProperties,
   reviewTypeError,
   subscriptionPeriodRead,
-  typeErrors,
   type CheckResult,
 } from './validation.ts';
+import { typeErrors } from './type-errors.ts';
 
 const run = (exitCode: number, stdout: string): CheckResult => ({
   status: exitCode === 0 ? 'passed' : 'failed',
