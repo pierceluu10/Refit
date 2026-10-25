@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 25 checkpoint: hosted worker reconciles installed repositories (unreleased, after 0.39.0)
+
+`refit hosted serve` now lists each active, allowed installation's repositories from `GET /installation/repositories` on start and once per `--interval`, records the ones no webhook recorded and enrolls the approved ones; `refit hosted reconcile` runs it once. The `refit-dev` installation (all repositories) had recorded 135 of 293, so 121 approved forks could not enroll. It only adds: removal stays webhook-only, and not-allowed installations are never listed. Tests: `pipeline/hosted-reconcile.test.ts`; its paging and per-installation failure case runs by default with a simulated GitHub, and its PostgreSQL cases (`REFIT_POSTGRES_URL`) were not run before this checkpoint. Not verified against the live GitHub API or the hosted worker on Fly.
+
 ## October 24 checkpoint: stops become [Needs review] drafts by default (unreleased, after 0.39.0)
 
 Owner decision 1 (Pierce, 2026-10-24, #300) is the default for `refit run`, `refit serve`, `refit hosted serve`, `refit enroll`, `refit doctor` and the Stripe benchmark. Wherever Refit used to stop, it writes its best patch and opens a `[Needs review]` draft whose body starts with **Why this needs review**: each reason, the `file:line` it applies to and what to check ([CLI guide](CLI.md)). A finding that needs review is never edited.

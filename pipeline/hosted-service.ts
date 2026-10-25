@@ -9,9 +9,14 @@ import type { AiOptions } from './ai-budget.ts';
 import { FlyMachinesError, type FlyMachines } from './fly-machines.ts';
 import { validateRepairAttempts } from './validation-options.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
-import type { GitHubAppConfiguration } from './github-app.ts';
+import { installationRepositories, type GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
-import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import {
+  parseRepositories,
+  parseWebhook,
+  verifyWebhook,
+  WebhookInputError,
+} from './github-webhooks.ts';
 import { hostedPages } from './hosted-setup.ts';
 import { GitHubRequestError } from './github.ts';
 import { MIN_THROTTLE_SECONDS, readCpuTimes, stealShare, THROTTLED_STEAL } from './hosted-cpu.ts';
@@ -98,6 +103,31 @@ const INVENTORY_LEASE_MARGIN_SECONDS = 60;
 const OUTAGE_RETRY_MS = 5_000;
 const MAX_OUTAGE_RETRY_MS = 60_000;
 const MAX_JOB_PROCESSES = 32;
+
+// Records the repositories GitHub serves to each active, allowed installation that no webhook
+// delivered, and enrolls the approved ones. GitHub sends no event when "All repositories" is chosen
+// again and can miss repositories created around the installation. Each installation costs one
+// token and one request per 100 repositories; one whose list GitHub refuses is reported and the
+// rest still run.
+export async function reconcileInstallations(
+  app: GitHubAppConfiguration,
+  store: Awaited<ReturnType<typeof openHostedStore>>,
+) {
+  const results: (
+    | { installationId: number; added: string[]; enrolled: string[] }
+    | { installationId: number; error: string }
+  )[] = [];
+  for (const { id, owner } of await store.activeInstallations())
+    try {
+      const listed = parseRepositories(await installationRepositories(app, id), owner);
+      results.push({ installationId: id, ...(await store.reconcile(id, owner, listed)) });
+    } catch (error) {
+      if (!(error instanceof PipelineInputError || error instanceof GitHubRequestError))
+        throw error;
+      results.push({ installationId: id, error: error.message });
+    }
+  return results;
+}
 
 export async function runHostedService(options: {
   database: Pool;
@@ -541,6 +571,35 @@ export async function runHostedService(options: {
     if (failures.length) throw failures.shift();
   };
 
+  // Runs at start and once per interval beside the loop, so a slow GitHub never holds up claims.
+  let reconciling: Promise<void> | undefined;
+  let reconcileAt = 0;
+  const reconcile = async () => {
+    try {
+      for (const result of await reconcileInstallations(options.app, store)) {
+        const context = { installation: result.installationId };
+        if ('error' in result) {
+          onProgress?.(`Repository reconcile failed: ${result.error} Retrying in ${interval} s.`, {
+            ...context,
+            level: 'error',
+          });
+          continue;
+        }
+        onProgress?.(
+          `Reconciled repositories with GitHub: added ${result.added.length}, enrolled ${result.enrolled.length} targets.`,
+          context,
+        );
+        if (result.enrolled.length) wake();
+      }
+    } catch (error) {
+      // Nothing it throws, such as a network or PostgreSQL error, may end serve.
+      onProgress?.(
+        `Repository reconcile failed: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)} Retrying in ${interval} s.`,
+        { level: 'error' },
+      );
+    }
+  };
+
   // A read-only inventory of an installed repository, approved or not; it never enrolls anything.
   const runInventory = async (claimed: InventoryClaim) => {
     const progress = (message: string) =>
@@ -777,6 +836,10 @@ export async function runHostedService(options: {
     while (!draining()) {
       requested = false;
       try {
+        if (!reconciling && Date.now() >= reconcileAt) {
+          reconcileAt = Date.now() + interval * MILLISECONDS_PER_SECOND;
+          reconciling = reconcile().finally(() => (reconciling = undefined));
+        }
         if (jobs) await reap(jobs);
         if (options.approvalIssues)
           await processApprovalIssues({
@@ -877,6 +940,7 @@ export async function runHostedService(options: {
     options.drain?.removeEventListener('abort', drained);
     stop();
     await Promise.all(active);
+    await reconciling;
     await Promise.all(
       servers.map(
         (server) =>

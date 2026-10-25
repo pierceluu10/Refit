@@ -119,6 +119,7 @@ async function start(
     allow: vi.fn(async () => ({ enrolled: [], cancelled: [] })),
     enqueueDue: vi.fn(async () => 0),
     paused: vi.fn(async () => null),
+    activeInstallations: vi.fn(async () => []),
     claim: vi.fn(async () => fake.claims.shift() ?? null),
     retire: vi.fn(async () => false),
     renew: vi.fn(async () => true),
