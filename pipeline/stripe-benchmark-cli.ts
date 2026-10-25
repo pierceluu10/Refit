@@ -427,7 +427,8 @@ async function benchmark(entry: Selected, index: number) {
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
   const checkable =
-    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some((lockfile) =>
+    // A bun.lock is installed through its npm translation (bun-lock.ts).
+    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
       existsSync(join(checkRoot, lockfile)),
     ) && Boolean(declared.stripe);
   // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,

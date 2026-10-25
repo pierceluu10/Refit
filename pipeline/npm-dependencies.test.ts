@@ -24,6 +24,7 @@ import {
   DEPENDENCY_TREE_CHECK,
   evictDependencies,
   GLIBC_PACKAGE_PRUNE,
+  npmCiWithPeerRetry,
   prepareDependencies,
 } from './dependency-preparation.ts';
 import {
@@ -663,6 +664,57 @@ it('removes the glibc-only sharp and Next.js builds a second lockfile without li
     'node_modules/@img/sharp-linuxmusl-x64',
     'node_modules/@img/sharp-libvips-linuxmusl-x64',
   ]);
+});
+
+it('retries npm ci with --legacy-peer-deps only when peers alone put the lockfile out of sync', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-peer-retry-test-'));
+  roots.push(root);
+  const inSync = (detail: string) =>
+    `npm error code EUSAGE\nnpm error\nnpm error \`npm ci\` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with \`npm install\` before continuing.\nnpm error\n${detail}`;
+  // A fake npm: `ci` prints the first run's error; with --legacy-peer-deps it prints the second's.
+  const run = async (first: string, second: string | undefined) => {
+    await writeFile(join(root, 'first.txt'), first);
+    await writeFile(
+      join(root, 'npm'),
+      `#!/bin/sh
+case " $* " in
+  *" --legacy-peer-deps "*) ${second === undefined ? 'echo added; exit 0' : `cat "${join(root, 'second.txt')}" >&2; exit 1`} ;;
+  *) cat "${join(root, 'first.txt')}"; exit 1 ;;
+esac
+`,
+    );
+    if (second !== undefined) await writeFile(join(root, 'second.txt'), second);
+    await chmod(join(root, 'npm'), 0o755);
+    return execute(
+      'sh',
+      ['-c', `set -eu; ${npmCiWithPeerRetry('npm ci', join(root, 'npm-ci.log'))}`],
+      {
+        env: { ...process.env, PATH: `${root}${delimiter}${process.env.PATH}` },
+      },
+    );
+  };
+  // devczero/saas-pdf-analysis-dev at dbe5c9e: fdir's optional peer picomatch ^3 || ^4 meets the
+  // hoisted picomatch 2.3.1; muhallimir/ampertalent at ba02c46: @sentry/webpack-plugin's peer
+  // webpack was never locked. Both lockfiles were written with --legacy-peer-deps.
+  for (const detail of [
+    "npm error Invalid: lock file's picomatch@2.3.1 does not satisfy picomatch@4.0.7\nnpm error Missing: picomatch@2.3.2 from lock file",
+    'npm error Missing: webpack@5.112.2 from lock file\nnpm error Missing: @webassemblyjs/ast@1.14.1 from lock file',
+  ]) {
+    const { stderr } = await run(inSync(detail), undefined);
+    expect(stderr).toContain('REFIT_LEGACY_PEER_DEPS=1');
+  }
+  // Drift beyond peers fails the retry too, and other usage errors are not retried.
+  await expect(
+    run(
+      inSync('npm error Missing: stripe@17.0.0 from lock file'),
+      inSync('npm error Missing: stripe@17.0.0 from lock file'),
+    ),
+  ).rejects.toMatchObject({ stderr: expect.stringContaining('REFIT_LEGACY_PEER_DEPS=1') });
+  await expect(
+    run('npm error code EUSAGE\nnpm error Unknown command: "cii"', undefined),
+  ).rejects.toMatchObject({
+    stderr: expect.not.stringContaining('REFIT_LEGACY_PEER_DEPS=1'),
+  });
 });
 
 const GIB = 1024 ** 3;
