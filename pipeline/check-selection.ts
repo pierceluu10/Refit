@@ -43,7 +43,7 @@ const MAX_LISTED_TESTS = 50;
 const TEST_FILE = /(?:^|\/)(?:__tests__|tests?|spec|e2e)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const SOURCE_FILE = /\.[cm]?[jt]sx?$/;
 const JAVASCRIPT_FILE = /\.[cm]?jsx?$/;
-const STRIPE_IMPORT =
+export const STRIPE_IMPORT =
   /\bfrom\s*['"]stripe['"]|\brequire\(\s*['"]stripe['"]\s*\)|\bimport\(\s*['"]stripe['"]\s*\)/;
 // TypeScript types the client only through an import: stripe-node's typings export a class, so
 // `require('stripe')(key)` is not callable to it and leaves every Stripe call untyped.
@@ -558,7 +558,7 @@ export async function gradeEvidence(options: {
   repository: Repository;
   command: readonly string[];
   changedFiles: readonly string[];
-  generated?: { entryPoints: unknown[]; notRunnable: unknown[]; patched: { status: string } };
+  generated?: { status: string; ran: number };
   // The behaviour-test harness's result, the only evidence for grade A.
   behaviour?: BehaviourEvidence;
   // Tests that already failed on the original code: why, and whether the type check that ran after
@@ -645,10 +645,10 @@ export async function gradeEvidence(options: {
         }tsc type-checks ${list(untested)}; no test ran that code.`,
       ),
     };
-  const generated = options.generated;
-  const ran = generated ? generated.entryPoints.length - generated.notRunnable.length : 0;
+  // Only functions that ran on both sides count; an unavailable generated check adds nothing.
+  const ran = options.generated?.status === 'passed' ? options.generated.ran : 0;
   const generatedNote =
-    generated?.patched.status === 'passed' && ran > 0
+    ran > 0
       ? `; only the generated stripe-mock checks ran changed code (${ran} exported ${ran === 1 ? 'function' : 'functions'})`
       : ', and no generated check ran it';
   const missed = !changed.length

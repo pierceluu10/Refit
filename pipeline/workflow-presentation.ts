@@ -319,7 +319,7 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
       isObject(validation.generated.patched)
     )
       rows.push(
-        `Generated   stripe-mock: original ${validation.generated.baseline.status}; proposed ${validation.generated.patched.status}; ${Array.isArray(validation.generated.entryPoints) ? validation.generated.entryPoints.length : 0} functions (${Array.isArray(validation.generated.notRunnable) ? validation.generated.notRunnable.length : 0} not runnable alone), ${String(validation.generated.uncoveredFindings)} usages uncovered`,
+        `Generated   stripe-mock${typeof validation.generated.status === 'string' ? ` ${validation.generated.status}` : ''}: original ${validation.generated.baseline.status}; proposed ${validation.generated.patched.status}; ${Array.isArray(validation.generated.entryPoints) ? validation.generated.entryPoints.length : 0} functions (${Array.isArray(validation.generated.notRunnable) ? validation.generated.notRunnable.length : 0} not runnable alone), ${String(validation.generated.uncoveredFindings)} usages uncovered${typeof validation.generated.reason === 'string' ? `. ${terminalText(validation.generated.reason)}` : ''}`,
       );
     if (Array.isArray(validation.attempts) && isObject(validation.repair))
       rows.push(

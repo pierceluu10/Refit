@@ -516,11 +516,7 @@ it('grades each changed file by the strongest check that reached it', async () =
       ...(generated === undefined
         ? {}
         : {
-            generated: {
-              entryPoints: Array.from({ length: 2 }),
-              notRunnable: Array.from({ length: 2 - generated }),
-              patched: { status: 'passed' },
-            },
+            generated: { status: generated ? 'passed' : 'not-runnable', ran: generated },
           }),
     });
   const both = ['sh', '-c', chain('npm test', TYPE_CHECK.join(' '))];
