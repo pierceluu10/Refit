@@ -2,13 +2,21 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { analyzeRepository } from './analyzer.ts';
+import { analyzeRepository, syntaxErrors } from './analyzer.ts';
 import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
 import { digest, findRemovedProperties } from './specifications.ts';
 import { createReviewArtifacts } from './review.ts';
-import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
+import {
+  CHECKOUT_SHIPPING_HELPER,
+  HELPER_GLOBALS,
+  HELPER_NAMES,
+  INVOICE_PRICE_ID_HELPER,
+  INVOICE_SUBSCRIPTION_HELPER,
+  PERIOD_HELPERS,
+  subscriptionPeriodHelperModule,
+} from './stripe-subscription-periods.ts';
 import ts from 'typescript-compiler';
 import { migrationReviewReason } from './migration-review.ts';
 
@@ -152,7 +160,10 @@ function helper(planText?: string) {
   const module: { exports: Record<string, (subscription: object, plan?: unknown) => unknown> } = {
     exports: {},
   };
-  new Function('module', subscriptionPeriodHelperModule('cjs'))(module);
+  new Function(
+    'module',
+    subscriptionPeriodHelperModule('cjs', [PERIOD_HELPERS.current_period_end]),
+  )(module);
   const plan = planText ? new Function(`return ${planText};`)() : undefined;
   return (subscription: object) => module.exports.getSubscriptionPeriodEnd(subscription, plan);
 }
@@ -171,16 +182,16 @@ it('reads every subscription period through the generated helper', () => {
   expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
     true,
   );
+  // The only calling file gets the helpers after its imports, with no module and no import.
+  expect(result.edits.map((edit) => edit.file)).toEqual(['billing.ts', 'billing.ts', 'billing.ts']);
   expect(result.patched).toContain(
-    "import { getSubscriptionPeriodStart, getSubscriptionPeriodEnd } from './stripeSubscriptionPeriod';",
+    `import Stripe from 'stripe';\n\n${subscriptionPeriodHelperModule('ts', Object.values(PERIOD_HELPERS), true)}const stripe = new Stripe(`,
   );
+  expect(result.patched).not.toContain('export function');
   expect(result.patched).toContain(
     'return [(getSubscriptionPeriodStart(subscription)), (subscription == null ? undefined : getSubscriptionPeriodEnd(subscription))];',
   );
   expect(result.patched).not.toMatch(/Math\.(max|min)/);
-  expect(
-    result.edits.find((edit) => edit.file === 'stripeSubscriptionPeriod.ts')?.replacement,
-  ).toBe(subscriptionPeriodHelperModule('ts'));
   // Convex pushes every file in its functions folder and rejects names with characters other than
   // letters, digits, `_` and `.`.
   expect(result.edits.every((edit) => /^[\w./]+$/.test(edit.file))).toBe(true);
@@ -294,8 +305,7 @@ export function fromParameter(subscription: Stripe.Subscription) {
   expect(result.patched).toContain('return (getSubscriptionPeriodStart(subscription));');
 });
 
-it('writes a CommonJS helper for CommonJS files', () => {
-  const content = `const Stripe = require('stripe');
+const commonJs = `const Stripe = require('stripe');
 const stripe = new Stripe('sk', { apiVersion: '2024-06-20' });
 async function ends(id) {
   const subscription = await stripe.subscriptions.retrieve(id);
@@ -303,10 +313,11 @@ async function ends(id) {
 }
 module.exports = { ends };
 `;
+const analyzeFiles = (files: Record<string, string>) => {
   const result = analyzeRepository(
     {
       root: '/field-moves',
-      files: [{ path: 'lib/billing.js', content }],
+      files: Object.entries(files).map(([path, content]) => ({ path, content })),
       dependencies: [],
       lockfiles: [],
       warnings: [],
@@ -315,21 +326,267 @@ module.exports = { ends };
     provider,
     schemas(false),
   );
-  const patched = applySourceEdits(
-    content,
-    result.edits.filter((edit) => edit.file === 'lib/billing.js'),
+  const patched = (path: string) =>
+    applySourceEdits(
+      files[path],
+      result.edits.filter((edit) => edit.file === path),
+    );
+  return { ...result, patched };
+};
+
+it('writes CommonJS helpers into the one CommonJS file that calls them', () => {
+  const result = analyzeFiles({ 'lib/billing.js': commonJs });
+  expect(result.edits.map((edit) => edit.file)).toEqual(['lib/billing.js', 'lib/billing.js']);
+  expect(result.patched('lib/billing.js')).toContain(
+    `const Stripe = require('stripe');\n\n${subscriptionPeriodHelperModule('cjs', [PERIOD_HELPERS.current_period_end], true)}const stripe = new Stripe(`,
   );
-  expect(patched).toContain(
-    "const Stripe = require('stripe');\nconst { getSubscriptionPeriodEnd } = require('./stripeSubscriptionPeriod');\nconst stripe = new Stripe(",
+  expect(result.patched('lib/billing.js')).not.toMatch(
+    /require\('\.\/|module\.exports = \{ getSub/,
   );
+});
+
+it('writes a CommonJS helper module for CommonJS files that share it', () => {
+  const result = analyzeFiles({ 'lib/billing.js': commonJs, 'lib/portal.js': commonJs });
+  for (const path of ['lib/billing.js', 'lib/portal.js'])
+    expect(result.patched(path)).toContain(
+      "const Stripe = require('stripe');\nconst { getSubscriptionPeriodEnd } = require('./stripeSubscriptionPeriod');\nconst stripe = new Stripe(",
+    );
   expect(
     result.edits.find((edit) => edit.file === 'lib/stripeSubscriptionPeriod.js')?.replacement,
-  ).toBe(subscriptionPeriodHelperModule('cjs'));
+  ).toBe(subscriptionPeriodHelperModule('cjs', [PERIOD_HELPERS.current_period_end]));
+});
+
+// The Quill webhook route that nabarvn/documon, JensenMPillay/pdfai and 4lbatr0s/jiro (CRLF) share,
+// and the Supabase admin module of the nextjs-subscription-payments template. Each is the only file
+// that calls the helpers in its repository, as alanagoyal/branded's lib/billing-state.ts is in its
+// own, whose tests load that file in a vm that allows only its known imports.
+const quillRoute = {
+  file: 'src/app/api/webhooks/stripe/route.ts',
+  content: `import { headers } from 'next/headers';
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2024-06-20' });
+export async function POST(request: Request) {
+  const session = JSON.parse(await request.text());
+  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  console.log(headers(), subscription.items.data[0]?.price.id);
+  return new Date(subscription.current_period_end * 1000);
+}
+`,
+  helpers: ['getSubscriptionPeriodEnd'],
+};
+const supabaseAdmin = {
+  file: 'utils/supabase/admin.ts',
+  content: `import Stripe from 'stripe';
+import { toDateTime } from '../helpers';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2024-06-20' });
+export async function manageSubscriptionStatusChange(subscriptionId: string) {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ['default_payment_method'],
+  });
+  return {
+    id: subscription.id,
+    current_period_start: toDateTime(subscription.current_period_start).toISOString(),
+    current_period_end: toDateTime(subscription.current_period_end).toISOString(),
+  };
+}
+`,
+  helpers: ['getSubscriptionPeriodStart', 'getSubscriptionPeriodEnd'],
+};
+const newlines = ['\n', '\r\n'];
+// Every line keeps the file's own ending: no bare LF in a CRLF file, no CR in an LF one.
+const ownLineEndings = (patched: string, newline: string) =>
+  expect(newline === '\r\n' ? patched.match(/(?<!\r)\n/g) : patched.match(/\r/g)).toBeNull();
+
+it.each(
+  [quillRoute, supabaseAdmin].flatMap((repository) =>
+    newlines.map((newline) => ({ ...repository, newline })),
+  ),
+)(
+  'writes only the helpers $file calls into it, in its line endings ($newline)',
+  ({ file, content: lf, helpers, newline }) => {
+    const content = lf.replaceAll('\n', newline);
+    const result = analyzeFiles({ [file]: content });
+    expect(result.edits.every((edit) => edit.file === file)).toBe(true);
+    const patched = result.patched(file);
+    const inline = subscriptionPeriodHelperModule('ts', helpers, true).replaceAll('\n', newline);
+    expect(patched).toContain(`${newline}${newline}${inline}const stripe = new Stripe(`);
+    const unused = HELPER_NAMES.filter((name) => !helpers.includes(name));
+    expect(unused.filter((name) => patched.includes(name))).toEqual([]);
+    expect(patched).not.toContain('stripeSubscriptionPeriod');
+    ownLineEndings(patched, newline);
+  },
+);
+
+// Files whose first statement is not an import: a CommonJS sync script run by its shebang (also
+// after a byte order mark), an ES module script, and a TypeScript file that turns checking off.
+// Above the shebang Node rejects the script; above the pragma TypeScript ignores it.
+const sync = `#!/usr/bin/env node
+require('dotenv').config();
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+async function sync(id) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return subscription.current_period_end;
+}
+sync(process.argv[2]).then(console.log);
+`;
+const headed = [
+  { file: 'scripts/sync.js', kind: 'cjs', content: sync, head: '#!/usr/bin/env node' },
+  {
+    file: 'scripts/sync.js',
+    kind: 'cjs',
+    content: `\uFEFF${sync}`,
+    head: '\uFEFF#!/usr/bin/env node',
+  },
+  {
+    file: 'scripts/renewals.mjs',
+    kind: 'esm',
+    content: `#!/usr/bin/env node
+// Prints when a subscription renews.
+
+process.env.TZ ??= 'UTC';
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+const subscription = await stripe.subscriptions.retrieve(process.argv[2]);
+console.log(new Date(subscription.current_period_end * 1000));
+`,
+    head: '#!/usr/bin/env node\n// Prints when a subscription renews.',
+  },
+  {
+    file: 'lib/legacy-billing.ts',
+    kind: 'ts',
+    content: `// @ts-nocheck
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+export async function ends(id) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return subscription.current_period_end;
+}
+`,
+    head: '// @ts-nocheck',
+  },
+] as const;
+
+it.each(headed)(
+  'writes the helpers below the head of $file ($head)',
+  ({ file, kind, content, head }) => {
+    const patched = analyzeFiles({ [file]: content }).patched(file);
+    expect(patched).toContain('getSubscriptionPeriodEnd(subscription)');
+    expect(
+      patched.startsWith(
+        `${head}\n\n${subscriptionPeriodHelperModule(kind, ['getSubscriptionPeriodEnd'], true)}`,
+      ),
+    ).toBe(true);
+    expect(syntaxErrors(file, patched)).toEqual([]);
+  },
+);
+
+// A comment directly above the first statement applies to that statement, so it stays on it.
+it('keeps a line directive on the first statement below the helpers', () => {
+  const directive = '// eslint-disable-next-line @typescript-eslint/no-require-imports';
+  const content = sync.replace('#!/usr/bin/env node', directive);
+  const patched = analyzeFiles({ 'scripts/sync.js': content }).patched('scripts/sync.js');
+  expect(
+    patched.startsWith(subscriptionPeriodHelperModule('cjs', ['getSubscriptionPeriodEnd'], true)),
+  ).toBe(true);
+  expect(patched).toContain(`\n\n${directive}\nrequire('dotenv').config();`);
+});
+
+it('imports the shared helper module below the shebang of each script', () => {
+  const files = { 'scripts/sync.js': sync, 'scripts/renew.js': sync };
+  const result = analyzeFiles(files);
+  for (const file of Object.keys(files))
+    expect(result.patched(file)).toMatch(
+      /^#!\/usr\/bin\/env node\nconst \{ getSubscriptionPeriodEnd \} = require\('\.\/stripeSubscriptionPeriod'\);\nrequire\('dotenv'\)/,
+    );
+});
+
+// The inlined helpers' private names would clash with this file's own `subscriptionPeriod`.
+it('keeps the helpers in a module when the one calling file already uses a private helper name', () => {
+  const result = analyzeFiles({
+    'billing.ts': `${header}export async function ends(id: string) {
+  const subscriptionPeriod = await stripe.subscriptions.retrieve(id);
+  return subscriptionPeriod.current_period_end;
+}`,
+  });
+  expect(result.edits.map((edit) => edit.file)).toContain('stripeSubscriptionPeriod.ts');
+  expect(result.patched('billing.ts')).toContain(
+    "import { getSubscriptionPeriodEnd } from './stripeSubscriptionPeriod';",
+  );
+  expect(result.patched('billing.ts')).not.toContain('function subscriptionPeriod(');
+});
+
+// The inlined helpers read Set; Immutable.js exports its own, which would replace it in this file.
+it('keeps the helpers in a module when the one calling file shadows a global they read', () => {
+  const content = `import { Set } from 'immutable';\n${header}export async function ends(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return [subscription.current_period_end, Set.of(id)];
+}`;
+  const result = analyzeFiles({ 'billing.ts': content });
+  expect(result.edits.map((edit) => edit.file)).toContain('stripeSubscriptionPeriod.ts');
+  expect(result.patched('billing.ts')).not.toContain('function subscriptionPeriod(');
+});
+
+it('lists every global the helper bodies read', () => {
+  const free = new Set<string>();
+  for (const kind of ['ts', 'esm', 'cjs'] as const) {
+    const source = ts.createSourceFile(
+      'helpers.ts',
+      subscriptionPeriodHelperModule(kind, HELPER_NAMES, true),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const declared = new Set<string>();
+    const used = new Set<string>();
+    const visit = (node: ts.Node) => {
+      if (ts.isIdentifier(node)) {
+        const parent = node.parent as ts.Node & { name?: ts.Node };
+        if (parent.name !== node) used.add(node.text);
+        else if (
+          ts.isParameter(parent) ||
+          ts.isVariableDeclaration(parent) ||
+          ts.isFunctionDeclaration(parent) ||
+          ts.isTypeAliasDeclaration(parent) ||
+          ts.isTypeParameterDeclaration(parent) ||
+          ts.isBindingElement(parent)
+        )
+          declared.add(node.text);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const name of used) if (!declared.has(name)) free.add(name);
+  }
+  expect([...free].sort()).toEqual([...HELPER_GLOBALS].sort());
+});
+
+// Both shapes in one repository: two calling files share one module of the helpers either calls.
+it.each(newlines)('shares one helper module between two calling files (%j)', (newline) => {
+  const files = Object.fromEntries(
+    [quillRoute, supabaseAdmin].map(({ file, content }) => [
+      file,
+      content.replaceAll('\n', newline),
+    ]),
+  );
+  const result = analyzeFiles(files);
+  const module = result.edits.find((edit) => edit.file === 'stripeSubscriptionPeriod.ts');
+  expect(module?.replacement).toBe(subscriptionPeriodHelperModule('ts', supabaseAdmin.helpers));
+  for (const [{ file, helpers }, lastImport, specifier] of [
+    [quillRoute, "import Stripe from 'stripe';", '../../../../../stripeSubscriptionPeriod'],
+    [supabaseAdmin, "import { toDateTime } from '../helpers';", '../../stripeSubscriptionPeriod'],
+  ] as const) {
+    const patched = result.patched(file);
+    expect(patched).toContain(
+      `${lastImport}${newline}import { ${helpers.join(', ')} } from '${specifier}';${newline}const stripe`,
+    );
+    expect(patched).not.toContain('function getSubscriptionPeriod');
+    ownLineEndings(patched, newline);
+  }
 });
 
 it('generates a TypeScript helper that compiles strictly without Stripe types', () => {
   const files = new Map([
-    ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
+    ['/check/helper.ts', subscriptionPeriodHelperModule('ts', HELPER_NAMES)],
     [
       '/check/use.ts',
       `import { getSubscriptionPeriodEnd, getInvoicePriceId, getCheckoutShippingDetails } from './helper';
@@ -393,10 +650,10 @@ it('reads a webhook invoice.subscription through the generated helper for either
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
   expect(diff).toContain('+    return (getInvoiceSubscription(invoice));');
-  expect(diff).toContain(
-    "+import { getSubscriptionPeriodEnd, getInvoiceSubscription } from './stripeSubscriptionPeriod';",
-  );
-  const helper = subscriptionPeriodHelperModule('cjs');
+  expect(diff).toContain('+function getSubscriptionPeriodEnd(subscription: object');
+  expect(diff).toContain('+function getInvoiceSubscription<T extends object>(invoice: T)');
+  expect(diff).not.toContain('stripeSubscriptionPeriod');
+  const helper = subscriptionPeriodHelperModule('cjs', [INVOICE_SUBSCRIPTION_HELPER]);
   const { getInvoiceSubscription } = new Function('module', `${helper}; return module.exports;`)(
     {},
   );
@@ -620,23 +877,26 @@ it('proposes the field move and the API-version bump as one patch', async () => 
   const report = await run(periodRead);
   expect(report.patch).toMatchObject({
     status: 'proposed',
-    edits: 4,
+    edits: 3,
     unresolvedFindings: 0,
-    source:
-      'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
+    sources: [
+      {
+        url: 'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
+        files: ['billing.ts'],
+      },
+    ],
   });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain("+const stripe = new Stripe('sk', { apiVersion: '2025-03-31.basil' });");
   expect(diff).toContain('return (getSubscriptionPeriodEnd(subscription));');
-  expect(diff).toContain(
-    'diff --git "a/stripeSubscriptionPeriod.ts" "b/stripeSubscriptionPeriod.ts"\nnew file mode 100644\n--- /dev/null',
-  );
+  expect(diff).toContain('+function getSubscriptionPeriodEnd(');
+  expect(diff).not.toContain('new file mode');
 });
 
 it('migrates reads for a client on the account default version without pinning one', async () => {
   const report = await run(periodRead, true, undefined, '{ apiVersion: null }');
   expect(report.findings).toMatchObject([{ confidence: 'confirmed' }]);
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 3, unresolvedFindings: 0 });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 2, unresolvedFindings: 0 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
   expect(diff).not.toContain('2025-03-31.basil');
@@ -697,7 +957,7 @@ export async function secret(id: string) {
     { apiKey: 'test-key', model: 'test-model' },
   );
   expect(evidence!.findings.map((finding) => finding.expression)).toEqual(['.payment_intent']);
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 5, unresolvedFindings: 0 });
+  expect(report.patch).toMatchObject({ status: 'proposed', edits: 4, unresolvedFindings: 0 });
   const diff = 'diff' in report.patch ? report.patch.diff : '';
   expect(diff).toContain('invoice.confirmation_secret');
   expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
@@ -746,6 +1006,14 @@ it('lists mixed-period reads without a selection in the pull request text', asyn
     'Subscriptions with items on different billing periods are not handled; set `stripeSubscriptionPeriods` to choose the item at',
   );
   expect(body).toContain('`billing.ts:5`');
+  // The one calling file holds the helper, so the draft names it there and no new file.
+  expect(body).toContain(
+    'Adds the generated helper `getSubscriptionPeriodEnd` to this file, which reads the removed fields under either API version.',
+  );
+  expect(body).toContain(
+    '- It removes the generated `getSubscriptionPeriodEnd` from `billing.ts`.',
+  );
+  expect(body).not.toContain('stripeSubscriptionPeriod.ts');
 });
 
 it('returns the rule patch without calling the model when rules cover every finding', async () => {
@@ -841,8 +1109,9 @@ it('reads invoice line item and invoice item price IDs through the generated hel
     '+  return invoice.lines.data.map((line) => [(getInvoicePriceId(line)), (line == null ? undefined : getInvoicePriceId(line)), (getInvoicePriceId(item))]);',
   );
   expect(diff).toContain('+  return [line.price?.nickname, line.price?.id.length];');
-  expect(diff).toContain("+import { getInvoicePriceId } from './stripeSubscriptionPeriod';");
-  expect(diff).toContain('+export function getInvoicePriceId(line: object): string | undefined {');
+  // billing.ts is the only calling file, so the helper goes into it and nothing imports it.
+  expect(diff).toContain('+function getInvoicePriceId(line: object): string | undefined {');
+  expect(diff).not.toContain('stripeSubscriptionPeriod');
   expect(report.patch).toMatchObject({
     warnings: expect.arrayContaining([expect.stringContaining('pricing.price_details.price')]),
   });
@@ -862,7 +1131,7 @@ it('reads a webhook line item price ID through the helper for either version', a
   expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
   const { getInvoicePriceId } = new Function(
     'module',
-    `${subscriptionPeriodHelperModule('cjs')}; return module.exports;`,
+    `${subscriptionPeriodHelperModule('cjs', [INVOICE_PRICE_ID_HELPER])}; return module.exports;`,
   )({});
   expect(getInvoicePriceId({ price: { id: 'price_old' } })).toBe('price_old');
   expect(getInvoicePriceId({ price: null })).toBeUndefined();
@@ -892,9 +1161,8 @@ it('reads Checkout Session shipping details through the generated helper', async
   expect(diff).toContain(
     '+  return [(getCheckoutShippingDetails(session)), (getCheckoutShippingDetails(session))?.address, session.shipping_details?.carrier];',
   );
-  expect(diff).toContain(
-    "+import { getCheckoutShippingDetails } from './stripeSubscriptionPeriod';",
-  );
+  expect(diff).toContain('+function getCheckoutShippingDetails<T extends object>(session: T)');
+  expect(diff).not.toContain('stripeSubscriptionPeriod');
   expect(report.patch).toMatchObject({
     warnings: expect.arrayContaining([
       expect.stringContaining('collected_information.shipping_details'),
@@ -902,7 +1170,7 @@ it('reads Checkout Session shipping details through the generated helper', async
   });
   const { getCheckoutShippingDetails } = new Function(
     'module',
-    `${subscriptionPeriodHelperModule('cjs')}; return module.exports;`,
+    `${subscriptionPeriodHelperModule('cjs', [CHECKOUT_SHIPPING_HELPER])}; return module.exports;`,
   )({});
   const address = { address: { city: 'Toronto' }, name: 'Ada' };
   expect(getCheckoutShippingDetails({ shipping_details: address })).toBe(address);
@@ -1021,7 +1289,7 @@ it.each([
 
 it('keeps an `as any` receiver typed any under the generic helpers', () => {
   const files = new Map([
-    ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
+    ['/check/helper.ts', subscriptionPeriodHelperModule('ts', HELPER_NAMES)],
     [
       '/check/use.ts',
       `import { getInvoiceSubscription, getCheckoutShippingDetails, getSubscriptionPeriodEnd } from './helper';
