@@ -13,6 +13,7 @@ import {
   SANDBOX_EXPIRY_LABEL,
 } from './docker-sandbox.ts';
 import { packageSnapshot, sdkPackageDirectory } from './preparation-packages.ts';
+import { readEvidence } from './state-files.ts';
 import { packageDiff } from './stripe-package-upgrade.ts';
 import { validateMigration } from './validation.ts';
 
@@ -427,7 +428,7 @@ it('validates Stripe code in a nested package there, under the configured check 
     '--quiet',
     '--json',
   ]).catch((error: unknown) => error);
-  const run = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
+  const run = JSON.parse((await readEvidence(output, 'report.json'))!);
   expect(run.validation).toMatchObject({
     status: 'passed',
     packageDirectory: 'dashboard',

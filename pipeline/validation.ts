@@ -1,8 +1,9 @@
-import { migrationReviewReason } from './migration-review.ts';
+import { aiSafetyStop, migrationReviewReason, unresolvedSites } from './migration-review.ts';
+import { diffLines } from 'diff';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -15,7 +16,8 @@ import {
   type ApiVersionPolicy,
 } from './api-version.ts';
 import { digest, readSpecification } from './specifications.ts';
-import { PipelineInputError, type SourceEdit } from './types.ts';
+import { PipelineInputError, type Repository, type SourceEdit } from './types.ts';
+import { TEST_PATH } from './source-paths.ts';
 import { readRepository } from './repository.ts';
 import {
   validateCheckCommand,
@@ -23,12 +25,13 @@ import {
   validateRepairAttempts,
 } from './validation-options.ts';
 import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
-import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
+import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -92,6 +95,66 @@ export interface ValidationAttempt {
   rejectedProposals?: string[];
 }
 
+// Owner decisions 1 and 8: AI's attempt at what the rules' patch left unresolved, on top of it.
+interface CoverageAttempt {
+  outcome: 'no-proposal' | 'refused' | 'checks-failed' | 'kept';
+  // Every request of the attempt, its repairs included.
+  costUsd: number;
+  // What the model was asked to resolve, at its lines in the rules' patch.
+  targets: ReturnType<typeof unresolvedSites>;
+  error?: string;
+  // The model's own account when it proposed nothing beyond the rules, so the run can show why.
+  response?: { id: string; summary: string; uncertainties: string[] };
+  // A proposal that failed its checks after repair, left out of the result.
+  attempts?: ValidationAttempt[];
+  repair?: { requested: number; stopReason: string; error: string | null };
+  // Sites the rules' patch left that the kept proposal's rescan no longer finds.
+  resolved?: ReturnType<typeof unresolvedSites>;
+}
+// Contract changes named per traced call in a coverage target; the run report has the rest.
+const MAX_TARGET_CHANGES = 3;
+
+// What an AI proposal, or the error that refused one, reports its requests cost.
+function costOf(value: unknown) {
+  const { budget, proposal } = (value ?? {}) as {
+    budget?: { costUsd?: number } | null;
+    proposal?: { budget?: { costUsd?: number } | null };
+  };
+  return budget?.costUsd ?? proposal?.budget?.costUsd ?? 0;
+}
+
+// The line an unchanged line of `before` is on in `after`; undefined once an edit changed it.
+export function movedLine(before: string, after: string, line: number) {
+  let from = 1;
+  let to = 1;
+  for (const part of diffLines(before, after)) {
+    if (part.added) {
+      to += part.count;
+      continue;
+    }
+    if (line < from + part.count) return part.removed ? undefined : to + line - from;
+    from += part.count;
+    if (!part.removed) to += part.count;
+  }
+  return undefined;
+}
+
+// Sites of `before` whose file, change and expression `after` has fewer of.
+function resolvedSites(
+  before: ReturnType<typeof unresolvedSites> = [],
+  after: ReturnType<typeof unresolvedSites> = [],
+) {
+  const key = (site: (typeof before)[number]) =>
+    `${site.file}\n${site.changeId}\n${site.expression}`;
+  const left = new Map<string, number>();
+  for (const site of after) left.set(key(site), (left.get(key(site)) ?? 0) + 1);
+  return before.filter((site) => {
+    const count = left.get(key(site)) ?? 0;
+    left.set(key(site), count - 1);
+    return count <= 0;
+  });
+}
+
 export interface CheckResult {
   status: 'passed' | 'failed' | 'error' | 'not-run';
   exitCode: number | null;
@@ -101,28 +164,10 @@ export interface CheckResult {
 }
 const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
-const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
-
-// TypeScript diagnostics in a check's output, keyed without positions so moved lines still match.
-export function typeErrors(check: CheckResult) {
-  return `${check.stdout}\n${check.stderr}`
-    .split('\n')
-    .map((line) => TYPE_ERROR.exec(line.trim()))
-    .filter((match): match is RegExpExecArray => Boolean(match))
-    .map((match) => ({
-      file: match[1],
-      line: Number(match[2]),
-      column: Number(match[3]),
-      code: match[4],
-      message: match[5],
-      key: `${match[1]} ${match[4]} ${match[5]}`,
-    }));
-}
-
 // With compareTypeErrors, the original code's type errors are the baseline: a typecheck that
 // reports errors still ran, and the patched check fails only on errors the patch introduced.
 function introducedTypeErrors(baseline: CheckResult, patched: CheckResult) {
-  const before = new Set(typeErrors(baseline).map((error) => error.key));
+  const before = typeErrorKeys(baseline);
   return typeErrors(patched).filter((error) => !before.has(error.key));
 }
 
@@ -357,12 +402,11 @@ function committedMode(entries: readonly string[], path: string, content: string
   return metadata[0] as PublicationFile['mode'];
 }
 
-// Copies prepared dependencies into the validation snapshot and returns their environment.
+// Checks the archive preparation copied into the validation snapshot and returns its environment.
 async function snapshotDependencies(
   prepared: Awaited<ReturnType<typeof prepareDependencies>>,
   destination: string,
 ) {
-  await copyFile(prepared.archive, destination);
   const copied = await inspectArtifactFile(destination, validationProfile().archiveBytes);
   if (
     copied.sha256 !== prepared.environment.archiveHash ||
@@ -388,9 +432,15 @@ async function prepareCandidateDependencies(
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
   await command('git', ['add', '-A'], candidateDirectory);
+  // A large tree would make the commit start `git gc --auto` in the background, which can still be
+  // writing packs when the .git directory is removed below (ENOTEMPTY).
   await command(
     'git',
     [
+      '-c',
+      'gc.auto=0',
+      '-c',
+      'maintenance.auto=false',
       '-c',
       'user.name=Refit',
       '-c',
@@ -404,15 +454,16 @@ async function prepareCandidateDependencies(
     ],
     candidateDirectory,
   );
+  const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
   const prepared = await prepareDependencies({
     repository: candidateDirectory,
     image,
     packageDirectory: options.packageDirectory,
+    copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
   });
   await rm(join(candidateDirectory, '.git'), { recursive: true, force: true });
-  const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
   return { dependencies, environment: await snapshotDependencies(prepared, dependencies) };
 }
 
@@ -596,6 +647,7 @@ export async function validateMigration(options: {
   generatedChecks?: GeneratedChecks;
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
+  keepApiVersion?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
   // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
@@ -621,7 +673,9 @@ export async function validateMigration(options: {
     if (applicability.applicability !== 'matches-before')
       throw new PipelineInputError(`Automated publication is blocked. ${applicability.reason}`);
   }
-  const snapshot = await readCommittedRepository(options.repository);
+  const snapshot = await readCommittedRepository(options.repository, {
+    submodules: options.leaveReviewedFindings,
+  });
   const repository = snapshot.directory;
   const preflight = await runPipeline({
     ...options,
@@ -631,7 +685,7 @@ export async function validateMigration(options: {
     aiPatch: undefined,
     assessment: undefined,
   });
-  if (apiVersionSourceBlocked(preflight.apiVersion))
+  if (apiVersionSourceBlocked(preflight.apiVersion, options.leaveReviewedFindings))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
   const reviewReason = options.leaveReviewedFindings
     ? undefined
@@ -732,6 +786,8 @@ export async function validateMigration(options: {
             repository,
             image,
             packageDirectory,
+            submodules: options.leaveReviewedFindings,
+            copyArchiveTo: join(root, 'dependencies.tar'),
             signal: options.signal,
             onProgress: options.onProgress,
           }),
@@ -805,8 +861,9 @@ export async function validateMigration(options: {
         { configured: shopify || Boolean(report.adapter.apiVersion), declarations },
         report.apiVersion.policy,
       );
+      // Owner decision 1: pins that conflicted in the committed code may still conflict.
       if (
-        apiVersionSourceBlocked(candidateVersion) ||
+        apiVersionSourceBlocked(candidateVersion, options.leaveReviewedFindings) ||
         (report.apiVersion.source.status === 'verified' &&
           candidateVersion.source.status !== 'verified')
       )
@@ -981,16 +1038,14 @@ export async function validateMigration(options: {
           : {}),
       });
     if (initialCandidate) recordAttempt();
-    const removedParameters = [
-      ...new Set(
-        removedRequestParameters(
-          report.adapter,
-          beforeSpecification.document,
-          afterSpecification.document,
-        ).map((removal) => removal.parameter),
-      ),
-    ];
-    const repair: {
+    const requestRemovals = removedRequestParameters(
+      report.adapter,
+      beforeSpecification.document,
+      afterSpecification.document,
+      { keepListedPaymentMethods: options.keepListedPaymentMethods },
+    );
+    const removedParameters = [...new Set(requestRemovals.map((removal) => removal.parameter))];
+    let repair: {
       limit: number;
       requested: number;
       stopReason: string;
@@ -1110,6 +1165,167 @@ export async function validateMigration(options: {
         }
       }
     }
+    // Every AI request's cost, whether its proposal was checked or refused.
+    let aiCostUsd = costOf(proposal);
+    const aiCoverage =
+      Boolean(options.aiPatch && options.leaveReviewedFindings) && !aiSafetyStop(report);
+    const configuredPeriods = report.findings.some(
+      (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
+    );
+    // Owner decisions 1 and 8 (2026-10-24): once the rules' patch passes its checks, AI attempts
+    // what the rules left (coverage stops) on top of it, the rules' lines frozen, unless a safety
+    // stop holds. It is kept only if its checks pass, after repair; otherwise the rules' patch
+    // stays the result and the attempt is recorded.
+    const rules =
+      aiCoverage &&
+      report.patch.generator === 'deterministic' &&
+      baseline.status === 'passed' &&
+      patched.status === 'passed' &&
+      candidateSources &&
+      !configuredEndpointProposal &&
+      !configuredRequestProposal &&
+      !configuredPeriods
+        ? {
+            proposal,
+            publicationFiles,
+            candidateDirectory,
+            candidateSources,
+            candidateDependencies,
+            candidateEnvironment,
+            patched,
+            attempts: attempts.length,
+            repair,
+          }
+        : undefined;
+    // A removed request parameter is its own finding, which the model may not change.
+    const removedParameter = (impact: (typeof report.operationImpacts)[number], text: string) =>
+      requestRemovals.some(
+        (removal) =>
+          removal.operationId === impact.operationId &&
+          text === `removed the request property \`${removal.parameter}\``,
+      );
+    // What the rules left in `files`: removed-field reads, traced or not, and calls traced to a
+    // breaking change no rule migrates, at their lines in `files`. Test files stay as written.
+    const coverageTargets = (files: Repository['files']) =>
+      [
+        ...analyzeRepository(
+          { ...originalSources, files },
+          report.changes,
+          report.adapter,
+          beforeSpecification.schemas,
+        ).findings.filter((finding) => finding.confidence === 'confirmed' || finding.untraced),
+        ...report.operationImpacts.flatMap((impact) => {
+          const changes = impact.changes.filter((change) => !removedParameter(impact, change.text));
+          return changes.length
+            ? impact.usages.flatMap((usage) => {
+                const before = originalSources.files.find((file) => file.path === usage.file);
+                const after = files.find((file) => file.path === usage.file);
+                const line =
+                  before && after && movedLine(before.content, after.content, usage.line);
+                return line
+                  ? [
+                      {
+                        file: usage.file,
+                        line,
+                        column: usage.column,
+                        changeId: CONTRACT_CHANGE,
+                        expression: `${impact.httpMethod.toUpperCase()} ${impact.path}`,
+                        confidence: 'confirmed' as const,
+                        reason: `${changes
+                          .slice(0, MAX_TARGET_CHANGES)
+                          .map((change) => change.text)
+                          .join(
+                            '; ',
+                          )}${changes.length > MAX_TARGET_CHANGES ? `; and ${changes.length - MAX_TARGET_CHANGES} more` : ''}`,
+                      },
+                    ]
+                  : [];
+              })
+            : [];
+        }),
+      ].filter((finding) => !TEST_PATH.test(finding.file));
+    const targets = rules ? coverageTargets(rules.candidateSources.files) : [];
+    // Calls traced to breaking changes count as unresolved without a rescan site (run.ts); no
+    // rescan shows whether the model handled them, so they stay unresolved.
+    const operationUsages =
+      'unresolvedSites' in proposal && proposal.unresolvedSites
+        ? proposal.unresolvedFindings - proposal.unresolvedSites.length
+        : 0;
+    // A coverage proposal keeps what the rules' patch reports beyond its own rescan.
+    const onRules = (candidate: Awaited<ReturnType<typeof proposeAiPatch>>) => ({
+      ...candidate,
+      unresolvedFindings: candidate.unresolvedFindings + operationUsages,
+      ...('sdkUpgrade' in report.patch ? { sdkUpgrade: report.patch.sdkUpgrade } : {}),
+    });
+    let coverage: CoverageAttempt | undefined;
+    const charge = (value: unknown) => {
+      const cost = costOf(value);
+      aiCostUsd += cost;
+      if (coverage) coverage.costUsd += cost;
+    };
+    if (rules && targets.length) {
+      repair = { ...repair };
+      coverage = { outcome: 'no-proposal', costUsd: 0, targets: unresolvedSites(targets) };
+      options.onProgress?.('Requesting an AI proposal for what the rules left unresolved...');
+      try {
+        options.signal?.throwIfAborted();
+        const ruleEdits = 'ruleEdits' in report.patch ? (report.patch.ruleEdits ?? []) : [];
+        const candidate = await proposeAiPatch(
+          originalSources,
+          report.changes,
+          report.findings.filter((finding) => !finding.requestParameter),
+          options.aiPatch!,
+          report.adapter,
+          beforeSpecification.schemas,
+          undefined,
+          options.documentationSnapshots,
+          afterSpecification.schemas,
+          ruleEdits,
+          { files: rules.candidateSources.files, rules: rules.candidateSources.files, targets },
+          requestRemovals,
+        );
+        charge(candidate);
+        // The model's edits are the proposal's beyond the rules'.
+        if (candidate.edits <= ruleEdits.length)
+          coverage.response = {
+            id: candidate.responseId,
+            summary: candidate.summary,
+            uncertainties: candidate.uncertainties,
+          };
+        else {
+          candidate.diff += packageDiff(report.patch.diff);
+          const prepared = await prepareCandidate(candidate.diff, originalSources, report);
+          options.onProgress?.('Running checks on the AI proposal in offline Docker...');
+          const check = compared(
+            await timed('patchedChecks', () =>
+              containerCheck({
+                ...sandbox,
+                directory: prepared.directory,
+                image,
+                command: options.command,
+                dependencies: prepared.dependencies,
+                signal: options.signal,
+              }),
+            ),
+          );
+          proposal = onRules(candidate);
+          publicationFiles = prepared.publicationFiles;
+          candidateDirectory = prepared.directory;
+          candidateSources = prepared.sources;
+          candidateDependencies = prepared.dependencies;
+          candidateEnvironment = prepared.environment;
+          patched = check;
+          recordAttempt();
+          coverage.outcome = 'checks-failed';
+        }
+      } catch (error) {
+        // A failed request leaves the rules' patch, as a failed repair leaves its candidate.
+        if (!(error instanceof Error) || options.signal?.aborted) throw error;
+        charge(error);
+        coverage.outcome = 'refused';
+        coverage.error = `${error.name}: ${error.message}`;
+      }
+    }
     while (
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
@@ -1161,7 +1377,8 @@ export async function validateMigration(options: {
           originalSources,
           report.changes,
           [
-            ...report.findings,
+            // Owner decisions 1 and 8: a removed request parameter no longer keeps AI out.
+            ...report.findings.filter((finding) => !(aiCoverage && finding.requestParameter)),
             // Introduced type errors, at their positions in the failed candidate, become findings
             // the repair may fix, wherever they are.
             ...introduced
@@ -1198,10 +1415,20 @@ export async function validateMigration(options: {
           options.documentationSnapshots,
           afterSpecification.schemas,
           'ruleEdits' in report.patch ? report.patch.ruleEdits : [],
-          options.compareTypeErrors && candidateSources
-            ? { files: candidateSources.files, rules: ruleSources }
-            : undefined,
+          // A coverage repair starts again from the rules' patch, with the failed attempt in view.
+          rules && coverage?.outcome === 'checks-failed'
+            ? {
+                files: rules.candidateSources.files,
+                rules: rules.candidateSources.files,
+                targets,
+              }
+            : options.compareTypeErrors && candidateSources
+              ? { files: candidateSources.files, rules: ruleSources }
+              : undefined,
+          // So a coverage repair's rescan still counts calls sending a removed parameter.
+          rules && coverage ? requestRemovals : [],
         );
+        charge(candidate);
         // The SDK upgrade is deterministic; repairs change only code and keep it.
         if (candidate.diff) candidate.diff += packageDiff(report.patch.diff);
         if (!candidate.diff) {
@@ -1240,7 +1467,7 @@ export async function validateMigration(options: {
         );
         candidateDependencies = preparedCandidate.dependencies;
         candidateEnvironment = preparedCandidate.environment;
-        proposal = candidate;
+        proposal = coverage ? onRules(candidate) : candidate;
         publicationFiles = preparedCandidate.publicationFiles;
         candidateDirectory = preparedCandidate.directory;
         candidateSources = preparedCandidate.sources;
@@ -1254,14 +1481,15 @@ export async function validateMigration(options: {
               : 'attempt-limit';
       } catch (error) {
         if (!(error instanceof Error)) throw error;
+        charge(error);
         repair.stopReason = 'repair-error';
         repair.error = `${error.name}: ${error.message}`;
         break;
       }
     }
-    const generated =
+    const generatedFor = async (directory = candidateDirectory) =>
       options.generatedChecks &&
-      candidateDirectory &&
+      directory &&
       baseline.status === 'passed' &&
       patched.status === 'passed'
         ? await timed('generatedChecks', () =>
@@ -1275,7 +1503,7 @@ export async function validateMigration(options: {
               runs: [
                 { directory: baselineDirectory, contract: options.before, side: 'before' },
                 {
-                  directory: candidateDirectory,
+                  directory,
                   contract: options.after,
                   side: 'after',
                   dependencies: candidateDependencies,
@@ -1287,6 +1515,31 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
+    let generated = await generatedFor();
+    if (rules && coverage?.outcome === 'checks-failed') {
+      if (checkStatus(baseline, patched, generated) === 'passed') {
+        coverage.outcome = 'kept';
+        coverage.resolved = resolvedSites(
+          'unresolvedSites' in rules.proposal ? rules.proposal.unresolvedSites : undefined,
+          'unresolvedSites' in proposal ? proposal.unresolvedSites : undefined,
+        );
+      } else {
+        // Its checks failed after repair: it is never published, and the rules' patch stays.
+        coverage.attempts = attempts.splice(rules.attempts);
+        coverage.repair = repair;
+        ({
+          proposal,
+          publicationFiles,
+          candidateDirectory,
+          candidateSources,
+          candidateDependencies,
+          candidateEnvironment,
+          patched,
+          repair,
+        } = rules);
+        generated = await generatedFor();
+      }
+    }
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
     const validationStatus =
@@ -1307,6 +1560,8 @@ export async function validateMigration(options: {
       runtime,
       ...(environment ? { environment } : {}),
       ...(dependencyFailure ? { dependencyFailure } : {}),
+      // Left out of the snapshot (owner decision 1): nothing in them was scanned, built or tested.
+      ...(snapshot.submodules.length ? { submodules: snapshot.submodules } : {}),
       ...(candidateEnvironment ? { patchedEnvironment: candidateEnvironment } : {}),
       command: options.command,
       baselineCommand,
@@ -1318,6 +1573,8 @@ export async function validateMigration(options: {
       ...(generated ? { generated } : {}),
       attempts,
       repair,
+      ...(options.aiPatch ? { aiCostUsd } : {}),
+      ...(coverage ? { coverageAi: coverage } : {}),
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
       ...(Object.keys(timings).length ? { timings } : {}),
@@ -1403,13 +1660,14 @@ export async function validateSourcePatch(options: {
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
     if (options.prepareDependencies) {
+      dependencies = join(root, 'dependencies.tar');
       const prepared = await prepareDependencies({
         repository: snapshot.directory,
         image,
+        copyArchiveTo: dependencies,
         signal: options.signal,
         onProgress: options.onProgress,
       });
-      dependencies = join(root, 'dependencies.tar');
       environment = await snapshotDependencies(prepared, dependencies);
     }
     options.signal?.throwIfAborted();

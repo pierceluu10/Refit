@@ -70,7 +70,7 @@ Without a labelled answer key, "excellent" can't be proven.
 
 1. **Skip unparseable files instead of failing the scan** (3 repositories), and report the skipped files.
 2. **Make the full contract diff work on real Stripe specs:** before running `oasdiff`, prune both specs to the schemas and operations the repository's adapter uses, so 8–11 MB becomes kilobytes. Then investigate the "could not compare" pairs. Keep the 30s limit, which should be enough after pruning.
-3. **Ship a full built-in Stripe adapter.** Generate it per API version from `x-stripeOperations` in Stripe's `spec3.sdk.json` (the benchmark's `pipeline/stripe-benchmark.ts` already does this), so `customers`, `subscriptions`, `invoices`, `checkout.sessions` and so on are mapped, not just `paymentIntents`. Select per repository from its called methods to respect the 100-operation limit, or lift the limit for generated built-ins.
+3. **Ship a full built-in Stripe adapter.** Generate it per API version from `x-stripeOperations` in Stripe's `spec3.sdk.json` (the benchmark's `pipeline/stripe-benchmark.ts` already does this), so `customers`, `subscriptions`, `invoices`, `checkout.sessions` and so on are mapped, not just `paymentIntents`. Select per repository from its called methods to respect the 100-operation limit, or lift the limit for generated built-ins. Done on October 25: the built-in adapter maps called methods from `operations` in `pipeline/stripe-sdk-metadata.json`, generated from all 31 pinned SDK specs (see [READINESS](READINESS.md)).
 
 ## Phase 2: see Stripe objects where apps actually use them
 
