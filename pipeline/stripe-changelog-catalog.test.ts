@@ -14,7 +14,7 @@ import {
 } from './provider-operations.ts';
 import { validateProviderMappings } from './providers.ts';
 import { removedRequestParameters } from './request-removals.ts';
-import { findRemovedProperties, parseSpecificationInput } from './specifications.ts';
+import { findRemovedProperties, isObject, parseSpecificationInput } from './specifications.ts';
 import { repositoryAdapter, stripeOperations } from './stripe-benchmark.ts';
 import { withoutRenamedSchemaRemovals } from './stripe-field-moves.ts';
 import { invoicePreviewMove } from './stripe-invoice-preview.ts';
@@ -1851,7 +1851,9 @@ describe('the Stripe breaking-change catalog', () => {
       const direct = scan(fixture!.code);
       expect([direct.findings, direct.edits, direct.breaking]).toEqual([[], [], []]);
     } else if ('enumValues' in expectation) {
-      const reported = result.breaking.flatMap((change) => (change.values as string[]) ?? []);
+      const reported = result.breaking.flatMap((change) =>
+        isObject(change) && Array.isArray(change.values) ? change.values : [],
+      );
       expect(reported).toEqual(expect.arrayContaining(expectation.enumValues));
       expect(result.findings).toEqual([]);
     } else {
