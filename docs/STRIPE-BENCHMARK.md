@@ -54,7 +54,7 @@ Behind those reasons:
 1. **Stripe objects arrive through webhooks.** 74 of 100 repositories call `stripe.webhooks.constructEvent`, then read `event.data.object` (often `as Stripe.Subscription`). Refit doesn't trace event payloads.
 2. **Objects are passed around.** A subscription retrieved in one function is read in another, often typed as `Stripe.Subscription`. Refit's tracing stops at the first call or alias, and doesn't use TypeScript's `Stripe.*` type annotations.
 3. **Common names cause noise.** Because Stripe removed `line_item.type`, any `.type` read near Stripe code is reported, for example in a UI toast hook.
-4. **The built-in Stripe adapter maps only `paymentIntents`.** Custom adapters can't use the reserved `stripe` id. The benchmark's generated adapter uses `stripe-full`, which skips Stripe-specific extras such as the charges rule.
+4. **The built-in Stripe adapter maps only `paymentIntents`.** Custom adapters can't use the reserved `stripe` id. The benchmark's generated adapter uses `stripe-full`, which skips Stripe-specific extras such as the charges rule. (Since October 25 the built-in adapter maps every called method from Stripe's SDK spec; see [READINESS](READINESS.md).)
 
 ### Other blockers found
 

@@ -13,7 +13,7 @@ refit run --env .env --config examples/billing-demo.refit.json \
 
 The existing `.env` needs `OPENAI_API_KEY` and `OPENAI_MODEL` (`gpt-5.4-mini` is the model used for the verified demo). `--ai-patch` makes billable OpenAI requests and sends the affected source plus bounded imported-module context. A repair can additionally send the failed diff and check output. The model cannot run commands or change your original repository. All check commands are supplied by you and run in offline Docker.
 
-Success returns `validated` and exit 0. Inspect `migration.patch`, `report.json` and `pull-request.md` inside the output directory. Review the recorded baseline/patched checks and all candidate attempts. An unchanged source repository is expected: the tested patch exists only in a disposable copy and the evidence bundle.
+Success returns `validated` and exit 0. Inspect `migration.patch`, `report.json.gz` (gzip-compressed; `gunzip -c`) and `pull-request.md` inside the output directory. Review the recorded baseline/patched checks and all candidate attempts. An unchanged source repository is expected: the tested patch exists only in a disposable copy and the evidence bundle.
 
 ## Also open a draft PR
 

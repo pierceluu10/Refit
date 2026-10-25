@@ -24,6 +24,7 @@ import {
   SHOPIFY_API_ENUM_SINCE,
   sdkHasEnumMember,
 } from './shopify-versions.ts';
+import { readEvidence } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 
 // Benchmark runs never send Slack notices.
@@ -296,7 +297,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const outcome = JSON.parse(
     await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'),
   );
-  const report = JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
+  const report = JSON.parse((await readEvidence(bundle, 'report.json')) ?? '{}');
   result.workflow = {
     status: outcome.status ?? 'missing-manifest',
     stage: outcome.stage,

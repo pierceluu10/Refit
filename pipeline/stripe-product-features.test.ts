@@ -5,7 +5,10 @@ import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { removedRequestParameters } from './request-removals.ts';
 import { findRemovedProperties } from './specifications.ts';
 import { PRODUCT_MARKETING_FEATURES_RULE } from './stripe-request-moves.ts';
-import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
+import {
+  PRODUCT_FEATURES_HELPER,
+  subscriptionPeriodHelperModule,
+} from './stripe-subscription-periods.ts';
 
 const string = { type: 'string' };
 // The feature list of Stripe's 2023-10-16 and 2026-09-30.endive documents (stripe/openapi):
@@ -135,9 +138,8 @@ export async function copy(id: string) {
   expect(result.patched).toContain(
     "await stripe.products.update(id, { 'marketing_features': '' });",
   );
-  expect(result.patched).toContain(
-    "import { getProductMarketingFeatures } from './stripeSubscriptionPeriod';",
-  );
+  expect(result.patched).toContain('\nfunction getProductMarketingFeatures<T extends object>(');
+  expect(result.patched).not.toContain('stripeSubscriptionPeriod');
   expect(result.edits.filter((edit) => edit.rule === PRODUCT_MARKETING_FEATURES_RULE)).toHaveLength(
     2,
   );
@@ -164,7 +166,7 @@ it('leaves writes and conflicting bodies for review', () => {
 
 it('returns the old list for old-version payloads and the new one otherwise', () => {
   const module: { exports: Record<string, (product: object) => unknown> } = { exports: {} };
-  new Function('module', subscriptionPeriodHelperModule('cjs'))(module);
+  new Function('module', subscriptionPeriodHelperModule('cjs', [PRODUCT_FEATURES_HELPER]))(module);
   const read = module.exports.getProductMarketingFeatures;
   expect(read({ features: [{ name: 'old' }] })).toEqual([{ name: 'old' }]);
   expect(read({ marketing_features: [{ name: 'new' }] })).toEqual([{ name: 'new' }]);

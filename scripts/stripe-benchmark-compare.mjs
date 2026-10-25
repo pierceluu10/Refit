@@ -9,6 +9,7 @@ import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { classifyRow } from './benchmark-harness.mjs';
 import { assertResults } from './benchmark-results.mjs';
+import { readEvidence } from '../pipeline/state-files.ts';
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -55,8 +56,8 @@ function digest(text) {
   return createHash('sha256').update(text).digest('hex').slice(0, HASH_LENGTH);
 }
 
-async function bundleFile(bundle, name) {
-  return bundle ? JSON.parse(await readFile(join(bundle, name), 'utf8').catch(() => 'null')) : null;
+async function bundleText(bundle, name) {
+  return bundle ? readEvidence(bundle, name) : undefined;
 }
 
 // Every compared field of one repository's result. The patch hash comes from the full diff in
@@ -65,12 +66,12 @@ async function bundleFile(bundle, name) {
 async function details(result, directory) {
   const workflow = result?.workflow ?? {};
   const bundle = result && join(directory, 'repos', result.repo.replace('/', '__'), 'run');
-  const [report, scan, manifest] = await Promise.all(
-    ['report.json', 'scan.json', 'manifest.json'].map((name) => bundleFile(bundle, name)),
+  const [reportText, scanText] = await Promise.all(
+    ['report.json', 'scan.json'].map((name) => bundleText(bundle, name)),
   );
+  const [report, scan] = [reportText, scanText].map((text) => text && JSON.parse(text));
   const fullDiff = report?.patch?.diff ?? scan?.patch?.diff;
   const diff = fullDiff ?? workflow.diff;
-  const scanHash = manifest?.files?.find((file) => file.path === 'scan.json')?.sha256;
   return {
     outcome: outcome(result),
     tracedCalls: result?.tracedCalls,
@@ -85,8 +86,9 @@ async function details(result, directory) {
     validation: workflow.validation,
     typeErrors: JSON.stringify(workflow.typeErrors),
     generated: JSON.stringify(workflow.generated),
-    // scan.json is content-addressed (its runId hashes the inputs), so equal runs write equal bytes.
-    scan: scanHash?.slice(0, HASH_LENGTH),
+    // scan.json is content-addressed (its runId hashes the inputs), so equal runs write equal JSON.
+    // Hashing the decompressed text keeps compressed and older uncompressed runs comparable.
+    scan: scanText && digest(scanText),
     diff:
       diff === undefined
         ? undefined

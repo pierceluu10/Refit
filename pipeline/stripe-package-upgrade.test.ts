@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -779,6 +779,8 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
     const tooLarge = new DependencyPreparationError('Dependency archive exceeds 1024 MiB.');
     vi.mocked(prepareDependencies).mockImplementation(async (input) => {
       if (basename(input.repository).startsWith('candidate-')) throw tooLarge;
+      // As prepareDependencies does, while it holds the cache bundle's lock.
+      if (input.copyArchiveTo) await copyFile(archive, input.copyArchiveTo);
       return {
         directory: root,
         archive,
@@ -815,7 +817,6 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
       'billing.ts',
       'package-lock.json',
       'package.json',
-      'stripeSubscriptionPeriod.ts',
     ]);
   },
   300_000,

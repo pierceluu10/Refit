@@ -14,6 +14,7 @@ import {
   REFIT_VERSION,
 } from './migration-identity.ts';
 import type { ReviewReason } from './publication.ts';
+import { OTHER_DEPENDENCY_FAILURE } from './dependency-preparation.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR, UNTYPED_REQUEST_PROPERTIES } from './stripe-open-enums.ts';
 import {
@@ -21,6 +22,8 @@ import {
   movedPaymentMethodExpressions,
   PAYMENT_METHOD_TYPES_CHANGELOG,
 } from './patches.ts';
+import { typeErrorKeys } from './type-errors.ts';
+import { HELPER_NAMES } from './stripe-subscription-periods.ts';
 
 // The entry for one gate, when the draft has it.
 function gated<Gate extends ReviewReason['gate']>(
@@ -60,6 +63,10 @@ const INTRODUCED_TYPE_ERRORS = 'Type errors this patch introduced:\n';
 const REFIT_CHECK_STOP = /^Check (?:output )?exceeded /;
 // Checked on GitHub, 2026-10-24.
 const STRIPE_NODE_CHANGELOG = 'https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md';
+// Read 2026-10-25: "Only payment methods that you enabled can be shown to your customers." The
+// Checkout API reference says allowed_payment_method_types filters this dynamically eligible set.
+const DYNAMIC_PAYMENT_METHODS =
+  'https://docs.stripe.com/payments/payment-methods/dynamic-payment-methods';
 
 // A command that only type-checks, as `npx --no-install tsc --noEmit` does.
 function typeCheckOnly(command: string) {
@@ -85,7 +92,9 @@ export function code(value: string) {
   const fence = '`'.repeat(
     Math.max(1, ...(content.match(/`+/g) ?? []).map((run) => run.length + 1)),
   );
-  return `${fence}${content}${fence}`;
+  // CommonMark strips one space from each side, so a backtick at an edge stays content.
+  const pad = /^`|`$/.test(content) ? ' ' : '';
+  return `${fence}${pad}${content}${pad}${fence}`;
 }
 
 export function summaryList(values: string[]) {
@@ -360,6 +369,35 @@ function failedChecks(validation: Validation) {
   }`;
 }
 
+// A compared typecheck passes on tsc's nonzero exit when no error has a file, code and message the
+// original code's errors lack, so it says what the gate compared instead of that it passed.
+export function existingTypeErrors(validation: {
+  compareTypeErrors?: boolean;
+  baseline: { exitCode: number | null; stdout: string; stderr: string };
+  patched: { exitCode: number | null; stdout: string; stderr: string };
+}) {
+  if (
+    !validation.compareTypeErrors ||
+    [validation.baseline, validation.patched].every((check) => check.exitCode === 0)
+  )
+    return undefined;
+  const before = typeErrorKeys(validation.baseline).size;
+  return `reported ${before} existing type error${before === 1 ? '' : 's'} on the original code, counted by file, code and message, and ${typeErrorKeys(validation.patched).size ? 'no error with a new file, code and message' : 'no type errors'} on the migrated code`;
+}
+
+function passedChecks(validation: Validation) {
+  const [original, migrated] = [validation.baselineCommand, validation.command].map((command) =>
+    code(command.join(' ')),
+  );
+  const sameCommand = original === migrated;
+  const existing = existingTypeErrors(validation);
+  if (existing)
+    return `${sameCommand ? migrated : `${original} on the original and ${migrated} on the migrated code`} ${existing}, in offline Docker.`;
+  return sameCommand
+    ? `${migrated} passed on the original and migrated code in offline Docker.`
+    : `${original} passed on the original and ${migrated} on the migrated code in offline Docker.`;
+}
+
 // How much a validation shows, from what ran; Refit does not measure which lines a repository's own
 // command reaches.
 function evidenceStrength(validation: Validation, generated: boolean) {
@@ -630,7 +668,6 @@ export function createReviewArtifacts(
   const unconfirmed = report.findings.filter((finding) => finding.untraced);
   const selectedPeriods = [...periodReads('item-in-code'), ...periodReads('price-policy')];
   const generated = validation.generated;
-  const sameCommand = validation.baselineCommand.join(' ') === validation.command.join(' ');
   const command = validation.command.join(' ');
   const typeChecked = /\btsc\b|\btype-?check\b/.test(command);
   // What the passing checks ran: none of the repository's code for a type check or the no-op.
@@ -681,13 +718,27 @@ export function createReviewArtifacts(
   const pagesFor = (path: string) =>
     rulePages.filter((page) => page.files.includes(path)).flatMap((page) => link(page.url) ?? []);
   const helperFiles = changedFiles(patch.diff).filter((file) => !file.before);
+  // Helpers Refit wrote into the one file that calls them, in place of a generated module.
+  const declares = (text: string, name: string) =>
+    new RegExp(`^function ${name}\\b`, 'm').test(text);
+  const inlineHelpers = (file: FileChange) =>
+    file.before
+      ? HELPER_NAMES.filter((name) => declares(file.after, name) && !declares(file.before, name))
+      : [];
+  const inlined = changedFiles(patch.diff).filter((file) => inlineHelpers(file).length);
   const keyChanges = changedFiles(patch.diff).map((file) => {
     const fields = migratedFields(file.path);
     const pages = pagesFor(file.path);
     const cited = pages.length ? ` ${plainText(provider)} documents it: ${pages.join(', ')}.` : '';
+    const helpers = inlineHelpers(file);
     const usage = [
       ...(fields.length
         ? [`Migrates reads of ${summaryList(fields)} to the documented new locations.`]
+        : []),
+      ...(helpers.length
+        ? [
+            `Adds the generated helper${helpers.length === 1 ? '' : 's'} ${summaryList(helpers.map(code))} to this file, which read${helpers.length === 1 ? 's' : ''} the removed fields under either API version.`,
+          ]
         : []),
       ...(cardFiles.has(file.path)
         ? [
@@ -804,15 +855,11 @@ export function createReviewArtifacts(
           `${code('allowed_payment_method_types')} filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.`,
         ]
       : []),
-    ...listedMethods.map(
-      (methods) =>
-        `Stripe now filters ${code(`[${methods}]`)} by each buyer's eligibility (country, currency, amount, device), so ${summaryList(
-          methods
-            .split(', ')
-            .filter((method) => method !== 'card')
-            .map(code),
-        )} may no longer be offered to some customers. Before merging, confirm they still appear where you rely on them.`,
-    ),
+    ...listedMethods.map((methods) => {
+      const others = methods.split(', ').filter((method) => method !== 'card');
+      const one = others.length === 1;
+      return `Stripe now filters ${code(`[${methods}]`)} by each buyer's eligibility (country, currency, amount, device), so ${summaryList(others.map(code))} may no longer be offered to some customers. Stripe offers only payment methods the account has enabled ([dynamic payment methods](${DYNAMIC_PAYMENT_METHODS})). Before merging, confirm ${one ? 'it is' : 'they are'} enabled in the Stripe Dashboard or the payment method configuration this account uses, and ${one ? 'still appears' : 'still appear'} where you rely on ${one ? 'it' : 'them'}.`;
+    }),
     ...(upgrade &&
     report.adapter.packageName === 'stripe' &&
     upgrade.from.split('.')[0] !== upgrade.to.split('.')[0]
@@ -822,7 +869,7 @@ export function createReviewArtifacts(
       : []),
     ...movedExpressions.map(
       (expression) =>
-        `Refit cannot read which payment methods ${code(expression)} holds at runtime. Stripe now filters them by each buyer's eligibility (country, currency, amount, device). Before merging, confirm it holds only methods this call accepts in ${code('allowed_payment_method_types')} and that each one is still offered where you rely on it.`,
+        `Refit cannot read which payment methods ${code(expression)} holds at runtime. Stripe now filters them by each buyer's eligibility (country, currency, amount, device), and offers only payment methods the account has enabled ([dynamic payment methods](${DYNAMIC_PAYMENT_METHODS})). Before merging, confirm it holds only methods this call accepts in ${code('allowed_payment_method_types')}, that each one is enabled in the Stripe Dashboard or the payment method configuration this account uses, and that each one is still offered where you rely on it.`,
     ),
     ...(subscriptionPolicy
       ? [
@@ -850,13 +897,32 @@ export function createReviewArtifacts(
     ),
   ];
   // Breaking contract changes the reach gate let through (operation-reach.ts), with their paths.
-  const unusedChanges = (report.specificationDiff?.changes ?? [])
+  const passingChanges = (report.specificationDiff?.changes ?? [])
     .filter(isObject)
-    .filter((change) => PASSING_REACH.has(change.reach) && Number(change.level) >= 2)
-    .map(
-      (change) =>
-        `${code(`${change.operation} ${change.path}`)} ${plainText(String(change.text))}: ${plainText(String(change.reachReason))}`,
-    );
+    .filter((change) => PASSING_REACH.has(change.reach) && Number(change.level) >= 2);
+  // Each kind of reach that lets a breaking change through, worded to follow a count.
+  const reachCounts = (
+    [
+      ['unused', 'no traced code reaches'],
+      ['handled', "Refit's kept rule edits handle"],
+      ['compatible', 'traced code uses in a way the change does not break'],
+    ] as const
+  ).flatMap(([reach, text]) => {
+    const count = passingChanges.filter((change) => change.reach === reach).length;
+    return count ? [{ count, text }] : [];
+  });
+  const changeCount = `${passingChanges.length} contract change${passingChanges.length === 1 ? '' : 's'}`;
+  const unusedSummary =
+    reachCounts.length === 1
+      ? `${changeCount} ${reachCounts[0].text}.`
+      : `${changeCount} do not hold back this patch: ${reachCounts
+          .map(({ count, text }) => `${count} that ${text}`)
+          .join(', ')
+          .replace(/, ([^,]*)$/, ' and $1')}.`;
+  const unusedChanges = passingChanges.map(
+    (change) =>
+      `${code(`${change.operation} ${change.path}`)} ${plainText(String(change.text))}: ${plainText(String(change.reachReason))}`,
+  );
   const unmigratedSites = [...unmigratedUsages.values()].map((group) => {
     const fields = new Set(
       group.flatMap((site) => {
@@ -958,6 +1024,10 @@ export function createReviewArtifacts(
     ...(helperFiles.length
       ? [`It removes the generated ${summaryList(helperFiles.map((file) => code(file.path)))}.`]
       : []),
+    ...inlined.map(
+      (file) =>
+        `It removes the generated ${summaryList(inlineHelpers(file).map(code))} from ${code(file.path)}.`,
+    ),
     `Refit changed nothing outside this repository${stripe ? ': no Stripe Dashboard, webhook endpoint or account setting' : ''}.`,
   ];
   const checklist = [
@@ -1027,9 +1097,7 @@ export function createReviewArtifacts(
           : `No Refit rule changes the ${usageCount} in ${fileCount}, so this patch changes no files.`
       }`;
   const checks = passed
-    ? sameCommand
-      ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
-      : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
+    ? passedChecks(validation)
     : dependency
       ? upgradeUninstalled
         ? `${commandText(validation.baselineCommand)} passed on the original code. **Not run on this patch: installing its upgraded lockfile failed (${code(dependency.failure.reason)}); this patch is untested.**`
@@ -1046,9 +1114,13 @@ export function createReviewArtifacts(
         ),
         ...(('changes' in entry && entry.changes) || []).map(plainText),
         ...(entry.gate === 'ai-patch'
-          ? aiLines.length
-            ? aiLines
-            : ['None: every changed line comes from a Refit rule.']
+          ? [
+              ...(aiLines.length ? aiLines : ['None: every changed line comes from a Refit rule.']),
+              // What the AI resolved on top of the rules' patch (owner decisions 1 and 8).
+              ...(validation.coverageAi?.resolved ?? []).map(
+                (site) => `Resolved by AI: ${code(site.file)} ${code(site.expression)}`,
+              ),
+            ]
           : []),
       ];
       return [
@@ -1069,7 +1141,7 @@ export function createReviewArtifacts(
         ? [
             '## Untested: checks did not run',
             upgradeUninstalled
-              ? `**Refit did not run any checks on this patch.** ${commandText(validation.baselineCommand)} passed on the original code, but the upgraded lockfile this patch writes could not be installed because ${plainText(dependency.failure.summary)}, so the patched code was not built or tested. Nothing in this patch is verified.`
+              ? `**Refit did not run any checks on this patch.** ${commandText(validation.baselineCommand)} passed on the original code, but ${dependency.failure.reason === OTHER_DEPENDENCY_FAILURE.reason ? 'Refit could not install the upgraded lockfile this patch writes in its sandbox' : `the upgraded lockfile this patch writes could not be installed because ${plainText(dependency.failure.summary)}`}, so the patched code was not built or tested. Nothing in this patch is verified.`
               : `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(dependency.failure.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
             `> ${plainText(dependency.failure.message.length > MAX_QUOTE ? `${dependency.failure.message.slice(0, MAX_QUOTE)}...` : dependency.failure.message)}`,
             `**What to do:** ${dependency.failure.action} Don't merge until they pass.`,
@@ -1169,8 +1241,12 @@ export function createReviewArtifacts(
       ...(unusedChanges.length
         ? [
             '## Changed, Not Used By Traced Code',
+            unusedSummary,
+            // Collapsed: a full comparison can list dozens, which would bury the sections below.
+            `<details>\n<summary>Show the ${unusedChanges.length === 1 ? 'change' : `${unusedChanges.length} changes`}</summary>`,
             'The target contract changes these parts in a breaking way. No traced call sends them and no read of them was found, a kept rule edit rewrites them, or reading them is unaffected, so they do not hold back this change. Each line gives the reason.',
             siteList(unusedChanges, siteLimit),
+            '</details>',
           ]
         : []),
       '## Not Verified',

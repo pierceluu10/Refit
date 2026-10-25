@@ -1,6 +1,6 @@
 # PR body examples
 
-**Every body below is regenerated from stored results. None was published, and no PR was republished.** Each one is the snapshot `pipeline/pr-body-snapshots.test.ts` checks, written by `createReviewArtifacts()` (or `modelFixBody()` for the model fix) from a stored `report.json`, rendered the way publication renders it: with the review reasons owner decision 1 records, if any. The last three failed validation, so they are rendered as Refit stores them, as a local review artifact. The fixtures under `pipeline/fixtures/pr-bodies/` keep only what the body reads. Check logs and repair attempts are dropped, lockfile hunks are cut to their first lines (the body only names lockfiles), and `patchHash` is recomputed for the cut diff.
+**Every body below is regenerated from stored results. None was published, and no PR was republished.** Each one is the snapshot `pipeline/pr-body-snapshots.test.ts` checks, written by `createReviewArtifacts()` (or `modelFixBody()` for the model fix) from a stored `report.json`, rendered the way publication renders it: with the review reasons owner decision 1 records, if any. The last three failed validation, so they are rendered as Refit stores them, as a local review artifact. The fixtures under `pipeline/fixtures/pr-bodies/` keep only what the body reads. Check logs and repair attempts are dropped (a type check that passed with errors the original code already had keeps one placeholder line, each with its own message, per error the run recorded, since the body counts them), lockfile hunks are cut to their first lines (the body only names lockfiles), and `patchHash` is recomputed for the cut diff.
 
 ## What a reviewer needed and did not get
 
@@ -28,13 +28,13 @@ Still missing:
 
 | Shape | Stored result | Characters | What it shows |
 |---|---|---|---|
-| [Validated deterministic patch](#validated-deterministic-patch) | refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit | 4,181 | The `['card']` rule, the API version pin and the stripe-node upgrade; checks passed. |
+| [Validated deterministic patch](#validated-deterministic-patch) | refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit | 4,298 | The `['card']` rule, the API version pin and the stripe-node upgrade; checks passed. |
 | [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 7,018 | Published as `[Needs review]` (not with `--publish-validated-only`): the `no-checks` and `webhook-api-version` review reasons, with 2 webhook reads still unmigrated. |
 | [Untraced reads](#untraced-reads) | refit-stripe-active/run-6d4f38a, amahmood-pci/pci-update | 4,358 | One `.payment_intent` read Refit could not trace, left unchanged and listed with file and line. |
 | [AI patch](#ai-patch) | refit-stripe-benchmark/run-prs-all, webdevcody/thumbnail-critique | 5,608 | Lines written by `gpt-5.4-mini-2026-03-17` and checked by Refit, marked for review as an AI patch (owner decision 8), with the webhook review reason. |
 | [Model fix](#model-fix) | docs/benchmarks/2026-10-21-model-replacement-results.json, RiP3rQ/AI-Butler | 2,018 | **Simulated checks.** The stored validation for this repository is baseline-failed, so Refit never wrote this body. The four replacements are the stored ones; the checks are marked passed to show the body Refit publishes. |
 | [Shopify](#shopify) | refit-shopify-benchmark/run-1, samirjabib/shopify-apps-convex-template | 2,770 | Admin API pin moved from 2025-10 to 2026-04; no GraphQL documents in the app's own code. |
-| [Multi-integration collection](#multi-integration-collection) | refit-stripe-fresh/run-6d4f38a-c, tmachnacki/podvex | 4,742 | A real Stripe report rendered as the `stripe` integration of a collection. No stored run comes from a real repository with a collection, so the only collection-specific parts are the integration in Related Telemetry and the `refit-integration` marker. |
+| [Multi-integration collection](#multi-integration-collection) | refit-stripe-fresh/run-6d4f38a-c, tmachnacki/podvex | 4,858 | A real Stripe report rendered as the `stripe` integration of a collection. No stored run comes from a real repository with a collection, so the only collection-specific parts are the integration in Related Telemetry and the `refit-integration` marker. |
 | [Unmigrated usages](#unmigrated-usages) | refit-bench run 40081277373, Kanba-co/kanba | 7,580 | **Never published: the type check failed.** Three traced usages no rule migrated, each located under Left Unchanged; the type check fails on one of them. |
 | [Type errors](#type-errors) | refit-bench run 40081277373, AlefeSk8/Spotify-Clone-Next.js | 7,484 | **Never published: the type check failed.** The first of 4 type errors the patch introduced, and a page for each rule. |
 | [Baseline timeout](#baseline-timeout) | refit-bench run 40081277373, brunobola-portfolio/GitHub-Repo-Manager | 9,382 | **Never published: the check timed out on the original code.** 24 usages left, 21 of them confirmed, and 19 untraced reads. |
@@ -103,7 +103,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 ## Automated Verification Gates
 
 - Evidence Strength: **Type-checked only.** No code ran except the generated stripe-mock checks below.
-- Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` passed on the original and migrated code in offline Docker. Generated stripe-mock checks passed on 1 of 1 exported functions.
+- Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` reported 3 existing type errors on the original code, counted by file, code and message, and no error with a new file, code and message on the migrated code, in offline Docker. Generated stripe-mock checks passed on 1 of 1 exported functions.
 - Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 usages of the breaking changes remain.
 - Security Scans: Not run.
 
@@ -698,7 +698,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 ## Automated Verification Gates
 
 - Evidence Strength: **Type-checked only.** No code ran.
-- Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` passed on the original and migrated code in offline Docker. Generated stripe-mock checks did not run.
+- Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` reported 1 existing type error on the original code, counted by file, code and message, and no error with a new file, code and message on the migrated code, in offline Docker. Generated stripe-mock checks did not run.
 - Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 usages of the breaking changes remain.
 - Security Scans: Not run.
 
