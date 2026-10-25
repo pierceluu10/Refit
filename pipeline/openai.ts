@@ -18,6 +18,16 @@ export const MAX_OUTPUT_TOKENS = 25_000;
 // about 3.5 bytes per token: a 16,384 cap rejected evidence the byte limit allowed.
 const MAX_INPUT_TOKENS = 32_768;
 
+// A response OpenAI completed and billed that Refit cannot use; `budget` is what it cost.
+export class UnusableAiResponse extends PipelineInputError {
+  constructor(
+    readonly budget: { costUsd: number; spentUsd: number; limitUsd: number } | null,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 export async function requestStructuredOutput(
   request: { evidence: unknown; instructions: string; name: string; schema: object },
   options: AiOptions,
@@ -103,26 +113,28 @@ export async function requestStructuredOutput(
     typeof result.model !== 'string'
   ) {
     const reason = isObject(result.incomplete_details) ? result.incomplete_details.reason : null;
-    throw new PipelineInputError(
+    throw new UnusableAiResponse(
+      budget,
       `OpenAI response was incomplete or invalid${typeof reason === 'string' ? ` (${reason.slice(0, 64)})` : ''}.`,
     );
   }
   const texts: string[] = [];
   for (const item of result.output) {
-    if (!isObject(item)) throw new PipelineInputError('Invalid OpenAI output item.');
+    if (!isObject(item)) throw new UnusableAiResponse(budget, 'Invalid OpenAI output item.');
     if (item.type === 'reasoning') continue;
     if (item.type !== 'message' || item.role !== 'assistant' || !Array.isArray(item.content))
-      throw new PipelineInputError('Unexpected OpenAI output type.');
+      throw new UnusableAiResponse(budget, 'Unexpected OpenAI output type.');
     for (const part of item.content) {
       if (!isObject(part) || part.type !== 'output_text' || typeof part.text !== 'string')
-        throw new PipelineInputError(
+        throw new UnusableAiResponse(
+          budget,
           'OpenAI response was refused or contained unsupported content.',
         );
       texts.push(part.text);
     }
   }
   if (texts.length !== 1)
-    throw new PipelineInputError('OpenAI response must contain exactly one JSON output.');
+    throw new UnusableAiResponse(budget, 'OpenAI response must contain exactly one JSON output.');
   return {
     status: 'completed',
     provider: 'openai',

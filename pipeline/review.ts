@@ -171,13 +171,14 @@ function aiWrittenLines(patch: ValidationReport['patch'], upgraded: boolean) {
         '',
         '',
         { context: 0 },
-      )
-        .hunks.filter((hunk) => hunk.newLines > 0)
-        .map((hunk) =>
-          code(
-            `${file.path}:${hunk.newStart}${hunk.newLines > 1 ? `-${hunk.newStart + hunk.newLines - 1}` : ''}`,
-          ),
-        ),
+      ).hunks.map((hunk) =>
+        hunk.newLines
+          ? code(
+              `${file.path}:${hunk.newStart}${hunk.newLines > 1 ? `-${hunk.newStart + hunk.newLines - 1}` : ''}`,
+            )
+          : // A deletion has no line left; it is named where the deleted lines were.
+            `${code(`${file.path}:${hunk.newStart}`)} (${hunk.oldLines} line${hunk.oldLines === 1 ? '' : 's'} deleted here)`,
+      ),
     );
 }
 
@@ -1009,9 +1010,13 @@ export function createReviewArtifacts(
         ),
         ...(('changes' in entry && entry.changes) || []).map(plainText),
         ...(entry.gate === 'ai-patch'
-          ? aiLines.length
-            ? aiLines
-            : ['None: every changed line comes from a Refit rule.']
+          ? [
+              ...(aiLines.length ? aiLines : ['None: every changed line comes from a Refit rule.']),
+              // What the AI resolved on top of the rules' patch (owner decisions 1 and 8).
+              ...(validation.coverageAi?.resolved ?? []).map(
+                (site) => `Resolved by AI: ${code(site.file)} ${code(site.expression)}`,
+              ),
+            ]
           : []),
       ];
       return [

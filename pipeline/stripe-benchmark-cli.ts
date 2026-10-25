@@ -553,7 +553,23 @@ async function benchmark(entry: Selected, index: number) {
       repairAttempts: report.validation?.repair?.requested ?? 0,
       // Why repair stopped early, such as an AI policy stop; a first-request stop is `error`.
       ...(report.validation?.repair?.error ? { repairError: report.validation.repair.error } : {}),
-      aiCostUsd: report.patch?.budget?.costUsd,
+      // Every AI request of the run, refused and repair requests included.
+      aiCostUsd: report.validation?.aiCostUsd ?? report.patch?.budget?.costUsd,
+      ...(report.validation?.coverageAi
+        ? {
+            coverageAi: {
+              outcome: report.validation.coverageAi.outcome,
+              costUsd: report.validation.coverageAi.costUsd,
+              targets: report.validation.coverageAi.targets,
+              resolved: report.validation.coverageAi.resolved,
+              error: report.validation.coverageAi.error,
+              repair: report.validation.coverageAi.repair?.stopReason,
+              // The proposal its checks refused, which the result leaves out.
+              diff: report.validation.coverageAi.attempts?.at(-1)?.diff?.slice(0, 8000),
+              check: report.validation.coverageAi.attempts?.at(-1)?.check?.status,
+            },
+          }
+        : {}),
       diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };
