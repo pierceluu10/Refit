@@ -214,6 +214,8 @@ async function watchLocalOnce(
           'The advanced watch baseline does not match its recorded hash.',
         );
       configuration.apiVersion = advanced.apiVersion;
+      // Nobody attested this pin; only the code's own declarations, checked on every poll, back it.
+      configuration.apiVersionPolicy = 'source-verified';
     }
     const after = join(snapshots, `${snapshot.hash}.json`);
     try {

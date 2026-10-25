@@ -1,8 +1,10 @@
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { Finding } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
-import { declaresVersion, type ApiVersionEvidence } from './api-version.ts';
+import { declaresVersion } from './api-version.ts';
 import { countBreakingOperationUsages } from './provider-operations.ts';
+import { isTrackedResponseRemoval, unmappedBreakingChanges } from './openapi-diff.ts';
+import type { runPipeline } from './run.ts';
 import { HELPER_RULES, SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 
 const DECLARED_TYPE_REVIEW_REASON =
@@ -79,13 +81,22 @@ export function withoutRequestParameters<T extends { findings: Finding[] }>(evid
 }
 
 // The code already sends the target version and Refit finds nothing the target breaks, traced or
-// not: a merged Refit draft, or the customer's own migration.
-export function targetReached(scan: {
-  apiVersion: ApiVersionEvidence;
-  findings: Finding[];
-  skippedFiles?: string[];
-  operationImpacts: Parameters<typeof countBreakingOperationUsages>[0];
-}) {
+// not: a merged Refit draft, or the customer's own migration. Every breaking change outside the
+// migration rules still stops for review, except a removed response field the scanner searched
+// the code for and found no read of, as after a merged draft that migrated it.
+export function targetReached(
+  scan: Pick<
+    Awaited<ReturnType<typeof runPipeline>>,
+    | 'apiVersion'
+    | 'findings'
+    | 'operationImpacts'
+    | 'specificationDiff'
+    | 'changes'
+    | 'operationChanges'
+    | 'requestChanges'
+    | 'expandedFields'
+  > & { skippedFiles?: string[] },
+) {
   const target = scan.apiVersion.after;
   return Boolean(
     target &&
@@ -93,6 +104,14 @@ export function targetReached(scan: {
     declaresVersion(scan.apiVersion.source, target) &&
     !scan.skippedFiles?.length &&
     !scan.findings.length &&
-    !countBreakingOperationUsages(scan.operationImpacts),
+    !countBreakingOperationUsages(scan.operationImpacts) &&
+    unmappedBreakingChanges(
+      scan.specificationDiff,
+      scan.changes,
+      scan.findings,
+      scan.operationChanges,
+      scan.requestChanges,
+      scan.expandedFields,
+    ).every((entry) => isTrackedResponseRemoval(entry, scan.changes)),
   );
 }

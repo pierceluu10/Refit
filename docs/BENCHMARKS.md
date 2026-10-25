@@ -378,6 +378,16 @@ The single-tenant hosted worker (`refit hosted serve` on Fly, with `--publish-dr
 - **Weak checks on two drafts.** stripe_elements_customized_card_form and web-scraping-course-app have no tests, so the operator's check was `node -e 0`, and generated `stripe-mock` checks found no entry point in either. Those drafts show that the patch applies, not that the code works. spotify-clone's one `stripe-mock` entry point could not run on its own.
 - **Not measured:** AI patches, approval issues, more than one installation, and draft updates: full-stack-starter-kit opened a second draft beside one from an earlier local run instead of updating it.
 
+## Night set (frozen October 24)
+
+[`2026-10-24-stripe-night-repos.json`](benchmarks/2026-10-24-stripe-night-repos.json) is a held-back set for one end-of-night run. It was selected and committed before any run with `stripe-active-select.mjs --frozen-at 2026-10-24`, using the active-teams criteria. Each `--exclude` takes one of the four earlier Stripe lists. The file records every list, count and dropped repository:
+
+- **Search.** The fresh set's 13 code searches, each split into 5 file-size ranges: 26,379 repositories. 556 belong to the four earlier sets (100 original, 50 held out, 381 fresh, 66 active), leaving 25,823.
+- **Criteria.** Same as the active-teams set, with the 90-day window ending 2026-10-24. A light metadata pass (archived, fork, size, last push) ran before the full pass, which reads commit authors, workflows, `package.json` and lockfiles. 346 qualified. 16,758 had no commit in 90 days, 4,183 were over 50 MB, and 3,590 had one human author.
+- **Kept.** The 130 most starred were shallow-cloned only to read their API version, then deleted. 104 were kept, after dropping repositories already on endive (15), with no derivable API version (5), with an API version that has no pinned spec (5), or that could not be cloned (1). 34 are owned by organisations. 85 of 104 pin a 2025–2026 API version, and the median repository has 1 star.
+
+Nobody runs Refit on this set or reads its repositories' code before the final run, so the list stays unseen while Refit is tuned.
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

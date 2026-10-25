@@ -140,6 +140,39 @@ export const auth = betterAuth({
   });
 });
 
+// O1's second reading: the fallback for a client the tracer cannot follow read a computed key as
+// absent and a repeated key by its first value, while the runtime sends the last.
+it.each([
+  [
+    'a computed key',
+    `{ ['apiVersion']: "2025-10-29.clover" }`,
+    /its options include \['apiVersion'\]/,
+  ],
+  [
+    'a repeated key',
+    `{ apiVersion: "2025-10-29.clover", apiVersion: "2025-09-30.clover" }`,
+    /its options set apiVersion 2 times/,
+  ],
+])('stops on %s in the options of a client handed to a plugin', async (_case, options, detail) => {
+  const root = await repository({
+    'package.json': manifest('^19.3.0', TESTS),
+    'package-lock.json': npmLock('19.3.1'),
+    'auth.ts': `import { betterAuth } from "better-auth"
+import { stripe } from "@better-auth/stripe"
+import Stripe from "stripe"
+
+const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, ${options})
+
+export const auth = betterAuth({ plugins: [stripe({ stripeClient })] })
+`,
+  });
+  const { proposal, stops } = await proposeStripeConfiguration(root);
+  expect(proposal).toBeNull();
+  expect(stops).toMatchObject([
+    { id: 'api-version-unreadable', detail: expect.stringMatching(detail) },
+  ]);
+});
+
 it('uses the default of the locked stripe-node release for a client with no apiVersion', async () => {
   // CapChris20/Retronix-Wallpapers-Startup: both functions create the client without options.
   const files = {

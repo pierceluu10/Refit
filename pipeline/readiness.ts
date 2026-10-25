@@ -9,7 +9,7 @@ import type { BreakingOperationImpact } from './provider-operations.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
-import { migrationReviewReason } from './migration-review.ts';
+import { migrationReviewReason, targetReached } from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import {
@@ -477,7 +477,7 @@ export async function inspectRepositoryReadiness(options: {
       id: 'api-version',
       title: 'Application API version',
       status: versionPassed ? 'passed' : 'blocked',
-      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}${watched ? ` The code declares ${watched}, which this service already watches from, so the next poll continues from it.` : ''}`,
+      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}${watched ? ` The code declares ${watched}, which this service already watches, so this check passes; the next poll decides whether the code reached that target.` : ''}`,
       action: versionPassed
         ? null
         : evidence.apiVersion.application === null && evidence.apiVersion.before
@@ -501,7 +501,8 @@ export async function inspectRepositoryReadiness(options: {
       evidence.requestChanges,
       evidence.expandedFields,
     );
-    if (unsupportedChanges.length || evidence.operationImpacts.length)
+    // A merged draft leaves the fields it migrated unread; the watcher then advances its baseline.
+    if (!targetReached(evidence) && (unsupportedChanges.length || evidence.operationImpacts.length))
       report.checks.push({
         id: 'migration-coverage',
         title: 'Supported migration coverage',

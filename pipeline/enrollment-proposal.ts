@@ -203,13 +203,21 @@ function writtenVersion(
   const other = options.properties.find((property) => !ts.isPropertyAssignment(property));
   if (other)
     return { unread: `its options include ${quoted(other, source)}, which may set apiVersion` };
-  const option = options.properties
+  const computed = options.properties.find(
+    (property) => property.name && ts.isComputedPropertyName(property.name),
+  );
+  if (computed)
+    return { unread: `its options include ${quoted(computed, source)}, which may set apiVersion` };
+  const named = options.properties
     .filter(ts.isPropertyAssignment)
-    .find(
+    .filter(
       (property) =>
         (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) &&
         property.name.text === STRIPE.apiVersion!.property,
     );
+  // The runtime sends the last of repeated keys; Refit does not guess which one was meant.
+  if (named.length > 1) return { unread: `its options set apiVersion ${named.length} times` };
+  const [option] = named;
   if (!option) return 'absent';
   const value = unwrap(option.initializer);
   if (!ts.isStringLiteral(value) && !ts.isNoSubstitutionTemplateLiteral(value))

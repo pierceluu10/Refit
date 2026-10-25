@@ -28,6 +28,12 @@ const MAX_PAGES = 10;
 const PUSHED_MARKER = '<!-- refit-pushed:';
 const PUSHED_RECORD = /\n?<!-- refit-pushed: ([a-f0-9]{40}(?: [a-f0-9]{40})*) -->/g;
 const PROVIDER_MARKER = '<!-- refit-provider:';
+const TARGET_MARKER = '<!-- refit-target:';
+const TARGET_RECORD = /<!-- refit-target: ([A-Za-z0-9._-]+) -->/;
+const TARGET_VERSION = /^[A-Za-z0-9._-]+$/;
+// shortcut: natural order of version strings, which fits dated (Stripe, Shopify) and dotted
+// versions; a provider with another scheme needs its own order before it supersedes drafts.
+const VERSION_ORDER = new Intl.Collator('en', { numeric: true });
 const BASE_MOVED_MARKER = '<!-- refit-base-moved:';
 const SUPERSEDED_MARKER = '<!-- refit-superseded -->';
 const OTHERS_COMMITS =
@@ -482,7 +488,7 @@ export async function findExistingMigration(
 
 // Closes Refit's open draft for this target with a comment saying why, once the scanned base no
 // longer needs it: the customer migrated the code themselves. A draft with someone else's commits,
-// or one a person reopened after Refit closed it, stays open.
+// one a person marked ready for review, and one a person reopened after Refit closed it stay open.
 export async function closeResolvedDraft(
   report: Awaited<ReturnType<typeof runPipeline>>,
   revision: string,
@@ -493,17 +499,21 @@ export async function closeResolvedDraft(
   const { authentication, request } = await publicationSession(options);
   const branch = draftBranch(draftKey(report), authentication, options);
   const context = { options, branch, revision: sha(revision), authentication };
-  const base = async () => (await reference(request, options.base)) === context.revision;
-  if (!(await base()))
+  // Looked up first, so a run with no draft to close never fails on a base that moved.
+  const pull = await draftPull(request, options, branch, authentication);
+  if (
+    !pull ||
+    pull.state !== 'open' ||
+    pull.draft !== true ||
+    (await heldDraft(pull, request, context))
+  )
+    return undefined;
+  const { number } = pullUrl(pull, options);
+  if (await ownComment(request, number, authentication, RESOLVED_MARKER)) return undefined;
+  if ((await reference(request, options.base)) !== context.revision)
     throw new PipelineInputError(
       'GitHub base differs from the monitored commit. Update the local checkout before closing a draft.',
     );
-  const pull = await draftPull(request, options, branch, authentication);
-  if (!pull || pull.state !== 'open' || (await heldDraft(pull, request, context))) return undefined;
-  const { number } = pullUrl(pull, options);
-  if (await ownComment(request, number, authentication, RESOLVED_MARKER)) return undefined;
-  if (!(await base()))
-    throw new PipelineInputError('GitHub base changed while checking the draft. Retry the run.');
   // Closed first: the comment then marks only drafts Refit actually closed.
   const closed = object(await request('PATCH', `/pulls/${number}`, { state: 'closed' }));
   await request('POST', `/issues/${number}/comments`, { body: `${reason}\n\n${RESOLVED_MARKER}` });
@@ -604,19 +614,23 @@ export async function publishDraft(
     );
   const provider = `${PROVIDER_MARKER} ${report.provider} -->`;
   const target = apiVersion.after ?? 'the target contract';
+  const version =
+    apiVersion.after && TARGET_VERSION.test(apiVersion.after) ? apiVersion.after : undefined;
   return publishFiles(options, {
     revision: report.validation.revision,
     key: draftKey(report),
     files: report.publicationFiles,
     title: artifacts.manifest.title,
-    body: `${artifacts.files['pull-request.md']}\n${provider}`,
+    body: `${artifacts.files['pull-request.md']}\n${provider}${version ? `\n${TARGET_MARKER} ${version} -->` : ''}`,
     message: artifacts.commitMessage,
-    ...(options.supersedeDrafts
+    ...(options.supersedeDrafts && version
       ? {
           supersedes: {
-            // Refit's other migration drafts for this provider and integration, such as an older
-            // target version's. A draft that names no provider, from an earlier release, stays.
+            // Refit's other migration drafts for this provider and integration for an older
+            // target version, so a retried job for an older target never closes a newer draft.
+            // A draft that names no provider or target, from an earlier release, stays.
             matches: (other: string) =>
+              VERSION_ORDER.compare(other.match(TARGET_RECORD)?.[1] ?? version, version) < 0 &&
               other.includes(MIGRATION_MARKER) &&
               other.includes(provider) &&
               (options.integration
