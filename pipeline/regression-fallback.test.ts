@@ -21,6 +21,7 @@ type Report = Awaited<ReturnType<typeof validateMigration>>;
 const roots: string[] = [];
 const BEFORE = '2023-10-16';
 const TARGET = '2026-09-30.endive';
+const WRITER = { model: 'gpt-6.1-sol', dryRun: true as const };
 const REGRESSION =
   "Refit's patch failed the repository checks, so it is kept with this run's artifacts as evidence and not published.";
 
@@ -266,11 +267,16 @@ it.each(SHAPES)(
       ...inputs,
       image: 'node:22-alpine',
       command: ['npm', 'run', 'typecheck'],
+      behaviourTestWriter: WRITER,
       publication: { repository: 'o/r', base: 'main', token: 'unused', allowUnresolved: true },
     });
     expect(
       vi.mocked(validateMigration).mock.calls.map(([options]) => options.keepApiVersion),
     ).toEqual([false, true]);
+    // The retry never makes a second, identical behaviour-test request.
+    expect(
+      vi.mocked(validateMigration).mock.calls.map(([options]) => options.behaviourTestWriter),
+    ).toEqual([WRITER, undefined]);
     if (kept.length) {
       expect(result.manifest).toMatchObject({ status: 'draft-created' });
       expect(result.manifest.waivedGates).toContain('api-version-kept');
