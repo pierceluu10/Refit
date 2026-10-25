@@ -9,7 +9,7 @@ import { terminalText } from './workflow-presentation.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
-  'Usage: refit enroll --repository <clean-git-root> --github owner/repository --base main [--json]\nApprove after review: add --approve <exact-fingerprint> --output <new-receipt-outside-git.json>\nReads the committed root .refit.json, baseline and adapter without running app code, installing dependencies, contacting GitHub or requesting AI. With no .refit.json committed, it reviews the Stripe configuration Refit generates from the code, read with the contracts refit stripe-snapshot --version saved. Inspect the settings and files before approval. A receipt does not grant GitHub access, run a worker or enable AI/publication.';
+  'Usage: refit enroll --repository <clean-git-root> --github owner/repository --base main [--publish-unresolved] [--json]\nApprove after review: add --approve <exact-fingerprint> --output <new-receipt-outside-git.json>\nReads the committed root .refit.json, baseline and adapter without running app code, installing dependencies, contacting GitHub or requesting AI. With no .refit.json committed, it reviews the Stripe configuration Refit generates from the code, read with the contracts refit stripe-snapshot --version saved; --publish-unresolved generates one for a repository without a lockfile or checks too, for a worker run with --publish-unresolved, and records why Refit cannot test its patches. Inspect the settings and files before approval. A receipt does not grant GitHub access, run a worker or enable AI/publication.';
 const HELP = 'Run refit enroll --help for its options.';
 
 try {
@@ -20,6 +20,7 @@ try {
       base: { type: 'string' },
       approve: { type: 'string' },
       output: { type: 'string' },
+      'publish-unresolved': { type: 'boolean' },
       json: { type: 'boolean' },
       help: { type: 'boolean' },
     },
@@ -37,7 +38,12 @@ try {
     }
     if (Boolean(values.approve) !== Boolean(values.output))
       throw new PipelineInputError(`--approve and --output go together. ${HELP}`);
-    const enrollment = await inspectRepositoryEnrollment({ repository, github, base });
+    const enrollment = await inspectRepositoryEnrollment({
+      repository,
+      github,
+      base,
+      allowUntested: values['publish-unresolved'],
+    });
     if (values.approve) {
       const result = await approveRepositoryEnrollment({
         enrollment,

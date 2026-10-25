@@ -18,7 +18,7 @@ import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:enrollment -- --root <benchmark-root> --list <list.json> --mode generated|scaffold --output <results.json> [--contracts <dir>]';
+  'Usage: npm run benchmark:enrollment -- --root <benchmark-root> --list <list.json> --mode generated|scaffold --output <results.json> [--contracts <dir>] [--publish-unresolved]';
 const GITHUB_BASE = 'main';
 const SCAFFOLD_CONTRACTS = { before: 'refit/stripe-before.json', after: 'refit/stripe-after.json' };
 
@@ -37,6 +37,7 @@ const { values } = parseArgs({
     mode: { type: 'string' },
     output: { type: 'string' },
     contracts: { type: 'string' },
+    'publish-unresolved': { type: 'boolean' },
   },
 });
 if (
@@ -48,6 +49,8 @@ if (
   throw new PipelineInputError(USAGE);
 const root = values.root;
 const contracts = values.contracts;
+// Owner decision 1: enrollment and doctor generate a configuration whose checks cannot run.
+const allowUntested = values['publish-unresolved'];
 const list = JSON.parse(await readFile(values.list, 'utf8')) as { repos: Entry[] };
 const latest = JSON.parse(
   await readFile(new URL('../data/stripe-openapi-versions.json', import.meta.url), 'utf8'),
@@ -71,6 +74,7 @@ async function enroll(directory: string, repo: string) {
       github: repo,
       base: GITHUB_BASE,
       ...(contracts ? { contracts } : {}),
+      allowUntested,
     });
     return { ok: true, fingerprint: enrollment.fingerprint };
   } catch (error) {
@@ -84,6 +88,7 @@ async function doctor(directory: string) {
     await inspectRepositoryReadiness({
       repository: directory,
       ...(contracts ? { contracts } : {}),
+      allowUntested,
     }),
   );
 }

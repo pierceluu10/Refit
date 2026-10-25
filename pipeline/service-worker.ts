@@ -47,7 +47,11 @@ export async function confirmRepositoryAccess(app: GitHubAppConfiguration, repos
 // which reads two Stripe contracts. Each is downloaded once into `contracts` and checked against
 // the pinned table; with no proposal, enrollment itself names the stop. Returns whether the
 // repository runs a generated configuration.
-export async function saveGeneratedContracts(repository: string, contracts: string) {
+export async function saveGeneratedContracts(
+  repository: string,
+  contracts: string,
+  allowUntested?: boolean,
+) {
   const committed = await lstat(join(repository, REPOSITORY_CONFIGURATION)).then(
     () => true,
     (error: unknown) => {
@@ -56,7 +60,7 @@ export async function saveGeneratedContracts(repository: string, contracts: stri
     },
   );
   if (committed) return false;
-  const { proposal } = await proposeStripeConfiguration(repository);
+  const { proposal } = await proposeStripeConfiguration(repository, { allowUntested });
   if (!proposal) return false;
   for (const version of new Set([proposal.apiVersion.value, proposal.target]))
     await saveStripeContract(contracts, version);
@@ -167,7 +171,10 @@ export async function pollServiceTarget(options: {
       onProgress: options.onProgress,
     },
     async (checkout) => {
-      if (options.contracts) await saveGeneratedContracts(checkout.directory, options.contracts);
+      // The worker generates what enrollment approved, so decision 1 holds for both or neither.
+      const allowUntested = options.publishUnresolved;
+      if (options.contracts)
+        await saveGeneratedContracts(checkout.directory, options.contracts, allowUntested);
       options.signal.throwIfAborted();
       const acceptedApiVersions = await watchedApiVersions(options.stateDirectory);
       const profile = await loadApprovedRepository({
@@ -177,6 +184,7 @@ export async function pollServiceTarget(options: {
         stateDirectory: options.stateDirectory,
         acceptedApiVersions,
         contracts: options.contracts,
+        allowUntested,
       });
       options.signal.throwIfAborted();
       options.onProgress?.(
@@ -188,6 +196,7 @@ export async function pollServiceTarget(options: {
             integration: target.integration,
             contracts: options.contracts,
             acceptedApiVersions,
+            allowUntested,
           })
         : undefined;
       options.signal.throwIfAborted();

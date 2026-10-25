@@ -782,6 +782,7 @@ export async function runHostedService(options: {
             app: options.app,
             directory: join(directory, 'approvals'),
             contracts: hostedContracts(directory),
+            allowUntested: options.publishUnresolved,
             store,
             approvals,
             signal: options.signal,

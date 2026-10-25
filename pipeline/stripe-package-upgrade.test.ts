@@ -815,7 +815,7 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
       'billing.ts',
       'package-lock.json',
       'package.json',
-      'stripe-subscription-period.ts',
+      'stripeSubscriptionPeriod.ts',
     ]);
   },
   300_000,

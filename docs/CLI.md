@@ -172,7 +172,7 @@ Publication is also opt-in. Configure `GITHUB_TOKEN` with repository Contents an
 - an AI patch (owner decision 8), with the lines the AI wrote beyond Refit's rules;
 - on the hosted worker, `refit doctor` findings only doctor sees.
 
-Untraced reads and usages the patch leaves unmigrated are listed as before. When dependency preparation fails for any reason, or the checks fail on the original code, the patch is published untested and the draft says why. These still stop:
+Untraced reads and usages the patch leaves unmigrated are listed as before. When dependency preparation fails for any reason, or the checks fail on the original code, the patch is published untested and the draft says why. For a repository that commits no `.refit.json`, `refit enroll --publish-unresolved` and `refit doctor --publish-unresolved` generate a configuration even when the repository has no root lockfile (preparation then fails, so each patch is untested) or no test script and no type check (the command is `node -e 0`), and the review names each reason with its fix. A worker running that approval needs `--publish-unresolved` too; without it, the approval stops for review. These still stop:
 
 - a patch whose checks ran and did not pass: a regression, an error, or a generated check that fails on the original code;
 - a run with no patch to publish (the manifest says so);

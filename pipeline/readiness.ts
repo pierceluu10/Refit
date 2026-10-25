@@ -218,8 +218,8 @@ async function committedRepositoryCheck(repository: string) {
 // What doctor checks in a repository that commits no .refit.json: the configuration enrollment
 // generates for it, read from the saved contracts, or why there is none. A repository without
 // Stripe keeps the guidance to add an agent.
-async function generatedWorkflow(directory: string, contracts: string) {
-  const { proposal, stops } = await proposeStripeConfiguration(directory);
+async function generatedWorkflow(directory: string, contracts: string, allowUntested?: boolean) {
+  const { proposal, stops } = await proposeStripeConfiguration(directory, { allowUntested });
   if (!proposal) {
     const stripe = !stops.some((stop) => NOT_STRIPE.has(stop.id));
     return {
@@ -280,6 +280,9 @@ export async function inspectRepositoryReadiness(options: {
   // Versions the service already watches this target from, such as a merged Refit draft's target.
   // Code that declares one passes the API-version check, as it passes the approval check.
   acceptedApiVersions?: string[];
+  // Owner decision 1: check the generated configuration whose checks cannot run (no lockfile or no
+  // checks) instead of reporting why none is generated.
+  allowUntested?: boolean;
 }): Promise<ReadinessReport> {
   const configurationPath = options.config
     ? resolve(options.config)
@@ -316,6 +319,7 @@ export async function inspectRepositoryReadiness(options: {
       ? await generatedWorkflow(
           dirname(configurationPath),
           options.contracts ?? DEFAULT_CONTRACTS_DIRECTORY,
+          options.allowUntested,
         )
       : undefined;
   if (generated && !generated.workflow) {

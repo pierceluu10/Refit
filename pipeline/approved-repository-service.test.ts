@@ -488,6 +488,75 @@ it.skipIf(!SAVED_CONTRACTS)(
   },
 );
 
+it.skipIf(!SAVED_CONTRACTS)(
+  'runs a generated configuration without a lockfile only under --publish-unresolved',
+  async () => {
+    const sample = await setupGenerated();
+    await rm(join(transport.source, 'package-lock.json'));
+    await commit();
+    const enrollment = await inspectRepositoryEnrollment({
+      repository: transport.source,
+      github: 'example/application',
+      base: 'main',
+      contracts: SAVED_CONTRACTS,
+      allowUntested: true,
+    });
+    const { approval } = await approveRepositoryEnrollment({
+      enrollment,
+      fingerprint: enrollment.fingerprint,
+      output: join(sample.root, 'approval.json'),
+    });
+    const downloads = await savedContractDownloads(SAVED_CONTRACTS!);
+    vi.stubGlobal('fetch', vi.fn(downloads.respond));
+    const input = {
+      ...sample.input,
+      target: generatedTarget(approval),
+      contracts: sample.contracts,
+      inspectReadiness: true,
+    };
+    const worker = vi.spyOn(watch, 'watchOnce').mockResolvedValue({
+      status: 'already-processed',
+      provider: 'stripe',
+      jobKey: 'generated',
+      sourceHash: stripeContractVersion(GENERATED_VERSIONS[1])!.sha256,
+      previousStatus: 'needs-review',
+      output: null,
+    });
+    // Without decision 1 the regenerated configuration refuses again, before doctor or the workflow.
+    await expect(pollServiceTarget(input)).rejects.toThrow(
+      new RepositoryApprovalError(
+        'Repository configuration needs review: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+      ),
+    );
+    expect(worker).not.toHaveBeenCalled();
+    // With it, doctor's dependency check does not stop the job; the workflow prepares, fails on the
+    // missing lockfile and publishes the patch untested for review. Docker belongs to the worker
+    // machine, not the repository, and the machine running this test may have none.
+    const doctor = readiness.inspectRepositoryReadiness;
+    const inspect = vi
+      .spyOn(readiness, 'inspectRepositoryReadiness')
+      .mockImplementation(async (options) => {
+        const report = await doctor(options);
+        return { ...report, checks: report.checks.filter((check) => check.id !== 'docker') };
+      });
+    const polled = await pollServiceTarget({ ...input, publishUnresolved: true });
+    expect(polled.status).toBe('already-processed');
+    const report = await inspect.mock.results[0].value;
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ id: 'dependencies', status: 'blocked' }),
+    );
+    expect(worker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configuration: expect.objectContaining({
+          command: ['npm', 'test'],
+          prepareDependencies: true,
+          allowUnresolved: true,
+        }),
+      }),
+    );
+  },
+);
+
 it('blocks changed commands before source polling, paid generation, validation or publication', async () => {
   const sample = await setup();
   await writeFile(
