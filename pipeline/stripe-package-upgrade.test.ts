@@ -734,7 +734,7 @@ it.skipIf(
       'package-lock.json',
       'package.json',
       'src/billing.ts',
-      'src/stripe-subscription-period.ts',
+      'src/stripeSubscriptionPeriod.ts',
     ]);
   },
   900_000,
