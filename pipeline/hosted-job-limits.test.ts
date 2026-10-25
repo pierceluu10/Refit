@@ -301,6 +301,7 @@ it('runs up to --job-processes jobs at once, refills a slot when a job ends and 
     repairAttempts: 0,
     publishDraft: false,
     publishUnresolved: false,
+    supersedeDrafts: false,
     aiPatch: false,
   });
   jobs[0]();
@@ -426,4 +427,19 @@ it('refuses --job-processes outside 1–32 or with --job-machines', async () => 
       jobMachines: { machines: {} as FlyMachines, image: 'image', region: 'iad', images: [] },
     }),
   ).rejects.toThrow('--job-processes cannot be combined with --job-machines.');
+});
+
+it('refuses --supersede-drafts without --publish-draft', async () => {
+  await expect(
+    runHostedService({
+      database: {} as Pool,
+      app: { appId: '123', privateKeyFile: 'unused-test-key' },
+      directory: '/unused',
+      webhookSecret: 'webhook-secret-for-hosted-limit-tests',
+      controlToken: 'control-secret-for-hosted-limit-tests',
+      tenancy: { accounts: ['example'], limits: DEFAULT_TENANCY_LIMITS },
+      signal: new AbortController().signal,
+      supersedeDrafts: true,
+    }),
+  ).rejects.toThrow('--supersede-drafts requires --publish-draft.');
 });
