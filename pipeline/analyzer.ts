@@ -264,9 +264,18 @@ export function analyzeRepository(
   // jsconfig is unverified, so a caller can report those calls for review instead of missing
   // them. Analyses that can lead to edits keep the default, which treats them as unknown imports.
   // `invoicePreview`: the contract-checked move of Stripe's removed upcoming invoice call.
-  options: { traceUnverifiedPackageImports?: boolean; invoicePreview?: InvoicePreviewMove } = {},
+  // `typeCheckedPeriodReads`: where validation's patched type check rejected a `current_period_*`
+  // read on Subscription (file and offset of the property name); those reads take the period helper.
+  options: {
+    traceUnverifiedPackageImports?: boolean;
+    invoicePreview?: InvoicePreviewMove;
+    typeCheckedPeriodReads?: { file: string; position: number }[];
+  } = {},
 ) {
   const { sources, resolution, program, checker } = analysisProgram(repository);
+  const typeCheckedPeriodReads = new Set(
+    (options.typeCheckedPeriodReads ?? []).map((read) => `${read.file}\0${read.position}`),
+  );
   const findings: Finding[] = [];
   const imports: Location[] = [];
   const calls: (Location & { method: string })[] = [];
@@ -1315,14 +1324,19 @@ export function analyzeRepository(
     node: ts.Node,
     receiver: ts.Expression,
     change: Removal,
+    typeChecked = false,
   ): SourceEdit['rule'] | undefined {
     const provenance = sourceEvidence(receiver)?.kind;
-    // Every subscription-period read (SDK response, webhook payload or Stripe.*-typed value) goes
-    // through the generated helper, which reads either API version.
+    // Every subscription-period read (SDK response, webhook payload, Stripe.*-typed value, or a read
+    // the upgraded types reject on Subscription) goes through the generated helper, which reads
+    // either API version.
     if (
       provider.packageName === STRIPE.packageName &&
       change.schema === 'subscription' &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+      (webhooks?.origin(receiver) ||
+        provenance === 'declared-type' ||
+        provenance === 'sdk' ||
+        typeChecked)
     ) {
       const plan = periodPlan(node);
       const edit = subscriptionPeriodHelperEdit(node, location(node).file, change.id, plan.text);
@@ -1668,13 +1682,22 @@ export function analyzeRepository(
     const sourceClient =
       provenance && 'call' in provenance ? sdkCall(provenance.call)?.client : undefined;
     const classClient = sourceClient && classBindings!.client(sourceClient);
+    const checkedRead =
+      ts.isPropertyAccessExpression(node) &&
+      typeCheckedPeriodReads.has(`${location(node).file}\0${node.name.getStart()}`);
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
-      if (!tracked && !providerDetected) continue;
+      if (!tracked && !providerDetected && !checkedRead) continue;
       // Unresolved Stripe receivers are flagged only where files work with Stripe; if none are
       // identifiable, every same-named read stays flagged.
-      if (!tracked && stripeTypes && stripeFiles.size && !stripeFiles.has(node.getSourceFile()))
+      if (
+        !tracked &&
+        !checkedRead &&
+        stripeTypes &&
+        stripeFiles.size &&
+        !stripeFiles.has(node.getSourceFile())
+      )
         continue;
       const directCall = (expression: ts.Expression): ts.CallExpression | undefined => {
         if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression))
@@ -1705,7 +1728,16 @@ export function analyzeRepository(
         (!webhook || webhook.schema !== undefined) &&
         (provenance?.kind !== 'unmapped-sdk' || declaredType),
       );
-      const migration = confirmed ? propose(node, receiver, change) : undefined;
+      // The type checker resolved the receiver to Subscription, and the helper returns the field the
+      // object holds at runtime, so neither tracing nor mutation evidence is needed for this read.
+      const typeChecked =
+        !confirmed &&
+        checkedRead &&
+        change.schema === 'subscription' &&
+        Object.hasOwn(PERIOD_HELPERS, change.property);
+      const migration =
+        confirmed || typeChecked ? propose(node, receiver, change, typeChecked) : undefined;
+      const checkedMigration = typeChecked && migration !== undefined;
       if (property === undefined && !tracked) continue;
       const file = location(node).file;
       const moveReview =
@@ -1720,10 +1752,11 @@ export function analyzeRepository(
         ...location(node),
         changeId: change.id,
         expression: property === undefined ? '[computed property]' : `.${property}`,
-        confidence: confirmed ? 'confirmed' : 'review',
+        confidence: confirmed || checkedMigration ? 'confirmed' : 'review',
         ...(sourceClient ? helperEvidence(sourceClient, mutated) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
-        ...(tracked || provenance || iterationCallback(receiver)
+        ...(checkedMigration ? { typeChecked: true as const } : {}),
+        ...(tracked || provenance || checkedMigration || iterationCallback(receiver)
           ? {}
           : { untraced: true as const }),
         ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE && periodPlans.get(node)
@@ -1760,17 +1793,19 @@ export function analyzeRepository(
             }
           : {}),
         reason:
-          (declaredType && confirmed
-            ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
-            : declaredType
-              ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
-              : confirmed && webhook
-                ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
-                : confirmed
-                  ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
-                  : uncertainMutation
-                    ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                    : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
+          (checkedMigration
+            ? `Removed subscription.${change.property} read that the upgraded stripe-node types reject on Subscription. Refit's tracer did not reach its receiver, so the version-tolerant period helper reads it.`
+            : declaredType && confirmed
+              ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
+              : declaredType
+                ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
+                : confirmed && webhook
+                  ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
+                  : confirmed
+                    ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
+                    : uncertainMutation
+                      ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
+                      : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
           (moveReview ? ` ${moveReview}` : ''),
       });
     }
