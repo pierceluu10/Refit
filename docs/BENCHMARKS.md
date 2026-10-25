@@ -419,6 +419,14 @@ The two runs have the same outcome and a byte-identical patch for every reposito
 
 Not measured: publication (the benchmark publishes nothing), the hosted worker and AI patches.
 
+## AI on coverage stops on the dev set (October 24)
+
+One AI run of `subsets/dev-30.json` on `refit-dev/refit-bench` at `4433c96` (feat/ai-on-stops): GitHub Actions run 40156098317, `benchmark.yml` with `list=subsets/dev-30.json offset=0 size=5 count=30 ai=true ai_budget=5` (model `gpt-6.1-sol`), compared with run 40151479708 (main `96b5419`, same list, `--ai`, $5). Shards were 5 repositories, not 1: a shard's budget is `ai_budget` divided by the shard count, and $5 over 30 shards ($0.17) is below the about $0.27 one request reserves, so no request could have run.
+
+- **AI was asked on 6 rows**, all coverage stops after the rules' patch passed its checks: adamhitzger/financehb (7 targets), doganarif/build-it (11), Emmah-oo/spotify-clone (2), palashb01/DocuChat (4), samiamjidkhan/dota2-helper (2) and shagunmistry/FlowCraft (5). No other row reached a coverage attempt; the safety stops (Loopletter, noir-crm-dashboard and tinypivot at the scan) made no request.
+- **No request was billed: $0.00.** Five requests failed at OpenAI token counting with HTTP 401, so the repository's `OPENAI_API_KEY` secret is not accepted; financehb's evidence was over the 64 KiB input limit before any request. Each of the 6 rows fell back to the rules' `[Needs review]` draft, as designed, and recorded the refusal in `workflow.coverageAi`.
+- **Not measured:** whether AI patches validate or are correct. That needs a working key and another run.
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.
