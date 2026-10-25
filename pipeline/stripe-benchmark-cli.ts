@@ -535,10 +535,17 @@ async function benchmark(entry: Selected, index: number) {
       ...(generated
         ? {
             generated: {
+              status: generated.status,
+              reason: generated.reason,
               baseline: generated.baseline?.status,
               patched: generated.patched?.status,
               entryPoints: generated.entryPoints?.length ?? 0,
-              uncoveredFindings: generated.uncoveredFindings?.length ?? 0,
+              ran: generated.ran,
+              uncoveredFindings: generated.uncoveredFindings ?? 0,
+              // Per-function errors, so a run's results say why functions could not run.
+              notRunnable: generated.notRunnable,
+              unavailableEntries: generated.unavailableEntries,
+              regressions: generated.regressions,
             },
           }
         : {}),

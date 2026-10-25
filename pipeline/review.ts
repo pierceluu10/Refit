@@ -277,6 +277,7 @@ function replacementReasons(report: ValidationReport) {
 }
 
 const EVIDENCE_LABELS = {
+  'behaviour-tests': 'Behaviour tests ran every changed Stripe line on both API versions',
   'stripe-tests': 'Tests exercise the changed code',
   'type-check': 'Type-checked only',
   'generated-check': 'Generated stripe-mock checks only',
@@ -596,15 +597,30 @@ export function createReviewArtifacts(
     ),
   ];
   const sources = sourceUrls.map((url) => link(url)!);
-  // An entry that failed on the original code (missing module, unmocked service) proves nothing.
-  const generatedRan = generated ? generated.entryPoints.length - generated.notRunnable.length : 0;
-  const generatedResult = generated
-    ? generated.patched.status === 'not-run'
+  // Only entries that ran on both sides count; a broken generated check counts neither way. Reports
+  // written before generated checks recorded a status derive it as they did then.
+  const recorded: { status?: string; ran?: number } | undefined = generated;
+  const legacyRan = generated ? generated.entryPoints.length - generated.notRunnable.length : 0;
+  const generatedStatus =
+    recorded?.status ??
+    (generated?.patched.status === 'not-run'
+      ? 'not-run'
+      : legacyRan === 0
+        ? 'not-runnable'
+        : generated?.patched.status === 'passed'
+          ? 'passed'
+          : 'regression');
+  const generatedResult = !generated
+    ? ''
+    : generatedStatus === 'not-run'
       ? ' Generated stripe-mock checks did not run.'
-      : generatedRan === 0
-        ? ` Generated stripe-mock checks could not run any of ${generated.entryPoints.length} exported functions on their own.`
-        : ` Generated stripe-mock checks ${generated.patched.status} on ${generatedRan} of ${generated.entryPoints.length} exported functions.`
-    : '';
+      : generatedStatus === 'unavailable'
+        ? ` Generated stripe-mock checks were unavailable, so they count neither for nor against this patch: ${plainText(generated.reason ?? 'no reason recorded')}`
+        : generatedStatus === 'not-runnable'
+          ? ` Generated stripe-mock checks could not run any of ${generated.entryPoints.length} exported functions on their own.`
+          : generatedStatus === 'regression'
+            ? ` Generated stripe-mock checks failed on ${generated.regressions.length} of ${generated.entryPoints.length} exported functions.`
+            : ` Generated stripe-mock checks passed on ${recorded?.ran ?? legacyRan} of ${generated.entryPoints.length} exported functions.`;
   const fileTotal = fileChanges(patch.diff).length;
   const stripe = provider === 'Stripe';
   const webhookReads = report.findings.some((finding) => finding.webhook);

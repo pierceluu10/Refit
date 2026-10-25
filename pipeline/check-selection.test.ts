@@ -195,11 +195,7 @@ it('grades what the passing checks proved about the changed files, strongest fir
       ...(generated === undefined
         ? {}
         : {
-            generated: {
-              entryPoints: Array.from({ length: 2 }),
-              notRunnable: Array.from({ length: 2 - generated }),
-              patched: { status: 'passed' },
-            },
+            generated: { status: generated ? 'passed' : 'not-runnable', ran: generated },
           }),
     });
   expect(await grade(['npm', 'test'], ['lib/validations/webhook.ts', 'package.json'])).toEqual({
@@ -225,4 +221,47 @@ it('grades what the passing checks proved about the changed files, strongest fir
   expect((await grade(['node', '-e', '0'], ['server.js'])).reason).toBe(
     'node -e 0 is neither a test script nor a type check, and no generated check ran it.',
   );
+});
+
+it('grades A only from behaviour tests that ran every changed Stripe line, and otherwise says why not', async () => {
+  const repository = { root: '/nonexistent', files: [] } as never;
+  const behaviour = {
+    tests: [{ path: 'refit-behaviour/payments.test.mjs' }],
+    coverage: {
+      changedLines: {
+        original: { 'controller/payment/payment.js': [29] },
+        patched: { 'controller/payment/payment.js': [29], 'lib/stripe.ts': [3] },
+      },
+    },
+  };
+  expect(
+    await gradeEvidence({
+      repository,
+      command: ['node', '-e', '0'],
+      changedFiles: ['controller/payment/payment.js'],
+      behaviour: { ...behaviour, grade: 'A', missing: [] },
+    }),
+  ).toEqual({
+    level: 'behaviour-tests',
+    reason:
+      'Behaviour tests (refit-behaviour/payments.test.mjs) passed on the original code against the before-version stripe-mock and on the patched code against the after-version stripe-mock, and ran every changed Stripe line on both sides (1 original, 2 patched).',
+  });
+  expect(
+    await gradeEvidence({
+      repository,
+      command: ['node', '-e', '0'],
+      changedFiles: ['controller/payment/payment.js'],
+      behaviour: {
+        ...behaviour,
+        grade: null,
+        missing: [
+          'lib/stripe.ts line 3 did not run on the patched code against the after-version stripe-mock.',
+        ],
+      },
+    }),
+  ).toEqual({
+    level: 'none',
+    reason:
+      'node -e 0 is neither a test script nor a type check, and no generated check ran it. Behaviour tests did not give grade A: lib/stripe.ts line 3 did not run on the patched code against the after-version stripe-mock.',
+  });
 });
