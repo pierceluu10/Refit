@@ -8,6 +8,7 @@ import { runWorkflow } from './workflow.ts';
 import { verifyArtifacts } from './verification.ts';
 import { runPipeline } from './run.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const FIXTURE = resolve('pipeline/fixtures/request-renames');
@@ -86,7 +87,7 @@ it.skipIf(!IMAGE || !process.env.REFIT_OASDIFF)(
     });
     const result = await runWorkflow({ ...sample.options, apiVersionPolicy: 'source-verified' });
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(report.requestChanges).toMatchObject([
       { supported: true, removed: 'legacy_name', replacement: 'display_name' },
     ]);
@@ -146,7 +147,7 @@ it.skipIf(!IMAGE || !process.env.REFIT_OASDIFF)(
       command: ['node', '-e', 'process.exit(1)'],
     });
     expect(result.manifest.status).toBe('validation-failed');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(report.validation.repair).toMatchObject({
       requested: 0,
       stopReason: 'configured-request-rename',
@@ -312,7 +313,7 @@ it
       baselineCommand: sample.options.command,
     });
     expect(incompatible.manifest.status).toBe('validation-failed');
-    const failure = JSON.parse(await readFile(join(incompatible.directory, 'report.json'), 'utf8'));
+    const failure = JSON.parse((await readEvidence(incompatible.directory, 'report.json'))!);
     expect(failure.validation.baseline.status).toBe('failed');
     expect(failure.validation.baseline.stderr).toContain('Missing required model field');
     expect(failure.validation.patched.status).toBe('not-run');
@@ -324,7 +325,7 @@ it
       prepareDependencies: true,
     });
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(report.requestChanges).toMatchObject([
       { supported: true, resource: 'chat.completions' },
     ]);

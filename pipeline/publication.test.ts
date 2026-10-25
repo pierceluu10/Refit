@@ -226,6 +226,8 @@ function github() {
     moveBaseOnCommit: false,
     moveHeadOnCommitRead: false,
     author: 'example',
+    // GitHub's own spelling of the repository, which may differ in case from the configured one.
+    repository: 'example/application',
     // Other open pull requests on the base, which a new App draft may supersede.
     others: [] as Record<string, unknown>[],
   };
@@ -281,7 +283,7 @@ function github() {
       if (state.failPull) return response({ message: 'test-token PRIVATE SERVER ERROR' }, 503);
       state.pull = {
         number: 17,
-        html_url: 'https://github.com/example/application/pull/17',
+        html_url: `https://github.com/${state.repository}/pull/17`,
         title: body.title,
         body: body.body,
         head: { sha: state.head },
@@ -328,6 +330,16 @@ it('publishes only the candidate files on the existing base tree and creates a d
   expect(request.body.body).not.toContain('PRIVATE LOG');
   expect(request.body.body).not.toContain('This is a local review artifact');
   expect(JSON.stringify(remote.calls)).not.toContain('Co-authored-by');
+});
+
+it('publishes to a repository GitHub spells in another case', async () => {
+  const remote = github();
+  remote.state.repository = 'Example/Application';
+  const result = await publishDraft(await report(), OPTIONS);
+  expect(result).toMatchObject({
+    status: 'created',
+    url: 'https://github.com/Example/Application/pull/17',
+  });
 });
 
 it('publishes a configured endpoint replacement as a readable draft through the shared publisher', async () => {
