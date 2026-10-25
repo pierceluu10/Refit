@@ -2,7 +2,12 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { DependencyPreparationError, preparationFailure } from './dependency-preparation.ts';
+import {
+  DependencyPreparationError,
+  hostInstallFailure,
+  PreparationHostError,
+  preparationFailure,
+} from './dependency-preparation.ts';
 import { validateNpmLock } from './npm-lock.ts';
 import { withStateLock } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
@@ -136,4 +141,57 @@ it("leaves Refit's state locks, cache and other errors to propagate", async () =
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+it('redacts every absolute path, and keeps URLs, base64 and import aliases intact', () => {
+  const redacted = (text: string) =>
+    preparationFailure(new DependencyPreparationError(text))?.message;
+  expect(redacted('docker: unix:///Users/someone/.docker/run/docker.sock failed')).toBe(
+    'docker: unix://[path] failed',
+  );
+  expect(redacted('read file:///home/someone/app/package.json')).toBe('read file://[path]');
+  expect(redacted('PATH=/usr/bin:/home/someone/bin:/opt/someone')).toBe(
+    'PATH=[path]:[path]:[path]',
+  );
+  expect(redacted('in /Users/John Smith/repo/package.json (cache')).toBe('in [path] (cache');
+  const integrity = `sha512-ab+/cd/ef==`;
+  expect(
+    redacted(`integrity ${integrity} for '@/lib/stripe' at https://registry.npmjs.org/a/-/a.tgz`),
+  ).toBe(`integrity ${integrity} for '@/lib/stripe' at https://registry.npmjs.org/a/-/a.tgz`);
+});
+
+// Docker, the host and the network are Refit's to fix: the job fails and is retried.
+it("treats Docker, host and registry failures of an install as Refit's", () => {
+  const exit = (code: number | null, signal: NodeJS.Signals | null = null) => ({ code, signal });
+  for (const [result, stderr] of [
+    [
+      exit(125),
+      'docker: Error response from daemon: Conflict. The container name is already in use.',
+    ],
+    [
+      exit(125),
+      'docker: Error response from daemon: failed to mount overlay: no space left on device.',
+    ],
+    [exit(1), 'write /var/lib/docker/overlay2/abc/diff: ENOSPC: overlay upper directory full'],
+    [exit(125), 'docker: Error response from daemon: Mounts denied: path is not shared.'],
+    [exit(1), 'Cannot connect to the Docker daemon at unix:///var/run/docker.sock.'],
+    [exit(137), ''],
+    [exit(null, 'SIGTERM'), ''],
+    [
+      exit(1),
+      'npm error code EAI_AGAIN\nnpm error request to https://registry.npmjs.org/stripe failed',
+    ],
+    [exit(1), 'npm error network socket hang up'],
+  ] as const) {
+    const error = hostInstallFailure('npm', result, stderr);
+    expect(error, stderr).toBeInstanceOf(PreparationHostError);
+    expect(preparationFailure(error)).toBeUndefined();
+  }
+  // The repository's own install failures stay the repository's.
+  for (const stderr of [
+    'npm error code ERESOLVE\nnpm error ERESOLVE could not resolve',
+    'npm error ENOSPC: no space left on device, write',
+    'npm error code ELIFECYCLE',
+  ])
+    expect(hostInstallFailure('npm', exit(1), stderr)).toBeUndefined();
 });

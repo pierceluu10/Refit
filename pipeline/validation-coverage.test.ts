@@ -796,8 +796,9 @@ export async function recover(customer: string) {
       untraced: true,
     }),
   ]);
-  const helper = evidence.contextFiles.find((file) =>
-    file.content.includes('export function getSubscriptionPeriodEnd'),
+  // The rules write the helper into its one calling file, or a shared module when several call it.
+  const helper = [...evidence.files, ...evidence.contextFiles].find((file) =>
+    /function getSubscriptionPeriodEnd\(/.test(file.content),
   );
   expect(helper).toBeDefined();
   expect(instructions).toContain('through that helper, passing the object alone');
