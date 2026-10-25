@@ -112,7 +112,13 @@ ${second ? `export const linked = () => stripe.checkout.sessions.create({ mode: 
 }
 
 it.each([
-  ['a removed parameter with card and link', "payment_method_types: ['card', 'link']", {}, 'scan'],
+  [
+    'a removed parameter with card and link',
+    "payment_method_types: ['card', 'link']",
+    {},
+    'validation',
+  ],
+  ['an in-person removed parameter', "payment_method_types: ['card_present']", {}, 'scan'],
   ['the reviewed card-only rename', "payment_method_types: ['card']", {}, 'validation'],
   [
     'a listed opt-in for card and link',
@@ -122,19 +128,19 @@ it.each([
   ],
   [
     '--publish-unresolved on a removed parameter',
-    "payment_method_types: ['card', 'link']",
+    "payment_method_types: ['card_present']",
     { leave: true },
     'scan',
   ],
   [
     '--publish-unresolved on a card-only rename beside a removed parameter',
     "payment_method_types: ['card']",
-    { leave: true, second: "payment_method_types: ['card', 'link']" },
+    { leave: true, second: "payment_method_types: ['card_present']" },
     'validation',
   ],
   [
     '--publish-unresolved with AI on a removed parameter',
-    "payment_method_types: ['card', 'link']",
+    "payment_method_types: ['card_present']",
     { leave: true, ai: true },
     'scan',
   ],
@@ -144,7 +150,7 @@ it.each([
     { leave: true, apiVersion: '2026-07-30.basil' },
     'scan',
   ],
-  ['AI on a removed parameter', "payment_method_types: ['card', 'link']", { ai: true }, 'scan'],
+  ['AI on a removed parameter', "payment_method_types: ['card_present']", { ai: true }, 'scan'],
   ['an application pin the code contradicts', '', { apiVersion: '2026-07-30.basil' }, 'scan'],
   ['an unchanged contract', "payment_method_types: ['card']", { sameContract: true }, 'scan'],
 ] as const)(
@@ -200,7 +206,7 @@ it("writes the rules' patch around a call it leaves for review, without editing 
     "payment_method_types: ['card']",
     false,
     undefined,
-    "payment_method_types: ['card', 'link']",
+    "payment_method_types: ['card_present']",
   );
   expect((await runPipeline({ ...inputs, proposePatch: true })).patch).toMatchObject({
     status: 'not-generated',
@@ -216,7 +222,7 @@ it("writes the rules' patch around a call it leaves for review, without editing 
   expect(scan.patch.diff).toContain("allowed_payment_method_types: ['card'] }");
   // The patch renders whole files; the reviewed call's line comes out as it went in.
   expect(scan.patch.diff).toContain(
-    "\n+export const linked = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card', 'link'] });\n",
+    "\n+export const linked = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card_present'] });\n",
   );
   expect(scan.warnings).toContain(REMOVED_REQUEST_PARAMETER_REVIEW_REASON);
 });

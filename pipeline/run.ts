@@ -6,7 +6,7 @@ import {
 } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
-import { annotateReach } from './operation-reach.ts';
+import { annotateReach, currencyCodeEdits } from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
@@ -36,6 +36,7 @@ import { validatePropertyRenames } from './provider-renames.ts';
 import {
   CARD_PAYMENT_METHOD_RULE,
   LISTED_PAYMENT_METHODS_RULE,
+  MOVED_PAYMENT_METHODS_RULE,
   PAYMENT_METHOD_RENAME_RULES,
   removedRequestParameters,
 } from './request-removals.ts';
@@ -326,12 +327,23 @@ async function runOpenApiPipeline(options: {
     (!patchRequested || !upgradeRequired || upgraded) &&
     !configuredMigrationProposal;
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
+  movedTo[MOVED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[PROMOTION_CODE_PROMOTION_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[PRODUCT_MARKETING_FEATURES_RULE] = movedTo[PROMOTION_CODE_PROMOTION_RULE];
   movedTo[INVOICE_PREVIEW_RULE] =
     bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
   // The period helper reads either API version, so it does not depend on the version pin.
-  const kept = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
+  const kept = [
+    ...analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]),
+    // A lowercase currency code is valid under either API version, so it needs no pin gate.
+    ...(specificationDiff && provider.packageName === STRIPE.packageName
+      ? currencyCodeEdits(specificationDiff.changes, {
+          repository,
+          calls: analysis.calls,
+          mappings: operationMappings,
+        })
+      : []),
+  ];
   // A read counts as migrated only while its helper edit is kept.
   for (const finding of analysis.findings)
     if (

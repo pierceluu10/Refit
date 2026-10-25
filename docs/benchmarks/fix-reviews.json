@@ -1556,6 +1556,201 @@
         "upgradeComplete": "yes: stripe ^13.8.0 to ^23.0.0 in package.json and the lockfile, and 1 apiVersion literal moves to 2026-09-30.endive.",
         "wouldMerge": "yes, after one test-mode checkout and one test webhook event."
       }
+    },
+    {
+      "repo": "nabarvn/documon",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: [\"card\", \"paypal\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.9.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "JensenMPillay/pdfai",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/procedures.ts payment_method_types: [\"card\", \"paypal\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "baseline failed (no tests found), as on main. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.25.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "Sammindinventory/Saas-Gen-AI",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: trpc/index.ts payment_method_types: [\"card\", \"paypal\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.8.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "cookieMonsterDev/e-commerce-saas",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: [\"card\", \"paypal\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^13.7.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "haimatrix99/quiz-me",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: trpc/index.ts payment_method_types: ['card', 'paypal'] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.8.0 to ^23.0.0 in package.json and the lockfile; no literal pin; the upgrade moves the version.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "Sarcovora/quill",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: ['card', 'paypal'] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.11.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "Yudhishthirr/askmypdf",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: ['card', 'paypal'] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^16.7.0 to ^23.0.0 in package.json and the lockfile; no literal pin; the upgrade moves the version.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/controller/index.ts payment_method_types: ['card', 'paypal'] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.13.0 to ^23.0.0 in package.json and the lockfile; no literal pin; the upgrade moves the version.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "ASQUAREEE/intellico",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: [\"card\",\"paypal\",\"us_bank_account\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.9.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "adityayaduvanshi/Full-Stack-Music-Web-App",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40142957077, Refit 634b968 (bench/l3-f3-head: PR #285 with the default on; the PR head adds only docs), list subsets/l3-f3-a.json; before 40142358868 at 937ee32 (main 6a43f26 + the subset files) ended validation-regression on the trial_from_plan TS2322 plus the open-enum errors. Now benchmark mode validated (tsc passed before and after) and the row is needs-review on 2 untraced findings. The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile and generated helper included",
+      "reviewedAt": "2026-10-24",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the documented changes: payment_method_types: ['card'] on Checkout Session creation becomes allowed_payment_method_types (case A, https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions), and 2 subscription.current_period_* reads (libs/supabaseAdmin.ts:143, libs/supabaseAdmin.ts:146) on a subscription from stripe.subscriptions.retrieve (libs/supabaseAdmin.ts:120) go through getSubscriptionPeriodStart/End with items[0], the item the code already reads for price_id (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end). subscription_data.trial_from_plan (app/api/create-checkout-session/route.ts:31) is kept as ...{ trial_from_plan: true }: the same key and value in the same position, so the request is unchanged. Stripe's API reference lists no trial_from_plan under subscription_data (https://docs.stripe.com/api/checkout/sessions/create.md?query=subscription_data, read 2026-10-24), so whether Checkout still applies the price's trial at endive is not documented. Hunks by rule: card rule, subscription-period read migration, stripe-node upgrade type restore (open enums and the kept property), version pin move.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise; the subscription is retrieved at the client's pin, which the same patch moves to endive. No webhook read is rewritten to the new shape only.",
+        "nothingUnrelated": "yes: the renamed card key, the trial_from_plan spread, 2 helper calls and their import, the generated libs/stripe-subscription-period.ts (byte-identical in all four; it carries unused helpers, the generator's fixed shape), 3 type-only Extract<> narrowings in types.ts and 3 Extract<> casts in libs/supabaseAdmin.ts for the stripe-node 23 open enums (runtime values unchanged), 1 apiVersion literal, the stripe dependency and its lockfile entry. No other line changes.",
+        "pleaseCheck": "The draft is [Needs review] and asks for a test-mode Checkout Session showing the subscription still starts with the trial, or subscription_data.trial_period_days instead (https://docs.stripe.com/payments/checkout/free-trials). Its one Left Unchanged site, .price at app/api/create-checkout-session/route.ts:10 (2 findings, one per removed price field), is the price object the browser posts in the request body, not a Stripe response: a false alarm, correctly left alone. Wording nit not from this change: Key Changes says 2 untraced reads and Not Verified says 1 for that one site.",
+        "upgradeComplete": "yes: stripe ^12.8.0 (lockfile 12.8.0) to ^23.0.0 in package.json and package-lock.json, and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
+        "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
+      }
+    },
+    {
+      "repo": "afdon/music-app",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40142957077, Refit 634b968 (bench/l3-f3-head: PR #285 with the default on; the PR head adds only docs), list subsets/l3-f3-a.json; before 40142358868 at 937ee32 (main 6a43f26 + the subset files) ended validation-regression on the trial_from_plan TS2322 plus the open-enum errors. Now benchmark mode validated (tsc passed before and after) and the row is needs-review on 2 untraced findings. The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile and generated helper included",
+      "reviewedAt": "2026-10-24",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the documented changes: payment_method_types: ['card'] on Checkout Session creation becomes allowed_payment_method_types (case A, https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions), and 2 subscription.current_period_* reads (libs/supabaseAdmin.ts:140, libs/supabaseAdmin.ts:143) on a subscription from stripe.subscriptions.retrieve (libs/supabaseAdmin.ts:117) go through getSubscriptionPeriodStart/End with items[0], the item the code already reads for price_id (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end). subscription_data.trial_from_plan (app/api/create-checkout-session/route.ts:39) is kept as ...{ trial_from_plan: true }: the same key and value in the same position, so the request is unchanged. Stripe's API reference lists no trial_from_plan under subscription_data (https://docs.stripe.com/api/checkout/sessions/create.md?query=subscription_data, read 2026-10-24), so whether Checkout still applies the price's trial at endive is not documented. Hunks by rule: card rule, subscription-period read migration, stripe-node upgrade type restore (open enums and the kept property), version pin move.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise; the subscription is retrieved at the client's pin, which the same patch moves to endive. No webhook read is rewritten to the new shape only.",
+        "nothingUnrelated": "yes: the renamed card key, the trial_from_plan spread, 2 helper calls and their import, the generated libs/stripe-subscription-period.ts (byte-identical in all four; it carries unused helpers, the generator's fixed shape), 3 type-only Extract<> narrowings in types.ts and 3 Extract<> casts in libs/supabaseAdmin.ts for the stripe-node 23 open enums (runtime values unchanged), 1 apiVersion literal, the stripe dependency and its lockfile entry. No other line changes.",
+        "pleaseCheck": "The draft is [Needs review] and asks for a test-mode Checkout Session showing the subscription still starts with the trial, or subscription_data.trial_period_days instead (https://docs.stripe.com/payments/checkout/free-trials). Its one Left Unchanged site, .price at app/api/create-checkout-session/route.ts:12 (2 findings, one per removed price field), is the price object the browser posts in the request body, not a Stripe response: a false alarm, correctly left alone. Wording nit not from this change: Key Changes says 2 untraced reads and Not Verified says 1 for that one site.",
+        "upgradeComplete": "yes: stripe ^12.8.0 (lockfile 12.8.0) to ^23.0.0 in package.json and package-lock.json, and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
+        "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
+      }
+    },
+    {
+      "repo": "AlefeSk8/Spotify-Clone-Next.js",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40142957077, Refit 634b968 (bench/l3-f3-head: PR #285 with the default on; the PR head adds only docs), list subsets/l3-f3-a.json; before 40142358868 at 937ee32 (main 6a43f26 + the subset files) ended validation-regression on the trial_from_plan TS2322 plus the open-enum errors. Now benchmark mode validated (tsc passed before and after) and the row is needs-review on 2 untraced findings. The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile and generated helper included",
+      "reviewedAt": "2026-10-24",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the documented changes: payment_method_types: ['card'] on Checkout Session creation becomes allowed_payment_method_types (case A, https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions), and 2 subscription.current_period_* reads (libs/supabaseAdmin.ts:163, libs/supabaseAdmin.ts:166) on a subscription from stripe.subscriptions.retrieve (libs/supabaseAdmin.ts:139) go through getSubscriptionPeriodStart/End with items[0], the item the code already reads for price_id (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end). subscription_data.trial_from_plan (app/api/create-checkout-session/route.ts:41) is kept as ...{ trial_from_plan: true }: the same key and value in the same position, so the request is unchanged. Stripe's API reference lists no trial_from_plan under subscription_data (https://docs.stripe.com/api/checkout/sessions/create.md?query=subscription_data, read 2026-10-24), so whether Checkout still applies the price's trial at endive is not documented. Hunks by rule: card rule, subscription-period read migration, stripe-node upgrade type restore (open enums and the kept property), version pin move.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise; the subscription is retrieved at the client's pin, which the same patch moves to endive. No webhook read is rewritten to the new shape only.",
+        "nothingUnrelated": "yes: the renamed card key, the trial_from_plan spread, 2 helper calls and their import, the generated libs/stripe-subscription-period.ts (byte-identical in all four; it carries unused helpers, the generator's fixed shape), 3 type-only Extract<> narrowings in types.ts and 3 Extract<> casts in libs/supabaseAdmin.ts for the stripe-node 23 open enums (runtime values unchanged), 1 apiVersion literal, the stripe dependency and its lockfile entry. No other line changes.",
+        "pleaseCheck": "The draft is [Needs review] and asks for a test-mode Checkout Session showing the subscription still starts with the trial, or subscription_data.trial_period_days instead (https://docs.stripe.com/payments/checkout/free-trials). Its one Left Unchanged site, .price at app/api/create-checkout-session/route.ts:12 (2 findings, one per removed price field), is the price object the browser posts in the request body, not a Stripe response: a false alarm, correctly left alone. Wording nit not from this change: Key Changes says 2 untraced reads and Not Verified says 1 for that one site.",
+        "upgradeComplete": "yes: stripe ^12.9.0 (lockfile 12.9.0) to ^23.0.0 in package.json and yarn.lock (which also drops qs, used only by stripe 12), and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
+        "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
+      }
+    },
+    {
+      "repo": "kpirabaharan/Spotify-Clone",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40142957077, Refit 634b968 (bench/l3-f3-head: PR #285 with the default on; the PR head adds only docs), list subsets/l3-f3-a.json; before 40142358868 at 937ee32 (main 6a43f26 + the subset files) ended validation-regression on the trial_from_plan TS2322 plus the open-enum errors. Now benchmark mode validated (tsc passed before and after) and the row is needs-review on 2 untraced findings. The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile and generated helper included",
+      "reviewedAt": "2026-10-24",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the documented changes: payment_method_types: ['card'] on Checkout Session creation becomes allowed_payment_method_types (case A, https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions), and 2 subscription.current_period_* reads (libs/supabaseAdmin.ts:198, libs/supabaseAdmin.ts:201) on a subscription from stripe.subscriptions.retrieve (libs/supabaseAdmin.ts:175) go through getSubscriptionPeriodStart/End with items[0], the item the code already reads for price_id (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end). subscription_data.trial_from_plan (app/api/create-checkout-session/route.ts:37) is kept as ...{ trial_from_plan: true }: the same key and value in the same position, so the request is unchanged. Stripe's API reference lists no trial_from_plan under subscription_data (https://docs.stripe.com/api/checkout/sessions/create.md?query=subscription_data, read 2026-10-24), so whether Checkout still applies the price's trial at endive is not documented. Hunks by rule: card rule, subscription-period read migration, stripe-node upgrade type restore (open enums and the kept property), version pin move.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise; the subscription is retrieved at the client's pin, which the same patch moves to endive. No webhook read is rewritten to the new shape only.",
+        "nothingUnrelated": "yes: the renamed card key, the trial_from_plan spread, 2 helper calls and their import, the generated libs/stripe-subscription-period.ts (byte-identical in all four; it carries unused helpers, the generator's fixed shape), 3 type-only Extract<> narrowings in types.ts and 3 Extract<> casts in libs/supabaseAdmin.ts for the stripe-node 23 open enums (runtime values unchanged), 1 apiVersion literal, the stripe dependency and its lockfile entry. No other line changes.",
+        "pleaseCheck": "The draft is [Needs review] and asks for a test-mode Checkout Session showing the subscription still starts with the trial, or subscription_data.trial_period_days instead (https://docs.stripe.com/payments/checkout/free-trials). Its one Left Unchanged site, .price at app/api/create-checkout-session/route.ts:10 (2 findings, one per removed price field), is the price object the browser posts in the request body, not a Stripe response: a false alarm, correctly left alone. Wording nit not from this change: Key Changes says 2 untraced reads and Not Verified says 1 for that one site.",
+        "upgradeComplete": "yes: stripe ^12.9.0 (lockfile 12.10.0) to ^23.0.0 in package.json and package-lock.json, and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
+        "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
+      }
     }
   ]
 }

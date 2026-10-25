@@ -2,7 +2,7 @@ import ts from 'typescript-compiler';
 import { componentReference, isObject } from './specifications.ts';
 import { TEST_PATH } from './source-paths.ts';
 import type { MappedSdkCall, ProviderOperationMapping } from './provider-operations.ts';
-import type { Finding, Removal, Repository } from './types.ts';
+import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
 
 // Whether traced code reaches the part of the contract an oasdiff change touches:
 // `reached` (a traced call sends it or traced code reads it), `unknown` (tracing cannot tell, so it
@@ -29,6 +29,10 @@ const REQUEST_PROPERTY = [/the `([^`]+)` request property/, /request property `(
 // code in any payment request", which is what the new `currency` format describes.
 const CURRENCY_FORMAT = /request property `format` changed from `none` to `currency`$/;
 const STRIPE_CURRENCY = /^[a-z]{3}$/;
+// A quoted three-letter code with no escapes, so lowercasing the source text lowercases the value.
+const CURRENCY_LITERAL = /^(['"`])[A-Za-z]{3}\1$/;
+export const CURRENCY_CODE_RULE = 'stripe-lowercase-currency-code';
+export const CURRENCY_CODE_SOURCE = 'https://docs.stripe.com/currencies';
 const REMOVED_ENUM_VALUE = /^removed the enum value `([^`]+)` of the request property `[^`]+`$/;
 // Response property path and status in oasdiff 1.33 texts.
 const RESPONSE_PROPERTY = [
@@ -237,18 +241,68 @@ export interface ReachContext {
   edited: (file: string, offset: number) => boolean;
 }
 
+const requestProperty = (text: string) =>
+  REQUEST_PROPERTY.map((pattern) => text.match(pattern)?.[1]).find(Boolean);
+
+const changeMapping = (change: Record<string, unknown>, mappings: ProviderOperationMapping[]) =>
+  mappings.find(
+    (entry) =>
+      entry.path === change.path && entry.httpMethod === String(change.operation).toUpperCase(),
+  );
+
+// https://docs.stripe.com/currencies: "Make sure to use all lowercase letters when entering the
+// three-letter ISO code in any payment request." Where the target contract adds the `currency`
+// format, an uppercase code written as a literal in a traced call's own request is lowercased.
+// Constants (which may also be displayed), computed values and test files stay for review.
+export function currencyCodeEdits(
+  changes: Record<string, unknown>[],
+  context: Pick<ReachContext, 'repository' | 'calls' | 'mappings'>,
+) {
+  const edits = new Map<string, SourceEdit>();
+  for (const change of changes) {
+    const text = String(change.text);
+    const property = requestProperty(text);
+    const mapping = changeMapping(change, context.mappings);
+    if (!CURRENCY_FORMAT.test(text) || !property || !mapping) continue;
+    const calls = context.calls.filter(
+      (call) => call.operationId === mapping.operationId && !TEST_PATH.test(call.file),
+    );
+    const argumentIndex = String(change.path).match(PATH_PARAMETER)?.length ?? 0;
+    for (const { file, body } of callBodies(context.repository, calls, argumentIndex)) {
+      if (!body || body === 'unknown') continue;
+      const values = sentValues(body, property.split('/'));
+      if (values === 'unknown') continue;
+      for (const value of values)
+        // Only literals inside the call's own argument: sentValues also follows local constants.
+        if (
+          ts.isStringLiteralLike(value) &&
+          value.getStart() >= body.getStart() &&
+          value.end <= body.end &&
+          CURRENCY_LITERAL.test(value.getText()) &&
+          !STRIPE_CURRENCY.test(value.text)
+        )
+          edits.set(`${file}:${value.getStart()}`, {
+            file,
+            start: value.getStart(),
+            end: value.end,
+            replacement: value.getText().toLowerCase(),
+            changeId: CURRENCY_CODE_RULE,
+            rule: CURRENCY_CODE_RULE,
+          });
+    }
+  }
+  return [...edits.values()];
+}
+
 function requestReach(change: Record<string, unknown>, context: ReachContext): ChangeReach {
   const text = String(change.text);
-  const property = REQUEST_PROPERTY.map((pattern) => text.match(pattern)?.[1]).find(Boolean);
+  const property = requestProperty(text);
   if (!property)
     return {
       reach: 'unknown',
       reachReason: `Refit cannot read the request property in "${text}".`,
     };
-  const mapping = context.mappings.find(
-    (entry) =>
-      entry.path === change.path && entry.httpMethod === String(change.operation).toUpperCase(),
-  );
+  const mapping = changeMapping(change, context.mappings);
   const operation = mapping ? `${mapping.resource}.${mapping.method}` : String(change.path);
   // An untraced call may request the operation: one with its method name, or any at all when the
   // adapter does not map the operation to a method.
@@ -310,6 +364,11 @@ function requestReach(change: Record<string, unknown>, context: ReachContext): C
         if (value && ts.isStringLiteralLike(value)) {
           if (STRIPE_CURRENCY.test(value.text)) {
             compatible ??= file;
+            continue;
+          }
+          // The currency rule lowercases a literal written in the request (currencyCodeEdits).
+          if (value === sent && context.edited(file, sent.getStart())) {
+            handled ??= file;
             continue;
           }
           return {
