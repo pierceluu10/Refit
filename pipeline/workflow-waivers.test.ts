@@ -158,6 +158,25 @@ it('publishes a patch untested when the baseline fails, and never when a check f
   });
   expect(published.manifest).toMatchObject({ status: 'draft-created' });
 
+  // A baseline stopped at the time limit did not finish, rather than failed.
+  const timedOut = await untested('error');
+  delete (timedOut.validation as { dependencyFailure?: unknown }).dependencyFailure;
+  timedOut.validation.baseline = {
+    status: 'error',
+    exitCode: null,
+    stdout: '',
+    stderr: '',
+    error: 'Check exceeded 120 seconds; the container was stopped.',
+  };
+  vi.mocked(validateMigration).mockResolvedValue(timedOut);
+  const stopped = await output();
+  expect(
+    (await runWorkflow({ ...inputs, output: stopped, allowUnresolved: true })).manifest,
+  ).toMatchObject({ status: 'needs-review', waivedGates: ['baseline-failed'] });
+  expect(await readFile(join(stopped, 'pull-request.md'), 'utf8')).toContain(
+    '- `npm test` did not finish on the original code, so the checks say nothing about this patch and Refit did not run them on it. **Check:** Make `npm test` finish and pass on the base branch',
+  );
+
   // A generated check that fails on the original code while the patched checks ran.
   const generated = await untested('baseline-failed');
   delete (generated.validation as { dependencyFailure?: unknown }).dependencyFailure;

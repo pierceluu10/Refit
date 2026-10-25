@@ -640,8 +640,9 @@ export function publicationWaiver(
       ? [
           {
             gate: 'baseline-failed' as const,
-            reason: `${checks} does not pass on the original code, so the checks say nothing about this patch and Refit did not run them on it.`,
-            check: `Make ${checks} pass on the base branch, then run it on this branch before merging.`,
+            // An error is a check that could not finish, such as one stopped at the time limit.
+            reason: `${checks} ${validation.baseline.status === 'error' ? 'did not finish' : 'does not pass'} on the original code, so the checks say nothing about this patch and Refit did not run them on it.`,
+            check: `Make ${checks} ${validation.baseline.status === 'error' ? 'finish and pass' : 'pass'} on the base branch, then run it on this branch before merging.`,
           },
         ]
       : []),
