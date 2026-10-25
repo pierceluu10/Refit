@@ -7,7 +7,14 @@ import {
   type ModelReplacementStop,
 } from './model-retirements.ts';
 import { publicationConfiguration, publishFiles } from './publication.ts';
-import { MAX_BODY_CHARACTERS, wrap } from './review.ts';
+import {
+  existingTypeErrors,
+  MAX_BODY_CHARACTERS,
+  NEEDS_REVIEW_PREFIX,
+  NO_OP_CHECK,
+  NO_OP_REVIEW,
+  wrap,
+} from './review.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // The repository's approved checks, from its enrolled Refit configuration.
@@ -61,6 +68,10 @@ function fixKey(replacements: ModelReplacement[]) {
   );
 }
 
+// A check that runs no code tests nothing, so its draft needs review (owner decision 1).
+const noOpChecked = (validation: { command: string[] }) =>
+  validation.command.join(' ') === NO_OP_CHECK;
+
 // The draft pull request description: what changed and why, what was checked and what was not,
 // and what stays for a person to review.
 export function modelFixBody(options: {
@@ -72,16 +83,29 @@ export function modelFixBody(options: {
     image: string;
     command: string[];
     baselineCommand: string[];
-    baseline: { status: string };
-    patched: { status: string; stdout: string; stderr: string };
+    compareTypeErrors?: boolean;
+    baseline: { status: string; exitCode: number | null; stdout: string; stderr: string };
+    patched: { status: string; exitCode: number | null; stdout: string; stderr: string };
   };
 }) {
   const { replacements, stops, validation } = options;
   const sources = new Map(options.registry.deadlines.map((entry) => [entry.id, entry]));
   const more = (count: number, where: string) =>
     count > 0 ? [`- and ${count} more; ${where}.`] : [];
+  const noOp = noOpChecked(validation);
+  const existing = existingTypeErrors(validation);
   const render = (rowLimit: number, stopLimit: number) => {
     const lines = [
+      ...(noOp
+        ? [
+            '## Why this needs review',
+            '',
+            "Refit opened this draft for review (owner decision 1). **Don't merge until you have checked each item.**",
+            '',
+            `- ${NO_OP_REVIEW.reason} **Check:** ${NO_OP_REVIEW.check}`,
+            '',
+          ]
+        : []),
       '## Retiring AI models',
       '',
       'Refit replaced model IDs that their provider retires, using the replacement in its reviewed deadline registry. Requests to a retired model fail.',
@@ -111,7 +135,7 @@ export function modelFixBody(options: {
       `Refit ran the repository's approved checks on ${code(validation.revision.slice(0, 12))} in offline Docker (${code(validation.image)}), before and after this change:`,
       '',
       `- Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}`,
-      `- Patched ${code(validation.command.join(' '))}: ${validation.patched.status}`,
+      `- Patched ${code(validation.command.join(' '))}: ${validation.patched.status}${existing ? `; the type check ${existing}` : ''}`,
       '',
       '## Not Verified',
       '',
@@ -125,7 +149,9 @@ export function modelFixBody(options: {
       '## Reviewer Checklist',
       '',
       '- [ ] Try each changed call against the provider and compare its answers.',
-      `- [ ] Confirm ${code(validation.command.join(' '))} exercises the changed calls.`,
+      noOp
+        ? `- [ ] ${NO_OP_REVIEW.check}`
+        : `- [ ] Confirm ${code(validation.command.join(' '))} exercises the changed calls.`,
       ...(stops.length ? ['- [ ] Decide each use under Left for review.'] : []),
       '',
       'Refit opened this as a draft and never merges it.',
@@ -172,6 +198,7 @@ const modelFixTitle = (replacements: ModelReplacement[]) =>
 // The commit explains itself in `git log`: each edited line, the checks and the provider pages.
 export function modelFixMessage(options: Parameters<typeof modelFixBody>[0]) {
   const { replacements, stops, validation } = options;
+  const existing = existingTypeErrors(validation);
   const sources = new Map(options.registry.deadlines.map((entry) => [entry.id, entry.source]));
   const listed = replacements.slice(0, 25);
   return `${[
@@ -188,9 +215,11 @@ export function modelFixMessage(options: Parameters<typeof modelFixBody>[0]) {
       : []),
     '',
     wrap(
-      validation.baselineCommand.join(' ') === validation.command.join(' ')
-        ? `Checks: ${validation.command.join(' ')} ${validation.baseline.status} on the original and ${validation.patched.status} on the patched code in offline Docker; no request reached the provider.`
-        : `Checks: ${validation.baselineCommand.join(' ')} ${validation.baseline.status} on the original and ${validation.command.join(' ')} ${validation.patched.status} on the patched code in offline Docker; no request reached the provider.`,
+      existing
+        ? `Checks: ${validation.command.join(' ')} ${existing}, in offline Docker; no request reached the provider.`
+        : validation.baselineCommand.join(' ') === validation.command.join(' ')
+          ? `Checks: ${validation.command.join(' ')} ${validation.baseline.status} on the original and ${validation.patched.status} on the patched code in offline Docker; no request reached the provider.`
+          : `Checks: ${validation.baselineCommand.join(' ')} ${validation.baseline.status} on the original and ${validation.command.join(' ')} ${validation.patched.status} on the patched code in offline Docker; no request reached the provider.`,
     ),
     ...(stops.length
       ? [
@@ -284,13 +313,19 @@ export async function runModelFixes(options: {
       'validated',
       'Baseline and patched checks passed; draft publication is not enabled.',
     );
+  const checked = { ...validation, compareTypeErrors: options.checks.compareTypeErrors };
   const published = await publishFiles(options.publication, {
     revision: validation.revision,
     key: `model-fixes:${validation.revision}:${fixKey(replacements)}`,
     files: validation.publicationFiles,
-    title: modelFixTitle(replacements),
-    body: modelFixBody({ replacements, stops, registry: options.registry, validation }),
-    message: modelFixMessage({ replacements, stops, registry: options.registry, validation }),
+    title: `${noOpChecked(validation) ? NEEDS_REVIEW_PREFIX : ''}${modelFixTitle(replacements)}`,
+    body: modelFixBody({ replacements, stops, registry: options.registry, validation: checked }),
+    message: modelFixMessage({
+      replacements,
+      stops,
+      registry: options.registry,
+      validation: checked,
+    }),
   });
   return result(published.status === 'created' ? 'draft-created' : 'existing-pr', published.url, {
     url: published.url,

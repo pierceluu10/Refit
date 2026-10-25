@@ -79,6 +79,14 @@ function compareDeclaredVersions(
   };
 }
 
+// Whether every SDK declaration Refit can read sends `version`, as after a merged migration to it.
+export function declaresVersion(source: ApiVersionSource, version: string) {
+  return (
+    source.status !== 'not-configured' &&
+    compareDeclaredVersions(version, true, source.declarations).status === 'verified'
+  );
+}
+
 export function apiVersionSourceBlocked(evidence: ApiVersionEvidence) {
   return (
     evidence.source?.status === 'conflict' ||
@@ -86,7 +94,7 @@ export function apiVersionSourceBlocked(evidence: ApiVersionEvidence) {
   );
 }
 
-function specificationVersion(document: Record<string, unknown>) {
+export function specificationVersion(document: Record<string, unknown>) {
   const info = document.info;
   if (!isObject(info) || typeof info.version !== 'string' || !info.version.trim()) return null;
   return info.version.trim();

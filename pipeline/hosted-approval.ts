@@ -66,6 +66,8 @@ interface ApprovalContext {
   directory: string;
   // Where the Stripe contracts of a generated configuration are kept, as for jobs.
   contracts: string;
+  // Owner decision 1 (--publish-unresolved): review the configuration jobs will then generate.
+  allowUntested?: boolean;
   store: HostedStore;
   approvals: ApprovalStore;
   signal: AbortSignal;
@@ -94,7 +96,11 @@ async function inspect(context: ApprovalContext, repository: string, base: strin
       signal: context.signal,
     },
     async (checkout): Promise<Inspection> => {
-      const generated = await saveGeneratedContracts(checkout.directory, context.contracts);
+      const generated = await saveGeneratedContracts(
+        checkout.directory,
+        context.contracts,
+        context.allowUntested,
+      );
       if (!generated && !existsSync(join(checkout.directory, REPOSITORY_CONFIGURATION))) {
         const detections = await detectProviders(checkout.directory);
         const detected = detections.map((detection) => detection.agent.name);
@@ -117,6 +123,7 @@ async function inspect(context: ApprovalContext, repository: string, base: strin
             github: repository,
             base,
             contracts: context.contracts,
+            allowUntested: context.allowUntested,
           }),
         };
       } catch (error) {
