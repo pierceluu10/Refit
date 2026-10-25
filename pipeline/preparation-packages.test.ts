@@ -1,19 +1,25 @@
 import { execFile } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { readCommittedFile, readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies } from './dependency-preparation.ts';
-import { dockerSandboxArguments, SANDBOX_EXPIRY_LABEL } from './docker-sandbox.ts';
+import {
+  dockerSandboxArguments,
+  removeDockerContainer,
+  SANDBOX_EXPIRY_LABEL,
+} from './docker-sandbox.ts';
 import { packageSnapshot, sdkPackageDirectory } from './preparation-packages.ts';
 import { packageDiff } from './stripe-package-upgrade.ts';
 import { validateMigration } from './validation.ts';
 
 const execute = promisify(execFile);
 const roots: string[] = [];
-const IMAGE = `sha256:${'d'.repeat(64)}`;
+const FAKE_IMAGE = `sha256:${'d'.repeat(64)}`;
+const IMAGE = process.env.REFIT_DOCKER_IMAGE;
 
 afterEach(async () => {
   vi.useRealTimers();
@@ -199,7 +205,7 @@ async function fakeDocker(root: string) {
 const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
 const args = process.argv.slice(2);
-if (args[0] === 'image') { console.log(args[3] === '{{.Id}}' ? '${IMAGE}' : JSON.stringify(['NODE_VERSION=22.23.3'])); process.exit(0); }
+if (args[0] === 'image') { console.log(args[3] === '{{.Id}}' ? '${FAKE_IMAGE}' : JSON.stringify(['NODE_VERSION=22.23.3'])); process.exit(0); }
 if (args[0] !== 'run') process.exit(0);
 const input = args.find((arg) => arg.includes(',dst=/input,')).slice('type=bind,src='.length).split(',dst=')[0];
 const files = (prefix = '') => fs.readdirSync(input + '/' + prefix, { withFileTypes: true }).flatMap((entry) => entry.isDirectory() ? files(prefix + entry.name + '/') : [prefix + entry.name]);
@@ -389,3 +395,46 @@ it('validates Stripe code in a nested package there, under the configured check 
     'checkTimeoutSeconds must be a whole number from 30 to 1800.',
   );
 });
+
+it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
+  'prepares a nested npm workspace in real Docker and runs its check in it, offline',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-package-docker-'));
+    roots.push(root);
+    const repository = join(root, 'repository');
+    await cp(resolve('pipeline/fixtures/npm-workspaces/repository'), join(repository, 'service'), {
+      recursive: true,
+    });
+    await commit(repository, { 'README.md': 'Several services.\n' });
+    const prepared = await prepareDependencies({
+      repository,
+      image: IMAGE!,
+      cacheDirectory: join(root, 'cache'),
+      packageDirectory: 'service',
+    });
+    const name = `refit-package-check-${randomUUID()}`;
+    try {
+      const { stdout } = await execute(
+        'docker',
+        dockerSandboxArguments({
+          name,
+          directory: repository,
+          image: String(prepared.environment.image),
+          dependencies: prepared.archive,
+          network: 'none',
+          timeoutMs: 120_000,
+          packageDirectory: 'service',
+          command: [
+            'node',
+            '-e',
+            "const assert=require('node:assert/strict');const fs=require('node:fs');assert.equal(process.cwd(),'/workspace/service');assert.equal(typeof require('stripe'),'function');assert.equal(fs.realpathSync('node_modules/@refit-fixture/billing'),'/workspace/service/packages/billing');assert.equal(fs.existsSync('node_modules/root-script-ran'),false);assert.equal(fs.existsSync('/workspace/node_modules'),false);assert.equal(fs.readFileSync('../README.md','utf8'),'Several services.\\n');console.log('nested package checked');",
+          ],
+        }),
+      );
+      expect(stdout).toContain('nested package checked');
+    } finally {
+      await removeDockerContainer(name);
+    }
+  },
+  180_000,
+);
