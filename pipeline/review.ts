@@ -689,6 +689,7 @@ export function createReviewArtifacts(
     report.findings.filter((finding) => finding.subscriptionPeriod?.rareCase === rareCase);
   const flaggedPeriods = periodReads('flagged');
   const unconfirmed = report.findings.filter((finding) => finding.untraced);
+  const typeCheckedReads = report.findings.filter((finding) => finding.typeChecked);
   const selectedPeriods = [...periodReads('item-in-code'), ...periodReads('price-policy')];
   const generated = validation.generated;
   const command = validation.command.join(' ');
@@ -840,6 +841,11 @@ export function createReviewArtifacts(
         !validation.repair.enumsUnchanged
           ? [
               `Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with ${code('OtherString')}, using ${code('Extract<…>')} types where the upgraded types rejected this code. Runtime code is unchanged: a value Stripe adds later still reaches this code unchecked, as it did before the upgrade.`,
+            ]
+          : []),
+        ...(typeCheckedReads.length
+          ? [
+              `Reads ${typeCheckedReads.length === 1 ? 'a subscription period' : `${typeCheckedReads.length} subscription periods`} at ${summaryList(typeCheckedReads.map((finding) => code(`${finding.file}:${finding.line}`)))} through the generated period helper: Refit's tracer did not reach ${typeCheckedReads.length === 1 ? 'this read' : 'these reads'}, but the upgraded stripe-node types reject ${typeCheckedReads.length === 1 ? 'it' : 'them'} on ${code('Subscription')}.`,
             ]
           : []),
       ];
@@ -1167,9 +1173,13 @@ export function createReviewArtifacts(
         ),
         ...(('changes' in entry && entry.changes) || []).map(plainText),
         ...(entry.gate === 'ai-patch'
-          ? aiLines.length
-            ? aiLines
-            : ['None: every changed line comes from a Refit rule.']
+          ? [
+              ...(aiLines.length ? aiLines : ['None: every changed line comes from a Refit rule.']),
+              // What the AI resolved on top of the rules' patch (owner decisions 1 and 8).
+              ...(validation.coverageAi?.resolved ?? []).map(
+                (site) => `Resolved by AI: ${code(site.file)} ${code(site.expression)}`,
+              ),
+            ]
           : []),
       ];
       return [

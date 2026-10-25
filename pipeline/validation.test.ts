@@ -7,6 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { sandboxInput, validateMigration } from './validation.ts';
 import { digest } from './specifications.ts';
 import { runWorkflow } from './workflow.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const directories: string[] = [];
@@ -638,9 +639,9 @@ it.skipIf(!IMAGE).each(['validated', 'regression', 'published', 'publication-err
     expect(result.manifest.status).toBe(expected);
     expect(result.manifest.stage).toBe(scenario.startsWith('publi') ? 'publication' : 'validation');
     expect(await readFile(join(root, 'billing.js'), 'utf8')).toBe(SOURCE);
-    expect(
-      JSON.parse(await readFile(join(output, 'report.json'), 'utf8')).validation.revision,
-    ).toBe(revision);
+    expect(JSON.parse((await readEvidence(output, 'report.json'))!).validation.revision).toBe(
+      revision,
+    );
     for (const file of result.manifest.files)
       expect(digest(await readFile(join(output, file.path)))).toBe(file.sha256);
     if (scenario === 'validated' || scenario === 'regression')

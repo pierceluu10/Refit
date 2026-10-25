@@ -1,0 +1,221 @@
+{
+  "frozenAt": "2026-10-25",
+  "purpose": "L3 upgrade gates: removed-parameter repositories of Push 279 that commit two lockfiles, for upgrading every committed lockfile.",
+  "criteria": "The 12 of the 54 removed-request-parameter repositories of subsets/push-279-affected.json (none in heldout-30) refused with 'exactly one of package-lock.json, pnpm-lock.yaml or yarn.lock', minus the two whose package-lock.json does not lock stripe (LucasKlemke/doctor-reborn, passion-27/QuotesAI; covered by unit tests): 10. Entries unchanged, in list order.",
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "cesarolvr/journeylog-app",
+      "stars": 8,
+      "commit": "74f52ec4edde36542396a8619448bc52ec430e45",
+      "before": "2025-01-27.acacia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "yarn"
+    },
+    {
+      "repo": "saidMounaim/tick-event",
+      "stars": 7,
+      "commit": "18df56697c9369308e8a295e6e031cbbf491f68f",
+      "before": "2025-05-28.basil",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "dubbl-org/dubbl",
+      "stars": 53,
+      "commit": "13c3cf14e7900d32ad0ee8081c385e404dc120f9",
+      "before": "2026-02-25.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.4.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Librum-Reader/Librum-Website",
+      "stars": 16,
+      "commit": "60d5159126dae8b4ac5251fe437d16a75fffab1f",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^13.10.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "omar99elnemr/Docubot",
+      "stars": 5,
+      "commit": "c9d7c887ee54e682b38f019e7d81f5d4194e4399",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.8.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Ankit-Sharma1011/Quill",
+      "stars": 3,
+      "commit": "bdd4055bf5887ba1c25ba22dcf68fb8e7e53e4e2",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.1.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "avikalp987/quill",
+      "stars": 3,
+      "commit": "c8752fb04496999c2e16852e66f7dab20fe88d33",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^13.7.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "dheerajcl/Jynx2.0",
+      "stars": 2,
+      "commit": "1ee684ef3ac2ba1c17e771dbc5b8bdc1b754318a",
+      "before": "2024-04-10",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^15.1.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ensarokumus/tldr-app",
+      "stars": 2,
+      "commit": "566f26eba716ec137eb695ed597ceeb6b0a5d6bf",
+      "before": "2024-04-10",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^15.12.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "karljuhl/Club_Connect",
+      "stars": 2,
+      "commit": "5c3cc8acc606128a130463137e12f1e3442d75fd",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.7.0",
+      "packageManager": "npm"
+    }
+  ]
+}

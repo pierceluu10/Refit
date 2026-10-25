@@ -106,10 +106,16 @@ async function runOpenApiPipeline(options: {
   // Owner decision 1: write the rules' patch around every finding that needs review, which stays
   // unresolved and unedited, instead of stopping; AI never runs beside such a finding.
   leaveReviewedFindings?: boolean;
+  // Owner decision 1 fallback: leave every API-version pin and the stripe package as they are, so
+  // the patch keeps only edits that work under either version (the workflow's retry after a
+  // regression).
+  keepApiVersion?: boolean;
   // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
   keepListedPaymentMethods?: boolean;
   // Shopify only: propose the SDK major upgrade a target version needs (docs/SHOPIFY-SDK-UPGRADE.md).
   shopifySdkUpgrade?: boolean;
+  // Validation only: subscription-period reads its patched type check rejected (analyzer.ts).
+  typeCheckedPeriodReads?: { file: string; position: number }[];
   onProgress?: (message: string) => void;
 }) {
   const applicationApiVersion = validateApiVersion(options.apiVersion);
@@ -180,7 +186,7 @@ async function runOpenApiPipeline(options: {
       : undefined;
   const {
     edits: analyzedEdits,
-    apiVersionDeclarations,
+    apiVersionDeclarations: declaredVersions,
     apiVersionLiterals,
     sourceWarnings,
     skippedFiles,
@@ -197,7 +203,7 @@ async function runOpenApiPipeline(options: {
     requestRenames,
     moves,
     parameterRemovals,
-    { invoicePreview },
+    { invoicePreview, typeCheckedPeriodReads: options.typeCheckedPeriodReads },
   );
   const stripePackage =
     provider.packageName === STRIPE.packageName
@@ -236,13 +242,32 @@ async function runOpenApiPipeline(options: {
     ]),
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
+  // Owner decision 1: every traced pin older than the target moves to it, including one that sends
+  // another version than the application's; the draft lists each pin with the version it sent.
+  // Stripe versions start with their date, so string order is release order, and a pin newer than
+  // the target is never moved back.
+  const movesPin = (value: string) =>
+    !options.keepApiVersion &&
+    (options.leaveReviewedFindings
+      ? typeof targetVersion === 'string' && value < targetVersion
+      : targetVersion !== applicationApiVersion && value === applicationApiVersion);
+  // A pin the application does not send that is also a webhook endpoint's api_version stays, as
+  // moving it would move that endpoint; it is listed as unresolved with why.
+  const endpointPin = (entry: { value: string | null; endpoint?: true }) =>
+    Boolean(
+      options.leaveReviewedFindings && entry.endpoint && entry.value && movesPin(entry.value),
+    );
+  const apiVersionDeclarations = declaredVersions.map((entry) =>
+    endpointPin(entry)
+      ? { ...entry, status: 'unknown' as const, reason: ENDPOINT_PIN_REASON }
+      : entry,
+  );
   const versionEdits =
     provider.packageName === STRIPE.packageName &&
     applicationApiVersion &&
-    typeof targetVersion === 'string' &&
-    targetVersion !== applicationApiVersion
+    typeof targetVersion === 'string'
       ? apiVersionLiterals
-          .filter((literal) => literal.value === applicationApiVersion)
+          .filter((literal) => movesPin(literal.value) && !endpointPin(literal))
           .filter(
             (literal, index, all) =>
               all.findIndex(
@@ -263,6 +288,7 @@ async function runOpenApiPipeline(options: {
   // `apiVersion: null` (the account default) is unknown, not absent, and never counts.
   const constructors = apiVersionDeclarations.filter((entry) => entry.kind === 'constructor');
   const sdkPinned =
+    !options.keepApiVersion &&
     provider.packageName === STRIPE.packageName &&
     Boolean(applicationApiVersion) &&
     typeof targetVersion === 'string' &&
@@ -350,6 +376,13 @@ async function runOpenApiPipeline(options: {
       (finding.subscriptionPeriod || HELPER_RULES.has(finding.webhook?.migration?.rule ?? '')) &&
       !editCovers(repository, kept, finding)
     ) {
+      // Only its helper edit made a type-checked read confirmed.
+      if (finding.typeChecked) {
+        finding.confidence = 'review';
+        finding.reason =
+          'The upgraded stripe-node types reject this subscription period read, but the period helper could not be applied here; inspect manually.';
+        delete finding.typeChecked;
+      }
       delete finding.subscriptionPeriod;
       if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
         delete finding.webhook!.migration;
@@ -374,6 +407,14 @@ async function runOpenApiPipeline(options: {
     (edit) => !reviewed.some((finding) => editCovers(repository, [edit], finding)),
   );
   const ruleEdits = edits.filter(isFieldMove);
+  // The pin and the stripe-node upgrade ride the rules' edits. Under owner decision 1 they also
+  // make the patch when a removed request parameter is left for review, as the #88 waiver does:
+  // the parameter stays in place and the draft names it.
+  const movesVersion =
+    !configuredMigrationProposal &&
+    (ruleEdits.length > 0 ||
+      (Boolean(options.leaveReviewedFindings) &&
+        reviewed.some((finding) => finding.requestParameter)));
   // A dropped payment-method rename tells the customer which gate dropped it (F2).
   const renames = analyzedEdits.filter((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? ''));
   const unresolved = apiVersionDeclarations.find(
@@ -381,15 +422,17 @@ async function runOpenApiPipeline(options: {
   );
   const gate = movedTo[CARD_PAYMENT_METHOD_RULE]
     ? undefined
-    : configuredMigrationProposal
-      ? 'this patch applies a configured migration, which does not move the API version'
-      : !everyPinMoves && unresolved
-        ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
-        : !bumpsVersion
-          ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
-          : cardUpgrade && 'reason' in cardUpgrade
-            ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
-            : undefined;
+    : options.keepApiVersion
+      ? 'the patch that moved the API version failed the repository checks, so this one leaves every pin unchanged'
+      : configuredMigrationProposal
+        ? 'this patch applies a configured migration, which does not move the API version'
+        : !everyPinMoves && unresolved
+          ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
+          : !bumpsVersion
+            ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
+            : cardUpgrade && 'reason' in cardUpgrade
+              ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
+              : undefined;
   if (gate)
     for (const finding of analysis.findings)
       if (finding.requestParameter && editCovers(repository, renames, finding))
@@ -425,7 +468,8 @@ async function runOpenApiPipeline(options: {
   );
   if (
     (options.requireApiVersionMatch && apiVersion.applicability !== 'matches-before') ||
-    (apiVersionSourceBlocked(apiVersion) && (options.aiPatch || options.assessment))
+    (apiVersionSourceBlocked(apiVersion, options.leaveReviewedFindings) &&
+      (options.aiPatch || options.assessment))
   )
     throw new PipelineInputError(`Automated work is blocked. ${apiVersion.reason}`);
   const reviewableBreakingChanges = unmappedBreakingChanges(
@@ -482,7 +526,11 @@ async function runOpenApiPipeline(options: {
     Boolean(options.aiPatch) &&
     !configuredMigrationProposal &&
     (aiFindings.length > 0 || operationImpacts.length > 0) &&
-    !(options.leaveReviewedFindings && reviewBlocksAi({ ...reviewEvidence, operationImpacts }));
+    !(
+      options.leaveReviewedFindings &&
+      (reviewBlocksAi({ ...reviewEvidence, operationImpacts }) ||
+        apiVersion.source.status === 'conflict')
+    );
   const deterministicRequested =
     options.proposePatch ||
     (options.aiPatch && !useAi && (configuredMigrationProposal || ruleEdits.length > 0));
@@ -539,14 +587,14 @@ async function runOpenApiPipeline(options: {
             options.documentationSnapshots,
             after.schemas,
             [...ruleEdits, ...versionEdits],
+            undefined,
+            parameterRemovals,
           )
       : deterministicRequested
         ? {
             ...proposePatch(
               repository,
-              ruleEdits.length && !configuredMigrationProposal
-                ? [...edits, ...versionEdits]
-                : edits,
+              movesVersion ? [...edits, ...versionEdits] : edits,
               unresolvedFindings.length,
               provider,
               replacements,
@@ -556,9 +604,8 @@ async function runOpenApiPipeline(options: {
               ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
               : {}),
             // AI repairs start again from the original code and must keep these rule edits.
-            ...(ruleEdits.length && !configuredMigrationProposal
-              ? { ruleEdits: [...ruleEdits, ...versionEdits] }
-              : {}),
+            ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
+            ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
           }
         : {
             status: 'not-generated' as const,
@@ -573,7 +620,7 @@ async function runOpenApiPipeline(options: {
     'diff' in patch &&
     patch.status === 'proposed' &&
     'generator' in patch &&
-    (patch.generator === 'openai' || (ruleEdits.length > 0 && !configuredMigrationProposal));
+    (patch.generator === 'openai' || movesVersion);
   const upgrade =
     bumpedVersion &&
     (upgradeRequired || ruleEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE)) &&
@@ -591,7 +638,8 @@ async function runOpenApiPipeline(options: {
               renderFileReplacements(repository, upgrade.upgrade.files, 'stripe-package'),
             sdkUpgrade: { from: upgrade.upgrade.from, to: upgrade.upgrade.to },
             warnings: [
-              `Upgrades stripe from ${upgrade.upgrade.from} to ${upgrade.upgrade.to} in ${upgrade.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+              upgrade.upgrade.warning ??
+                `Upgrades stripe from ${upgrade.upgrade.from} to ${upgrade.upgrade.to} in ${upgrade.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
               ...('warnings' in patch ? patch.warnings : []).filter(
                 (warning) => !warning.startsWith('The stripe package is not upgraded.'),
               ),
@@ -724,7 +772,7 @@ async function runOpenApiPipeline(options: {
       specification: specificationDiff
         ? specificationDiff.coverage
         : 'Direct properties removed from existing, non-composed OpenAPI 3 component schemas only. Not a complete breaking-change diff.',
-      code: `Immutable ESM/CommonJS SDK clients, including named/default imports and static requires of supported exported bindings through relative paths or recorded tsconfig/jsconfig paths and baseUrl, and awaited resource.method calls mapped by the recorded adapter. Resources can be dot-separated identifier paths up to ${MAX_SDK_RESOURCE_LENGTH} characters. Optional SDK invocations and computed resource access remain review cases; unawaited calls are not treated as response objects. Optional adapter operationId mappings correlate unresolved breaking OpenAPI changes to SDK call sites; explicit operationReplacements can edit direct, non-optional calls on unescaped clients after matching the old/new recorded contracts. Configured requestPropertyRenames edit direct object-literal body keys, including quoted and shorthand properties, after comparing the normalized operation contract; spreads, computed keys, duplicates, aliases and optional calls require review. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through supported named imports. SDK arguments trace into supported named or identifier-bound helpers; only closed private callers with one stable origin qualify for automation. Exported, escaped or uncertain helper clients carry review evidence and block the run. Configured propertyRenames can also move a removed field to a nested path newly declared in the after contract with the same value shape; reads already using that path are not reported. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. Dynamic exports, local ESM/CommonJS interop, shadowed or exposed loaders, unconfigured or unverified aliases, ambiguous resolution, multi-step or transformed wrappers and dynamic code still require review. Supported Stripe snapshot constructors, static payload aliases and exact event-type branches trace incoming payload reads under a curated mapping; webhook version and explicit migration-policy review block automatic patches, AI and publication. Unknown events, thin events, unsigned parsing and cross-function payload flows remain outside confirmation. Confirmed means traced under the supplied mapping, not independently verified SDK semantics or incoming API versions.`,
+      code: `Immutable ESM/CommonJS SDK clients, including named/default imports and static requires of supported exported bindings through relative paths or recorded tsconfig/jsconfig paths and baseUrl, and awaited resource.method calls mapped by the recorded adapter. Resources can be dot-separated identifier paths up to ${MAX_SDK_RESOURCE_LENGTH} characters. Optional SDK invocations and computed resource access remain review cases; unawaited calls are not treated as response objects. Optional adapter operationId mappings correlate unresolved breaking OpenAPI changes to SDK call sites; explicit operationReplacements can edit direct, non-optional calls on unescaped clients after matching the old/new recorded contracts. Configured requestPropertyRenames edit direct object-literal body keys, including quoted and shorthand properties, after comparing the normalized operation contract; spreads, computed keys, duplicates, aliases and optional calls require review. Property reads can follow direct local component-schema $refs through nested objects, supported array items, literal numeric indexes, const for...of bindings, inline one-parameter array callbacks and immutable aliases. Top-level one-parameter functions returning exactly one mapped SDK call are traced locally or through supported named imports. SDK arguments trace into supported named or identifier-bound helpers; only closed private callers with one stable origin qualify for automation. Exported, escaped or uncertain helper clients carry review evidence and block the run. Configured propertyRenames can also move a removed field to a nested path newly declared in the after contract with the same value shape; reads already using that path are not reported. Removed-field indexes and destructuring can be reported but are not auto-edited. Dynamic indexes, mutable loop bindings, named or multi-parameter callbacks, transformed array chains, inline/composed/external schemas, detected writes, alias mutations, and references passed to calls or stored in containers remain review cases. Namespace imports and re-exports invalidate shared-client and wrapper confirmation. Dynamic exports, local ESM/CommonJS interop, shadowed or exposed loaders, unconfigured or unverified aliases, ambiguous resolution, multi-step or transformed wrappers and dynamic code still require review. Supported Stripe snapshot constructors, static payload aliases and exact event-type branches trace incoming payload reads under a curated mapping; webhook version and explicit migration-policy review block automatic patches, AI and publication. A private function declaration's parameter is a payload when every call passes one narrowed payload schema. Unknown events, thin events, unsigned parsing and other cross-function payload flows remain outside confirmation. Confirmed means traced under the supplied mapping, not independently verified SDK semantics or incoming API versions.`,
       decision:
         'No finding is not proof of no impact. Supported root npm, pnpm and yarn lockfiles provide recorded SDK versions, not verified installed versions or API-version applicability.',
     },
@@ -740,6 +788,9 @@ export type PipelineReport = Awaited<ReturnType<typeof runOpenApiPipeline>>;
 
 // Shopify contracts are GraphQL schemas, not OpenAPI documents, so Shopify snapshots run the Shopify
 // pipeline. Its report carries every report field, with the OpenAPI-only ones empty.
+export const ENDPOINT_PIN_REASON =
+  "This version also sets a webhook endpoint's api_version, so moving it would change the version that endpoint receives.";
+
 export async function runPipeline(
   options: Parameters<typeof runOpenApiPipeline>[0],
 ): Promise<PipelineReport> {

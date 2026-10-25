@@ -7,6 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { verifyArtifacts } from './verification.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const TIMEOUT_MS = 120_000;
@@ -160,7 +161,7 @@ export const chargeHistory = (id${typed ? ': string' : ''}) => billing.history(i
       output: join(sample.root, 'run'),
     });
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(report.patch).toMatchObject({ generator: 'deterministic', unresolvedFindings: 0 });
     expect(report.patch.diff).toContain(
       `for await (const refitCharge of ${format === 'typescript-helper' ? 'sdk' : `this.${field}`}.charges.list`,
@@ -248,7 +249,7 @@ export const getModelOwner = (id) => service.owner(id);
       output: join(sample.root, 'run'),
     });
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(report.patch).toMatchObject({ generator: 'deterministic', unresolvedFindings: 0 });
     expect(report.patch.diff).toContain('model.owner_name.toLowerCase()');
     expect(report.validation).toMatchObject({

@@ -23,6 +23,7 @@ import { readServiceConfiguration, type ServiceTarget } from './service-configur
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
 import { verifyArtifacts } from './verification.ts';
 import * as watch from './watch.ts';
+import { readEvidence } from './state-files.ts';
 
 const transport = vi.hoisted(() => ({
   source: '',
@@ -282,7 +283,7 @@ it.skipIf(
         access: 'active',
         approvalFingerprint: sample.targets[0].approval!.fingerprint,
       });
-      const report = JSON.parse(await readFile(join(record.output!, 'report.json'), 'utf8'));
+      const report = JSON.parse((await readEvidence(record.output!, 'report.json'))!);
       expect(await readFile(join(record.output!, 'pull-request.md'), 'utf8')).toContain(
         `<!-- refit-integration:${id} -->`,
       );
@@ -639,7 +640,7 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
     expect(result.status).toBe('processed');
     if (result.status !== 'processed') throw new Error('Expected changed source to start one job');
     expect(result.result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.output, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.output, 'report.json'))!);
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('passed');
     expect(report.patch.generator).toBe('deterministic');
@@ -703,7 +704,7 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
     });
     expect(record.output).not.toBe(failedOutput);
     expect(record.output).toMatch(/-2$/);
-    const report = JSON.parse(await readFile(join(record.output!, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(record.output!, 'report.json'))!);
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('passed');
     expect(report.patch.generator).toBe('deterministic');
