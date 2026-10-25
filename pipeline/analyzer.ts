@@ -1935,24 +1935,6 @@ export function analyzeRepository(
         PRODUCT_FEATURES_HELPER_RULE,
       ] as const
     ).find((rule) => edits.some((edit) => edit.rule === rule))!;
-    const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
-    const shared = directories[0].filter((segment, index) =>
-      directories.every((directory) => directory[index] === segment),
-    );
-    const extension =
-      kind === 'ts'
-        ? 'ts'
-        : helperFiles.every((file) => file.endsWith(kind === 'esm' ? '.mjs' : '.cjs'))
-          ? kind === 'esm'
-            ? 'mjs'
-            : 'cjs'
-          : 'js';
-    // No hyphen: Convex rejects one in a module in its functions folder, where this may land.
-    const base = [...shared.filter((segment) => segment !== '.'), 'stripeSubscriptionPeriod'].join(
-      '/',
-    );
-    const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
-    const stem = taken.has(base) ? `${base}Refit` : base;
     const usedIn = (file: string) =>
       HELPER_NAMES.filter((name) =>
         edits.some(
@@ -1962,36 +1944,12 @@ export function analyzeRepository(
             edit.replacement.includes(`${name}(`),
         ),
       );
-    edits.push({
-      file: `${stem}.${extension}`,
-      start: 0,
-      end: 0,
-      replacement: subscriptionPeriodHelperModule(kind, [...new Set(helperFiles.flatMap(usedIn))]),
-      changeId: 'stripe-subscription-period-helper',
-      rule: moduleRule,
-    });
-    for (const file of helperFiles) {
-      const source = helperSources.find((entry) => locations.get(entry.fileName) === file)!;
-      const used = usedIn(file);
-      const relativeImports = source.statements
-        .filter(ts.isImportDeclaration)
-        .map((statement) => (statement.moduleSpecifier as ts.StringLiteral).text)
-        .filter((specifier) => specifier.startsWith('.'));
-      const suffix =
-        kind === 'ts'
-          ? relativeImports.some((specifier) => specifier.endsWith('.js')) ||
-            (!relativeImports.length && nodeModuleResolution)
-            ? '.js'
-            : ''
-          : extension === 'js' && kind === 'cjs'
-            ? ''
-            : `.${extension}`;
-      let specifier = posix.relative(posix.dirname(file), stem) + suffix;
-      if (!specifier.startsWith('.')) specifier = `./${specifier}`;
-      const declaration =
-        kind === 'cjs'
-          ? `const { ${used.join(', ')} } = require('${specifier}');`
-          : `import { ${used.join(', ')} } from '${specifier}';`;
+    const sourceOf = (file: string) =>
+      helperSources.find((entry) => locations.get(entry.fileName) === file)!;
+    // Lines go after the file's directives and imports (and requires in CommonJS), in its own
+    // line endings.
+    const insert = (file: string, text: string, separator: string) => {
+      const source = sourceOf(file);
       const prologue = source.statements.filter((_statement, index) =>
         source.statements
           .slice(0, index + 1)
@@ -2009,14 +1967,101 @@ export function analyzeRepository(
       );
       const anchor = prologue.at(-1)?.getEnd() ?? 0;
       const newline = source.text.includes('\r\n') ? '\r\n' : '\n';
+      const lines = text.replaceAll('\n', newline);
       edits.push({
         file,
         start: anchor,
         end: anchor,
-        replacement: anchor ? `${newline}${declaration}` : `${declaration}${newline}`,
+        replacement: anchor
+          ? `${separator.replaceAll('\n', newline)}${lines}`
+          : `${lines}${separator.replaceAll('\n', newline)}`,
         changeId: 'stripe-subscription-period-helper',
         rule: moduleRule,
       });
+    };
+    // One calling file gets the helpers it uses written into it, so the patch adds no module and
+    // no import, and a test that loads that file alone with a fixed set of imports still runs. The
+    // helpers' private names must be free in that file; otherwise the module keeps them private.
+    const [single] = helperFiles;
+    const inline =
+      helperFiles.length === 1
+        ? subscriptionPeriodHelperModule(kind, usedIn(single), true)
+        : undefined;
+    const declared = inline
+      ? ts
+          .createSourceFile('helpers.ts', inline, ts.ScriptTarget.Latest)
+          .statements.flatMap((statement) =>
+            (ts.isFunctionDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) &&
+            statement.name
+              ? [statement.name.text]
+              : [],
+          )
+      : [];
+    if (
+      inline &&
+      !nodes.some(
+        (node) =>
+          node.getSourceFile() === sourceOf(single) &&
+          ts.isIdentifier(node) &&
+          declared.includes(node.text),
+      )
+    )
+      insert(single, inline.replace(/\n$/, ''), '\n\n');
+    else {
+      const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
+      const shared = directories[0].filter((segment, index) =>
+        directories.every((directory) => directory[index] === segment),
+      );
+      const extension =
+        kind === 'ts'
+          ? 'ts'
+          : helperFiles.every((file) => file.endsWith(kind === 'esm' ? '.mjs' : '.cjs'))
+            ? kind === 'esm'
+              ? 'mjs'
+              : 'cjs'
+            : 'js';
+      // No hyphen: Convex rejects one in a module in its functions folder, where this may land.
+      const base = [
+        ...shared.filter((segment) => segment !== '.'),
+        'stripeSubscriptionPeriod',
+      ].join('/');
+      const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
+      const stem = taken.has(base) ? `${base}Refit` : base;
+      edits.push({
+        file: `${stem}.${extension}`,
+        start: 0,
+        end: 0,
+        replacement: subscriptionPeriodHelperModule(kind, [
+          ...new Set(helperFiles.flatMap(usedIn)),
+        ]),
+        changeId: 'stripe-subscription-period-helper',
+        rule: moduleRule,
+      });
+      for (const file of helperFiles) {
+        const relativeImports = sourceOf(file)
+          .statements.filter(ts.isImportDeclaration)
+          .map((statement) => (statement.moduleSpecifier as ts.StringLiteral).text)
+          .filter((specifier) => specifier.startsWith('.'));
+        const suffix =
+          kind === 'ts'
+            ? relativeImports.some((specifier) => specifier.endsWith('.js')) ||
+              (!relativeImports.length && nodeModuleResolution)
+              ? '.js'
+              : ''
+            : extension === 'js' && kind === 'cjs'
+              ? ''
+              : `.${extension}`;
+        let specifier = posix.relative(posix.dirname(file), stem) + suffix;
+        if (!specifier.startsWith('.')) specifier = `./${specifier}`;
+        const used = usedIn(file).join(', ');
+        insert(
+          file,
+          kind === 'cjs'
+            ? `const { ${used} } = require('${specifier}');`
+            : `import { ${used} } from '${specifier}';`,
+          '\n',
+        );
+      }
     }
   }
   return {

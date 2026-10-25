@@ -19,6 +19,7 @@ import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR, UNTYPED_REQUEST_PROPERTIES } from './stripe-open-enums.ts';
 import { PAYMENT_METHOD_TYPES_CHANGELOG } from './patches.ts';
 import { typeErrors } from './type-errors.ts';
+import { HELPER_NAMES } from './stripe-subscription-periods.ts';
 
 type PublicationWaiver = NonNullable<ReturnType<typeof publicationWaiver>>;
 
@@ -626,13 +627,27 @@ export function createReviewArtifacts(
   const pagesFor = (path: string) =>
     rulePages.filter((page) => page.files.includes(path)).flatMap((page) => link(page.url) ?? []);
   const helperFiles = changedFiles(patch.diff).filter((file) => !file.before);
+  // Helpers Refit wrote into the one file that calls them, in place of a generated module.
+  const declares = (text: string, name: string) =>
+    new RegExp(`^function ${name}\\b`, 'm').test(text);
+  const inlineHelpers = (file: FileChange) =>
+    file.before
+      ? HELPER_NAMES.filter((name) => declares(file.after, name) && !declares(file.before, name))
+      : [];
+  const inlined = changedFiles(patch.diff).filter((file) => inlineHelpers(file).length);
   const keyChanges = changedFiles(patch.diff).map((file) => {
     const fields = migratedFields(file.path);
     const pages = pagesFor(file.path);
     const cited = pages.length ? ` ${plainText(provider)} documents it: ${pages.join(', ')}.` : '';
+    const helpers = inlineHelpers(file);
     const usage = [
       ...(fields.length
         ? [`Migrates reads of ${summaryList(fields)} to the documented new locations.`]
+        : []),
+      ...(helpers.length
+        ? [
+            `Adds the generated helper${helpers.length === 1 ? '' : 's'} ${summaryList(helpers.map(code))} to this file, which read${helpers.length === 1 ? 's' : ''} the removed fields under either API version.`,
+          ]
         : []),
       ...(cardFiles.has(file.path)
         ? [
@@ -899,6 +914,10 @@ export function createReviewArtifacts(
     ...(helperFiles.length
       ? [`It removes the generated ${summaryList(helperFiles.map((file) => code(file.path)))}.`]
       : []),
+    ...inlined.map(
+      (file) =>
+        `It removes the generated ${summaryList(inlineHelpers(file).map(code))} from ${code(file.path)}.`,
+    ),
     `Refit changed nothing outside this repository${stripe ? ': no Stripe Dashboard, webhook endpoint or account setting' : ''}.`,
   ];
   const checklist = [

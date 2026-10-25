@@ -696,14 +696,16 @@ type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;
 `;
 };
 
-// Only the helpers the patch calls, so the module adds no unused code to the repository.
+// Only the helpers the patch calls, so the module adds no unused code to the repository. Inline
+// helpers go into the one file that calls them, so they export nothing.
 export function subscriptionPeriodHelperModule(
   kind: 'ts' | 'esm' | 'cjs',
   helpers: readonly string[],
+  inline = false,
 ) {
   const typed = kind === 'ts';
   const t = (annotation: string) => (typed ? annotation : '');
-  const exported = kind === 'cjs' ? '' : 'export ';
+  const exported = kind === 'cjs' || inline ? '' : 'export ';
   const parameters = typed ? 'subscription: object, planItem?: PlanItem' : 'subscription, planItem';
   const result = typed ? ': number' : '';
   const sections: [string, string][] = [
@@ -836,6 +838,8 @@ ${exported}function getProductMarketingFeatures${typed ? '<T extends object>(pro
   const emitted = sections.filter(([name]) => helpers.includes(name));
   const periods = Object.values(PERIOD_HELPERS).some((name) => helpers.includes(name));
   return `${[...(periods ? [HELPER_BODY(typed)] : []), ...emitted.map(([, text]) => text)].join('\n')}${
-    kind === 'cjs' ? `\nmodule.exports = { ${emitted.map(([name]) => name).join(', ')} };\n` : ''
+    kind === 'cjs' && !inline
+      ? `\nmodule.exports = { ${emitted.map(([name]) => name).join(', ')} };\n`
+      : ''
   }`;
 }

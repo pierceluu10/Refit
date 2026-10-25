@@ -138,9 +138,8 @@ export async function copy(id: string) {
   expect(result.patched).toContain(
     "await stripe.products.update(id, { 'marketing_features': '' });",
   );
-  expect(result.patched).toContain(
-    "import { getProductMarketingFeatures } from './stripeSubscriptionPeriod';",
-  );
+  expect(result.patched).toContain('\nfunction getProductMarketingFeatures<T extends object>(');
+  expect(result.patched).not.toContain('stripeSubscriptionPeriod');
   expect(result.edits.filter((edit) => edit.rule === PRODUCT_MARKETING_FEATURES_RULE)).toHaveLength(
     2,
   );
