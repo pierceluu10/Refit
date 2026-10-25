@@ -25,7 +25,7 @@ The inventory ran from a clean pinned worktree at `fda92e5` on an Apple M5 (10 c
 
 These facts are read from the code and set the shape of the model:
 
-- **One job at a time.** The worker claims a job and awaits it before claiming the next (`pipeline/hosted-service.ts`), so more vCPUs do not add throughput today.
+- **One job at a time by default.** Without `--job-processes`, the worker claims a job and runs it in its own process before claiming the next (`pipeline/hosted-service.ts`), so more vCPUs add no throughput. `--job-processes <n>` runs up to `n` jobs at once, each in a forked process with a 1536 MiB heap, and `REFIT_HOSTED_INSTALLATION_JOBS` (default 1) caps how many of one installation's jobs run at once. The model below is for one job at a time; parallel jobs were not measured.
 - **Every enrolled repository is polled every 300 s** (`DEFAULT_INTERVAL_SECONDS`). Each poll fetches the repository, captures the contract and runs a full scan, whether or not anything changed (`pipeline/watch.ts`).
 - **A migration runs only when the contract changed.** Preparation, baseline and patched checks each run in a container limited to one CPU and 3 GiB of memory, with a 2 GiB tmpfs workspace (`pipeline/docker-sandbox.ts`). Linux charges tmpfs pages to the container's memory limit, so the workspace counts inside the 3 GiB.
 - **Stage time limits:**
