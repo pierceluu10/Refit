@@ -381,9 +381,8 @@ for (const entry of entries) {
     console.log('REFIT_GENERATED_RESULT=' + JSON.stringify({ id, ok: false, phase, error: text.slice(0, 500) }));
   }
 }
-console.log('${GENERATED_DONE}');
-// A stopped call may still hold the event loop open.
-process.exit(0);
+// A stopped call may still hold the event loop open; exit once everything printed is written.
+process.stdout.write('${GENERATED_DONE}\\n', () => process.exit(0));
 `;
 
 export type GeneratedPhase = 'load' | 'call' | 'timeout';
