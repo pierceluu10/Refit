@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import pg from 'pg';
@@ -13,6 +13,7 @@ import { runHostedService } from './hosted-service.ts';
 import { hostedTargetId, openHostedStore } from './hosted-store.ts';
 import { DEFAULT_TENANCY_LIMITS } from './hosted-tenancy.ts';
 import { verifyArtifacts } from './verification.ts';
+import { readEvidence } from './state-files.ts';
 
 const TENANCY = { accounts: ['example'], limits: DEFAULT_TENANCY_LIMITS };
 const transport = vi.hoisted(() => ({ source: '', head: '', tokens: [] as string[] }));
@@ -380,7 +381,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
       receipt: { status: 'validated', readiness: 'ready-for-validation', revision: sample.head },
     });
     const report = JSON.parse(
-      await readFile(join(registry.jobs[0].receipt.output, 'report.json'), 'utf8'),
+      (await readEvidence(registry.jobs[0].receipt.output, 'report.json'))!,
     );
     expect(report.validation.patched.status).toBe('passed');
     expect((await verifyArtifacts(registry.jobs[0].receipt.output)).status).toBe(

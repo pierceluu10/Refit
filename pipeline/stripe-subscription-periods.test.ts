@@ -19,6 +19,7 @@ import { resolveDockerImage } from './docker-sandbox.ts';
 import { migrationReviewReason } from './migration-review.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { watchOnce } from './watch.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const FIXTURE = resolve('pipeline/fixtures/stripe-webhooks');
@@ -361,7 +362,7 @@ it
         output: join(sample.root, 'workflow'),
       });
       expect(result.manifest.status).toBe(checks === 'passed' ? 'validated' : 'validation-failed');
-      const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+      const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
       expect(report.patch).toMatchObject({ generator: 'deterministic', unresolvedFindings: 0 });
       expect(report.validation).toMatchObject({
         baseline: { status: 'passed' },

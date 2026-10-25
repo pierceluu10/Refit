@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createPatch } from 'diff';
-import { mkdir, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import {
@@ -22,10 +22,13 @@ import { readProviderAdapter } from './providers.ts';
 import { isRemovedOperationChange } from './openapi-operations.ts';
 import { digest, isObject, readSpecification } from './specifications.ts';
 import {
+  COMPRESSED_SUFFIX,
+  compressEvidence,
   hasErrorCode,
   readState,
   stateDirectoryOutsideRepository,
   withStateLock,
+  writeAtomically,
   writeState,
 } from './state-files.ts';
 import { runPipeline } from './run.ts';
@@ -289,15 +292,27 @@ async function watchLocalOnce(
           : {}),
       }),
     );
-    await writeState(join(observations, `${snapshot.hash}.json`), {
-      source: snapshot.url,
-      sourceHash: snapshot.hash,
-      provider: provider.id,
-      scan,
-      ...(capturedDocumentation.changes.length
-        ? { documentationChanges: capturedDocumentation.changes }
-        : {}),
-    });
+    const observation = join(observations, `${snapshot.hash}.json`);
+    await writeAtomically(
+      `${observation}${COMPRESSED_SUFFIX}`,
+      await compressEvidence(
+        `${JSON.stringify(
+          {
+            source: snapshot.url,
+            sourceHash: snapshot.hash,
+            provider: provider.id,
+            scan,
+            ...(capturedDocumentation.changes.length
+              ? { documentationChanges: capturedDocumentation.changes }
+              : {}),
+          },
+          null,
+          2,
+        )}\n`,
+      ),
+    );
+    // The uncompressed observation an earlier Refit wrote for this source.
+    await rm(observation, { force: true });
     state.lastSource = snapshot.hash;
     await writeState(statePath, state);
     const previous = jobs[jobKey];
@@ -328,7 +343,16 @@ async function watchLocalOnce(
         ? { status: 'up-to-date', output: null }
         : isObject(previous) &&
             !(options.retry && RETRYABLE_STATUSES.has(String(previous.status))) &&
-            !(OPEN_DRAFT_STATUSES.has(String(previous.status)) && previous.refit !== REFIT_VERSION)
+            !(
+              OPEN_DRAFT_STATUSES.has(String(previous.status)) && previous.refit !== REFIT_VERSION
+            ) &&
+            // A result from a run without AI gets one run with it; a current draft is found then.
+            !(
+              configuration.aiPatch &&
+              previous.ai !== true &&
+              (previous.status === 'needs-review' ||
+                OPEN_DRAFT_STATUSES.has(String(previous.status)))
+            )
           ? {
               status: String(previous.status),
               output: typeof previous.output === 'string' ? previous.output : null,
@@ -385,6 +409,7 @@ async function watchLocalOnce(
       runId: scan.runId,
       sourceHash: snapshot.hash,
       refit: REFIT_VERSION,
+      ...(configuration.aiPatch ? { ai: true } : {}),
     };
     await writeState(statePath, state);
     const confirmedUsageCount = scan.findings.filter(
