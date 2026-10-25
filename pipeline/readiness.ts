@@ -9,7 +9,7 @@ import type { BreakingOperationImpact } from './provider-operations.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
-import { migrationReviewReason } from './migration-review.ts';
+import { migrationReviewReason, targetReached } from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import {
@@ -501,7 +501,8 @@ export async function inspectRepositoryReadiness(options: {
       evidence.requestChanges,
       evidence.expandedFields,
     );
-    if (unsupportedChanges.length || evidence.operationImpacts.length)
+    // A merged draft leaves the fields it migrated unread; the watcher then advances its baseline.
+    if (!targetReached(evidence) && (unsupportedChanges.length || evidence.operationImpacts.length))
       report.checks.push({
         id: 'migration-coverage',
         title: 'Supported migration coverage',
