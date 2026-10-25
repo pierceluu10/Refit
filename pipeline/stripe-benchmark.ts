@@ -113,34 +113,68 @@ export function repositoryAdapter(repository: Repository, operations: StripeOper
 
 export const PUBLISH_BASE = 'refit-base';
 
-// One row per affected repository: outcome, pull request and the reason it stopped. The results
-// are checked against their schema first; infrastructure errors are listed, not counted.
+const clean = (value: unknown) =>
+  String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .replace(/\|/g, '/')
+    .slice(0, 140);
+
+// The full contract diff on, through validation when the scan lets it run. It uses the benchmark's
+// SDK-spec adapter; `customerMode` records the built-in adapter a hosted worker scans with.
+// Rows from runs before production mode was recorded say so instead of guessing.
+export function productionOutcome(entry: Record<string, unknown>) {
+  const production = entry.production as { status?: string; reason?: string; error?: string };
+  const scan = entry.productionMode as
+    { status?: string; stop?: string | null; error?: string } | undefined;
+  if (production?.status)
+    return { outcome: production.status, reason: production.error ?? production.reason };
+  if (!scan) return { outcome: 'not affected' };
+  if (scan.error) return { outcome: 'error', reason: scan.error };
+  if (scan.status !== 'affected') return { outcome: 'not affected' };
+  if (!('stop' in scan)) return { outcome: 'not measured' };
+  return scan.stop ? { outcome: 'needs-review', reason: scan.stop } : { outcome: 'affected' };
+}
+
+// One row per affected repository, production mode first: its outcome, the benchmark mode
+// outcome (full contract diff off), pull request and the reason it stopped. The results are
+// checked against their schema first; infrastructure errors are listed, not counted.
 export function summaryTable(entries: Record<string, unknown>[]) {
   const { predates } = assertResults('stripe-results', entries, { allowPredating: true });
   const { results, infrastructure } = splitRows('stripe-results', entries);
   const rows = results.map((entry) => {
     const workflow = entry.workflow as Record<string, unknown> | undefined;
     const publication = entry.publication as Record<string, unknown> | undefined;
-    const affected = Boolean((entry.fullAdapter as { confirmed?: number } | undefined)?.confirmed);
+    const benchmarkAffected = Boolean(
+      (entry.fullAdapter as { confirmed?: number } | undefined)?.confirmed,
+    );
     const outcome = publication?.url
       ? 'pull request'
-      : String(workflow?.status ?? (affected ? 'affected' : 'not affected'));
+      : String(workflow?.status ?? (benchmarkAffected ? 'affected' : 'not affected'));
+    // With the full diff on in the workflow itself, the customer's run is that same run.
+    const production = workflow?.fullDiff === true ? { outcome } : productionOutcome(entry);
     // A published row needs no stop reason; the workflow's own reason predates publication.
-    const reason = String(
-      publication?.url ? '' : (publication?.error ?? workflow?.error ?? workflow?.reason ?? ''),
-    )
-      .replace(/\s+/g, ' ')
-      .replace(/\|/g, '/')
-      .slice(0, 140);
-    return { repo: String(entry.repo), affected, outcome, url: publication?.url, reason };
+    const benchmarkReason = publication?.url
+      ? ''
+      : (publication?.error ?? workflow?.error ?? workflow?.reason ?? '');
+    return {
+      repo: String(entry.repo),
+      affected: benchmarkAffected || production.outcome !== 'not affected',
+      production: production.outcome,
+      outcome,
+      url: publication?.url,
+      reason: clean(
+        production.outcome !== outcome && production.reason ? production.reason : benchmarkReason,
+      ),
+    };
   });
   const affected = rows.filter((row) => row.affected);
-  const count = (outcome: string) => affected.filter((row) => row.outcome === outcome).length;
-  const outcomes = [...new Set(affected.map((row) => row.outcome))].sort();
+  const count = (key: 'production' | 'outcome', outcome: string) =>
+    affected.filter((row) => row[key] === outcome).length;
+  const outcomes = [...new Set(affected.flatMap((row) => [row.production, row.outcome]))].sort();
   return [
     '# Stripe benchmark summary',
     '',
-    `Repositories: ${rows.length}. Affected: ${affected.length}. Pull requests: ${count('pull request')}.`,
+    `Repositories: ${rows.length}. Affected in either mode: ${affected.length}. Production mode runs the full contract diff, as a hosted worker does, with the benchmark's SDK-spec adapter (customerMode records the built-in adapter's scan); benchmark mode turns the full diff off. Pull requests: ${count('outcome', 'pull request')}.`,
     ...(predates.length
       ? [
           '',
@@ -148,15 +182,18 @@ export function summaryTable(entries: Record<string, unknown>[]) {
         ]
       : []),
     '',
-    '| Outcome | Repositories |',
-    '|---|---|',
-    ...outcomes.map((outcome) => `| ${outcome} | ${count(outcome)} |`),
+    '| Outcome | Production | Benchmark |',
+    '|---|---|---|',
+    ...outcomes.map(
+      (outcome) =>
+        `| ${outcome} | ${count('production', outcome)} | ${count('outcome', outcome)} |`,
+    ),
     '',
-    '| Repository | Outcome | Pull request | Reason |',
-    '|---|---|---|---|',
+    '| Repository | Production | Benchmark | Pull request | Reason |',
+    '|---|---|---|---|---|',
     ...affected.map(
       (row) =>
-        `| ${row.repo} | ${row.outcome} | ${row.url ? `[link](${String(row.url)})` : ''} | ${row.reason} |`,
+        `| ${row.repo} | ${row.production} | ${row.outcome} | ${row.url ? `[link](${String(row.url)})` : ''} | ${row.reason} |`,
     ),
     '',
     ...(infrastructure.length
@@ -167,7 +204,7 @@ export function summaryTable(entries: Record<string, unknown>[]) {
           '|---|---|---|',
           ...infrastructure.map(
             (row) =>
-              `| ${String(row.repo)} | ${row.infrastructure.kind} | ${row.infrastructure.message.replace(/\s+/g, ' ').replace(/\|/g, '/').slice(0, 140)} |`,
+              `| ${String(row.repo)} | ${row.infrastructure.kind} | ${clean(row.infrastructure.message)} |`,
           ),
           '',
         ]
