@@ -241,6 +241,23 @@ exports.handler = async (event, context) => {
   });
 });
 
+it('joins a pinned client and a release default that send the same version', async () => {
+  const root = await repository({
+    'package.json': manifest('^18.2.1', TESTS),
+    'package-lock.json': npmLock('18.2.1'),
+    'src/lib/stripe.ts': QUILL.replace('2026-04-22.dahlia', '2025-05-28.basil'),
+    'src/admin.ts': `import Stripe from "stripe";\n\nexport const admin = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");\n`,
+  });
+  const { proposal, stops } = await proposeStripeConfiguration(root);
+  expect(stops).toEqual([]);
+  // Before: "set at src/lib/stripe.ts:3 and the default of stripe-node 18.2.1, …"
+  expect(proposal?.apiVersion).toEqual({
+    value: '2025-05-28.basil',
+    source:
+      'set at src/lib/stripe.ts:3, and the default of stripe-node 18.2.1, which the lockfile records',
+  });
+});
+
 it('stops on a version read from the environment, and names the line', async () => {
   // kevinknielsen/superfan-core lib/stripe.ts
   const root = await repository({
@@ -521,7 +538,7 @@ void setup();
     {
       id: 'api-version-several',
       detail:
-        "This repository sends more than one Stripe API version (2026-03-25.dahlia at src/server/api/routers/billing.ts:5; stripe-node 23.0.0's default 2026-09-30.endive at src/lib/stripe.ts:5, tools/stripe-portal-setup.ts:4), and Refit moves one version at a time.",
+        "This repository sends more than one Stripe API version (2026-03-25.dahlia at src/server/api/routers/billing.ts:5; stripe-node 23.0.0's default 2026-09-30.endive at src/lib/stripe.ts:5 and tools/stripe-portal-setup.ts:4), and Refit moves one version at a time.",
       action:
         'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
     },
@@ -589,7 +606,7 @@ export async function createProduct(access_token, name) {
   expect(proposal).toMatchObject({
     apiVersion: {
       value: '2023-10-16',
-      source: 'the oldest version set at lib/stripe.js:4, src/lib/stripe.ts:3',
+      source: 'the oldest version set at lib/stripe.js:4 and src/lib/stripe.ts:3',
     },
     reviews: [
       {
@@ -825,7 +842,7 @@ it('stops on a project the root lockfile does not install, or with no root packa
     {
       id: 'nested-project',
       detail:
-        'stripe is declared in serverless/payment/checkStripeSession/package.json, serverless/payment/createStripeSession/package.json, which the root lockfile does not install, so Refit cannot prepare those projects.',
+        'stripe is declared in serverless/payment/checkStripeSession/package.json and serverless/payment/createStripeSession/package.json, which the root lockfile does not install, so Refit cannot prepare those projects.',
       action:
         'Refit installs and checks only from the root package.json and its lockfile: make those projects a workspace of the root and commit the lockfile, or commit a .refit.json with a custom image (docs/DEPENDENCIES.md).',
     },
@@ -1048,7 +1065,7 @@ it('blames a tsconfig only when it hides a client, and names a client it sees bu
     {
       id: 'no-stripe-client',
       detail:
-        'Refit sees Stripe clients created at backend/server.js:4, backend/worker.js:4, but cannot follow them to the calls that use them.',
+        'Refit sees Stripe clients created at backend/server.js:4 and backend/worker.js:4, but cannot follow them to the calls that use them.',
       action: UNFOLLOWED_ACTION.replace('this one', 'these'),
     },
   ]);
