@@ -129,7 +129,12 @@ const route = (version: string) =>
 
 // Two shapes from the dev set: a Next.js app whose webhook route makes its own older client
 // (Loopletter, tinypivot), and an app with a script that already pins the target (noir-crm).
-const SHAPES: { files: Record<string, string>; pins: string[][]; changed: string[] }[] = [
+const SHAPES: {
+  files: Record<string, string>;
+  pins: string[][];
+  unlisted: string[];
+  changed: string[];
+}[] = [
   {
     files: {
       'lib/stripe.js': client(BEFORE),
@@ -140,6 +145,7 @@ const SHAPES: { files: Record<string, string>; pins: string[][]; changed: string
       ['app/api/webhooks/stripe/route.js:2', '2025-06-30.basil'],
       ['lib/stripe.js:2', BEFORE],
     ],
+    unlisted: [],
     changed: ['app/api/webhooks/stripe/route.js', 'checkout.js', 'lib/stripe.js'],
   },
   {
@@ -148,10 +154,9 @@ const SHAPES: { files: Record<string, string>; pins: string[][]; changed: string
       'checkout.js': checkout('./src/stripe.js', "['card']"),
       'scripts/cancel-all.js': route(TARGET),
     },
-    pins: [
-      ['scripts/cancel-all.js:2', TARGET],
-      ['src/stripe.js:2', BEFORE],
-    ],
+    // The script already sends the target, so the patch leaves it and does not list it.
+    pins: [['src/stripe.js:2', BEFORE]],
+    unlisted: ['scripts/cancel-all.js:2'],
     changed: ['checkout.js', 'src/stripe.js'],
   },
 ];
@@ -164,7 +169,8 @@ it.each(SHAPES)('moves every older pin to the target and lists each one', async 
   expect(scanReviewReason(stopped, false, false)).toMatch(
     new RegExp(`^Declared SDK API version .+ conflicts with the application pin ${BEFORE}\\.$`),
   );
-  expect(changedFiles(stopped)).not.toContain(shape.pins[0][0].split(':')[0]);
+  for (const [site, version] of shape.pins)
+    if (version !== BEFORE) expect(changedFiles(stopped)).not.toContain(site.split(':')[0]);
 
   const reviewed = await scan(shape.files, true);
   expect(scanReviewReason(reviewed, false, true)).toBeUndefined();
@@ -183,8 +189,56 @@ it.each(SHAPES)('moves every older pin to the target and lists each one', async 
   expect(manifest.title).toMatch(/^\[Needs review\] /);
   for (const [site, version] of shape.pins)
     expect(files['pull-request.md']).toContain(`  - \`${site}\` \`${version}\``);
+  for (const site of shape.unlisted) expect(files['pull-request.md']).not.toContain(site);
   expect(publicationWaiver(report, false)).toBeUndefined();
 });
+
+// Two shapes of a constant that sets both a client's apiVersion and a webhook endpoint's
+// api_version. Moving it would move that endpoint, so under decision 1 it stays and is listed.
+const ENDPOINT_SHAPES: { files: Record<string, string>; constant: string; client: string }[] = [
+  {
+    files: {
+      'lib/stripe.js': `import Stripe from 'stripe';\nconst VERSION = '2025-06-30.basil';\nexport const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: VERSION });\nexport const listen = (url) => stripe.webhookEndpoints.create({ url, enabled_events: ['*'], api_version: VERSION });\n`,
+      'src/stripe.js': client(BEFORE),
+      'checkout.js': checkout('./src/stripe.js', "['card']"),
+    },
+    constant: 'lib/stripe.js',
+    client: 'lib/stripe.js:3',
+  },
+  {
+    files: {
+      'config/stripe.js': `export const STRIPE_API_VERSION = '2025-06-30.basil';\n`,
+      'server/stripe.js': `import Stripe from 'stripe';\nimport { STRIPE_API_VERSION } from '../config/stripe.js';\nexport const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: STRIPE_API_VERSION });\nexport const listen = (url) => stripe.webhookEndpoints.create({ url, enabled_events: ['*'], 'api_version': STRIPE_API_VERSION });\n`,
+      'src/stripe.js': client(BEFORE),
+      'src/checkout.js': checkout('./stripe.js', "['card']"),
+    },
+    constant: 'config/stripe.js',
+    client: 'server/stripe.js:3',
+  },
+];
+
+it.each(ENDPOINT_SHAPES)(
+  'leaves a version constant that also sets a webhook endpoint, and lists it',
+  async (shape) => {
+    const reviewed = await scan(shape.files, true);
+    expect(changedFiles(reviewed)).not.toContain(shape.constant);
+    expect(changedFiles(reviewed)).toContain('src/stripe.js');
+    const reviews = publicationWaiver(passed(reviewed), true)!;
+    const untraced = reviews.find(({ gate }) => gate === 'api-version-untraced');
+    const [file, line] = shape.client.split(':');
+    expect(untraced && 'sites' in untraced ? untraced.sites : []).toEqual([
+      {
+        file,
+        line: Number(line),
+        detail: "2025-06-30.basil, also a webhook endpoint's api_version",
+      },
+    ]);
+    const moved = reviews.find(({ gate }) => gate === 'api-version');
+    expect(moved && 'sites' in moved ? moved.sites : []).toEqual([
+      { file: 'src/stripe.js', line: 2, detail: BEFORE },
+    ]);
+  },
+);
 
 // Two shapes of a run whose only finding is a removed parameter with no reviewed replacement (an
 // in-person method): a Next.js route with its own client (lamp-bot) and a shared client.
@@ -334,7 +388,7 @@ it.each(UNTRACED_SHAPES)(
     const reviews = publicationWaiver(report, true)!;
     const untraced = reviews.find(({ gate }) => gate === 'api-version-untraced');
     expect(untraced).toMatchObject({
-      reason: `Refit cannot trace which API version the code listed here sends, so the patch leaves it unchanged. Refit compared the \`${BEFORE}\` contract with \`${TARGET}\`; if this code sends another version, what needs migrating can differ.`,
+      reason: `Refit cannot trace which API version the code listed here sends, or cannot move it without moving a webhook endpoint too, so the patch leaves it unchanged. Refit compared the \`${BEFORE}\` contract with \`${TARGET}\`; if this code sends another version, what needs migrating can differ.`,
       check: `Set each version listed here to \`${TARGET}\` where its value comes from, and check what this code needs for the version it sends now.`,
     });
     const [file, line] = shape.untraced.split(':');

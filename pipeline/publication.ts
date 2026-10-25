@@ -777,10 +777,13 @@ export function publicationWaiver(
               gate: 'api-version' as const,
               reason: `Not every API-version pin in this code sends the configured ${code(report.apiVersion.application!)}. The patch moves every pin listed here (its line before this patch and the version it sent) to ${code(targetVersion)}; Refit compared the ${before} contract with it.`,
               check: `Confirm every client and request listed here should send ${code(targetVersion)}, and check by hand the code behind each pin that is not ${before}: Refit compared only that contract with the target.`,
+              // Only the pins the patch changes: literals older than the target.
               sites: report.apiVersion.source.declarations.flatMap((declaration): ReviewSite[] =>
-                declaration.value === null
-                  ? []
-                  : [{ file: declaration.file, line: declaration.line, detail: declaration.value }],
+                declaration.status === 'literal' &&
+                declaration.value !== null &&
+                declaration.value < targetVersion
+                  ? [{ file: declaration.file, line: declaration.line, detail: declaration.value }]
+                  : [],
               ),
             },
           ]
@@ -795,12 +798,16 @@ export function publicationWaiver(
       ? [
           {
             gate: 'api-version-untraced' as const,
-            reason: `Refit cannot trace which API version the code listed here sends, so the patch leaves it unchanged. Refit compared the ${before} contract with ${code(targetVersion)}; if this code sends another version, what needs migrating can differ.`,
+            reason: `Refit cannot trace which API version the code listed here sends, or cannot move it without moving a webhook endpoint too, so the patch leaves it unchanged. Refit compared the ${before} contract with ${code(targetVersion)}; if this code sends another version, what needs migrating can differ.`,
             check: `Set each version listed here to ${code(targetVersion)} where its value comes from, and check what this code needs for the version it sends now.`,
             sites: untraced.map((declaration): ReviewSite => ({
               file: declaration.file,
               line: declaration.line,
-              ...(declaration.value ? { detail: declaration.value } : {}),
+              ...(declaration.value
+                ? {
+                    detail: `${declaration.value}${declaration.endpoint ? ", also a webhook endpoint's api_version" : ''}`,
+                  }
+                : {}),
             })),
           },
         ]

@@ -180,7 +180,7 @@ async function runOpenApiPipeline(options: {
       : undefined;
   const {
     edits: analyzedEdits,
-    apiVersionDeclarations,
+    apiVersionDeclarations: declaredVersions,
     apiVersionLiterals,
     sourceWarnings,
     skippedFiles,
@@ -244,12 +244,23 @@ async function runOpenApiPipeline(options: {
     options.leaveReviewedFindings
       ? typeof targetVersion === 'string' && value < targetVersion
       : targetVersion !== applicationApiVersion && value === applicationApiVersion;
+  // A pin the application does not send that is also a webhook endpoint's api_version stays, as
+  // moving it would move that endpoint; it is listed as unresolved with why.
+  const endpointPin = (entry: { value: string | null; endpoint?: true }) =>
+    Boolean(
+      options.leaveReviewedFindings && entry.endpoint && entry.value && movesPin(entry.value),
+    );
+  const apiVersionDeclarations = declaredVersions.map((entry) =>
+    endpointPin(entry)
+      ? { ...entry, status: 'unknown' as const, reason: ENDPOINT_PIN_REASON }
+      : entry,
+  );
   const versionEdits =
     provider.packageName === STRIPE.packageName &&
     applicationApiVersion &&
     typeof targetVersion === 'string'
       ? apiVersionLiterals
-          .filter((literal) => movesPin(literal.value))
+          .filter((literal) => movesPin(literal.value) && !endpointPin(literal))
           .filter(
             (literal, index, all) =>
               all.findIndex(
@@ -756,6 +767,9 @@ export type PipelineReport = Awaited<ReturnType<typeof runOpenApiPipeline>>;
 
 // Shopify contracts are GraphQL schemas, not OpenAPI documents, so Shopify snapshots run the Shopify
 // pipeline. Its report carries every report field, with the OpenAPI-only ones empty.
+export const ENDPOINT_PIN_REASON =
+  "This version also sets a webhook endpoint's api_version, so moving it would change the version that endpoint receives.";
+
 export async function runPipeline(
   options: Parameters<typeof runOpenApiPipeline>[0],
 ): Promise<PipelineReport> {

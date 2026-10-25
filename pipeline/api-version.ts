@@ -14,6 +14,8 @@ export interface ApiVersionDeclaration extends Location {
   reason: string;
   // A safely traced constructor without the version option: stripe-node 12+ sends its own pin.
   absent?: true;
+  // The literal also sets a webhook endpoint's api_version (see declared-api-versions.ts).
+  endpoint?: true;
 }
 
 export interface ApiVersionSource {

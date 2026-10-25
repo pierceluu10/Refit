@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import {
   proposalContent,
@@ -1146,4 +1148,49 @@ it('knows a release’s default only inside a major the release table covers', (
   expect(stripeNodeDefaultVersion('21.0.0')).toBeUndefined();
   expect(stripeNodeDefaultVersion('23.1.0')).toBeUndefined();
   expect(stripeNodeDefaultVersion('18.2.1-beta.1')).toBeUndefined();
+});
+
+// A checked-out submodule's files are not in `git archive`, which validation reads, so enrollment
+// leaves them out too: enroll, doctor and the worker (which checks out none) propose the same.
+it.each<{ path: string; files: Record<string, string> }>([
+  { path: 'vendor/lib', files: { 'stripe.js': QUILL.replace('2026-04-22.dahlia', '2024-06-20') } },
+  {
+    path: 'packages/ui',
+    files: {
+      'package.json': manifest('^14.25.0'),
+      'src/stripe.ts': QUILL.replace('2026-04-22.dahlia', '2023-10-16'),
+    },
+  },
+])('leaves the files of a checked-out submodule at $path out', async ({ path, files }) => {
+  const git = (directory: string, ...args: string[]) =>
+    promisify(execFile)('git', [
+      '-C',
+      directory,
+      '-c',
+      'user.name=Refit Tests',
+      '-c',
+      'user.email=tests@refit.local',
+      '-c',
+      'protocol.file.allow=always',
+      ...args,
+    ]);
+  const library = await repository(files);
+  await git(library, 'init', '-qb', 'main');
+  await git(library, 'add', '.');
+  await git(library, 'commit', '-qm', 'library');
+  const root = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'package-lock.json': npmLock('22.1.1'),
+    'src/lib/stripe.ts': QUILL,
+  });
+  await git(root, 'init', '-qb', 'main');
+  await git(root, 'submodule', '-q', 'add', library, path);
+  await git(root, 'add', '.');
+  await git(root, 'commit', '-qm', 'app');
+  const { proposal, stops } = await proposeStripeConfiguration(root, { allowUntested: true });
+  expect(stops).toEqual([]);
+  expect(proposal!.apiVersion).toEqual({
+    value: '2026-04-22.dahlia',
+    source: 'set at src/lib/stripe.ts:3',
+  });
 });
