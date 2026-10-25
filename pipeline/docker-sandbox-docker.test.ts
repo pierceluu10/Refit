@@ -126,7 +126,7 @@ gated(
       capBnd: '0000000000000000',
       noNewPrivs: '1',
       seccomp: '2',
-      memoryMax: String(3 * 1024 ** 3),
+      memoryMax: String(5 * 1024 ** 3),
       pidsMax: '128',
       cpuMax: '100000 100000',
       core: '0',
@@ -135,7 +135,7 @@ gated(
     });
     expect(seen.root).toMatch(/^ro,/);
     expect(seen.input).toMatch(/^ro,/);
-    expect(seen.workspace).toMatch(/^rw,.*size=2097152k/);
+    expect(seen.workspace).toMatch(/^rw,.*size=4194304k/);
     expect(seen.tmp).toMatch(/^rw,.*noexec.*size=65536k/);
     // Only Docker's and the Node image's own variables, the entrypoint shell's PWD and SHLVL, and
     // CI=true; nothing from the host.
