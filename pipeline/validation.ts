@@ -844,7 +844,8 @@ export async function validateMigration(options: {
               revision,
               command: baselineCommand,
               image,
-              dependencies: environment?.archiveHash ?? null,
+              // The bundle's signature, not its archive hash: a rebuild changes tar bytes, not packages.
+              dependencies: environment?.signature ?? null,
               limits: validationLimits(),
             },
             () => {

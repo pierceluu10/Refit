@@ -31,7 +31,7 @@ function reusable(check: unknown): check is CheckResult {
 }
 
 // `inputs` must hold everything else the result depends on: the repository revision, the
-// command, the image ID, the dependency archive and the sandbox limits.
+// command, the image ID, the dependency bundle's signature and the sandbox limits.
 export async function baselineCheck(
   inputs: Record<string, unknown>,
   run: () => Promise<CheckResult>,

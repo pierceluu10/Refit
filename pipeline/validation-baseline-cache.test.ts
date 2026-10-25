@@ -1,12 +1,19 @@
 import { execFile } from 'node:child_process';
 import { chmod, cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { delimiter, join, resolve } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
+import { prepareDependencies } from './dependency-preparation.ts';
+import { digest } from './specifications.ts';
 import type { CheckResult } from './validation.ts';
 import { BASELINE_CHECK_CACHE_SETTING, baselineCheck } from './validation-baseline-cache.ts';
 import { validateMigration } from './validation.ts';
+
+vi.mock('./dependency-preparation.ts', async (original) => ({
+  ...(await original<typeof import('./dependency-preparation.ts')>()),
+  prepareDependencies: vi.fn(),
+}));
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -137,7 +144,7 @@ process.exit(side === 'baseline' ? ${baselineExit} : 0);
   );
   await chmod(join(binary, 'docker'), 0o755);
   vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
-  return async () => {
+  return async (extra: { prepareDependencies?: boolean } = {}) => {
     await rm(log, { force: true });
     const report = await validateMigration({
       repository,
@@ -146,6 +153,7 @@ process.exit(side === 'baseline' ? ${baselineExit} : 0);
       apiVersion: '2022-08-01',
       image: 'node:22-alpine',
       command: ['npm', 'test'],
+      ...extra,
     });
     const checks = (await readFile(log, 'utf8').catch(() => '')).split('\n').filter(Boolean);
     return { report, checks };
@@ -176,4 +184,29 @@ it('keeps a failed baseline failed when it is reused', async () => {
     baseline: { status: 'failed', exitCode: 1, stdout: 'baseline checks ran\n' },
     patched: { status: 'not-run' },
   });
+});
+
+// A prepared bundle as prepareDependencies returns it: an archive whose hash its environment records.
+async function bundle(signature: string, content: string) {
+  const archive = join(await temporary(), 'dependencies.tar');
+  await writeFile(archive, content);
+  const environment = {
+    signature,
+    archiveHash: digest(content),
+    archiveBytes: Buffer.byteLength(content),
+  };
+  return { directory: dirname(archive), archive, environment, reused: false };
+}
+
+it('reuses the baseline for a rebuilt bundle of the same signature, not for another signature', async () => {
+  const validate = await fixture(0);
+  vi.mocked(prepareDependencies).mockResolvedValue(await bundle('a'.repeat(64), 'first install'));
+  expect((await validate({ prepareDependencies: true })).checks).toEqual(['baseline', 'patched']);
+  // A rebuild of the same lockfile, recipe and image: other archive bytes, same signature.
+  vi.mocked(prepareDependencies).mockResolvedValue(await bundle('a'.repeat(64), 'second install'));
+  const rebuilt = await validate({ prepareDependencies: true });
+  expect(rebuilt.checks).toEqual(['patched']);
+  expect(rebuilt.report.validation).toHaveProperty('baselineReused');
+  vi.mocked(prepareDependencies).mockResolvedValue(await bundle('b'.repeat(64), 'second install'));
+  expect((await validate({ prepareDependencies: true })).checks).toEqual(['baseline', 'patched']);
 });
