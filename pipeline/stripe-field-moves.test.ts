@@ -942,7 +942,7 @@ const compiled = (patched: string, session: string) =>
   strictDiagnostics(
     new Map([
       ['/check/billing.ts', patched],
-      ['/check/stripe-subscription-period.ts', subscriptionPeriodHelperModule('ts')],
+      ['/check/stripeSubscriptionPeriod.ts', subscriptionPeriodHelperModule('ts')],
       ['/check/stripe.d.ts', stripeTypes(session)],
     ]),
   );
