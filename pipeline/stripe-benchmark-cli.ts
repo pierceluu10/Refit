@@ -484,6 +484,11 @@ async function benchmark(entry: Selected, index: number) {
       result.validationSeconds = Math.round((Date.now() - validationStarted) / 1000);
       lap('workflow');
     }
+    // The full patch, which the row truncates, stays in the run's artifact like a workflow's scan.
+    if (noCheck && scan.patch) {
+      await mkdir(bundle, { recursive: true });
+      await writeFile(join(bundle, 'scan.json'), json({ patch: scan.patch }));
+    }
     const outcome = stop
       ? { status: 'needs-review', stage: 'scan', reason: stop }
       : noCheck
