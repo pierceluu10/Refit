@@ -8,6 +8,24 @@ Prepared dependency bundles were never evicted, and `fly.toml` left `REFIT_DEPEN
 
 With `--job-processes`, `refit hosted serve` now runs each inventory in a forked `refit hosted inventory` process, with the same entry, 1536 MiB heap, stripped worker secrets and IPC protocol as job processes; the process reads the App credentials from its environment and gets the claim, the loaded registry and the time over IPC. Before, the inventory ran inside the worker: on the Fly worker the TypeScript analysis of `refit-dev/simplerdevelopment` (about 4,400 `.ts`/`.tsx` files) held the event loop for minutes in `getSymbolAtLocation`, so the 300-second cap never fired, `/health` failed, no job was claimed for over 20 minutes, SIGTERM was ignored, and after a restart the worker reclaimed the same inventory and hung again. Now a process that has not reported 10 seconds after the cap gets SIGTERM, then SIGKILL 10 seconds later, within the inventory's 360-second lease, and the inventory is recorded with an `error` naming the timeout. A failed inventory goes idle and runs again only on a push (at most once per 10 minutes), the daily re-scan, an operator request or a new installation, within the daily inventory cap; registry changes skip it. Without `--job-processes` nothing changed. Tests: `pipeline/hosted-runner.test.ts` forks a test inventory process (a result round-trips, a busy loop is killed at the cap, an error and a worker stop) and the real CLI, and `pipeline/hosted-job-limits.test.ts` shows `/health` answering within a second while an inventory process busy-loops, the timeout recorded, and the next job claimed and stored. Not exercised on the Fly worker or against `refit-dev/simplerdevelopment`; the analyzer itself is unchanged, so that repository's inventory now times out rather than completing.
 
+## October 25 checkpoint: Bun lockfiles, CI-chosen lockfiles and pnpm patches (unreleased, after 0.39.0)
+
+Preparation now builds the refusals O2 classified as buildable and #289 left:
+
+- **Bun text lockfiles.** A root project's `bun.lock` is translated into the npm lockfile of the same tree and installed with the verified `npm ci`; Bun never runs, and the draft says so. A tree npm cannot describe stops, such as a peer Bun nests inside the package that needs it.
+- **Conflicting lockfiles.** With a `packageManager` pin and committed GitHub workflows that install only with that manager, Refit installs that manager's lockfile.
+- **pnpm patches.** `patchedDependencies` are applied when every patch file is committed and matches the SHA-256 `pnpm-lock.yaml` records; `overrides` must equal the lockfile's.
+- **Peer-only npm drift.** An `npm ci` that reports the lockfile out of sync is retried once with `--legacy-peer-deps`, as `ERESOLVE` is (an extension of the 2026-10-20 decision, announced on the board); anything beyond peers still stops.
+
+On `subsets/l2-prep-remaining.json` (before 40159661032, after 40164744067):
+- guillermolg00/nextjs-stripe-store and Ardione321/prep-ai now prepare from `bun.lock` and pass their type checks, with findings left.
+- Alex-Unnippillil/share-house-portal prepares with pnpm, as its CI installs, and passes its tests.
+- devczero/saas-pdf-analysis-dev validates.
+- muhallimir/ampertalent prepares, but its baseline needs a Prisma generate step.
+- inventashif/hackerai's patches pass and it stops at a workspace bin.
+
+Tests: `pipeline/bun-lock.test.ts`, `pipeline/dependency-inputs.test.ts`, `pipeline/pnpm-inputs.test.ts`, `pipeline/npm-dependencies.test.ts` and `pipeline/review.test.ts`; the Docker suites passed on refit-bench (`gated.yml` run 40161788197).
+
 ## October 25 checkpoint: dependency preparation for Push 279 (unreleased, after 0.39.0)
 
 Preparation changes from #289, measured on refit-bench against the Laptop 2 base run 40144503063 (main `c65f169`, 249 repositories, default `2g` profile). In the after-run 40149872255 (`c65f169` plus #289), 12 repositories change stage, all of them preparation refusals before, and every repository that prepared before still prepares:

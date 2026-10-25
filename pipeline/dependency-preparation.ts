@@ -146,6 +146,17 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
+// `npm ci` is retried once with the same exact lockfile and --legacy-peer-deps when it rejects the
+// lockfile's peer dependencies (ERESOLVE, owner decision 2026-10-20) or reports the lockfile out of
+// sync (EUSAGE), as for a lockfile written with --legacy-peer-deps (Push 279). The retry validates the
+// lockfile again without peer edges, so a lockfile out of sync for any other reason still fails, and
+// it installs exactly the locked tree. The marker records the retry.
+export const npmCiWithPeerRetry = (ci: string, log = '/workspace/.refit-npm-ci.log') =>
+  `if ${ci} > ${log} 2>&1; then cat ${log} >&2; ` +
+  `elif grep -Eq '^npm (ERR!|error) code ERESOLVE$' ${log} || ` +
+  `{ grep -Eq '^npm (ERR!|error) code EUSAGE$' ${log} && grep -q 'are in sync' ${log}; }; then ` +
+  `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${ci} --legacy-peer-deps >&2; cat ${log} >&2; ` +
+  `else cat ${log} >&2; exit 1; fi; `;
 function installCommand(
   { manager, managerVersion, legacyPeerDeps, platformPackages }: PreparationIdentity,
   platformPackageMode?: 'skip' | 'install',
@@ -170,12 +181,7 @@ function installCommand(
             (legacyPeerDeps
               ? // The repository's own .npmrc asks for it, so there is nothing to retry.
                 `${NPM_CI} --legacy-peer-deps >&2; `
-              : // A peer dependency conflict (ERESOLVE) is retried once with the same exact lockfile
-                // and --legacy-peer-deps (owner decision, 2026-10-20); the marker records it.
-                `if ${NPM_CI} > /workspace/.refit-npm-ci.log 2>&1; then cat /workspace/.refit-npm-ci.log >&2; ` +
-                "elif grep -Eq '^npm (ERR!|error) code ERESOLVE$' /workspace/.refit-npm-ci.log; then " +
-                `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${NPM_CI} --legacy-peer-deps >&2; cat /workspace/.refit-npm-ci.log >&2; ` +
-                'else cat /workspace/.refit-npm-ci.log >&2; exit 1; fi; ') +
+              : npmCiWithPeerRetry(NPM_CI)) +
             'mkdir -p node_modules; ' +
             (managerVersion ? 'mv /workspace/.refit-tools node_modules/.refit-tools; ' : '') +
             `if [ -e "/lib/ld-musl-$(uname -m).so.1" ]; then node --input-type=module -e '${GLIBC_PACKAGE_PRUNE}'; fi; `) +
@@ -327,7 +333,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
   {
     reason: 'lockfile-out-of-sync',
     pattern:
-      /differ from the committed package-lock\.json|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
+      /differ from the committed (?:package-lock\.json|bun\.lock)|differs? from the (?:patch hash|overrides) pnpm-lock\.yaml records|^pnpm patches must be committed files whose SHA-256|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
     summary: 'the committed lockfile is out of sync with package.json',
     action: (lockfile: string) =>
       `Update \`${lockfile}\` so it matches \`package.json\` (run your package manager's install), commit it, then rerun your checks on this branch.`,
@@ -421,11 +427,13 @@ export function preparationFailure(error: unknown) {
     REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message)) ??
     (error instanceof DependencyPreparationError ? OTHER_DEPENDENCY_FAILURE : undefined);
   if (!failure) return undefined;
-  const lockfile = /pnpm/i.test(error.message)
-    ? 'pnpm-lock.yaml'
-    : /yarn/i.test(error.message)
-      ? 'yarn.lock'
-      : 'package-lock.json';
+  const lockfile = /\bbun\.lock\b/.test(error.message)
+    ? 'bun.lock'
+    : /pnpm/i.test(error.message)
+      ? 'pnpm-lock.yaml'
+      : /yarn/i.test(error.message)
+        ? 'yarn.lock'
+        : 'package-lock.json';
   return {
     reason: failure.reason,
     summary: failure.summary,

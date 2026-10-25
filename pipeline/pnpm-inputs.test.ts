@@ -366,13 +366,61 @@ it('names the declaration a pnpm lockfile has not caught up with', () => {
   );
 });
 it('names the unsupported pnpm setting and where it is set', () => {
-  // inventashif/hackerai at c48bdee patches three packages from its package.json "pnpm" field.
   const sample = scenario();
   sample.manifest.pnpm = {
     onlyBuiltDependencies: ['better-sqlite3'],
-    patchedDependencies: { 'ai@6.0.200': 'patches/ai@6.0.200.patch' },
+    packageExtensions: { stripe: { dependencies: { qs: '6.11.0' } } },
   };
   expect(() => validate(sample)).toThrow(
-    'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "patchedDependencies".',
+    'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "packageExtensions".',
   );
+});
+it('accepts committed patches and overrides only as pnpm-lock.yaml records them', () => {
+  const hash = 'a'.repeat(64);
+  // inventashif/hackerai at c48bdee sets patchedDependencies and overrides in its package.json
+  // "pnpm" field, and pnpm-lock.yaml records both, each patch with its SHA-256 and path.
+  const hackerai = scenario();
+  hackerai.manifest.pnpm = {
+    overrides: { 'e2b>undici8': 'npm:undici@8.9.0', axios: '1.18.0' },
+    patchedDependencies: { 'ai@6.0.200': 'patches/ai@6.0.200.patch' },
+  };
+  hackerai.lock.overrides = { axios: '1.18.0', 'e2b>undici8': 'npm:undici@8.9.0' };
+  hackerai.lock.patchedDependencies = {
+    'ai@6.0.200': { hash, path: 'patches/ai@6.0.200.patch' },
+  };
+  expect(validate(hackerai).patchHashes).toEqual({ 'patches/ai@6.0.200.patch': hash });
+  // A second, synthetic layout: pnpm 10 settings in pnpm-workspace.yaml.
+  const workspace = scenario();
+  workspace.workspace.patchedDependencies = { stripe: 'patches/stripe.patch' };
+  workspace.lock.patchedDependencies = { stripe: { hash, path: 'patches/stripe.patch' } };
+  expect(validate(workspace).patchHashes).toEqual({ 'patches/stripe.patch': hash });
+  const refusals: [string, (sample: ReturnType<typeof scenario>) => void][] = [
+    [
+      'patches',
+      (sample) => (sample.lock.patchedDependencies['ai@6.0.200'].path = 'patches/x.patch'),
+    ],
+    ['patches', (sample) => (sample.lock.patchedDependencies['ai@6.0.200'].hash = 'md5-base32')],
+    ['patches', (sample) => delete sample.lock.patchedDependencies],
+    [
+      'committed patch files inside the repository',
+      (sample) => (sample.manifest.pnpm.patchedDependencies['ai@6.0.200'] = '../ai.patch'),
+    ],
+    [
+      'pnpm overrides differ from the overrides pnpm-lock.yaml records',
+      (sample) => (sample.lock.overrides.axios = '1.17.0'),
+    ],
+    [
+      'pnpm overrides differ from the overrides pnpm-lock.yaml records',
+      (sample) => delete sample.lock.overrides,
+    ],
+    [
+      'set in both pnpm-workspace.yaml and package.json',
+      (sample) => (sample.workspace.overrides = { axios: '1.18.0' }),
+    ],
+  ];
+  for (const [message, mutate] of refusals) {
+    const sample = structuredClone(hackerai);
+    mutate(sample);
+    expect(() => validate(sample), message).toThrow(message);
+  }
 });
