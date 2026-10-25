@@ -519,6 +519,8 @@ async function installDependencies(
 export async function prepareDependencies(options: {
   repository: string;
   image: string;
+  // Prepare the committed root without its submodules, as validation checks it (owner decision 1).
+  submodules?: boolean;
   cacheDirectory?: string;
   // Copied under the cache lock, so eviction cannot remove the bundle mid-copy.
   copyArchiveTo?: string;
@@ -536,7 +538,9 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
   const cacheLimit = cacheLimitBytes();
-  const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository)
+  const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository, {
+    submodules: options.submodules,
+  })
     .then(readPreparationInputs)
     .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;

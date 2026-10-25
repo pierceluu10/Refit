@@ -32,7 +32,7 @@ import {
   validationProfile,
 } from './docker-sandbox.ts';
 import { legacyPeerDeps } from './dependency-inputs.ts';
-import { withStateLock } from './state-files.ts';
+import { readEvidence, withStateLock } from './state-files.ts';
 import { verifyArtifacts } from './verification.ts';
 import { runWorkflow } from './workflow.ts';
 
@@ -392,7 +392,7 @@ it.skipIf(!process.env.REFIT_NPM_PREPARE || !process.env.REFIT_BILLING_REPOSITOR
       signal: AbortSignal.timeout(90_000),
     });
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(report.validation.environment).toMatchObject({
       installation: { lifecycleScripts: false, network: 'bridge' },
       validation: { network: 'none' },
