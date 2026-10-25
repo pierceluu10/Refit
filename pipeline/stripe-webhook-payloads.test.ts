@@ -94,7 +94,7 @@ it.each([
     expect(result.edits.map((edit) => edit.file).sort()).toEqual([
       'handler.ts',
       'handler.ts',
-      'stripe-subscription-period.ts',
+      'stripeSubscriptionPeriod.ts',
     ]);
     expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
       true,
@@ -150,7 +150,7 @@ it.each([
     expect(result.edits.map((edit) => edit.file).sort()).toEqual([
       'handler.ts',
       'handler.ts',
-      'stripe-subscription-period.ts',
+      'stripeSubscriptionPeriod.ts',
     ]);
     expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
       true,
