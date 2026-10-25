@@ -9,6 +9,8 @@ import { digest } from './specifications.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readEvidence } from './state-files.ts';
+import { verifyArtifacts } from './verification.ts';
 
 vi.mock('./validation.ts', () => ({ validateMigration: vi.fn() }));
 vi.mock('./publication.ts', () => ({ publishDraft: vi.fn() }));
@@ -61,9 +63,10 @@ it.each([
     expect(validateMigration).not.toHaveBeenCalled();
     expect(publishDraft).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
-    expect(
-      JSON.parse(await readFile(join(input.output, 'scan.json'), 'utf8')).apiVersion,
-    ).toMatchObject({ applicability, policy: apiVersionPolicy });
+    expect(JSON.parse((await readEvidence(input.output, 'scan.json'))!).apiVersion).toMatchObject({
+      applicability,
+      policy: apiVersionPolicy,
+    });
   },
 );
 
@@ -112,9 +115,9 @@ it.each([
     expect(validateMigration).not.toHaveBeenCalled();
     expect(publishDraft).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
-    expect(
-      JSON.parse(await readFile(join(input.output, 'scan.json'), 'utf8')).apiVersion,
-    ).toMatchObject({ applicability });
+    expect(JSON.parse((await readEvidence(input.output, 'scan.json'))!).apiVersion).toMatchObject({
+      applicability,
+    });
   },
 );
 
@@ -145,7 +148,7 @@ it('forwards saved vendor-note paths into validation and leaves them off the sca
   expect(vi.mocked(validateMigration).mock.calls[0][0].documentationSnapshots).toEqual(
     documentationSnapshots,
   );
-  const scan = await readFile(join(input.output, 'scan.json'), 'utf8');
+  const scan = (await readEvidence(input.output, 'scan.json'))!;
   expect(scan).not.toContain('refit-vendor-note');
 });
 
@@ -159,9 +162,14 @@ it('retains completed scan evidence when validation setup fails and never publis
     stage: 'validation',
     error: { message: 'Docker image is unavailable' },
   });
-  expect(JSON.parse(await readFile(join(input.output, 'scan.json'), 'utf8')).status).toBe(
-    'affected',
-  );
+  expect(JSON.parse((await readEvidence(input.output, 'scan.json'))!).status).toBe('affected');
+  expect(result.manifest.files.map((file) => file.path)).toEqual([
+    'before.json',
+    'after.json',
+    'scan.json.gz',
+  ]);
+  expect(await verifyArtifacts(input.output)).toMatchObject({ status: 'integrity-verified' });
+  expect(await renderWorkflowResult(result)).toContain('API change');
   expect(publishDraft).not.toHaveBeenCalled();
   expect(progress.some((message) => message.includes('Publishing'))).toBe(false);
   expect(progress.at(-2)).toContain('Docker image is unavailable');

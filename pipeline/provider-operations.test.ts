@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -11,6 +11,7 @@ import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
 import { validateMigration } from './validation.ts';
+import { readEvidence } from './state-files.ts';
 
 vi.mock('./openapi-diff.ts', async (importOriginal) => {
   const original = await importOriginal<typeof import('./openapi-diff.ts')>();
@@ -267,7 +268,7 @@ it('finds SDK call sites for a removed mapped OpenAPI operation and blocks paid 
   );
   expect(validateMigration).not.toHaveBeenCalled();
   expect(fetcher).not.toHaveBeenCalled();
-  const scan = JSON.parse(await readFile(join(output, 'scan.json'), 'utf8'));
+  const scan = JSON.parse((await readEvidence(output, 'scan.json'))!);
   expect(scan).toMatchObject({
     status: 'affected',
     operationImpacts: [
