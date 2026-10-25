@@ -35,11 +35,14 @@ import {
   validateWorkflowSources,
 } from './validation-options.ts';
 import { gitEnvironment } from './git-environment.ts';
+import { COMPRESSED_SUFFIX, compressEvidence } from './state-files.ts';
 import { countBreakingOperationUsages } from './provider-operations.ts';
 import { apiVersionSourceBlocked, type ApiVersionPolicy } from './api-version.ts';
 import type { ReadinessCheck } from './readiness.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
+// Both hold the full contract diff, which dominates their size; see COMPRESSED_SUFFIX.
+const COMPRESSED_EVIDENCE = new Set(['scan.json', 'report.json']);
 const NO_USAGE_REASON =
   'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
 const NO_PATCH_NOTE =
@@ -203,7 +206,10 @@ export async function runWorkflow(options: {
   const directory = await createArtifactDirectory(options.repository, options.output);
   const files: { path: string; sha256: string; bytes: number }[] = [];
   let stage: Stage = 'inputs';
-  const save = async (path: string, content: string) => {
+  const save = async (name: string, text: string) => {
+    const compressed = COMPRESSED_EVIDENCE.has(name);
+    const path = compressed ? `${name}${COMPRESSED_SUFFIX}` : name;
+    const content = compressed ? await compressEvidence(text) : text;
     await writeFile(join(directory, path), content, { flag: 'wx', mode: 0o600 });
     files.push({ path, sha256: digest(content), bytes: Buffer.byteLength(content) });
   };
@@ -363,7 +369,7 @@ export async function runWorkflow(options: {
           scan,
           revision,
           publication,
-          !options.aiPatch && !options.assessment,
+          options.assessment ? false : options.aiPatch ? 'ai' : 'release',
         );
         if (existing) {
           stage = 'publication';
