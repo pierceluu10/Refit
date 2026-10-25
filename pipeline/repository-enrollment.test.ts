@@ -111,13 +111,30 @@ it('rechecks source-verified API versions after application changes without rely
   await expect(inspectRepositoryEnrollment(sample.input)).rejects.toThrow(
     /conflicts with the application pin/,
   );
-  await expect(
-    loadApprovedRepository({
-      repository: sample.repository,
-      approval: await readRepositoryApproval(output),
-      stateDirectory: join(sample.root, 'strict-cache'),
-    }),
-  ).rejects.toThrow(/conflicts with the application pin/);
+  const approved = {
+    repository: sample.repository,
+    approval: await readRepositoryApproval(output),
+    stateDirectory: join(sample.root, 'strict-cache'),
+  };
+  await expect(loadApprovedRepository(approved)).rejects.toThrow(
+    /conflicts with the application pin/,
+  );
+  // The watcher's target, as after a merged draft: the next poll runs, and the watch decides.
+  expect(
+    (await loadApprovedRepository({ ...approved, acceptedApiVersions: ['2'] })).fingerprint,
+  ).toBe(enrollment.fingerprint);
+  await expect(loadApprovedRepository({ ...approved, acceptedApiVersions: ['3'] })).rejects.toThrow(
+    /conflicts with the application pin/,
+  );
+  // A client the tracer cannot read never matches an accepted version.
+  await writeFile(
+    clientPath,
+    "import { Catalog } from '@example/catalog'; export const catalog = new Catalog({ apiVersion: process.env.CATALOG_VERSION });",
+  );
+  await commit(sample.repository);
+  await expect(loadApprovedRepository({ ...approved, acceptedApiVersions: ['2'] })).rejects.toThrow(
+    RepositoryApprovalError,
+  );
 });
 
 it('retains approval across application and current source changes while snapshotting reviewed inputs', async () => {

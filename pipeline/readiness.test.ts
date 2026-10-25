@@ -4,7 +4,12 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { inspectRepositoryReadiness } from './readiness.ts';
+import {
+  inspectRepositoryReadiness,
+  type ReadinessReport,
+  sortBlockedChecks,
+  UnclassifiedCheckError,
+} from './readiness.ts';
 import { renderReadiness } from './readiness-presentation.ts';
 import { digest, stripeSpecificationUrl } from './specifications.ts';
 
@@ -146,6 +151,82 @@ it('aggregates dirty Git, API-version and Docker setup failures with actionable 
   expect(
     result.checks.filter((check) => check.status === 'blocked').every((check) => check.action),
   ).toBe(true);
+});
+
+it('passes the API-version check for a version the service already watches, as after a merged draft', async () => {
+  const sample = await setup();
+  const providerPath = join(sample.repository, 'provider.json');
+  const provider = JSON.parse(await readFile(providerPath, 'utf8'));
+  provider.apiVersion = { constructorArgument: 0, property: 'apiVersion', requestArguments: [] };
+  await writeFile(providerPath, JSON.stringify(provider));
+  // The committed configuration still pins 1; the merged draft moved the client to 2.
+  await writeFile(
+    join(sample.repository, 'src/client.ts'),
+    "import { Catalog } from '@example/catalog'; export const catalog = new Catalog({ apiVersion: '2' });",
+  );
+  await commit(sample.repository);
+  const versionCheck = async (acceptedApiVersions?: string[]) =>
+    (
+      await inspectRepositoryReadiness({ repository: sample.repository, acceptedApiVersions })
+    ).checks.find((check) => check.id === 'api-version');
+  expect(await versionCheck()).toMatchObject({ status: 'blocked' });
+  expect(await versionCheck(['3'])).toMatchObject({ status: 'blocked' });
+  expect(await versionCheck(['2'])).toMatchObject({
+    status: 'passed',
+    action: null,
+    detail: expect.stringContaining('The code declares 2, which this service already watches'),
+  });
+});
+
+it('lets a merged draft past migration coverage while a change no rule covers still blocks', async () => {
+  const sample = await setup();
+  for (const file of ['before.json', 'after.json'])
+    await cp(resolve(`pipeline/fixtures/${file}`), join(sample.repository, file));
+  // billing.ts as the merged draft leaves it: the charges read migrated and the pin moved.
+  await writeFile(
+    join(sample.repository, 'billing.ts'),
+    `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2022-11-15' });
+export async function chargeHistory(paymentIntentId: string) {
+  const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  return (await stripe.charges.list({ payment_intent: intent.id })).data;
+}
+`,
+  );
+  const { providerConfig: _providerConfig, ...configuration } = sample.configuration;
+  await writeFile(
+    join(sample.repository, '.refit.json'),
+    JSON.stringify({ ...configuration, apiVersion: '2022-08-01', fullDiff: true }),
+  );
+  await commit(sample.repository);
+  const removal = {
+    id: 'response-optional-property-removed',
+    text: 'removed the optional property `charges` from the response with the `200` status',
+    level: 2,
+    responseSchema: 'payment_intent',
+    removedProperty: 'charges',
+  };
+  const coverage = async (...changes: unknown[]) => {
+    await writeFile(
+      join(sample.binaries, 'oasdiff'),
+      `#!${process.execPath}\nconsole.log(process.argv[2] === '--version' ? 'oasdiff-test' : ${JSON.stringify(JSON.stringify(changes))});`,
+      { mode: 0o755 },
+    );
+    const result = await inspectRepositoryReadiness({
+      repository: sample.repository,
+      acceptedApiVersions: ['2022-11-15'],
+    });
+    expect(result.checks.find((check) => check.id === 'api-version')?.status).toBe('passed');
+    return result.checks.find((check) => check.id === 'migration-coverage')?.status;
+  };
+  expect(await coverage(removal)).toBeUndefined();
+  expect(
+    await coverage(removal, {
+      id: 'new-required-request-parameter',
+      text: 'added the new required request parameter',
+      level: 3,
+    }),
+  ).toBe('blocked');
 });
 
 it('accepts version-tolerant webhook period reads without a price policy', async () => {
@@ -370,3 +451,70 @@ it('routes human and JSON diagnostics outside the repository and returns exit 2 
     ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown option') }),
   ]);
 }, 30_000);
+
+it('sorts every check that can block by what owner decision 1 does with it', () => {
+  const report = (ids: string[], missing = false): ReadinessReport => ({
+    formatVersion: 1,
+    kind: 'refit-readiness',
+    status: 'needs-attention',
+    configuration: '.refit.json',
+    repository: null,
+    revision: null,
+    provider: null,
+    image: null,
+    currentSourceChecked: false,
+    checks: [
+      ...ids.map((id) => ({
+        id,
+        title: id,
+        status: 'blocked' as const,
+        detail: '',
+        action: null,
+      })),
+      { id: 'contract-coverage', title: 'review', status: 'review', detail: '', action: null },
+    ],
+    ...(missing ? { missing: true as const } : {}),
+    sdkCoverage: null,
+    scope: [],
+  });
+  const ids = (checks: { id: string }[]) => checks.map((check) => check.id);
+  const sorted = sortBlockedChecks(
+    report([
+      'configuration',
+      'contracts',
+      'repository',
+      'analysis',
+      'docker',
+      'source-baseline',
+      'source-provenance',
+      'webhook-migration',
+      'api-version',
+      'migration-coverage',
+      'dependencies',
+      'source-resolution',
+      'sdk-coverage',
+    ]),
+  );
+  expect(ids(sorted.setup)).toEqual([
+    'configuration',
+    'contracts',
+    'repository',
+    'analysis',
+    'docker',
+    'source-baseline',
+  ]);
+  expect(ids(sorted.workflow)).toEqual([
+    'source-provenance',
+    'webhook-migration',
+    'api-version',
+    'migration-coverage',
+    'dependencies',
+  ]);
+  expect(ids(sorted.review)).toEqual(['source-resolution', 'sdk-coverage']);
+  // A generated configuration doctor could not check has no workflow, whatever its stops are named.
+  expect(ids(sortBlockedChecks(report(['source-resolution', 'no-checks'], true)).setup)).toEqual([
+    'source-resolution',
+    'no-checks',
+  ]);
+  expect(() => sortBlockedChecks(report(['contract-coverage']))).toThrow(UnclassifiedCheckError);
+});

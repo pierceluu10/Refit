@@ -7,7 +7,7 @@ import { afterEach, expect, it } from 'vitest';
 import { stripeContractVersion } from './enrollment-contracts.ts';
 import { enrollmentReviewText } from './enrollment-review.ts';
 import { renderReadiness } from './readiness-presentation.ts';
-import { inspectRepositoryReadiness } from './readiness.ts';
+import { inspectRepositoryReadiness, sortBlockedChecks } from './readiness.ts';
 import {
   approveRepositoryEnrollment,
   inspectRepositoryEnrollment,
@@ -130,6 +130,20 @@ it('gives every reason it cannot generate a configuration, each with its fix', a
     stops: [stop],
     message: `${stop.detail} ${stop.action}`,
   });
+  // Under owner decision 1 the configuration is generated, so doctor goes on to the contracts.
+  const contracts = await directory();
+  expect(
+    (await inspectRepositoryReadiness({ repository: app, contracts, allowUntested: true })).checks,
+  ).toEqual([expect.objectContaining({ id: 'contracts', status: 'blocked' })]);
+  await expect(
+    inspectRepositoryEnrollment({
+      repository: app,
+      github: 'acme/app',
+      base: 'main',
+      contracts,
+      allowUntested: true,
+    }),
+  ).rejects.toThrow("Stripe's 2026-04-22.dahlia contract is not saved on this machine yet.");
   // An uncommitted change is a blocker too, reported with the generation stops.
   await writeFile(join(app, 'src/lib/stripe.ts'), `${CLIENT}// edited\n`);
   expect(
@@ -226,6 +240,53 @@ it.skipIf(!SAVED)(
         'Your code now sends Stripe API version 2026-09-30.endive, the newest Refit has a contract for, so there is nothing to move.',
       ),
     );
+  },
+);
+
+it.skipIf(!SAVED)(
+  'approves a configuration without a lockfile only for a worker that publishes it for review',
+  async () => {
+    const app = await repository({ lockfile: false });
+    const enroll = { repository: app, github: 'acme/app', base: 'main', contracts: SAVED };
+    const enrollment = await inspectRepositoryEnrollment({ ...enroll, allowUntested: true });
+    expect(enrollment.generated?.untested.map((stop) => stop.id)).toEqual(['no-lockfile']);
+    expect(enrollmentReviewText(enrollment)).toContain(
+      'Refit cannot test a patch here, so each draft it opens is titled [Needs review]: Refit installs dependencies only from a committed lockfile',
+    );
+    const state = await directory();
+    const { approval } = await approveRepositoryEnrollment({
+      enrollment,
+      fingerprint: enrollment.fingerprint,
+      output: join(state, 'approval.json'),
+    });
+    const load = (allowUntested?: boolean) =>
+      loadApprovedRepository({
+        repository: app,
+        approval,
+        stateDirectory: state,
+        integration: 'stripe',
+        contracts: SAVED,
+        allowUntested,
+      });
+    await expect(load()).rejects.toThrow(
+      new RepositoryApprovalError(
+        'Repository configuration needs review: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+      ),
+    );
+    const loaded = await load(true);
+    expect(loaded.fingerprint).toBe(enrollment.fingerprint);
+    expect(loaded.workflow).toMatchObject({ command: ['npm', 'test'], prepareDependencies: true });
+    // Doctor's dependency check blocks, and decision 1 runs the workflow past it: preparation then
+    // fails on the missing lockfile and the patch is published untested.
+    const report = await inspectRepositoryReadiness({
+      repository: app,
+      contracts: SAVED,
+      allowUntested: true,
+    });
+    expect(report.missing).toBeUndefined();
+    const sorted = sortBlockedChecks(report);
+    expect(sorted.workflow.map((check) => check.id)).toContain('dependencies');
+    expect(sorted.setup.map((check) => check.id)).not.toContain('dependencies');
   },
 );
 
