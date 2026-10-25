@@ -4,6 +4,7 @@ import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
 import { STRIPE_IMPORT } from './check-selection.ts';
 import {
+  generatedEnvironment,
   generatedImportMap,
   MOCK_PORT,
   sandboxTranspile,
@@ -292,6 +293,7 @@ export async function writeBehaviourHarness(
     [],
     behaviourImportMap(sources.original, tests),
     behaviourImportMap(sources.patched, tests),
+    generatedEnvironment(sources.original, sources.patched),
   );
   await writeFile(join(directory, 'reporter.mjs'), REPORTER, { mode: 0o444 });
   await writeFile(join(directory, 'behaviour.mjs'), RUNNER, { mode: 0o444 });

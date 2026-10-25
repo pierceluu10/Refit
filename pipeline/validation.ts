@@ -29,6 +29,7 @@ import { analyzeRepository } from './analyzer.ts';
 import {
   extractStripeMock,
   generatedCommand,
+  generatedEnvironment,
   compareGeneratedRuns,
   generatedEntryPoints,
   generatedImportMap,
@@ -571,6 +572,7 @@ async function runGeneratedStripeChecks(
     entries,
     generatedImportMap(options.original),
     generatedImportMap(options.patched),
+    generatedEnvironment(options.original, options.patched),
   );
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {

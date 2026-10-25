@@ -175,6 +175,37 @@ export function generatedImportMap(repository: Repository) {
   return map;
 }
 
+// Credentials and service addresses the repository's code reads from the environment. A client
+// created at import, such as createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', ...), throws
+// without them and the module never loads. The sandbox gives them placeholders that lead nowhere (a
+// closed loopback port) and never replaces a value that is set. Other variables stay unset.
+const PLACEHOLDER_URL = 'http://127.0.0.1:9/refit-placeholder';
+const PLACEHOLDER_SECRET = 'refit_placeholder_secret';
+const ENVIRONMENT_READ =
+  /process\.env(?:\.([A-Z_][A-Z0-9_]*)|\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\])/g;
+const ENVIRONMENT_DESTRUCTURING = /\{([^{}]*)\}\s*=\s*process\.env\b/g;
+
+export function generatedEnvironment(...repositories: Repository[]) {
+  const names = new Set<string>();
+  for (const file of repositories.flatMap((repository) => repository.files)) {
+    if (!SOURCE_FILE.test(file.path) || !file.content.includes('process.env')) continue;
+    for (const match of file.content.matchAll(ENVIRONMENT_READ)) names.add(match[1] ?? match[2]);
+    for (const match of file.content.matchAll(ENVIRONMENT_DESTRUCTURING))
+      for (const part of match[1].split(',')) names.add(part.split(/[:=]/)[0].trim());
+  }
+  return Object.fromEntries(
+    [...names]
+      .sort()
+      .flatMap((name) =>
+        /(?:^|_)(?:URL|URI|DSN|ENDPOINT)$/.test(name)
+          ? [[name, PLACEHOLDER_URL]]
+          : /(?:^|_)(?:KEY|SECRET|TOKEN)$/.test(name)
+            ? [[name, PLACEHOLDER_SECRET]]
+            : [],
+      ),
+  );
+}
+
 // The sandbox load hook and the behaviour-test coverage mapping transpile with these same options,
 // so V8's offsets into the hook's output map back to TypeScript lines through the inline source map.
 const SANDBOX_COMPILER_OPTIONS = {
@@ -255,10 +286,13 @@ export async function load(url, context, next) {
 // writes request bodies after `secureConnect`, so the plain socket re-emits it on `connect`. Each
 // request is recorded for behaviour tests: method, path, query and form body decoded to plain
 // objects (\`a[b][0]=x\` to \`{ a: { b: ['x'] } }\`), and the Stripe-Version header.
-const REDIRECT = `import http from 'node:http';
+const REDIRECT = `import { readFileSync } from 'node:fs';
+import http from 'node:http';
 import https from 'node:https';
 import { register } from 'node:module';
 register('./resolve.mjs', import.meta.url);
+for (const [name, value] of Object.entries(JSON.parse(readFileSync(new URL('environment.json', import.meta.url), 'utf8'))))
+  process.env[name] ??= value;
 const port = Number(process.env.REFIT_STRIPE_MOCK_PORT ?? ${MOCK_PORT});
 const requests = [];
 globalThis.__refitStripe = { requests, reset: () => { requests.length = 0; } };
@@ -387,7 +421,11 @@ export async function writeHarness(
   entries: EntryPoint[],
   imports: Record<string, Record<string, string>> = {},
   patchedImports = imports,
+  environment: Record<string, string> = {},
 ) {
+  await writeFile(join(directory, 'environment.json'), JSON.stringify(environment), {
+    mode: 0o444,
+  });
   await writeFile(join(directory, 'redirect.mjs'), REDIRECT, { mode: 0o444 });
   await writeFile(join(directory, 'resolve.mjs'), RESOLVE, { mode: 0o444 });
   await writeFile(join(directory, 'imports-before.json'), JSON.stringify(imports), { mode: 0o444 });
