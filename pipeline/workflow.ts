@@ -325,7 +325,12 @@ export async function runWorkflow(options: {
       options.onProgress?.('Checking for an existing Refit Agent migration...');
       const revision = await checkoutRevision();
       if (revision) {
-        const existing = await findExistingMigration(scan, revision, publication);
+        const existing = await findExistingMigration(
+          scan,
+          revision,
+          publication,
+          !options.aiPatch && !options.assessment,
+        );
         if (existing) {
           stage = 'publication';
           await save('publication.json', `${JSON.stringify(existing, null, 2)}\n`);

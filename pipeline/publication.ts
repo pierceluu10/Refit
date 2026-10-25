@@ -387,6 +387,9 @@ export async function findExistingMigration(
   report: Awaited<ReturnType<typeof runPipeline>>,
   revision: string,
   options: PublicationConfiguration,
+  // Whether this run may generate a [Needs review] draft an earlier release wrote again; never
+  // with AI, so a Refit release spends no AI budget.
+  refresh = false,
 ) {
   if (!options.app) return undefined;
   const { authentication, request } = await publicationSession(options);
@@ -448,8 +451,11 @@ export async function findExistingMigration(
   const pull = matches[0];
   if (!pull) return undefined;
   // A later Refit release may migrate what an earlier one left for review: a [Needs review] draft
-  // another release wrote is generated and validated again, and publication updates it.
+  // another release wrote is generated and validated again, and publication updates it. Only on
+  // the branch publication updates; a draft on an older branch name would get a second draft.
   if (
+    refresh &&
+    object(pull.head).ref === branch &&
     String(pull.title).startsWith(NEEDS_REVIEW_PREFIX) &&
     !String(pull.body).includes(`"refit": "${REFIT_VERSION}"`)
   )
