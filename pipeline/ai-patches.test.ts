@@ -749,3 +749,90 @@ it('repairs the failed candidate at its type-error positions and guards every AI
     repairRound(previous.replace('subscription-created', 'subscription.created')),
   ).rejects.toThrow(/event names stop for review/);
 });
+
+it('stops an AI patch that edits a file on a test path, with no corrected request', async () => {
+  const { repository, report, edit } = await fixture();
+  for (const path of ['billing.test.ts', '__tests__/billing.ts']) {
+    const moved = {
+      ...repository,
+      files: repository.files.map((file) =>
+        file.path === 'billing.ts' ? { ...file, path } : file,
+      ),
+    };
+    const findings = report.findings.map((finding) => ({ ...finding, file: path }));
+    const [findingId] = buildAssessmentEvidence(moved, report.changes, findings).findings.map(
+      (finding) => finding.id,
+    );
+    respond([{ ...edit, file: path, findingId }]);
+    const stop = proposeAiPatch(moved, report.changes, findings, OPTIONS);
+    await expect(stop).rejects.toThrow(
+      `AI patch edits ${path} on the repository's test paths; the checks that judge a migration stay as the repository wrote them, so it stops for review.`,
+    );
+    await expect(stop).rejects.toBeInstanceOf(AiPolicyStop);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  }
+});
+
+it('stops an AI patch that changes a line the rules wrote, and keeps one that repeats it', async () => {
+  const { repository, report, edit } = await fixture();
+  const client = 'const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);';
+  const bumped = `const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-09-30.endive' });`;
+  const content = repository.files.find((file) => file.path === 'billing.ts')!.content;
+  const start = content.indexOf(client);
+  expect(start).toBeGreaterThan(0);
+  const rule = {
+    file: 'billing.ts',
+    start,
+    end: start + client.length,
+    replacement: bumped,
+    changeId: 'api-version',
+  };
+  // One replacement from the client to the read, as the model sends for a whole function.
+  const ruled = content.replace(client, bumped);
+  const original = ruled.slice(
+    ruled.indexOf(bumped),
+    ruled.indexOf(edit.original) + edit.original.length,
+  );
+  const propose = (line: string) => {
+    respond([
+      {
+        ...edit,
+        original,
+        replacement: original.replace(bumped, line).replace(edit.original, REPLACEMENT),
+      },
+    ]);
+    return proposeAiPatch(
+      repository,
+      report.changes,
+      report.findings,
+      OPTIONS,
+      undefined,
+      {},
+      undefined,
+      undefined,
+      {},
+      [rule],
+    );
+  };
+  await expect(propose(client)).rejects.toThrow(
+    "AI patch changes billing.ts:3, which the deterministic rules already changed; a rule's edit changes only with its rule, so it stops for review.",
+  );
+  expect(fetch).toHaveBeenCalledTimes(1);
+  const proposal = await propose(bumped);
+  expect(proposal.diff).toContain(`+${bumped}`);
+  expect(proposal.diff).toContain(REPLACEMENT);
+});
+
+it('never lets the model edit package files, which are not editable sources', async () => {
+  const { repository, report, edit } = await fixture();
+  for (const file of ['package.json', 'package-lock.json']) {
+    respond([
+      { ...edit, file, original: '"stripe": "^14.0.0"', replacement: '"stripe": "^20.0.0"' },
+    ]);
+    await expect(
+      proposeAiPatch(repository, report.changes, report.findings, OPTIONS),
+    ).rejects.toThrow(
+      `AI patch references a file or confirmed finding outside its allowed scope: ${JSON.stringify(file)}.`,
+    );
+  }
+});
