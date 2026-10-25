@@ -3,13 +3,16 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import {
   chmod,
+  copyFile,
   lstat,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   realpath,
   rename,
   rm,
+  utimes,
   writeFile,
 } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
@@ -52,6 +55,13 @@ const npmCi = (binary: string) =>
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
 const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
+const DEFAULT_CACHE_GIB = 8;
+const MIN_CACHE_GIB = 1;
+const MAX_CACHE_GIB = 1024;
+const GIB = 1024 ** 3;
+const CACHE_ENTRY = /^[0-9a-f]{64}$/;
+const PREPARE_LOCK = 'prepare';
+const BUNDLE = 'bundle';
 const MAX_LOG_BYTES = 1024 * 1024;
 const MAX_ERROR_CHARACTERS = 4096;
 const ARCHIVE = 'dependencies.tar';
@@ -165,6 +175,82 @@ export function installTimeoutSeconds(value = process.env.REFIT_DEPENDENCY_TIMEO
       `REFIT_DEPENDENCY_TIMEOUT_SECONDS must be a whole number from ${MIN_INSTALL_TIMEOUT_SECONDS} to ${MAX_INSTALL_TIMEOUT_SECONDS}.`,
     );
   return seconds;
+}
+
+// Bounds the dependency cache; least recently used bundles are evicted after a new one is written.
+export function cacheLimitBytes(value = process.env.REFIT_DEPENDENCY_CACHE_GIB) {
+  if (!value?.trim()) return DEFAULT_CACHE_GIB * GIB;
+  const gib = Number(value);
+  // Number() also reads hex and exponents ("0x10", "1e1"); only decimal digits are accepted.
+  if (!/^\s*\d+\s*$/.test(value) || gib < MIN_CACHE_GIB || gib > MAX_CACHE_GIB)
+    throw new PipelineInputError(
+      `REFIT_DEPENDENCY_CACHE_GIB must be a whole number of GiB from ${MIN_CACHE_GIB} to ${MAX_CACHE_GIB}.`,
+    );
+  return gib * GIB;
+}
+
+function unlessMissing(error: unknown) {
+  if (hasErrorCode(error, 'ENOENT')) return undefined;
+  throw error;
+}
+
+async function entryBytes(root: string) {
+  const entries =
+    (await readdir(root, { recursive: true, withFileTypes: true }).catch(unlessMissing)) ?? [];
+  let bytes = 0;
+  for (const entry of entries)
+    if (entry.isFile())
+      bytes += (await lstat(join(entry.parentPath, entry.name)).catch(unlessMissing))?.size ?? 0;
+  return bytes;
+}
+
+// The bundle directory's mtime records its last use: it is written once, then touched on reuse.
+const lastUse = async (root: string) =>
+  (await lstat(join(root, BUNDLE)).catch(unlessMissing))?.mtimeMs ?? 0;
+
+// Evicts one entry under its preparation lock, so a process preparing, reusing or copying it is
+// never disturbed. Returns false when the entry is in use or was used since it was listed.
+async function evictEntry(root: string, used: number) {
+  let names: string[] | undefined;
+  try {
+    names = await withStateLock(root, PREPARE_LOCK, async () => {
+      if ((await lastUse(root)) !== used) return undefined;
+      // One rename unpublishes the bundle, so a reader never sees a partly removed one.
+      if (used) await rename(join(root, BUNDLE), join(root, `evicted-${randomUUID()}`));
+      return (await readdir(root)).filter((name) => !name.startsWith(`${PREPARE_LOCK}.lock`));
+    });
+  } catch (error) {
+    // Every lock refusal (held by a live process, unverifiable, recovering) leaves the entry alone.
+    if (error instanceof PipelineInputError) return false;
+    throw error;
+  }
+  if (!names) return false;
+  // Outside the lock: these names are unpublished, and a new preparation uses fresh staging names.
+  // The empty entry directory stays, since a preparation may already have resolved it.
+  await Promise.all(
+    names.map((name) => rm(join(root, name), { recursive: true, force: true, maxRetries: 3 })),
+  );
+  return true;
+}
+
+export async function evictDependencies(cache: string, keep: string, limit: number) {
+  const entries = [];
+  for (const name of await readdir(cache)) {
+    if (!CACHE_ENTRY.test(name)) continue;
+    const root = join(cache, name);
+    entries.push({ root, used: await lastUse(root), bytes: await entryBytes(root) });
+  }
+  let total = entries.reduce((sum, entry) => sum + entry.bytes, 0);
+  const evicted = [];
+  for (const entry of entries
+    .filter((candidate) => candidate.root !== keep && candidate.bytes > 0)
+    .sort((a, b) => a.used - b.used)) {
+    if (total <= limit) break;
+    if (!(await evictEntry(entry.root, entry.used))) continue;
+    total -= entry.bytes;
+    evicted.push(entry.root);
+  }
+  return { evicted, bytes: total };
 }
 
 // Yarn records platform-specific packages without checksums. Refit skips them unless an operator
@@ -394,6 +480,8 @@ export async function prepareDependencies(options: {
   repository: string;
   image: string;
   cacheDirectory?: string;
+  // Copied under the cache lock, so eviction cannot remove the bundle mid-copy.
+  copyArchiveTo?: string;
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
 }) {
@@ -407,6 +495,7 @@ export async function prepareDependencies(options: {
 async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
+  const cacheLimit = cacheLimitBytes();
   const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository)
     .then(readPreparationInputs)
     .catch(repositoryRefusal);
@@ -440,8 +529,8 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
     throw new PipelineInputError('Dependency cache entries must be private physical directories.');
   await chmod(root, 0o700);
   await standaloneStateDirectory(root);
-  const bundle = join(root, 'bundle');
-  return withStateLock(root, 'prepare', async () => {
+  const bundle = join(root, BUNDLE);
+  return withStateLock(root, PREPARE_LOCK, async () => {
     let exists = false;
     try {
       const metadata = await lstat(bundle);
@@ -486,6 +575,9 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
           'Prepared dependency cache does not match its committed inputs.',
         );
       options.signal?.throwIfAborted();
+      const now = new Date();
+      await utimes(bundle, now, now);
+      if (options.copyArchiveTo) await copyFile(join(bundle, ARCHIVE), options.copyArchiveTo);
       options.onProgress?.(
         `Reusing verified ${inputs.manager} dependencies; installation was not rerun.`,
       );
@@ -597,6 +689,12 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
       });
       await verifyArtifacts(staging);
       await rename(staging, bundle);
+      if (options.copyArchiveTo) await copyFile(join(bundle, ARCHIVE), options.copyArchiveTo);
+      const { evicted, bytes } = await evictDependencies(physicalCache, root, cacheLimit);
+      if (evicted.length)
+        options.onProgress?.(
+          `Evicted ${evicted.length} least recently used dependency bundles; the cache holds ${(bytes / GIB).toFixed(1)} GiB.`,
+        );
       return { directory: bundle, archive: join(bundle, ARCHIVE), environment, reused: false };
     } finally {
       const cleanup = await Promise.allSettled([
