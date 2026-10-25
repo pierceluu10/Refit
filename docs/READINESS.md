@@ -9,6 +9,13 @@ Preparation now builds the refusals O2 classified as buildable and #289 left:
 - **pnpm patches.** `patchedDependencies` are applied when every patch file is committed and matches the SHA-256 `pnpm-lock.yaml` records; `overrides` must equal the lockfile's.
 - **Peer-only npm drift.** An `npm ci` that reports the lockfile out of sync is retried once with `--legacy-peer-deps`, as `ERESOLVE` is (an extension of the 2026-10-20 decision, announced on the board); anything beyond peers still stops.
 
+On `subsets/l2-prep-remaining.json` (before 40159661032, after 40164744067):
+- guillermolg00/nextjs-stripe-store and Ardione321/prep-ai now prepare from `bun.lock` and pass their type checks, with findings left.
+- Alex-Unnippillil/share-house-portal prepares with pnpm, as its CI installs, and passes its tests.
+- devczero/saas-pdf-analysis-dev validates.
+- muhallimir/ampertalent prepares, but its baseline needs a Prisma generate step.
+- inventashif/hackerai's patches pass and it stops at a workspace bin.
+
 Tests: `pipeline/bun-lock.test.ts`, `pipeline/dependency-inputs.test.ts`, `pipeline/pnpm-inputs.test.ts`, `pipeline/npm-dependencies.test.ts` and `pipeline/review.test.ts`; the Docker suites passed on refit-bench (`gated.yml` run 40161788197).
 
 ## October 25 checkpoint: dependency preparation for Push 279 (unreleased, after 0.39.0)
