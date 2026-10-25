@@ -13,7 +13,12 @@ kill_timeout = 300
 [env]
   REFIT_AI_BUDGET_DIRECTORY = "/data/ai-budget"
   REFIT_AI_BUDGET_USD = "2"
-  REFIT_HOSTED_FLAGS = "--publish-draft --ai-patch --repair-attempts 2"
+  # Push 279 (2026-10-24, board #300): engine only, no --ai-patch. The push ends by restoring
+  # "--publish-draft --ai-patch --repair-attempts 2" and shared-cpu-2x with 4gb.
+  # Four forked job processes keep /health answering while jobs scan; all 279 forks share one
+  # installation, so its running-job limit matches.
+  REFIT_HOSTED_FLAGS = "--publish-draft --job-processes 4"
+  REFIT_HOSTED_INSTALLATION_JOBS = "4"
   # Validation images named by approved .refit.json files; pulled on boot.
   REFIT_HOSTED_IMAGES = "node:22-alpine stripe/stripe-mock:latest"
 
@@ -36,6 +41,9 @@ kill_timeout = 300
     path = "/health"
     timeout = "5s"
 
+# Dedicated CPUs keep oasdiff inside its 30-second limit (66-73% steal on shared-cpu-2x). Each job
+# process takes up to 1.5 GiB of heap plus the 4 GiB sandbox profile's 5 GiB container, so four
+# jobs need about 26 GiB; 32gb leaves room for the worker and dockerd.
 [[vm]]
-  size = "shared-cpu-2x"
-  memory = "4gb"
+  size = "performance-8x"
+  memory = "32gb"
