@@ -161,12 +161,12 @@ it(
         '--cap-drop',
         'ALL',
         '--memory',
-        '3g',
+        '5g',
         '--tmpfs',
-        '/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700',
+        '/workspace:rw,exec,size=4g,uid=65534,gid=65534,mode=0700',
       ]),
     );
-    expect(prepared.environment.installation).toMatchObject({ workspace: '2g' });
+    expect(prepared.environment.installation).toMatchObject({ workspace: '4g' });
     expect(
       run.args.find((argument: string) => argument.includes('npm ci --ignore-scripts')),
     ).toContain('npm ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund');
@@ -474,7 +474,7 @@ it('copies only committed workspace manifests to the networked install input', a
   ]);
 });
 
-it('runs validation containers on the default 2 GiB workspace and 3 GiB memory, offline', () => {
+it('runs validation containers on the default 4 GiB workspace and 5 GiB memory, offline', () => {
   const args = dockerSandboxArguments({
     name: 'refit-check',
     directory: '/input',
@@ -483,17 +483,17 @@ it('runs validation containers on the default 2 GiB workspace and 3 GiB memory, 
     network: 'none',
     timeoutMs: 120_000,
   });
-  expect(args).toContain('/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700');
-  expect(args[args.indexOf('--memory') + 1]).toBe('3g');
+  expect(args).toContain('/workspace:rw,exec,size=4g,uid=65534,gid=65534,mode=0700');
+  expect(args[args.indexOf('--memory') + 1]).toBe('5g');
   expect(args[args.indexOf('--network') + 1]).toBe('none');
   expect(args[args.indexOf('--env') + 1]).toBe('CI=true');
 });
 
-it('enlarges validation only through a known REFIT_VALIDATION_WORKSPACE profile', () => {
+it('sizes validation only through a known REFIT_VALIDATION_WORKSPACE profile', () => {
   expect(validationProfile(undefined)).toEqual({
-    workspace: '2g',
-    memory: '3g',
-    archiveBytes: 1024 * 1024 * 1024,
+    workspace: '4g',
+    memory: '5g',
+    archiveBytes: 2048 * 1024 * 1024,
   });
   expect(validationProfile('512m')).toEqual({
     workspace: '512m',

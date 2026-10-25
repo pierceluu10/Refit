@@ -229,7 +229,7 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
   await commit(app);
   const report = await inspectRepositoryReadiness({ repository: app });
   expect(report.checks.find((check) => check.id === 'source-provenance')?.action).toBe(
-    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.',
+    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including listed and computed lists.',
   );
   // Before: "Verify the application client/account version and configure an exact
   // before-contract API-version pin."

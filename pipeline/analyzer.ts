@@ -17,6 +17,7 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import {
+  paymentMethodRule,
   removedParameterProperty,
   requestPropertyEdit,
   untracedRemovedParameters,
@@ -27,11 +28,7 @@ import {
   invoicePreviewEdits,
   type InvoicePreviewMove,
 } from './stripe-invoice-preview.ts';
-import {
-  CARD_PAYMENT_METHOD_RULE,
-  LISTED_PAYMENT_METHODS_RULE,
-  type RequestParameterRemoval,
-} from './request-removals.ts';
+import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
@@ -165,6 +162,32 @@ function numericArrayIndex(expression: ts.Expression) {
   if (!ts.isNumericLiteral(expression)) return false;
   const index = Number(expression.text);
   return Number.isSafeInteger(index) && index >= 0;
+}
+
+const EQUALITY_TOKENS = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+
+// The value a node compares with string literals: `value === 'a'` or `['a', 'b'].includes(value)`.
+function comparedWithLiterals(node: ts.Node) {
+  if (ts.isBinaryExpression(node) && EQUALITY_TOKENS.has(node.operatorToken.kind)) {
+    if (ts.isStringLiteralLike(node.right)) return node.left;
+    if (ts.isStringLiteralLike(node.left)) return node.right;
+  }
+  if (
+    ts.isCallExpression(node) &&
+    node.arguments.length === 1 &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    node.expression.name.text === 'includes' &&
+    ts.isArrayLiteralExpression(node.expression.expression) &&
+    node.expression.expression.elements.length &&
+    node.expression.expression.elements.every(ts.isStringLiteralLike)
+  )
+    return node.arguments[0];
+  return undefined;
 }
 
 // Node runs a script whose shebang follows a byte order mark, and tsc strips the mark when it
@@ -1001,26 +1024,12 @@ export function analyzeRepository(
       if (!property) continue;
       const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
       // Only the exact literal `['card']` has a reviewed replacement, and, where the repository
-      // opted in, a literal list of `card` plus other distinct methods (never `card_present`).
-      // run.ts keeps the edit only with the API version bump (and, for TypeScript, the SDK
-      // upgrade) in the same patch.
-      const methods =
-        ts.isPropertyAssignment(property) &&
-        ts.isArrayLiteralExpression(property.initializer) &&
-        property.initializer.elements.every(ts.isStringLiteralLike)
-          ? property.initializer.elements.map((element) => (element as ts.StringLiteralLike).text)
-          : undefined;
-      const rule =
-        methods?.length === 1 && methods[0] === 'card'
-          ? CARD_PAYMENT_METHOD_RULE
-          : removal.keepListed &&
-              methods &&
-              methods.length > 1 &&
-              methods.includes('card') &&
-              !methods.includes('card_present') &&
-              new Set(methods).size === methods.length
-            ? LISTED_PAYMENT_METHODS_RULE
-            : undefined;
+      // opted in, a literal list of `card` plus other distinct methods, or any other value
+      // expression that names no in-person method (request-migration.ts). run.ts keeps the edit
+      // only with the API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
+      const rule = removal.cardReplacement
+        ? paymentMethodRule(property, { keepListed: removal.keepListed, checker })
+        : undefined;
       // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
       // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
       const moved =
@@ -1039,13 +1048,15 @@ export function analyzeRepository(
           changeId: removal.id,
           rule: moved.rule,
         });
-      if (confirmed && removal.cardReplacement && rule && ts.isPropertyAssignment(property)) {
+      if (confirmed && removal.cardReplacement && rule) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
         edits.push({
           file: location(property).file,
           start: property.name.getStart(),
           end: property.name.getEnd(),
-          replacement: `${quote}${removal.cardReplacement}${quote}`,
+          replacement: ts.isShorthandPropertyAssignment(property)
+            ? `${removal.cardReplacement}: ${property.name.text}`
+            : `${quote}${removal.cardReplacement}${quote}`,
           changeId: removal.id,
           rule,
         });
@@ -1099,7 +1110,7 @@ export function analyzeRepository(
   }
   // A removed parameter set outside every traced SDK body stops for review, unless it is an exact
   // `['card']` in a local body only confirmed card-rule calls receive (request-migration.ts).
-  for (const { property, removal, rename } of untracedRemovedParameters(
+  for (const { property, removal, rule } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
     (node) => {
@@ -1113,16 +1124,20 @@ export function analyzeRepository(
       );
     },
     (node) => location(node).file,
+    checker,
   )) {
-    if (rename && ts.isPropertyAssignment(property)) {
+    const rename = Boolean(rule);
+    if (rule && (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))) {
       const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
       edits.push({
         file: location(property).file,
         start: property.name.getStart(),
         end: property.name.getEnd(),
-        replacement: `${quote}${removal.cardReplacement}${quote}`,
+        replacement: ts.isShorthandPropertyAssignment(property)
+          ? `${removal.cardReplacement}: ${property.name.text}`
+          : `${quote}${removal.cardReplacement}${quote}`,
         changeId: removal.id,
-        rule: CARD_PAYMENT_METHOD_RULE,
+        rule,
       });
     }
     findings.push({
@@ -1132,7 +1147,7 @@ export function analyzeRepository(
       confidence: rename ? 'confirmed' : 'review',
       requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
       reason: rename
-        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved card rule covers.'
+        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved payment method rule covers.'
         : 'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
     });
   }
@@ -1795,16 +1810,19 @@ export function analyzeRepository(
       }
     }
   }
-  // `switch (subscription.status)` or `const unhandled: never = subscription.status`, directly or
-  // through one const alias; new enum values on these fields can reach unhandled code.
-  const enumChecks: (Location & { schema: string; property: string })[] = [];
+  // `switch (subscription.status)`, `const unhandled: never = subscription.status`, or a compare
+  // with string literals (`subscription.status === 'active'`, `['active'].includes(...)`), directly
+  // or through one const alias; new enum values on these fields can reach unhandled code (owner
+  // decision 6, 2026-10-24).
+  const enumChecks: (Location & { schema: string; property: string; compare?: true })[] = [];
   const apiVersionLiterals: { file: string; start: number; end: number; value: string }[] = [];
   for (const node of nodes) {
+    const compared = comparedWithLiterals(node);
     let checked = ts.isSwitchStatement(node)
       ? node.expression
       : ts.isVariableDeclaration(node) && node.type?.kind === ts.SyntaxKind.NeverKeyword
         ? node.initializer
-        : undefined;
+        : compared;
     if (checked && ts.isIdentifier(checked)) {
       const declaration = symbol(checked)?.valueDeclaration;
       checked = declarations.find((entry) => entry === declaration)?.initializer;
@@ -1818,7 +1836,13 @@ export function analyzeRepository(
       checked = checked.expression;
     if (!checked || !ts.isPropertyAccessExpression(checked)) continue;
     const schema = schemaForExpression(checked.expression);
-    if (schema) enumChecks.push({ ...location(node), schema, property: checked.name.text });
+    if (schema)
+      enumChecks.push({
+        ...location(node),
+        schema,
+        property: checked.name.text,
+        ...(compared && { compare: true as const }),
+      });
   }
   function dropPeriodHelper(file: string) {
     for (let index = edits.length - 1; index >= 0; index--)
@@ -1936,12 +1960,12 @@ export function analyzeRepository(
             ? 'mjs'
             : 'cjs'
           : 'js';
-    const base = [
-      ...shared.filter((segment) => segment !== '.'),
-      'stripe-subscription-period',
-    ].join('/');
+    // No hyphen: Convex rejects one in a module in its functions folder, where this may land.
+    const base = [...shared.filter((segment) => segment !== '.'), 'stripeSubscriptionPeriod'].join(
+      '/',
+    );
     const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
-    const stem = taken.has(base) ? `${base}-refit` : base;
+    const stem = taken.has(base) ? `${base}Refit` : base;
     edits.push({
       file: `${stem}.${extension}`,
       start: 0,

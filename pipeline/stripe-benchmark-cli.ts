@@ -15,6 +15,7 @@ import {
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
+import { PASSING_REACH } from './operation-reach.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
@@ -294,7 +295,11 @@ async function benchmark(entry: Selected, index: number) {
             method: impact.httpMethod,
             path: impact.path,
             usages: impact.usages.map((usage) => `${usage.file}:${usage.line}`),
-            changes: impact.changes.map(({ id, text }) => ({ id, text })),
+            changes: impact.changes.map(({ id, text, reachReason }) => ({
+              id,
+              text,
+              ...(reachReason ? { reachReason } : {}),
+            })),
           })),
         }
       : {}),
@@ -315,7 +320,17 @@ async function benchmark(entry: Selected, index: number) {
               operation: change.operation,
               path: change.path,
               text: change.text,
+              ...(change.reachReason ? { reachReason: change.reachReason } : {}),
             })),
+            // Breaking changes the reach gate let through, by reach.
+            passed: Object.fromEntries(
+              [...PASSING_REACH].map((reach) => [
+                String(reach),
+                (report.specificationDiff.changes as Record<string, unknown>[]).filter(
+                  (change) => change.reach === reach && Number(change.level) >= 2,
+                ).length,
+              ]),
+            ),
           };
         })()
       : {}),

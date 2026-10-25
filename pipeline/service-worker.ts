@@ -11,7 +11,7 @@ import type { ServiceTarget } from './service-configuration.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import type { SlackSend } from './slack.ts';
-import { watchOnce } from './watch.ts';
+import { watchedApiVersions, watchOnce } from './watch.ts';
 import { lstat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { hasErrorCode } from './state-files.ts';
@@ -103,7 +103,7 @@ export function summarizePoll(result: ServicePoll) {
           ].join(' ')
         : result.status === 'documentation-changed'
           ? `Provider documentation changed. Refit saved a unified diff and did not start a migration. The prior API workflow status remains ${result.previousStatus}.`
-          : 'Saved worker result reused; checks were not rerun.',
+          : `Saved worker result reused; checks were not rerun.${result.previousReason ? ` That run recorded: ${result.previousReason}` : ''}${result.weeklyStatus ? ` Weekly status posted on ${result.weeklyStatus}.` : ''}`,
   };
 }
 
@@ -115,6 +115,8 @@ export async function pollServiceTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  weeklyStatus?: boolean;
+  supersedeDrafts?: boolean;
   retry?: boolean;
   // Runs refit doctor on the approved checkout first; blocked setup stops before scanning.
   inspectReadiness?: boolean;
@@ -130,7 +132,10 @@ export async function pollServiceTarget(options: {
     aiPatch: options.aiPatch,
     repairAttempts: options.repairAttempts,
     publication: options.publishDraft
-      ? publicationConfiguration(target.repository, target.base, undefined, options.app)
+      ? {
+          ...publicationConfiguration(target.repository, target.base, undefined, options.app),
+          ...(options.supersedeDrafts ? { supersedeDrafts: true } : {}),
+        }
       : undefined,
     ...(options.notify ? { notify: { send: options.notify, repository: target.repository } } : {}),
   };
@@ -142,6 +147,7 @@ export async function pollServiceTarget(options: {
       stateDirectory: options.stateDirectory,
       syncGitHub: targetGitHub,
       retry: options.retry,
+      weeklyStatus: options.weeklyStatus,
       onProgress: options.onProgress,
     });
   if (
@@ -159,11 +165,13 @@ export async function pollServiceTarget(options: {
     async (checkout) => {
       if (options.contracts) await saveGeneratedContracts(checkout.directory, options.contracts);
       options.signal.throwIfAborted();
+      const acceptedApiVersions = await watchedApiVersions(options.stateDirectory);
       const profile = await loadApprovedRepository({
         repository: checkout.directory,
         approval: target.approval,
         integration: target.integration,
         stateDirectory: options.stateDirectory,
+        acceptedApiVersions,
         contracts: options.contracts,
       });
       options.signal.throwIfAborted();
@@ -175,6 +183,7 @@ export async function pollServiceTarget(options: {
             repository: checkout.directory,
             integration: target.integration,
             contracts: options.contracts,
+            acceptedApiVersions,
           })
         : undefined;
       options.signal.throwIfAborted();
@@ -187,6 +196,7 @@ export async function pollServiceTarget(options: {
         documentationSources: target.documentationSources,
         stateDirectory: options.stateDirectory,
         retry: options.retry,
+        weeklyStatus: options.weeklyStatus,
         onProgress: options.onProgress,
       });
       // The approved checks, which model fixes reuse for this repository.
