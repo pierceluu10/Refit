@@ -1132,7 +1132,8 @@ export async function validateMigration(options: {
     }
     // Every AI request's cost, whether its proposal was checked or refused.
     let aiCostUsd = costOf(proposal);
-    const aiCoverage = Boolean(options.leaveReviewedFindings) && !aiSafetyStop(report);
+    const aiCoverage =
+      Boolean(options.aiPatch && options.leaveReviewedFindings) && !aiSafetyStop(report);
     const configuredPeriods = report.findings.some(
       (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
     );
@@ -1141,16 +1142,14 @@ export async function validateMigration(options: {
     // stop holds. It is kept only if its checks pass, after repair; otherwise the rules' patch
     // stays the result and the attempt is recorded.
     const rules =
-      options.aiPatch &&
-      options.leaveReviewedFindings &&
+      aiCoverage &&
       report.patch.generator === 'deterministic' &&
       baseline.status === 'passed' &&
       patched.status === 'passed' &&
       candidateSources &&
       !configuredEndpointProposal &&
       !configuredRequestProposal &&
-      !configuredPeriods &&
-      aiCoverage
+      !configuredPeriods
         ? {
             proposal,
             publicationFiles,
@@ -1163,6 +1162,13 @@ export async function validateMigration(options: {
             repair,
           }
         : undefined;
+    // A removed request parameter is its own finding, which the model may not change.
+    const removedParameter = (impact: (typeof report.operationImpacts)[number], text: string) =>
+      requestRemovals.some(
+        (removal) =>
+          removal.operationId === impact.operationId &&
+          text === `removed the request property \`${removal.parameter}\``,
+      );
     // What the rules left in `files`: removed-field reads, traced or not, and calls traced to a
     // breaking change no rule migrates, at their lines in `files`. Test files stay as written.
     const coverageTargets = (files: Repository['files']) =>
@@ -1173,31 +1179,35 @@ export async function validateMigration(options: {
           report.adapter,
           beforeSpecification.schemas,
         ).findings.filter((finding) => finding.confidence === 'confirmed' || finding.untraced),
-        ...report.operationImpacts.flatMap((impact) =>
-          impact.usages.flatMap((usage) => {
-            const before = originalSources.files.find((file) => file.path === usage.file);
-            const after = files.find((file) => file.path === usage.file);
-            const line = before && after && movedLine(before.content, after.content, usage.line);
-            return line
-              ? [
-                  {
-                    file: usage.file,
-                    line,
-                    column: usage.column,
-                    changeId: CONTRACT_CHANGE,
-                    expression: `${impact.httpMethod.toUpperCase()} ${impact.path}`,
-                    confidence: 'confirmed' as const,
-                    reason: `${impact.changes
-                      .slice(0, MAX_TARGET_CHANGES)
-                      .map((change) => change.text)
-                      .join(
-                        '; ',
-                      )}${impact.changes.length > MAX_TARGET_CHANGES ? `; and ${impact.changes.length - MAX_TARGET_CHANGES} more` : ''}`,
-                  },
-                ]
-              : [];
-          }),
-        ),
+        ...report.operationImpacts.flatMap((impact) => {
+          const changes = impact.changes.filter((change) => !removedParameter(impact, change.text));
+          return changes.length
+            ? impact.usages.flatMap((usage) => {
+                const before = originalSources.files.find((file) => file.path === usage.file);
+                const after = files.find((file) => file.path === usage.file);
+                const line =
+                  before && after && movedLine(before.content, after.content, usage.line);
+                return line
+                  ? [
+                      {
+                        file: usage.file,
+                        line,
+                        column: usage.column,
+                        changeId: CONTRACT_CHANGE,
+                        expression: `${impact.httpMethod.toUpperCase()} ${impact.path}`,
+                        confidence: 'confirmed' as const,
+                        reason: `${changes
+                          .slice(0, MAX_TARGET_CHANGES)
+                          .map((change) => change.text)
+                          .join(
+                            '; ',
+                          )}${changes.length > MAX_TARGET_CHANGES ? `; and ${changes.length - MAX_TARGET_CHANGES} more` : ''}`,
+                      },
+                    ]
+                  : [];
+              })
+            : [];
+        }),
       ].filter((finding) => !TEST_PATH.test(finding.file));
     const targets = rules ? coverageTargets(rules.candidateSources.files) : [];
     // Calls traced to breaking changes count as unresolved without a rescan site (run.ts); no
@@ -1363,11 +1373,12 @@ export async function validateMigration(options: {
           options.documentationSnapshots,
           afterSpecification.schemas,
           'ruleEdits' in report.patch ? report.patch.ruleEdits : [],
-          coverage?.outcome === 'checks-failed' && candidateSources
+          // A coverage repair starts again from the rules' patch, with the failed attempt in view.
+          rules && coverage?.outcome === 'checks-failed'
             ? {
-                files: candidateSources.files,
-                rules: ruleSources,
-                targets: coverageTargets(candidateSources.files),
+                files: rules.candidateSources.files,
+                rules: rules.candidateSources.files,
+                targets,
               }
             : options.compareTypeErrors && candidateSources
               ? { files: candidateSources.files, rules: ruleSources }
