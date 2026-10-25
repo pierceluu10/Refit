@@ -1107,6 +1107,12 @@ export async function validateMigration(options: {
           }),
         );
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    // Tests that fail on the original code leave a chain's type check to compare (Laptop 1's ruling
+    // on #288): the patched check still runs, and only its type check can grade the patch.
+    const testsBroken =
+      Boolean(options.compareTypeErrors) &&
+      baselineRun.stdout.includes(TESTS_FAILED) &&
+      baselineRun.stdout.includes(TYPE_CHECK_STARTED);
     options.signal?.throwIfAborted();
     const report = earlyReport || (await propose(baseline.status === 'passed'));
     const configuredEndpointProposal = report.operationChanges.some(
@@ -1137,7 +1143,7 @@ export async function validateMigration(options: {
     const behaviourWanted = Boolean(options.behaviourTestWriter || options.behaviourTests?.length);
     let candidateFailure: string | undefined;
     const initialCandidate =
-      baseline.status === 'passed' || dependencyFailure
+      baseline.status === 'passed' || dependencyFailure || testsBroken
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
             : prepareCandidate(proposal.diff, originalSources, report))
@@ -1159,7 +1165,8 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
-    const runPatched = initialCandidate && baseline.status === 'passed' && !dependencyFailure;
+    const runPatched =
+      initialCandidate && (baseline.status === 'passed' || testsBroken) && !dependencyFailure;
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
@@ -1506,7 +1513,7 @@ export async function validateMigration(options: {
     const behaviourBlocked =
       !candidateDirectory || !candidateSources
         ? `No patched copy of the repository was built${candidateFailure ? `: ${candidateFailure}` : '.'}`
-        : patched.status === 'failed'
+        : baseline.status === 'passed' && patched.status === 'failed'
           ? 'The patched checks failed, so the patch is not published.'
           : dependencyFailure && !stripeOnly?.dependencies
             ? `Dependencies could not be prepared, and the changed Stripe code cannot run on stripe alone: ${stripeOnly?.record.reasons?.join(' ') ?? 'no candidate.'}`
@@ -1573,10 +1580,16 @@ export async function validateMigration(options: {
       generated,
       behaviour,
     );
+    // A type check finished when it exited cleanly or reported type errors.
+    const typeChecked = (run: CheckResult) =>
+      !['error', 'not-run'].includes(run.status) &&
+      (run.exitCode === 0 || typeErrors(run).length > 0);
+    const introducedByPatch = testsBroken ? introducedTypeErrors(baselineRun, patched) : [];
     // Every outcome is graded: without passing checks the patch is grade D, saying which check
-    // failed or why none ran, so a [Needs review] draft can state it. Behaviour tests that give
-    // grade A count on their own, also where the baseline failed, errored or could not be
-    // prepared: a broken check never vetoes a correct patch. A regression is never graded A.
+    // failed or why none ran, so a [Needs review] draft can state it; tests broken before the
+    // patch leave the type check as the evidence. Behaviour tests that give grade A count on
+    // their own, also where the baseline failed, errored or could not be prepared: a broken check
+    // never vetoes a correct patch. A regression is never graded A.
     const behaviourA =
       behaviour?.grade === 'A' && !['stale', 'regression'].includes(validationStatus);
     const grade =
@@ -1588,16 +1601,37 @@ export async function validateMigration(options: {
             generated,
             behaviour: behaviour && behaviourGrade(behaviour),
           })
-        : validationStatus === 'stale'
-          ? undefined
-          : ungradedEvidence(
-              dependencyFailure
-                ? `Dependencies could not be prepared, so no check ran: ${dependencyFailure.summary}`
-                : checkFailureText(failures).trim() ||
-                    (generated
-                      ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
-                      : `Validation returned ${validationStatus}.`),
-            );
+        : validationStatus === 'baseline-failed' && testsBroken && candidateSources
+          ? await gradeEvidence({
+              repository: candidateSources,
+              command: options.command,
+              changedFiles: publicationFiles.map((file) => file.path),
+              testsBroken: {
+                reason: checkFailureText({
+                  checkFailures: failures.checkFailures?.filter(
+                    (failure) => failure.side === 'baseline',
+                  ),
+                }).trim(),
+                typeCheck: !(typeChecked(baselineRun) && typeChecked(patched))
+                  ? { passed: false, detail: 'the type check did not finish on both sides' }
+                  : introducedByPatch.length
+                    ? {
+                        passed: false,
+                        detail: `the patch introduces ${introducedByPatch.length === 1 ? 'a type error' : `${introducedByPatch.length} type errors`}, first ${formatTypeError(introducedByPatch[0])}`,
+                      }
+                    : { passed: true },
+              },
+            })
+          : validationStatus === 'stale'
+            ? undefined
+            : ungradedEvidence(
+                dependencyFailure
+                  ? `Dependencies could not be prepared, so no check ran: ${dependencyFailure.summary}`
+                  : checkFailureText(failures).trim() ||
+                      (generated
+                        ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
+                        : `Validation returned ${validationStatus}.`),
+              );
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)

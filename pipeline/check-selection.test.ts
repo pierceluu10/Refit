@@ -34,7 +34,7 @@ async function repository(files: Record<string, string>) {
 const manifest = (scripts: Record<string, string>, devDependencies = { typescript: '^5.9.3' }) =>
   JSON.stringify({ scripts, dependencies: { stripe: '^17.7.0' }, devDependencies });
 const chain = (tests: string, typeCheck: string) =>
-  `${tests} || { echo '${TESTS_FAILED}'; exit 1; }; echo '${TYPE_CHECK_STARTED}'; ${typeCheck}`;
+  `${tests} || echo '${TESTS_FAILED}'; echo '${TYPE_CHECK_STARTED}'; ${typeCheck}`;
 const scopedScript = (compiler: string) =>
   `printf '%s' "$1" > ${SCOPED_TSCONFIG} && ${compiler} --noEmit --pretty false -p ${SCOPED_TSCONFIG}`;
 const scopedConfiguration = (command: string[] | null) => JSON.parse(command!.at(-1)!);
@@ -167,7 +167,7 @@ it('runs the tests, then tsc when its program holds every Stripe file; both must
   const selection = await selectCheck(await repository(LINK_FLAME));
   expect(selection).toEqual({
     kind: 'tests',
-    command: ['sh', '-c', chain('npm test', TYPE_CHECK.join(' '))],
+    command: ['sh', '-c', chain('npm test', TYPE_CHECK.join(' ')), 'refit-check'],
     compareTypeErrors: true,
     typeCheck: 'project',
     stripeFiles: ['app/api/webhook/route.ts', 'lib/validations/webhook.ts'],
@@ -190,7 +190,7 @@ it('keeps tests that reach no Stripe code, and runs only the tests without TypeS
     await selectCheck(await repository({ ...files, 'pnpm-lock.yaml': "lockfileVersion: '9.0'\n" })),
   ).toMatchObject({
     kind: 'tests',
-    command: ['sh', '-c', chain('pnpm test', TYPE_CHECK.join(' '))],
+    command: ['sh', '-c', chain('pnpm test', TYPE_CHECK.join(' ')), 'refit-check'],
     compareTypeErrors: true,
     testedStripeFiles: [],
     reason:
@@ -211,17 +211,77 @@ it('keeps tests that reach no Stripe code, and runs only the tests without TypeS
         "import Stripe from 'stripe';\nexport function isStripeEnabled() { return Boolean(Stripe); }\n",
       'server/__tests__/stripe-enablement.test.js':
         "import { it } from 'vitest';\nconst { isStripeEnabled } = await import('../lib/stripe.js');\nit('reads the flag', () => isStripeEnabled());\n",
+      'server/lib/logger.js': 'export const logger = console;\n',
+      'server/__tests__/logger.test.js':
+        "import { it } from 'vitest';\nimport { logger } from '../lib/logger.js';\nit('logs', () => logger.log('x'));\n",
     }),
   );
+  // 3 of its 821 test files reach Stripe code; the whole suite does not finish in 120 seconds.
   expect(selection).toEqual({
     kind: 'tests',
-    command: ['npm', 'test'],
+    command: ['npm', 'test', '--', 'server/__tests__/stripe-enablement.test.js'],
     stripeFiles: ['server/lib/stripe.js'],
     testedStripeFiles: ['server/lib/stripe.js'],
     typeCheckedStripeFiles: [],
     reason:
-      'The tests import Stripe code in server/lib/stripe.js. TypeScript is not installed, so no type check runs with them.',
+      'The tests import Stripe code in server/lib/stripe.js, and only the 1 test file that reach it run (server/__tests__/stripe-enablement.test.js); no other test reaches a file the patch can change. TypeScript is not installed, so no type check runs with them.',
   });
+});
+
+it('runs only the test files that reach Stripe code when the runner takes file arguments', async () => {
+  // beindigital-products/wedillybird at 4efeeed: `vitest run` over 222 test files outlasts the
+  // 120-second limit; 15 of them reach lib/payments/drivers/stripe.ts, the file its patch changes.
+  const files = {
+    'package.json': JSON.stringify({
+      scripts: { test: 'vitest run' },
+      dependencies: { stripe: '^22.1.0' },
+      devDependencies: { typescript: '^5', vitest: '^4.0.0' },
+    }),
+    'pnpm-lock.yaml': "lockfileVersion: '9.0'\n",
+    'tsconfig.json': JSON.stringify({
+      compilerOptions: { noEmit: true, paths: { '@/*': ['./*'] } },
+      include: ['**/*.ts'],
+    }),
+    'lib/payments/drivers/stripe.ts':
+      "import Stripe from 'stripe';\nexport const stripeDriver = new Stripe('sk');\n",
+    'lib/payments/coupon-name.ts': 'export const STRIPE_COUPON_NAME_MAX_LENGTH = 40;\n',
+    'tests/unit/lib/payments-stripe-driver.test.ts':
+      "import { it } from 'vitest';\nimport { STRIPE_COUPON_NAME_MAX_LENGTH } from '@/lib/payments/coupon-name';\nit('loads', async () => { await import('@/lib/payments/drivers/stripe'); return STRIPE_COUPON_NAME_MAX_LENGTH; });\n",
+    'tests/unit/lib/coupon-name.test.ts':
+      "import { it } from 'vitest';\nimport { STRIPE_COUPON_NAME_MAX_LENGTH } from '@/lib/payments/coupon-name';\nit('caps', () => STRIPE_COUPON_NAME_MAX_LENGTH);\n",
+  };
+  const wedillybird = await selectCheck(await repository(files));
+  expect(wedillybird.command).toEqual([
+    'sh',
+    '-c',
+    chain('pnpm test "$@"', TYPE_CHECK.join(' ')),
+    'refit-check',
+    'tests/unit/lib/payments-stripe-driver.test.ts',
+  ]);
+  // Jest takes exact paths; a script that chains commands keeps the whole suite.
+  const jest = await selectCheck(
+    await repository({
+      ...files,
+      'package.json': files['package.json'].replace('vitest run', 'jest'),
+    }),
+  );
+  expect(jest.command!.slice(2)).toEqual([
+    chain('pnpm test --runTestsByPath "$@"', TYPE_CHECK.join(' ')),
+    'refit-check',
+    'tests/unit/lib/payments-stripe-driver.test.ts',
+  ]);
+  const chained = await selectCheck(
+    await repository({
+      ...files,
+      'package.json': files['package.json'].replace('vitest run', 'vitest run && playwright test'),
+    }),
+  );
+  expect(chained.command).toEqual([
+    'sh',
+    '-c',
+    chain('pnpm test', TYPE_CHECK.join(' ')),
+    'refit-check',
+  ]);
 });
 
 it('scopes the type check to the Stripe code when the root program leaves it out', async () => {
@@ -377,7 +437,7 @@ it('reads what a configured command runs, including each part of a sh -c chain',
 });
 
 it('names the part of a tests-then-type-check chain that failed', () => {
-  const command = ['sh', '-c', chain('yarn test', TYPE_CHECK.join(' '))];
+  const command = ['sh', '-c', chain('yarn test', TYPE_CHECK.join(' ')), 'refit-check'];
   expect(failingPart(command, `FAIL src/a.test.ts\n${TESTS_FAILED}\n`)).toEqual({
     part: 'tests',
     command: 'yarn test',
@@ -392,6 +452,23 @@ it('names the part of a tests-then-type-check chain that failed', () => {
     command: 'yarn test',
   });
   expect(failingPart(['npm', 'test'], TESTS_FAILED)).toBeUndefined();
+  // Listed test files and a scoped configuration are arguments, shown in the command a person reruns.
+  const scoped = [
+    'sh',
+    '-c',
+    `config=$1; shift; ${chain('npm test -- "$@"', scopedScript('npx --no-install tsc').replace('"$1"', '"$config"'))}`,
+    'refit-check',
+    '{"files":["api/pay.ts"],"include":[]}',
+    'tests/pay.test.ts',
+  ];
+  expect(failingPart(scoped, TESTS_FAILED)).toEqual({
+    part: 'tests',
+    command: 'npm test -- tests/pay.test.ts',
+  });
+  expect(failingPart(scoped, `${TYPE_CHECK_STARTED}\napi/pay.ts(1,1): error TS2339: x`)).toEqual({
+    part: 'type check',
+    command: 'npx --no-install tsc --noEmit --pretty false -p .refit-tsconfig.json',
+  });
 });
 
 it('grades each changed file by the strongest check that reached it', async () => {
@@ -449,6 +526,94 @@ it('grades each changed file by the strongest check that reached it', async () =
       behaviour: { passed: true, coversEveryChangedLine: true, reason: 'Ran every changed line.' },
     }),
   ).toEqual({ letter: 'A', level: 'behaviour-tests', reason: 'Ran every changed line.' });
+});
+
+it('counts only the listed test files as reaching the changed code', async () => {
+  const candidate = await repository({
+    ...LINK_FLAME,
+    'tests/unit/route.test.ts': "import { POST } from '@/app/api/webhook/route'\nexport { POST }\n",
+  });
+  const listed = ['npm', 'test', '--', 'tests/unit/webhook.test.ts'];
+  expect(
+    (
+      await gradeEvidence({
+        repository: candidate,
+        command: listed,
+        changedFiles: ['app/api/webhook/route.ts'],
+      })
+    ).letter,
+  ).toBe('D');
+  expect(
+    (
+      await gradeEvidence({
+        repository: candidate,
+        command: ['npm', 'test'],
+        changedFiles: ['app/api/webhook/route.ts'],
+      })
+    ).letter,
+  ).toBe('B');
+});
+
+it('grades only the type check when the tests were broken before the patch', async () => {
+  // 4NDR3S-01/StyleHub at 8071226: Jest cannot load jest.config.ts on the sandbox's Node, so every
+  // run fails before a test starts; its tsconfig covers the Stripe routes.
+  const stylehub = await repository({
+    'package.json': manifest({ test: 'jest' }),
+    'package-lock.json': '{}',
+    'tsconfig.json': JSON.stringify({ compilerOptions: { noEmit: true }, include: ['src'] }),
+    'src/app/api/stripe/checkout-session.ts':
+      "import Stripe from 'stripe';\nexport const stripe = new Stripe('sk');\n",
+    'src/services/checkout.service.ts':
+      "import { stripe } from '../app/api/stripe/checkout-session';\nexport const service = stripe;\n",
+    'src/__tests__/cart.test.ts': "it('adds', () => 1);\n",
+  });
+  const { command } = await selectCheck(stylehub);
+  const reason =
+    'The baseline check npm test fails on the original code, before any change; the first failure: Error: Jest: Failed to parse the TypeScript config file /workspace/jest.config.ts.';
+  const changedFiles = ['src/services/checkout.service.ts', 'package.json'];
+  expect(
+    await gradeEvidence({
+      repository: stylehub,
+      command: command!,
+      changedFiles,
+      testsBroken: { reason, typeCheck: { passed: true } },
+    }),
+  ).toEqual({
+    letter: 'C',
+    level: 'type-check',
+    reason: `${reason} The tests were broken before the patch, so they prove nothing about it; tsc type-checks src/services/checkout.service.ts and passed on both sides.`,
+  });
+  // JiantaoFu/insightly at e752d3c: mocha's baseline failed in the P2 replay; the scoped type check
+  // over server/index.js is what is left, and a type error the patch adds leaves it at grade D.
+  const insightly = await repository({
+    'package.json': manifest({ test: 'mocha' }),
+    'package-lock.json': '{}',
+    'tsconfig.json': JSON.stringify({ files: [], references: [{ path: './tsconfig.app.json' }] }),
+    'tsconfig.app.json': JSON.stringify({ include: ['src'] }),
+    'server/index.js': "import Stripe from 'stripe';\nexport const stripe = new Stripe('sk');\n",
+    'test/app.test.js': "it('serves', () => 1);\n",
+  });
+  const scoped = await selectCheck(insightly);
+  expect(scoped.typeCheck).toBe('scoped');
+  expect(
+    (
+      await gradeEvidence({
+        repository: insightly,
+        command: scoped.command!,
+        changedFiles: ['server/index.js'],
+        testsBroken: {
+          reason: 'The baseline check npm test fails on the original code, before any change.',
+          typeCheck: {
+            passed: false,
+            detail:
+              'the patch introduces a type error, first server/index.js(9,3): error TS2339: x',
+          },
+        },
+      })
+    ).reason,
+  ).toBe(
+    'The baseline check npm test fails on the original code, before any change. The tests were broken before the patch, and the patch introduces a type error, first server/index.js(9,3): error TS2339: x.',
+  );
 });
 
 it('grades a scoped type check by the files its generated configuration covers', async () => {
