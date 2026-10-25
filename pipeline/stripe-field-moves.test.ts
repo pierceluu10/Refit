@@ -813,6 +813,43 @@ it('leaves invoicing moves without a behaviour-preserving read unresolved with t
   );
 });
 
+// abressiddique/AbresStore-Admin and oMiguelwnl/Borcelle_admin app/api/webhooks/route.ts: an
+// awaited field (`await session?.line_items?.data`) is the field itself, and an optional `map`
+// runs its callback on the same elements, so both stay traced.
+it('traces list elements through an awaited field and an optional map', () => {
+  const sessionSchemas = (after: boolean) => ({
+    ...invoicingSchemas(after),
+    'checkout.session': { type: 'object', properties: { id: string, line_items: list('item') } },
+    item: { type: 'object', properties: { id: string, price: ref('price') } },
+  });
+  const content = `${header}export async function lines(id: string) {
+  const invoice = await stripe.invoices.retrieve(id);
+  const lines = await invoice?.lines?.data;
+  const session = await stripe.checkout.sessions.retrieve(id, { expand: ['line_items'] });
+  const items = await session?.line_items?.data;
+  return [
+    lines?.map((line: any) => line.price?.nickname),
+    items?.map((item: any) => item.price.id),
+  ];
+}`;
+  const result = analyzeRepository(
+    {
+      root: '/field-moves',
+      files: [{ path: 'billing.ts', content }],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    findRemovedProperties(sessionSchemas(false), sessionSchemas(true), provider.id),
+    provider,
+    sessionSchemas(false),
+  );
+  // The invoice line's removed price is a confirmed read; a Checkout line item keeps its price.
+  expect(
+    result.findings.map((finding) => [finding.line, finding.expression, finding.confidence]),
+  ).toEqual([[9, '.price', 'confirmed']]);
+});
+
 const priceReads = `export async function prices(id: string) {
   const invoice = await stripe.invoices.retrieve(id);
   const item = await stripe.invoiceItems.retrieve(id);

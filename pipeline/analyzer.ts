@@ -446,17 +446,26 @@ export function analyzeRepository(
       ts.isAsExpression(expression) ||
       ts.isTypeAssertionExpression(expression) ||
       ts.isNonNullExpression(expression) ||
-      ts.isSatisfiesExpression(expression)
+      ts.isSatisfiesExpression(expression) ||
+      awaitedField(expression)
     )
       return arrayItemForExpression(expression.expression);
     return undefined;
   }
+  // `await session.line_items.data`: a field of a response is a plain value, so awaiting it
+  // returns the value itself.
+  function awaitedField(expression: ts.Expression): expression is ts.AwaitExpression {
+    return (
+      ts.isAwaitExpression(expression) &&
+      (ts.isPropertyAccessExpression(expression.expression) ||
+        ts.isElementAccessExpression(expression.expression))
+    );
+  }
   function arrayIteration(node: ts.CallExpression) {
     const method = node.expression;
+    // `items?.map(…)` runs the callback on the same elements whenever it runs at all.
     if (
-      node.questionDotToken ||
       !ts.isPropertyAccessExpression(method) ||
-      method.questionDotToken ||
       !ARRAY_ITERATION_METHODS.has(method.name.text) ||
       node.arguments.length !== 1
     )
@@ -510,6 +519,7 @@ export function analyzeRepository(
       return (
         schemaForExpression(expression.expression) ?? stripeTypes?.expressionSchema(expression)
       );
+    if (awaitedField(expression)) return schemaForExpression(expression.expression);
     if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
       const operation = responseCall(expression.expression);
       return operation
