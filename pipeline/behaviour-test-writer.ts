@@ -131,7 +131,7 @@ You have no tools and cannot run anything. Return only the JSON object.
 
 How Refit runs the tests:
 - The SAME unchanged files run twice: on the original code against stripe-mock serving API version evidence.versions.before, and on a migrated copy of the code, which you never see, against stripe-mock serving evidence.versions.after. A correct migration passes both runs; a migration that changes what the code does must fail a test.
-- Each file is an ES module at ${BEHAVIOUR_DIRECTORY}/<name>.test.mjs in the repository root, run with node --test in an offline sandbox where the repository's own dependencies are installed.
+- Each file is an ES module at ${BEHAVIOUR_DIRECTORY}/<name>.test.mjs in the repository root, run with node --test in an offline sandbox where the repository's own dependencies are installed. Files run one at a time, and each test must finish within 20 seconds.
 - Import the code under test by its exact relative path from the test file, with its file extension, such as '../lib/billing.ts'. TypeScript is transpiled, and the repository's import aliases work inside repository files.
 - Allowed imports: node:test, node:assert, node:assert/strict, node:path, node:url, node:os, node:fs, node:fs/promises, node:crypto, node:util, node:events, node:buffer, node:timers/promises, stripe, refit:behaviour and repository files. Nothing else.
 - The Stripe SDK reaches stripe-mock unchanged: never stub, wrap or replace it or the HTTP layer. STRIPE_SECRET_KEY, STRIPE_API_KEY and STRIPE_KEY are sk_test_123. Set any other environment variable a module reads before importing it: assign process.env, then use await import().
@@ -141,7 +141,7 @@ How Refit runs the tests:
 
 What to test:
 - Every finding's line must run in at least one test: Refit measures line coverage on both runs. List the findings each file covers in findingIds.
-- Assert behaviour the original code has, so that it holds on both runs: return values, thrown errors, and the Stripe requests the code sends (method, path and the parameters the code sets).
+- Assert behaviour the original code has, so that it holds on both runs: return values, thrown errors, and the Stripe requests the code sends (method, path and the parameters the code sets). A test that fails on the original code against the before version voids the evidence for the whole repository, so write only tests the original code passes.
 - Stay version neutral: never assert the API version, the Stripe-Version header, where a response field is located, or fixture values; assert types, presence and relationships instead (a period end is a positive integer timestamp, a Date is valid, the returned ID is the requested one).
 - Owner policy, removed request parameters: a migration never deletes a request parameter the after contract removed. When the code sends one, assert that the request still carries its value, under the removed name or under a replacement evidence.contract lists for that operation; never assert that it is absent.
 - Owner policy, webhooks: a webhook payload arrives in the webhook endpoint's own API version, which can be older than the code's. Test a webhook handler with a payload you write in the before version's shape and with one built from an object stripe-mock returns, and require both to work.
