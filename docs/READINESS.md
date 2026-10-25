@@ -12,6 +12,10 @@ Preparation changes from #289, measured on refit-bench against the Laptop 2 base
 
 What still refuses, and why, is in [Preparation failures](PREPARATION-FAILURES.md#lockfile-drift-push-279): lockfile drift other than a range the locked version still satisfies (no repository of the set has only that drift, so it is not built), peers missing from a lockfile written with `--legacy-peer-deps` when no committed install asks for it, and Yarn 1 trees on the `2g` profile. Tests: `pipeline/npm-dependencies.test.ts`, `pipeline/validation-source-limit.test.ts`, `pipeline/committed-repository.test.ts`, `pipeline/review.test.ts` and `pipeline/pnpm-inputs.test.ts`; the Docker suites passed on refit-bench (`gated.yml` run 40148010031).
 
+## October 25 checkpoint: hosted worker reconciles installed repositories (unreleased, after 0.39.0)
+
+`refit hosted serve` now lists each active, allowed installation's repositories from `GET /installation/repositories` on start and once per `--interval`, records the ones no webhook recorded and enrolls the approved ones; `refit hosted reconcile` runs it once. The `refit-dev` installation (all repositories) had recorded 135 of 293, so 121 approved forks could not enroll. It only adds: removal stays webhook-only, and not-allowed installations are never listed. Tests: `pipeline/hosted-reconcile.test.ts`; its paging and per-installation failure case runs by default with a simulated GitHub, and its PostgreSQL cases (`REFIT_POSTGRES_URL`) were not run before this checkpoint. Not verified against the live GitHub API or the hosted worker on Fly.
+
 ## October 24 checkpoint: stops become [Needs review] drafts by default (unreleased, after 0.39.0)
 
 Owner decision 1 (Pierce, 2026-10-24, #300) is the default for `refit run`, `refit serve`, `refit hosted serve`, `refit enroll`, `refit doctor` and the Stripe benchmark. Wherever Refit used to stop, it writes its best patch and opens a `[Needs review]` draft whose body starts with **Why this needs review**: each reason, the `file:line` it applies to and what to check ([CLI guide](CLI.md)). A finding that needs review is never edited.
