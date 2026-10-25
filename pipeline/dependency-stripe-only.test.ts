@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
 import { stripeOnlyImports, stripeOnlyProject } from './dependency-stripe-only.ts';
+import { validateNpmLock } from './npm-lock.ts';
 import { readRepository } from './repository.ts';
 
 const roots: string[] = [];
@@ -155,6 +156,10 @@ it('takes stripe and only the records it needs from an npm lockfile, with their 
     dependencies: { stripe: '14.1.0' },
   });
   expect(records).toEqual(DOCUCHAT);
+  // Preparation's own lockfile checks accept the project it installs.
+  expect(() =>
+    validateNpmLock(JSON.stringify(project.manifest), JSON.stringify(project.lockfile)),
+  ).not.toThrow();
 });
 
 // samiamjidkhan/dota2-helper at 91e32cce572510c11c7aa82388abac3cc163ce96 (dev-30): stripe 22.0.0
