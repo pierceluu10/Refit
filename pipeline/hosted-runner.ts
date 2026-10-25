@@ -1,3 +1,4 @@
+import { fork } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
@@ -44,9 +45,36 @@ const STATUS = /^[a-z][a-z-]{0,63}$/;
 const TARGET_ID = /^[a-f0-9]{16}(\.[a-z][a-z0-9-]{0,63})?$/;
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 
+// A forked job process: the CLI, its heap capped below the VM's memory, which several job
+// processes and their validation containers share.
+const JOB_PROCESS_ENTRY = new URL('../bin/refit.mjs', import.meta.url);
+const JOB_PROCESS_HEAP_MB = 1536;
+// The worker's own secrets; a job never needs them.
+const WORKER_SECRETS = ['REFIT_WEBHOOK_SECRET', 'REFIT_SERVICE_TOKEN', 'FLY_API_TOKEN'];
+const JOB_PROCESS_GRACE_SECONDS = 30;
+
 export class JobChannelError extends WebhookInputError {
   override name = 'JobChannelError';
 }
+
+export class JobProcessError extends Error {
+  override name = 'JobProcessError';
+}
+
+// What the worker sends a forked job process: runHostedTarget's options except credentials, which
+// the process reads from its own environment, as it builds the AI options when `aiPatch` is set.
+export interface JobProcessInputs {
+  target: HostedTarget;
+  directory: string;
+  retry: boolean;
+  repairAttempts: number;
+  publishDraft: boolean;
+  aiPatch: boolean;
+  aiTotalUsd?: number;
+}
+
+// The process asks for its job once it listens for it, reports progress, then one outcome.
+type JobProcessMessage = { ready: true } | { progress: string } | { outcome: HostedOutcome };
 
 export interface HostedOutcome {
   status: 'finished' | 'failed';
@@ -118,7 +146,8 @@ export function unchangedReceipt(
   };
 }
 
-// Runs one hosted job in this process. The in-VM worker and every job machine share it.
+// Runs one hosted job in this process. The in-VM worker, its job processes and every job machine
+// share it.
 export async function runHostedTarget(options: {
   target: HostedTarget;
   app: GitHubAppConfiguration;
@@ -174,6 +203,103 @@ export async function runHostedTarget(options: {
     if (!(error instanceof Error)) throw error;
     return failedOutcome(error, options.signal.aborted);
   }
+}
+
+// Runs one job in a forked `refit hosted job` process. A scan can hold the CPU for minutes; in its
+// own process it never blocks the worker's health check, webhooks or lease renewals. A stop sends
+// SIGTERM, then SIGKILL once the grace period passes.
+export async function runJobProcess(options: {
+  inputs: JobProcessInputs;
+  signal: AbortSignal;
+  onProgress?: (message: string) => void;
+  // The script forked with `hosted job`, by default the CLI.
+  entry?: string | URL;
+  graceSeconds?: number;
+}): Promise<HostedOutcome> {
+  const env = { ...process.env };
+  for (const name of WORKER_SECRETS) delete env[name];
+  const child = fork(options.entry ?? JOB_PROCESS_ENTRY, ['hosted', 'job'], {
+    env,
+    execArgv: [`--max-old-space-size=${JOB_PROCESS_HEAP_MB}`],
+    stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+  });
+  // Unlike 'exit', 'close' comes after the last message.
+  const closed = once(child, 'close');
+  let outcome: HostedOutcome | undefined;
+  child.on('message', (message: JobProcessMessage) => {
+    if ('ready' in message) child.send(options.inputs);
+    else if ('progress' in message) options.onProgress?.(message.progress);
+    // After a stop the worker's reason is the receipt, as for an in-process job.
+    else if (!options.signal.aborted) outcome = message.outcome;
+  });
+  const grace = options.graceSeconds ?? JOB_PROCESS_GRACE_SECONDS;
+  let kill: NodeJS.Timeout | undefined;
+  const stop = () => {
+    child.kill('SIGTERM');
+    kill = setTimeout(() => {
+      options.onProgress?.(`Job process ${child.pid} did not stop within ${grace} s; killing it.`);
+      child.kill('SIGKILL');
+    }, grace * MILLISECONDS_PER_SECOND);
+  };
+  if (options.signal.aborted) stop();
+  else options.signal.addEventListener('abort', stop, { once: true });
+  try {
+    const [code, signal] = (await closed) as [number | null, NodeJS.Signals | null];
+    if (outcome) return outcome;
+    const { reason } = options.signal;
+    return failedOutcome(
+      options.signal.aborted && reason instanceof Error
+        ? reason
+        : new JobProcessError(
+            `Job process ${child.pid} exited with ${signal ?? `code ${code}`} before reporting an outcome.`,
+          ),
+      options.signal.aborted,
+    );
+  } finally {
+    clearTimeout(kill);
+    options.signal.removeEventListener('abort', stop);
+    // A process the worker lost track of, after a failed send, would otherwise wait forever.
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+  }
+}
+
+// The forked process's side of runJobProcess: it takes one job over IPC, runs it with `run` and
+// reports back. SIGTERM stops the job. The process exits when the channel closes: after its report,
+// or when the worker is gone and nothing could store the outcome.
+export async function runForkedJob(
+  run: (
+    inputs: JobProcessInputs,
+    signal: AbortSignal,
+    onProgress: (message: string) => void,
+  ) => Promise<HostedOutcome>,
+) {
+  if (!process.send || !process.disconnect)
+    throw new JobProcessError(
+      'refit hosted job has no IPC channel; serve --job-processes forks it.',
+    );
+  const channel = process.send.bind(process);
+  const disconnect = process.disconnect.bind(process);
+  const send = (message: JobProcessMessage) =>
+    new Promise<void>((resolve, reject) =>
+      channel(message, undefined, undefined, (error) => (error ? reject(error) : resolve())),
+    );
+  const controller = new AbortController();
+  // Fly may signal the whole process group; when a job stops is the worker's decision.
+  process.on('SIGINT', () => undefined);
+  process.once('SIGTERM', () => controller.abort());
+  process.once('disconnect', () => process.exit());
+  const received = once(process, 'message') as Promise<[JobProcessInputs]>;
+  await send({ ready: true });
+  const [inputs] = await received;
+  // A configuration error fails the job with its own message, not as an early exit.
+  const outcome = await run(inputs, controller.signal, (progress) => void send({ progress })).catch(
+    (error: unknown) => {
+      if (!(error instanceof Error)) throw error;
+      return failedOutcome(error, controller.signal.aborted);
+    },
+  );
+  await send({ outcome });
+  disconnect();
 }
 
 function jobFiles(value: unknown): JobFile[] {
