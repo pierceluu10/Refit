@@ -68,7 +68,10 @@ const execute = promisify(execFile);
 const PROCESS_TIMEOUT_MS = 30_000;
 const CHECK_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
-const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
+const MAX_COMMAND_OUTPUT_BYTES = 50 * 1024 * 1024;
+// Committed source is copied into the validation workspace beside the unpacked dependency archive.
+// The 4 GiB workspace holds a 2 GiB archive and 256 MiB of source; smaller profiles keep 50 MiB.
+const sourceArchiveBytes = () => (validationProfile().workspace === '4g' ? 256 : 50) * 1024 * 1024;
 const MAX_REPAIR_LOG_CHARACTERS = 4096;
 
 export interface ValidationAttempt {
@@ -182,7 +185,7 @@ async function command(binary: string, args: string[], cwd?: string) {
   return execute(binary, args, {
     cwd,
     timeout: PROCESS_TIMEOUT_MS,
-    maxBuffer: MAX_ARCHIVE_BYTES,
+    maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
     encoding: 'utf8',
     env: binary === 'git' ? gitEnvironment() : undefined,
   });
@@ -289,7 +292,7 @@ async function roomForTwoSandboxes() {
 // Archives the committed revision under `root` and extracts it as the baseline directory.
 async function extractSnapshot(repository: string, revision: string, root: string) {
   const archive = join(root, 'source.tar');
-  const { sourceBytes } = validationProfile();
+  const sourceBytes = sourceArchiveBytes();
   const archiveResult = await execute(
     'git',
     ['-C', repository, 'archive', '--format=tar', revision],

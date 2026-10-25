@@ -15,7 +15,6 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-// Shefaul-22/AgriFlow at 4a7741c commits 73 MiB, 49 MiB of it uploaded images under public/.
 async function validateWithMedia(mediaBytes: number) {
   const root = await mkdtemp(join(tmpdir(), 'refit-source-limit-'));
   roots.push(root);
@@ -65,12 +64,22 @@ process.exit(0);
   });
 }
 
-it('archives committed source up to the profile limit and names what to stop committing above it', async () => {
-  const passed = await validateWithMedia(73 * MIB);
-  console.log(passed.status);
-  expect(passed.status).toBe('passed');
-  vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '1g');
-  await expect(validateWithMedia(73 * MIB)).rejects.toThrow(
-    'Committed source exceeds the 50 MiB validation archive limit. Stop committing build output, media or data files (or track them with Git LFS) so the committed tree fits.',
-  );
-}, 60_000);
+// Shefaul-22/AgriFlow at 4a7741c commits 73.3 MiB, 72.6 MiB of it JPEGs under public/uploads;
+// CRONANANI/EzanaFinance3 at 4666e5a commits 53.6 MiB, 21.7 MiB of it PNGs.
+it.each([
+  ['Shefaul-22/AgriFlow', 73],
+  ['CRONANANI/EzanaFinance3', 54],
+])(
+  'archives %s (%i MiB) on the 4g profile, which takes 256 MiB of source, and refuses it on 2g',
+  async (_repository, mebibytes) => {
+    vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '4g');
+    const passed = await validateWithMedia(mebibytes * MIB);
+    console.log(passed.status);
+    expect(passed.status).toBe('passed');
+    vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '2g');
+    await expect(validateWithMedia(mebibytes * MIB)).rejects.toThrow(
+      'Committed source exceeds the 50 MiB validation archive limit. Stop committing build output, media or data files (or track them with Git LFS) so the committed tree fits.',
+    );
+  },
+  60_000,
+);
