@@ -345,11 +345,11 @@ An independent grep for quoted exact registry model IDs found **4,180** candidat
 
 refit-bench run [40175558373](https://github.com/refit-dev/refit-bench/actions/runs/40175558373) ran `feat/stripe-list-traces` at `b07ce5baa5041a68550ea79c34ceb9417c8cc90c` on `subsets/push-279-affected.json` with no AI (`gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=b07ce5baa5041a68550ea79c34ceb9417c8cc90c -f list=subsets/push-279-affected.json -f offset=0 -f size=2 -f count=279`). All 279 rows came back. Compared with main run 40167312081 at `efb3ddae`, its base, by `scripts/stripe-benchmark-compare.mjs`, 276 keep their outcome and 3 change, all for the better:
 
-| Repository | main | list traces | Why |
-| --- | --- | --- | --- |
-| Kanba-co/kanba | regression | validated | `subscriptions.list` results' `current_period_start` and `current_period_end` are now migrated; on main the stripe-node upgrade left them as two new `tsc` errors |
-| iggy-tech/product-hunt-clone-final | regression | validated | the same for `current_period_end` in `lib/stripe.ts` |
-| jeanchrinot/shipaisaas-starter | `[Needs review]` | validated | `price.unit_amount` and `product.name` on `prices.list` and `products.list` pages are now traced to objects that keep those fields, so they no longer need review |
+| Repository                         | main             | list traces | Why                                                                                                                                                               |
+| ---------------------------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kanba-co/kanba                     | regression       | validated   | `subscriptions.list` results' `current_period_start` and `current_period_end` are now migrated; on main the stripe-node upgrade left them as two new `tsc` errors |
+| iggy-tech/product-hunt-clone-final | regression       | validated   | the same for `current_period_end` in `lib/stripe.ts`                                                                                                              |
+| jeanchrinot/shipaisaas-starter     | `[Needs review]` | validated   | `price.unit_amount` and `product.name` on `prices.list` and `products.list` pages are now traced to objects that keep those fields, so they no longer need review |
 
 Confirmed findings went from 1,011 to 1,032 and validated repositories from 75 to 78; repositories whose checks failed on the patch went from 12 to 10. Unresolved findings went from 2,208 to 2,289, mostly `--full-diff` contract changes on the newly mapped list operations (for example 1 to 6 in `samarbadriddin0v/notion-clone`), which still need review and do not change an outcome. The workflow diff in the results is cut at 8,000 characters, so the edits were checked by a local rescan of 14 repositories that call list methods, from pinned worktrees of `efb3ddae` and `b07ce5ba` with FlowCraft's `2023-10-16` and endive contracts: 17 new read edits in Kanba-co/kanba, cyberdreadx/cyberpunk-grok-api, habibjutt/nextjs_boilerplate, iggy-tech/product-hunt-clone-final, odota/core, qesmsep/noir-crm-dashboard and shagunmistry/FlowCraft, each reviewed, none wrong. Not measured: AI patches, publication and the hosted worker.
 
@@ -389,6 +389,26 @@ The single-tenant hosted worker (`refit hosted serve` on Fly, with `--publish-dr
 - **Shared CPU throttles.** On `shared-cpu-2x` the first full job took about 5 minutes. After an hour of back-to-back jobs, installs and type checks slowed until 2 jobs passed the 120-second check limit. On `performance-8x` the same retries took about 2 minutes each.
 - **Weak checks on two drafts.** stripe_elements_customized_card_form and web-scraping-course-app have no tests, so the operator's check was `node -e 0`, and generated `stripe-mock` checks found no entry point in either. Those drafts show that the patch applies, not that the code works. spotify-clone's one `stripe-mock` entry point could not run on its own.
 - **Not measured:** AI patches, approval issues, more than one installation, and draft updates: full-stack-starter-kit opened a second draft beside one from an earlier local run instead of updating it.
+
+## Push-279 at Refit 0.38.0 and at main (October 25)
+
+The same 279 affected Stripe repositories (`subsets/push-279-affected.json`), no AI, no publication, on `refit-dev/refit-bench`:
+
+- **0.38.0 (October 16):** run 40211544936 at `32ab89f`. It is `v0.38.0` (`54ae277`) plus the push-279 list and today's `stripe-benchmark-setup.mjs` and its two helpers. Only the harness changed; 0.38.0's setup script had no `--offset`.
+- **Main:** run 40181262435 at `05477b9`, whose tree is merged as `4f9dc9a`.
+
+|                                                    |                                                                                0.38.0 |                                                 Main |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------: | ---------------------------------------------------: |
+| Confirmed breaking usage                           |                                                                                   243 |                                                  273 |
+| Possible breaking usage only (needs review)        |                                                                                    36 |                                                    6 |
+| Validated patch (checks pass on the migrated code) |                                                                                     0 |                                                   78 |
+| `[Needs review]` draft with a patch                |                                                                                     0 |                                                  167 |
+| Stopped with no PR                                 | 189 at scan (176 on the removed `payment_method_types`) + 12 checks failed + 9 errors | 6 errors (source over the 50 MiB validation archive) |
+| Not run: no checks the benchmark can run           |                                                                                    69 |                                                   28 |
+
+- 0.38.0's `needs-review` rows stopped at the scan with no patch and no draft. Decision 1 (October 24) did not exist yet.
+- Most of the change comes from owner decisions: the card-only and keep-listed `payment_method_types` policies, decision 1 and the 4 GiB sandbox. New rules add to it, such as list and search traces (#334) and the regression fallback (#319).
+- Not measured here: AI and publication. The live hosted worker reached 190 of these targets: AI was asked on 40 (21%) and wrote the patch on 2, for $0.64 of a $7 cap.
 
 ## Night set (frozen October 24)
 
