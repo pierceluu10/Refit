@@ -98,6 +98,8 @@ interface CoverageAttempt {
   // What the model was asked to resolve, at its lines in the rules' patch.
   targets: ReturnType<typeof unresolvedSites>;
   error?: string;
+  // The model's own account when it proposed nothing beyond the rules, so the run can show why.
+  response?: { id: string; summary: string; uncertainties: string[] };
   // A proposal that failed its checks after repair, left out of the result.
   attempts?: ValidationAttempt[];
   repair?: { requested: number; stopReason: string; error: string | null };
@@ -1251,7 +1253,13 @@ export async function validateMigration(options: {
         );
         charge(candidate);
         // The model's edits are the proposal's beyond the rules'.
-        if (candidate.edits > ruleEdits.length) {
+        if (candidate.edits <= ruleEdits.length)
+          coverage.response = {
+            id: candidate.responseId,
+            summary: candidate.summary,
+            uncertainties: candidate.uncertainties,
+          };
+        else {
           candidate.diff += packageDiff(report.patch.diff);
           const prepared = await prepareCandidate(candidate.diff, originalSources, report);
           options.onProgress?.('Running checks on the AI proposal in offline Docker...');

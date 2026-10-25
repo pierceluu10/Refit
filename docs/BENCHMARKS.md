@@ -428,6 +428,13 @@ One AI run of `subsets/dev-30.json` on `refit-dev/refit-bench` at `4433c96` (fea
 - **A failed AI attempt left the outcome as it was.** The 6 rows have the same status, stage, review gates, full-diff mode and patch as in run 40151036594 (decision 1, no AI, `32d686c`). financehb and spotify-clone are `validated` in run 40152743957 only because `4f86323` predates decision 1 (#316). Under decision 1 the production scan no longer stops on their contract changes, so the workflow runs the full diff and lists them for review, with or without AI.
 - **Not measured:** whether AI patches validate or are correct. That needs a working key and another run.
 
+Rerun with a replaced key at `22b4ab3`: GitHub Actions run 40158922107, same inputs (`size=5 count=30 ai=true ai_budget=5`, 6 shards of $0.83), compared with run 40156098317 as the AI-off outcome.
+
+- **Spend: $0.180452**, from `jq '[.[] | (.workflow.aiCostUsd // 0) + (.ai.costUsd // 0)] | add'`. No request failed with HTTP 401.
+- **The model proposed no edit on any of the 5 coverage requests** (`no-proposal`): doganarif/build-it ($0.022904, 11 targets), Emmah-oo/spotify-clone ($0.028386, 2), palashb01/DocuChat ($0.028514, 4), samiamjidkhan/dota2-helper ($0.035218, 2) and shagunmistry/FlowCraft ($0.036340, 5). financehb was refused before a request (evidence over 64 KiB). ggallon/type-last spent $0.029090 in the existing repair loop and stayed `validation-failed`.
+- **Every row's status, stage, reason, review gates and patch equal the AI-off run.** No AI diff was checked or published, so none is labelled.
+- **One clear miss:** FlowCraft `src/app/api/subscription/route.ts:71` still reads `s.current_period_end` on a listed subscription, which Stripe removed in basil, although the rules' patch adds a `getSubscriptionPeriodEnd` helper for it. The run recorded no reason for the empty proposals.
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

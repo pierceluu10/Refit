@@ -90,7 +90,7 @@ export const TYPE_ERROR_CHANGE = 'type-error';
 // An SDK call traced to a breaking contract change no Refit rule migrates.
 export const CONTRACT_CHANGE = 'contract-change';
 const COVERAGE_INSTRUCTIONS = `
-These findings are what Refit's rules left unresolved; resolve only these. Findings with untraced true read a removed field name on a value Refit could not trace to a provider object: edit one only when the supplied code shows the value is that provider's object, otherwise leave it and state the uncertainty. Findings with changeId "contract-change" are SDK calls that reach a breaking change in the target contract no Refit rule migrates; the reason names the change. Edit within the statement containing the call only where the code depends on what changed, otherwise leave it and state why.`;
+These findings are what Refit's rules left unresolved; resolve only these. Findings with untraced true read a removed field name on a value Refit could not trace to a provider object: edit one only when the supplied code shows the value is that provider's object, otherwise leave it and state the uncertainty. Their reason states a limit of Refit's tracer, not evidence that the value is something else: follow the value through the supplied code, such as an element of a list response's data. The supplied files already contain the rules' edits. Where the rules migrated the same removed field elsewhere, often by calling a helper in evidence.contextFiles, migrate a remaining read of the provider's object the same way, through that helper, passing the object alone: never copy an item-selection argument the rules derived from other code. Findings with changeId "contract-change" are SDK calls that reach a breaking change in the target contract no Refit rule migrates; the reason names the change. Edit within the statement containing the call only where the code depends on what changed, otherwise leave it and state why.`;
 const TYPE_ERROR_INSTRUCTIONS = `
 Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: match the new type shapes and correct invalid literals outside request bodies. A request parameter or value the new types reject is a review item, not a migration: never rename, remove or change it. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. An edit citing a type-error finding must lie within the statement or member containing its reported position; when the cause is elsewhere, such as a type declared in another statement or file, leave that error and state it as an uncertainty. Keep values in the request objects they were sent in, such as metadata.`;
 const WEBHOOK_INSTRUCTIONS = `
@@ -655,6 +655,7 @@ export async function proposeAiPatch(
     generator: 'openai' as const,
     ...(answer === first ? {} : { rejectedProposals: [first.rejection!.message] }),
     summary: value.summary,
+    uncertainties: value.uncertainties,
     evidence: noted,
     edits: edits.length + deterministicEdits.length,
     ...(deterministicEdits.length ? { ruleEdits: deterministicEdits } : {}),

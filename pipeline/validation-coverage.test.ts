@@ -167,6 +167,9 @@ interface Shape {
   name: string;
   files: Record<string, string>;
   fullDiff?: boolean;
+  // A contract and adapter other than the Checkout and Customers ones.
+  contract?: (version: string) => object;
+  adapter?: typeof ADAPTER;
   // The model's edit for what the rules left, in the rules' patch's text.
   fix?: { file: string; original: string; replacement: string };
 }
@@ -316,9 +319,9 @@ async function workspace(shape: Shape) {
   const before = join(root, 'before.json');
   const after = join(root, 'after.json');
   const providerConfig = join(root, 'adapter.json');
-  await writeFile(before, JSON.stringify(contract(BEFORE)));
-  await writeFile(after, JSON.stringify(contract(AFTER)));
-  await writeFile(providerConfig, JSON.stringify(ADAPTER));
+  await writeFile(before, JSON.stringify((shape.contract ?? contract)(BEFORE)));
+  await writeFile(after, JSON.stringify((shape.contract ?? contract)(AFTER)));
+  await writeFile(providerConfig, JSON.stringify(shape.adapter ?? ADAPTER));
   const binary = join(root, 'bin');
   await mkdir(binary);
   await writeFile(join(binary, 'docker'), DOCKER);
@@ -674,11 +677,137 @@ it('records what a declined coverage request cost and keeps the rules-only draft
     aiCostUsd: REQUEST_COST,
     coverageAi: { costUsd: REQUEST_COST },
   });
-  expect(['no-proposal', 'refused']).toContain(report.validation.coverageAi.outcome);
+  // The model's own account is what shows why it proposed nothing.
+  expect(report.validation.coverageAi).toMatchObject({
+    outcome: 'no-proposal',
+    response: {
+      id: 'resp_coverage_1',
+      summary: 'Resolve what the rules left.',
+      uncertainties: ['Review the replacement field.'],
+    },
+  });
   expect(report.patch).toMatchObject({
     generator: 'deterministic',
     diff: (await rulesPatch(inputs)).diff,
   });
+});
+
+// Shaped like basil's subscription period move: the field leaves the subscription for its items.
+function periodContract(version: string) {
+  const endive = version === AFTER;
+  const integer = { type: 'integer' };
+  const period = { current_period_start: integer, current_period_end: integer };
+  return {
+    openapi: '3.0.0',
+    info: { version },
+    paths: {
+      '/v1/subscriptions/{subscription_exposed_id}': {
+        get: {
+          operationId: 'GetSubscriptionsSubscriptionExposedId',
+          parameters: [
+            {
+              name: 'subscription_exposed_id',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+            },
+          ],
+          responses: returns('subscription'),
+        },
+      },
+    },
+    components: {
+      schemas: {
+        subscription: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            cancel_at_period_end: { type: 'boolean' },
+            ...(endive ? {} : period),
+            items: {
+              type: 'object',
+              properties: {
+                data: { type: 'array', items: { $ref: '#/components/schemas/subscription_item' } },
+              },
+            },
+          },
+        },
+        subscription_item: {
+          type: 'object',
+          properties: { id: { type: 'string' }, ...(endive ? period : {}) },
+        },
+      },
+    },
+  };
+}
+
+it('asks AI to finish an untraced period read through the helper the rules wrote, and keeps it (shagunmistry/FlowCraft)', async () => {
+  // FlowCraft's adapter maps subscriptions.retrieve but not subscriptions.list, so the rules
+  // migrate the retrieved subscription, with the item its function reads, and leave the listed
+  // one's read untraced.
+  const shape: Shape = {
+    name: 'shagunmistry/FlowCraft',
+    contract: periodContract,
+    adapter: {
+      ...ADAPTER,
+      operations: [
+        {
+          resource: 'subscriptions',
+          method: 'retrieve',
+          schema: 'subscription',
+          operationId: 'GetSubscriptionsSubscriptionExposedId',
+        },
+      ],
+    },
+    files: {
+      'src/app/api/subscription/route.ts': `${client('process.env.STRIPE_SECRET_KEY!')}export async function renewal(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return { item: subscription.items.data[0].id, ends: subscription.current_period_end * 1000 };
+}
+export async function recover(customer: string) {
+  const subs = await stripe.subscriptions.list({ customer, status: 'all', limit: 10 });
+  return subs.data.find((s) => s.cancel_at_period_end && s.current_period_end * 1000 > Date.now());
+}
+`,
+    },
+    fix: {
+      file: 'src/app/api/subscription/route.ts',
+      original: 's.current_period_end',
+      replacement: 'getSubscriptionPeriodEnd(s)',
+    },
+  };
+  const fix = shape.fix!;
+  const { requests } = network((request) => [edit(fix, request)]);
+  const { inputs, report, publication } = await run(shape, true);
+  const rules = await rulesPatch(inputs);
+  console.log(shape.name, 'AI coverage:', JSON.stringify(report.validation.coverageAi, null, 2));
+  console.log(shape.name, 'rules patch:', rules.diff);
+  expect(rules.diff).toContain('getSubscriptionPeriodEnd(subscription, (items) => items[0])');
+  expect(rules.diff).toContain('s.current_period_end');
+  expect(requests).toHaveLength(1);
+  // What the model needs to finish the read: the target, the rules' helper and the guidance.
+  const { evidence, instructions } = requests[0] as Request & {
+    evidence: { contextFiles: { path: string; content: string }[] };
+  };
+  expect(evidence.findings).toEqual([
+    expect.objectContaining({
+      file: fix.file,
+      expression: '.current_period_end',
+      untraced: true,
+    }),
+  ]);
+  const helper = evidence.contextFiles.find((file) =>
+    file.content.includes('export function getSubscriptionPeriodEnd'),
+  );
+  expect(helper).toBeDefined();
+  expect(instructions).toContain('through that helper, passing the object alone');
+  expect(instructions).toContain('not evidence that the value is something else');
+  // The helper with the object alone is no item choice, so the guards keep the edit.
+  expect(report.validation.coverageAi).toMatchObject({ outcome: 'kept', costUsd: REQUEST_COST });
+  expect(publication[fix.file]).toContain('getSubscriptionPeriodEnd(s) * 1000 > Date.now()');
+  expect(publication[fix.file]).toContain(
+    'getSubscriptionPeriodEnd(subscription, (items) => items[0])',
+  );
 });
 
 // Safety stops: AI makes no request, and the rules' [Needs review] draft still ships (decision 1).

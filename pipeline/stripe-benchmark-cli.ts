@@ -563,6 +563,7 @@ async function benchmark(entry: Selected, index: number) {
               targets: report.validation.coverageAi.targets,
               resolved: report.validation.coverageAi.resolved,
               error: report.validation.coverageAi.error,
+              response: report.validation.coverageAi.response,
               repair: report.validation.coverageAi.repair?.stopReason,
               // The proposal its checks refused, which the result leaves out.
               diff: report.validation.coverageAi.attempts?.at(-1)?.diff?.slice(0, 8000),
