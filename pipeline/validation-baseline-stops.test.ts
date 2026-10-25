@@ -144,12 +144,20 @@ it('names the part of a tests-then-type-check chain that failed, with its own fi
   const command = [
     'sh',
     '-c',
-    `npm test || { echo '${TESTS_FAILED}'; exit 1; }; echo '${TYPE_CHECK_STARTED}'; ${TYPE_CHECK.join(' ')}`,
+    `npm test || echo '${TESTS_FAILED}'; echo '${TYPE_CHECK_STARTED}'; ${TYPE_CHECK.join(' ')}`,
+    'refit-check',
   ];
   const check = (stdout: string) =>
     ({ status: 'failed', exitCode: 1, stdout, stderr: '' }) as const;
+  // The type check after failing tests prints a baseline error; the tests' failure is named.
   expect(
-    checkFailure('baseline', command, check(`FAIL src/payments.test.ts\n${TESTS_FAILED}\n`)),
+    checkFailure(
+      'baseline',
+      command,
+      check(
+        `FAIL src/payments.test.ts\n${TESTS_FAILED}\n${TYPE_CHECK_STARTED}\nsrc/a.ts(3,7): error TS2322: x\n`,
+      ),
+    ),
   ).toEqual({
     side: 'baseline',
     command: 'npm test',
