@@ -33,7 +33,8 @@ The 30 held-out repositories were not opened by any lane and nothing was tuned o
   - The hosted and benchmark grades differ on two repositories. Hosted published web-scraping-course-app as validated (the benchmark says needs review) and what-now-chaos as `[Needs review]` (the benchmark says validated).
   - 2 have no Stripe change.
   - 4 have no draft yet: Backend-AlphaAnimica, DigitalMali, Open-Magiviz (queued) and bistro-boss.
-- Whole push-279 list: 209 open drafts across 188 forks, of which 114 are `[Needs review]`. 21 forks have more than one open draft. This duplicate-draft issue is open and not fixed.
+- Whole push-279 list: 209 open drafts across 188 forks at the end of the push, of which 114 were `[Needs review]`.
+- 20 forks had more than one open draft, 21 extras in all. Each had a draft from before 05c50197 (one branch per target version) and a second on the new branch for the same `2026-09-30.endive` target. The older drafts carry no provider or target marker, so `--supersede-drafts` would not have closed them either. The 21 older drafts were closed by hand with a comment that links the one kept, leaving 189 open drafts on 189 forks.
 - Hosted AI spend: $0.64 of $7. AI was involved in 40 of the 190 hosted targets with reports (21%), and 2 patches were written by OpenAI.
 
 ## Push-279 list: 0.38.0 vs main (no AI)
@@ -58,5 +59,6 @@ The 30 held-out repositories were not opened by any lane and nothing was tuned o
 
 ## State after the push
 
+- A later target version still opens a new draft beside the old one, because hosted runs without `--supersede-drafts` (off by default, owner decision 2026-10-24).
 - Fly `refit-hosted` is back on shared-cpu-2x with 4 GB, running `--publish-draft --ai-patch --repair-attempts 2` (v28).
 - The refit-docker EC2 instance was terminated, so no billable EC2 resources remain.
