@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { isObject, parseObject } from './specifications.ts';
+import { COMPRESSED_SUFFIX, readEvidence } from './state-files.ts';
 import type { runWorkflow } from './workflow.ts';
 import { affectedFields } from './report-fields.ts';
 
@@ -343,10 +342,14 @@ export function renderScanResult(value: unknown) {
 }
 
 export async function renderWorkflowResult(result: Result) {
-  const readArtifact = async (name: string) =>
-    result.manifest.files.some((file) => file.path === name)
-      ? parseObject(await readFile(join(result.directory, name), 'utf8'), name)
+  const readArtifact = async (name: string) => {
+    const text = result.manifest.files.some(
+      (file) => file.path === name || file.path === `${name}${COMPRESSED_SUFFIX}`,
+    )
+      ? await readEvidence(result.directory, name)
       : undefined;
+    return text === undefined ? undefined : parseObject(text, name);
+  };
   const report = (await readArtifact('report.json')) ?? (await readArtifact('scan.json'));
   const publication = await readArtifact('publication.json');
   const rows = renderReportRows(report, result.manifest.status === 'existing-pr');

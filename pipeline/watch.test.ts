@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -10,6 +10,7 @@ import { documentationSourceId } from './documentation-sources.ts';
 import { compareOpenApi } from './openapi-diff.ts';
 import { commentOnOwnDraft } from './publication.ts';
 import { GitHubRequestError } from './github.ts';
+import { readEvidence } from './state-files.ts';
 
 vi.mock('./workflow.ts', () => ({ runWorkflow: vi.fn() }));
 vi.mock('./publication.ts', async (importOriginal) => ({
@@ -41,7 +42,12 @@ async function options() {
 }
 function result(
   input: Parameters<typeof runWorkflow>[0],
-  status: 'validated' | 'validation-failed' | 'up-to-date' | 'draft-created' = 'validated',
+  status:
+    | 'validated'
+    | 'validation-failed'
+    | 'up-to-date'
+    | 'draft-created'
+    | 'needs-review' = 'validated',
 ) {
   return {
     directory: input.output,
@@ -84,6 +90,25 @@ it('processes a change once across worker restarts and ignores documentation-onl
   expect((await watchOnce(input)).status).toBe('processed');
   expect(runWorkflow).toHaveBeenCalledTimes(2);
   expect(await readFile(join(input.stateDirectory, 'state.json'), 'utf8')).not.toContain('apiKey');
+});
+
+it('stores each observation compressed and removes the uncompressed one an earlier Refit wrote', async () => {
+  const input = await options();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value));
+  const first = await watchOnce(input);
+  const observations = join(input.stateDirectory, 'observations');
+  const legacy = join(observations, `${first.sourceHash}.json`);
+  await expect(stat(legacy)).rejects.toMatchObject({ code: 'ENOENT' });
+  await writeFile(legacy, '{}');
+  expect((await watchOnce(input)).status).toBe('already-processed');
+  await expect(stat(legacy)).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(JSON.parse((await readEvidence(observations, `${first.sourceHash}.json`))!)).toMatchObject(
+    {
+      sourceHash: first.sourceHash,
+      provider: 'stripe',
+      scan: { status: 'affected' },
+    },
+  );
 });
 
 it('watches a committed root profile with an explicit local repository and deduplicates across CLI restarts', async () => {
@@ -374,6 +399,32 @@ it('reuses a job without a draft that an earlier Refit release recorded', async 
     status: 'already-processed',
     previousStatus: 'validation-failed',
   });
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+});
+
+it('runs a review or draft job once more when AI is turned on, then reuses it', async () => {
+  const input = await options();
+  const withAi = {
+    ...input,
+    configuration: { ...input.configuration, aiPatch: { apiKey: 'unused', model: 'unused' } },
+  };
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'needs-review'));
+  const first = await watchOnce(input);
+  expect(await watchOnce(withAi)).toMatchObject({ status: 'processed', jobKey: first.jobKey });
+  expect(await watchOnce(withAi)).toMatchObject({ status: 'already-processed' });
+  expect(runWorkflow).toHaveBeenCalledTimes(2);
+});
+
+it('reuses a failed job without AI when AI is turned on', async () => {
+  const input = await options();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'validation-failed'));
+  await watchOnce(input);
+  expect(
+    await watchOnce({
+      ...input,
+      configuration: { ...input.configuration, aiPatch: { apiKey: 'unused', model: 'unused' } },
+    }),
+  ).toMatchObject({ status: 'already-processed', previousStatus: 'validation-failed' });
   expect(runWorkflow).toHaveBeenCalledTimes(1);
 });
 
