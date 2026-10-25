@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import ts from 'typescript-compiler';
 import { scaffoldChecks } from './agent-catalog.ts';
 import { analyzeRepository, SourceParseError } from './analyzer.ts';
+import { selectCheck } from './check-selection.ts';
 import {
   validateApiVersion,
   type ApiVersionDeclaration,
@@ -28,12 +29,9 @@ import { YARN_LOCKFILE } from './yarn-lock.ts';
 
 export const STRIPE_INTEGRATION = 'stripe';
 const MANIFEST = 'package.json';
-const TSCONFIG = 'tsconfig.json';
 const RELEASE = /^(\d+)\.(\d+)\.(\d+)$/;
 // stripe-node 12 is the first major that sends its own API version (pipeline/api-version.ts).
 const FIRST_PINNING_MAJOR = 12;
-// The benchmark's type check (pipeline/stripe-benchmark-cli.ts): no install, no network.
-const TYPE_CHECK = ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'];
 const MAX_PLACES = 3;
 const MAX_QUOTED = 60;
 const OWN_CONFIGURATION = `or commit a ${REPOSITORY_CONFIGURATION} that sets it (docs/REPOSITORY-SETUP.md)`;
@@ -53,7 +51,7 @@ export interface StripeProposal {
   configuration: { formatVersion: 2; integrations: Record<string, unknown>[] };
   apiVersion: { value: string; source: string };
   target: string;
-  checks: { kind: 'tests' | 'typecheck' | 'none'; source: string };
+  checks: { kind: 'tests' | 'typecheck' | 'none'; source: string; reason: string };
   // Why Refit cannot test a patch under this configuration; empty unless allowUntested proposed it.
   untested: EnrollmentStop[];
 }
@@ -491,7 +489,7 @@ export async function proposeStripeConfiguration(
     ...(manifest?.dependencies as Record<string, unknown> | undefined),
     ...(manifest?.devDependencies as Record<string, unknown> | undefined),
   };
-  const { testScript, lockfile } = await scaffoldChecks(directory);
+  const { lockfile } = await scaffoldChecks(directory);
   const rooted = Boolean(declared[STRIPE.packageName]);
   if (!rooted) {
     const nested = [...new Set(repository.dependencies.map((dependency) => dependency.file))];
@@ -548,13 +546,14 @@ export async function proposeStripeConfiguration(
     : existsSync(join(directory, YARN_LOCKFILE))
       ? 'yarn'
       : 'npm';
-  const typecheck = existsSync(join(directory, TSCONFIG)) && Boolean(declared.typescript);
-  if (!testScript && !typecheck)
+  const check = await selectCheck(repository);
+  if (!check.kind)
     stops.push({
       id: 'no-checks',
       detail:
         'This repository has no test script and no TypeScript type check, so Refit has nothing that shows a change still works.',
-      action: `Add a "test" script to package.json, or a ${TSCONFIG} with typescript in devDependencies.`,
+      action:
+        'Add a "test" script to package.json, or a tsconfig.json with typescript in devDependencies.',
     });
   let analysis: ReturnType<typeof analyzeRepository>;
   try {
@@ -587,11 +586,21 @@ export async function proposeStripeConfiguration(
     });
   if (blocking().length || Array.isArray(version)) return { proposal: null, stops };
   const target = latestStripeContract().version;
-  const checked = testScript
-    ? `the test script in ${MANIFEST}, run with ${manager}`
-    : typecheck
-      ? `tsc over ${TSCONFIG}, failing only on new type errors`
-      : `${NO_OP_CHECK}, which tests nothing`;
+  const typeChecked =
+    check.typeCheck === 'project'
+      ? 'tsc over tsconfig.json, failing only on new type errors'
+      : check.typeCheck === 'scoped'
+        ? 'tsc over the Stripe code, failing only on new type errors'
+        : undefined;
+  // Owner decision 1: without any check the command is a no-op the draft names (untested).
+  const checked = check.kind
+    ? [
+        check.kind === 'tests' ? `the test script in ${MANIFEST}, run with ${manager}` : undefined,
+        typeChecked,
+      ]
+        .filter(Boolean)
+        .join(', then ')
+    : `${NO_OP_CHECK}, which tests nothing`;
   const proposal: StripeProposal = {
     configuration: {
       formatVersion: 2,
@@ -603,16 +612,17 @@ export async function proposeStripeConfiguration(
           apiVersion: version.value,
           image: NODE_22_IMAGE,
           prepareDependencies: true,
-          command: testScript ? [manager, 'test'] : typecheck ? TYPE_CHECK : NO_OP_CHECK.split(' '),
-          ...(!testScript && typecheck ? { compareTypeErrors: true } : {}),
+          command: check.command ?? NO_OP_CHECK.split(' '),
+          ...(check.compareTypeErrors ? { compareTypeErrors: true } : {}),
         },
       ],
     },
     apiVersion: version,
     target,
     checks: {
-      kind: testScript ? 'tests' : typecheck ? 'typecheck' : 'none',
+      kind: check.kind ?? 'none',
       source: `${checked}${outside.length ? `; Refit does not install ${listed(outside)}, which the root lockfile leaves out` : ''}`,
+      reason: check.reason,
     },
     untested: stops,
   };
@@ -632,7 +642,7 @@ export function generatedVersionCheck(source: ApiVersionSource) {
 // One sentence a person reads before approving or running a generated configuration.
 export function proposalSummary(proposal: StripeProposal) {
   const untested = proposal.untested.map((stop) => `${stop.detail} ${stop.action}`).join(' ');
-  return `No ${REPOSITORY_CONFIGURATION} is committed, so Refit generated one: Stripe API version ${proposal.apiVersion.value} (${proposal.apiVersion.source}), moving to ${proposal.target}, checked by ${proposal.checks.source}.${untested ? ` Refit cannot test a patch here, so each draft it opens is titled [Needs review]: ${untested}` : ''}`;
+  return `No ${REPOSITORY_CONFIGURATION} is committed, so Refit generated one: Stripe API version ${proposal.apiVersion.value} (${proposal.apiVersion.source}), moving to ${proposal.target}, checked by ${proposal.checks.source}. ${proposal.checks.reason}${untested ? ` Refit cannot test a patch here, so each draft it opens is titled [Needs review]: ${untested}` : ''}`;
 }
 
 export function proposalContent(proposal: StripeProposal) {

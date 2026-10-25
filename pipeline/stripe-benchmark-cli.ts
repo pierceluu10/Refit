@@ -14,6 +14,7 @@ import {
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
+import { selectCheck, ungradedEvidence } from './check-selection.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PASSING_REACH } from './operation-reach.ts';
 import { readRepository } from './repository.ts';
@@ -26,7 +27,7 @@ import {
   stripeOperations,
   summaryTable,
   workflowExitReason,
-  workflowScanStop,
+  workflowScan,
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { validationProfile } from './docker-sandbox.ts';
@@ -39,29 +40,24 @@ import {
   publishUnresolved,
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+import { typeErrors } from './type-errors.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 
 const execute = promisify(execFile);
 const USAGE =
   'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
-// Default `npm init` script; it is not a check.
-const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
-// `file(line,col): error TSxxxx: message`, keyed without the position so moved lines still match.
-const TYPE_ERROR = /^(.+?)\(\d+,\d+\): error (TS\d+): (.*)$/;
-
-function typeErrors(output: unknown) {
-  return new Set(
-    String(output ?? '')
-      .split('\n')
-      .map((line) => TYPE_ERROR.exec(line.trim()))
-      .filter((match): match is RegExpExecArray => Boolean(match))
-      .map((match) => `${match[1]} ${match[2]} ${match[3]}`),
+// Type errors keyed without the position, so moved lines still match.
+const typeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
+  new Set(
+    typeErrors({
+      stdout: check?.stdout ?? '',
+      stderr: check?.stderr ?? '',
+    }).map((error) => error.key),
   );
-}
 
 interface Selected {
   repo: string;
@@ -421,28 +417,26 @@ async function benchmark(entry: Selected, index: number) {
     await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
   );
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
-  const testScript: unknown = manifest.scripts?.test;
-  const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
-  const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
-  const pnpm = existsSync(join(directory, 'pnpm-lock.yaml'));
-  const yarn = existsSync(join(directory, 'yarn.lock'));
   // A bun.lock is installed through its npm translation (bun-lock.ts).
   const checkable =
-    (existsSync(join(directory, 'package-lock.json')) ||
-      pnpm ||
-      yarn ||
-      existsSync(join(directory, 'bun.lock'))) &&
-    Boolean(declared.stripe);
-  result.validatable = checkable && hasTests;
-  result.checks = !checkable
-    ? 'none'
-    : hasTests
-      ? 'tests'
-      : typescript
-        ? 'typecheck'
-        : 'generated-only';
+    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
+      existsSync(join(directory, lockfile)),
+    ) && Boolean(declared.stripe);
+  // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,
+  // the patch is still proposed and graded D.
+  const selection = await selectCheck(repository);
+  result.checkSelection = {
+    kind: selection.kind,
+    ...(selection.typeCheck ? { typeCheck: selection.typeCheck } : {}),
+    reason: selection.reason,
+    stripeFiles: selection.stripeFiles.length,
+    testedStripeFiles: selection.testedStripeFiles.length,
+    typeCheckedStripeFiles: selection.typeCheckedStripeFiles.length,
+  };
+  result.validatable = checkable && Boolean(selection.command);
+  result.checks = !checkable ? 'none' : (selection.kind ?? 'generated-only');
   if (values.validate && checkable) {
     const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
     const generatedChecks =
@@ -453,14 +447,9 @@ async function benchmark(entry: Selected, index: number) {
             afterFixtures: fixtures(latest),
           }
         : undefined;
-    // Without tests, TypeScript repositories typecheck; compareTypeErrors fails the patched check
-    // only on errors the patch introduced, which then go to AI repair.
-    const command = hasTests
-      ? [pnpm ? 'pnpm' : yarn ? 'yarn' : 'npm', 'test']
-      : typescript
-        ? ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.']
-        : // Refit refuses empty command arguments, so the no-op evaluates `0`.
-          ['node', '-e', '0'];
+    // compareTypeErrors fails a patched type check only on errors the patch introduced, which then
+    // go to AI repair.
+    const command = selection.command;
     const config = join(work, 'run.json');
     // A customer's worker runs the full contract diff. When it stops before validation, the
     // workflow runs without it (benchmark mode) to measure what the rules alone would do; when it
@@ -468,11 +457,11 @@ async function benchmark(entry: Selected, index: number) {
     const productionPasses = !production.error && !production.stop;
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(productionPasses ? { fullDiff: true } : {}), ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(productionPasses ? { fullDiff: true } : {}), ...(selection.compareTypeErrors ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
     // Scan-stage stops run no repository code, so `refit run` starts only for repositories past them.
-    const stop = await workflowScanStop(
+    const scan = await workflowScan(
       {
         repository: directory,
         before,
@@ -484,9 +473,12 @@ async function benchmark(entry: Selected, index: number) {
       Boolean(ai),
       leaveReviewedFindings,
     );
+    const stop = scan.stop;
+    // A repository with no check keeps its patch, graded D, for a [Needs review] draft.
+    const noCheck = !stop && !command;
     lap('workflowScan');
     let exit: string | undefined;
-    if (!stop) {
+    if (!stop && command) {
       const validationStarted = Date.now();
       try {
         await execute(
@@ -519,12 +511,27 @@ async function benchmark(entry: Selected, index: number) {
       result.validationSeconds = Math.round((Date.now() - validationStarted) / 1000);
       lap('workflow');
     }
+    // The full patch, which the row truncates, stays in the run's artifact like a workflow's scan.
+    if (noCheck && scan.patch) {
+      await mkdir(bundle, { recursive: true });
+      await writeFile(join(bundle, 'scan.json'), json({ patch: scan.patch }));
+    }
     const outcome = stop
       ? { status: 'needs-review', stage: 'scan', reason: stop }
-      : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
+      : noCheck
+        ? scan.patch
+          ? {
+              status: 'needs-review',
+              stage: 'checks',
+              reason: `No check can run, so the patch is kept as grade D. ${selection.reason}`,
+            }
+          : { status: 'error', stage: 'scan', error: { message: scan.error } }
+        : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
     const report = stop
       ? {}
-      : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
+      : noCheck
+        ? { patch: scan.patch, validation: { grade: ungradedEvidence(selection.reason) } }
+        : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
     const generated = report.validation?.generated;
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
@@ -541,13 +548,23 @@ async function benchmark(entry: Selected, index: number) {
       validation: report.validation?.status,
       baseline: report.validation?.baseline?.status,
       patched: report.validation?.patched?.status,
-      ...(result.checks === 'typecheck' && report.validation?.patched
+      grade: report.validation?.grade,
+      advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
+      typeCheckUnavailable: report.validation?.typeCheckUnavailable,
+      baselineStop: report.validation?.baselineStop?.reason,
+      checkErrors: {
+        baseline: report.validation?.baseline?.error,
+        patched: report.validation?.patched?.error,
+      },
+      checkFailures: report.validation?.checkFailures,
+      timings: report.validation?.timings,
+      ...(report.validation?.compareTypeErrors && report.validation?.patched
         ? {
             typeErrors: {
-              baseline: typeErrors(report.validation.baseline?.stdout).size,
-              patched: typeErrors(report.validation.patched.stdout).size,
-              introduced: [...typeErrors(report.validation.patched.stdout)].filter(
-                (error) => !typeErrors(report.validation.baseline?.stdout).has(error),
+              baseline: typeErrorKeys(report.validation.baseline).size,
+              patched: typeErrorKeys(report.validation.patched).size,
+              introduced: [...typeErrorKeys(report.validation.patched)].filter(
+                (error) => !typeErrorKeys(report.validation.baseline).has(error),
               ),
             },
           }

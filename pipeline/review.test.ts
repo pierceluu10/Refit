@@ -488,6 +488,71 @@ it('counts only generated stripe-mock entries that ran on the original code', as
   );
 });
 
+it('holds a draft with advisory JavaScript type errors for review and lists each one', async () => {
+  const value = await report();
+  value.validation.status = 'passed';
+  value.patch.validation = 'passed';
+  value.validation.patched = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
+  value.validation.grade = {
+    letter: 'B',
+    level: 'stripe-tests',
+    reason: "The repository's tests reach every changed file (api/billing.js).",
+  };
+  // ArkanaDeck/arcana-marketplace in refit-bench run 40155034890.
+  Object.assign(value.validation, {
+    advisoryTypeErrors: [
+      {
+        file: 'api/billing.js',
+        line: 31,
+        column: 50,
+        code: 'TS2322',
+        message: `Type '"2024-06-20"' is not assignable to type '"2026-09-30.endive"'.`,
+      },
+    ],
+  });
+  const artifacts = createReviewArtifacts(value);
+  expect(artifacts.manifest.title).toMatch(/^\[Needs review\] /);
+  expect(artifacts.files['pull-request.md']).toContain(
+    "**Advisory type errors.** Refit's generated type check reports a type error this patch introduces in JavaScript your build never type-checks; they did not fail validation. Check each one: `api/billing.js:31` TS2322 ",
+  );
+});
+
+it('shows the evidence grade and holds a grade-D draft for review', async () => {
+  const value = await report();
+  value.validation.status = 'passed';
+  value.patch.validation = 'passed';
+  value.validation.patched = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
+  value.validation.grade = {
+    letter: 'C',
+    level: 'type-check',
+    reason: 'tsc type-checks src/billing.ts; no test ran that code.',
+  };
+  const typed = createReviewArtifacts(value);
+  expect(typed.manifest.title).not.toMatch(/^\[Needs review\] /);
+  expect(typed.files['pull-request.md']).toContain('- Evidence Grade: **C, Type-checked only.** ');
+  // A JavaScript repository whose tsconfig omits checkJs: tsc passed without reading the change.
+  value.validation.grade = {
+    letter: 'D',
+    level: 'none',
+    reason: 'The type check does not cover src/billing.js, and no generated check ran it.',
+  };
+  const unchecked = createReviewArtifacts(value);
+  expect(unchecked.manifest.title).toMatch(/^\[Needs review\] /);
+  const body = unchecked.files['pull-request.md'];
+  expect(body).toContain('- Evidence Grade: **D, No meaningful check.** ');
+  expect(body).toContain(
+    '**No check reached all of the changed code.** The type check does not cover src/billing.js, and no generated check ran it. Run the code this patch changes once before merging.',
+  );
+  // Generated stripe-mock checks alone are grade D too.
+  value.validation.grade = {
+    letter: 'D',
+    level: 'generated-check',
+    reason:
+      'No test reaches src/billing.js; only the generated stripe-mock checks ran changed code (1 exported function).',
+  };
+  expect(createReviewArtifacts(value).manifest.title).toMatch(/^\[Needs review\] /);
+});
+
 it('lists each usage the migrated code still has, counts a site once and names the failing side', async () => {
   const value = await report();
   const [finding] = value.findings;

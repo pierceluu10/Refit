@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { createServer, type IncomingMessage } from 'node:http';
 import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import {
@@ -356,4 +356,66 @@ it('stages a private contract as a read-only copy the sandbox user can read', as
   await expect(
     stageMockDocument(yaml, 'after contract', join(root, 'after-spec.json')),
   ).rejects.toThrow('Generated checks require a JSON after contract.');
+});
+
+it('resolves the extensionless imports a Next.js route relies on, as its bundler does', async () => {
+  // Run 40117297608: 19 of 42 generated entry points (18 repositories) failed to load on
+  // `Cannot find module '/workspace/node_modules/next/server'`, and @clerk/nextjs's ESM build
+  // imports `./routeMatcher`. Both packages are reduced to what the route imports.
+  const root = await mkdtemp(join(tmpdir(), 'refit-generated-'));
+  roots.push(root);
+  const tools = join(root, 'tools');
+  const app = join(root, 'app');
+  const files: Record<string, string> = {
+    'node_modules/next/package.json': '{"name":"next","main":"./dist/server/next.js"}',
+    // next 14.2.3's server.js: named exports assigned one by one, which Node's ESM loader reads.
+    'node_modules/next/server.js': `const serverExports = {
+  NextResponse: { json: (body) => ({ status: 200, body }) },
+}
+module.exports = serverExports
+exports.NextResponse = serverExports.NextResponse
+`,
+    'node_modules/@clerk/nextjs/package.json':
+      '{"name":"@clerk/nextjs","type":"module","exports":{"./server":"./dist/esm/server/index.js"}}',
+    'node_modules/@clerk/nextjs/dist/esm/server/index.js':
+      "export { createRouteMatcher } from './routeMatcher';\nexport const auth = async () => ({ userId: null });\n",
+    'node_modules/@clerk/nextjs/dist/esm/server/routeMatcher.js':
+      'export const createRouteMatcher = (routes) => (path) => routes.includes(path);\n',
+    'app/api/checkout/route.mjs': `import { NextResponse } from 'next/server';
+import { auth, createRouteMatcher } from '@clerk/nextjs/server';
+export async function POST() {
+  const { userId } = await auth();
+  return NextResponse.json({ userId, public: createRouteMatcher(['/'])('/') });
+}
+`,
+    'app/api/missing/route.mjs': "import { gone } from 'next/missing';\nexport const GET = gone;\n",
+  };
+  for (const [path, content] of Object.entries(files)) {
+    await mkdir(dirname(join(app, path)), { recursive: true });
+    await writeFile(join(app, path), content);
+  }
+  await mkdir(tools);
+  await writeHarness(tools, [
+    { file: 'app/api/checkout/route.mjs', name: 'POST', parameters: 0 },
+    { file: 'app/api/missing/route.mjs', name: 'GET', parameters: 0 },
+  ]);
+  // The harness waits for stripe-mock; these routes never call it.
+  const server = createServer((_, response) => response.end('{}'));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = String((server.address() as { port: number }).port);
+  const { stdout } = await execute(
+    process.execPath,
+    ['--import', join(tools, 'redirect.mjs'), join(tools, 'harness.mjs')],
+    {
+      env: { ...process.env, REFIT_STRIPE_MOCK_PORT: port, REFIT_GENERATED_ROOT: `${app}/` },
+      timeout: 10_000,
+    },
+  ).finally(() => new Promise((resolve) => server.close(resolve)));
+  const results = generatedResults(stdout);
+  console.log(stdout);
+  expect(results.get('app/api/checkout/route.mjs#POST')).toEqual({ ok: true });
+  expect(results.get('app/api/missing/route.mjs#GET')).toEqual({
+    ok: false,
+    error: expect.stringContaining("Cannot find module '"),
+  });
 });
