@@ -266,11 +266,19 @@ function writtenByPublisher(
   );
 }
 
+// GitHub owner and repository names are case-insensitive, and enrollment may store another case.
+function equalIgnoringCase(value: unknown, expected: string) {
+  return typeof value === 'string' && value.toLowerCase() === expected.toLowerCase();
+}
+
 function pullUrl(pull: Record<string, unknown>, options: PublicationConfiguration) {
   if (
     !Number.isSafeInteger(pull.number) ||
     Number(pull.number) <= 0 ||
-    pull.html_url !== `https://github.com/${options.repository}/pull/${pull.number}`
+    !equalIgnoringCase(
+      pull.html_url,
+      `https://github.com/${options.repository}/pull/${pull.number}`,
+    )
   )
     throw new PipelineInputError(
       'GitHub pull request response does not match the requested migration. Inspect the remote branch before retrying.',
@@ -484,7 +492,7 @@ export async function findExistingMigration(
         typeof pull.head.ref === 'string' &&
         pull.head.ref.startsWith('refit/') &&
         isObject(pull.head.repo) &&
-        pull.head.repo.full_name === options.repository &&
+        equalIgnoringCase(pull.head.repo.full_name, options.repository) &&
         typeof pull.body === 'string' &&
         (pull.body.includes(marker) ||
           (!options.integration &&
@@ -521,7 +529,10 @@ export async function findExistingMigration(
   );
   if (
     object(current.object).sha !== head ||
-    pull.html_url !== `https://github.com/${options.repository}/pull/${pull.number}`
+    !equalIgnoringCase(
+      pull.html_url,
+      `https://github.com/${options.repository}/pull/${pull.number}`,
+    )
   )
     throw new PipelineInputError(
       'Existing migration changed during discovery. Retry the read-only check.',
@@ -927,7 +938,7 @@ async function closeSuperseded(
       !pull.head.ref.startsWith('refit/') ||
       pull.head.ref === branch ||
       !isObject(pull.head.repo) ||
-      pull.head.repo.full_name !== options.repository ||
+      !equalIgnoringCase(pull.head.repo.full_name, options.repository) ||
       typeof pull.body !== 'string' ||
       !supersedes.matches(pull.body)
     )
