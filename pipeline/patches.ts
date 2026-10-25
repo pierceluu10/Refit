@@ -29,6 +29,7 @@ import {
   INVOICE_PREVIEW_SOURCE,
   INVOICE_PREVIEW_WARNING,
 } from './stripe-invoice-preview.ts';
+import { CURRENCY_CODE_RULE, CURRENCY_CODE_SOURCE } from './operation-reach.ts';
 
 const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string>> = {
   [SUBSCRIPTION_PERIOD_HELPER_RULE]:
@@ -45,6 +46,8 @@ const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string
     'https://docs.stripe.com/changelog/2024-04-10/renames-features-attribute-product-object',
 };
 
+const CURRENCY_CODE_WARNING = `Uppercase currency codes written in Stripe requests are lowercased: the target contract gives these fields the \`currency\` format, and ${CURRENCY_CODE_SOURCE} asks for lowercase three-letter ISO codes in every payment request. Only literals written in the request change; other uses of the same currency in the code are unchanged.`;
+
 // Source: Stripe changelog, 2026-09-30.endive, read 2026-10-22.
 export const PAYMENT_METHOD_TYPES_CHANGELOG =
   'https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions';
@@ -60,7 +63,9 @@ function ruleSources(edits: SourceEdit[]) {
         ? INVOICE_PREVIEW_SOURCE
         : PAYMENT_METHOD_RENAME_RULES.has(edit.rule!)
           ? PAYMENT_METHOD_TYPES_CHANGELOG
-          : undefined);
+          : edit.rule === CURRENCY_CODE_RULE
+            ? CURRENCY_CODE_SOURCE
+            : undefined);
     if (url) pages.set(url, (pages.get(url) ?? new Set()).add(edit.file));
   }
   return [...pages].map(([url, files]) => ({ url, files: [...files] }));
@@ -116,14 +121,15 @@ export function movedPaymentMethodWarning(expression: string) {
 }
 
 // Rule edits that ride with the API version bump: field moves, the reviewed payment method
-// renames and the reviewed request parameter moves.
+// renames, the reviewed request parameter moves and lowercased currency codes.
 export function isFieldMove(edit: SourceEdit) {
   return Boolean(
     edit.rule &&
     (FIELD_MOVE_SOURCES[edit.rule] ||
       PAYMENT_METHOD_RENAME_RULES.has(edit.rule) ||
       REQUEST_MOVE_RULES.has(edit.rule) ||
-      edit.rule === INVOICE_PREVIEW_RULE),
+      edit.rule === INVOICE_PREVIEW_RULE ||
+      edit.rule === CURRENCY_CODE_RULE),
   );
 }
 
@@ -271,6 +277,7 @@ export function proposePatch(
     ),
   ];
   const preview = fieldMoves.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
+  const currency = fieldMoves.some((edit) => edit.rule === CURRENCY_CODE_RULE);
   // Request-side rules, with the reads and renames that share their patch.
   const requestSummary = [
     preview ? 'replace the removed upcoming invoice call with invoices.createPreview' : '',
@@ -279,6 +286,7 @@ export function proposePatch(
       : '',
     reads.length ? 'move removed field reads to their documented new locations' : '',
     cardRename ? 'replace payment_method_types with allowed_payment_method_types' : '',
+    currency ? 'lowercase uppercase currency codes' : '',
   ]
     .filter(Boolean)
     .join(', ');
@@ -320,7 +328,7 @@ export function proposePatch(
     return {
       generator: 'deterministic' as const,
       summary:
-        requestMoves.length || preview
+        requestMoves.length || preview || currency
           ? `${requestSummary[0].toUpperCase()}${requestSummary.slice(1)} and update the pinned Stripe API version.`
           : !cardRename
             ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
@@ -370,6 +378,7 @@ export function proposePatch(
         ...movedWarnings,
         ...requestMoves.map((rule) => REQUEST_MOVE_WARNINGS[rule]),
         ...(preview ? [INVOICE_PREVIEW_WARNING] : []),
+        ...(currency ? [CURRENCY_CODE_WARNING] : []),
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
         'Patch contains source code. Review it for sensitive content before sharing.',
       ],

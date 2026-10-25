@@ -77,6 +77,7 @@ export interface SourceEdit {
     | 'stripe-promotion-code-promotion'
     | 'stripe-product-marketing-features'
     | 'stripe-invoice-create-preview'
+    | 'stripe-lowercase-currency-code'
     | 'stripe-api-version'
     | 'model-retirement';
 }
