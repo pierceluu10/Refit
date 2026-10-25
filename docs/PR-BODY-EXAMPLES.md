@@ -1109,16 +1109,16 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 
 - `server/routes/billing.js:107` reads `.unit_amount`
 - `server/routes/billing.js:110` reads `.unit_amount`
-- `server/routes/stripe-webhooks.js:29` reads `.price`
 - `server/routes/stripe-webhooks.js:30` reads `.price`
-- `server/routes/stripe-webhooks.js:61` reads `.subscription`
+- `server/routes/stripe-webhooks.js:31` reads `.price`
 - `server/routes/stripe-webhooks.js:62` reads `.subscription`
-- `server/routes/stripe-webhooks.js:62` reads `.subscription_details`
 - `server/routes/stripe-webhooks.js:63` reads `.subscription`
-- `server/routes/stripe-webhooks.js:67` reads `.current_period_start`
-- `server/routes/stripe-webhooks.js:68` reads `.current_period_end`
-- `server/routes/stripe-webhooks.js:343` reads `.subscription`
-- `server/routes/stripe-webhooks.js:386` reads `.subscription`
+- `server/routes/stripe-webhooks.js:63` reads `.subscription_details`
+- `server/routes/stripe-webhooks.js:64` reads `.subscription`
+- `server/routes/stripe-webhooks.js:68` reads `.current_period_start`
+- `server/routes/stripe-webhooks.js:69` reads `.current_period_end`
+- `server/routes/stripe-webhooks.js:344` reads `.subscription`
+- `server/routes/stripe-webhooks.js:387` reads `.subscription`
 - `server/__tests__/stripe-webhooks.test.js:201` reads `.subscription`
 - `server/__tests__/stripe-webhooks.test.js:208` reads `.subscription`
 - `server/__tests__/stripe-webhooks.test.js:215` reads `.current_period_start`

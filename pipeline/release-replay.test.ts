@@ -352,6 +352,12 @@ it.each([
     await github.merge(REPOSITORY, 2, 'squash');
     expect(await poll()).toMatchObject({ status: 'up-to-date' });
     expect(await baseline()).toBe(ENDIVE);
+    // Without the flag the basil draft stays open after the merge; the customer closes it.
+    expect(pulls()[0]).toEqual({
+      number: 1,
+      state: supersedeDrafts ? 'closed' : 'open',
+      merged: false,
+    });
     expect(github.comments(REPOSITORY)).toEqual(superseded);
     expect(issues()).toBe(0);
   },
