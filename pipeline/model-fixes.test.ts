@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { EMPTY_MODEL_PARAMETERS } from './model-parameters.ts';
 import { runModelFixes } from './model-fixes.ts';
+import { NO_OP_CHECK, NO_OP_REVIEW } from './review.ts';
 
 const published = vi.hoisted(
   () => [] as { key: string; title: string; body: string; message: string }[],
@@ -97,6 +98,27 @@ const SOURCE = [
   "export const tuned = (messages: any[]) => openai.chat.completions.create({ model: 'gpt-4', messages, temperature: 0 });",
 ].join('\n');
 
+// Owner decision 1: a check that runs no code tests nothing, so the draft says so in its title.
+it('titles a draft checked only by node -e 0 [Needs review], with the reason Stripe drafts give', async () => {
+  const root = await repository({ 'src/ai.ts': SOURCE });
+  const result = await runModelFixes({
+    repository: root,
+    registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
+    now: NOW,
+    checks: { ...CHECKS, command: NO_OP_CHECK.split(' ') },
+    publication: { repository: 'example/app', base: 'main', token: 'token' },
+  });
+  expect(result.status).toBe('draft-created');
+  expect(published[0].title).toBe('[Needs review] fix: replace 1 retiring AI model');
+  expect(published[0].message.split('\n')[0]).toBe('fix: replace 1 retiring AI model');
+  const body = published[0].body;
+  expect(body.startsWith('## Why this needs review\n')).toBe(true);
+  expect(body).toContain(`- ${NO_OP_REVIEW.reason} **Check:** ${NO_OP_REVIEW.check}`);
+  expect(body).toContain(`- [ ] ${NO_OP_REVIEW.check}`);
+  expect(body).not.toContain('exercises the changed calls');
+});
+
 it('opens a draft pull request for validated replacements without asking first', async () => {
   const root = await repository({ 'src/ai.ts': SOURCE });
   const result = await runModelFixes({
@@ -117,6 +139,7 @@ it('opens a draft pull request for validated replacements without asking first',
   ]);
   expect(published).toHaveLength(1);
   expect(published[0].title).toBe('fix: replace 1 retiring AI model');
+  expect(published[0].body).not.toContain('## Why this needs review');
   expect(published[0].key).toBe(`model-fixes:${'a'.repeat(40)}:${result.fixKey}`);
   const body = published[0].body;
   expect(published[0].message).toContain('- src/ai.ts:3: gpt-4 -> gpt-5.6-sol, retires 2026-10-23');

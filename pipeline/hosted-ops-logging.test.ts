@@ -70,6 +70,7 @@ it('keeps every hosted log path and the failed-job notice JSON and free of secre
     enqueueDue: vi.fn(async () => 0),
     claim: vi.fn(async () => fake.claims.shift() ?? null),
     paused: vi.fn(async () => null),
+    activeInstallations: vi.fn(async () => []),
     // The repository keeps its GitHub ID, so nothing is retired.
     retire: vi.fn(async () => false),
     // Lease renewal fails while job 2 runs, which must abort it.

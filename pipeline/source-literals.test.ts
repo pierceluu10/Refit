@@ -217,3 +217,57 @@ it('keeps plan reads for review when an import of the same name cannot be resolv
     }),
   ).toContain('config/stripe.ts:31');
 });
+
+// robharding/Quill src/lib/stripe.ts: the current plan is bound from `find` and spread into the result.
+it('proves reads of a plan bound from find and spread into a copy (robharding/Quill)', () => {
+  expect(
+    reviewLines({
+      'config/stripe.ts': plans,
+      'lib/stripe.ts': `${client}
+import { PLANS } from '../config/stripe';
+export async function getUserSubscriptionPlan(dbUser: { stripePriceId: string }, isSubscribed: boolean) {
+  const plan = isSubscribed
+    ? PLANS.find((plan) => plan.price.priceIds.test === dbUser.stripePriceId)
+    : null;
+  return {
+    ...plan,
+    isSubscribed,
+  };
+}
+export const price = PLANS.find((plan) => plan.name === "Pro")?.price.priceIds.test;`,
+    }),
+  ).toEqual([]);
+});
+
+it.each([
+  ['passed to a function', 'fill(plan);'],
+  ['placed in another value', 'fill([plan]);'],
+  ['filled through Object.assign', 'Object.assign(plan!, item);'],
+  ['written through a property', 'plan!.price = item.price;'],
+])('keeps plan reads for review when the bound plan is %s', (_name, write) => {
+  expect(
+    reviewLines({
+      'config/stripe.ts': plans,
+      'lib/stripe.ts': `${client}
+import { PLANS } from '../config/stripe';
+declare const item: any;
+declare function fill(value: unknown): void;
+const plan = Math.random() > 0.5 ? PLANS.find((plan) => plan.slug === "pro") : null;
+${write}
+export const price = PLANS.find((plan) => plan.name === "Pro")?.price;`,
+    }),
+  ).toContain('lib/stripe.ts:8');
+});
+
+it('clears the bound-plan fixture when nothing else touches the plan', () => {
+  expect(
+    reviewLines({
+      'config/stripe.ts': plans,
+      'lib/stripe.ts': `${client}
+import { PLANS } from '../config/stripe';
+const plan = Math.random() > 0.5 ? PLANS.find((plan) => plan.slug === "pro") : null;
+export const slug = plan?.slug;
+export const price = PLANS.find((plan) => plan.name === "Pro")?.price;`,
+    }),
+  ).toEqual([]);
+});

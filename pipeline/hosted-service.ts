@@ -9,9 +9,14 @@ import type { AiOptions } from './ai-budget.ts';
 import { FlyMachinesError, type FlyMachines } from './fly-machines.ts';
 import { validateRepairAttempts } from './validation-options.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
-import type { GitHubAppConfiguration } from './github-app.ts';
+import { installationRepositories, type GitHubAppConfiguration } from './github-app.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
-import { parseWebhook, verifyWebhook, WebhookInputError } from './github-webhooks.ts';
+import {
+  parseRepositories,
+  parseWebhook,
+  verifyWebhook,
+  WebhookInputError,
+} from './github-webhooks.ts';
 import { hostedPages } from './hosted-setup.ts';
 import { GitHubRequestError } from './github.ts';
 import { MIN_THROTTLE_SECONDS, readCpuTimes, stealShare, THROTTLED_STEAL } from './hosted-cpu.ts';
@@ -99,6 +104,31 @@ const OUTAGE_RETRY_MS = 5_000;
 const MAX_OUTAGE_RETRY_MS = 60_000;
 const MAX_JOB_PROCESSES = 32;
 
+// Records the repositories GitHub serves to each active, allowed installation that no webhook
+// delivered, and enrolls the approved ones. GitHub sends no event when "All repositories" is chosen
+// again and can miss repositories created around the installation. Each installation costs one
+// token and one request per 100 repositories; one whose list GitHub refuses is reported and the
+// rest still run.
+export async function reconcileInstallations(
+  app: GitHubAppConfiguration,
+  store: Awaited<ReturnType<typeof openHostedStore>>,
+) {
+  const results: (
+    | { installationId: number; added: string[]; enrolled: string[] }
+    | { installationId: number; error: string }
+  )[] = [];
+  for (const { id, owner } of await store.activeInstallations())
+    try {
+      const listed = parseRepositories(await installationRepositories(app, id), owner);
+      results.push({ installationId: id, ...(await store.reconcile(id, owner, listed)) });
+    } catch (error) {
+      if (!(error instanceof PipelineInputError || error instanceof GitHubRequestError))
+        throw error;
+      results.push({ installationId: id, error: error.message });
+    }
+  return results;
+}
+
 export async function runHostedService(options: {
   database: Pool;
   app: GitHubAppConfiguration;
@@ -115,6 +145,8 @@ export async function runHostedService(options: {
   aiTotalUsd?: number;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Owner decision 1: stops become [Needs review] drafts. Job machines run without it.
+  publishUnresolved?: boolean;
   // The worker image this process runs (FLY_IMAGE_REF). With it, a scheduled poll whose base commit,
   // approval and build match the target's last finished job stores that receipt and runs nothing.
   build?: string;
@@ -224,6 +256,7 @@ export async function runHostedService(options: {
         options.aiPatch?.model ?? null,
         repairAttempts,
         Boolean(options.publishDraft),
+        Boolean(options.publishUnresolved),
       ]),
     );
   const redactReceipt = <Receipt extends { message: string | null }>(receipt: Receipt) => ({
@@ -473,6 +506,7 @@ export async function runHostedService(options: {
                 retry,
                 repairAttempts,
                 publishDraft: Boolean(options.publishDraft),
+                publishUnresolved: Boolean(options.publishUnresolved),
                 aiPatch: Boolean(options.aiPatch),
                 aiTotalUsd: options.aiTotalUsd,
               },
@@ -493,6 +527,7 @@ export async function runHostedService(options: {
               ),
               repairAttempts,
               publishDraft: options.publishDraft,
+              publishUnresolved: options.publishUnresolved,
               notify: options.notify,
               onProgress: progress,
             });
@@ -534,6 +569,35 @@ export async function runHostedService(options: {
   };
   const rethrow = () => {
     if (failures.length) throw failures.shift();
+  };
+
+  // Runs at start and once per interval beside the loop, so a slow GitHub never holds up claims.
+  let reconciling: Promise<void> | undefined;
+  let reconcileAt = 0;
+  const reconcile = async () => {
+    try {
+      for (const result of await reconcileInstallations(options.app, store)) {
+        const context = { installation: result.installationId };
+        if ('error' in result) {
+          onProgress?.(`Repository reconcile failed: ${result.error} Retrying in ${interval} s.`, {
+            ...context,
+            level: 'error',
+          });
+          continue;
+        }
+        onProgress?.(
+          `Reconciled repositories with GitHub: added ${result.added.length}, enrolled ${result.enrolled.length} targets.`,
+          context,
+        );
+        if (result.enrolled.length) wake();
+      }
+    } catch (error) {
+      // Nothing it throws, such as a network or PostgreSQL error, may end serve.
+      onProgress?.(
+        `Repository reconcile failed: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)} Retrying in ${interval} s.`,
+        { level: 'error' },
+      );
+    }
   };
 
   // A read-only inventory of an installed repository, approved or not; it never enrolls anything.
@@ -579,6 +643,7 @@ export async function runHostedService(options: {
     app: options.app,
     tenancy: options.tenancy,
     publishDraft: Boolean(options.publishDraft),
+    publishUnresolved: Boolean(options.publishUnresolved),
     aiPatch: Boolean(options.aiPatch),
     contact: options.contact,
     onProgress: options.onProgress,
@@ -771,12 +836,17 @@ export async function runHostedService(options: {
     while (!draining()) {
       requested = false;
       try {
+        if (!reconciling && Date.now() >= reconcileAt) {
+          reconcileAt = Date.now() + interval * MILLISECONDS_PER_SECOND;
+          reconciling = reconcile().finally(() => (reconciling = undefined));
+        }
         if (jobs) await reap(jobs);
         if (options.approvalIssues)
           await processApprovalIssues({
             app: options.app,
             directory: join(directory, 'approvals'),
             contracts: hostedContracts(directory),
+            allowUntested: options.publishUnresolved,
             store,
             approvals,
             signal: options.signal,
@@ -870,6 +940,7 @@ export async function runHostedService(options: {
     options.drain?.removeEventListener('abort', drained);
     stop();
     await Promise.all(active);
+    await reconciling;
     await Promise.all(
       servers.map(
         (server) =>

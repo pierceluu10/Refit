@@ -2,7 +2,7 @@ fix(stripe): migrate removed Stripe API fields
 
 Stripe API 2026-09-30.endive removes fields this code reads and removes
 request fields this code sends. A deterministic Refit rule migrates 3
-confirmed usages in 2 files so the code keeps working after the upgrade.
+confirmed usages in 2 files.
 
 - app/api/stripe/route.js: Sends allowed_payment_method_types in place
   of the removed payment_method_types.
