@@ -9,6 +9,7 @@ import { runWorkflow } from './workflow.ts';
 import { inspectRepositoryReadiness } from './readiness.ts';
 import { verifyArtifacts } from './verification.ts';
 import { digest } from './specifications.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const FIXTURE = resolve('pipeline/fixtures/npm-workspaces/repository');
@@ -155,12 +156,12 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE).each(PNPM_VERSIONS)(
         output: join(sample.root, 'original-after'),
       });
       expect(failed.manifest.status).toBe('validation-failed');
-      const failure = JSON.parse(await readFile(join(failed.directory, 'report.json'), 'utf8'));
+      const failure = JSON.parse((await readEvidence(failed.directory, 'report.json'))!);
       expect(failure.validation.baseline.stderr).toContain('Missing history');
     }
     const result = await runWorkflow(sample.options);
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(
       report.repository.dependencies
         .map((dependency: { lock: { version: string } }) => dependency.lock.version)
@@ -250,12 +251,12 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE).each(['relative', 'alias'])(
       output: join(sample.root, 'original-after'),
     });
     expect(incompatible.manifest.status).toBe('validation-failed');
-    const failure = JSON.parse(await readFile(join(incompatible.directory, 'report.json'), 'utf8'));
+    const failure = JSON.parse((await readEvidence(incompatible.directory, 'report.json'))!);
     expect(failure.validation.baseline.stderr).toContain('Missing history');
     expect(failure.validation.patched.status).toBe('not-run');
     const result = await runWorkflow(sample.options);
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(report.repository.dependencies).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

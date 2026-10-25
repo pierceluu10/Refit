@@ -21,6 +21,7 @@ import {
 } from './migration-identity.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { apiVersionSourceBlocked } from './api-version.ts';
+import { stripeNodeDefaultVersion } from './enrollment-proposal.ts';
 import {
   migrationReviewReason,
   migrationReviewReasons,
@@ -266,11 +267,19 @@ function writtenByPublisher(
   );
 }
 
+// GitHub owner and repository names are case-insensitive, and enrollment may store another case.
+function equalIgnoringCase(value: unknown, expected: string) {
+  return typeof value === 'string' && value.toLowerCase() === expected.toLowerCase();
+}
+
 function pullUrl(pull: Record<string, unknown>, options: PublicationConfiguration) {
   if (
     !Number.isSafeInteger(pull.number) ||
     Number(pull.number) <= 0 ||
-    pull.html_url !== `https://github.com/${options.repository}/pull/${pull.number}`
+    !equalIgnoringCase(
+      pull.html_url,
+      `https://github.com/${options.repository}/pull/${pull.number}`,
+    )
   )
     throw new PipelineInputError(
       'GitHub pull request response does not match the requested migration. Inspect the remote branch before retrying.',
@@ -433,9 +442,9 @@ export async function findExistingMigration(
   report: Awaited<ReturnType<typeof runPipeline>>,
   revision: string,
   options: PublicationConfiguration,
-  // Whether this run may generate a [Needs review] draft an earlier release wrote again; never
-  // with AI, so a Refit release spends no AI budget.
-  refresh = false,
+  // Which [Needs review] drafts this run may generate again: 'release' for one an earlier release
+  // wrote, without AI so a Refit release spends no AI budget; 'ai' for one no AI model worked on.
+  refresh: false | 'release' | 'ai' = false,
 ) {
   if (!options.app) return undefined;
   const { authentication, request } = await publicationSession(options);
@@ -484,7 +493,7 @@ export async function findExistingMigration(
         typeof pull.head.ref === 'string' &&
         pull.head.ref.startsWith('refit/') &&
         isObject(pull.head.repo) &&
-        pull.head.repo.full_name === options.repository &&
+        equalIgnoringCase(pull.head.repo.full_name, options.repository) &&
         typeof pull.body === 'string' &&
         (pull.body.includes(marker) ||
           (!options.integration &&
@@ -496,14 +505,18 @@ export async function findExistingMigration(
     .sort((left, right) => Number(left.number) - Number(right.number));
   const pull = matches[0];
   if (!pull) return undefined;
-  // A later Refit release may migrate what an earlier one left for review: a [Needs review] draft
-  // another release wrote is generated and validated again, and publication updates it. Only on
+  // A later Refit release, or an AI model, may migrate what the rules left for review: the
+  // [Needs review] draft is generated and validated again, and publication updates it. Only on
   // the branch publication updates; a draft on an older branch name would get a second draft.
   if (
     refresh &&
     object(pull.head).ref === branch &&
     String(pull.title).startsWith(NEEDS_REVIEW_PREFIX) &&
-    !String(pull.body).includes(`"refit": "${REFIT_VERSION}"`)
+    // shortcut: a draft the AI could not improve carries no AI item, so each new job asks again;
+    // record AI attempts on the draft if that spend shows up.
+    !String(pull.body).includes(
+      refresh === 'ai' ? AI_PATCH_REVIEW.reason : `"refit": "${REFIT_VERSION}"`,
+    )
   )
     return undefined;
   const head = sha(object(pull.head).sha);
@@ -521,7 +534,10 @@ export async function findExistingMigration(
   );
   if (
     object(current.object).sha !== head ||
-    pull.html_url !== `https://github.com/${options.repository}/pull/${pull.number}`
+    !equalIgnoringCase(
+      pull.html_url,
+      `https://github.com/${options.repository}/pull/${pull.number}`,
+    )
   )
     throw new PipelineInputError(
       'Existing migration changed during discovery. Retry the read-only check.',
@@ -657,6 +673,35 @@ export function publicationWaiver(
     report.requestChanges,
     report.expandedFields,
   ).filter(isObject);
+  const declarations = report.apiVersion.source.declarations;
+  // Clients and requests whose version Refit cannot trace; the patch never edits them.
+  const untraced = declarations.filter(
+    (declaration) =>
+      declaration.status === 'unknown' &&
+      !(declaration.kind === 'constructor' && declaration.absent),
+  );
+  const defaulted = declarations.filter(
+    (declaration) => declaration.kind === 'constructor' && declaration.absent,
+  );
+  const sdkUpgrade =
+    'sdkUpgrade' in patch && isObject(patch.sdkUpgrade)
+      ? (patch.sdkUpgrade as { from: string; to: string } | { skipped: string })
+      : undefined;
+  // A client without apiVersion sends what stripe-node pins; Refit knows it only from its table.
+  const unknownDefault =
+    defaulted.length > 0 &&
+    sdkUpgrade !== undefined &&
+    ('skipped' in sdkUpgrade || !stripeNodeDefaultVersion(sdkUpgrade.from));
+  const before = code(report.apiVersion.before ?? 'the before contract');
+  const kept = 'keptApiVersion' in patch && patch.keptApiVersion === true;
+  // The pins a patch moves: literals older than the target.
+  const olderPins = declarations.flatMap((declaration): ReviewSite[] =>
+    declaration.status === 'literal' &&
+    declaration.value !== null &&
+    declaration.value < targetVersion
+      ? [{ file: declaration.file, line: declaration.line, detail: declaration.value }]
+      : [],
+  );
   const impacts: ReviewSite[] = report.operationImpacts.flatMap((impact) =>
     impact.usages.map((usage) => ({
       file: usage.file,
@@ -703,6 +748,17 @@ export function publicationWaiver(
     !generatedRan
       ? [{ gate: 'no-checks' as const, ...NO_OP_REVIEW }]
       : []),
+    ...(validation.submodules?.length
+      ? [
+          {
+            gate: 'submodules' as const,
+            reason: `Refit checked this repository without its ${validation.submodules.length === 1 ? 'submodule, so nothing in it was' : 'submodules, so nothing in them was'} scanned, built or tested.`,
+            check:
+              'Check out the submodules, run your checks on this branch, and confirm the code in each one works with this patch.',
+            sites: validation.submodules.map((path): ReviewSite => ({ file: path, line: 0 })),
+          },
+        ]
+      : []),
     ...(patch.generator === 'openai' ? [{ gate: 'ai-patch' as const, ...AI_PATCH_REVIEW }] : []),
     ...migrationReviewReasons(report, deterministic).map((entry) =>
       entry.reason === WEBHOOK_REVIEW_REASON
@@ -747,15 +803,69 @@ export function publicationWaiver(
                 : (report.skippedFiles ?? []).map((file) => ({ file, line: 0 }))) as ReviewSite[],
             },
     ),
-    ...(report.apiVersion.applicability === 'matches-before'
-      ? []
-      : [
+    ...(kept
+      ? [
           {
-            gate: 'api-version' as const,
-            reason: plainText(report.apiVersion.reason),
-            check: `Confirm which API version this code and account use before merging; the patch assumes ${code(report.apiVersion.before ?? 'the before contract')}.`,
+            gate: 'api-version-kept' as const,
+            reason: `${checks} failed on the patch that moved the API version to ${code(targetVersion)}, so this patch leaves every pin listed here and the stripe package unchanged. It keeps only edits that work under either version; Refit compared the ${before} contract with ${code(targetVersion)}.`,
+            check: `Move each pin listed here to ${code(targetVersion)}, upgrade stripe-node if its types need it, and fix what ${checks} then reports before merging.`,
+            sites: olderPins,
           },
-        ]),
+        ]
+      : []),
+    ...(report.apiVersion.applicability === 'matches-before' ||
+    (kept && report.apiVersion.source.status === 'conflict')
+      ? []
+      : report.apiVersion.source.status === 'conflict'
+        ? [
+            {
+              gate: 'api-version' as const,
+              reason: `Not every API-version pin in this code sends the configured ${code(report.apiVersion.application!)}. The patch moves every pin listed here (its line before this patch and the version it sent) to ${code(targetVersion)}; Refit compared the ${before} contract with it.`,
+              check: `Confirm every client and request listed here should send ${code(targetVersion)}, and check by hand the code behind each pin that is not ${before}: Refit compared only that contract with the target.`,
+              sites: olderPins,
+            },
+          ]
+        : [
+            {
+              gate: 'api-version' as const,
+              reason: plainText(report.apiVersion.reason),
+              check: `Confirm which API version this code and account use before merging; the patch assumes ${code(report.apiVersion.before ?? 'the before contract')}.`,
+            },
+          ]),
+    ...(untraced.length
+      ? [
+          {
+            gate: 'api-version-untraced' as const,
+            reason: `Refit cannot trace which API version the code listed here sends, or cannot move it without moving a webhook endpoint too, so the patch leaves it unchanged. Refit compared the ${before} contract with ${code(targetVersion)}; if this code sends another version, what needs migrating can differ.`,
+            check: `Set each version listed here to ${code(targetVersion)} where its value comes from, and check what this code needs for the version it sends now.`,
+            sites: untraced.map((declaration): ReviewSite => ({
+              file: declaration.file,
+              line: declaration.line,
+              ...(declaration.value
+                ? {
+                    detail: `${declaration.value}${declaration.endpoint ? ", also a webhook endpoint's api_version" : ''}`,
+                  }
+                : {}),
+            })),
+          },
+        ]
+      : []),
+    ...(unknownDefault
+      ? [
+          {
+            gate: 'api-version-default' as const,
+            reason:
+              'from' in sdkUpgrade!
+                ? `No Stripe client listed here sets apiVersion, and Refit does not know which version stripe-node ${sdkUpgrade.from} sent: releases before 12 send none, so your Stripe account's default decided it, and Refit's table does not record what later ones pin. Refit compared the ${before} contract with ${code(targetVersion)}. After this patch stripe-node ${sdkUpgrade.to} sends ${code(targetVersion)} unless the code sets a version.`
+                : `No Stripe client listed here sets apiVersion, and the patch could not upgrade stripe-node: ${plainText(sdkUpgrade!.skipped)} Until the code sets a version, these clients send the one the installed stripe-node pins or, before stripe-node 12, your Stripe account's default.`,
+            check: `Confirm which version your Stripe account and the installed stripe-node send today, and set apiVersion to ${code(targetVersion)} on each client listed here.`,
+            sites: defaulted.map((declaration): ReviewSite => ({
+              file: declaration.file,
+              line: declaration.line,
+            })),
+          },
+        ]
+      : []),
     ...(unmapped.length || impacts.length
       ? [
           {
@@ -794,7 +904,7 @@ export async function publishDraft(
   if (
     !apiVersion ||
     (apiVersion.applicability !== 'matches-before' && !reviews) ||
-    apiVersionSourceBlocked(apiVersion)
+    apiVersionSourceBlocked(apiVersion, Boolean(reviews))
   )
     throw new PipelineInputError(
       `Draft publication is blocked. ${apiVersion?.reason ?? 'API-version evidence is missing.'}`,
@@ -937,7 +1047,7 @@ async function closeSuperseded(
       !pull.head.ref.startsWith('refit/') ||
       pull.head.ref === branch ||
       !isObject(pull.head.repo) ||
-      pull.head.repo.full_name !== options.repository ||
+      !equalIgnoringCase(pull.head.repo.full_name, options.repository) ||
       typeof pull.body !== 'string' ||
       !supersedes.matches(pull.body)
     )

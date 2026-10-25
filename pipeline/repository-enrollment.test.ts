@@ -265,6 +265,64 @@ it('accepts tracked symbolic links only when they resolve inside the repository'
   );
 });
 
+// Commits uninitialized submodules, as a clone without --recurse-submodules leaves them: a gitlink
+// and an empty directory. `git add .` would stage the gitlinks' removal.
+async function addSubmodules(repository: string, paths: string[]) {
+  await writeFile(
+    join(repository, '.gitmodules'),
+    paths
+      .map(
+        (path) =>
+          `[submodule "${path}"]\n\tpath = ${path}\n\turl = https://example.invalid/${path}.git\n`,
+      )
+      .join(''),
+  );
+  await execute('git', ['-C', repository, 'add', '.gitmodules']);
+  for (const [index, path] of paths.entries()) {
+    await execute('git', [
+      '-C',
+      repository,
+      'update-index',
+      '--add',
+      '--cacheinfo',
+      `160000,${String(index + 1).repeat(40)},${path}`,
+    ]);
+    await mkdir(join(repository, path), { recursive: true });
+  }
+  await execute('git', [
+    '-C',
+    repository,
+    '-c',
+    'user.name=Enrollment Tests',
+    '-c',
+    'user.email=enrollment@refit.local',
+    'commit',
+    '-qm',
+    'test: add submodules',
+  ]);
+}
+
+// Owner decision 1: a submodule is left out and named, never refused, but only when asked.
+it('enrolls a repository around its submodules only when asked, naming each one', async () => {
+  // An application with one vendored plugin, and a monorepo with docs and a UI package.
+  for (const paths of [['vendor/plugin'], ['docs/site', 'packages/ui']]) {
+    const sample = await setup();
+    await addSubmodules(sample.repository, paths);
+    await expect(readCommittedRepository(sample.repository)).rejects.toThrow(
+      `Validation does not accept submodules; ${paths[0]} is one.`,
+    );
+    await expect(inspectRepositoryEnrollment(sample.input)).rejects.toThrow(
+      'Validation does not accept submodules',
+    );
+    const snapshot = await readCommittedRepository(sample.repository, { submodules: true });
+    expect(snapshot.submodules).toEqual([...paths].sort());
+    expect(snapshot.entries.some((entry) => entry.startsWith('160000 '))).toBe(false);
+    expect(snapshot.entries.some((entry) => entry.endsWith('\t.gitmodules'))).toBe(true);
+    const enrollment = await inspectRepositoryEnrollment({ ...sample.input, allowUntested: true });
+    expect(enrollment.fingerprint).toBe(sample.enrollment.fingerprint);
+  }
+});
+
 it('resolves chained links before deciding whether a link escapes', () => {
   const links = new Map([
     ['app/root', '..'],

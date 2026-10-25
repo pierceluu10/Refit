@@ -40,7 +40,18 @@ These facts are read from the code and set the shape of the model:
 
   The scan has no limit, and neither does the job as a whole: its lease renews for as long as it runs.
 
-- **Prepared dependency bundles are never evicted.** `fly.toml` does not set `REFIT_DEPENDENCY_CACHE_DIRECTORY`, so bundles go to `/root/.refit/dependencies` on the machine's root filesystem, not the `/data` volume. Every deploy or restart therefore starts cold. Fly's pricing page does not state the root filesystem's size, and it was not checked.
+- **Prepared dependency bundles are capped.** After writing a new bundle, preparation evicts the least recently used bundles until the cache fits `REFIT_DEPENDENCY_CACHE_GIB` (default 8 GiB). A bundle another job is preparing, reusing or copying is never evicted, and an entry over the cap on its own is kept, so the cache can exceed the cap by the bundles in use plus one staging archive (up to 2 GiB) per running preparation. `fly.toml` puts the cache at `/data/dependencies` on the volume with an 8 GiB cap. Before 2026-10-25 it was unset, so bundles went to `/root/.refit/dependencies` on the 8 GB root disk: about 55 bundles from about 70 jobs filled 7.6 GB in 50 minutes, and 50 jobs then failed with `ENOSPC` during validation. The volume is 40 GB as the operator reported on 2026-10-25 (not checked here); 8 GiB of cache, about 16 bundles at the measured median, peaks near 16 GiB with four jobs staging and leaves the rest for `/data/docker` and `/data/state`. Validation still copies each archive into a temporary directory on the root disk for the length of the job (one for the original code, one more when the patch changes the lockfile), so four jobs with large archives can still use several GiB there.
+
+- **Target state is mostly two copies of the contracts.** Each hosted target keeps a watch state under `/data/state/targets/<id>/`. A Stripe scan with the full contract diff on (2024-06-20 to 2026-09-30.endive) records 64,779 oasdiff changes, which are 97% of its JSON. Since 2026-10-25 the run's `scan.json` and `report.json` and the poll's `observations/<hash>.json` are written gzip-compressed (`scan.json.gz`, `report.json.gz`, `<hash>.json.gz`); every reader takes both forms. Measured on `Shivamrai15/lms` at its frozen held-out commit (`refit watch --once`, Docker off, so the job stopped after the scan) and on the `report.json` of `tejashVaishnav/Fast-saas-next.js-boilerplate` from refit-bench run 40151479708:
+
+  | File                         | Before   | After   |
+  | ---------------------------- | -------- | ------- |
+  | `runs/<job>-<n>/scan.json`   | 90.9 MB  | 2.13 MB |
+  | `runs/<job>-<n>/report.json` | 95.5 MB  | 2.49 MB |
+  | `observations/<hash>.json`   | 92.7 MB  | 2.15 MB |
+  | Those three together         | 279.1 MB | 6.8 MB  |
+
+  Compressing one file took 0.2–0.4 s. What is left per target is about 31 MB of contracts: the snapshot and baseline (8.9 and 6.8 MB) and the run's own `before.json` and `after.json`, uncompressed because the scan reads them. That is about 38 MB per target with one run, against about 310 MB before, or about 8 GB for 205 targets instead of about 64 GB. Files written before the change stay as they are: an uncompressed observation is removed on its source's next full poll (a deploy makes every target poll once), but old run directories are evidence and are kept until an operator removes them.
 
 ## Fly facts used
 
@@ -152,8 +163,7 @@ Today: `shared-cpu-2x` with 4 GB ($25.39/month plus a 20 GB volume). Against the
 1. **VM size**, as above.
 2. **Poll interval.** 300 s polling needs about 10 times the machines of hourly polling. The alternative is skipping the scan when nothing changed (see the request to PP5).
 3. **Dependency cache.**
-   - Where the bundles live: the root filesystem today, lost on each deploy, or `/data` via `REFIT_DEPENDENCY_CACHE_DIRECTORY`.
-   - How much they may use: one repository's bundle is 0.5–1.3 GiB, so the 20 GB volume holds roughly 30 at the median beside Docker's images and the evidence.
+   - Settled on 2026-10-25 after the root disk filled: bundles live on `/data/dependencies` and the cache is capped at 8 GiB with least-recently-used eviction (see [What one worker does](#what-one-worker-does)). Raising the cap trades volume space for fewer cold preparations.
 4. **Job timeout:** 30 minutes, as above.
 
 ## Requests for other lanes
@@ -161,7 +171,7 @@ Today: `shared-cpu-2x` with 4 GB ($25.39/month plus a 20 GB volume). Against the
 - **PP5 (hosted operations).**
   - Add a job-level timeout.
   - Skip a poll's scan when the repository commit and contract hash match the last poll.
-  - Bound the dependency cache with eviction.
+  - ~~Bound the dependency cache with eviction.~~ Done on 2026-10-25 (`REFIT_DEPENDENCY_CACHE_GIB`).
 - **PG3 (one machine per job).** A job machine needs one performance vCPU and 8 GB, or 6 GB for the default profile alone (3 GiB container, 0.8 GiB scanners). It also needs room for a 0.5–1.3 GiB dependency archive per job when it starts cold.
 
 ## Reproduce

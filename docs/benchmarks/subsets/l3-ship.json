@@ -1,0 +1,182 @@
+{
+  "frozenAt": "2026-10-24",
+  "purpose": "Laptop 3 slice fix/l3-shipping-details: measure reads of a moved field that TypeScript narrowed sharing one helper local, before (origin/main 41df85e) and after.",
+  "criteria": "Entries of subsets/push-279-affected.json minus subsets/heldout-30.json where this branch changes the generated-helper edit of a confirmed invoice.subscription or checkout.session.shipping_details read in the Push 279 baseline rows: the branch's and origin/main's edit functions were both run on every TypeScript file holding such a read, and these are all the repositories whose edits differ. Entries unchanged, in list order.",
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "MikPoik/next13-ai-companion",
+      "stars": 7,
+      "commit": "c6a84bc249ecfbdb9beba6d32356061c3b64439c",
+      "before": "2024-10-28.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "17.3.1",
+      "packageManager": "none"
+    },
+    {
+      "repo": "eka0789/evofuture",
+      "stars": 2,
+      "commit": "af720ff8553f976e37d1459d31751eac6df4dc45",
+      "before": "2024-11-20.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform",
+      "stars": 1,
+      "commit": "fde5a23043b2094e8d1ba860ed1bf1cee7804a71",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Bizgojo/drivetimetales",
+      "stars": 0,
+      "commit": "9cb92abc9adad2b383441a6e215c01d0ee1af29c",
+      "owner": "User",
+      "authors90d": 4,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.25.0"
+    },
+    {
+      "repo": "Mangu-Commerce/madcaptees",
+      "stars": 0,
+      "commit": "ad29f774d0ffdc749a90f0268ea4d93f7b6eb488",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.7.0"
+    }
+  ]
+}

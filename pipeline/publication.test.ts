@@ -16,7 +16,7 @@ import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import type { validateMigration } from './validation.ts';
 import * as githubApp from './github-app.ts';
-import { preparationFailure } from './dependency-preparation.ts';
+import { DependencyPreparationError, preparationFailure } from './dependency-preparation.ts';
 import { validatedReport } from './fixtures/publication-report.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -103,11 +103,14 @@ it('publishes a webhook-only review as a [Needs review] draft only with --publis
   expect(body).toContain(
     '- [ ] Confirm which API version this code and account use before merging',
   );
-  // Code whose API-version declarations conflict still refuses, flag or not.
+  // Owner decision 1: conflicting pins are reviewed, not refused; without it they refuse (below,
+  // 'independently rejects conflicting or unverified strict source evidence').
   const conflict = await webhookReport();
   conflict.apiVersion.source.status = 'conflict';
   conflict.apiVersion.applicability = 'conflicts-with-code';
-  await expect(publishDraft(conflict, allowed)).rejects.toThrow(/Draft publication is blocked/);
+  expect(publicationWaiver(conflict, true)?.map(({ gate }) => gate)).toContain('api-version');
+  github();
+  await expect(publishDraft(conflict, allowed)).resolves.toMatchObject({ status: 'created' });
 });
 
 async function endpointReport(): Promise<Report> {
@@ -226,6 +229,8 @@ function github() {
     moveBaseOnCommit: false,
     moveHeadOnCommitRead: false,
     author: 'example',
+    // GitHub's own spelling of the repository, which may differ in case from the configured one.
+    repository: 'example/application',
     // Other open pull requests on the base, which a new App draft may supersede.
     others: [] as Record<string, unknown>[],
   };
@@ -281,7 +286,7 @@ function github() {
       if (state.failPull) return response({ message: 'test-token PRIVATE SERVER ERROR' }, 503);
       state.pull = {
         number: 17,
-        html_url: 'https://github.com/example/application/pull/17',
+        html_url: `https://github.com/${state.repository}/pull/17`,
         title: body.title,
         body: body.body,
         head: { sha: state.head },
@@ -328,6 +333,16 @@ it('publishes only the candidate files on the existing base tree and creates a d
   expect(request.body.body).not.toContain('PRIVATE LOG');
   expect(request.body.body).not.toContain('This is a local review artifact');
   expect(JSON.stringify(remote.calls)).not.toContain('Co-authored-by');
+});
+
+it('publishes to a repository GitHub spells in another case', async () => {
+  const remote = github();
+  remote.state.repository = 'Example/Application';
+  const result = await publishDraft(await report(), OPTIONS);
+  expect(result).toMatchObject({
+    status: 'created',
+    url: 'https://github.com/Example/Application/pull/17',
+  });
 });
 
 it('publishes a configured endpoint replacement as a readable draft through the shared publisher', async () => {
@@ -801,6 +816,20 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   expect(publicationWaiver(noCheck, false)).toBeUndefined();
 });
 
+// Owner decision 1: a repository checked without its submodules says so, naming each one.
+it('lists every submodule Refit checked around as a reason to review', async () => {
+  const evidence = await report();
+  const validation = evidence.validation as typeof evidence.validation & { submodules: string[] };
+  validation.submodules = ['docs/site', 'packages/ui'];
+  const reviews = publicationWaiver(evidence, true)!;
+  expect(reviews.map(({ gate }) => gate)).toEqual(['submodules']);
+  const { manifest, files } = createReviewArtifacts(evidence, 'github', undefined, reviews);
+  expect(manifest.title).toMatch(/^\[Needs review\] /);
+  expect(files['pull-request.md']).toContain(
+    '- Refit checked this repository without its submodules, so nothing in them was scanned, built or tested. **Check:** Check out the submodules, run your checks on this branch, and confirm the code in each one works with this patch.\n  - `docs/site`\n  - `packages/ui`',
+  );
+});
+
 // Owner decision 8: a passing AI patch is never a validated draft.
 it('refuses to publish a passing AI patch as validated, and publishes it for review', async () => {
   const evidence = await report();
@@ -840,6 +869,20 @@ it('says the checks passed on the original when only the upgraded lockfile could
     'Install the upgraded dependencies and run your checks: Refit could not run them on this patch.',
   );
   expect(body).not.toContain('neither the original nor the patched code');
+  // The generic reason says Refit could not install it, without repeating itself.
+  evidence.validation.dependencyFailure = {
+    ...evidence.validation.dependencyFailure!,
+    ...preparationFailure(new DependencyPreparationError('npm dependency preparation failed (1).')),
+  };
+  const generic = createReviewArtifacts(
+    evidence,
+    'github',
+    undefined,
+    publicationWaiver(evidence, true),
+  ).files['pull-request.md'];
+  expect(generic).toContain(
+    '`npm test` passed on the original code, but Refit could not install the upgraded lockfile this patch writes in its sandbox, so the patched code was not built or tested.',
+  );
 });
 
 // The request-rename fixture plus `items.archive`, whose target contract drops `note`: the rename

@@ -1273,6 +1273,36 @@
       }
     },
     {
+      "repo": "Kanba-co/kanba",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40148415783, Refit b6ac0da (fix/l3-period-type-errors, TYPE_CHECKED_PERIOD_READS on) on subsets/l3-period-type-errors.json, against base 40147841617 (2e69eee, main + the subset); benchmark mode, no AI. Base validation-regression, head needs-review with both checks passing. The artifact migration.patch of both runs was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included; the only hunks that differ from the base patch are the period reads, the helper import and (iggy) the new helper file",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: app/api/stripe/webhook/route.ts:226-227 subscription.current_period_start/end on subscriptions.data[0] of a subscriptions.list call now read getSubscriptionPeriodStart/End(subscription), the subscription item period Stripe names as the replacement (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end (read 2026-10-24)). Unchanged from the base patch: 2 invoice.subscription reads through getInvoiceSubscription, the card rename at app/api/stripe/checkout/route.ts:172, lib/stripe.ts apiVersion 2023-10-16 to 2026-09-30.endive.",
+        "bothVersions": "yes: the helper returns the old top-level field when the object has it, otherwise the period every item shares.",
+        "nothingUnrelated": "yes: the two reads and the helper import line (getSubscriptionPeriodStart and getSubscriptionPeriodEnd added beside getInvoiceSubscription). The helper file was already in the base patch.",
+        "pleaseCheck": "The draft flags mixed item periods at :226-227 (no item selection: the helper returns undefined there, as the removed field did). The 2 remaining unresolved findings, :225 subscription.items.data[0].price.id, are false alarms: a subscription item keeps price (the removed price is on line_item and invoiceitem). Production mode still stops at the full-diff gate (#290).",
+        "upgradeComplete": "yes: stripe ^14.15.0 to ^23.0.0 in package.json and package-lock.json, pin moved to endive.",
+        "wouldMerge": "yes, after one test-mode checkout (cards enabled) and a subscription sync."
+      }
+    },
+    {
+      "repo": "iggy-tech/product-hunt-clone-final",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40148415783, Refit b6ac0da (fix/l3-period-type-errors, TYPE_CHECKED_PERIOD_READS on) on subsets/l3-period-type-errors.json, against base 40147841617 (2e69eee, main + the subset); benchmark mode, no AI. Base validation-regression, head needs-review with both checks passing. The artifact migration.patch of both runs was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included; the only hunks that differ from the base patch are the period reads, the helper import and (iggy) the new helper file",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: lib/stripe.ts:113 subscription.current_period_end on subscriptions.data[0] of a subscriptions.list call now reads getSubscriptionPeriodEnd(subscription) inside the same * 1000 (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end (read 2026-10-24)). Unchanged from the base patch: the card rename at lib/stripe.ts:16 and app/api/stripe/route.ts apiVersion 2024-04-10 to 2026-09-30.endive; the lib/stripe.ts client sets no apiVersion, so the stripe-node upgrade moves it.",
+        "bothVersions": "yes: the helper returns the old field when present, otherwise the items' shared period.",
+        "nothingUnrelated": "yes: the read, one import after the existing imports (below the \"use server\" directive) and the new generated lib/stripeSubscriptionPeriod.ts (the standard helper module, 110 lines, read in full).",
+        "pleaseCheck": "The draft flags mixed item periods at :113 (undefined there gives an Invalid Date, as the removed field did). The 2 remaining unresolved findings, :122 subscription.items.data[0].price.id, are false alarms (a subscription item keeps price). Baseline had 6 type errors and the patch adds none.",
+        "upgradeComplete": "yes: stripe ^15.8.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, after one test-mode checkout (cards enabled)."
+      }
+    },
+    {
       "repo": "Princegupta101/SwiftScribe",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40135155123, Refit 49a1901 (this PR on subsets/f1-review-reads.json, 275 rows; before 40122734695 at main 538aeaa, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included",
@@ -1750,6 +1780,351 @@
         "pleaseCheck": "The draft is [Needs review] and asks for a test-mode Checkout Session showing the subscription still starts with the trial, or subscription_data.trial_period_days instead (https://docs.stripe.com/payments/checkout/free-trials). Its one Left Unchanged site, .price at app/api/create-checkout-session/route.ts:10 (2 findings, one per removed price field), is the price object the browser posts in the request body, not a Stripe response: a false alarm, correctly left alone. Wording nit not from this change: Key Changes says 2 untraced reads and Not Verified says 1 for that one site.",
         "upgradeComplete": "yes: stripe ^12.9.0 (lockfile 12.10.0) to ^23.0.0 in package.json and package-lock.json, and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
         "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
+      }
+    },
+    {
+      "repo": "Sanjdcool/ApanStack-Newsletter",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40167139452 (feat/l3-webhook-dual-reads 1f5655e) vs 40167137930 (bench/l3-webhooks-base 8473b9f = main c8977b7 + subsets/l3-webhooks.json); the base run stopped at scan with no patch. migration.patch read in full with line endings ignored",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the two invoice.subscription reads in the private handlers handleInvoicePaid/handleInvoicePaymentFailed, which the route calls only with the narrowed event.data.object, go through getInvoiceSubscription (https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).",
+        "bothVersions": "yes: the helper returns invoice.subscription when the payload has it (old-version events), otherwise parent.subscription_details.subscription; the webhook endpoint version is not changed.",
+        "nothingUnrelated": "yes: the two reads and their import, the generated helper module, the acacia pin moved to endive, and stripe ^17.5.0 to ^23.0.0 with its lockfile.",
+        "pleaseCheck": "Validation: the baseline checks fail on the repository as committed, so nothing about the patch was proven by checks.",
+        "upgradeComplete": "yes: stripe ^17.5.0 to ^23.0.0 in package.json and the lockfile.",
+        "wouldMerge": "yes, once the repository's own baseline is fixed and the endpoint version is planned."
+      }
+    },
+    {
+      "repo": "dalemoncayo/express-stripe",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149707974, Refit 149aaad (this PR on subsets/l3-reads2-a.json; before 40148716985 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key in app.js, the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40149707974 (checks passed before and after). In the before-run 40148716985 the same patch (byte-identical) ended [Needs review] for 1 untraced same-named read (app.js:16 .price). It is reads on the request body a route handler parses, not a Stripe object: `const { productName, price } = req.body` in an express() route callback. None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^15.6.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "mdalmamunit427/yoga-master-server",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149707974, Refit 149aaad (this PR on subsets/l3-reads2-a.json; before 40148716985 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 PaymentIntent payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key in index.js, the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40149707974 (checks passed before and after). In the before-run 40148716985 the same patch (byte-identical) ended [Needs review] for 2 untraced same-named reads (index.js:215 and :271 .price). Both are reads on the request body a route handler parses, not a Stripe object: `req.body` in express() route callbacks (verifyJWT only sets req.decoded). None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^12.9.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "abressiddique/AbresStore-Admin",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149707974, Refit 149aaad (this PR on subsets/l3-reads2-a.json; before 40148716985 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions); 5 checkout.session.shipping_details reads in the checkout.session.completed webhook branch go through getCheckoutShippingDetails, which falls back to collected_information.shipping_details (https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details).",
+        "bothVersions": "yes: getCheckoutShippingDetails returns the old shipping_details when the payload has it and collected_information.shipping_details otherwise, so events of either version work; the webhook endpoint version is not changed.",
+        "nothingUnrelated": "yes: the renamed key, 5 helper calls and their import, the generated stripeSubscriptionPeriod.ts (the generator's fixed shape), 1 apiVersion literal (lib/stripe.ts), the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40149707974 (checks passed before and after). In the before-run 40148716985 the same patch (byte-identical) ended [Needs review] for 4 untraced same-named reads (app/api/checkout/route.ts:43, app/api/webhooks/route.ts:44-46 .price). Line 43 is reads on the request body a route handler parses, not a Stripe object: cartItem.item.price over `await req.json()`; lines 44-46 read price on Checkout line items of a session retrieved with expand line_items, now traced through `await …line_items?.data` and `lineItems?.map` (a Checkout line item keeps price). None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^14.19.0 to ^23.0.0 in package.json and the lockfile, and 1 apiVersion literal moves to 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "Amansingh0807/GenForm",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149707974, Refit 149aaad (this PR on subsets/l3-reads2-a.json; before 40148716985 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key, the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40149707974 (checks passed before and after). In the before-run 40148716985 the same patch (byte-identical) ended [Needs review] for 1 untraced same-named read (app/api/stripe/checkout-session/route.ts:11 .price). It is reads on the request body a route handler parses, not a Stripe object: `const { price, userId, plan } = await req.json()` in the route's POST. None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^17.5.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "Deepanshu0211/Rocart",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40150288533, Refit 149aaad (this PR on subsets/l3-reads2-b.json; before 40149470219 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key, 2 apiVersion literals (api/create-payment-intent.js, api/server.js), the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40150288533 (checks passed before and after). In the before-run 40149470219 the same patch (byte-identical) ended [Needs review] for 2 untraced same-named reads (api/create-payment-intent.js:35, api/server.js:60 .unit_amount). Both are reads on the request body a route handler parses, not a Stripe object: item.price_data.unit_amount in a reduce over req.body.lineItems, read before the list is handed to Stripe. None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^19.1.0 to ^23.0.0 in package.json and the lockfile, and 2 apiVersion literals move to 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "oMiguelwnl/Borcelle_admin",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40150288533, Refit 149aaad (this PR on subsets/l3-reads2-b.json; before 40149470219 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions); 5 checkout.session.shipping_details reads in the checkout.session.completed webhook branch go through getCheckoutShippingDetails, which falls back to collected_information.shipping_details (https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details).",
+        "bothVersions": "yes: getCheckoutShippingDetails returns the old shipping_details when the payload has it and collected_information.shipping_details otherwise, so events of either version work; the webhook endpoint version is not changed.",
+        "nothingUnrelated": "yes: the renamed key, 5 helper calls and their import, the generated stripeSubscriptionPeriod.ts, the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40150288533 (checks passed before and after). In the before-run 40149470219 the same patch (byte-identical) ended [Needs review] for 4 untraced same-named reads (app/api/checkout/route.ts:41, app/api/webhooks/route.ts:44-46 .price). The same template as AbresStore-Admin: line 41 is reads on the request body a route handler parses, not a Stripe object: cartItem.item.price; lines 44-46 read price on expanded Checkout line items, now traced. None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^15.6.0 to ^23.0.0 in package.json and the lockfile, and 1 apiVersion literal moves to 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "psykat1116/Spotify",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40150288533, Refit 149aaad (this PR on subsets/l3-reads2-b.json; before 40149470219 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions); 2 subscription.current_period_* reads on a subscription from stripe.subscriptions.retrieve go through getSubscriptionPeriodStart/End, which fall back to the items' periods, choosing items[0] only when they differ (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end); the Extract<> edits are type-only narrowings after the stripe-node 23 upgrade (runtime values unchanged).",
+        "bothVersions": "yes: the helpers return the old subscription-level field when present and the item period otherwise; no webhook read is rewritten to the new shape only.",
+        "nothingUnrelated": "yes: the renamed key, 2 helper calls and their import, the generated stripeSubscriptionPeriod.ts, type-only Extract<> narrowings, 1 apiVersion literal, the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40150288533 (checks passed before and after). In the before-run 40149470219 the same patch (byte-identical) ended [Needs review] for 1 untraced same-named read (src/app/api/create-checkout-session/route.ts:10 .price). It is reads on the request body a route handler parses, not a Stripe object: `const { price, quantity = 1, metadata = {} } = await request.json()`. None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^13.9.0 to ^23.0.0 in package.json and the lockfile, and 1 apiVersion literal moves to 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "gjlander/backend-lazypress",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40150288533, Refit 149aaad (this PR on subsets/l3-reads2-b.json; before 40149470219 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key in routes/stripeRoutes.js, the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40150288533 (checks passed before and after). In the before-run 40149470219 the same patch (byte-identical) ended [Needs review] for 1 untraced same-named read (routes/stripeRoutes.js:30 .price). It is reads on the request body a route handler parses, not a Stripe object: `const { price } = req.body` in an express.Router() route callback. None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^14.5.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "Neddie28/Spotify-Clone",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40150288533, Refit 149aaad (this PR on subsets/l3-reads2-b.json; before 40149470219 at bench/l3-reads2-base f5c1864, #296 merged with main, same subset and flags); benchmark mode validated, production mode needs-review (full-diff gate). The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff --ignore-cr-at-eol, lockfile included (Stripe pages read 2026-10-25)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions); 2 subscription.current_period_* reads on a subscription from stripe.subscriptions.retrieve go through getSubscriptionPeriodStart/End, which fall back to the items' periods, choosing items[0] only when they differ (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end); the Extract<> edits are type-only narrowings after the stripe-node 23 upgrade (runtime values unchanged).",
+        "bothVersions": "yes: the helpers return the old subscription-level field when present and the item period otherwise; no webhook read is rewritten to the new shape only.",
+        "nothingUnrelated": "yes: the renamed key, 2 helper calls and their import, the generated stripeSubscriptionPeriod.ts, type-only Extract<> narrowings, 1 apiVersion literal, the stripe dependency and its lockfile entries. No other line changes; line endings and final newlines are preserved.",
+        "pleaseCheck": "Benchmark mode validated in 40150288533 (checks passed before and after). In the before-run 40149470219 the same patch (byte-identical) ended [Needs review] for 1 untraced same-named read (app/api/create-checkout-session/route.ts:12 .price). It is reads on the request body a route handler parses, not a Stripe object: `const { price, quantity = 1, metadata = {} } = await request.json()`. None is a Stripe object, and none is left now. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^13.6.0 to ^23.0.0 in package.json and the lockfile, and 1 apiVersion literal moves to 2026-09-30.endive",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "Mangu-Commerce/madcaptees",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166159662 (fix/l3-shipping-details 550f7f2) vs 40166157968 (bench/l3-ship-base 3589c26 = main c8977b7 + subsets/l3-ship.json); migration.patch read in full with line endings ignored, and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: in both webhook handlers the 8 shipping_details reads go through one const sessionShippingDetails = getCheckoutShippingDetails(session) declared before the insert, instead of 8 helper calls, so the existing narrowing holds (https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details).",
+        "bothVersions": "yes: the helper returns the old shipping_details when present, else collected_information.shipping_details; one call returns the same value the 8 calls did (session is a const, not written between).",
+        "nothingUnrelated": "yes: the base patch plus the two const lines and the reads that use them.",
+        "pleaseCheck": "Validated (before: validation regression on \"Object is possibly null\"). collected_information.shipping_details has only address and name, which is all this code reads.",
+        "upgradeComplete": "yes, as in the base patch (stripe-node upgraded with the lockfile).",
+        "wouldMerge": "yes, after one test-mode checkout with shipping."
+      }
+    },
+    {
+      "repo": "ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166159662 (fix/l3-shipping-details 550f7f2) vs 40166157968 (bench/l3-ship-base 3589c26 = main c8977b7 + subsets/l3-ship.json); migration.patch read in full with line endings ignored, and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the tested invoice.subscription read and the later retrieve argument share const sessionSubscription = getInvoiceSubscription(session) inside the invoice branch (https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).",
+        "bothVersions": "yes: the helper reads the old field when present, else parent.subscription_details.subscription.",
+        "nothingUnrelated": "yes: only the two reads move into the const; everything else is byte-identical to the base patch.",
+        "pleaseCheck": "Validated before and after; production mode follows the full-diff gate.",
+        "upgradeComplete": "yes, as in the base patch.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "deifos/picturemeai_nextjs",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, lib/stripe.ts apiVersion 2025-10-29.clover to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "none. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe 19.2.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check."
+      }
+    },
+    {
+      "repo": "minhthuong031103/RealEstateBrokerageMarket",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 2 payment_method_types: ['card'] sites renamed (a Checkout Session and a vnd PaymentIntent route); webhook period reads through the helper, invoice.subscription only inside the invoice.payment_succeeded branch, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/lib/stripe.ts apiVersion 2023-08-16 to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "2 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^13.9.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 2 listed findings are checked."
+      }
+    },
+    {
+      "repo": "Harries/startfast-free",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed; one webhook current_period_end read through getSubscriptionPeriodEnd, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/lib/stripe.ts apiVersion 2024-12-18.acacia to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "none. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^17.0.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check."
+      }
+    },
+    {
+      "repo": "MikPoik/next13-ai-companion",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 3 Checkout Session payment_method_types: ['card'] sites renamed; webhook period reads and invoice.subscription (invoice.payment_succeeded branch) through the helpers, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, lib/stripe.ts apiVersion 2024-10-28.acacia to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "none. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe 17.3.1 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check."
+      }
+    },
+    {
+      "repo": "szymontex/donata",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: ['blik', 'p24', 'card'] moved to allowed_payment_method_types with the same methods (keep-listed; the draft names blik and p24), the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/server.ts apiVersion 2024-12-18.acacia to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "1 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^17.5.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 1 listed findings are checked."
+      }
+    },
+    {
+      "repo": "r0ld3x/DocTalk",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: ['card', 'paypal'] moved to allowed_payment_method_types (keep-listed; the draft names paypal); webhook period reads and invoice.subscription inside the invoice.payment_succeeded branch through the helpers, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/lib/stripe.ts apiVersion 2023-10-16 to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "4 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^14.22.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 4 listed findings are checked."
+      }
+    },
+    {
+      "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed; three webhook current_period_end reads through getSubscriptionPeriodEnd, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, lib/stripe.ts apiVersion 2023-10-16 to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "15 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^14.12.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 15 listed findings are checked."
+      }
+    },
+    {
+      "repo": "aionarae/amazon-beta",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed (server/schemas/resolvers.js), the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, the client sets no apiVersion, so the stripe-node upgrade moves the version, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "2 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^16.6.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 2 listed findings are checked."
+      }
+    },
+    {
+      "repo": "cesarolvr/journeylog-app",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149082713 (before, bench/l3-upgrade-base f0cac93) and 40150074779 (after, fix/l3-upgrade-two-lockfiles 022d871), docs/benchmarks/subsets/l3-upgrade-two-lockfiles.json, --keep-listed-payment-methods on both. Before: scan stop (removed request parameter). After: patch written, validation stops at preparation (two lockfiles), so the artifact has no migration.patch; the same patch was produced by runPipeline at 022d871 on the pinned clone and read in full, lockfiles included",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed to allowed_payment_method_types (src/app/api/stripe/route.ts), the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, three clients' apiVersion 2025-01-27.acacia to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "1 findings left unchanged and listed in the draft; not read one by one here. Validation stops at preparation: the repository commits two lockfiles, which needs a custom validation image.",
+        "upgradeComplete": "yes: stripe ^17.1.0 to ^23.0.0 in package.json, package-lock.json (root entry and node_modules/stripe with registry SHA-512) and yarn.lock (stripe block replaced; @types/node@>=8.1.0 and undici-types blocks only the old stripe reached removed); both lockfiles locked 17.7.0.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 1 listed findings are checked."
+      }
+    },
+    {
+      "repo": "dubbl-org/dubbl",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149082713 (before, bench/l3-upgrade-base f0cac93) and 40150074779 (after, fix/l3-upgrade-two-lockfiles 022d871), docs/benchmarks/subsets/l3-upgrade-two-lockfiles.json, --keep-listed-payment-methods on both. Before: scan stop (removed request parameter). After: patch written, validation stops at preparation (two lockfiles), so the artifact has no migration.patch; the same patch was produced by runPipeline at 022d871 on the pinned clone and read in full, lockfiles included",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed (app/api/pay/[token]/checkout/route.ts), the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, no client sets apiVersion, so the stripe-node upgrade moves the version, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "6 findings left unchanged and listed in the draft; not read one by one here. Validation stops at preparation: the repository commits two lockfiles, which needs a custom validation image.",
+        "upgradeComplete": "yes: stripe ^20.4.0 to ^23.0.0 in package.json, package-lock.json and pnpm-lock.yaml (importer, package record and snapshot keep the (@types/node@20.19.35) peer qualifier); both lockfiles locked 20.4.0.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 6 listed findings are checked."
+      }
+    },
+    {
+      "repo": "ensarokumus/tldr-app",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40149082713 (before, bench/l3-upgrade-base f0cac93) and 40150074779 (after, fix/l3-upgrade-two-lockfiles 022d871), docs/benchmarks/subsets/l3-upgrade-two-lockfiles.json, --keep-listed-payment-methods on both. Before: scan stop (removed request parameter). After: patch written, validation stops at preparation (two lockfiles), so the artifact has no migration.patch; the same patch was produced by runPipeline at 022d871 on the pinned clone and read in full, lockfiles included",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed (src/trpc/index.ts); webhook period reads through getSubscriptionPeriodEnd and invoice.subscription through getInvoiceSubscription inside the invoice.payment_succeeded branch, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/lib/stripe.ts apiVersion 2024-04-10 to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "4 findings left unchanged and listed in the draft; not read one by one here. Validation stops at preparation: the repository commits two lockfiles, which needs a custom validation image.",
+        "upgradeComplete": "yes: stripe ^15.12.0 to ^23.0.0 in package.json, package-lock.json and yarn.lock (qs block only the old stripe reached removed); both lockfiles locked 15.12.0.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 4 listed findings are checked."
       }
     }
   ]

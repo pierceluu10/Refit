@@ -365,14 +365,32 @@ export const PERIOD_HELPERS = {
   current_period_end: 'getSubscriptionPeriodEnd',
 } as const;
 export const INVOICE_SUBSCRIPTION_HELPER = 'getInvoiceSubscription';
-const INVOICE_SUBSCRIPTION_LOCAL = 'invoiceSubscription';
 export const INVOICE_PRICE_ID_HELPER = 'getInvoicePriceId';
 export const CHECKOUT_SHIPPING_HELPER = 'getCheckoutShippingDetails';
 export const COUPON_ID_HELPER = 'getCouponId';
 export const PRODUCT_FEATURES_HELPER = 'getProductMarketingFeatures';
+// Globals the helper bodies read, which a file declaring the same name would shadow.
+export const HELPER_GLOBALS: readonly string[] = [
+  'Array',
+  'NonNullable',
+  'Reflect',
+  'Set',
+  'undefined',
+];
+
+// Every helper the generated module can hold, in its order.
+export const HELPER_NAMES: readonly string[] = [
+  ...Object.values(PERIOD_HELPERS),
+  INVOICE_SUBSCRIPTION_HELPER,
+  INVOICE_PRICE_ID_HELPER,
+  CHECKOUT_SHIPPING_HELPER,
+  COUPON_ID_HELPER,
+  PRODUCT_FEATURES_HELPER,
+];
 // Fields of the old Shipping object that the new checkout address details no longer carry.
 const DROPPED_SHIPPING_FIELDS = new Set(['carrier', 'phone', 'tracking_number']);
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
+type HelperLocal = { helper: string; rule: NonNullable<SourceEdit['rule']> };
 
 // Replaces a period read with the generated helper; `plan` selects the item for subscriptions whose
 // items have different periods.
@@ -401,11 +419,17 @@ export function invoiceSubscriptionHelperEdit(
   changeId: string,
 ): SourceEdit[] | undefined {
   if (!ts.isPropertyAccessExpression(node) || node.name.text !== 'subscription') return;
+  const local: HelperLocal = {
+    helper: INVOICE_SUBSCRIPTION_HELPER,
+    rule: INVOICE_SUBSCRIPTION_HELPER_RULE,
+  };
   // Plain JavaScript does not narrow, so each read can call the helper.
   if (/\.[cm]?tsx?$/.test(file) && typeofGuarded(node)) {
-    const reads = receiverReads(node);
-    return reads && localReadEdits(node, reads, file, changeId);
+    const scoped = receiverReads(node);
+    return scoped && localReadEdits(node, scoped, file, changeId, local);
   }
+  const hoisted = narrowedReadEdits(node, file, changeId, local);
+  if (hoisted) return hoisted;
   const edit = movedReadEdit(
     node,
     file,
@@ -419,8 +443,6 @@ export function invoiceSubscriptionHelperEdit(
 // `typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id`
 // narrows the field for the reads it guards; separate helper calls would not be narrowed, so the
 // patched code would not compile.
-// shortcut: truthiness guards (`if (!invoice.subscription) return`) also stop narrowing under
-// strictNullChecks; the repository's type check catches those, so they are still rewritten.
 function typeofGuarded(read: ts.PropertyAccessExpression) {
   const text = read.getText();
   let scope: ts.Node = read;
@@ -439,8 +461,84 @@ function typeofGuarded(read: ts.PropertyAccessExpression) {
   return found;
 }
 
-// Every read of `receiver.subscription` in the block, loop or function that declares the receiver,
-// or none when the receiver or the field is written there or the name is declared twice.
+// A truthiness, null or typeof test of the read or of a member chain on it (`if (x.f)`,
+// `x.f?.address ? x.f.name : ''`, `!x.f`, `x.f && …`, `x.f === null`), which narrows later reads.
+function tested(read: ts.Expression) {
+  let node: ts.Node = read;
+  for (;;) {
+    const parent = node.parent;
+    if (
+      (ts.isPropertyAccessExpression(parent) && parent.expression === node) ||
+      ts.isParenthesizedExpression(parent) ||
+      ts.isNonNullExpression(parent)
+    ) {
+      node = parent;
+      continue;
+    }
+    if (ts.isTypeOfExpression(parent)) return true;
+    if (ts.isPrefixUnaryExpression(parent))
+      return parent.operator === ts.SyntaxKind.ExclamationToken;
+    if (ts.isBinaryExpression(parent)) {
+      const operator = parent.operatorToken.kind;
+      if (
+        operator === ts.SyntaxKind.AmpersandAmpersandToken ||
+        operator === ts.SyntaxKind.BarBarToken
+      ) {
+        if (parent.left === node) return true;
+        node = parent;
+        continue;
+      }
+      return [
+        ts.SyntaxKind.EqualsEqualsEqualsToken,
+        ts.SyntaxKind.ExclamationEqualsEqualsToken,
+        ts.SyntaxKind.EqualsEqualsToken,
+        ts.SyntaxKind.ExclamationEqualsToken,
+      ].includes(operator);
+    }
+    return (
+      ((ts.isIfStatement(parent) || ts.isWhileStatement(parent) || ts.isDoStatement(parent)) &&
+        parent.expression === node) ||
+      (ts.isForStatement(parent) && parent.condition === node) ||
+      (ts.isConditionalExpression(parent) && parent.condition === node)
+    );
+  }
+}
+
+// TypeScript narrows a tested field for the reads after the test, but not separate helper calls, so
+// `if (session.shipping_details) use(session.shipping_details.address)` would stop compiling. A
+// test narrows reads in the block holding it (a case clause shares its switch's scope, so the block
+// around the switch), so the reads in the largest such block around this read share one local,
+// declared as `receiverReads` and `localReadEdits` allow; otherwise each read calls the helper.
+function narrowedReadEdits(
+  read: ts.PropertyAccessExpression,
+  file: string,
+  changeId: string,
+  local: HelperLocal,
+  keep: (read: ts.PropertyAccessExpression) => boolean = () => true,
+) {
+  if (!/\.[cm]?tsx?$/.test(file)) return;
+  const scoped = receiverReads(read);
+  if (!scoped) return;
+  const within = (node: ts.Node, outer: ts.Node) =>
+    outer.getStart() <= node.getStart() && node.getEnd() <= outer.getEnd();
+  let region: ts.Node | undefined;
+  for (const test of scoped.reads.filter(tested)) {
+    let block: ts.Node = test.parent;
+    while (
+      !ts.isBlock(block) &&
+      !ts.isSourceFile(block) &&
+      !(ts.isCaseClause(block) && block === scoped.scope)
+    )
+      block = block.parent;
+    if (within(read, block) && (!region || within(region, block))) region = block;
+  }
+  const reads = region ? scoped.reads.filter((node) => within(node, region)) : [];
+  if (reads.length < 2 || !reads.every(keep)) return;
+  return localReadEdits(read, { reads, scope: scoped.scope }, file, changeId, local);
+}
+
+// Every read of `receiver.field` in the block, loop or function that declares the receiver once,
+// as a parameter or a `const`, or none when the receiver or the field is written there.
 function receiverReads(read: ts.PropertyAccessExpression) {
   const receiver = read.expression;
   if (!ts.isIdentifier(receiver)) return;
@@ -454,9 +552,32 @@ function receiverReads(read: ts.PropertyAccessExpression) {
   const text = read.getText();
   const reads: ts.PropertyAccessExpression[] = [];
   let declarations = 0;
+  let constant = true;
   let written = false;
+  const unwrap = (node: ts.Expression): ts.Expression =>
+    ts.isParenthesizedExpression(node) || ts.isNonNullExpression(node)
+      ? unwrap(node.expression)
+      : node;
+  // The receiver, the field, or a computed member of the receiver that may be the field.
+  const writes = (target: ts.Expression) => {
+    const value = unwrap(target);
+    if (value.getText() === receiver.text) return true;
+    if (!ts.isPropertyAccessExpression(value) && !ts.isElementAccessExpression(value)) return false;
+    if (unwrap(value.expression).getText() !== receiver.text) return false;
+    return ts.isPropertyAccessExpression(value)
+      ? value.name.text === read.name.text
+      : !ts.isStringLiteralLike(value.argumentExpression) ||
+          value.argumentExpression.text === read.name.text;
+  };
   const visit = (node: ts.Node) => {
-    if (declares(node)) declarations++;
+    if (declares(node)) {
+      declarations++;
+      if (
+        ts.isVariableDeclaration(node) &&
+        !(ts.isVariableDeclarationList(node.parent) && node.parent.flags & ts.NodeFlags.Const)
+      )
+        constant = false;
+    }
     if (ts.isPropertyAccessExpression(node) && node.getText() === text) reads.push(node);
     const target =
       ts.isBinaryExpression(node) &&
@@ -470,11 +591,11 @@ function receiverReads(read: ts.PropertyAccessExpression) {
           : ts.isDeleteExpression(node)
             ? node.expression
             : undefined;
-    if (target && [receiver.text, text].includes(target.getText())) written = true;
+    if (target && writes(target)) written = true;
     ts.forEachChild(node, visit);
   };
   visit(scope);
-  return declarations === 1 && !written ? reads : undefined;
+  return declarations === 1 && constant && !written ? { reads, scope } : undefined;
 }
 
 function scopeDeclares(scope: ts.Node, declares: (node: ts.Node) => boolean) {
@@ -494,16 +615,23 @@ function scopeDeclares(scope: ts.Node, declares: (node: ts.Node) => boolean) {
 }
 
 // One local that every read uses narrows like the field did. It is declared before the statement
-// holding the first read, in the innermost block holding them all.
+// holding the first read, in the innermost block of the receiver's scope holding them all, and is
+// named after the receiver (`invoiceSubscription`, `sessionShippingDetails`), so locals for two
+// receivers in one block never clash. Not when the receiver itself is used between the
+// declaration and the last read (`await save(session)`), since that call could change the field.
+// shortcut: a call can still change the field through an alias made before the declaration;
+// upgrade if a repository mutates payloads that way.
 function localReadEdits(
   read: ts.PropertyAccessExpression,
-  reads: ts.PropertyAccessExpression[],
+  { reads, scope }: { reads: ts.PropertyAccessExpression[]; scope: ts.Node },
   file: string,
   changeId: string,
+  { helper, rule }: HelperLocal,
 ): SourceEdit[] | undefined {
   if (reads.some((node) => node.questionDotToken)) return;
   const source = read.getSourceFile();
   const first = reads.reduce((left, right) => (right.getStart() < left.getStart() ? right : left));
+  const last = reads.reduce((left, right) => (right.getEnd() > left.getEnd() ? right : left));
   let anchor: ts.Node = first;
   while (
     anchor.parent &&
@@ -523,6 +651,8 @@ function localReadEdits(
   const indentation = source.text.slice(lineStart, anchor.getStart());
   if (
     !anchor.parent ||
+    anchor.parent.getStart() < scope.getStart() ||
+    anchor.parent.getEnd() > scope.getEnd() ||
     anchor.getStart() === first.getStart() ||
     /\S/.test(indentation) ||
     (ts.isVariableStatement(anchor) &&
@@ -531,9 +661,31 @@ function localReadEdits(
       ))
   )
     return;
-  let name = INVOICE_SUBSCRIPTION_LOCAL;
+  let escapes = false;
+  const visit = (node: ts.Node) => {
+    if (escapes || node.getEnd() <= anchor.getStart() || node.getStart() >= last.getEnd()) return;
+    if (
+      ts.isIdentifier(node) &&
+      node.text === declaration &&
+      !(
+        (ts.isPropertyAccessExpression(node.parent) || ts.isElementAccessExpression(node.parent)) &&
+        node.parent.expression === node
+      ) &&
+      !(
+        (ts.isPropertyAccessExpression(node.parent) || ts.isPropertyAssignment(node.parent)) &&
+        node.parent.name === node
+      )
+    )
+      escapes = true;
+    ts.forEachChild(node, visit);
+  };
+  visit(anchor.parent);
+  if (escapes) return;
+  const field = read.name.text.replace(/_(\w)/g, (_match, letter: string) => letter.toUpperCase());
+  const base = `${declaration}${field[0].toUpperCase()}${field.slice(1)}`;
+  let name = base;
   for (let suffix = 2; new RegExp(`\\b${name}\\b`).test(source.text); suffix++)
-    name = `${INVOICE_SUBSCRIPTION_LOCAL}${suffix}`;
+    name = `${base}${suffix}`;
   const imports = source.statements.filter(ts.isImportDeclaration);
   const semicolon = !imports.length || imports[0].getText().endsWith(';') ? ';' : '';
   const newline = source.text.includes('\r\n') ? '\r\n' : '\n';
@@ -542,9 +694,9 @@ function localReadEdits(
       file,
       start: anchor.getStart(),
       end: anchor.getStart(),
-      replacement: `const ${name} = ${INVOICE_SUBSCRIPTION_HELPER}(${declaration})${semicolon}${newline}${indentation}`,
+      replacement: `const ${name} = ${helper}(${declaration})${semicolon}${newline}${indentation}`,
       changeId,
-      rule: INVOICE_SUBSCRIPTION_HELPER_RULE,
+      rule,
     },
     {
       file,
@@ -552,7 +704,7 @@ function localReadEdits(
       end: read.getEnd(),
       replacement: name,
       changeId,
-      rule: INVOICE_SUBSCRIPTION_HELPER_RULE,
+      rule,
     },
   ];
 }
@@ -641,23 +793,35 @@ export function productFeaturesHelperEdit(node: ts.Node, file: string, changeId:
 
 // Replaces a Checkout Session `shipping_details` read, which moved to
 // `collected_information.shipping_details`. Its new object holds only `address` and `name`, so a
-// read of `carrier`, `phone` or `tracking_number` stays with review.
-export function checkoutShippingHelperEdit(node: ts.Node, file: string, changeId: string) {
+// read of `carrier`, `phone` or `tracking_number` stays with review. Source, read 2026-10-24:
+// https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details
+export function checkoutShippingHelperEdit(
+  node: ts.Node,
+  file: string,
+  changeId: string,
+): SourceEdit[] | undefined {
   if (!ts.isPropertyAccessExpression(node) || node.name.text !== 'shipping_details') return;
-  const read = node.parent;
-  if (
-    ts.isPropertyAccessExpression(read) &&
-    read.expression === node &&
-    DROPPED_SHIPPING_FIELDS.has(read.name.text)
-  )
-    return;
-  return movedReadEdit(
+  const dropped = (read: ts.PropertyAccessExpression) =>
+    ts.isPropertyAccessExpression(read.parent) &&
+    read.parent.expression === read &&
+    DROPPED_SHIPPING_FIELDS.has(read.parent.name.text);
+  if (dropped(node)) return;
+  const hoisted = narrowedReadEdits(
+    node,
+    file,
+    changeId,
+    { helper: CHECKOUT_SHIPPING_HELPER, rule: CHECKOUT_SHIPPING_HELPER_RULE },
+    (read) => !dropped(read),
+  );
+  if (hoisted) return hoisted;
+  const edit = movedReadEdit(
     node,
     file,
     changeId,
     CHECKOUT_SHIPPING_HELPER_RULE,
     (session) => `${CHECKOUT_SHIPPING_HELPER}(${session})`,
   );
+  return edit && [edit];
 }
 
 const HELPER_BODY = (typed: boolean) => {
@@ -687,24 +851,38 @@ type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;
 `;
 };
 
-export function subscriptionPeriodHelperModule(kind: 'ts' | 'esm' | 'cjs') {
+// Only the helpers the patch calls, so the module adds no unused code to the repository. Inline
+// helpers go into the one file that calls them, so they export nothing.
+export function subscriptionPeriodHelperModule(
+  kind: 'ts' | 'esm' | 'cjs',
+  helpers: readonly string[],
+  inline = false,
+) {
   const typed = kind === 'ts';
   const t = (annotation: string) => (typed ? annotation : '');
-  const exported = kind === 'cjs' ? '' : 'export ';
+  const exported = kind === 'cjs' || inline ? '' : 'export ';
   const parameters = typed ? 'subscription: object, planItem?: PlanItem' : 'subscription, planItem';
   const result = typed ? ': number' : '';
-  return `${HELPER_BODY(typed)}
-${exported}function getSubscriptionPeriodStart(${parameters})${result} {
+  const sections: [string, string][] = [
+    [
+      PERIOD_HELPERS.current_period_start,
+      `${exported}function getSubscriptionPeriodStart(${parameters})${result} {
   return subscriptionPeriod(subscription, 'current_period_start', planItem);
 }
-
-${exported}function getSubscriptionPeriodEnd(${parameters})${result} {
+`,
+    ],
+    [
+      PERIOD_HELPERS.current_period_end,
+      `${exported}function getSubscriptionPeriodEnd(${parameters})${result} {
   return subscriptionPeriod(subscription, 'current_period_end', planItem);
 }
-
-${
-  typed
-    ? `// Typed like the removed field under old stripe types, like the new location under new ones.
+`,
+    ],
+    [
+      INVOICE_SUBSCRIPTION_HELPER,
+      `${
+        typed
+          ? `// Typed like the removed field under old stripe types, like the new location under new ones.
 type InvoiceSubscription<T> = T extends { subscription: infer S }
   ? S
   : T extends { parent: infer P }
@@ -716,8 +894,8 @@ type InvoiceSubscription<T> = T extends { subscription: infer S }
     : string | null;
 
 `
-    : ''
-}// The old top-level field when present (old-version payloads), otherwise the new location.
+          : ''
+      }// The old top-level field when present (old-version payloads), otherwise the new location.
 ${exported}function getInvoiceSubscription${typed ? '<T extends object>(invoice: T): InvoiceSubscription<T>' : '(invoice)'} {
   const legacy${t(': unknown')} = Reflect.get(invoice, 'subscription');
   const parent${t(': unknown')} = Reflect.get(invoice, 'parent');
@@ -727,8 +905,11 @@ ${exported}function getInvoiceSubscription${typed ? '<T extends object>(invoice:
     details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;
   return (legacy !== undefined ? legacy : (moved ?? null))${typed ? ' as InvoiceSubscription<T>' : ''};
 }
-
-// The old Price object's ID when present (old-version payloads), otherwise the price at
+`,
+    ],
+    [
+      INVOICE_PRICE_ID_HELPER,
+      `// The old Price object's ID when present (old-version payloads), otherwise the price at
 // pricing.price_details: an ID, or a Price when expanded.
 ${exported}function getInvoicePriceId(line${t(': object')})${t(': string | undefined')} {
   const legacy${t(': unknown')} = Reflect.get(line, 'price');
@@ -742,10 +923,13 @@ ${exported}function getInvoicePriceId(line${t(': object')})${t(': string | undef
   const id${t(': unknown')} = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;
   return typeof id === 'string' ? id : undefined;
 }
-
-${
-  typed
-    ? `// Typed like the removed field under old stripe types, like the new location under new ones.
+`,
+    ],
+    [
+      CHECKOUT_SHIPPING_HELPER,
+      `${
+        typed
+          ? `// Typed like the removed field under old stripe types, like the new location under new ones.
 type CheckoutShippingDetails<T> = T extends { shipping_details: infer S }
   ? S
   : T extends { collected_information: infer C }
@@ -755,8 +939,8 @@ type CheckoutShippingDetails<T> = T extends { shipping_details: infer S }
     : null;
 
 `
-    : ''
-}// The old top-level field when present (old-version payloads), otherwise
+          : ''
+      }// The old top-level field when present (old-version payloads), otherwise
 // collected_information.shipping_details, which holds only address and name.
 ${exported}function getCheckoutShippingDetails${typed ? '<T extends object>(session: T): CheckoutShippingDetails<T>' : '(session)'} {
   const legacy${t(': unknown')} = Reflect.get(session, 'shipping_details');
@@ -765,8 +949,11 @@ ${exported}function getCheckoutShippingDetails${typed ? '<T extends object>(sess
     collected && typeof collected === 'object' ? Reflect.get(collected, 'shipping_details') : undefined;
   return (legacy !== undefined ? legacy : (moved ?? null))${typed ? ' as CheckoutShippingDetails<T>' : ''};
 }
-
-// The old auto-expanded Coupon's ID when present (old-version payloads), otherwise the coupon a
+`,
+    ],
+    [
+      COUPON_ID_HELPER,
+      `// The old auto-expanded Coupon's ID when present (old-version payloads), otherwise the coupon a
 // promotion code's promotion or a discount's source holds: an ID, or a Coupon when expanded.
 ${exported}function getCouponId(value${t(': object')})${t(': string | undefined')} {
   const legacy${t(': unknown')} = Reflect.get(value, 'coupon');
@@ -780,10 +967,13 @@ ${exported}function getCouponId(value${t(': object')})${t(': string | undefined'
   const id${t(': unknown')} = coupon && typeof coupon === 'object' ? Reflect.get(coupon, 'id') : coupon;
   return typeof id === 'string' ? id : undefined;
 }
-
-${
-  typed
-    ? `// Typed like the removed field under old stripe types, like the new name under new ones.
+`,
+    ],
+    [
+      PRODUCT_FEATURES_HELPER,
+      `${
+        typed
+          ? `// Typed like the removed field under old stripe types, like the new name under new ones.
 type ProductMarketingFeatures<T> = T extends { features: infer F }
   ? F
   : T extends { marketing_features: infer M }
@@ -791,11 +981,20 @@ type ProductMarketingFeatures<T> = T extends { features: infer F }
     : { name?: string }[];
 
 `
-    : ''
-}// The old features list when present (old-version payloads), otherwise marketing_features.
+          : ''
+      }// The old features list when present (old-version payloads), otherwise marketing_features.
 ${exported}function getProductMarketingFeatures${typed ? '<T extends object>(product: T): ProductMarketingFeatures<T>' : '(product)'} {
   const legacy${t(': unknown')} = Reflect.get(product, 'features');
   return (legacy !== undefined ? legacy : Reflect.get(product, 'marketing_features'))${typed ? ' as ProductMarketingFeatures<T>' : ''};
 }
-${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId, getCheckoutShippingDetails, getCouponId, getProductMarketingFeatures };\n' : ''}`;
+`,
+    ],
+  ];
+  const emitted = sections.filter(([name]) => helpers.includes(name));
+  const periods = Object.values(PERIOD_HELPERS).some((name) => helpers.includes(name));
+  return `${[...(periods ? [HELPER_BODY(typed)] : []), ...emitted.map(([, text]) => text)].join('\n')}${
+    kind === 'cjs' && !inline
+      ? `\nmodule.exports = { ${emitted.map(([name]) => name).join(', ')} };\n`
+      : ''
+  }`;
 }

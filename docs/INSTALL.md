@@ -90,7 +90,7 @@ On 53 more repositories from the same sets, taken next in the same order and nev
 
 ### Why Refit stops, and what to do
 
-Doctor gives each reason in one sentence with the place in your code, then the fix. The fixes, by the `id` that `refit doctor --json` reports:
+Doctor gives each reason in one sentence with the place in your code, then the fix. Under owner decision 1 (the default), `no-lockfile`, `no-checks`, `api-version-unreadable`, `api-version-several`, `api-version-account-default` and `stripe-not-locked` no longer stop: Refit generates the configuration, names the version it assumes (`api-version-assumed`), and titles each draft `[Needs review]` with the reason. `--publish-validated-only` makes them stops again. The fixes, by the `id` that `refit doctor --json` reports:
 
 | `id` | What it means | What to do |
 |---|---|---|
