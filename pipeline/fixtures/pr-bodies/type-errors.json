@@ -1,0 +1,713 @@
+{
+  "formatVersion": 1,
+  "provider": "stripe-full",
+  "adapter": {
+    "id": "stripe-full",
+    "packageName": "stripe",
+    "defaultImport": true,
+    "namedExport": "Stripe",
+    "operations": [
+      {
+        "resource": "billingPortal.sessions",
+        "method": "create",
+        "schema": "billing_portal.session",
+        "operationId": "PostBillingPortalSessions"
+      },
+      {
+        "resource": "checkout.sessions",
+        "method": "create",
+        "schema": "checkout.session",
+        "operationId": "PostCheckoutSessions"
+      },
+      {
+        "resource": "customers",
+        "method": "create",
+        "schema": "customer",
+        "operationId": "PostCustomers"
+      },
+      {
+        "resource": "customers",
+        "method": "update",
+        "schema": "customer",
+        "operationId": "PostCustomersCustomer"
+      },
+      {
+        "resource": "subscriptions",
+        "method": "retrieve",
+        "schema": "subscription",
+        "operationId": "GetSubscriptionsSubscriptionExposedId"
+      }
+    ],
+    "constructorCalls": true,
+    "apiVersion": {
+      "constructorArgument": 1,
+      "property": "apiVersion",
+      "requestArguments": [1, 2]
+    }
+  },
+  "runId": "104527037b7cbe8867b5c1cfec5b5c49d9ffc3dcde8cdfa9ad9fdff1b3853a26",
+  "apiVersion": {
+    "application": "2022-11-15",
+    "before": "2022-11-15",
+    "after": "2026-09-30.endive",
+    "applicability": "matches-before",
+    "reason": "Application API version 2022-11-15 matches the before contract.",
+    "policy": "operator-pin",
+    "source": {
+      "status": "verified",
+      "declarations": [
+        {
+          "file": "libs/stripe.ts",
+          "line": 3,
+          "column": 23,
+          "kind": "constructor",
+          "value": "2022-11-15",
+          "status": "literal",
+          "reason": "Literal SDK constructor API-version option."
+        },
+        {
+          "file": "libs/supabaseAdmin.ts",
+          "line": 81,
+          "column": 28,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "libs/supabaseAdmin.ts",
+          "line": 109,
+          "column": 9,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "libs/supabaseAdmin.ts",
+          "line": 138,
+          "column": 30,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "app/api/create-checkout-session/route.ts",
+          "line": 28,
+          "column": 27,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        },
+        {
+          "file": "app/api/create-portal-link/route.ts",
+          "line": 26,
+          "column": 27,
+          "kind": "request",
+          "value": null,
+          "status": "inherited",
+          "reason": "No override in the adapter-declared option arguments; inherits the client version."
+        }
+      ],
+      "reason": "All supported SDK constructor declarations and request overrides match the operator pin under the recorded adapter mapping."
+    }
+  },
+  "findings": [
+    {
+      "file": "app/api/create-checkout-session/route.ts",
+      "line": 29,
+      "column": 7,
+      "changeId": "request-parameter:PostCheckoutSessions.payment_method_types",
+      "expression": "checkout.sessions.create argument[0].payment_method_types",
+      "confidence": "confirmed",
+      "reason": "The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior."
+    },
+    {
+      "file": "libs/supabaseAdmin.ts",
+      "line": 162,
+      "column": 9,
+      "changeId": "253803f47cb664cc90879a61",
+      "expression": ".current_period_start",
+      "confidence": "confirmed",
+      "subscriptionPeriod": {
+        "rareCase": "item-in-code",
+        "selection": "items.data[0]"
+      },
+      "reason": "Removed field read on a statically traced stripe-full subscription response."
+    },
+    {
+      "file": "libs/supabaseAdmin.ts",
+      "line": 165,
+      "column": 9,
+      "changeId": "1b1240130d2bdc263d4cb66a",
+      "expression": ".current_period_end",
+      "confidence": "confirmed",
+      "subscriptionPeriod": {
+        "rareCase": "item-in-code",
+        "selection": "items.data[0]"
+      },
+      "reason": "Removed field read on a statically traced stripe-full subscription response."
+    },
+    {
+      "file": "app/api/create-checkout-session/route.ts",
+      "line": 12,
+      "column": 11,
+      "changeId": "8aa322d4fab7131b93907458",
+      "expression": ".price",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    },
+    {
+      "file": "app/api/create-checkout-session/route.ts",
+      "line": 12,
+      "column": 11,
+      "changeId": "142dba6c71098a50fca6c32d",
+      "expression": ".price",
+      "confidence": "review",
+      "untraced": true,
+      "reason": "Receiver or property cannot be proven by the supported local analysis; inspect manually."
+    }
+  ],
+  "operationChanges": [],
+  "patch": {
+    "generator": "deterministic",
+    "summary": "Move removed Stripe field reads to their documented new locations, replace payment_method_types: ['card'] with allowed_payment_method_types, and update the pinned Stripe API version.",
+    "status": "proposed",
+    "edits": 8,
+    "unresolvedFindings": 2,
+    "diff": "diff --git \"a/app/api/create-checkout-session/route.ts\" \"b/app/api/create-checkout-session/route.ts\"\n--- \"a/app/api/create-checkout-session/route.ts\"\n+++ \"b/app/api/create-checkout-session/route.ts\"\n@@ -1,53 +1,53 @@\n-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';\n-import { cookies } from \"next/headers\";\n-import { NextResponse } from 'next/server';\n-\n-import { stripe } from '@/libs/stripe';\n-import { getURL } from '@/libs/helpers';\n-import { createOrRetrieveCustomer } from '@/libs/supabaseAdmin';\n-\n-export async function POST(\n-  request: Request\n-) {\n-  const { price, quantity = 1, metadata = {} } = await request.json();\n-\n-  try {\n-    const supabase = createRouteHandlerClient({ \n-      cookies\n-      });\n-      \n-    const {\n-      data: { user }\n-    } = await supabase.auth.getUser();\n-\n-    const customer = await createOrRetrieveCustomer({\n-      uuid: user?.id || '',\n-      email: user?.email || ''\n-    });\n-\n-    const session = await stripe.checkout.sessions.create({\n-      payment_method_types: ['card'],\n-      billing_address_collection: 'required',\n-      customer,\n-      line_items: [\n-        {\n-          price: price.id,\n-          quantity\n-        }\n-      ],\n-      mode: 'subscription',\n-      allow_promotion_codes: true,\n-      subscription_data: {\n-        trial_from_plan: true,\n-        metadata\n-      },\n-      success_url: `${getURL()}/account`,\n-      cancel_url: `${getURL()}/`\n-    });\n-\n-    return NextResponse.json({ sessionId: session.id });\n-  } catch (err: any) {\n-    console.log(err);\n-    return new NextResponse('Internal Error', { status: 500 });\n-  }\n-}\n+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';\n+import { cookies } from \"next/headers\";\n+import { NextResponse } from 'next/server';\n+\n+import { stripe } from '@/libs/stripe';\n+import { getURL } from '@/libs/helpers';\n+import { createOrRetrieveCustomer } from '@/libs/supabaseAdmin';\n+\n+export async function POST(\n+  request: Request\n+) {\n+  const { price, quantity = 1, metadata = {} } = await request.json();\n+\n+  try {\n+    const supabase = createRouteHandlerClient({ \n+      cookies\n+      });\n+      \n+    const {\n+      data: { user }\n+    } = await supabase.auth.getUser();\n+\n+    const customer = await createOrRetrieveCustomer({\n+      uuid: user?.id || '',\n+      email: user?.email || ''\n+    });\n+\n+    const session = await stripe.checkout.sessions.create({\n+      allowed_payment_method_types: ['card'],\n+      billing_address_collection: 'required',\n+      customer,\n+      line_items: [\n+        {\n+          price: price.id,\n+          quantity\n+        }\n+      ],\n+      mode: 'subscription',\n+      allow_promotion_codes: true,\n+      subscription_data: {\n+        trial_from_plan: true,\n+        metadata\n+      },\n+      success_url: `${getURL()}/account`,\n+      cancel_url: `${getURL()}/`\n+    });\n+\n+    return NextResponse.json({ sessionId: session.id });\n+  } catch (err: any) {\n+    console.log(err);\n+    return new NextResponse('Internal Error', { status: 500 });\n+  }\n+}\ndiff --git \"a/libs/stripe.ts\" \"b/libs/stripe.ts\"\n--- \"a/libs/stripe.ts\"\n+++ \"b/libs/stripe.ts\"\n@@ -1,12 +1,12 @@\n-import Stripe from 'stripe'\n-\n-export const stripe = new Stripe(\n-  process.env.STRIPE_SECRET_KEY ?? '',\n-  {\n-    apiVersion: '2022-11-15',\n-    appInfo: {\n-      name: 'Spotify Clone NextJS',\n-      version: '0.1.0',\n-    }\n-  }\n-)\n\\ No newline at end of file\n+import Stripe from 'stripe'\n+\n+export const stripe = new Stripe(\n+  process.env.STRIPE_SECRET_KEY ?? '',\n+  {\n+    apiVersion: '2026-09-30.endive',\n+    appInfo: {\n+      name: 'Spotify Clone NextJS',\n+      version: '0.1.0',\n+    }\n+  }\n+)\n\\ No newline at end of file\ndiff --git \"a/libs/supabaseAdmin.ts\" \"b/libs/supabaseAdmin.ts\"\n--- \"a/libs/supabaseAdmin.ts\"\n+++ \"b/libs/supabaseAdmin.ts\"\n@@ -1,203 +1,204 @@\n-import Stripe from 'stripe'\n-import { createClient } from '@supabase/supabase-js'\n-\n-import { Database } from '@/types_db'\n-import { Price, Product } from '@/types'\n-\n-import { stripe } from './stripe'\n-import { toDateTime } from './helpers'\n-\n-export const supabaseAdmin = createClient<Database>(\n-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',\n-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''\n-);\n-\n-const upsertProductRecord = async (product: Stripe.Product) => {\n-  const productData: Product = {\n-    id: product.id,\n-    active: product.active,\n-    name: product.name,\n-    description: product.description ?? undefined,\n-    image: product.images?.[0] ?? null,\n-    metadata: product.metadata,\n-  };\n-\n-  const { error } = await supabaseAdmin.from('products').upsert([productData]);\n-\n-  if (error) {\n-    throw error\n-  }\n-\n-  console.log(`Product inserted/updated: ${product.id}`)\n-}\n-\n-const upsertPriceRecord = async (price: Stripe.Price) => {\n-  const priceData: Price = {\n-    id: price.id,\n-    product_id: typeof price.product === 'string' ? price.product : '',\n-    active: price.active,\n-    currency: price.currency,\n-    description: price.nickname ?? undefined,\n-    type: price.type,\n-    unit_amount: price.unit_amount ?? undefined,\n-    interval: price.recurring?.interval,\n-    interval_count: price.recurring?.interval_count,\n-    trial_period_days: price.recurring?.trial_period_days,\n-    metadata: price.metadata,\n-  }\n-\n-  const { error } = await supabaseAdmin.from('prices').upsert([priceData])\n-\n-  if (error) {\n-    throw error\n-  }\n-\n-  console.log(`Price inserted/updated: ${price.id}`)\n-}\n-\n-const createOrRetrieveCustomer = async ({\n-  email,\n-  uuid\n-}: {\n-  email: string;\n-  uuid: string;\n-}) => {\n-  const { data, error } = await supabaseAdmin\n-    .from('customers')\n-    .select('stripe_customer_id')\n-    .eq('id', uuid)\n-    .single();\n-\n-  if (error || !data?.stripe_customer_id) {\n-    const customerData: { metadata: { supabaseUUID: string }; email?: string } =\n-      {\n-        metadata: {\n-          supabaseUUID: uuid\n-        }\n-      };\n-\n-    if (email) customerData.email = email;\n-\n-    const customer = await stripe.customers.create(customerData);\n-\n-    const { error: supabaseError } = await supabaseAdmin\n-      .from('customers')\n-      .insert([{ id: uuid, stripe_customer_id: customer.id }]);\n-\n-    if (supabaseError) throw supabaseError;\n-\n-    console.log(`New customer created and inserted for ${uuid}.`);\n-    \n-    return customer.id;\n-  }\n-\n-  return data.stripe_customer_id;\n-};\n-\n-const copyBillingDetailsToCustomer = async (\n-  uuid: string,\n-  payment_method: Stripe.PaymentMethod\n-) => {\n-  //Todo: check this assertion\n-  const customer = payment_method.customer as string;\n-  \n-  const { name, phone, address } = payment_method.billing_details;\n-  \n-  if (!name || !phone || !address) return;\n-  \n-  //@ts-ignore\n-  await stripe.customers.update(customer, { name, phone, address });\n-  \n-  const { error } = await supabaseAdmin\n-    .from('users')\n-    .update({\n-      billing_address: { ...address },\n-      payment_method: { ...payment_method[payment_method.type] }\n-    })\n-    .eq('id', uuid);\n-\n-  if (error) throw error;\n-};\n-\n-const manageSubscriptionStatusChange = async (\n-  subscriptionId: string,\n-  customerId: string,\n-  createAction = false\n-) => {\n-  // Get customer's UUID from mapping table.\n-  const { data: customerData, error: noCustomerError } = await supabaseAdmin\n-    .from('customers')\n-    .select('id')\n-    .eq('stripe_customer_id', customerId)\n-    .single();\n-  \n-    if (noCustomerError) throw noCustomerError;\n-\n-  const { id: uuid } = customerData!;\n-\n-  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {\n-    expand: ['default_payment_method']\n-  });\n-  \n-  // Upsert the latest status of the subscription object.\n-  const subscriptionData: Database['public']['Tables']['subscriptions']['Insert'] =\n-    {\n-      id: subscription.id,\n-      user_id: uuid,\n-      metadata: subscription.metadata,\n-      // @ts-ignore\n-      status: subscription.status,\n-      price_id: subscription.items.data[0].price.id,\n-      //TODO check quantity on subscription\n-      // @ts-ignore\n-      quantity: subscription.quantity,\n-      cancel_at_period_end: subscription.cancel_at_period_end,\n-      cancel_at: subscription.cancel_at\n-        ? toDateTime(subscription.cancel_at).toISOString()\n-        : null,\n-      canceled_at: subscription.canceled_at\n-        ? toDateTime(subscription.canceled_at).toISOString()\n-        : null,\n-      current_period_start: toDateTime(\n-        subscription.current_period_start\n-      ).toISOString(),\n-      current_period_end: toDateTime(\n-        subscription.current_period_end\n-      ).toISOString(),\n-      created: toDateTime(subscription.created).toISOString(),\n-      ended_at: subscription.ended_at\n-        ? toDateTime(subscription.ended_at).toISOString()\n-        : null,\n-      trial_start: subscription.trial_start\n-        ? toDateTime(subscription.trial_start).toISOString()\n-        : null,\n-      trial_end: subscription.trial_end\n-        ? toDateTime(subscription.trial_end).toISOString()\n-        : null\n-    };\n-\n-  const { error } = await supabaseAdmin\n-    .from('subscriptions')\n-    .upsert([subscriptionData]);\n-  \n-  if (error) throw error;\n-  \n-  console.log(\n-    `Inserted/updated subscription [${subscription.id}] for user [${uuid}]`\n-  );\n-\n-  // For a new subscription copy the billing details to the customer object.\n-  // NOTE: This is a costly operation and should happen at the very end.\n-  if (createAction && subscription.default_payment_method && uuid)\n-    await copyBillingDetailsToCustomer(\n-      uuid,\n-      subscription.default_payment_method as Stripe.PaymentMethod\n-    );\n-};\n-\n-export {\n-  upsertProductRecord,\n-  upsertPriceRecord,\n-  createOrRetrieveCustomer,\n-  manageSubscriptionStatusChange,\n-};\n+import Stripe from 'stripe'\n+import { createClient } from '@supabase/supabase-js'\n+\n+import { Database } from '@/types_db'\n+import { Price, Product } from '@/types'\n+\n+import { stripe } from './stripe'\n+import { toDateTime } from './helpers'\n+import { getSubscriptionPeriodStart, getSubscriptionPeriodEnd } from './stripe-subscription-period';\n+\n+export const supabaseAdmin = createClient<Database>(\n+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',\n+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''\n+);\n+\n+const upsertProductRecord = async (product: Stripe.Product) => {\n+  const productData: Product = {\n+    id: product.id,\n+    active: product.active,\n+    name: product.name,\n+    description: product.description ?? undefined,\n+    image: product.images?.[0] ?? null,\n+    metadata: product.metadata,\n+  };\n+\n+  const { error } = await supabaseAdmin.from('products').upsert([productData]);\n+\n+  if (error) {\n+    throw error\n+  }\n+\n+  console.log(`Product inserted/updated: ${product.id}`)\n+}\n+\n+const upsertPriceRecord = async (price: Stripe.Price) => {\n+  const priceData: Price = {\n+    id: price.id,\n+    product_id: typeof price.product === 'string' ? price.product : '',\n+    active: price.active,\n+    currency: price.currency,\n+    description: price.nickname ?? undefined,\n+    type: price.type,\n+    unit_amount: price.unit_amount ?? undefined,\n+    interval: price.recurring?.interval,\n+    interval_count: price.recurring?.interval_count,\n+    trial_period_days: price.recurring?.trial_period_days,\n+    metadata: price.metadata,\n+  }\n+\n+  const { error } = await supabaseAdmin.from('prices').upsert([priceData])\n+\n+  if (error) {\n+    throw error\n+  }\n+\n+  console.log(`Price inserted/updated: ${price.id}`)\n+}\n+\n+const createOrRetrieveCustomer = async ({\n+  email,\n+  uuid\n+}: {\n+  email: string;\n+  uuid: string;\n+}) => {\n+  const { data, error } = await supabaseAdmin\n+    .from('customers')\n+    .select('stripe_customer_id')\n+    .eq('id', uuid)\n+    .single();\n+\n+  if (error || !data?.stripe_customer_id) {\n+    const customerData: { metadata: { supabaseUUID: string }; email?: string } =\n+      {\n+        metadata: {\n+          supabaseUUID: uuid\n+        }\n+      };\n+\n+    if (email) customerData.email = email;\n+\n+    const customer = await stripe.customers.create(customerData);\n+\n+    const { error: supabaseError } = await supabaseAdmin\n+      .from('customers')\n+      .insert([{ id: uuid, stripe_customer_id: customer.id }]);\n+\n+    if (supabaseError) throw supabaseError;\n+\n+    console.log(`New customer created and inserted for ${uuid}.`);\n+    \n+    return customer.id;\n+  }\n+\n+  return data.stripe_customer_id;\n+};\n+\n+const copyBillingDetailsToCustomer = async (\n+  uuid: string,\n+  payment_method: Stripe.PaymentMethod\n+) => {\n+  //Todo: check this assertion\n+  const customer = payment_method.customer as string;\n+  \n+  const { name, phone, address } = payment_method.billing_details;\n+  \n+  if (!name || !phone || !address) return;\n+  \n+  //@ts-ignore\n+  await stripe.customers.update(customer, { name, phone, address });\n+  \n+  const { error } = await supabaseAdmin\n+    .from('users')\n+    .update({\n+      billing_address: { ...address },\n+      payment_method: { ...payment_method[payment_method.type] }\n+    })\n+    .eq('id', uuid);\n+\n+  if (error) throw error;\n+};\n+\n+const manageSubscriptionStatusChange = async (\n+  subscriptionId: string,\n+  customerId: string,\n+  createAction = false\n+) => {\n+  // Get customer's UUID from mapping table.\n+  const { data: customerData, error: noCustomerError } = await supabaseAdmin\n+    .from('customers')\n+    .select('id')\n+    .eq('stripe_customer_id', customerId)\n+    .single();\n+  \n+    if (noCustomerError) throw noCustomerError;\n+\n+  const { id: uuid } = customerData!;\n+\n+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {\n+    expand: ['default_payment_method']\n+  });\n+  \n+  // Upsert the latest status of the subscription object.\n+  const subscriptionData: Database['public']['Tables']['subscriptions']['Insert'] =\n+    {\n+      id: subscription.id,\n+      user_id: uuid,\n+      metadata: subscription.metadata,\n+      // @ts-ignore\n+      status: subscription.status,\n+      price_id: subscription.items.data[0].price.id,\n+      //TODO check quantity on subscription\n+      // @ts-ignore\n+      quantity: subscription.quantity,\n+      cancel_at_period_end: subscription.cancel_at_period_end,\n+      cancel_at: subscription.cancel_at\n+        ? toDateTime(subscription.cancel_at).toISOString()\n+        : null,\n+      canceled_at: subscription.canceled_at\n+        ? toDateTime(subscription.canceled_at).toISOString()\n+        : null,\n+      current_period_start: toDateTime(\n+        (getSubscriptionPeriodStart(subscription, (items) => items[0]))\n+      ).toISOString(),\n+      current_period_end: toDateTime(\n+        (getSubscriptionPeriodEnd(subscription, (items) => items[0]))\n+      ).toISOString(),\n+      created: toDateTime(subscription.created).toISOString(),\n+      ended_at: subscription.ended_at\n+        ? toDateTime(subscription.ended_at).toISOString()\n+        : null,\n+      trial_start: subscription.trial_start\n+        ? toDateTime(subscription.trial_start).toISOString()\n+        : null,\n+      trial_end: subscription.trial_end\n+        ? toDateTime(subscription.trial_end).toISOString()\n+        : null\n+    };\n+\n+  const { error } = await supabaseAdmin\n+    .from('subscriptions')\n+    .upsert([subscriptionData]);\n+  \n+  if (error) throw error;\n+  \n+  console.log(\n+    `Inserted/updated subscription [${subscription.id}] for user [${uuid}]`\n+  );\n+\n+  // For a new subscription copy the billing details to the customer object.\n+  // NOTE: This is a costly operation and should happen at the very end.\n+  if (createAction && subscription.default_payment_method && uuid)\n+    await copyBillingDetailsToCustomer(\n+      uuid,\n+      subscription.default_payment_method as Stripe.PaymentMethod\n+    );\n+};\n+\n+export {\n+  upsertProductRecord,\n+  upsertPriceRecord,\n+  createOrRetrieveCustomer,\n+  manageSubscriptionStatusChange,\n+};\ndiff --git \"a/libs/stripe-subscription-period.ts\" \"b/libs/stripe-subscription-period.ts\"\nnew file mode 100644\n--- /dev/null\n+++ \"b/libs/stripe-subscription-period.ts\"\n@@ -0,0 +1,110 @@\n+type PeriodItem = { price?: { id?: string } | null };\n+type PeriodField = 'current_period_start' | 'current_period_end';\n+type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;\n+\n+// Typed like the removed field, which was also absent at runtime when Stripe omitted it.\n+function subscriptionPeriod(subscription: object, field: PeriodField, planItem?: PlanItem): number {\n+  const legacy: unknown = Reflect.get(subscription, field);\n+  if (typeof legacy === 'number') return legacy;\n+  const list: unknown = Reflect.get(subscription, 'items');\n+  const data: unknown = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;\n+  const items = (Array.isArray(data) ? data : []).filter(\n+    (item): item is PeriodItem => typeof item === 'object' && item !== null,\n+  );\n+  const periods = new Set(items.map((item) => Reflect.get(item, field)));\n+  const chosen = periods.size === 1 ? items[0] : planItem?.(items);\n+  const value: unknown = chosen ? Reflect.get(chosen, field) : undefined;\n+  return (typeof value === 'number' ? value : undefined) as number;\n+}\n+\n+export function getSubscriptionPeriodStart(subscription: object, planItem?: PlanItem): number {\n+  return subscriptionPeriod(subscription, 'current_period_start', planItem);\n+}\n+\n+export function getSubscriptionPeriodEnd(subscription: object, planItem?: PlanItem): number {\n+  return subscriptionPeriod(subscription, 'current_period_end', planItem);\n+}\n+\n+// Typed like the removed field under old stripe types, like the new location under new ones.\n+type InvoiceSubscription<T> = T extends { subscription: infer S }\n+  ? S\n+  : T extends { parent: infer P }\n+    ? NonNullable<P> extends { subscription_details: infer D }\n+      ? NonNullable<D> extends { subscription: infer S }\n+        ? S | null\n+        : string | null\n+      : string | null\n+    : string | null;\n+\n+// The old top-level field when present (old-version payloads), otherwise the new location.\n+export function getInvoiceSubscription<T extends object>(invoice: T): InvoiceSubscription<T> {\n+  const legacy: unknown = Reflect.get(invoice, 'subscription');\n+  const parent: unknown = Reflect.get(invoice, 'parent');\n+  const details: unknown =\n+    parent && typeof parent === 'object' ? Reflect.get(parent, 'subscription_details') : undefined;\n+  const moved: unknown =\n+    details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;\n+  return (legacy !== undefined ? legacy : (moved ?? null)) as InvoiceSubscription<T>;\n+}\n+\n+// The old Price object's ID when present (old-version payloads), otherwise the price at\n+// pricing.price_details: an ID, or a Price when expanded.\n+export function getInvoicePriceId(line: object): string | undefined {\n+  const legacy: unknown = Reflect.get(line, 'price');\n+  const pricing: unknown = legacy === undefined ? Reflect.get(line, 'pricing') : undefined;\n+  const details: unknown =\n+    pricing && typeof pricing === 'object' && Reflect.get(pricing, 'type') === 'price_details'\n+      ? Reflect.get(pricing, 'price_details')\n+      : undefined;\n+  const price: unknown =\n+    legacy !== undefined ? legacy : details && typeof details === 'object' ? Reflect.get(details, 'price') : undefined;\n+  const id: unknown = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;\n+  return typeof id === 'string' ? id : undefined;\n+}\n+\n+// Typed like the removed field under old stripe types, like the new location under new ones.\n+type CheckoutShippingDetails<T> = T extends { shipping_details: infer S }\n+  ? S\n+  : T extends { collected_information: infer C }\n+    ? NonNullable<C> extends { shipping_details: infer S }\n+      ? S | null\n+      : null\n+    : null;\n+\n+// The old top-level field when present (old-version payloads), otherwise\n+// collected_information.shipping_details, which holds only address and name.\n+export function getCheckoutShippingDetails<T extends object>(session: T): CheckoutShippingDetails<T> {\n+  const legacy: unknown = Reflect.get(session, 'shipping_details');\n+  const collected: unknown = Reflect.get(session, 'collected_information');\n+  const moved: unknown =\n+    collected && typeof collected === 'object' ? Reflect.get(collected, 'shipping_details') : undefined;\n+  return (legacy !== undefined ? legacy : (moved ?? null)) as CheckoutShippingDetails<T>;\n+}\n+\n+// The old auto-expanded Coupon's ID when present (old-version payloads), otherwise the coupon a\n+// promotion code's promotion or a discount's source holds: an ID, or a Coupon when expanded.\n+export function getCouponId(value: object): string | undefined {\n+  const legacy: unknown = Reflect.get(value, 'coupon');\n+  const holder: unknown =\n+    legacy === undefined ? (Reflect.get(value, 'promotion') ?? Reflect.get(value, 'source')) : undefined;\n+  const moved: unknown =\n+    holder && typeof holder === 'object' && Reflect.get(holder, 'type') === 'coupon'\n+      ? Reflect.get(holder, 'coupon')\n+      : undefined;\n+  const coupon: unknown = legacy !== undefined ? legacy : moved;\n+  const id: unknown = coupon && typeof coupon === 'object' ? Reflect.get(coupon, 'id') : coupon;\n+  return typeof id === 'string' ? id : undefined;\n+}\n+\n+// Typed like the removed field under old stripe types, like the new name under new ones.\n+type ProductMarketingFeatures<T> = T extends { features: infer F }\n+  ? F\n+  : T extends { marketing_features: infer M }\n+    ? M\n+    : { name?: string }[];\n+\n+// The old features list when present (old-version payloads), otherwise marketing_features.\n+export function getProductMarketingFeatures<T extends object>(product: T): ProductMarketingFeatures<T> {\n+  const legacy: unknown = Reflect.get(product, 'features');\n+  return (legacy !== undefined ? legacy : Reflect.get(product, 'marketing_features')) as ProductMarketingFeatures<T>;\n+}\ndiff --git \"a/package.json\" \"b/package.json\"\n--- \"a/package.json\"\n+++ \"b/package.json\"\n@@ -1,50 +1,50 @@\n-{\n-  \"name\": \"spotify-clone\",\n-  \"version\": \"0.1.0\",\n-  \"private\": true,\n-  \"scripts\": {\n-    \"dev\": \"next dev\",\n-    \"build\": \"next build\",\n-    \"start\": \"next start\",\n-    \"lint\": \"next lint\"\n-  },\n-  \"dependencies\": {\n-    \"@radix-ui/react-dialog\": \"^1.0.4\",\n-    \"@radix-ui/react-slider\": \"^1.1.2\",\n-    \"@stripe/stripe-js\": \"^1.54.0\",\n-    \"@supabase/auth-helpers-nextjs\": \"^0.10.0\",\n-    \"@supabase/auth-helpers-react\": \"^0.5.0\",\n-    \"@supabase/auth-ui-react\": \"^0.4.2\",\n-    \"@supabase/auth-ui-shared\": \"^0.1.6\",\n-    \"@supabase/supabase-js\": \"^2.25.0\",\n-    \"@types/node\": \"20.3.1\",\n-    \"@types/react\": \"18.2.12\",\n-    \"@types/react-dom\": \"18.2.5\",\n-    \"autoprefixer\": \"10.4.14\",\n-    \"csstype\": \"^3.1.2\",\n-    \"eslint\": \"^8.42.0\",\n-    \"eslint-config-next\": \"13.4.5\",\n-    \"goober\": \"^2.1.13\",\n-    \"next\": \"13.4.5\",\n-    \"postcss\": \"8.4.24\",\n-    \"query-string\": \"^8.1.0\",\n-    \"react\": \"18.2.0\",\n-    \"react-dom\": \"18.2.0\",\n-    \"react-hook-form\": \"^7.44.3\",\n-    \"react-hot-toast\": \"^2.4.1\",\n-    \"react-icons\": \"^4.9.0\",\n-    \"react-spinners\": \"^0.13.8\",\n-    \"stripe\": \"^12.9.0\",\n-    \"tailwind-merge\": \"^1.13.1\",\n-    \"tailwindcss\": \"3.3.2\",\n-    \"typescript\": \"5.1.3\",\n-    \"uniqid\": \"^5.4.0\",\n-    \"use-sound\": \"^4.0.1\",\n-    \"zustand\": \"^4.3.8\"\n-  },\n-  \"devDependencies\": {\n-    \"@types/uniqid\": \"^5.3.2\",\n-    \"encoding\": \"^0.1.13\",\n-    \"supabase\": \">=1.8.1\"\n-  }\n-}\n+{\n+  \"name\": \"spotify-clone\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"scripts\": {\n+    \"dev\": \"next dev\",\n+    \"build\": \"next build\",\n+    \"start\": \"next start\",\n+    \"lint\": \"next lint\"\n+  },\n+  \"dependencies\": {\n+    \"@radix-ui/react-dialog\": \"^1.0.4\",\n+    \"@radix-ui/react-slider\": \"^1.1.2\",\n+    \"@stripe/stripe-js\": \"^1.54.0\",\n+    \"@supabase/auth-helpers-nextjs\": \"^0.10.0\",\n+    \"@supabase/auth-helpers-react\": \"^0.5.0\",\n+    \"@supabase/auth-ui-react\": \"^0.4.2\",\n+    \"@supabase/auth-ui-shared\": \"^0.1.6\",\n+    \"@supabase/supabase-js\": \"^2.25.0\",\n+    \"@types/node\": \"20.3.1\",\n+    \"@types/react\": \"18.2.12\",\n+    \"@types/react-dom\": \"18.2.5\",\n+    \"autoprefixer\": \"10.4.14\",\n+    \"csstype\": \"^3.1.2\",\n+    \"eslint\": \"^8.42.0\",\n+    \"eslint-config-next\": \"13.4.5\",\n+    \"goober\": \"^2.1.13\",\n+    \"next\": \"13.4.5\",\n+    \"postcss\": \"8.4.24\",\n+    \"query-string\": \"^8.1.0\",\n+    \"react\": \"18.2.0\",\n+    \"react-dom\": \"18.2.0\",\n+    \"react-hook-form\": \"^7.44.3\",\n+    \"react-hot-toast\": \"^2.4.1\",\n+    \"react-icons\": \"^4.9.0\",\n+    \"react-spinners\": \"^0.13.8\",\n+    \"stripe\": \"^23.0.0\",\n+    \"tailwind-merge\": \"^1.13.1\",\n+    \"tailwindcss\": \"3.3.2\",\n+    \"typescript\": \"5.1.3\",\n+    \"uniqid\": \"^5.4.0\",\n+    \"use-sound\": \"^4.0.1\",\n+    \"zustand\": \"^4.3.8\"\n+  },\n+  \"devDependencies\": {\n+    \"@types/uniqid\": \"^5.3.2\",\n+    \"encoding\": \"^0.1.13\",\n+    \"supabase\": \">=1.8.1\"\n+  }\n+}\ndiff --git \"a/yarn.lock\" \"b/yarn.lock\"\n--- \"a/yarn.lock\"\n+++ \"b/yarn.lock\"\n@@ -1,3328 +1,3318 @@\n-# THIS IS AN AUTOGENERATED FILE. DO NOT EDIT THIS FILE DIRECTLY.\n-# yarn lockfile v1\n-\n",
+    "validation": "regression",
+    "warnings": [
+      "Upgrades stripe from 12.9.0 to 23.0.0 in package.json and yarn.lock, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.",
+      "Subscription periods are read through a generated helper: the old subscription-level field when present (old-version events), otherwise the period every item shares, otherwise the item the application already selects or the configured price policy. Webhook endpoints are not changed.",
+      "payment_method_types: ['card'] becomes allowed_payment_method_types: ['card'] under the owner-approved policy. In 2026-09-30.endive it filters the payment methods Stripe finds eligible instead of listing them, so keep cards enabled in the Stripe Dashboard or the payment method configuration this account uses.",
+      "Patch contains source code. Review it for sensitive content before sharing."
+    ],
+    "sources": [
+      {
+        "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions",
+        "files": ["app/api/create-checkout-session/route.ts"]
+      },
+      {
+        "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end",
+        "files": ["libs/supabaseAdmin.ts", "libs/stripe-subscription-period.ts"]
+      }
+    ],
+    "unresolvedSites": [
+      {
+        "file": "app/api/create-checkout-session/route.ts",
+        "line": 12,
+        "changeId": "8aa322d4fab7131b93907458",
+        "expression": ".price",
+        "confidence": "review",
+        "untraced": true
+      },
+      {
+        "file": "app/api/create-checkout-session/route.ts",
+        "line": 12,
+        "changeId": "142dba6c71098a50fca6c32d",
+        "expression": ".price",
+        "confidence": "review",
+        "untraced": true
+      }
+    ],
+    "sdkUpgrade": {
+      "from": "12.9.0",
+      "to": "23.0.0"
+    }
+  },
+  "validation": {
+    "status": "regression",
+    "revision": "9b5d9ccc9740a51cab5249adee5dac5a8c112f91",
+    "image": "sha256:ae59e9992c6b3e963dd9dac9c476287048177ad8f90ac646669afb738705f56d",
+    "runtime": {
+      "configured": "node:22-alpine",
+      "image": "node:22-alpine",
+      "nodeVersion": "22.23.4",
+      "declarations": [],
+      "reason": "The repository declares no Node.js version."
+    },
+    "environment": {
+      "formatVersion": 1,
+      "kind": "refit-yarn-environment",
+      "signature": "9f0b9b8b6dcd2c815dab476fe1271cfc9b8551bbdcbf6ed37e3be7f918ea8bbc",
+      "recipeVersion": 5,
+      "image": "sha256:ae59e9992c6b3e963dd9dac9c476287048177ad8f90ac646669afb738705f56d",
+      "manager": "yarn",
+      "managerVersion": "1.22.22",
+      "packageHash": "68e918a41fbc39c2b79ab79fd02641e26897fe227d159bfad32994c9b9f885fd",
+      "lockHash": "899aef39d1c53a949aa572eb4e77b146470e99846105874c6ef1fc32e5335b26",
+      "packages": 463,
+      "nodeVersion": "v22.23.4",
+      "npmVersion": "10.9.9",
+      "yarnVersion": "1.22.22",
+      "yarnIntegrity": "sha512-prL3kGtyG7o9Z9Sv8IPfBNrWTDmXB4Qbes8A9rEzt6wkJV8mUvoirjU0Mp3GGAU06Y0XQyA3/2/RQFVuK7MTfg==",
+      "archiveHash": "56b1cdadb3928a23e4788edc554bb34afe24d1b330e26eef81b1e193345db5ab",
+      "archiveBytes": 487971328,
+      "installation": {
+        "network": "bridge",
+        "lifecycleScripts": false,
+        "registry": "https://registry.npmjs.org",
+        "timeoutMs": 300000,
+        "workspace": "2g",
+        "memory": "3g"
+      },
+      "validation": {
+        "network": "none"
+      },
+      "reused": false
+    },
+    "patchedEnvironment": {
+      "formatVersion": 1,
+      "kind": "refit-yarn-environment",
+      "signature": "badd3f067a2330d06117717e10e89f95b512acc5af96a1a2f6e3720da36dae59",
+      "recipeVersion": 5,
+      "image": "sha256:ae59e9992c6b3e963dd9dac9c476287048177ad8f90ac646669afb738705f56d",
+      "manager": "yarn",
+      "managerVersion": "1.22.22",
+      "packageHash": "aabf9df8ede6be174baa676031eaa8d8caa40bc42e2bb5d33b8198caca07dcf8",
+      "lockHash": "34652db19272d4569839246ea578814b594477f7465d87541d997868084c31c7",
+      "packages": 462,
+      "nodeVersion": "v22.23.4",
+      "npmVersion": "10.9.9",
+      "yarnVersion": "1.22.22",
+      "yarnIntegrity": "sha512-prL3kGtyG7o9Z9Sv8IPfBNrWTDmXB4Qbes8A9rEzt6wkJV8mUvoirjU0Mp3GGAU06Y0XQyA3/2/RQFVuK7MTfg==",
+      "archiveHash": "d7d13f0a5e2a112047b8ebf783fd8d5496fd73a9b51f6cafa44e1085efb70424",
+      "archiveBytes": 502338560,
+      "installation": {
+        "network": "bridge",
+        "lifecycleScripts": false,
+        "registry": "https://registry.npmjs.org",
+        "timeoutMs": 300000,
+        "workspace": "2g",
+        "memory": "3g"
+      },
+      "validation": {
+        "network": "none"
+      },
+      "reused": false
+    },
+    "command": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
+    "baselineCommand": ["npx", "--no-install", "tsc", "--noEmit", "--pretty", "false", "-p", "."],
+    "compareTypeErrors": true,
+    "archiveHash": "4720daa1be0ee0eb6730ce3d525bc92b1effdb03ac8a9d96d29d4f6c100389cc",
+    "patchHash": "f4063a1fbb645a1b4632cc0e5f98b4bacf8864ab1372840bd4916224f4a27c1b",
+    "baseline": {
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "patched": {
+      "status": "failed",
+      "exitCode": 2,
+      "stdout": "Type errors this patch introduced:\napp/api/create-checkout-session/route.ts(41,9): error TS2322: Type '{ trial_from_plan: true; metadata: any; }' is not assignable to type 'SubscriptionData'.\nlibs/supabaseAdmin.ts(50,64): error TS2322: Type 'Price' is not assignable to type '{ active?: boolean | null | undefined; currency?: string | null | undefined; description?: string | null | undefined; id: string; interval?: \"day\" | \"week\" | \"month\" | \"year\" | null | undefined; ... 5 more ...; unit_amount?: number | ... 1 more ... | undefined; }'.\nlibs/supabaseAdmin.ts(116,28): error TS7053: Element implicitly has an 'any' type because expression of type 'Type' can't be used to index type 'PaymentMethod'.\ntypes.ts(19,41): error TS2538: Type 'OtherString' cannot be used as an index type.\n",
+      "stderr": "",
+      "error": "Command failed: docker run --name refit-cdf66e12-0261-48fd-a785-32680885d214 --label dev.refit.sandbox.expires=1792833681628 --pull never --network none --log-driver none --read-only --user 65534:65534 --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 3g --cpus 1 --ulimit core=0 --tmpfs /workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700 --tmpfs /tmp:rw,noexec,size=64m,mode=1777 --mount type=bind,src=/tmp/refit-validation-ibKUsB/candidate-vpFtwx,dst=/input,readonly --mount type=bind,src=/tmp/refit-validation-ibKUsB/candidate-vpFtwx-dependencies.tar,dst=/dependencies.tar,readonly --workdir /workspace --env CI=true --entrypoint /bin/sh sha256:ae59e9992c6b3e963dd9dac9c476287048177ad8f90ac646669afb738705f56d -c cp -R /input/. /workspace/ && tar -xf /dependencies.tar -C /workspace/ && export PATH=\"/workspace/node_modules/.refit-tools/node_modules/.bin:/workspace/node_modules/.bin:$PATH\" && exec \"$@\" refit-check npx --no-install tsc --noEmit --pretty false -p .\n"
+    },
+    "attempts": [],
+    "repair": {
+      "limit": 0,
+      "requested": 0,
+      "stopReason": "not-needed-or-disabled",
+      "error": null
+    },
+    "limits": {
+      "timeoutMs": 120000,
+      "outputBytes": 1048576,
+      "network": "none",
+      "workspace": "2g",
+      "memory": "3g"
+    },
+    "publishable": false,
+    "reason": "Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review."
+  },
+  "changes": [
+    {
+      "id": "ae20e0ef7d981ee2a4f28a49",
+      "schema": "account_payments_settings",
+      "property": "statement_descriptor_prefix_kana",
+      "pointer": "/components/schemas/account_payments_settings/properties/statement_descriptor_prefix_kana",
+      "type": "string"
+    },
+    {
+      "id": "08bc349f48ea907f9b0750c1",
+      "schema": "account_payments_settings",
+      "property": "statement_descriptor_prefix_kanji",
+      "pointer": "/components/schemas/account_payments_settings/properties/statement_descriptor_prefix_kanji",
+      "type": "string"
+    },
+    {
+      "id": "69ad9688b225581ecee77a82",
+      "schema": "bank_connections_resource_link_account_session_filters",
+      "property": "countries",
+      "pointer": "/components/schemas/bank_connections_resource_link_account_session_filters/properties/countries"
+    },
+    {
+      "id": "f33e187bcbb0f333d0c48f1d",
+      "schema": "charge",
+      "property": "invoice",
+      "pointer": "/components/schemas/charge/properties/invoice"
+    },
+    {
+      "id": "f586a0984a78bb51937c8b90",
+      "schema": "checkout.session",
+      "property": "shipping_details",
+      "pointer": "/components/schemas/checkout.session/properties/shipping_details"
+    },
+    {
+      "id": "351f828f582195dbfcdf59eb",
+      "schema": "credit_note",
+      "property": "refund",
+      "pointer": "/components/schemas/credit_note/properties/refund"
+    },
+    {
+      "id": "5f996ea1a7998d4341c45fe9",
+      "schema": "credit_note",
+      "property": "tax_amounts",
+      "pointer": "/components/schemas/credit_note/properties/tax_amounts"
+    },
+    {
+      "id": "29a91ef79397003600332f6c",
+      "schema": "credit_note_line_item",
+      "property": "amount_excluding_tax",
+      "pointer": "/components/schemas/credit_note_line_item/properties/amount_excluding_tax"
+    },
+    {
+      "id": "888eede2e3767edae9523b5d",
+      "schema": "credit_note_line_item",
+      "property": "tax_amounts",
+      "pointer": "/components/schemas/credit_note_line_item/properties/tax_amounts"
+    },
+    {
+      "id": "c2698d269f9b8a4ab063938f",
+      "schema": "credit_note_line_item",
+      "property": "unit_amount_excluding_tax",
+      "pointer": "/components/schemas/credit_note_line_item/properties/unit_amount_excluding_tax",
+      "type": "string"
+    },
+    {
+      "id": "3576ff07f5049e2824e7d83f",
+      "schema": "deleted_discount",
+      "property": "coupon",
+      "pointer": "/components/schemas/deleted_discount/properties/coupon"
+    },
+    {
+      "id": "50b053f844c827a5f495e810",
+      "schema": "discount",
+      "property": "coupon",
+      "pointer": "/components/schemas/discount/properties/coupon"
+    },
+    {
+      "id": "b1ab1826ca6eb0e7106f9c98",
+      "schema": "invoice",
+      "property": "application_fee_amount",
+      "pointer": "/components/schemas/invoice/properties/application_fee_amount"
+    },
+    {
+      "id": "89e8d4c00b4d967a02861251",
+      "schema": "invoice",
+      "property": "charge",
+      "pointer": "/components/schemas/invoice/properties/charge"
+    },
+    {
+      "id": "6cf1ca39c012db642b72ef9f",
+      "schema": "invoice",
+      "property": "discount",
+      "pointer": "/components/schemas/invoice/properties/discount"
+    },
+    {
+      "id": "c01f32e9232f40ca218d8b91",
+      "schema": "invoice",
+      "property": "paid",
+      "pointer": "/components/schemas/invoice/properties/paid"
+    },
+    {
+      "id": "ce7ea18b1ffa6c9fe303a220",
+      "schema": "invoice",
+      "property": "paid_out_of_band",
+      "pointer": "/components/schemas/invoice/properties/paid_out_of_band"
+    },
+    {
+      "id": "5870216e6b8680d2f517daa2",
+      "schema": "invoice",
+      "property": "payment_intent",
+      "pointer": "/components/schemas/invoice/properties/payment_intent"
+    },
+    {
+      "id": "86755ae6ce368ad9a1ef3a8c",
+      "schema": "invoice",
+      "property": "quote",
+      "pointer": "/components/schemas/invoice/properties/quote"
+    },
+    {
+      "id": "06718d6406b25a340fe867fa",
+      "schema": "invoice",
+      "property": "rendering_options",
+      "pointer": "/components/schemas/invoice/properties/rendering_options"
+    },
+    {
+      "id": "eefe4ea32b74e64919fbc645",
+      "schema": "invoice",
+      "property": "subscription",
+      "pointer": "/components/schemas/invoice/properties/subscription"
+    },
+    {
+      "id": "b9f5304f0ba60c79af04c877",
+      "schema": "invoice",
+      "property": "subscription_proration_date",
+      "pointer": "/components/schemas/invoice/properties/subscription_proration_date"
+    },
+    {
+      "id": "7f4aa732b2af68160b84cf84",
+      "schema": "invoice",
+      "property": "tax",
+      "pointer": "/components/schemas/invoice/properties/tax"
+    },
+    {
+      "id": "0740e43cdfc1f45fda78bbba",
+      "schema": "invoice",
+      "property": "total_tax_amounts",
+      "pointer": "/components/schemas/invoice/properties/total_tax_amounts"
+    },
+    {
+      "id": "72bc5f4e651d3a5467bde394",
+      "schema": "invoice",
+      "property": "transfer_data",
+      "pointer": "/components/schemas/invoice/properties/transfer_data"
+    },
+    {
+      "id": "8aa322d4fab7131b93907458",
+      "schema": "invoiceitem",
+      "property": "price",
+      "pointer": "/components/schemas/invoiceitem/properties/price"
+    },
+    {
+      "id": "e57f26ccd809b93316d0a9aa",
+      "schema": "invoiceitem",
+      "property": "subscription",
+      "pointer": "/components/schemas/invoiceitem/properties/subscription"
+    },
+    {
+      "id": "6ee03cdb68c23f9988174e74",
+      "schema": "invoiceitem",
+      "property": "subscription_item",
+      "pointer": "/components/schemas/invoiceitem/properties/subscription_item",
+      "type": "string"
+    },
+    {
+      "id": "1e5555bbb20cc1823f543f0e",
+      "schema": "invoiceitem",
+      "property": "unit_amount",
+      "pointer": "/components/schemas/invoiceitem/properties/unit_amount"
+    },
+    {
+      "id": "10aacf2cf0b86f798684be2a",
+      "schema": "invoiceitem",
+      "property": "unit_amount_decimal",
+      "pointer": "/components/schemas/invoiceitem/properties/unit_amount_decimal",
+      "type": "string"
+    },
+    {
+      "id": "8238cf3d932480d82cc2cc57",
+      "schema": "issuing.settlement",
+      "property": "interchange_fees",
+      "pointer": "/components/schemas/issuing.settlement/properties/interchange_fees"
+    },
+    {
+      "id": "ae2e98d63b658986c0e7d931",
+      "schema": "issuing.settlement",
+      "property": "net_total",
+      "pointer": "/components/schemas/issuing.settlement/properties/net_total"
+    },
+    {
+      "id": "fdd5278cfd335c95fe575974",
+      "schema": "issuing.settlement",
+      "property": "network_fees",
+      "pointer": "/components/schemas/issuing.settlement/properties/network_fees"
+    },
+    {
+      "id": "09b630e5156b445640bd7b58",
+      "schema": "issuing.settlement",
+      "property": "transaction_volume",
+      "pointer": "/components/schemas/issuing.settlement/properties/transaction_volume"
+    },
+    {
+      "id": "f93ef5dd8b49c0ca5318b3c9",
+      "schema": "issuing_transaction_fuel_data",
+      "property": "volume_decimal",
+      "pointer": "/components/schemas/issuing_transaction_fuel_data/properties/volume_decimal",
+      "type": "string"
+    },
+    {
+      "id": "68ded20071fca74723bd742d",
+      "schema": "line_item",
+      "property": "amount_excluding_tax",
+      "pointer": "/components/schemas/line_item/properties/amount_excluding_tax"
+    },
+    {
+      "id": "8e5ac970186bd4c873e78bf9",
+      "schema": "line_item",
+      "property": "invoice_item",
+      "pointer": "/components/schemas/line_item/properties/invoice_item",
+      "type": "string"
+    },
+    {
+      "id": "142dba6c71098a50fca6c32d",
+      "schema": "line_item",
+      "property": "price",
+      "pointer": "/components/schemas/line_item/properties/price"
+    },
+    {
+      "id": "c5cf14a3ba4601e132157ff9",
+      "schema": "line_item",
+      "property": "proration",
+      "pointer": "/components/schemas/line_item/properties/proration"
+    },
+    {
+      "id": "556246e9db525d8364d92b4b",
+      "schema": "line_item",
+      "property": "proration_details",
+      "pointer": "/components/schemas/line_item/properties/proration_details"
+    },
+    {
+      "id": "c71db20fdcb07a87ac1cb250",
+      "schema": "line_item",
+      "property": "subscription_item",
+      "pointer": "/components/schemas/line_item/properties/subscription_item",
+      "type": "string"
+    },
+    {
+      "id": "7712007a1571b1c97f2c00bb",
+      "schema": "line_item",
+      "property": "tax_amounts",
+      "pointer": "/components/schemas/line_item/properties/tax_amounts"
+    },
+    {
+      "id": "7e3dfb6a17c95e64c511333b",
+      "schema": "line_item",
+      "property": "tax_rates",
+      "pointer": "/components/schemas/line_item/properties/tax_rates"
+    },
+    {
+      "id": "7b677ca734a24cfd40d67814",
+      "schema": "line_item",
+      "property": "type",
+      "pointer": "/components/schemas/line_item/properties/type",
+      "type": "string"
+    },
+    {
+      "id": "47ce52a5dc871a07aab81de6",
+      "schema": "line_item",
+      "property": "unit_amount_excluding_tax",
+      "pointer": "/components/schemas/line_item/properties/unit_amount_excluding_tax",
+      "type": "string"
+    },
+    {
+      "id": "400559b7364889c8ac917663",
+      "schema": "mandate_blik",
+      "property": "expires_after",
+      "pointer": "/components/schemas/mandate_blik/properties/expires_after"
+    },
+    {
+      "id": "7d62f1c0093a8f89047e4fac",
+      "schema": "mandate_blik",
+      "property": "off_session",
+      "pointer": "/components/schemas/mandate_blik/properties/off_session"
+    },
+    {
+      "id": "8331fe280790dc72a46d32ca",
+      "schema": "payment_intent",
+      "property": "invoice",
+      "pointer": "/components/schemas/payment_intent/properties/invoice"
+    },
+    {
+      "id": "7319502d9ebda24884271389",
+      "schema": "payment_intent_payment_method_options_link",
+      "property": "persistent_token",
+      "pointer": "/components/schemas/payment_intent_payment_method_options_link/properties/persistent_token",
+      "type": "string"
+    },
+    {
+      "id": "4c071c54476ed2bf8726e5b9",
+      "schema": "payment_method_link",
+      "property": "persistent_token",
+      "pointer": "/components/schemas/payment_method_link/properties/persistent_token",
+      "type": "string"
+    },
+    {
+      "id": "87016ebe4e944b905317bd72",
+      "schema": "plan",
+      "property": "aggregate_usage",
+      "pointer": "/components/schemas/plan/properties/aggregate_usage",
+      "type": "string"
+    },
+    {
+      "id": "8a453394411549257a2a9073",
+      "schema": "portal_features",
+      "property": "subscription_pause",
+      "pointer": "/components/schemas/portal_features/properties/subscription_pause"
+    },
+    {
+      "id": "215357c66085f28784d70de0",
+      "schema": "promotion_code",
+      "property": "coupon",
+      "pointer": "/components/schemas/promotion_code/properties/coupon"
+    },
+    {
+      "id": "326a3a1b90cd0302738236cf",
+      "schema": "recurring",
+      "property": "aggregate_usage",
+      "pointer": "/components/schemas/recurring/properties/aggregate_usage",
+      "type": "string"
+    },
+    {
+      "id": "5178931c8bb49b0c6aeeb1ad",
+      "schema": "setup_intent_payment_method_options_link",
+      "property": "persistent_token",
+      "pointer": "/components/schemas/setup_intent_payment_method_options_link/properties/persistent_token",
+      "type": "string"
+    },
+    {
+      "id": "a8f5bae7639dfa4aaf864f3e",
+      "schema": "setup_intent_payment_method_options_mandate_options_blik",
+      "property": "expires_after",
+      "pointer": "/components/schemas/setup_intent_payment_method_options_mandate_options_blik/properties/expires_after"
+    },
+    {
+      "id": "a6cb9e959cd827a9bf449128",
+      "schema": "setup_intent_payment_method_options_mandate_options_blik",
+      "property": "off_session",
+      "pointer": "/components/schemas/setup_intent_payment_method_options_mandate_options_blik/properties/off_session"
+    },
+    {
+      "id": "1b1240130d2bdc263d4cb66a",
+      "schema": "subscription",
+      "property": "current_period_end",
+      "pointer": "/components/schemas/subscription/properties/current_period_end"
+    },
+    {
+      "id": "253803f47cb664cc90879a61",
+      "schema": "subscription",
+      "property": "current_period_start",
+      "pointer": "/components/schemas/subscription/properties/current_period_start"
+    },
+    {
+      "id": "b36bab440cd56250c973ba11",
+      "schema": "subscription",
+      "property": "discount",
+      "pointer": "/components/schemas/subscription/properties/discount"
+    },
+    {
+      "id": "6bfe84242c9c733516e63533",
+      "schema": "subscription_schedule_phase_configuration",
+      "property": "coupon",
+      "pointer": "/components/schemas/subscription_schedule_phase_configuration/properties/coupon"
+    }
+  ],
+  "storedResult": "refit-bench run 40081277373 at Refit 56cecbe: shard-10/run/repos/AlefeSk8__Spotify-Clone-Next.js/run/report.json",
+  "storedResultNote": "Code from https://github.com/AlefeSk8/Spotify-Clone-Next.js at 9b5d9ccc9740a51cab5249adee5dac5a8c112f91, MIT (https://github.com/AlefeSk8/Spotify-Clone-Next.js/blob/9b5d9ccc9740a51cab5249adee5dac5a8c112f91/LICENSE). Shows the type check the patch broke, with the first type error it introduced, and two rule pages. Lockfile hunks are cut to their first lines; patchHash is recomputed for the cut diff."
+}

@@ -2,7 +2,13 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { discoverStripeRevision, fetchStripeSnapshot } from './snapshots.ts';
-import { digest, MAX_SPECIFICATION_BYTES, parseSpecification } from './specifications.ts';
+import {
+  digest,
+  MAX_SPECIFICATION_BYTES,
+  parseDocumentObject,
+  parseSpecification,
+  parseSpecificationInput,
+} from './specifications.ts';
 import { fetchSpecificationResponse, readBoundedResponse } from './network.ts';
 import { PipelineInputError } from './types.ts';
 import type { Snapshot } from './specifications.ts';
@@ -43,6 +49,12 @@ export async function captureSpecification(
     if ((await stat(path)).size > MAX_SPECIFICATION_BYTES)
       throw new PipelineInputError('Specification source exceeds the size limit.');
     content = await readFile(path, 'utf8');
+    // Enrollment stores generated contracts as Refit snapshots; keep their verified provenance.
+    const value = parseDocumentObject(content, path);
+    if (value.kind === 'refit-snapshot' || value.kind === 'refit-source-snapshot') {
+      parseSpecificationInput(content, path);
+      return value as unknown as CapturedSpecification;
+    }
     url = pathToFileURL(path).href;
   } else {
     const parsed = new URL(source.url);

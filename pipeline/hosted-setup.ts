@@ -32,6 +32,8 @@ export interface HostedSetup {
   tenancy: HostedTenancy;
   // What this worker does for approved repositories, so the page states its real settings.
   publishDraft: boolean;
+  // Owner decision 1: a patch Refit cannot check, or that needs a decision, opens as [Needs review].
+  publishUnresolved: boolean;
   aiPatch: boolean;
   // Where to ask for data deletion and report security issues (REFIT_HOSTED_CONTACT).
   contact?: string;
@@ -98,7 +100,10 @@ function uninstallLink(installation: Installation) {
 }
 
 export function setupPage(
-  setup: Pick<HostedSetup, 'tenancy' | 'publishDraft' | 'aiPatch' | 'contact'>,
+  setup: Pick<
+    HostedSetup,
+    'tenancy' | 'publishDraft' | 'publishUnresolved' | 'aiPatch' | 'contact'
+  >,
   installation: Installation,
 ) {
   const allowed = installation
@@ -122,7 +127,7 @@ export function setupPage(
     '<h2>2. Approval</h2>',
     '<p>Refit runs no checks in a repository until its configuration is approved. The configuration is a committed <code>.refit.json</code> that names the API contracts and the checks to run. The operator of this Refit service reviews it, including the exact files and their hashes, and stores the approval. A later change to those files stops Refit until it is approved again.</p>',
     '<h2>3. After approval</h2>',
-    `<p>Refit checks out the repository, finds code affected by API changes and runs the approved checks in an offline container. If the configuration asks for it, dependencies are first installed from the package registry, with install scripts disabled. ${setup.publishDraft ? 'When a migration passes its checks, Refit opens a draft pull request for you to review. It never merges.' : 'This service does not open pull requests; results stay with the operator.'} ${setup.aiPatch ? 'It may ask an AI model to propose a patch, using the operator’s own key and a capped budget.' : 'It does not use AI.'}</p>`,
+    `<p>Refit checks out the repository, finds code affected by API changes and runs the approved checks in an offline container. If the configuration asks for it, dependencies are first installed from the package registry, with install scripts disabled. ${setup.publishDraft ? (setup.publishUnresolved ? 'Refit opens a draft pull request for you to review. When it could not run the checks on a patch, or a change needs your decision, the draft is titled [Needs review] and lists every reason. It never opens one whose checks ran and failed, and it never merges.' : 'When a migration passes its checks, Refit opens a draft pull request for you to review. It never merges.') : 'This service does not open pull requests; results stay with the operator.'} ${setup.aiPatch ? `It may ask an AI model to propose a patch, using the operator’s own key and a capped budget${setup.publishDraft ? (setup.publishUnresolved ? '; that draft is always titled [Needs review]' : ', but it never opens a pull request for an AI patch') : ''}.` : 'It does not use AI.'}</p>`,
     '<h2>Uninstall</h2>',
     `<p>Uninstall Refit Agent or remove repositories from ${uninstallLink(installation)}. Refit cancels queued and running work for those repositories at once and deletes their inventories. ${deletion(setup.contact)} ${KEPT}</p>`,
   ]);
