@@ -1,6 +1,24 @@
 import { PipelineInputError } from './types.ts';
 
 export const MAX_REPAIR_ATTEMPTS = 2;
+// Seconds one check (baseline, patched or generated) may run before its container is stopped.
+// The default is set from measured durations in docs/DEPENDENCIES.md ("Check time limit").
+export const DEFAULT_CHECK_TIMEOUT_SECONDS = 600;
+const MIN_CHECK_TIMEOUT_SECONDS = 30;
+const MAX_CHECK_TIMEOUT_SECONDS = 1800;
+
+export function validateCheckTimeout(value: unknown = DEFAULT_CHECK_TIMEOUT_SECONDS) {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < MIN_CHECK_TIMEOUT_SECONDS ||
+    value > MAX_CHECK_TIMEOUT_SECONDS
+  )
+    throw new PipelineInputError(
+      `checkTimeoutSeconds must be a whole number from ${MIN_CHECK_TIMEOUT_SECONDS} to ${MAX_CHECK_TIMEOUT_SECONDS}.`,
+    );
+  return value;
+}
 
 export function validateWorkflowSources(options: {
   after?: string;

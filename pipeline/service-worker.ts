@@ -190,13 +190,26 @@ export async function pollServiceTarget(options: {
         onProgress: options.onProgress,
       });
       // The approved checks, which model fixes reuse for this repository.
-      const { image, command, baselineCommand, prepareDependencies, compareTypeErrors } =
-        profile.workflow;
+      const {
+        image,
+        command,
+        baselineCommand,
+        checkTimeoutSeconds,
+        prepareDependencies,
+        compareTypeErrors,
+      } = profile.workflow;
       return {
         ...result,
         ...(readiness ? { readiness } : {}),
         checkout,
-        checks: { image, command, baselineCommand, prepareDependencies, compareTypeErrors },
+        checks: {
+          image,
+          command,
+          baselineCommand,
+          checkTimeoutSeconds,
+          prepareDependencies,
+          compareTypeErrors,
+        },
         // Fetched contracts and documentation can change without a new commit.
         liveContract: source.kind !== 'file' || target.documentationSources.length > 0,
       };

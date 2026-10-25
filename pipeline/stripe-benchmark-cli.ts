@@ -14,7 +14,9 @@ import {
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
+import { readCommittedRepository } from './committed-repository.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
+import { sdkPackageDirectory } from './preparation-packages.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
@@ -349,8 +351,10 @@ async function benchmark(entry: Selected, index: number) {
     log('no mapped Stripe methods');
     return;
   }
+  let fullReport: Awaited<ReturnType<typeof runPipeline>>;
   try {
-    result.fullAdapter = summarize(await runPipeline({ ...inputs, providerConfig: adapterPath }));
+    fullReport = await runPipeline({ ...inputs, providerConfig: adapterPath });
+    result.fullAdapter = summarize(fullReport);
   } catch (error) {
     result.fullAdapter = { error: message(error) };
     log('full-adapter scan failed');
@@ -388,19 +392,25 @@ async function benchmark(entry: Selected, index: number) {
     log('not affected');
     return;
   }
+  // Stripe code in one nested package with its own lockfile is prepared and checked there, with
+  // that package's own checks, as validation does (pipeline/preparation-packages.ts).
+  const committed = await readCommittedRepository(directory).catch(() => undefined);
+  const packageDirectory = committed && sdkPackageDirectory(fullReport, committed);
+  if (packageDirectory) result.packageDirectory = packageDirectory;
+  const checkRoot = join(directory, packageDirectory ?? '');
   const manifest = JSON.parse(
-    await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
+    await readFile(join(checkRoot, 'package.json'), 'utf8').catch(() => '{}'),
   );
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
   const testScript: unknown = manifest.scripts?.test;
   const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
-  const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
+  const typescript = existsSync(join(checkRoot, 'tsconfig.json')) && Boolean(declared.typescript);
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
-  const pnpm = existsSync(join(directory, 'pnpm-lock.yaml'));
-  const yarn = existsSync(join(directory, 'yarn.lock'));
+  const pnpm = existsSync(join(checkRoot, 'pnpm-lock.yaml'));
+  const yarn = existsSync(join(checkRoot, 'yarn.lock'));
   const checkable =
-    (existsSync(join(directory, 'package-lock.json')) || pnpm || yarn) && Boolean(declared.stripe);
+    (existsSync(join(checkRoot, 'package-lock.json')) || pnpm || yarn) && Boolean(declared.stripe);
   result.validatable = checkable && hasTests;
   result.checks = !checkable
     ? 'none'
@@ -505,6 +515,7 @@ async function benchmark(entry: Selected, index: number) {
       unresolvedFindings: report.patch?.unresolvedFindings,
       sdkUpgrade: report.patch?.sdkUpgrade,
       validation: report.validation?.status,
+      packageDirectory: report.validation?.packageDirectory,
       baseline: report.validation?.baseline?.status,
       patched: report.validation?.patched?.status,
       ...(result.checks === 'typecheck' && report.validation?.patched

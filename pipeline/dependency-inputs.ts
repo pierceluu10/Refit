@@ -43,6 +43,9 @@ export interface PreparationIdentity {
 
 export async function readPreparationInputs(
   snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  // Node resolves modules up the directory tree, so a nested package's preparation refuses a
+  // tracked node_modules anywhere in its repository, as the root's does.
+  repositoryEntries = snapshot.entries,
 ) {
   const paths = snapshot.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1));
   const pnpm = paths.includes(PNPM_LOCKFILE);
@@ -70,7 +73,9 @@ export async function readPreparationInputs(
   const pnpmHook = pnpm
     ? paths.find((path) => /^\.pnpmfile\.[cm]?js$/.test(path.split('/').at(-1)!))
     : undefined;
-  const trackedModules = paths.find((path) => path.split('/').includes('node_modules'));
+  const trackedModules = repositoryEntries
+    .map((entry) => entry.slice(entry.indexOf('\t') + 1))
+    .find((path) => path.split('/').includes('node_modules'));
   const conflict = paths.includes('npm-shrinkwrap.json')
     ? 'commits npm-shrinkwrap.json'
     : lockfiles.length > 1

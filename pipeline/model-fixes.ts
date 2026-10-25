@@ -15,6 +15,7 @@ export interface ModelFixChecks {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   compareTypeErrors?: boolean;
 }

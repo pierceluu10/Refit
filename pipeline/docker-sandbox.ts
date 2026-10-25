@@ -117,6 +117,8 @@ export function dockerSandboxArguments(options: {
   dependencies?: string;
   preparation?: ReturnType<typeof preparationProfile>;
   readOnlyMounts?: { source: string; target: string }[];
+  // A nested package's checks run in its directory, where its own dependencies unpack.
+  packageDirectory?: string;
 }) {
   const mounts = options.readOnlyMounts ?? [];
   const { memory, workspace } = options.preparation ?? validationProfile();
@@ -128,6 +130,20 @@ export function dockerSandboxArguments(options: {
     ].some((path) => path?.includes(','))
   )
     throw new PipelineInputError('Docker bind-mount paths must not contain commas.');
+  if (
+    options.packageDirectory !== undefined &&
+    !options.packageDirectory
+      .split('/')
+      .every((part) => part && part !== '.' && part !== '..' && !part.includes('\0'))
+  )
+    throw new PipelineInputError(
+      'A package directory must be a relative path inside the repository.',
+    );
+  const unpack = options.packageDirectory
+    ? `cd "./$1" && shift && ${options.dependencies ? 'tar -xf /dependencies.tar && export PATH="$PWD/node_modules/.refit-tools/node_modules/.bin:$PWD/node_modules/.bin:$PATH" && ' : ''}`
+    : options.dependencies
+      ? 'tar -xf /dependencies.tar -C /workspace/ && export PATH="/workspace/node_modules/.refit-tools/node_modules/.bin:/workspace/node_modules/.bin:$PATH" && '
+      : '';
   return [
     'run',
     '--name',
@@ -180,8 +196,9 @@ export function dockerSandboxArguments(options: {
     '/bin/sh',
     options.image,
     '-c',
-    `cp -R /input/. /workspace/ && ${options.dependencies ? 'tar -xf /dependencies.tar -C /workspace/ && export PATH="/workspace/node_modules/.refit-tools/node_modules/.bin:/workspace/node_modules/.bin:$PATH" && ' : ''}exec "$@"`,
+    `cp -R /input/. /workspace/ && ${unpack}exec "$@"`,
     'refit-check',
+    ...(options.packageDirectory ? [options.packageDirectory] : []),
     ...options.command,
   ];
 }
