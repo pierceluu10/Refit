@@ -24,6 +24,7 @@ import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { baselineCheck } from './validation-baseline-cache.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -835,18 +836,35 @@ export async function validateMigration(options: {
           }),
         );
       });
-    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
-    const baselineRun: CheckResult = dependencyFailure
-      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
+    const recordedBaseline = dependencyFailure
+      ? undefined
       : await timed('baselineChecks', () =>
-          containerCheck({
-            directory: baselineDirectory,
-            image,
-            command: baselineCommand,
-            dependencies,
-            signal: options.signal,
-          }),
+          baselineCheck(
+            {
+              revision,
+              command: baselineCommand,
+              image,
+              dependencies: environment?.archiveHash ?? null,
+              limits: validationLimits(),
+            },
+            () => {
+              options.onProgress?.('Running baseline checks in offline Docker...');
+              return containerCheck({
+                directory: baselineDirectory,
+                image,
+                command: baselineCommand,
+                dependencies,
+                signal: options.signal,
+              });
+            },
+          ),
         );
+    const baselineRun: CheckResult = recordedBaseline?.check ?? {
+      status: 'not-run',
+      exitCode: null,
+      stdout: '',
+      stderr: '',
+    };
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
     options.signal?.throwIfAborted();
     const report = earlyReport || (await propose(baseline.status === 'passed'));
@@ -1240,6 +1258,10 @@ export async function validateMigration(options: {
       archiveHash,
       patchHash: digest(proposal.diff),
       baseline,
+      // REFIT_BASELINE_CHECK_CACHE_DIRECTORY: the baseline result an identical earlier run recorded.
+      ...(recordedBaseline?.recordedAt
+        ? { baselineReused: { recordedAt: recordedBaseline.recordedAt } }
+        : {}),
       patched,
       ...(generated ? { generated } : {}),
       attempts,
