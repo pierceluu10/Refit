@@ -282,6 +282,32 @@ it('offers human output while preserving the review exit code and saved machine 
   await expect(
     promisify(execFile)(process.execPath, [resolve('bin/refit.mjs'), 'run', '--human', '--json']),
   ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Choose either') });
+  await expect(
+    promisify(execFile)(process.execPath, [
+      resolve('bin/refit.mjs'),
+      'run',
+      '--quiet',
+      '--repository',
+      input.repository,
+      '--before',
+      input.before,
+      '--after',
+      input.before,
+      '--output',
+      join(dirname(input.output), 'both-flags'),
+      '--image',
+      input.image,
+      '--command',
+      JSON.stringify(input.command),
+      '--publish-unresolved',
+      '--publish-validated-only',
+    ]),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining(
+      'Choose either --publish-unresolved or --publish-validated-only.',
+    ),
+  });
 });
 
 it('stops an aborted watcher before model generation or publication', async () => {

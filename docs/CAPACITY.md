@@ -25,7 +25,7 @@ The inventory ran from a clean pinned worktree at `fda92e5` on an Apple M5 (10 c
 
 These facts are read from the code and set the shape of the model:
 
-- **One job at a time.** The worker claims a job and awaits it before claiming the next (`pipeline/hosted-service.ts`), so more vCPUs do not add throughput today.
+- **One job at a time by default.** Without `--job-processes`, the worker claims a job and runs it in its own process before claiming the next (`pipeline/hosted-service.ts`), so more vCPUs add no throughput. `--job-processes <n>` runs up to `n` jobs at once, each in a forked process with a 1536 MiB heap, and `REFIT_HOSTED_INSTALLATION_JOBS` (default 1) caps how many of one installation's jobs run at once. The model below is for one job at a time; parallel jobs were not measured.
 - **Every enrolled repository is polled every 300 s** (`DEFAULT_INTERVAL_SECONDS`). Each poll fetches the repository, captures the contract and runs a full scan, whether or not anything changed (`pipeline/watch.ts`).
 - **A migration runs only when the contract changed.** Preparation, baseline and patched checks each run in a container limited to one CPU and 3 GiB of memory, with a 2 GiB tmpfs workspace (`pipeline/docker-sandbox.ts`). Linux charges tmpfs pages to the container's memory limit, so the workspace counts inside the 3 GiB.
 - **Stage time limits:**
@@ -40,7 +40,7 @@ These facts are read from the code and set the shape of the model:
 
   The scan has no limit, and neither does the job as a whole: its lease renews for as long as it runs.
 
-- **Prepared dependency bundles are never evicted.** `fly.toml` does not set `REFIT_DEPENDENCY_CACHE_DIRECTORY`, so bundles go to `/root/.refit/dependencies` on the machine's root filesystem, not the `/data` volume. Every deploy or restart therefore starts cold. Fly's pricing page does not state the root filesystem's size, and it was not checked.
+- **Prepared dependency bundles are capped.** After writing a new bundle, preparation evicts the least recently used bundles until the cache fits `REFIT_DEPENDENCY_CACHE_GIB` (default 8 GiB). A bundle another job is preparing, reusing or copying is never evicted, and an entry over the cap on its own is kept, so the cache can exceed the cap by the bundles in use plus one staging archive (up to 2 GiB) per running preparation. `fly.toml` puts the cache at `/data/dependencies` on the volume with an 8 GiB cap. Before 2026-10-25 it was unset, so bundles went to `/root/.refit/dependencies` on the 8 GB root disk: about 55 bundles from about 70 jobs filled 7.6 GB in 50 minutes, and 50 jobs then failed with `ENOSPC` during validation. The volume is 40 GB as the operator reported on 2026-10-25 (not checked here); 8 GiB of cache, about 16 bundles at the measured median, peaks near 16 GiB with four jobs staging and leaves the rest for `/data/docker` and `/data/state`. Validation still copies each archive into a temporary directory on the root disk for the length of the job (one for the original code, one more when the patch changes the lockfile), so four jobs with large archives can still use several GiB there.
 
 ## Fly facts used
 
@@ -152,8 +152,7 @@ Today: `shared-cpu-2x` with 4 GB ($25.39/month plus a 20 GB volume). Against the
 1. **VM size**, as above.
 2. **Poll interval.** 300 s polling needs about 10 times the machines of hourly polling. The alternative is skipping the scan when nothing changed (see the request to PP5).
 3. **Dependency cache.**
-   - Where the bundles live: the root filesystem today, lost on each deploy, or `/data` via `REFIT_DEPENDENCY_CACHE_DIRECTORY`.
-   - How much they may use: one repository's bundle is 0.5–1.3 GiB, so the 20 GB volume holds roughly 30 at the median beside Docker's images and the evidence.
+   - Settled on 2026-10-25 after the root disk filled: bundles live on `/data/dependencies` and the cache is capped at 8 GiB with least-recently-used eviction (see [What one worker does](#what-one-worker-does)). Raising the cap trades volume space for fewer cold preparations.
 4. **Job timeout:** 30 minutes, as above.
 
 ## Requests for other lanes
@@ -161,7 +160,7 @@ Today: `shared-cpu-2x` with 4 GB ($25.39/month plus a 20 GB volume). Against the
 - **PP5 (hosted operations).**
   - Add a job-level timeout.
   - Skip a poll's scan when the repository commit and contract hash match the last poll.
-  - Bound the dependency cache with eviction.
+  - ~~Bound the dependency cache with eviction.~~ Done on 2026-10-25 (`REFIT_DEPENDENCY_CACHE_GIB`).
 - **PG3 (one machine per job).** A job machine needs one performance vCPU and 8 GB, or 6 GB for the default profile alone (3 GiB container, 0.8 GiB scanners). It also needs room for a 0.5–1.3 GiB dependency archive per job when it starts cold.
 
 ## Reproduce

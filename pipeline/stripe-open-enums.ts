@@ -27,6 +27,45 @@ const below = (version: string, target: string) => {
 export const crossesOpenEnums = (from: string, to: string) =>
   below(from, OPEN_ENUM_SINCE) && !below(to, OPEN_ENUM_SINCE);
 
+// stripe-node 13.0.0 dropped request properties from its types that no API version removed, so
+// the contract diff never reports them. Stripe's API reference no longer lists them
+// (https://docs.stripe.com/api/checkout/sessions/create.md?query=subscription_data, read
+// 2026-10-24: `subscription_data` has `trial_end` and `trial_period_days`, no `trial_from_plan`).
+// Checkout's `subscription_data.coupon` went in the same release but a version did remove it
+// (https://docs.stripe.com/changelog/2022-08-01/removes-subscription-data-create-checkout-session,
+// read 2026-10-24), so it is not listed. The restore keeps sending each property unchanged, spread
+// from its own object literal so that the object's other properties are still checked, and the
+// draft is [Needs review] with the check below.
+// Owner decision (2026-10-24, Pierce, Push 279 decision 4): on by default.
+export const KEEP_UNTYPED_REQUEST_PROPERTIES = true;
+export const TYPE_REMOVALS_SINCE = '13.0.0';
+export const UNTYPED_REQUEST_PROPERTIES = [
+  {
+    parent: 'subscription_data',
+    property: 'trial_from_plan',
+    type: 'SubscriptionData',
+    reference: 'https://docs.stripe.com/api/checkout/sessions/create',
+    // What the draft asks the reviewer to confirm (https://docs.stripe.com/payments/checkout/free-trials).
+    check:
+      'create a test-mode Checkout Session and check the subscription still starts with the trial, or send `subscription_data.trial_period_days` instead.',
+  },
+];
+export const crossesTypeRemovals = (from: string, to: string) =>
+  below(from, TYPE_REMOVALS_SINCE) && !below(to, TYPE_REMOVALS_SINCE);
+
+// TypeScript 5.9 reports TS2353 on the property; the benchmark repositories' older releases
+// report TS2322 at the same position.
+export const untypedRequestProperty = (error: { code: string; message?: string }) =>
+  ['TS2322', 'TS2353'].includes(error.code)
+    ? UNTYPED_REQUEST_PROPERTIES.find(
+        ({ property, type }) =>
+          error.message?.includes(`'${property}' does not exist in type '${type}'`) ||
+          ((error.message?.startsWith(`Type '{ ${property}: `) ||
+            error.message?.includes(`; ${property}: `)) &&
+            error.message.endsWith(` is not assignable to type '${type}'.`)),
+      )
+    : undefined;
+
 interface Edit {
   start: number;
   end: number;
@@ -37,6 +76,7 @@ interface TypeErrorAt {
   line: number;
   column: number;
   code: string;
+  message?: string;
 }
 
 const literals = (path: string) => enums[path].map((value) => `'${value}'`).join(' | ');
@@ -46,6 +86,7 @@ const literals = (path: string) => enums[path].map((value) => `'${value}'`).join
 export function openEnumRepair(
   files: { path: string; content: string }[],
   errors: TypeErrorAt[],
+  keepUntyped = KEEP_UNTYPED_REQUEST_PROPERTIES,
 ): { path: string; content: string }[] | undefined {
   if (!errors.length) return;
   const sources = new Map(
@@ -215,7 +256,25 @@ export function openEnumRepair(
     const position = source.getPositionOfLineAndCharacter(error.line - 1, error.column - 1);
     const node = innermost(source, position);
     let repaired = false;
-    if (error.code === 'TS2538') {
+    const untyped = keepUntyped ? untypedRequestProperty(error) : undefined;
+    if (untyped) {
+      // The error sits on the property itself, inside the literal its parent property holds.
+      const assignment = ancestor(node, ts.isPropertyAssignment);
+      const owner = assignment?.parent.parent;
+      if (
+        assignment &&
+        ts.isIdentifier(assignment.name) &&
+        assignment.name.text === untyped.property &&
+        assignment.name.getStart(source) === position &&
+        owner &&
+        ts.isPropertyAssignment(owner) &&
+        ts.isIdentifier(owner.name) &&
+        owner.name.text === untyped.parent
+      ) {
+        add(source, assignment, `...{ ${assignment.getText(source)} }`);
+        repaired = true;
+      }
+    } else if (error.code === 'TS2538') {
       const access = ancestor(node, ts.isIndexedAccessTypeNode);
       const path = access && enumReference(source, access.indexType);
       if (access && path && ts.isTypeReferenceNode(access.objectType)) {
@@ -287,8 +346,9 @@ export function openEnumRepair(
 export function restorableOpenEnumErrors<T extends TypeErrorAt>(
   files: { path: string; content: string }[],
   errors: T[],
+  keepUntyped = KEEP_UNTYPED_REQUEST_PROPERTIES,
 ) {
-  return errors.filter((error) => openEnumRepair(files, [error]));
+  return errors.filter((error) => openEnumRepair(files, [error], keepUntyped));
 }
 
 // A restored candidate whose checks still fail is kept, as the AI repair's starting point, only

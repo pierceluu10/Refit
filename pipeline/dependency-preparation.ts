@@ -3,13 +3,16 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import {
   chmod,
+  copyFile,
   lstat,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   realpath,
   rename,
   rm,
+  utimes,
   writeFile,
 } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
@@ -52,6 +55,13 @@ const npmCi = (binary: string) =>
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
 const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
+const DEFAULT_CACHE_GIB = 8;
+const MIN_CACHE_GIB = 1;
+const MAX_CACHE_GIB = 1024;
+const GIB = 1024 ** 3;
+const CACHE_ENTRY = /^[0-9a-f]{64}$/;
+const PREPARE_LOCK = 'prepare';
+const BUNDLE = 'bundle';
 const MAX_LOG_BYTES = 1024 * 1024;
 const MAX_ERROR_CHARACTERS = 4096;
 const ARCHIVE = 'dependencies.tar';
@@ -167,6 +177,82 @@ export function installTimeoutSeconds(value = process.env.REFIT_DEPENDENCY_TIMEO
   return seconds;
 }
 
+// Bounds the dependency cache; least recently used bundles are evicted after a new one is written.
+export function cacheLimitBytes(value = process.env.REFIT_DEPENDENCY_CACHE_GIB) {
+  if (!value?.trim()) return DEFAULT_CACHE_GIB * GIB;
+  const gib = Number(value);
+  // Number() also reads hex and exponents ("0x10", "1e1"); only decimal digits are accepted.
+  if (!/^\s*\d+\s*$/.test(value) || gib < MIN_CACHE_GIB || gib > MAX_CACHE_GIB)
+    throw new PipelineInputError(
+      `REFIT_DEPENDENCY_CACHE_GIB must be a whole number of GiB from ${MIN_CACHE_GIB} to ${MAX_CACHE_GIB}.`,
+    );
+  return gib * GIB;
+}
+
+function unlessMissing(error: unknown) {
+  if (hasErrorCode(error, 'ENOENT')) return undefined;
+  throw error;
+}
+
+async function entryBytes(root: string) {
+  const entries =
+    (await readdir(root, { recursive: true, withFileTypes: true }).catch(unlessMissing)) ?? [];
+  let bytes = 0;
+  for (const entry of entries)
+    if (entry.isFile())
+      bytes += (await lstat(join(entry.parentPath, entry.name)).catch(unlessMissing))?.size ?? 0;
+  return bytes;
+}
+
+// The bundle directory's mtime records its last use: it is written once, then touched on reuse.
+const lastUse = async (root: string) =>
+  (await lstat(join(root, BUNDLE)).catch(unlessMissing))?.mtimeMs ?? 0;
+
+// Evicts one entry under its preparation lock, so a process preparing, reusing or copying it is
+// never disturbed. Returns false when the entry is in use or was used since it was listed.
+async function evictEntry(root: string, used: number) {
+  let names: string[] | undefined;
+  try {
+    names = await withStateLock(root, PREPARE_LOCK, async () => {
+      if ((await lastUse(root)) !== used) return undefined;
+      // One rename unpublishes the bundle, so a reader never sees a partly removed one.
+      if (used) await rename(join(root, BUNDLE), join(root, `evicted-${randomUUID()}`));
+      return (await readdir(root)).filter((name) => !name.startsWith(`${PREPARE_LOCK}.lock`));
+    });
+  } catch (error) {
+    // Every lock refusal (held by a live process, unverifiable, recovering) leaves the entry alone.
+    if (error instanceof PipelineInputError) return false;
+    throw error;
+  }
+  if (!names) return false;
+  // Outside the lock: these names are unpublished, and a new preparation uses fresh staging names.
+  // The empty entry directory stays, since a preparation may already have resolved it.
+  await Promise.all(
+    names.map((name) => rm(join(root, name), { recursive: true, force: true, maxRetries: 3 })),
+  );
+  return true;
+}
+
+export async function evictDependencies(cache: string, keep: string, limit: number) {
+  const entries = [];
+  for (const name of await readdir(cache)) {
+    if (!CACHE_ENTRY.test(name)) continue;
+    const root = join(cache, name);
+    entries.push({ root, used: await lastUse(root), bytes: await entryBytes(root) });
+  }
+  let total = entries.reduce((sum, entry) => sum + entry.bytes, 0);
+  const evicted = [];
+  for (const entry of entries
+    .filter((candidate) => candidate.root !== keep && candidate.bytes > 0)
+    .sort((a, b) => a.used - b.used)) {
+    if (total <= limit) break;
+    if (!(await evictEntry(entry.root, entry.used))) continue;
+    total -= entry.bytes;
+    evicted.push(entry.root);
+  }
+  return { evicted, bytes: total };
+}
+
 // Yarn records platform-specific packages without checksums. Refit skips them unless an operator
 // accepts installing them unverified for this host (Needs owner decision; off by default).
 export function yarnPlatformPackageMode(value = process.env.REFIT_YARN_PLATFORM_PACKAGES) {
@@ -233,10 +319,71 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       "Run your own tests and type check on this branch before merging; Refit's sandbox could not hold this dependency tree.",
   },
 ] as const;
+export const OTHER_DEPENDENCY_FAILURE = {
+  reason: 'preparation-failed',
+  summary: 'Refit could not install them in its sandbox',
+  action: () =>
+    'Install the dependencies and run your own tests and type check on this branch before merging; Refit ran none.',
+};
 
-export function repositoryDependencyFailure(error: unknown) {
+// An absolute path in a refusal names the host or container layout, never the repository's files:
+// alone, after `unix://` or `file://`, in a `:`-separated list, or with spaces before a further `/`.
+// A `/` inside a word, a URL, base64 (`sha512-…+/…`) or an alias (`@/lib`) is not one.
+const ABSOLUTE_PATH = /(?:(?<![\w.~/@+-])|(?<=:\/\/))\/[\w.@+~-](?:[\w.@+~/-]| (?=[\w.@+~-]+\/))*/g;
+
+// Docker or the network failed, not the repository's install: the job fails and is retried. 125
+// is `docker run` itself failing (a name conflict, denied mounts, the host out of space); 137 and
+// 143 are kills from outside the container.
+const HOST_EXIT_CODES = new Set([125, 137, 143]);
+const HOST_FAILURE =
+  /Cannot connect to the Docker daemon|error during connect|Mounts denied|overlay[\s\S]*(?:ENOSPC|no space left)/i;
+const REGISTRY_UNREACHABLE =
+  /\b(?:EAI_AGAIN|ENOTFOUND|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|ERR_SOCKET_TIMEOUT)\b|socket hang up/;
+
+export class PreparationHostError extends PipelineInputError {
+  override name = 'PreparationHostError';
+}
+
+// The error a failed install raises when Refit's host, not the repository, caused it.
+export function hostInstallFailure(
+  manager: string,
+  result: { code: number | null; signal: NodeJS.Signals | null },
+  stderr: string,
+) {
+  const tail = stderr.slice(-MAX_ERROR_CHARACTERS);
+  if (
+    HOST_EXIT_CODES.has(result.code ?? 0) ||
+    result.signal === 'SIGKILL' ||
+    result.signal === 'SIGTERM' ||
+    HOST_FAILURE.test(stderr)
+  )
+    return new PreparationHostError(
+      `Docker could not run ${manager} dependency preparation (${result.code ?? result.signal}). ${tail}`,
+    );
+  if (REGISTRY_UNREACHABLE.test(stderr))
+    return new PreparationHostError(
+      `${manager} could not reach the package registry during dependency preparation. ${tail}`,
+    );
+  return undefined;
+}
+
+// A refusal of the repository's committed inputs is the repository's to fix, so a patch can be
+// published untested beside it.
+function repositoryRefusal(error: unknown): never {
+  throw error instanceof PipelineInputError && !(error instanceof DependencyPreparationError)
+    ? new DependencyPreparationError(error.message, { cause: error })
+    : error;
+}
+
+// Why preparation refused, for a patch published untested (owner decision 1, 2026-10-24): a named
+// repository-side cause with its fix, or any other refusal of the repository's inputs or install.
+// Refit's own errors (state locks, the dependency cache, Docker, settings, cancellation) return
+// undefined, so the job fails and is retried instead of publishing an untested patch.
+export function preparationFailure(error: unknown) {
   if (!(error instanceof PipelineInputError)) return undefined;
-  const failure = REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message));
+  const failure =
+    REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message)) ??
+    (error instanceof DependencyPreparationError ? OTHER_DEPENDENCY_FAILURE : undefined);
   if (!failure) return undefined;
   const lockfile = /pnpm/i.test(error.message)
     ? 'pnpm-lock.yaml'
@@ -247,7 +394,7 @@ export function repositoryDependencyFailure(error: unknown) {
     reason: failure.reason,
     summary: failure.summary,
     action: failure.action(lockfile),
-    message: error.message,
+    message: error.message.replace(ABSOLUTE_PATH, '[path]'),
   };
 }
 
@@ -308,6 +455,8 @@ async function installDependencies(
       throw new DependencyPreparationError(
         `Dependency preparation exceeded ${timeoutSeconds} seconds. Set REFIT_DEPENDENCY_TIMEOUT_SECONDS (up to ${MAX_INSTALL_TIMEOUT_SECONDS}) for a larger dependency tree.`,
       );
+    const host = result.code !== 0 ? hostInstallFailure(inputs.manager, result, stderr) : undefined;
+    if (host) throw host;
     const { workspace } = preparationProfile();
     if (result.code !== 0 && /\bENOSPC\b/.test(stderr))
       throw new DependencyPreparationError(
@@ -371,6 +520,8 @@ export async function prepareDependencies(options: {
   repository: string;
   image: string;
   cacheDirectory?: string;
+  // Copied under the cache lock, so eviction cannot remove the bundle mid-copy.
+  copyArchiveTo?: string;
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
 }) {
@@ -384,8 +535,10 @@ export async function prepareDependencies(options: {
 async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
-  const snapshot = await readCommittedRepository(options.repository);
-  const { files, workspaceContents, inputs } = await readPreparationInputs(snapshot);
+  const cacheLimit = cacheLimitBytes();
+  const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository)
+    .then(readPreparationInputs)
+    .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;
   const image = DOCKER_IMAGE_ID.test(options.image)
     ? options.image
@@ -416,8 +569,8 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
     throw new PipelineInputError('Dependency cache entries must be private physical directories.');
   await chmod(root, 0o700);
   await standaloneStateDirectory(root);
-  const bundle = join(root, 'bundle');
-  return withStateLock(root, 'prepare', async () => {
+  const bundle = join(root, BUNDLE);
+  return withStateLock(root, PREPARE_LOCK, async () => {
     let exists = false;
     try {
       const metadata = await lstat(bundle);
@@ -462,6 +615,9 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
           'Prepared dependency cache does not match its committed inputs.',
         );
       options.signal?.throwIfAborted();
+      const now = new Date();
+      await utimes(bundle, now, now);
+      if (options.copyArchiveTo) await copyFile(join(bundle, ARCHIVE), options.copyArchiveTo);
       options.onProgress?.(
         `Reusing verified ${inputs.manager} dependencies; installation was not rerun.`,
       );
@@ -573,6 +729,12 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
       });
       await verifyArtifacts(staging);
       await rename(staging, bundle);
+      if (options.copyArchiveTo) await copyFile(join(bundle, ARCHIVE), options.copyArchiveTo);
+      const { evicted, bytes } = await evictDependencies(physicalCache, root, cacheLimit);
+      if (evicted.length)
+        options.onProgress?.(
+          `Evicted ${evicted.length} least recently used dependency bundles; the cache holds ${(bytes / GIB).toFixed(1)} GiB.`,
+        );
       return { directory: bundle, archive: join(bundle, ARCHIVE), environment, reused: false };
     } finally {
       const cleanup = await Promise.allSettled([

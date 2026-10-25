@@ -26,6 +26,8 @@ export interface BreakingOperationChange {
   id: string;
   level: number;
   text: string;
+  // Why this change still blocks (operation-reach.ts), where it was traced.
+  reachReason?: string;
 }
 
 export interface BreakingOperationImpact {
@@ -108,7 +110,12 @@ export function findBreakingOperationImpacts(
       impacts.set(impactKey, impact);
     }
     if (!impact.changes.some((entry) => entry.id === change.id && entry.text === change.text)) {
-      impact.changes.push({ id: change.id, level: Number(change.level), text: change.text });
+      impact.changes.push({
+        id: change.id,
+        level: Number(change.level),
+        text: change.text,
+        ...(typeof change.reachReason === 'string' ? { reachReason: change.reachReason } : {}),
+      });
       impact.text = impact.changes.map((entry) => entry.text).join('; ');
     }
   }

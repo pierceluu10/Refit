@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { chmod, cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { delimiter, dirname, join, resolve } from 'node:path';
+import { delimiter, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { prepareDependencies } from './dependency-preparation.ts';
@@ -192,27 +192,29 @@ it('keeps a failed baseline failed when it is reused', async () => {
   });
 });
 
-// A prepared bundle as prepareDependencies returns it: an archive whose hash its environment records.
-async function bundle(signature: string, content: string) {
-  const archive = join(await temporary(), 'dependencies.tar');
-  await writeFile(archive, content);
-  const environment = {
-    signature,
-    archiveHash: digest(content),
-    archiveBytes: Buffer.byteLength(content),
+// prepareDependencies as validation calls it: it copies the bundle's archive to copyArchiveTo and
+// returns the environment that records the archive's hash.
+function bundle(signature: string, content: string) {
+  return async (options: { copyArchiveTo?: string }) => {
+    if (options.copyArchiveTo) await writeFile(options.copyArchiveTo, content);
+    const environment = {
+      signature,
+      archiveHash: digest(content),
+      archiveBytes: Buffer.byteLength(content),
+    };
+    return { directory: '', archive: '', environment, reused: false };
   };
-  return { directory: dirname(archive), archive, environment, reused: false };
 }
 
 it('reuses the baseline for a rebuilt bundle of the same signature, not for another signature', async () => {
   const validate = await fixture(0);
-  vi.mocked(prepareDependencies).mockResolvedValue(await bundle('a'.repeat(64), 'first install'));
+  vi.mocked(prepareDependencies).mockImplementation(bundle('a'.repeat(64), 'first install'));
   expect((await validate({ prepareDependencies: true })).checks).toEqual(['baseline', 'patched']);
   // A rebuild of the same lockfile, recipe and image: other archive bytes, same signature.
-  vi.mocked(prepareDependencies).mockResolvedValue(await bundle('a'.repeat(64), 'second install'));
+  vi.mocked(prepareDependencies).mockImplementation(bundle('a'.repeat(64), 'second install'));
   const rebuilt = await validate({ prepareDependencies: true });
   expect(rebuilt.checks).toEqual(['patched']);
   expect(rebuilt.report.validation).toHaveProperty('baselineReused');
-  vi.mocked(prepareDependencies).mockResolvedValue(await bundle('b'.repeat(64), 'second install'));
+  vi.mocked(prepareDependencies).mockImplementation(bundle('b'.repeat(64), 'second install'));
   expect((await validate({ prepareDependencies: true })).checks).toEqual(['baseline', 'patched']);
 });

@@ -14,12 +14,18 @@ import {
   MAX_JOB_TRANSFER_BYTES,
   reapJobMachines,
   runHostedJob,
+  runInventoryProcess,
   runJobMachine,
+  runJobProcess,
   unchangedReceipt,
   type HostedOutcome,
+  type InventoryProcessInputs,
+  type JobProcessInputs,
 } from './hosted-runner.ts';
 import { hostedTargetId, type HostedTarget } from './hosted-store.ts';
 import { respond } from './local-service.ts';
+import type { RepositoryApproval } from './repository-enrollment.ts';
+import { PipelineInputError } from './types.ts';
 
 const transport = vi.hoisted(() => ({ source: '', head: '', tokens: [] as string[] }));
 vi.mock('node:child_process', async (original) => {
@@ -556,4 +562,256 @@ it('reuses a receipt only for a finished, ready job on the same commit, approval
     { ...previous, receipt: { ...receipt, readiness: null } },
   ];
   for (const run of runs) expect(unchangedReceipt(run, current), JSON.stringify(run)).toBeNull();
+});
+
+const JOB_PROCESS = new URL('./fixtures/job-process.mjs', import.meta.url);
+const PROCESS_INPUTS: JobProcessInputs = {
+  target: {
+    id: hostedTargetId('example/application', 'main'),
+    repository: 'example/application',
+    base: 'main',
+    integration: null,
+    installationId: 456,
+    approval: { repository: 'example/application' } as RepositoryApproval,
+  },
+  directory: '/data/state',
+  retry: true,
+  repairAttempts: 2,
+  publishDraft: true,
+  publishUnresolved: true,
+  aiPatch: true,
+  aiTotalUsd: 5,
+};
+
+// Forks the test job process in `mode` with the worker's secrets set; `onStarted` runs once the
+// process reports that its job started.
+async function runProcess(
+  mode: string,
+  options: { onStarted?: () => void; graceSeconds?: number; signal?: AbortSignal } = {},
+) {
+  vi.stubEnv('REFIT_TEST_JOB_PROCESS', mode);
+  vi.stubEnv('REFIT_WEBHOOK_SECRET', 'webhook-secret-for-job-process-tests');
+  vi.stubEnv('REFIT_SERVICE_TOKEN', 'control-secret-for-job-process-tests');
+  vi.stubEnv('FLY_API_TOKEN', 'fly-token-for-job-process-tests');
+  vi.stubEnv('GITHUB_APP_ID', '123');
+  const progress: string[] = [];
+  const outcome = await runJobProcess({
+    inputs: PROCESS_INPUTS,
+    entry: JOB_PROCESS,
+    signal: options.signal ?? AbortSignal.timeout(60_000),
+    graceSeconds: options.graceSeconds,
+    onProgress: (message) => {
+      progress.push(message);
+      if (message.startsWith('Running ')) options.onStarted?.();
+    },
+  });
+  console.log(JSON.stringify({ outcome, progress }, null, 2));
+  return { outcome, progress };
+}
+
+it('runs a job in a forked process that gets its inputs, relays its progress and returns its outcome, without the worker’s secrets', async () => {
+  const { outcome, progress } = await runProcess('report');
+  expect(outcome).toMatchObject({
+    status: 'finished',
+    receipt: { status: 'validated', output: null },
+  });
+  // The process survived the SIGINT it sent to itself before reporting.
+  expect(JSON.parse(outcome.receipt.message!)).toEqual({
+    inputs: PROCESS_INPUTS,
+    secrets: [],
+    app: '123',
+    execArgv: ['--max-old-space-size=1536'],
+  });
+  expect(progress).toEqual(['Running example/application.']);
+});
+
+it('fails a job whose process exits without an outcome', async () => {
+  const { outcome, progress } = await runProcess('crash');
+  expect(outcome).toEqual({
+    status: 'failed',
+    receipt: {
+      status: 'error',
+      output: null,
+      message: expect.stringMatching(
+        /^JobProcessError: Job process \d+ exited with code 3 before reporting an outcome\.$/,
+      ),
+    },
+  });
+  expect(progress).toEqual(['Running example/application.']);
+});
+
+it('stops a cancelled job process with SIGTERM and stores the worker’s reason', async () => {
+  const controller = new AbortController();
+  const reason = new PipelineInputError('Job exceeded the 1-second job timeout and was stopped.');
+  const { outcome, progress } = await runProcess('stop', {
+    signal: controller.signal,
+    onStarted: () => controller.abort(reason),
+  });
+  expect(outcome).toEqual({
+    status: 'failed',
+    receipt: {
+      status: 'interrupted',
+      output: null,
+      message: `PipelineInputError: ${reason.message}`,
+    },
+  });
+  // The process saw the stop and ended by itself, so it was never killed.
+  expect(progress).toEqual(['Running example/application.', 'Stopping on SIGTERM.']);
+});
+
+it('kills a job process that does not stop within the grace period after SIGTERM', async () => {
+  const controller = new AbortController();
+  const started = Date.now();
+  const { outcome, progress } = await runProcess('hang', {
+    signal: controller.signal,
+    graceSeconds: 0.2,
+    onStarted: () => controller.abort(),
+  });
+  expect(outcome).toMatchObject({
+    status: 'failed',
+    receipt: { status: 'interrupted', message: 'AbortError: This operation was aborted' },
+  });
+  expect(progress).toEqual([
+    'Running example/application.',
+    expect.stringMatching(/^Job process \d+ did not stop within 0\.2 s; killing it\.$/),
+  ]);
+  expect(Date.now() - started).toBeLessThan(20_000);
+});
+
+it('runs a job through the CLI’s refit hosted job when forked, with App and AI settings from the environment', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-job-process-'));
+  cleanups.push(() => rm(root, { recursive: true, force: true }));
+  vi.stubEnv('GITHUB_APP_ID', '123');
+  vi.stubEnv('GITHUB_APP_PRIVATE_KEY_FILE', join(root, 'unused-app-key.pem'));
+  vi.stubEnv('OPENAI_API_KEY', 'openai-key-for-job-process-tests');
+  vi.stubEnv('OPENAI_MODEL', 'gpt-5.4-mini');
+  vi.stubEnv('REFIT_AI_BUDGET_DIRECTORY', join(root, 'ai-budget'));
+  // Nothing listens on port 1; the job stops before its AI ledger would connect.
+  vi.stubEnv('REFIT_DATABASE_URL', 'postgres://refit:unused@127.0.0.1:1/refit');
+  const progress: string[] = [];
+  const outcome = await runJobProcess({
+    inputs: { ...PROCESS_INPUTS, directory: root },
+    signal: AbortSignal.timeout(60_000),
+    onProgress: (message) => progress.push(message),
+  });
+  console.log(JSON.stringify({ outcome, progress }, null, 2));
+  // The fixture approval names no base, so the real poll refuses it before any checkout.
+  expect(outcome).toEqual({
+    status: 'failed',
+    receipt: {
+      status: 'error',
+      output: null,
+      message: 'PipelineInputError: Repository approval does not match the service target.',
+    },
+  });
+});
+
+it('fails a forked CLI job whose environment is misconfigured with the configuration error', async () => {
+  vi.stubEnv('GITHUB_APP_ID', 'not-an-app-id');
+  const outcome = await runJobProcess({
+    inputs: PROCESS_INPUTS,
+    signal: AbortSignal.timeout(60_000),
+  });
+  console.log(JSON.stringify(outcome, null, 2));
+  expect(outcome).toEqual({
+    status: 'failed',
+    receipt: {
+      status: 'error',
+      output: null,
+      message:
+        'PipelineInputError: --github-app requires a numeric GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY_FILE.',
+    },
+  });
+});
+
+const INVENTORY_PROCESS = new URL('./fixtures/inventory-process.mjs', import.meta.url);
+const INVENTORY_INPUTS: InventoryProcessInputs = {
+  directory: '/data/state/inventory/run',
+  installationId: 456,
+  repository: 'example/application',
+  registry: { formatVersion: 1, deadlines: [] } as unknown as InventoryProcessInputs['registry'],
+  previous: { revision: 'a'.repeat(40), registry: null },
+  now: Date.parse('2026-10-25T12:00:00Z'),
+};
+
+// Forks the test inventory process in `mode` with the worker's secrets set.
+async function inventoryProcess(
+  mode: string,
+  options: { seconds?: number; graceSeconds?: number; signal?: AbortSignal } = {},
+) {
+  vi.stubEnv('REFIT_TEST_INVENTORY_PROCESS', mode);
+  vi.stubEnv('REFIT_WEBHOOK_SECRET', 'webhook-secret-for-inventory-process-tests');
+  vi.stubEnv('REFIT_SERVICE_TOKEN', 'control-secret-for-inventory-process-tests');
+  vi.stubEnv('FLY_API_TOKEN', 'fly-token-for-inventory-process-tests');
+  vi.stubEnv('GITHUB_APP_ID', '123');
+  const progress: string[] = [];
+  const outcome = await runInventoryProcess({
+    inputs: INVENTORY_INPUTS,
+    entry: INVENTORY_PROCESS,
+    signal: options.signal ?? AbortSignal.timeout(60_000),
+    seconds: options.seconds,
+    graceSeconds: options.graceSeconds,
+    onProgress: (message) => progress.push(message),
+  });
+  console.log(JSON.stringify({ outcome, progress }, null, 2));
+  return { outcome, progress };
+}
+
+it('runs an inventory in a forked process and returns its result, without the worker’s secrets', async () => {
+  const { outcome, progress } = await inventoryProcess('report');
+  expect(outcome).toEqual({
+    result: {
+      outcome: 'complete',
+      base: 'main',
+      revision: 'b'.repeat(40),
+      inventory: { inputs: INVENTORY_INPUTS, secrets: [], app: '123' },
+    },
+  });
+  expect(progress).toEqual(['Inventorying example/application.']);
+});
+
+it('kills an inventory process that holds the CPU past its time cap and returns the timeout as an error', async () => {
+  const started = Date.now();
+  const { outcome, progress } = await inventoryProcess('busy', { seconds: 0.5, graceSeconds: 0.2 });
+  const elapsed = Date.now() - started;
+  expect(outcome).toEqual({
+    error:
+      'JobProcessError: Inventory took longer than 0.5 seconds and did not stop by itself; its process was stopped.',
+  });
+  // SIGTERM cannot run in a busy process, so only SIGKILL ended it.
+  expect(progress).toEqual([
+    'Inventorying example/application.',
+    expect.stringMatching(/^Inventory process \d+ did not stop within 0\.2 s; killing it\.$/),
+  ]);
+  expect(elapsed).toBeGreaterThanOrEqual(900);
+  expect(elapsed).toBeLessThan(10_000);
+});
+
+it('returns an inventory process’s own error as `Name: message`', async () => {
+  const { outcome } = await inventoryProcess('fail');
+  expect(outcome).toEqual({
+    error: 'PipelineInputError: GitHub did not report the default branch.',
+  });
+});
+
+it('throws the worker’s reason when the worker stops an inventory process', async () => {
+  const reason = new PipelineInputError('Worker stopping.');
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(reason), 300);
+  await expect(
+    inventoryProcess('busy', { signal: controller.signal, graceSeconds: 0.2 }),
+  ).rejects.toBe(reason);
+});
+
+it('runs an inventory through the CLI’s refit hosted inventory when forked, with the App from the environment', async () => {
+  vi.stubEnv('GITHUB_APP_ID', 'not-an-app-id');
+  const outcome = await runInventoryProcess({
+    inputs: INVENTORY_INPUTS,
+    signal: AbortSignal.timeout(60_000),
+  });
+  console.log(JSON.stringify(outcome, null, 2));
+  expect(outcome).toEqual({
+    error:
+      'PipelineInputError: --github-app requires a numeric GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY_FILE.',
+  });
 });
