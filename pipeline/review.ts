@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
 import { digest, isObject, type AddedProperty } from './specifications.ts';
-import { PASSING_REACH } from './operation-reach.ts';
+import { CURRENCY_CODE_RULE, PASSING_REACH } from './operation-reach.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
@@ -457,6 +457,10 @@ export function createReviewArtifacts(
   const cardOnly = /^\+.*allowed_payment_method_types['"]?\s*:\s*\[\s*['"]card['"]\s*\]/m.test(
     patch.diff,
   );
+  // Currency literals the currency rule lowercased (operation-reach.ts); no finding records them.
+  const currencyEdits = ('ruleEdits' in patch && patch.ruleEdits ? patch.ruleEdits : []).filter(
+    (edit) => edit.rule === CURRENCY_CODE_RULE,
+  );
   const request = requestChanges[0];
   const subscriptionPolicy = report.findings.some((finding) => finding.webhook?.migration)
     ? report.adapter.stripeSubscriptionPeriods
@@ -469,13 +473,15 @@ export function createReviewArtifacts(
         ? `replace retired ${endpoint.resource}.${endpoint.method} calls`
         : cardRename && !readChanges.length
           ? 'move payment_method_types to allowed_payment_method_types'
-          : change && readChanges.length === 1
-            ? provider === 'Stripe' &&
-              change.schema === 'payment_intent' &&
-              change.property === 'charges'
-              ? 'restore payment history after charges removal'
-              : `migrate removed ${change.schema}.${change.property} reads`
-            : `migrate removed ${provider} API fields`;
+          : currencyEdits.length && !readChanges.length
+            ? 'lowercase currency codes'
+            : change && readChanges.length === 1
+              ? provider === 'Stripe' &&
+                change.schema === 'payment_intent' &&
+                change.property === 'charges'
+                ? 'restore payment history after charges removal'
+                : `migrate removed ${change.schema}.${change.property} reads`
+              : `migrate removed ${provider} API fields`;
   const versionTitle = shopify ? `upgrade Admin API to ${report.apiVersion.after}` : undefined;
   const scope = (
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
@@ -489,7 +495,11 @@ export function createReviewArtifacts(
       ? full
       : `${prefix}fix(${scope}): migrate removed API fields`.slice(0, MAX_TITLE);
   const confirmedFindings = report.findings.filter((finding) => finding.confidence === 'confirmed');
-  const affectedFiles = new Set(confirmedFindings.map((finding) => finding.file));
+  const affectedFiles = new Set([
+    ...confirmedFindings.map((finding) => finding.file),
+    ...currencyEdits.map((edit) => edit.file),
+  ]);
+  const usages = confirmedFindings.length + currencyEdits.length;
   const changes = summaryList(
     readChanges.map((entry) => code(`${entry.schema}.${entry.property}`)),
   );
@@ -521,7 +531,7 @@ export function createReviewArtifacts(
       : patch.unresolvedFindings - parameterCalls.length - untracedReads,
   );
   const remainingConfirmed = unmigrated?.filter((site) => site.confidence === 'confirmed').length;
-  const usageCount = `${remainingConfirmed ? `${Math.max(0, confirmedFindings.length - remainingConfirmed)} of ` : ''}${confirmedFindings.length} confirmed ${confirmedFindings.length === 1 ? 'usage' : 'usages'}`;
+  const usageCount = `${remainingConfirmed ? `${Math.max(0, usages - remainingConfirmed)} of ` : ''}${usages} confirmed ${usages === 1 ? 'usage' : 'usages'}`;
   const parameters = [...new Set(parameterCalls.map((call) => call.parameter))];
   const passed = validation.status === 'passed';
   const legacyPeerDeps = [validation.environment, validation.patchedEnvironment].some(
@@ -602,6 +612,11 @@ export function createReviewArtifacts(
             `Sends ${code('allowed_payment_method_types')} in place of the removed ${code('payment_method_types')}.`,
           ]
         : []),
+      ...(currencyEdits.some((edit) => edit.file === file.path)
+        ? [
+            `Sends the currency ${summaryList([...new Set(currencyEdits.filter((edit) => edit.file === file.path).map((edit) => code(edit.replacement.slice(1, -1))))])} in lowercase, as the new ${code('currency')} format requires.`,
+          ]
+        : []),
     ];
     // A rule edit no sentence above names, such as a moved request, still gets one, so the
     // provider page cites that edit and not the pin move after it.
@@ -646,6 +661,11 @@ export function createReviewArtifacts(
               `Removes request field ${code('payment_method_types')}; ${code("['card']")} moves to ${code('allowed_payment_method_types')} under the owner-approved policy.`,
             ]
           : []),
+        ...(currencyEdits.length
+          ? [
+              `Gives request ${code('currency')} fields the ${code('currency')} format, a lowercase three-letter ISO code; uppercase codes this code sends are lowercased.`,
+            ]
+          : []),
         ...listedMethods.map(
           (methods) =>
             `Moves ${code(`[${methods}]`)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')} with the same methods, under the owner decision of 2026-10-24 to keep listed payment methods.`,
@@ -677,6 +697,9 @@ export function createReviewArtifacts(
       : []),
     ...(operationChanges.some((entry) => entry.usages.length)
       ? ['retires endpoints this code calls']
+      : []),
+    ...(currencyEdits.length
+      ? ['expects lowercase currency codes where this code sends uppercase ones']
       : []),
   ];
   const review = [
