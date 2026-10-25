@@ -257,8 +257,10 @@ function scopedConfiguration(root: string, base: string | undefined, files: stri
       checkJs: true,
       noEmit: true,
       skipLibCheck: true,
-      // A composite project reports every imported file the list leaves out, a new helper included.
+      // A composite project reports every imported file the list leaves out, a new helper included,
+      // and a base's rootDir (an emit setting) rejects listed importers outside it.
       composite: false,
+      rootDir: '.',
       ...(unknown
         ? {}
         : {

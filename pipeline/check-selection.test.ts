@@ -46,6 +46,7 @@ const JAVASCRIPT_CHECK = {
   noEmit: true,
   skipLibCheck: true,
   composite: false,
+  rootDir: '.',
 };
 
 // gr8monk3ys/link-flame at 742dfb7: Vitest unit tests import Stripe helpers through `@/`.
@@ -332,6 +333,34 @@ it('scopes the type check to the Stripe code when the root program leaves it out
     compilerOptions: JAVASCRIPT_CHECK,
     files: ['convex/http.ts', 'convex/stripe.ts'],
     include: [],
+  });
+});
+
+it('lists importers outside the base configuration rootDir, which only governs emit', async () => {
+  // cyberdreadx/cyberpunk-grok-api at b1dc85c: api/tsconfig.json sets "rootDir": "." and a backfill
+  // script under scripts/ imports the Stripe code; refit-bench run 40155034890 failed its type
+  // check with TS6059 until the generated tsconfig reset rootDir.
+  const selection = await selectCheck(
+    await repository({
+      'package.json': manifest({ test: 'vitest run' }),
+      'package-lock.json': '{}',
+      'tsconfig.json': JSON.stringify({ files: [], references: [{ path: './tsconfig.app.json' }] }),
+      'tsconfig.app.json': JSON.stringify({ include: ['src'] }),
+      'api/tsconfig.json': JSON.stringify({
+        compilerOptions: { module: 'commonjs', rootDir: '.', outDir: './dist' },
+        include: ['./**/*.ts'],
+      }),
+      'api/_lib/stripe-finance.ts':
+        "import Stripe from 'stripe';\nexport const stripe = new Stripe('sk');\n",
+      'scripts/backfill-legacy-sub-credits.ts':
+        "import { stripe } from '../api/_lib/stripe-finance';\nexport default stripe;\n",
+      'src/lib/createMode.test.ts': "it('creates', () => 1);\n",
+    }),
+  );
+  expect(scopedConfiguration(selection.command)).toMatchObject({
+    extends: './api/tsconfig.json',
+    compilerOptions: { rootDir: '.' },
+    files: ['api/_lib/stripe-finance.ts', 'scripts/backfill-legacy-sub-credits.ts'],
   });
 });
 
