@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -370,3 +370,41 @@ it('routes human and JSON diagnostics outside the repository and returns exit 2 
     ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown option') }),
   ]);
 }, 30_000);
+
+it('checks the preparation inputs of the nested package that holds the SDK code', async () => {
+  // Shaped like different-ai/embedbase at fb0afda5e8c2ad0212ea8c0dfa495be9865221d5 and
+  // starmanv4/react-typescript-docker at 109c4528fba9c6c0efe67a250704ece82441bad9: no root
+  // package.json, and the SDK code in a project with its own lockfile.
+  const sample = await setup({ prepareDependencies: true });
+  await mkdir(join(sample.repository, 'app'));
+  for (const path of ['package.json', 'src', 'simulator'])
+    await rename(join(sample.repository, path), join(sample.repository, 'app', path));
+  await commit(sample.repository);
+  const root = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(root.checks.find((check) => check.id === 'dependencies')).toMatchObject({
+    status: 'blocked',
+    detail: expect.stringContaining('reads dependencies only from the repository root'),
+  });
+  const manifest = JSON.parse(await readFile(join(sample.repository, 'app/package.json'), 'utf8'));
+  await writeFile(
+    join(sample.repository, 'app/package-lock.json'),
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        '': { dependencies: manifest.dependencies },
+        'node_modules/@example/catalog': {
+          version: '1.0.0',
+          resolved: 'https://registry.npmjs.org/@example/catalog/-/catalog-1.0.0.tgz',
+          integrity: `sha512-${Buffer.alloc(64).toString('base64')}`,
+        },
+      },
+    }),
+  );
+  await commit(sample.repository);
+  const nested = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(nested.checks.find((check) => check.id === 'dependencies')).toMatchObject({
+    status: 'passed',
+    detail:
+      '1 locked package records in app passed preparation input checks. Installation and engine compatibility were not tested.',
+  });
+});

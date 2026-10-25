@@ -36,6 +36,12 @@ export function sdkPackageDirectory(
     : undefined;
 }
 
+// Answers sdkPackageDirectory's question from a committed snapshot's tree entries.
+export function committedFiles(entries: readonly string[]) {
+  const paths = new Set(entries.map((entry) => entry.slice(entry.indexOf('\t') + 1)));
+  return (path: string) => paths.has(path);
+}
+
 // One committed directory read as its own repository root, so preparation reads that package's
 // manifest, lockfile and workspaces from the same commit.
 export async function packageSnapshot(repository: CommittedRepository, directory: string) {

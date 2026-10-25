@@ -22,7 +22,7 @@ import {
   validateCheckTimeout,
   validateRepairAttempts,
 } from './validation-options.ts';
-import { sdkPackageDirectory } from './preparation-packages.ts';
+import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
@@ -640,10 +640,7 @@ export async function validateMigration(options: {
   );
   if (reviewReason) throw new PipelineInputError(reviewReason);
   // Stripe code in one nested package with its own lockfile is prepared and checked there.
-  const committedPaths = new Set(
-    snapshot.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1)),
-  );
-  const packageDirectory = sdkPackageDirectory(preflight, (path) => committedPaths.has(path));
+  const packageDirectory = sdkPackageDirectory(preflight, committedFiles(snapshot.entries));
   const sandbox: CheckSandbox = { timeoutMs, packageDirectory };
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
