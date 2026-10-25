@@ -16,13 +16,11 @@ kill_timeout = 300
   # for the heldout-30 run, plus the $3 spare. One installation holds all 279 forks; the secret
   # REFIT_HOSTED_AI_BUDGET_USD is staged to the same value.
   REFIT_AI_BUDGET_USD = "7"
-  # Push 279 (2026-10-24, board #300): engine only until 2026-10-25 07:00Z, then --ai-patch. The push ends by restoring
-  # "--publish-draft --ai-patch --repair-attempts 2" and shared-cpu-2x with 4gb.
-  # Eight forked job processes (Pierce, 2026-10-25: finish push 279 faster) keep /health answering while jobs scan; all 279 forks share one
-  # installation, so its running-job limit matches. A target whose doctor stops reruns every
-  # interval and counts against the 1440-job daily cap, so the worker polls hourly.
-  REFIT_HOSTED_FLAGS = "--publish-draft --ai-patch --repair-attempts 2 --job-processes 8 --interval 3600"
-  REFIT_HOSTED_INSTALLATION_JOBS = "8"
+  # Push 279 ended 2026-10-25: back to one job process on shared-cpu-2x, as the push planned. A target
+  # whose doctor stops reruns every interval and counts against the 1440-job daily cap, so the
+  # worker still polls hourly.
+  REFIT_HOSTED_FLAGS = "--publish-draft --ai-patch --repair-attempts 2 --interval 3600"
+  REFIT_HOSTED_INSTALLATION_JOBS = "1"
   # Validation images named by approved .refit.json files; pulled on boot.
   REFIT_HOSTED_IMAGES = "node:22-alpine stripe/stripe-mock:latest"
   # Prepared dependency bundles live on the volume, beside /data/docker and /data/state, not on the
@@ -53,9 +51,9 @@ kill_timeout = 300
     path = "/health"
     timeout = "5s"
 
-# Dedicated CPUs keep oasdiff inside its 30-second limit (66-73% steal on shared-cpu-2x). Each job
-# process takes up to 1.5 GiB of heap plus the 4 GiB sandbox profile's 5 GiB container, so four
-# jobs need about 26 GiB; eight need about 52 GiB, so 64gb leaves room for the worker and dockerd.
+# Push 279's sizing (performance-16x, 64gb) ended with the push on 2026-10-25.
+# shortcut: the default 4 GiB sandbox asks for a 5 GiB container, more than this VM holds, and oasdiff
+# sees CPU steal here; a large repository can run out of memory or time. Scale up before heavy runs.
 [[vm]]
-  size = "performance-16x"
-  memory = "64gb"
+  size = "shared-cpu-2x"
+  memory = "4gb"
