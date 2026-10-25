@@ -431,6 +431,14 @@ it('posts the weekly note only on an open draft Refit still owns', async () => {
   expect(
     await commentOnOwnDraft(options(), { ...target, branch: 'customer/feature' }, 'Wrong.'),
   ).toBe(false);
+  // One a person marked ready for review, or moved to another base, is theirs to follow.
+  const [pull] = github.pulls(REPOSITORY);
+  pull.draft = false;
+  expect(await commentOnOwnDraft(options(), target, 'Ready.')).toBe(false);
+  pull.draft = true;
+  pull.base = 'release';
+  expect(await commentOnOwnDraft(options(), target, 'Retargeted.')).toBe(false);
+  pull.base = 'main';
 
   const branch = join(root, 'branch');
   await execute(
