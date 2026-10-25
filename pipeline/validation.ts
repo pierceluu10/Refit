@@ -59,7 +59,11 @@ import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
 import { checkFailures } from './check-failures.ts';
 import { gradeEvidence } from './check-selection.ts';
-import { writeBehaviourTests } from './behaviour-test-writer.ts';
+import {
+  behaviourTestSkip,
+  writeBehaviourTests,
+  type BehaviourTestWriter,
+} from './behaviour-test-writer.ts';
 import { stripeOnlyImports, stripeOnlyProject } from './dependency-stripe-only.ts';
 import {
   dockerSandboxArguments,
@@ -804,8 +808,8 @@ export async function validateMigration(options: {
   // they need generatedChecks' stripe-mock image and fixtures. See runBehaviourTests.
   behaviourTests?: BehaviourTest[];
   // --write-behaviour-tests: without behaviourTests, one model request writes them from the
-  // original code (behaviour-test-writer.ts).
-  behaviourTestWriter?: AiOptions;
+  // original code (behaviour-test-writer.ts); --write-behaviour-tests-dry-run only builds it.
+  behaviourTestWriter?: BehaviourTestWriter;
   // --publish-unresolved: see withoutRequestParameters.
   leaveRequestParameters?: boolean;
   keepListedPaymentMethods?: boolean;
@@ -1113,8 +1117,10 @@ export async function validateMigration(options: {
     let proposal = report.patch;
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
+    // Behaviour tests need it too, even where the repository's own baseline failed or timed out.
+    const behaviourWanted = Boolean(options.behaviourTestWriter || options.behaviourTests?.length);
     const initialCandidate =
-      baseline.status === 'passed' || dependencyFailure
+      baseline.status === 'passed' || dependencyFailure || (behaviourWanted && proposal.diff)
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
             : prepareCandidate(proposal.diff, originalSources, report))
@@ -1127,7 +1133,7 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
-    const runPatched = initialCandidate && !dependencyFailure;
+    const runPatched = initialCandidate && baseline.status === 'passed' && !dependencyFailure;
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
@@ -1455,10 +1461,7 @@ export async function validateMigration(options: {
           )
         : undefined;
     const stripeOnly =
-      dependencyFailure &&
-      candidateDirectory &&
-      candidateSources &&
-      (options.behaviourTestWriter || options.behaviourTests)
+      dependencyFailure && candidateDirectory && candidateSources && behaviourWanted
         ? await timed('stripeOnlyPreparation', () =>
             stripeOnlyDependencies({
               root,
@@ -1471,27 +1474,36 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
-    // Behaviour tests run once both checks pass, or on stripe alone when preparation was refused.
-    const checksPassed =
-      (baseline.status === 'passed' && patched.status === 'passed') ||
-      Boolean(stripeOnly?.dependencies);
+    // Behaviour tests run on every patched copy whose code can load, whether or not the
+    // repository's own checks ran, except where the patched checks failed: that patch is never
+    // published.
+    const behaviourBlocked =
+      !candidateDirectory || !candidateSources
+        ? 'No patched copy of the repository was built.'
+        : patched.status === 'failed'
+          ? 'The patched checks failed, so the patch is not published.'
+          : dependencyFailure && !stripeOnly?.dependencies
+            ? `Dependencies could not be prepared, and the changed Stripe code cannot run on stripe alone: ${stripeOnly?.record.reasons?.join(' ') ?? 'no candidate.'}`
+            : undefined;
     // Written from the original code and the preflight scan, which ran before any patch existed.
     const written =
-      options.behaviourTestWriter && !options.behaviourTests && candidateDirectory && checksPassed
-        ? await timed('behaviourTestWriter', () =>
-            writeBehaviourTests({
-              repository: originalSources,
-              findings: preflight.findings,
-              changes: preflight.changes,
-              before: beforeSpecification,
-              after: afterSpecification,
-              ai: options.behaviourTestWriter!,
-            }),
-          )
+      options.behaviourTestWriter && !options.behaviourTests
+        ? behaviourBlocked
+          ? { record: behaviourTestSkip(options.behaviourTestWriter, behaviourBlocked), files: [] }
+          : await timed('behaviourTestWriter', () =>
+              writeBehaviourTests({
+                repository: originalSources,
+                findings: preflight.findings,
+                changes: preflight.changes,
+                before: beforeSpecification,
+                after: afterSpecification,
+                ai: options.behaviourTestWriter!,
+              }),
+            )
         : undefined;
     const behaviourTests = options.behaviourTests ?? written?.files;
     const behaviour =
-      behaviourTests?.length && candidateDirectory && candidateSources && checksPassed
+      behaviourTests?.length && !behaviourBlocked
         ? await timed('behaviourTests', () =>
             behaviourEvidence({
               tests: behaviourTests,

@@ -739,3 +739,47 @@ test('returns the charge history', async () => {
   },
   60_000,
 );
+
+it.skipIf(!IMAGE)(
+  'writes behaviour tests where the baseline fails, never where the patched checks fail',
+  async () => {
+    const root = await repository();
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const behaviourTestWriter = { model: 'gpt-6.1-sol', dryRun: true as const };
+    // A broken baseline no longer hides the patch from behaviour tests; the patched checks are
+    // not run against a suite that already fails.
+    const broken = await validateMigration({
+      ...options,
+      repository: root,
+      command: ['node', '-e', 'process.exit(8)'],
+      behaviourTestWriter,
+    });
+    expect(broken.validation).toMatchObject({
+      status: 'baseline-failed',
+      patched: { status: 'not-run' },
+      behaviourTestWriter: { status: 'dry-run', wouldRun: true, findings: 1 },
+    });
+    // A patch whose checks ran and failed is never published, so nothing is written for it.
+    const regression = await validateMigration({
+      ...options,
+      repository: root,
+      command: [
+        'node',
+        '-e',
+        "process.exit(require('fs').readFileSync('billing.js','utf8').includes('return intent.charges.data') ? 0 : 7)",
+      ],
+      behaviourTestWriter,
+    });
+    expect(regression.validation).toMatchObject({
+      status: 'regression',
+      behaviourTestWriter: {
+        status: 'dry-run',
+        wouldRun: false,
+        reason: 'The patched checks failed, so the patch is not published.',
+      },
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+  },
+  60_000,
+);

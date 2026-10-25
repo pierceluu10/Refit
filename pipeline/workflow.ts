@@ -1,6 +1,7 @@
 import type { GeneratedChecks } from './generated-checks.ts';
 import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
+import type { BehaviourTestWriter } from './behaviour-test-writer.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -99,7 +100,7 @@ export async function runWorkflow(options: {
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
-  behaviourTestWriter?: AiOptions;
+  behaviourTestWriter?: BehaviourTestWriter;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;

@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   behaviourTestRequest,
+  behaviourTestSkip,
   INSTRUCTIONS,
   parseBehaviourTests,
   writeBehaviourTests,
@@ -566,6 +567,57 @@ it('records the model, prompt hash, tokens, cost and file hashes of one request,
     costUsd: expect.any(Number),
   });
   expect(refused.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'))).toHaveLength(1);
+});
+
+it('builds the same request in a dry run and estimates its tokens and cost without sending it (nicuk/docsflow at 3e6fd71)', async () => {
+  const sample = await scenario('docsflow');
+  const fetcher = respond(CHECKOUT_ANSWER);
+  const { record, files } = await writeBehaviourTests({
+    ...sample.inputs,
+    ai: { model: 'gpt-6.1-sol', dryRun: true },
+  });
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(files).toEqual([]);
+  const request = behaviourTestRequest(sample.inputs);
+  const inputTokens = Math.ceil(
+    (Buffer.byteLength(INSTRUCTIONS) +
+      Buffer.byteLength(JSON.stringify(request.evidence)) +
+      Buffer.byteLength(JSON.stringify(request.schema))) /
+      3.5,
+  );
+  expect(record).toMatchObject({
+    status: 'dry-run',
+    wouldRun: true,
+    model: 'gpt-6.1-sol',
+    // The real run's request, byte for byte.
+    promptHash: digest(JSON.stringify({ instructions: INSTRUCTIONS, evidence: request.evidence })),
+    findings: 1,
+    estimate: { inputTokens },
+  });
+  // gpt-6.1-sol: $2 per million input tokens, $10 per million output tokens; a typical answer of
+  // 8,000 output tokens and the 25,000 every request reserves.
+  expect(record.estimate!.inputUsd).toBeCloseTo(inputTokens * 2e-6, 9);
+  expect(record.estimate!.typicalUsd).toBeCloseTo(inputTokens * 2e-6 + 0.08, 9);
+  expect(record.estimate!.maximumUsd).toBeCloseTo(inputTokens * 2e-6 + 0.25, 9);
+
+  const huge = `${SPOTIFY['libs/supabaseAdmin.ts']}\n${'// padding\n'.repeat(7000)}`;
+  const large = await scenario('spotify', { 'libs/supabaseAdmin.ts': huge });
+  const refused = await writeBehaviourTests({
+    ...large.inputs,
+    ai: { model: 'gpt-6.1-sol', dryRun: true },
+  });
+  expect(refused.record).toMatchObject({
+    status: 'dry-run',
+    wouldRun: false,
+    reason: expect.stringContaining('64 KiB'),
+  });
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(behaviourTestSkip({ model: 'gpt-6.1-sol', dryRun: true }, 'why')).toEqual({
+    status: 'dry-run',
+    wouldRun: false,
+    reason: 'why',
+  });
+  expect(behaviourTestSkip(ai(sample.root), 'why')).toEqual({ status: 'skipped', reason: 'why' });
 });
 
 const REPOSITORY = {

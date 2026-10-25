@@ -1,10 +1,10 @@
 import { posix } from 'node:path';
 import ts from 'typescript-compiler';
-import type { AiOptions, AiUsage } from './ai-budget.ts';
+import { usageCostUsd, type AiOptions, type AiUsage } from './ai-budget.ts';
 import { syntaxErrors } from './analyzer.ts';
 import { BEHAVIOUR_DIRECTORY } from './behaviour-tests.ts';
 import { listOpenApiOperations } from './openapi-operations.ts';
-import { MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
+import { MAX_INPUT_BYTES, MAX_OUTPUT_TOKENS, requestStructuredOutput } from './openai.ts';
 import { generatedImportMap } from './generated-checks.ts';
 import { bodySchema, local } from './request-removals.ts';
 import { digest, findAddedProperties, isObject, parseObject } from './specifications.ts';
@@ -27,6 +27,12 @@ const MAX_DESCRIPTION = 300;
 const CONTEXT_TOKENS = 8_000;
 const BYTES_PER_TOKEN = 3.5;
 const CONTEXT_BYTES = Math.floor(CONTEXT_TOKENS * BYTES_PER_TOKEN);
+// The dry run's typical answer, an assumption until a gpt-6.1-sol answer is measured: reasoning plus
+// one to three test files. Its maximum is the output every request reserves (MAX_OUTPUT_TOKENS).
+const TYPICAL_OUTPUT_TOKENS = 8_000;
+// The Push 279 board allows gpt-6.1-sol only; a dry run prices requests for it unless OPENAI_MODEL
+// names another priced model.
+export const DRY_RUN_MODEL = 'gpt-6.1-sol';
 const TEST_PATH = new RegExp(
   `^${BEHAVIOUR_DIRECTORY}/[A-Za-z0-9][A-Za-z0-9_-]{0,63}\\.test\\.mjs$`,
 );
@@ -151,6 +157,12 @@ What to test:
 
 type Specification = { document: Record<string, unknown>; schemas: Record<string, unknown> };
 
+// A real writer spends through the budget ledger; a dry run builds the same request and only
+// estimates what it would cost.
+export type BehaviourTestWriter = AiOptions | { model: string; dryRun: true };
+const dryRun = (writer: BehaviourTestWriter): writer is { model: string; dryRun: true } =>
+  'dryRun' in writer;
+
 export interface BehaviourTestFile {
   path: string;
   content: string;
@@ -160,9 +172,14 @@ export interface BehaviourTestFile {
 
 export interface BehaviourTestRecord {
   // generated: files for the harness; declined: the model wrote none; refused: Refit sent nothing
-  // or rejected the answer; error: the request failed.
-  status: 'generated' | 'declined' | 'refused' | 'error';
+  // or rejected the answer; error: the request failed; skipped: the writer could not run here;
+  // dry-run: the request was built, not sent (wouldRun says whether the real run would send it).
+  status: 'generated' | 'declined' | 'refused' | 'error' | 'skipped' | 'dry-run';
   reason?: string;
+  wouldRun?: boolean;
+  // Dry run: estimated input tokens (3.5 bytes per token, as openai.ts measures JSON-wrapped
+  // source) and the cost with no output, a typical answer and the maximum reserved output.
+  estimate?: { inputTokens: number; inputUsd: number; typicalUsd: number; maximumUsd: number };
   refusals: string[];
   model: string;
   responseId: string | null;
@@ -599,13 +616,20 @@ export function parseBehaviourTests(
 
 // One model request for the repository, never repeated: a refused or failed answer stays recorded
 // and validation continues without behaviour tests.
+// Why the writer did not run, as its record: `skipped`, or `dry-run` that would not run.
+export function behaviourTestSkip(writer: BehaviourTestWriter | undefined, reason: string) {
+  return writer && dryRun(writer)
+    ? { status: 'dry-run' as const, wouldRun: false, reason }
+    : { status: 'skipped' as const, reason };
+}
+
 export async function writeBehaviourTests(options: {
   repository: Repository;
   findings: Finding[];
   changes: Removal[];
   before: Specification;
   after: Specification;
-  ai: AiOptions;
+  ai: BehaviourTestWriter;
 }): Promise<{ record: BehaviourTestRecord; files: BehaviourTestFile[] }> {
   const record: BehaviourTestRecord = {
     status: 'refused',
@@ -629,15 +653,59 @@ export async function writeBehaviourTests(options: {
     request = behaviourTestRequest(options);
   } catch (error) {
     if (!(error instanceof PipelineInputError)) throw error;
-    return { record: { ...record, reason: error.message }, files: [] };
+    return {
+      record: {
+        ...record,
+        ...(dryRun(options.ai) ? { status: 'dry-run', wouldRun: false } : {}),
+        reason: error.message,
+      },
+      files: [],
+    };
   }
   record.promptHash = digest(
     JSON.stringify({ instructions: request.instructions, evidence: request.evidence }),
   );
   record.context = request.context;
+  const writer = options.ai;
+  if (dryRun(writer)) {
+    const inputTokens = Math.ceil(
+      (Buffer.byteLength(request.instructions) + bytes(request.evidence) + bytes(request.schema)) /
+        BYTES_PER_TOKEN,
+    );
+    const usd = (outputTokens: number) =>
+      usageCostUsd(writer.model, {
+        inputTokens,
+        cachedInputTokens: 0,
+        cacheWriteInputTokens: 0,
+        outputTokens,
+        reasoningTokens: 0,
+      });
+    try {
+      return {
+        record: {
+          ...record,
+          status: 'dry-run',
+          wouldRun: true,
+          estimate: {
+            inputTokens,
+            inputUsd: usd(0),
+            typicalUsd: usd(TYPICAL_OUTPUT_TOKENS),
+            maximumUsd: usd(MAX_OUTPUT_TOKENS),
+          },
+        },
+        files: [],
+      };
+    } catch (error) {
+      // An unpriced model: the request is still built and would run.
+      return {
+        record: { ...record, status: 'dry-run', wouldRun: true, reason: message(error) },
+        files: [],
+      };
+    }
+  }
   let response: Awaited<ReturnType<typeof requestStructuredOutput>>;
   try {
-    response = await requestStructuredOutput(request, options.ai);
+    response = await requestStructuredOutput(request, writer);
   } catch (error) {
     // The budget refuses before the generation request is sent; anything else failed in flight.
     const refused = error instanceof PipelineInputError && /budget/i.test(error.message);
