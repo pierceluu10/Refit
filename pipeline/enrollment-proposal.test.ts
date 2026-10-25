@@ -107,6 +107,8 @@ it('checks a TypeScript repository without tests by new type errors, with its pa
   expect(proposal?.checks).toEqual({
     kind: 'typecheck',
     source: 'tsc over tsconfig.json, failing only on new type errors',
+    reason:
+      'There is no test script. The type check (tsc over tsconfig.json) covers the Stripe code in src/lib/stripe.ts.',
   });
   expect(proposal?.configuration.integrations[0]).toMatchObject({
     command: ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'],
@@ -636,13 +638,17 @@ it('proposes a configuration without a lockfile or checks only when asked, keepi
     command: ['npm', 'test'],
   });
   expect(proposalSummary(untested.proposal!)).toBe(
-    'No .refit.json is committed, so Refit generated one: Stripe API version 2026-04-22.dahlia (set at src/lib/stripe.ts:3), moving to 2026-09-30.endive, checked by the test script in package.json, run with npm. Each draft Refit opens with it is titled [Needs review]: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+    'No .refit.json is committed, so Refit generated one: Stripe API version 2026-04-22.dahlia (set at src/lib/stripe.ts:3), moving to 2026-09-30.endive, checked by the test script in package.json, run with npm. No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them. Each draft Refit opens with it is titled [Needs review]: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
   );
 
+  // No test script, and a client only require() loads, which no type check can cover.
   const unchecked = await repository({
     'package.json': manifest('^22.1.1'),
     'package-lock.json': npmLock('22.1.1'),
-    'src/lib/stripe.ts': QUILL,
+    'src/lib/stripe.js': QUILL.replace(
+      'import Stripe from "stripe";',
+      'const Stripe = require("stripe");',
+    ),
   });
   expect((await proposeStripeConfiguration(unchecked)).proposal).toBeNull();
   const noop = (await proposeStripeConfiguration(unchecked, { allowUntested: true })).proposal!;
@@ -656,7 +662,12 @@ it('proposes a configuration without a lockfile or checks only when asked, keepi
     prepareDependencies: true,
     command: ['node', '-e', '0'],
   });
-  expect(noop.checks).toEqual({ kind: 'none', source: 'node -e 0, which tests nothing' });
+  expect(noop.checks).toEqual({
+    kind: 'none',
+    source: 'node -e 0, which tests nothing',
+    reason:
+      'There is no test script. Stripe is loaded with require() (src/lib/stripe.js), which TypeScript leaves untyped, so no type check can cover the Stripe code.',
+  });
   expect(noop.reviews.map((stop) => stop.id)).toEqual(['no-checks']);
 });
 
@@ -853,6 +864,8 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '
     kind: 'tests',
     source:
       'the test script in package.json, run with npm; Refit does not install functions/package.json, which the root lockfile leaves out',
+    reason:
+      'No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them.',
   });
   // CapChris20/Retronix-Wallpapers-Startup: that project's client sets no apiVersion, and only its
   // own lockfile records the stripe-node release.

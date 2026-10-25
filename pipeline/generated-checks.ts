@@ -183,10 +183,28 @@ let ts;
 const compiler = () =>
   (ts ??= createRequire(import.meta.url)(process.env.REFIT_TYPESCRIPT ?? '/refit/typescript/lib/typescript.js'));
 const TYPESCRIPT = /\\.(?:[cm]?ts|tsx)$/;
+const EXTENSION = /\\.[a-z]+$/i;
+const UNRESOLVED = new Set(['ERR_MODULE_NOT_FOUND', 'ERR_UNSUPPORTED_DIR_IMPORT']);
 export async function resolve(specifier, context, next) {
   const parent = context.parentURL?.startsWith('file:') ? fileURLToPath(context.parentURL) : '';
   const target = parent.startsWith(root) ? map[parent.slice(root.length)]?.[specifier] : undefined;
-  return next(target ? pathToFileURL(root + target).href : specifier, context);
+  if (target) return next(pathToFileURL(root + target).href, context);
+  try {
+    return await next(specifier, context);
+  } catch (error) {
+    // Next.js bundles routes, so their extensionless imports (next/server, and ./routeMatcher in
+    // @clerk/nextjs's ESM build) resolve there; Node's ESM loader needs the file named.
+    if (!UNRESOLVED.has(error?.code) || EXTENSION.test(specifier) || specifier.startsWith('node:'))
+      throw error;
+    for (const suffix of ['.js', '/index.js']) {
+      try {
+        return await next(specifier + suffix, context);
+      } catch (retry) {
+        if (!UNRESOLVED.has(retry?.code)) throw retry;
+      }
+    }
+    throw error;
+  }
 }
 export async function load(url, context, next) {
   if (!url.startsWith('file:') || !TYPESCRIPT.test(url)) return next(url, context);

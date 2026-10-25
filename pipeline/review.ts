@@ -494,6 +494,14 @@ function replacementReasons(report: ValidationReport) {
   return { reasons, replacements };
 }
 
+const EVIDENCE_LABELS = {
+  'behaviour-tests': 'Behaviour tests cover every changed line',
+  'stripe-tests': 'Tests exercise the changed code',
+  'type-check': 'Type-checked only',
+  'generated-check': 'Generated stripe-mock checks only',
+  none: 'No meaningful check',
+} as const;
+
 export function createReviewArtifacts(
   report: ValidationReport,
   destination: 'local' | 'github' = 'local',
@@ -598,8 +606,31 @@ export function createReviewArtifacts(
   const scope = (
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
   ).toLowerCase();
+  // O2's evidence grade: what the passing checks proved about the changed files.
+  const grade = 'grade' in validation ? validation.grade : undefined;
+  // A passing patch graded D, which no check fully reached, publishes only as [Needs review]
+  // (AGENTS.md, 2026-10-24).
+  const unchecked =
+    validation.status === 'passed' && (grade?.letter === 'D' || grade?.level === 'none');
   const keptProperties = validation.repair?.keptProperties ?? [];
-  const needsReview = Boolean(reviews?.length || patch.unresolvedFindings || keptProperties.length);
+  // Type errors a Refit-generated check found in JavaScript the repository never type-checks: they do
+  // not fail validation, so the draft states each one for review (L2 master's policy, board #300).
+  const advisoryTypeErrors =
+    'advisoryTypeErrors' in validation && Array.isArray(validation.advisoryTypeErrors)
+      ? (validation.advisoryTypeErrors as {
+          file: string;
+          line: number;
+          code: string;
+          message: string;
+        }[])
+      : [];
+  const needsReview = Boolean(
+    reviews?.length ||
+    patch.unresolvedFindings ||
+    keptProperties.length ||
+    unchecked ||
+    advisoryTypeErrors.length,
+  );
   const prefix = needsReview ? NEEDS_REVIEW_PREFIX : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
   const title =
@@ -834,6 +865,21 @@ export function createReviewArtifacts(
       : []),
   ];
   const review = [
+    ...(unchecked
+      ? [
+          `**No check reached all of the changed code.** ${plainText(grade!.reason)} Run the code this patch changes once before merging.`,
+        ]
+      : []),
+    ...(advisoryTypeErrors.length
+      ? [
+          `**Advisory type errors.** Refit's generated type check reports ${advisoryTypeErrors.length === 1 ? 'a type error' : `${advisoryTypeErrors.length} type errors`} this patch introduces in JavaScript your build never type-checks; they did not fail validation. Check each one: ${advisoryTypeErrors
+            .map(
+              (error) =>
+                `${code(`${error.file}:${error.line}`)} ${error.code} ${plainText(error.message)}`,
+            )
+            .join('; ')}.`,
+        ]
+      : []),
     ...(shopify?.deprecated ?? []).map(
       (entry) =>
         `Deprecated on ${after}, still served: ${code(entry.split(':')[0])}${plainText(entry.slice(entry.indexOf(':')))}`,
@@ -1208,7 +1254,10 @@ export function createReviewArtifacts(
         : []),
       '## Automated Verification Gates',
       [
-        `- Evidence Strength: ${evidenceStrength(validation, generatedPassed)}`,
+        // The measured grade, when validation recorded one, replaces the command-based strength.
+        grade
+          ? `- Evidence Grade: **${grade.letter ? `${grade.letter}, ` : ''}${EVIDENCE_LABELS[grade.level]}.** ${plainText(grade.reason)}`
+          : `- Evidence Strength: ${evidenceStrength(validation, generatedPassed)}`,
         `- Test Suite Output: ${checks}${generatedResult}`,
         ...(legacyPeerDeps
           ? [
