@@ -35,7 +35,7 @@ function decide(layout: {
       apiVersion: {
         source: { declarations: (layout.declarations ?? []).map((file) => ({ file })) },
       },
-    } as unknown as Parameters<typeof sdkPackageDirectory>[0],
+    },
     (path) => layout.committed.includes(path),
   );
 }

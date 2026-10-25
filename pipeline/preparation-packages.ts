@@ -1,7 +1,6 @@
 import { dirname } from 'node:path';
 import type { readCommittedRepository } from './committed-repository.ts';
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
-import type { PipelineReport } from './run.ts';
 import { PipelineInputError } from './types.ts';
 import { YARN_LOCKFILE } from './yarn-lock.ts';
 
@@ -15,7 +14,11 @@ const LOCKFILES = ['package-lock.json', PNPM_LOCKFILE, YARN_LOCKFILE];
 // lockfile (`committed` answers for a repository-relative path). Otherwise undefined, and
 // preparation and checks use the repository root as before.
 export function sdkPackageDirectory(
-  report: Pick<PipelineReport, 'findings' | 'apiVersion' | 'repository'>,
+  report: {
+    findings: readonly { file: string }[];
+    apiVersion: { source: { declarations: readonly { file: string }[] } };
+    repository: { dependencies: readonly { file: string }[] };
+  },
   committed: (path: string) => boolean,
 ) {
   const packages = report.repository.dependencies
