@@ -406,6 +406,35 @@ it('counts only generated stripe-mock entries that ran on the original code', as
   );
 });
 
+it('holds a draft with advisory JavaScript type errors for review and lists each one', async () => {
+  const value = await report();
+  value.validation.status = 'passed';
+  value.patch.validation = 'passed';
+  value.validation.patched = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
+  value.validation.grade = {
+    letter: 'B',
+    level: 'stripe-tests',
+    reason: "The repository's tests reach every changed file (api/billing.js).",
+  };
+  // ArkanaDeck/arcana-marketplace in refit-bench run 40155034890.
+  Object.assign(value.validation, {
+    advisoryTypeErrors: [
+      {
+        file: 'api/billing.js',
+        line: 31,
+        column: 50,
+        code: 'TS2322',
+        message: `Type '"2024-06-20"' is not assignable to type '"2026-09-30.endive"'.`,
+      },
+    ],
+  });
+  const artifacts = createReviewArtifacts(value);
+  expect(artifacts.manifest.title).toMatch(/^\[Needs review\] /);
+  expect(artifacts.files['pull-request.md']).toContain(
+    "**Advisory type errors.** Refit's generated type check reports a type error this patch introduces in JavaScript your build never type-checks; they did not fail validation. Check each one: `api/billing.js:31` TS2322 ",
+  );
+});
+
 it('shows the evidence grade and holds a grade-D draft for review', async () => {
   const value = await report();
   value.validation.status = 'passed';
