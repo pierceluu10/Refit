@@ -390,6 +390,22 @@ The single-tenant hosted worker (`refit hosted serve` on Fly, with `--publish-dr
 - **Weak checks on two drafts.** stripe_elements_customized_card_form and web-scraping-course-app have no tests, so the operator's check was `node -e 0`, and generated `stripe-mock` checks found no entry point in either. Those drafts show that the patch applies, not that the code works. spotify-clone's one `stripe-mock` entry point could not run on its own.
 - **Not measured:** AI patches, approval issues, more than one installation, and draft updates: full-stack-starter-kit opened a second draft beside one from an earlier local run instead of updating it.
 
+## Push-279 after merging the Laptop 1–3 PR batch (October 25)
+
+refit-bench run [40236299492](https://github.com/refit-dev/refit-bench/actions/runs/40236299492) ran the merged batch (#288, #289, #284, #269, #286, #308, #309, #315, #324, #313, #331, #249 on top of #326–#330 and #312) at `179c6bc75d184142bddd9f3261431ba211a7a63c` on `subsets/push-279-affected.json` with no AI (`gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=179c6bc75d184142bddd9f3261431ba211a7a63c -f list=subsets/push-279-affected.json -f offset=0 -f size=2 -f count=279`). All 279 rows came back. Compared by production status with main run 40181262435:
+
+| Production status | main (40181262435) | merged batch (40236299492) |
+| ----------------- | -----------------: | -------------------------: |
+| validated         |                 78 |                         83 |
+| needs-review      |                167 |                        173 |
+| none              |                 28 |                         22 |
+| error             |                  6 |                          0 |
+| missing-manifest  |                  0 |                          1 |
+
+- 15 repositories improved: 5 to validated (Shefaul-22/AgriFlow from an error; web-scraping-course-app, backend-lazypress, GenForm and saas-pdf-analysis-dev from needs-review), and 10 from an error or no patch to a `[Needs review]` draft. All six archive-limit errors are gone.
+- None lost a draft. SimplerDevelopment/SimplerDevelopment had no runnable checks before; the merged preparation now finds its tests, and its run hit the benchmark's 20-minute limit (`missing-manifest`) under the new 600-second check timeout.
+- #310 (opt-in behaviour tests) merged after this run; it changes nothing without `--behaviour-tests`.
+
 ## Push-279 at Refit 0.38.0 and at main (October 25)
 
 The same 279 affected Stripe repositories (`subsets/push-279-affected.json`), no AI, no publication, on `refit-dev/refit-bench`:
