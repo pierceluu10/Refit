@@ -6,7 +6,7 @@ Stripe [moved subscription periods onto individual items in 2025-03-31.basil](ht
 
 ## Every period read: the generated helper
 
-Refit rewrites every `current_period_start/end` read on SDK responses, signed webhook payloads and `Stripe.Subscription`-typed values into a call to one generated helper per repository (`stripe-subscription-period.ts` or `.js`, in the deepest folder the patched files share):
+Refit rewrites every `current_period_start/end` read on SDK responses, signed webhook payloads and `Stripe.Subscription`-typed values into a call to one generated helper per repository (`stripeSubscriptionPeriod.ts` or `.js`, in the deepest folder the patched files share):
 
 ```ts
 getSubscriptionPeriodEnd(subscription, (items) => items[0]);
