@@ -40,7 +40,7 @@ refit serve --env .env --config examples/local-service.refit.json \
   --interval 300 --publish-draft
 ```
 
-Add `--weekly-status` (with `--publish-draft`) for a short weekly comment on each open Refit draft whose job nothing has changed. It is off by default and does not change the service state's identity; see [automation state](AUTOMATION.md#state-recovery-and-errors).
+Add `--publish-unresolved` to turn Refit's stops into `[Needs review]` drafts with the rules' patch and every reason, as `refit run` does ([CLI guide](CLI.md)); a patch whose checks ran and did not pass never publishes. Add `--weekly-status` (with `--publish-draft`) for a short weekly comment on each open Refit draft whose job nothing has changed. It is off by default and does not change the service state's identity; see [automation state](AUTOMATION.md#state-recovery-and-errors).
 
 The service binds **127.0.0.1:8787**. It confirms each configured installation through GitHub at startup and on every poll, so already-installed repositories work without an incoming webhook. Configured targets run sequentially; a failed target does not prevent the others from running. An accepted installation change wakes the next poll; revoked access cancels the affected in-flight worker. The GitHub API remains the authority for granting access.
 
