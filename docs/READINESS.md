@@ -1,5 +1,16 @@
 # Refit implementation checkpoints
 
+## October 25 checkpoint: Bun lockfiles, CI-chosen lockfiles and pnpm patches (unreleased, after 0.39.0)
+
+Preparation now builds the refusals O2 classified as buildable and #289 left:
+
+- **Bun text lockfiles.** A root project's `bun.lock` is translated into the npm lockfile of the same tree and installed with the verified `npm ci`; Bun never runs, and the draft says so. A tree npm cannot describe stops, such as a peer Bun nests inside the package that needs it.
+- **Conflicting lockfiles.** With a `packageManager` pin and committed GitHub workflows that install only with that manager, Refit installs that manager's lockfile.
+- **pnpm patches.** `patchedDependencies` are applied when every patch file is committed and matches the SHA-256 `pnpm-lock.yaml` records; `overrides` must equal the lockfile's.
+- **Peer-only npm drift.** An `npm ci` that reports the lockfile out of sync is retried once with `--legacy-peer-deps`, as `ERESOLVE` is (an extension of the 2026-10-20 decision, announced on the board); anything beyond peers still stops.
+
+Tests: `pipeline/bun-lock.test.ts`, `pipeline/dependency-inputs.test.ts`, `pipeline/pnpm-inputs.test.ts`, `pipeline/npm-dependencies.test.ts` and `pipeline/review.test.ts`; the Docker suites passed on refit-bench (`gated.yml` run 40161788197).
+
 ## October 25 checkpoint: dependency preparation for Push 279 (unreleased, after 0.39.0)
 
 Preparation changes from #289, measured on refit-bench against the Laptop 2 base run 40144503063 (main `c65f169`, 249 repositories, default `2g` profile). In the after-run 40149872255 (`c65f169` plus #289), 12 repositories change stage, all of them preparation refusals before, and every repository that prepared before still prepares:
