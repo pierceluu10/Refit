@@ -1783,6 +1783,21 @@
       }
     },
     {
+      "repo": "alanagoyal/branded",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40181894267 (dev-30 offset 0-14, main c88faee, ai=true gpt-6.1-sol, cap $5); coverage AI outcome kept, $0.038. migration.patch read in full; the AI-written hunk separated from the rules' hunks",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the AI writes const periodEnd = subscription ? getSubscriptionPeriodEnd(subscription) : undefined and uses it for both the test and the read of current_period_end (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end); the rules wrote the other period read and the helper.",
+        "bothVersions": "yes: the generated helper reads the old field when present, otherwise the period the items share.",
+        "nothingUnrelated": "yes: the one expression, nothing else; no test or package file.",
+        "pleaseCheck": "AI-written, so the draft is [Needs review] (decision 8). The subscription is entitled[0] ?? the newest of a Stripe.Subscription[] parameter, which the tracer does not follow through ??.",
+        "upgradeComplete": "yes, as in the rules' patch.",
+        "wouldMerge": "yes after review."
+      }
+    },
+    {
       "repo": "profullstack/vibe-stack",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40150652070 (subsets/l3-proxy-a.json) at Refit 1a3f2cf, PR #269 with let-holder clients, against base 40147835670 at 13d6b48 (main plus the subset files); benchmark mode needs-review (checks passed, findings unresolved). Only one hunk is new: every other file section of the artifact's migration.patch is byte-identical to the base run's",
