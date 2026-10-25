@@ -5,37 +5,33 @@ import { modelFixBody, modelFixMessage } from './model-fixes.ts';
 import { publicationWaiver } from './publication.ts';
 import { createReviewArtifacts, MAX_BODY_CHARACTERS } from './review.ts';
 import { digest } from './specifications.ts';
+import { REFIT_VERSION } from './migration-identity.ts';
 
 // Stored benchmark results, reduced to what the body reads (see each fixture's storedResult).
 const fixture = (name: string) =>
   JSON.parse(readFileSync(`pipeline/fixtures/pr-bodies/${name}.json`, 'utf8'));
 const registry: DeadlineRegistry = JSON.parse(readFileSync('data/deadlines.json', 'utf8'));
 
+// Every release bump changes the version in the evidence marker; the snapshot keeps its place.
+const rendered = (artifacts: ReturnType<typeof createReviewArtifacts>) => ({
+  body: artifacts.files['pull-request.md'].replace(
+    `"refit": "${REFIT_VERSION}"`,
+    '"refit": "<release>"',
+  ),
+  message: artifacts.commitMessage,
+  title: artifacts.manifest.title,
+});
+
 // As publication renders them: with the waiver an allowed review gate earns, if any.
 const published = (name: string, integration?: string) => {
   const report = fixture(name);
-  const artifacts = createReviewArtifacts(
-    report,
-    'github',
-    integration,
-    publicationWaiver(report, true),
+  return rendered(
+    createReviewArtifacts(report, 'github', integration, publicationWaiver(report, true)),
   );
-  return {
-    body: artifacts.files['pull-request.md'],
-    message: artifacts.commitMessage,
-    title: artifacts.manifest.title,
-  };
 };
 
 // As a benchmark or a failed validation stores them: a local review artifact Refit never publishes.
-const stored = (name: string) => {
-  const artifacts = createReviewArtifacts(fixture(name));
-  return {
-    body: artifacts.files['pull-request.md'],
-    message: artifacts.commitMessage,
-    title: artifacts.manifest.title,
-  };
-};
+const stored = (name: string) => rendered(createReviewArtifacts(fixture(name)));
 
 const shapes: Record<string, () => { body: string; message: string; title?: string }> = {
   validated: () => published('validated'),

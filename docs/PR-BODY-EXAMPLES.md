@@ -28,16 +28,16 @@ Still missing:
 
 | Shape | Stored result | Characters | What it shows |
 |---|---|---|---|
-| [Validated deterministic patch](#validated-deterministic-patch) | refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit | 4,159 | The `['card']` rule, the API version pin and the stripe-node upgrade; checks passed. |
-| [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 6,450 | Published only with `--publish-unresolved`: the `webhook-api-version` waiver, with 2 webhook reads still unmigrated. |
-| [Untraced reads](#untraced-reads) | refit-stripe-active/run-6d4f38a, amahmood-pci/pci-update | 4,336 | One `.payment_intent` read Refit could not trace, left unchanged and listed with file and line. |
-| [AI patch](#ai-patch) | refit-stripe-benchmark/run-prs-all, webdevcody/thumbnail-critique | 4,876 | Lines written by `gpt-5.4-mini-2026-03-17` and checked by Refit, with the webhook waiver. |
+| [Validated deterministic patch](#validated-deterministic-patch) | refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit | 4,181 | The `['card']` rule, the API version pin and the stripe-node upgrade; checks passed. |
+| [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 6,472 | Published only with `--publish-unresolved`: the `webhook-api-version` waiver, with 2 webhook reads still unmigrated. |
+| [Untraced reads](#untraced-reads) | refit-stripe-active/run-6d4f38a, amahmood-pci/pci-update | 4,358 | One `.payment_intent` read Refit could not trace, left unchanged and listed with file and line. |
+| [AI patch](#ai-patch) | refit-stripe-benchmark/run-prs-all, webdevcody/thumbnail-critique | 4,898 | Lines written by `gpt-5.4-mini-2026-03-17` and checked by Refit, with the webhook waiver. |
 | [Model fix](#model-fix) | docs/benchmarks/2026-10-21-model-replacement-results.json, RiP3rQ/AI-Butler | 2,018 | **Simulated checks.** The stored validation for this repository is baseline-failed, so Refit never wrote this body. The four replacements are the stored ones; the checks are marked passed to show the body Refit publishes. |
-| [Shopify](#shopify) | refit-shopify-benchmark/run-1, samirjabib/shopify-apps-convex-template | 2,748 | Admin API pin moved from 2025-10 to 2026-04; no GraphQL documents in the app's own code. |
-| [Multi-integration collection](#multi-integration-collection) | refit-stripe-fresh/run-6d4f38a-c, tmachnacki/podvex | 4,720 | A real Stripe report rendered as the `stripe` integration of a collection. No stored run comes from a real repository with a collection, so the only collection-specific parts are the integration in Related Telemetry and the `refit-integration` marker. |
-| [Unmigrated usages](#unmigrated-usages) | refit-bench run 40081277373, Kanba-co/kanba | 7,558 | **Never published: the type check failed.** Three traced usages no rule migrated, each located under Left Unchanged; the type check fails on one of them. |
-| [Type errors](#type-errors) | refit-bench run 40081277373, AlefeSk8/Spotify-Clone-Next.js | 7,462 | **Never published: the type check failed.** The first of 4 type errors the patch introduced, and a page for each rule. |
-| [Baseline timeout](#baseline-timeout) | refit-bench run 40081277373, brunobola-portfolio/GitHub-Repo-Manager | 9,360 | **Never published: the check timed out on the original code.** 24 usages left, 21 of them confirmed, and 19 untraced reads. |
+| [Shopify](#shopify) | refit-shopify-benchmark/run-1, samirjabib/shopify-apps-convex-template | 2,770 | Admin API pin moved from 2025-10 to 2026-04; no GraphQL documents in the app's own code. |
+| [Multi-integration collection](#multi-integration-collection) | refit-stripe-fresh/run-6d4f38a-c, tmachnacki/podvex | 4,742 | A real Stripe report rendered as the `stripe` integration of a collection. No stored run comes from a real repository with a collection, so the only collection-specific parts are the integration in Related Telemetry and the `refit-integration` marker. |
+| [Unmigrated usages](#unmigrated-usages) | refit-bench run 40081277373, Kanba-co/kanba | 7,580 | **Never published: the type check failed.** Three traced usages no rule migrated, each located under Left Unchanged; the type check fails on one of them. |
+| [Type errors](#type-errors) | refit-bench run 40081277373, AlefeSk8/Spotify-Clone-Next.js | 7,484 | **Never published: the type check failed.** The first of 4 type errors the patch introduced, and a page for each rule. |
+| [Baseline timeout](#baseline-timeout) | refit-bench run 40081277373, brunobola-portfolio/GitHub-Repo-Manager | 9,382 | **Never published: the check timed out on the original code.** 24 usages left, 21 of them confirmed, and 19 untraced reads. |
 
 Every body is under the 16,000-character budget. A separate test adds 400 untraced sites and 120 long changed lines to the multi-integration report; that body cuts Code Changes to 40 lines, lists 25 sites and "and 375 more", and stays under the budget.
 
@@ -132,7 +132,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 <!-- refit-migration:4f4b12cd962c850cb703bda5ca1e11d6156675f5627bde70881d62d08933c217 -->
 
-<!-- refit-evidence "runId": "ed1c44af5cf22850f8cadfe76b5b70f0a9bcd8613f3c9249c7ec6ecf1def8a44", "patchHash": "6a6fe8dc7f79464215be63011ca78d3fd997c22aec07473daa37cd75c814494d" -->
+<!-- refit-evidence "runId": "ed1c44af5cf22850f8cadfe76b5b70f0a9bcd8613f3c9249c7ec6ecf1def8a44", "patchHash": "6a6fe8dc7f79464215be63011ca78d3fd997c22aec07473daa37cd75c814494d", "refit": "<release>" -->
 `````
 
 ## Needs-review waiver
@@ -259,7 +259,7 @@ New file `app/api/webhook/stripe-subscription-period.js`; see Files changed.
 
 <!-- refit-migration:aea98588f95dd0413a757c65a968a4a9906ef9c188b9e5a75718324e253947d7 -->
 
-<!-- refit-evidence "runId": "f87feb0a19dc400c870378992e9d67bd6597189dd1ee38c4208c878cfbe8a1b1", "patchHash": "c0aebcfdf045c6dab3eae8aa9476d92a5715c8668ae81a5e77515b87dff9dfa2" -->
+<!-- refit-evidence "runId": "f87feb0a19dc400c870378992e9d67bd6597189dd1ee38c4208c878cfbe8a1b1", "patchHash": "c0aebcfdf045c6dab3eae8aa9476d92a5715c8668ae81a5e77515b87dff9dfa2", "refit": "<release>" -->
 `````
 
 ## Untraced reads
@@ -353,7 +353,7 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 
 <!-- refit-migration:aabfa8f9a90c7ce80c7f3787a77119436b808cfa921bcc94ab365f7c9bd63bf4 -->
 
-<!-- refit-evidence "runId": "37a296da57c79eded74f51772163b097add6b545c999464f9f909277f1c0d75c", "patchHash": "f9d1d43746404aeb0285a8245dee0b7dd69bb6400ad5e1ff6691ad8d5173c3cb" -->
+<!-- refit-evidence "runId": "37a296da57c79eded74f51772163b097add6b545c999464f9f909277f1c0d75c", "patchHash": "f9d1d43746404aeb0285a8245dee0b7dd69bb6400ad5e1ff6691ad8d5173c3cb", "refit": "<release>" -->
 `````
 
 ## AI patch
@@ -458,7 +458,7 @@ New file `convex/stripe-subscription-period.ts`; see Files changed.
 
 <!-- refit-migration:e91c1ba622cb200e988a6f6ee9290c7d3e95b67c6ae0ff747db45bf9e9234376 -->
 
-<!-- refit-evidence "runId": "970d72753414c1eaff706cb9e9f9eb0da56140a6da68029c303d677a56459003", "patchHash": "d2681f6d5332c6d872edcec520db0a151fb44068935b476125a804be1abab1f9" -->
+<!-- refit-evidence "runId": "970d72753414c1eaff706cb9e9f9eb0da56140a6da68029c303d677a56459003", "patchHash": "d2681f6d5332c6d872edcec520db0a151fb44068935b476125a804be1abab1f9", "refit": "<release>" -->
 `````
 
 ## Model fix
@@ -585,7 +585,7 @@ This app pins Shopify Admin API 2025-10. A deterministic Refit rule moves it to 
 
 <!-- refit-migration:3266b6f195137419294a495bafdb7b5c1eebeddbe4e6bd2719b06af85fd9516d -->
 
-<!-- refit-evidence "runId": "a6212c5cfe6688957be9e54023331415293845ac621c076e06124bb41c65338f", "patchHash": "3bf3707df12a1ff6832ec45c79c28c1b098940a69a940b92d21e6597c5241752" -->
+<!-- refit-evidence "runId": "a6212c5cfe6688957be9e54023331415293845ac621c076e06124bb41c65338f", "patchHash": "3bf3707df12a1ff6832ec45c79c28c1b098940a69a940b92d21e6597c5241752", "refit": "<release>" -->
 `````
 
 ## Multi-integration collection
@@ -713,7 +713,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 <!-- refit-migration:d632b2df4c8e4e3b8e9cc0c49de4f4c236e785d0df1eee8255c963ff44b5d0df -->
 
-<!-- refit-evidence "runId": "1da7a5d798d9259e7066a90ce774203bf43b5fc9a399d44fd5bb0cc60b8461b5", "patchHash": "c93ce56b8ae769674c9c162fbad43d3d7ebe185300049054e645fe25a946c2b7" -->
+<!-- refit-evidence "runId": "1da7a5d798d9259e7066a90ce774203bf43b5fc9a399d44fd5bb0cc60b8461b5", "patchHash": "c93ce56b8ae769674c9c162fbad43d3d7ebe185300049054e645fe25a946c2b7", "refit": "<release>" -->
 `````
 
 ## Unmigrated usages
@@ -861,7 +861,7 @@ Refit traced these usages to Stripe objects but no rule changed them, so the mig
 
 <!-- refit-migration:3dd7b2df0020f2414ace0f8f56181e93996b3a2f5b8ca7f8063f50ec33fbac44 -->
 
-<!-- refit-evidence "runId": "e657899d75bd444af4cc0889f15c63f8cf1a935a0135e4fb7ab945f78035d9b9", "patchHash": "f5e7b6b81d47c27c8ecd4d4ce55fd9dcaf42b712a0adc84985c70c1329464b6b" -->
+<!-- refit-evidence "runId": "e657899d75bd444af4cc0889f15c63f8cf1a935a0135e4fb7ab945f78035d9b9", "patchHash": "f5e7b6b81d47c27c8ecd4d4ce55fd9dcaf42b712a0adc84985c70c1329464b6b", "refit": "<release>" -->
 `````
 
 ## Type errors
@@ -1002,7 +1002,7 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 
 <!-- refit-migration:91de6c8a5d3e9d4e0f9217decb74d26cdea8018b6891bdc781354cf00eb11594 -->
 
-<!-- refit-evidence "runId": "104527037b7cbe8867b5c1cfec5b5c49d9ffc3dcde8cdfa9ad9fdff1b3853a26", "patchHash": "f4063a1fbb645a1b4632cc0e5f98b4bacf8864ab1372840bd4916224f4a27c1b" -->
+<!-- refit-evidence "runId": "104527037b7cbe8867b5c1cfec5b5c49d9ffc3dcde8cdfa9ad9fdff1b3853a26", "patchHash": "f4063a1fbb645a1b4632cc0e5f98b4bacf8864ab1372840bd4916224f4a27c1b", "refit": "<release>" -->
 `````
 
 ## Baseline timeout
@@ -1157,7 +1157,7 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 
 <!-- refit-migration:32d47a7c6f3cb0d1455052a6fd328229c4709357a9fb58d2a75f7bf4400a6cd3 -->
 
-<!-- refit-evidence "runId": "291e49f1a4074cce80ccf73c1f552adba76a69296c48331e5d738769a7ee4b8b", "patchHash": "dd2d0482f3343a111c85bfeabf25e41d3631ed4976bf71f9fef8d9e766e79d3a" -->
+<!-- refit-evidence "runId": "291e49f1a4074cce80ccf73c1f552adba76a69296c48331e5d738769a7ee4b8b", "patchHash": "dd2d0482f3343a111c85bfeabf25e41d3631ed4976bf71f9fef8d9e766e79d3a", "refit": "<release>" -->
 `````
 
 ## Commit messages

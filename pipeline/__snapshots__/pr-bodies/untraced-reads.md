@@ -84,4 +84,4 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 
 <!-- refit-migration:aabfa8f9a90c7ce80c7f3787a77119436b808cfa921bcc94ab365f7c9bd63bf4 -->
 
-<!-- refit-evidence "runId": "37a296da57c79eded74f51772163b097add6b545c999464f9f909277f1c0d75c", "patchHash": "f9d1d43746404aeb0285a8245dee0b7dd69bb6400ad5e1ff6691ad8d5173c3cb" -->
+<!-- refit-evidence "runId": "37a296da57c79eded74f51772163b097add6b545c999464f9f909277f1c0d75c", "patchHash": "f9d1d43746404aeb0285a8245dee0b7dd69bb6400ad5e1ff6691ad8d5173c3cb", "refit": "<release>" -->
