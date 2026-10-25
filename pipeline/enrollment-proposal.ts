@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import ts from 'typescript-compiler';
 import { scaffoldChecks } from './agent-catalog.ts';
-import { analyzeRepository } from './analyzer.ts';
+import { analyzeRepository, SourceParseError } from './analyzer.ts';
 import { selectCheck } from './check-selection.ts';
 import {
   validateApiVersion,
@@ -543,10 +543,19 @@ export async function proposeStripeConfiguration(directory: string) {
       action:
         'Add a "test" script to package.json, or a tsconfig.json with typescript in devDependencies.',
     });
-  const version = applicationVersion(
-    analyzeRepository(repository, [], STRIPE).apiVersionDeclarations,
-    repository,
-  );
+  let analysis: ReturnType<typeof analyzeRepository>;
+  try {
+    analysis = analyzeRepository(repository, [], STRIPE);
+  } catch (error) {
+    if (!(error instanceof SourceParseError)) throw error;
+    stops.push({
+      id: 'source-does-not-parse',
+      detail: `${error.file} imports stripe but does not parse (${error.diagnostic}), so Refit cannot read its Stripe calls or the API version it sends.`,
+      action: `Fix the syntax error in ${error.file} and commit it.`,
+    });
+    return { proposal: null, stops };
+  }
+  const version = applicationVersion(analysis.apiVersionDeclarations, repository);
   if (Array.isArray(version)) stops.push(...version);
   else if (!stripeContractVersion(version.value))
     stops.push({

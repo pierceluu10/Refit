@@ -121,37 +121,89 @@ it('forks into the organization and points refit-base at the validated commit', 
   );
 });
 
-it('summarizes affected repositories with their pull requests and stop reasons', () => {
+it('summarizes affected repositories production mode first, with pull requests and stop reasons', () => {
   const commit = 'a'.repeat(40);
+  const scan = { status: 'affected', confirmed: 1, review: 0, findings: [] };
   const table = summaryTable([
     {
       repo: 'a/one',
       commit,
-      fullAdapter: { status: 'affected', confirmed: 2, review: 0, findings: [] },
-      workflow: { status: 'validated', reason: 'publication was not requested' },
+      fullAdapter: { ...scan, confirmed: 2 },
+      productionMode: { ...scan, stop: null },
+      workflow: { status: 'validated', reason: 'publication was not requested', fullDiff: true },
+      production: { status: 'validated', reason: 'publication was not requested' },
       publication: { url: 'https://github.com/refit-dev/one/pull/1' },
     },
     {
       repo: 'b/two',
       commit,
-      fullAdapter: { status: 'affected', confirmed: 1, review: 0, findings: [] },
+      fullAdapter: scan,
       workflow: { status: 'error', error: 'too | big' },
     },
     {
       repo: 'c/three',
       commit,
-      fullAdapter: { status: 'affected', confirmed: 0, review: 0, findings: [] },
+      fullAdapter: { ...scan, confirmed: 0 },
+    },
+    // Production mode stops on an operation impact before validation; benchmark mode validates.
+    {
+      repo: 'd/four',
+      commit,
+      fullAdapter: scan,
+      productionMode: {
+        ...scan,
+        stop: 'Refit traced 1 SDK call site to unresolved breaking OpenAPI changes.',
+      },
+      workflow: { status: 'validated', fullDiff: false },
+      production: {
+        status: 'needs-review',
+        stage: 'scan',
+        reason: 'Refit traced 1 SDK call site to unresolved breaking OpenAPI changes.',
+      },
+    },
+    // Only production mode is affected: an impact on a called operation, no removed-field read.
+    {
+      repo: 'e/five',
+      commit,
+      fullAdapter: { ...scan, confirmed: 0, status: 'needs-review' },
+      productionMode: { ...scan, confirmed: 0, stop: 'Refit traced 2 SDK call sites.' },
     },
   ]);
-  expect(table).toContain('Repositories: 3. Affected: 2. Pull requests: 1.');
+  expect(table).toContain('Repositories: 5. Affected in either mode: 4.');
+  expect(table).toContain('Pull requests: 1.');
+  expect(table).toContain('| Outcome | Production | Benchmark |');
+  expect(table).toContain('| needs-review | 2 | 0 |');
+  expect(table).toContain('| validated | 0 | 1 |');
+  expect(table).toContain('| pull request | 1 | 1 |');
   expect(table).toContain(
-    '| a/one | pull request | [link](https://github.com/refit-dev/one/pull/1) |  |',
+    '| a/one | pull request | pull request | [link](https://github.com/refit-dev/one/pull/1) |  |',
   );
-  expect(table).toContain('| b/two | error |  | too / big |');
+  expect(table).toContain('| b/two | not affected | error |  | too / big |');
+  expect(table).toContain(
+    '| d/four | needs-review | validated |  | Refit traced 1 SDK call site to unresolved breaking OpenAPI changes. |',
+  );
+  expect(table).toContain(
+    '| e/five | needs-review | not affected |  | Refit traced 2 SDK call sites. |',
+  );
   expect(table).not.toContain('c/three');
   expect(table).toContain(
     'These results predate /*/outcomeClass; rows were classified from their fields.',
   );
+});
+
+it('says production mode was not measured for rows from before it was recorded', () => {
+  const commit = 'a'.repeat(40);
+  const table = summaryTable([
+    {
+      repo: 'a/one',
+      commit,
+      outcomeClass: 'repository',
+      fullAdapter: { status: 'affected', confirmed: 1, review: 0, findings: [] },
+      productionMode: { status: 'affected', confirmed: 1, review: 0, findings: [] },
+      workflow: { status: 'validated' },
+    },
+  ]);
+  expect(table).toContain('| a/one | not measured | validated |  |  |');
 });
 
 it('lists infrastructure errors apart from the counts and refuses rows that break the schema', () => {
@@ -179,8 +231,9 @@ it('lists infrastructure errors apart from the counts and refuses rows that brea
       },
     },
   ]);
-  expect(table).toContain('Repositories: 1. Affected: 1. Pull requests: 0.');
-  expect(table).toContain('| validated | 1 |');
+  expect(table).toContain('Repositories: 1. Affected in either mode: 1.');
+  expect(table).toContain('Pull requests: 0.');
+  expect(table).toContain('| validated | 0 | 1 |');
   expect(table).not.toContain('| error |');
   expect(table).toContain('Infrastructure errors, not counted above: 2. Rerun them with --resume.');
   expect(table).toContain('| b/two | clone | the checkout is at 0000, not the pinned one |');

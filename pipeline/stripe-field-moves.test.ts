@@ -971,6 +971,48 @@ it('passes a typed cast receiver to the invoice helper without widening it to an
   expect(diff).toContain('+  return (getInvoiceSubscription(invoice as Stripe.Invoice));');
 });
 
+// Only one parenthesized cast of a plain receiver moves. The double cast is the shape of
+// carlonicora/nestjs-neo4jsonapi's stripe-webhook.processor.ts:434.
+it.each([
+  [
+    'a double cast',
+    `export async function owner(id: string) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return (invoice as unknown as { subscription: string }).subscription;
+}`,
+    'getInvoiceSubscription(',
+  ],
+  [
+    'a non-null assertion after a cast',
+    `export async function ends(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return (subscription as any)!.current_period_end;
+}`,
+    'getSubscriptionPeriodEnd(',
+  ],
+  [
+    'a cast call receiver',
+    `export async function ends(id: string) {
+  return ((await stripe.subscriptions.retrieve(id)) as any).current_period_end;
+}`,
+    'getSubscriptionPeriodEnd(',
+  ],
+  [
+    'a typeof-guarded cast read',
+    `export async function owner(id: string) {
+  const invoice = await stripe.invoices.retrieve(id);
+  return typeof (invoice as any).subscription === 'string' ? (invoice as any).subscription : null;
+}`,
+    'getInvoiceSubscription(',
+  ],
+])('leaves %s to review', async (_shape, body, helper) => {
+  const report = await run(body);
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  const added = diff.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++'));
+  expect(added.filter((line) => line.includes(helper))).toEqual([]);
+  expect(report.patch).not.toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+});
+
 it('keeps an `as any` receiver typed any under the generic helpers', () => {
   const files = new Map([
     ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
