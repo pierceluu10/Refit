@@ -789,6 +789,16 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   regression.validation.status = regression.patch.validation = 'regression';
   expect(publicationWaiver(regression, true)).toBeUndefined();
   await expect(publishDraft(regression, allowed)).rejects.toThrow(/passing baseline/);
+  // #288: Refit's generated type check could not run and there are no tests, so no check ran
+  // (get-convex/convex-saas's TS5069 in refit-bench run 40180681405, before the fix).
+  const noCheck = await untestedReport();
+  delete noCheck.validation.dependencyFailure;
+  Object.assign(noCheck.validation, {
+    typeCheckUnavailable:
+      ".refit-tsconfig.json(1,34): error TS5069: Option 'tsBuildInfoFile' cannot be specified without specifying option 'incremental' or option 'composite'.",
+  });
+  expect(publicationWaiver(noCheck, true)?.map(({ gate }) => gate)).toContain('no-checks');
+  expect(publicationWaiver(noCheck, false)).toBeUndefined();
 });
 
 // Owner decision 8: a passing AI patch is never a validated draft.

@@ -923,6 +923,8 @@ export async function validateMigration(options: {
       advisory,
       typeCheckUnavailable,
     );
+    // An unavailable generated type check with no tests is no check: the patch is kept untested.
+    const noCheck = Boolean(typeCheckUnavailable) && !typeCheckCommand(options.command);
     // Tests that fail on the original code leave a chain's type check to compare (Laptop 1's ruling
     // on #288): the type check alone runs on the patch, so the patch's checks still never ran.
     const testsBroken =
@@ -965,6 +967,7 @@ export async function validateMigration(options: {
       baseline.status === 'passed' ||
       dependencyFailure ||
       testsBroken ||
+      noCheck ||
       (untestedBaseline && proposal.diff)
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
@@ -1337,7 +1340,7 @@ export async function validateMigration(options: {
     const validationStatus =
       currentRevision !== revision || currentStatus
         ? 'stale'
-        : dependencyFailure
+        : dependencyFailure || noCheck
           ? 'untested'
           : checkStatus(baseline, patched, generated);
     const failures = checkFailures(baselineCommand, options.command, baseline, patched);
@@ -1412,7 +1415,9 @@ export async function validateMigration(options: {
           : ungradedEvidence(
               dependencyFailure
                 ? `Dependencies could not be prepared, so no check ran: ${dependencyFailure.summary}`
-                : checkFailureText(failures).trim() ||
+                : noCheck
+                  ? `No check ran: the generated type check is unavailable (${typeCheckUnavailable}), and the repository has no tests.`
+                  : checkFailureText(failures).trim() ||
                     (generated
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),

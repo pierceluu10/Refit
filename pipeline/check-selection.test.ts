@@ -120,6 +120,7 @@ const ROCART = {
   }),
   'tsconfig.app.json': JSON.stringify({
     compilerOptions: {
+      tsBuildInfoFile: './node_modules/.tmp/tsconfig.app.tsbuildinfo',
       target: 'ES2020',
       module: 'ESNext',
       moduleResolution: 'bundler',
@@ -307,7 +308,7 @@ it('scopes the type check to the Stripe code when the root program leaves it out
   // The app project sets its own target, module and jsx, so nothing else is added.
   expect(scopedConfiguration(rocart.command)).toEqual({
     extends: './tsconfig.app.json',
-    compilerOptions: JAVASCRIPT_CHECK,
+    compilerOptions: { ...JAVASCRIPT_CHECK, incremental: true },
     files: ['api/create-payment-intent.js', 'api/server.js'],
     include: [],
   });
@@ -322,16 +323,23 @@ it('scopes the type check to the Stripe code when the root program leaves it out
         references: [{ path: './tsconfig.app.json' }, { path: './tsconfig.node.json' }],
       }),
       'tsconfig.app.json': JSON.stringify({
-        compilerOptions: { composite: true, target: 'ES2020', module: 'ESNext', jsx: 'react-jsx' },
+        compilerOptions: {
+          composite: true,
+          tsBuildInfoFile: './node_modules/.tmp/tsconfig.app.tsbuildinfo',
+          target: 'ES2020',
+          module: 'ESNext',
+          jsx: 'react-jsx',
+        },
         include: ['src', 'convex'],
       }),
       'convex/stripe.ts': "import Stripe from 'stripe';\nexport const stripe = new Stripe('sk');\n",
       'convex/http.ts': "import { stripe } from './stripe';\nexport default stripe;\n",
     }),
   );
+  // refit-bench run 40180681405: without incremental, tsc rejected the inherited tsBuildInfoFile (TS5069).
   expect(scopedConfiguration(convex.command)).toEqual({
     extends: './tsconfig.app.json',
-    compilerOptions: JAVASCRIPT_CHECK,
+    compilerOptions: { ...JAVASCRIPT_CHECK, incremental: true },
     files: ['convex/http.ts', 'convex/stripe.ts'],
     include: [],
   });
@@ -675,6 +683,24 @@ it('counts a generated type check that fails on configuration as unavailable, ne
     unavailableTypeCheck(command, run(`${TYPE_CHECK_STARTED}\napi/a.ts(1,1): error TS2322: x\n`)),
   ).toBeUndefined();
   expect(unavailableTypeCheck(TYPE_CHECK, run('error TS6059: x'))).toBeUndefined();
+  // get-convex/convex-saas in run 40180681405: an error against the generated config.
+  expect(
+    unavailableTypeCheck(
+      command,
+      run(
+        `${TYPE_CHECK_STARTED}\n.refit-tsconfig.json(1,34): error TS5069: Option 'tsBuildInfoFile' cannot be specified without specifying option 'incremental' or option 'composite'.\n`,
+      ),
+    ),
+  ).toMatch(/^\.refit-tsconfig\.json\(1,34\): error TS5069/);
+  // Deepanshu0211/Rocart in the same run: TS6133, an unused local, is an ordinary diagnostic.
+  expect(
+    unavailableTypeCheck(
+      command,
+      run(
+        `${TYPE_CHECK_STARTED}\napi/server.js(65,11): error TS6133: 'adjustedLineItems' is declared but its value is never read.\n`,
+      ),
+    ),
+  ).toBeUndefined();
 });
 
 it('counts only the listed test files as reaching the changed code', async () => {

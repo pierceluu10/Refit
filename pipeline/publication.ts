@@ -634,7 +634,7 @@ export function publicationWaiver(
   const failure = validation.dependencyFailure;
   if (
     validation.status !== 'passed' &&
-    !(validation.status === 'untested' && failure) &&
+    !(validation.status === 'untested' && (failure || validation.typeCheckUnavailable)) &&
     !baselineFailed
   )
     return undefined;
@@ -685,6 +685,16 @@ export function publicationWaiver(
             // An error is a check that could not finish, such as one stopped at the time limit.
             reason: `${checks} ${validation.baseline.status === 'error' ? 'did not finish' : 'does not pass'} on the original code, so the checks say nothing about this patch and Refit did not run them on it.`,
             check: `Make ${checks} ${validation.baseline.status === 'error' ? 'finish and pass' : 'pass'} on the base branch, then run it on this branch before merging.`,
+          },
+        ]
+      : []),
+    // #288: the type check Refit generated could not run and there are no tests, so no check ran.
+    ...(validation.status === 'untested' && !failure && validation.typeCheckUnavailable
+      ? [
+          {
+            gate: 'no-checks' as const,
+            reason: `Refit ran no checks: the type check it generated cannot run here (${plainText(String(validation.typeCheckUnavailable))}), and the repository has no tests.`,
+            check: NO_OP_REVIEW.check,
           },
         ]
       : []),
