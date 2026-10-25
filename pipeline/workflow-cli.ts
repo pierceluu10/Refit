@@ -18,7 +18,7 @@ import { cliErrorMessage } from './cli-errors.ts';
 const RUN_DIRECTORY_PREFIX = 'refit-run-';
 
 const USAGE =
-  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-unresolved] [--shopify-sdk-upgrade] [--publish-draft --github owner/repository --base main [--github-app]]';
+  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--behaviour-tests (sends the original Stripe modules to OpenAI)] [--publish-unresolved] [--shopify-sdk-upgrade] [--publish-draft --github owner/repository --base main [--github-app]]';
 
 try {
   const { values } = parseArgs({
@@ -43,6 +43,7 @@ try {
       'api-version-policy': { type: 'string' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
+      'behaviour-tests': { type: 'boolean' },
       'documentation-snapshot': { type: 'string', multiple: true },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
@@ -126,6 +127,7 @@ try {
       fullDiff: values['full-diff'] ?? configuration?.fullDiff,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
+      behaviourTests: assessmentConfiguration(values['behaviour-tests'], process.env),
       documentationSnapshots: values['documentation-snapshot'],
       repairAttempts: Number(values['repair-attempts'] ?? 0),
       publication: values['publish-draft']

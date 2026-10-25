@@ -99,6 +99,7 @@ export async function runWorkflow(options: {
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
+  behaviourTests?: AiOptions;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -261,6 +262,7 @@ export async function runWorkflow(options: {
       compareTypeErrors: options.compareTypeErrors,
       assessment: options.assessment,
       aiPatch: options.aiPatch,
+      behaviourTests: options.behaviourTests,
       documentationSnapshots: options.documentationSnapshots,
       repairAttempts: options.repairAttempts,
       leaveRequestParameters,

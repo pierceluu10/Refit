@@ -37,7 +37,7 @@ import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--behaviour-tests] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -71,6 +71,9 @@ const { values } = parseArgs({
     output: { type: 'string' },
     env: { type: 'string' },
     ai: { type: 'boolean' },
+    // Writes behaviour tests during validation with one model request per repository; it needs
+    // --env with OPENAI_API_KEY and OPENAI_MODEL and never turns on AI patches.
+    'behaviour-tests': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -91,6 +94,12 @@ if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 if (values.publish && !values.validate)
   throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
 if (values.env) process.loadEnvFile(values.env);
+if (values['behaviour-tests'] && (!values.env || !values.validate))
+  throw new PipelineInputError(
+    '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
+  );
+// Fails before any repository runs when the key or model is missing.
+if (values['behaviour-tests']) assessmentConfiguration(true, process.env);
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
@@ -148,7 +157,7 @@ const { rows: previous } = await openRunDirectory(
     environment: [
       'REFIT_VALIDATION_WORKSPACE',
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
-      ...(values.ai ? ['OPENAI_MODEL'] : []),
+      ...(values.ai || values['behaviour-tests'] ? ['OPENAI_MODEL'] : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty,
@@ -467,6 +476,7 @@ async function benchmark(entry: Selected, index: number) {
                   '1',
                 ]
               : []),
+            ...(values['behaviour-tests'] ? ['--behaviour-tests'] : []),
             // Saves [Needs review] artifacts for waivable stops so they can be published below.
             ...(values['publish-unresolved'] ? ['--publish-unresolved'] : []),
             '--quiet',
@@ -503,6 +513,7 @@ async function benchmark(entry: Selected, index: number) {
       baseline: report.validation?.baseline?.status,
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,
+      behaviourTests: report.validation?.behaviourTests,
       baselineStop: report.validation?.baselineStop?.reason,
       checkErrors: {
         baseline: report.validation?.baseline?.error,

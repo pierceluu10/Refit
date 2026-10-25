@@ -660,3 +660,76 @@ it('makes folders mounted into the sandbox readable by its unprivileged user', a
   expect(directory.startsWith(join(root, 'candidate-'))).toBe(true);
   expect((await stat(directory)).mode & 0o777).toBe(0o755);
 });
+
+it.skipIf(!IMAGE)(
+  'writes behaviour tests during validation from the original code, never the patch, after both checks pass',
+  async () => {
+    const root = await repository();
+    const test = `import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { history } from '../billing.js';
+test('returns the charge history', async () => {
+  assert.equal((await history('pi_test')).length, 2);
+});
+`;
+    const fetcher = vi.fn(async (url: string, _init?: RequestInit) =>
+      url.endsWith('/input_tokens')
+        ? new Response(JSON.stringify({ input_tokens: 3000 }))
+        : new Response(
+            JSON.stringify({
+              id: 'resp_behaviour',
+              model: 'gpt-6.1-sol',
+              status: 'completed',
+              usage: { input_tokens: 3000, output_tokens: 2000 },
+              output: [
+                {
+                  type: 'message',
+                  role: 'assistant',
+                  content: [
+                    {
+                      type: 'output_text',
+                      text: JSON.stringify({
+                        summary: 'One test.',
+                        uncertainties: [],
+                        files: [
+                          {
+                            path: 'refit-behaviour/history.test.mjs',
+                            content: test,
+                            findingIds: ['f1'],
+                          },
+                        ],
+                      }),
+                    },
+                  ],
+                },
+              ],
+            }),
+          ),
+    );
+    vi.stubGlobal('fetch', fetcher);
+    // The ledger lives outside the repository, which must stay clean for the result to count.
+    const ledger = await mkdtemp(join(tmpdir(), 'refit-behaviour-budget-'));
+    directories.push(ledger);
+    const report = await validateMigration({
+      ...options,
+      repository: root,
+      command: ['node', '--version'],
+      behaviourTests: {
+        apiKey: 'test-key',
+        model: 'gpt-6.1-sol',
+        budget: { directory: ledger, limitUsd: 1 },
+      },
+    });
+    expect(report.validation.status).toBe('passed');
+    expect(report.validation.behaviourTests).toMatchObject({
+      status: 'generated',
+      files: [{ path: 'refit-behaviour/history.test.mjs', sha256: digest(test) }],
+    });
+    const sent = fetcher.mock.calls.find(([url]) => !url.endsWith('/input_tokens'))!;
+    const evidence = JSON.parse(JSON.parse(String(sent[1]!.body)).input[0].content);
+    expect(evidence.files).toEqual([{ path: 'billing.js', content: SOURCE }]);
+    expect(JSON.stringify(evidence)).not.toContain(report.patch.diff);
+    expect(fetcher.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'))).toHaveLength(1);
+  },
+  60_000,
+);

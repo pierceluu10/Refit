@@ -51,6 +51,7 @@ import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
 import { checkFailures } from './check-failures.ts';
 import { gradeEvidence } from './check-selection.ts';
+import { writeBehaviourTests } from './behaviour-tests.ts';
 import {
   dockerSandboxArguments,
   preparationProfile,
@@ -571,6 +572,8 @@ export async function validateMigration(options: {
   fullDiff?: boolean;
   repairAttempts?: number;
   generatedChecks?: GeneratedChecks;
+  // --behaviour-tests: one model request writes tests from the original code (behaviour-tests.ts).
+  behaviourTests?: AiOptions;
   // --publish-unresolved: see withoutRequestParameters.
   leaveRequestParameters?: boolean;
   keepListedPaymentMethods?: boolean;
@@ -1215,6 +1218,23 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
+    // Written from the original code and the preflight scan, which ran before any patch existed.
+    const behaviour =
+      options.behaviourTests &&
+      candidateDirectory &&
+      baseline.status === 'passed' &&
+      patched.status === 'passed'
+        ? await timed('behaviourTests', () =>
+            writeBehaviourTests({
+              repository: originalSources,
+              findings: preflight.findings,
+              changes: preflight.changes,
+              before: beforeSpecification,
+              after: afterSpecification,
+              ai: options.behaviourTests!,
+            }),
+          )
+        : undefined;
     const grade =
       candidateSources && patched.status !== 'not-run'
         ? await gradeEvidence({
@@ -1253,6 +1273,7 @@ export async function validateMigration(options: {
       baseline,
       patched,
       ...(generated ? { generated } : {}),
+      ...(behaviour ? { behaviourTests: behaviour.record } : {}),
       ...(grade ? { grade } : {}),
       attempts,
       repair,
