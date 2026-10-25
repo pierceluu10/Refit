@@ -28,6 +28,8 @@ kill_timeout = 300
   # near 16 GiB of the volume.
   REFIT_DEPENDENCY_CACHE_DIRECTORY = "/data/dependencies"
   REFIT_DEPENDENCY_CACHE_GIB = "8"
+  # Validation stages each archive in a temporary directory; four jobs could fill the root disk.
+  TMPDIR = "/data/tmp"
 
 [mounts]
   source = "refit_data"
