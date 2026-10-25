@@ -208,7 +208,13 @@ it('fails validation on a behaviour test that passed before and fails after, and
       grade: null,
     },
   });
-  expect(unconfigured.validation.grade?.reason).toContain(
-    'Behaviour tests did not give grade A: Behaviour tests could not run:',
-  );
+  // The checks' own grade stands, and the record says what the behaviour tests missed.
+  expect(unconfigured.validation.grade).toEqual({
+    letter: 'D',
+    level: 'none',
+    reason: 'No test reaches billing.ts, and no generated check ran it.',
+  });
+  expect(unconfigured.validation.behaviour?.missing).toEqual([
+    "Behaviour tests could not run: Behaviour tests need generatedChecks settings: a local stripe-mock image and both versions' fixtures.",
+  ]);
 });

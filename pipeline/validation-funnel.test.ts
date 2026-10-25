@@ -58,28 +58,50 @@ const ROWS = [
   },
   {
     ...affected,
-    repo: 'graded/none',
+    repo: 'graded/d',
     checks: 'typecheck',
     workflow: {
-      status: 'published',
+      status: 'needs-review',
       stage: 'validation',
       validation: 'passed',
-      grade: { level: 'none', reason: 'tsc reaches none of the changed code.' },
+      grade: { letter: 'D', level: 'none', reason: 'The type check does not cover api/pay.js.' },
     },
   },
   {
     ...affected,
-    repo: 'graded/tests',
+    repo: 'graded/b',
     checks: 'tests',
-    workflow: { status: 'published', validation: 'passed', grade: { level: 'stripe-tests' } },
+    workflow: {
+      status: 'published',
+      validation: 'passed',
+      grade: { letter: 'B', level: 'stripe-tests' },
+    },
   },
-  { ...affected, repo: 'no-check/app', checks: 'generated-only', checkSelection: { reason: 'x' } },
+  // Before check selection, a repository without checks ran `node -e 0` and stopped or passed.
+  { ...affected, repo: 'no-check/old', checks: 'generated-only', checkSelection: { reason: 'x' } },
+  {
+    ...affected,
+    repo: 'no-check/stopped',
+    checks: 'generated-only',
+    workflow: { status: 'needs-review', stage: 'scan', reason: 'A traced SDK request...' },
+  },
+  {
+    ...affected,
+    repo: 'no-check/kept',
+    checks: 'generated-only',
+    checkSelection: { reason: 'There is no test script; no file imports stripe.' },
+    workflow: {
+      status: 'needs-review',
+      stage: 'checks',
+      diff: 'diff --git a/server.js b/server.js',
+      grade: { letter: 'D', level: 'none', reason: 'There is no test script.' },
+    },
+  },
 ];
 
 it('places each affected repository at the first stage it did not pass', () => {
   const result = funnel(ROWS);
-  console.log(JSON.stringify(result.stages));
-  expect(result).toMatchObject({ rows: 10, affected: 9 });
+  expect(result).toMatchObject({ rows: 12, affected: 11 });
   expect(Object.fromEntries(result.repositories.map((row) => [row.repo, row.stage]))).toEqual({
     'horizon-ui/shadcn-nextjs-boilerplate': 'preparation-refused',
     'nizzyabi/nizzy-starter': 'preparation-refused',
@@ -87,12 +109,16 @@ it('places each affected repository at the first stage it did not pass', () => {
     'beindigital-products/wedillybird': 'check-timeout',
     'Kanba-co/kanba': 'patched-failed',
     'get-convex/convex-saas': 'generated-check-infrastructure',
-    'graded/none': 'no-runnable-check',
-    'graded/tests': 'validated',
-    'no-check/app': 'no-runnable-check',
+    'graded/d': 'validated',
+    'graded/b': 'validated',
+    'no-check/old': 'no-runnable-check',
+    'no-check/stopped': 'scan-stop',
+    'no-check/kept': 'no-runnable-check',
   });
   expect(result.preparation).toEqual({ 'no-lockfile': 1, 'dependency-archive-limit': 1 });
-  expect(result.grades).toEqual({ 'stripe-tests': 1 });
+  // Validated rows by letter; rows without a check keep a grade-D patch or have none.
+  expect(result.grades).toEqual({ D: 1, B: 1 });
+  expect(result.noCheck).toEqual({ 'no patch': 1, 'D, patch kept': 1 });
 });
 
 it('groups preparation refusals by the message Refit raises', () => {

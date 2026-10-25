@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
-import { STRIPE_IMPORT } from './check-selection.ts';
+import { STRIPE_IMPORT, type BehaviourEvidence } from './check-selection.ts';
 import {
   generatedEnvironment,
   generatedImportMap,
@@ -509,5 +509,26 @@ export function compareBehaviourRuns(options: {
         stderr: string;
       }
     >,
+  };
+}
+
+// Grade A's input for check-selection's gradeEvidence: the tests passed on both sides and every
+// changed Stripe line ran on both. Anything less keeps the checks' own grade.
+export function behaviourGrade(result: {
+  status: string;
+  grade: 'A' | null;
+  missing: string[];
+  tests: { path: string }[];
+  coverage?: { changedLines: Record<Side, LinesByFile> };
+}): BehaviourEvidence {
+  const count = (side: Side) =>
+    Object.values(result.coverage?.changedLines[side] ?? {}).flat().length;
+  return {
+    passed: result.status === 'passed',
+    coversEveryChangedLine: result.grade === 'A',
+    reason:
+      result.grade === 'A'
+        ? `Behaviour tests (${result.tests.map((test) => test.path).join(', ')}) passed on ${sideText.original} and on ${sideText.patched}, and ran every changed Stripe line on both sides (${count('original')} original, ${count('patched')} patched).`
+        : `Behaviour tests did not give grade A: ${result.missing[0] ?? 'no reason recorded.'}`,
   };
 }

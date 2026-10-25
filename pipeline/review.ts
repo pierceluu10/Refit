@@ -277,7 +277,7 @@ function replacementReasons(report: ValidationReport) {
 }
 
 const EVIDENCE_LABELS = {
-  'behaviour-tests': 'Behaviour tests ran every changed Stripe line on both API versions',
+  'behaviour-tests': 'Behaviour tests cover every changed line',
   'stripe-tests': 'Tests exercise the changed code',
   'type-check': 'Type-checked only',
   'generated-check': 'Generated stripe-mock checks only',
@@ -374,8 +374,10 @@ export function createReviewArtifacts(
   ).toLowerCase();
   // O2's evidence grade: what the passing checks proved about the changed files.
   const grade = 'grade' in validation ? validation.grade : undefined;
-  // A passing patch no check reached publishes only as [Needs review] (AGENTS.md, 2026-10-24).
-  const unchecked = validation.status === 'passed' && grade?.level === 'none';
+  // A passing patch graded D, which no check fully reached, publishes only as [Needs review]
+  // (AGENTS.md, 2026-10-24).
+  const unchecked =
+    validation.status === 'passed' && (grade?.letter === 'D' || grade?.level === 'none');
   const needsReview = Boolean(waiver || patch.unresolvedFindings || unchecked);
   const prefix = needsReview ? '[Needs review] ' : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
@@ -526,7 +528,7 @@ export function createReviewArtifacts(
   const review = [
     ...(unchecked
       ? [
-          `**No check reached the changed code.** ${plainText(grade!.reason)} Run the code this patch changes once before merging.`,
+          `**No check reached all of the changed code.** ${plainText(grade!.reason)} Run the code this patch changes once before merging.`,
         ]
       : []),
     ...(shopify?.deprecated ?? []).map(
@@ -781,7 +783,9 @@ export function createReviewArtifacts(
       '## Automated Verification Gates',
       [
         ...(grade
-          ? [`- Evidence Grade: **${EVIDENCE_LABELS[grade.level]}.** ${plainText(grade.reason)}`]
+          ? [
+              `- Evidence Grade: **${grade.letter ? `${grade.letter}, ` : ''}${EVIDENCE_LABELS[grade.level]}.** ${plainText(grade.reason)}`,
+            ]
           : []),
         `- Test Suite Output: ${checks}${generatedResult}`,
         ...(legacyPeerDeps
