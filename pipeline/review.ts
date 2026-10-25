@@ -494,7 +494,7 @@ export function createReviewArtifacts(
           : []),
         ...listedMethods.map(
           (methods) =>
-            `Moves ${code(`[${methods}]`)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')}, because this repository set ${code('stripePaymentMethodTypes: "keep-listed"')} in ${code('.refit.json')}.`,
+            `Moves ${code(`[${methods}]`)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')} with the same methods, under the owner decision of 2026-10-24 to keep listed payment methods.`,
         ),
         ...movedExpressions.map(
           (expression) =>

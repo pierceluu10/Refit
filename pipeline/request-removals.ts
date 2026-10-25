@@ -15,8 +15,8 @@ export interface RequestParameterRemoval {
   argumentIndex: number;
   // An owner-approved replacement for exactly `['card']` (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
   cardReplacement?: string;
-  // The repository opted in (`stripePaymentMethodTypes: "keep-listed"`) to keep a literal list of
-  // `card` plus other methods under the replacement too, and to move any other value expression.
+  // Keep a literal list of `card` plus other methods under the replacement too, and move any other
+  // value expression (the default since 2026-10-24; `stripePaymentMethodTypes: "keep-listed"`).
   keepListed?: boolean;
   // A reviewed move to the parameter's documented replacement (stripe-request-moves.ts).
   move?: RequestMove;
@@ -129,7 +129,9 @@ export function removedRequestParameters(
           current.has(CARD_REPLACEMENT)
             ? {
                 cardReplacement: CARD_REPLACEMENT,
-                ...(options.keepListedPaymentMethods ? { keepListed: true } : {}),
+                // Owner decision (Pierce, 2026-10-24, Push 279 decision 2): keep-listed is the
+                // default; only an explicit `false` keeps the card-only rule.
+                ...(options.keepListedPaymentMethods !== false ? { keepListed: true } : {}),
               }
             : {}),
           ...(move ? { move } : {}),

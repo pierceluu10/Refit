@@ -1271,6 +1271,141 @@
         "upgradeComplete": "yes: stripe ^20.3.1 to ^23.0.0 in package.json and the lockfile; no client sets apiVersion, so the upgrade itself moves the version.",
         "wouldMerge": "yes, after one test-mode checkout."
       }
+    },
+    {
+      "repo": "nabarvn/documon",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: [\"card\", \"paypal\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.9.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "JensenMPillay/pdfai",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/procedures.ts payment_method_types: [\"card\", \"paypal\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "baseline failed (no tests found), as on main. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.25.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "Sammindinventory/Saas-Gen-AI",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: trpc/index.ts payment_method_types: [\"card\", \"paypal\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.8.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "cookieMonsterDev/e-commerce-saas",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: [\"card\", \"paypal\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^13.7.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "haimatrix99/quiz-me",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: trpc/index.ts payment_method_types: ['card', 'paypal'] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.8.0 to ^23.0.0 in package.json and the lockfile; no literal pin; the upgrade moves the version.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "Sarcovora/quill",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: ['card', 'paypal'] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.11.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "Yudhishthirr/askmypdf",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: ['card', 'paypal'] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^16.7.0 to ^23.0.0 in package.json and the lockfile; no literal pin; the upgrade moves the version.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/controller/index.ts payment_method_types: ['card', 'paypal'] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.13.0 to ^23.0.0 in package.json and the lockfile; no literal pin; the upgrade moves the version.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
+    },
+    {
+      "repo": "ASQUAREEE/intellico",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40143809916, Refit 6aa9488 (feat/l3-payment-method-types, #304) with --keep-listed-payment-methods, subsets/l3-249.json; before 40143804970 (cd23295, main 3c3a63d) stopped on the removed parameter. migration.patch read in full with line endings ignored (lockfile hunks checked for the stripe entry only)",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/index.ts payment_method_types: [\"card\",\"paypal\",\"us_bank_account\"] renamed to allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2; https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). The other hunks are the existing period and invoice-subscription helpers.",
+        "bothVersions": "not needed for the request parameter, sent at the version the same patch moves to endive; webhook reads go through the dual-version helpers.",
+        "nothingUnrelated": "yes: the renamed key, the helper module and its call sites, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "checks passed; [Needs review] for untraced reads. PayPal (and the other non-card methods) may no longer be offered to some buyers under the filter; the draft names them.",
+        "upgradeComplete": "yes: stripe ^14.9.0 to ^23.0.0 in package.json and the lockfile; 2023-10-16 literal pin.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout."
+      }
     }
   ]
 }

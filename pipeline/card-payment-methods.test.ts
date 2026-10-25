@@ -52,7 +52,7 @@ function contract(version: string, fields: string[]) {
 async function run(
   files: Record<string, string>,
   proposePatch = true,
-  keepListedPaymentMethods = false,
+  keepListedPaymentMethods?: boolean,
 ) {
   const root = await mkdtemp(join(tmpdir(), 'refit-card-methods-'));
   directories.push(root);
@@ -101,7 +101,7 @@ async function run(
     providerConfig,
     apiVersion: '2026-08-26.dahlia',
     proposePatch,
-    keepListedPaymentMethods,
+    ...(keepListedPaymentMethods === undefined ? {} : { keepListedPaymentMethods }),
   });
 }
 
@@ -203,7 +203,7 @@ it("moves ['card'] to allowed_payment_method_types together with the endive pin"
 it.each([
   ['without a literal API version pin', { 'checkout.js': checkout("['card']", '{}') }],
   [
-    'when another call sends card and PayPal',
+    'when another call sends card and PayPal and keep-listed is turned off',
     {
       'checkout.js':
         checkout("['card']") +
@@ -215,7 +215,7 @@ it.each([
     { 'checkout.ts': checkout("['card']") },
   ],
 ])('keeps stopping for review %s', async (_case, files) => {
-  const report = await run(files);
+  const report = await run(files, true, false);
   expect(report.patch).toMatchObject({
     status: 'not-generated',
     reason: expect.stringMatching(/parameter the target API version removed/),
@@ -411,10 +411,10 @@ it('lets an AI repair keep the card-only renames without counting them as droppe
   ).toEqual(['payment_method_types']);
 });
 
-it('keeps a listed card-plus-methods value only where the repository opted in', async () => {
+it('keeps a listed card-plus-methods value by default, and not when keep-listed is off', async () => {
   const files = { 'checkout.js': checkout("['card', 'paypal']") };
-  expect((await run(files)).patch).toMatchObject({ status: 'not-generated' });
-  const report = await run(files, true, true);
+  expect((await run(files, true, false)).patch).toMatchObject({ status: 'not-generated' });
+  const report = await run(files);
   expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
   if (!('diff' in report.patch)) throw new Error('Expected a patch');
   expect(report.patch.diff).toContain(
@@ -464,7 +464,7 @@ it('keeps a listed card-plus-methods value only where the repository opted in', 
     },
   }).files['pull-request.md'];
   expect(description).toContain(
-    'Moves `[card, paypal]` from `payment_method_types` to `allowed_payment_method_types`, because this repository set `stripePaymentMethodTypes: "keep-listed"`',
+    'Moves `[card, paypal]` from `payment_method_types` to `allowed_payment_method_types` with the same methods, under the owner decision of 2026-10-24 to keep listed payment methods.',
   );
   expect(description).toContain('so `paypal` may no longer be offered to some customers');
 });
@@ -484,8 +484,8 @@ it.each([
   ['a property', 'config.methods', "const config = { methods: ['card', 'us_bank_account'] };"],
 ])('moves %s to allowed_payment_method_types unchanged', async (_shape, methods, setup) => {
   const files = { 'checkout.js': `${setup}\n${checkout(methods)}` };
-  expect((await run(files)).patch).toMatchObject({ status: 'not-generated' });
-  const report = await run(files, true, true);
+  expect((await run(files, true, false)).patch).toMatchObject({ status: 'not-generated' });
+  const report = await run(files);
   expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
   if (!('diff' in report.patch)) throw new Error('Expected a patch');
   expect(report.patch.diff).toContain(`allowed_payment_method_types: ${methods} });`);
@@ -704,13 +704,16 @@ export const checkout = (line_items) =>
   stripe.checkout.sessions.create({ ...STRIPE_SESSION_CREATE_PARAMS, line_items });
 `;
 
+it('moves card and PayPal in a variable the call receives, and stops when keep-listed is off', async () => {
+  const files = { 'checkout.js': builtInVariable.replace('["card"]', '["card", "paypal"]') };
+  const report = await run(files);
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain('+    allowed_payment_method_types: ["card", "paypal"],');
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+  expect((await run(files, true, false)).patch).toMatchObject({ status: 'not-generated' });
+});
+
 it.each([
-  [
-    'in a variable the call receives, with PayPal',
-    { 'checkout.js': builtInVariable.replace('["card"]', '["card", "paypal"]') },
-    'checkout.js',
-    8,
-  ],
   [
     'in a variable a wrapper receives',
     {

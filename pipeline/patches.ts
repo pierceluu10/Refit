@@ -56,7 +56,7 @@ export function listedPaymentMethods(content: string, edit: SourceEdit) {
 
 export function listedPaymentMethodWarning(methods: string[]) {
   const others = methods.filter((method) => method !== 'card');
-  return `payment_method_types: [${methods.map((method) => `'${method}'`).join(', ')}] becomes allowed_payment_method_types with the same methods, because this repository set stripePaymentMethodTypes: "keep-listed" in .refit.json. In 2026-09-30.endive the list filters the payment methods Stripe finds eligible for each buyer instead of listing them, so ${others.join(', ')} may no longer be offered to some customers (by country, currency, amount or device). Check that ${others.length === 1 ? 'it is' : 'they are'} still offered where you rely on ${others.length === 1 ? 'it' : 'them'}, and keep every listed method enabled in the Stripe Dashboard or payment method configuration.`;
+  return `payment_method_types: [${methods.map((method) => `'${method}'`).join(', ')}] becomes allowed_payment_method_types with the same methods (owner decision, 2026-10-24: Refit keeps listed payment methods). In 2026-09-30.endive the list filters the payment methods Stripe finds eligible for each buyer instead of listing them, so ${others.join(', ')} may no longer be offered to some customers (by country, currency, amount or device). Check that ${others.length === 1 ? 'it is' : 'they are'} still offered where you rely on ${others.length === 1 ? 'it' : 'them'}, and keep every listed method enabled in the Stripe Dashboard or payment method configuration.`;
 }
 
 // The value expression a moved rename keeps: the initializer of the property whose name the edit
