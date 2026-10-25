@@ -1135,12 +1135,22 @@ export async function validateMigration(options: {
     // An untested patch is still applied, so its publication files come from the same candidate.
     // Behaviour tests need it too, even where the repository's own baseline failed or timed out.
     const behaviourWanted = Boolean(options.behaviourTestWriter || options.behaviourTests?.length);
+    let candidateFailure: string | undefined;
     const initialCandidate =
-      baseline.status === 'passed' || dependencyFailure || (behaviourWanted && proposal.diff)
+      baseline.status === 'passed' || dependencyFailure
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
             : prepareCandidate(proposal.diff, originalSources, report))
-        : undefined;
+        : behaviourWanted && proposal.diff
+          ? // Built only for behaviour tests: a failure blocks them, never the validation.
+            await prepareCandidate(proposal.diff, originalSources, report).catch(
+              (error: unknown) => {
+                options.signal?.throwIfAborted();
+                candidateFailure = error instanceof Error ? error.message : String(error);
+                return undefined;
+              },
+            )
+          : undefined;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
     let candidateSources = initialCandidate?.sources;
@@ -1495,7 +1505,7 @@ export async function validateMigration(options: {
     // published.
     const behaviourBlocked =
       !candidateDirectory || !candidateSources
-        ? 'No patched copy of the repository was built.'
+        ? `No patched copy of the repository was built${candidateFailure ? `: ${candidateFailure}` : '.'}`
         : patched.status === 'failed'
           ? 'The patched checks failed, so the patch is not published.'
           : dependencyFailure && !stripeOnly?.dependencies
