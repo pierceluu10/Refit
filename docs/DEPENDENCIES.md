@@ -86,6 +86,21 @@ Yarn 2+ root projects are prepared when `package.json` pins an exact `yarn@2`–
 
 Scans and readiness also read a root `yarn.lock`, both Yarn 1 (`# yarn lockfile v1`) and Yarn 2+ (`__metadata`), to record the SDK version for the exact manifest range. A version is recorded only for a public registry resolution. Aliased, workspace, patched, git and local sources stay unknown. So does a repository that commits `yarn.lock` alongside another package-manager lockfile, or a `yarn.lock` the reader cannot parse.
 
+## Nested packages
+
+When every file the scan reports, each finding and each API-version declaration, belongs to one nested package that declares `stripe` and commits its own lockfile, Refit prepares and checks that package instead of the repository root (`pipeline/preparation-packages.ts`). A file belongs to the nearest `package.json` above it that declares `stripe`, the package Node resolves the SDK from. Preparation reads that package's `package.json`, lockfile and workspaces from the same commit and installs them exactly as it installs a root project: frozen lockfile, public registry tarballs with verified integrity, lifecycle scripts off, then offline checks. A tracked `node_modules` anywhere in the repository is still refused, because Node resolves modules up the directory tree. The validation sandbox copies the whole committed repository, unpacks the package's dependencies into the package directory and runs `command` and `baselineCommand` there, so checks can still read files outside the package. Reports record `validation.packageDirectory`.
+
+Everything else keeps the repository root, as before: files in the root package, files spread over several packages, and a package without an npm, pnpm or Yarn lockfile of its own, such as a workspace member the root lockfile installs. A patch's stripe-node upgrade still edits only the root `package.json`, so a TypeScript package's patched type check can fail on the new `apiVersion` until the patch upgrades the package itself.
+
+## Check time limit
+
+Each check, the baseline, the patched and each generated check, runs for at most `checkTimeoutSeconds` from `.refit.json`, a whole number from 30 to 1800, and 600 by default. Refit then stops the container and the check reports `Check exceeded <N> seconds`, which is an execution error, never a failure of the patch. The default replaces 120 seconds and comes from measured durations, one CPU per check:
+
+- **GitHub Actions** (refit-bench run 40144503063, 249 affected repositories, 4-vCPU runners): the 106 baseline checks took 13.3 s at the median and 31.6 s at the 95th percentile, and the 103 patched checks at most 62.5 s. Two baseline test suites were still passing tests when the 120-second limit stopped them. Under 600 seconds (run 40155827550), one of them passed in 249 s on the original code and 250 s on the patch; the other was still passing tests at 600 s, so a repository like it sets a higher `checkTimeoutSeconds`.
+- **Fly** ([P1](overnight/P1.md#what-should-the-120-s-check-limit-be-on-hosted-hardware)): a type check took 24.0 s and 29.5 s on performance-2x, and the same checks were estimated at 200 to 240 s on a throttled shared-cpu-2x.
+
+The 300-second installation deadline stays: preparation took at most 51.6 s on Actions and 57 s on Fly performance-2x.
+
 ## stripe-node upgrade in a patch
 
 When a Stripe patch for a TypeScript project moves `apiVersion`, it also moves the root `stripe` dependency to the release for the target version, because older type definitions accept only their own version. Refit edits only `package.json` and the root lockfiles, with the registry's SHA-512 integrity, and refuses anything it cannot reproduce exactly; the patch then stops for review rather than shipping a pin the old types reject.

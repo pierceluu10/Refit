@@ -41,6 +41,7 @@ import {
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
 import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
+import { packageSnapshot } from './preparation-packages.ts';
 import { preparationStop } from './preparation-stops.ts';
 import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
@@ -561,6 +562,8 @@ export async function prepareDependencies(options: {
   // Prepare the committed root without its submodules, as validation checks it (owner decision 1).
   submodules?: boolean;
   cacheDirectory?: string;
+  // A nested package (preparation-packages.ts) installs from its own manifest and lockfile.
+  packageDirectory?: string;
   // Copied under the cache lock, so eviction cannot remove the bundle mid-copy.
   copyArchiveTo?: string;
   signal?: AbortSignal;
@@ -580,7 +583,14 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository, {
     submodules: options.submodules,
   })
-    .then(readPreparationInputs)
+    .then(async (snapshot) =>
+      readPreparationInputs(
+        options.packageDirectory
+          ? await packageSnapshot(snapshot, options.packageDirectory)
+          : snapshot,
+        snapshot.entries,
+      ),
+    )
     .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;
   const image = DOCKER_IMAGE_ID.test(options.image)

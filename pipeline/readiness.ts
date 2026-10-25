@@ -4,6 +4,7 @@ import { declaresVersion } from './api-version.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
+import { committedFiles, packageSnapshot, sdkPackageDirectory } from './preparation-packages.ts';
 import { preparationStop } from './preparation-stops.ts';
 import type { BreakingOperationImpact } from './provider-operations.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
@@ -740,15 +741,24 @@ export async function inspectRepositoryReadiness(options: {
       });
   }
   if (workflow.prepareDependencies && snapshot.value) {
+    // The inputs validation prepares: a nested SDK package's own, when the scan puts the code there.
+    const packageDirectory =
+      scan.value && sdkPackageDirectory(scan.value, committedFiles(snapshot.value.entries));
     const dependencies = await inspectCheck(
       'dependencies',
       'Dependency preparation inputs',
       'Commit matching root manifests and a supported public-registry lockfile, or use a custom dependency image.',
-      () => readPreparationInputs(snapshot.value!),
+      async () =>
+        readPreparationInputs(
+          packageDirectory
+            ? await packageSnapshot(snapshot.value!, packageDirectory)
+            : snapshot.value!,
+          snapshot.value!.entries,
+        ),
     );
     if (dependencies.value) {
       const workspaces = Object.keys(dependencies.value.inputs.workspaceHashes ?? {}).length;
-      dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records${workspaces ? ` and ${workspaces} committed workspace manifests` : ''} passed preparation input checks. Installation and engine compatibility were not tested.`;
+      dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records${workspaces ? ` and ${workspaces} committed workspace manifests` : ''}${packageDirectory ? ` in ${packageDirectory}` : ''} passed preparation input checks. Installation and engine compatibility were not tested.`;
     } else if (dependencies.check.status === 'blocked') {
       dependencies.check.action =
         preparationStop(dependencies.check.detail)?.action ?? dependencies.check.action;

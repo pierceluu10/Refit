@@ -58,6 +58,8 @@ git -C /tmp/refit-setup-demo commit -m "test: configure simulated API migration"
 refit doctor --repository /tmp/refit-setup-demo
 ```
 
+`checkTimeoutSeconds` (optional) limits each check, baseline, patched and generated, to a whole number of seconds from 30 to 1800; the default is 600 ([check time limit](DEPENDENCIES.md#check-time-limit)). When the Stripe code sits in one nested package with its own lockfile, `command` and `baselineCommand` run in that package's directory ([nested packages](DEPENDENCIES.md#nested-packages)).
+
 The fictional SDK supplies its own simulator dependency for checks. Review the reported custom-image/dependency boundary, the configuration and adapter. After deciding to run this local example explicitly:
 
 ```sh

@@ -167,6 +167,7 @@ export async function runWorkflow(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   generatedChecks?: GeneratedChecks;
   compareTypeErrors?: boolean;
@@ -391,6 +392,7 @@ export async function runWorkflow(options: {
         image: options.image,
         command: options.command,
         baselineCommand: options.baselineCommand,
+        checkTimeoutSeconds: options.checkTimeoutSeconds,
         prepareDependencies: options.prepareDependencies,
         generatedChecks: options.generatedChecks,
         compareTypeErrors: options.compareTypeErrors,
