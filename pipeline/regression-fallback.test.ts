@@ -150,10 +150,8 @@ const SHAPES: {
     },
     pins: ['app/api/subscription/portal/route.ts:2', 'app/api/webhooks/stripe/route.ts:2'],
     stop: 'Declared SDK API version 2025-06-30.basil at app/api/webhooks/stripe/route.ts:2 conflicts with the application pin 2023-10-16.',
-    kept: [
-      'app/api/webhooks/stripe/route.ts',
-      'app/api/webhooks/stripe/stripeSubscriptionPeriod.ts',
-    ],
+    // The period helper is written into the file that reads the period.
+    kept: ['app/api/webhooks/stripe/route.ts'],
   },
   {
     name: 'warranty-watcher',

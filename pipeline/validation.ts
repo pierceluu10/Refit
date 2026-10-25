@@ -2,7 +2,7 @@ import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -24,6 +24,7 @@ import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -97,28 +98,10 @@ export interface CheckResult {
 }
 const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
-const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
-
-// TypeScript diagnostics in a check's output, keyed without positions so moved lines still match.
-export function typeErrors(check: CheckResult) {
-  return `${check.stdout}\n${check.stderr}`
-    .split('\n')
-    .map((line) => TYPE_ERROR.exec(line.trim()))
-    .filter((match): match is RegExpExecArray => Boolean(match))
-    .map((match) => ({
-      file: match[1],
-      line: Number(match[2]),
-      column: Number(match[3]),
-      code: match[4],
-      message: match[5],
-      key: `${match[1]} ${match[4]} ${match[5]}`,
-    }));
-}
-
 // With compareTypeErrors, the original code's type errors are the baseline: a typecheck that
 // reports errors still ran, and the patched check fails only on errors the patch introduced.
 function introducedTypeErrors(baseline: CheckResult, patched: CheckResult) {
-  const before = new Set(typeErrors(baseline).map((error) => error.key));
+  const before = typeErrorKeys(baseline);
   return typeErrors(patched).filter((error) => !before.has(error.key));
 }
 
@@ -344,12 +327,11 @@ function committedMode(entries: readonly string[], path: string, content: string
   return metadata[0] as PublicationFile['mode'];
 }
 
-// Copies prepared dependencies into the validation snapshot and returns their environment.
+// Checks the archive preparation copied into the validation snapshot and returns its environment.
 async function snapshotDependencies(
   prepared: Awaited<ReturnType<typeof prepareDependencies>>,
   destination: string,
 ) {
-  await copyFile(prepared.archive, destination);
   const copied = await inspectArtifactFile(destination, validationProfile().archiveBytes);
   if (
     copied.sha256 !== prepared.environment.archiveHash ||
@@ -393,14 +375,15 @@ async function prepareCandidateDependencies(
     ],
     candidateDirectory,
   );
+  const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
   const prepared = await prepareDependencies({
     repository: candidateDirectory,
     image,
+    copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
   });
   await rm(join(candidateDirectory, '.git'), { recursive: true, force: true });
-  const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
   return { dependencies, environment: await snapshotDependencies(prepared, dependencies) };
 }
 
@@ -711,6 +694,7 @@ export async function validateMigration(options: {
             repository,
             image,
             submodules: options.leaveReviewedFindings,
+            copyArchiveTo: join(root, 'dependencies.tar'),
             signal: options.signal,
             onProgress: options.onProgress,
           }),
@@ -1370,13 +1354,14 @@ export async function validateSourcePatch(options: {
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
     if (options.prepareDependencies) {
+      dependencies = join(root, 'dependencies.tar');
       const prepared = await prepareDependencies({
         repository: snapshot.directory,
         image,
+        copyArchiveTo: dependencies,
         signal: options.signal,
         onProgress: options.onProgress,
       });
-      dependencies = join(root, 'dependencies.tar');
       environment = await snapshotDependencies(prepared, dependencies);
     }
     options.signal?.throwIfAborted();
