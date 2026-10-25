@@ -1,4 +1,4 @@
-import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -22,8 +22,9 @@ import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
-import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
+import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import ts from 'typescript-compiler';
@@ -42,11 +43,14 @@ import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.t
 import { compactPatch, renderPatch } from './patches.ts';
 import {
   crossesOpenEnums,
+  crossesTypeRemovals,
+  KEEP_UNTYPED_REQUEST_PROPERTIES,
   OPEN_ENUM_REPAIR,
   OPEN_ENUM_RULE,
   keepsPartialRestore,
   openEnumRepair,
   restorableOpenEnumErrors,
+  untypedRequestProperty,
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
@@ -93,29 +97,12 @@ export interface CheckResult {
   stderr: string;
   error?: string;
 }
-
-const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
-
-// TypeScript diagnostics in a check's output, keyed without positions so moved lines still match.
-export function typeErrors(check: CheckResult) {
-  return `${check.stdout}\n${check.stderr}`
-    .split('\n')
-    .map((line) => TYPE_ERROR.exec(line.trim()))
-    .filter((match): match is RegExpExecArray => Boolean(match))
-    .map((match) => ({
-      file: match[1],
-      line: Number(match[2]),
-      column: Number(match[3]),
-      code: match[4],
-      message: match[5],
-      key: `${match[1]} ${match[4]} ${match[5]}`,
-    }));
-}
+const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
 // With compareTypeErrors, the original code's type errors are the baseline: a typecheck that
 // reports errors still ran, and the patched check fails only on errors the patch introduced.
 function introducedTypeErrors(baseline: CheckResult, patched: CheckResult) {
-  const before = new Set(typeErrors(baseline).map((error) => error.key));
+  const before = typeErrorKeys(baseline);
   return typeErrors(patched).filter((error) => !before.has(error.key));
 }
 
@@ -538,10 +525,9 @@ async function generatedStripeChecks(options: {
     },
   };
   await writeHarness(tools, entries, options.imports);
-  const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {
-    if (!entries.length) return notRun;
+    if (!entries.length) return NOT_RUN;
     options.onProgress?.(
       `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
     );
@@ -619,13 +605,13 @@ export async function validateMigration(options: {
   fullDiff?: boolean;
   repairAttempts?: number;
   generatedChecks?: GeneratedChecks;
-  // --publish-unresolved: see withoutRequestParameters.
-  leaveRequestParameters?: boolean;
+  // Owner decision 1: see runPipeline.
+  leaveReviewedFindings?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
-  // --publish-unresolved: a repository-side dependency preparation failure skips the checks and
-  // returns the deterministic patch as `untested` instead of throwing.
-  recordDependencyFailures?: boolean;
+  // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
+  // no evidence, the patch is still applied and returned untested instead of throwing or dropped.
+  recordUntested?: boolean;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -657,14 +643,9 @@ export async function validateMigration(options: {
   });
   if (apiVersionSourceBlocked(preflight.apiVersion))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
-  const reviewReason = migrationReviewReason(
-    options.leaveRequestParameters && !options.aiPatch
-      ? withoutRequestParameters(preflight)
-      : preflight,
-    true,
-    true,
-    Boolean(options.aiPatch),
-  );
+  const reviewReason = options.leaveReviewedFindings
+    ? undefined
+    : migrationReviewReason(preflight, true, true, Boolean(options.aiPatch));
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
@@ -712,6 +693,23 @@ export async function validateMigration(options: {
         }),
       );
     const proposed = independent ? ahead(() => propose(true)) : undefined;
+    // With recordUntested, a patched lockfile Refit cannot install leaves the initial patch
+    // untested (owner decision 1) instead of ending the run.
+    const preparePatched = async (directory: string, untested: boolean, signal?: AbortSignal) => {
+      try {
+        return {
+          ...(await timed('candidatePreparation', () =>
+            prepareCandidateDependencies(directory, root, image, { ...options, signal }),
+          )),
+          dependencyFailure: undefined,
+        };
+      } catch (error) {
+        const failure = untested && options.recordUntested ? preparationFailure(error) : undefined;
+        if (!failure) throw error;
+        options.onProgress?.(`Preparing the patched dependencies failed: ${failure.summary}`);
+        return { dependencies: undefined, environment: undefined, dependencyFailure: failure };
+      }
+    };
     // A patch that changes the lockfile prepares its own dependencies; that install starts now.
     const candidateInstall =
       proposed && options.prepareDependencies
@@ -721,20 +719,14 @@ export async function validateMigration(options: {
             if (!diff || !packageDiff(diff)) return undefined;
             const directory = await sandboxInput(root, 'candidate-');
             await applyPatch(archive, directory, `${directory}.patch`, diff);
-            return {
-              directory,
-              ...(await timed('candidatePreparation', () =>
-                prepareCandidateDependencies(directory, root, image, {
-                  ...options,
-                  signal: speculation.signal,
-                }),
-              )),
-            };
+            return { directory, ...(await preparePatched(directory, true, speculation.signal)) };
           })
         : undefined;
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
-    let dependencyFailure: ReturnType<typeof repositoryDependencyFailure> = undefined;
+    let dependencyFailure: ReturnType<typeof preparationFailure> = undefined;
+    // The baseline checks failed with recordUntested: the patch is built but its checks never run.
+    let untestedBaseline = false;
     let prepared: Awaited<ReturnType<typeof prepareDependencies>> | undefined;
     if (options.prepareDependencies)
       try {
@@ -747,9 +739,7 @@ export async function validateMigration(options: {
           }),
         );
       } catch (error) {
-        dependencyFailure = options.recordDependencyFailures
-          ? repositoryDependencyFailure(error)
-          : undefined;
+        dependencyFailure = options.recordUntested ? preparationFailure(error) : undefined;
         if (!dependencyFailure) throw error;
         options.onProgress?.(`Dependency preparation failed: ${dependencyFailure.summary}`);
       }
@@ -768,12 +758,15 @@ export async function validateMigration(options: {
       originalSources: Awaited<ReturnType<typeof readRepository>>,
       report: Report,
       install?: Promise<Install>,
-    ) => timed('candidates', () => buildCandidate(diff, originalSources, report, install));
+      untested = false,
+    ) =>
+      timed('candidates', () => buildCandidate(diff, originalSources, report, install, untested));
     const buildCandidate = async (
       diff: string,
       originalSources: Awaited<ReturnType<typeof readRepository>>,
       report: Report,
-      install?: Promise<Install>,
+      install: Promise<Install> | undefined,
+      untested: boolean,
     ) => {
       // The install started with the proposal, for this diff, when the patch changes the lockfile.
       const installed = install && (await install);
@@ -785,12 +778,18 @@ export async function validateMigration(options: {
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
-      if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure)
-        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
-          installed ??
-          (await timed('candidatePreparation', () =>
-            prepareCandidateDependencies(patchedDirectory, root, image, options),
-          )));
+      let candidateFailure: ReturnType<typeof preparationFailure>;
+      if (
+        packageDiff(diff) &&
+        options.prepareDependencies &&
+        !dependencyFailure &&
+        !untestedBaseline
+      )
+        ({
+          dependencies: candidateDependencies,
+          environment: candidateEnvironment,
+          dependencyFailure: candidateFailure,
+        } = installed ?? (await preparePatched(patchedDirectory, untested, options.signal)));
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -855,6 +854,7 @@ export async function validateMigration(options: {
         directory: patchedDirectory,
         dependencies: candidateDependencies,
         environment: candidateEnvironment,
+        dependencyFailure: candidateFailure,
       };
     };
     options.signal?.throwIfAborted();
@@ -870,6 +870,7 @@ export async function validateMigration(options: {
               await readRepository(baselineDirectory, earlyReport.adapter.packageName),
               earlyReport,
               candidateInstall,
+              true,
             ),
           )
         : undefined;
@@ -877,6 +878,7 @@ export async function validateMigration(options: {
       speculativeCandidate &&
       ahead(async () => {
         const candidate = await speculativeCandidate;
+        if (candidate.dependencyFailure) return NOT_RUN;
         return timed('patchedChecks', () =>
           containerCheck({
             directory: candidate.directory,
@@ -889,7 +891,7 @@ export async function validateMigration(options: {
       });
     if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
     const baselineRun: CheckResult = dependencyFailure
-      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
+      ? NOT_RUN
       : await timed('baselineChecks', () =>
           containerCheck({
             directory: baselineDirectory,
@@ -900,6 +902,8 @@ export async function validateMigration(options: {
           }),
         );
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    untestedBaseline =
+      Boolean(options.recordUntested) && !dependencyFailure && baseline.status !== 'passed';
     options.signal?.throwIfAborted();
     const initialReport = earlyReport || (await propose(baseline.status === 'passed'));
     const configuredEndpointProposal = initialReport.operationChanges.some(
@@ -929,11 +933,13 @@ export async function validateMigration(options: {
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
     const initialCandidate =
-      baseline.status === 'passed' || dependencyFailure
+      baseline.status === 'passed' || dependencyFailure || (untestedBaseline && proposal.diff)
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
-            : prepareCandidate(proposal.diff, originalSources, report))
+            : prepareCandidate(proposal.diff, originalSources, report, undefined, true))
         : undefined;
+    // The patched lockfile could not be installed, so the patch is written but never checked.
+    dependencyFailure ??= initialCandidate?.dependencyFailure;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
     let candidateSources = initialCandidate?.sources;
@@ -942,7 +948,7 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
-    const runPatched = initialCandidate && !dependencyFailure;
+    const runPatched = initialCandidate && baseline.status === 'passed' && !dependencyFailure;
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
@@ -958,7 +964,7 @@ export async function validateMigration(options: {
                 }),
               )),
         )
-      : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+      : NOT_RUN;
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
       attempts.push({
@@ -993,6 +999,10 @@ export async function validateMigration(options: {
       openEnumRestored?: boolean;
       // Subscription-period reads moved to the helper because the patched type check rejected them.
       typeCheckedPeriodReads?: number;
+      // Request properties stripe-node 13 stopped typing, which the restore keeps sending unchanged.
+      keptProperties?: string[];
+      // The restore kept only such properties and changed no enum types.
+      enumsUnchanged?: boolean;
     } = {
       limit: repairLimit,
       requested: 0,
@@ -1011,7 +1021,8 @@ export async function validateMigration(options: {
     // deterministic repair restores their known literals where the upgraded types reject them. It
     // is kept when every introduced error is that shape and the checks then pass, or, before an AI
     // repair of a rules proposal, when the checks then fail only on the errors it left alone: the
-    // model then repairs those errors on the restored candidate instead of all of them.
+    // model then repairs those errors on the restored candidate instead of all of them. The same
+    // restore keeps sending the request properties stripe-node 13.0.0 stopped typing.
     const sdkUpgrade =
       'sdkUpgrade' in report.patch
         ? (report.patch.sdkUpgrade as { from?: string; to?: string } | undefined)
@@ -1102,7 +1113,8 @@ export async function validateMigration(options: {
       candidateSources &&
       sdkUpgrade?.from &&
       sdkUpgrade.to &&
-      crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to)
+      (crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to) ||
+        (KEEP_UNTYPED_REQUEST_PROPERTIES && crossesTypeRemovals(sdkUpgrade.from, sdkUpgrade.to)))
         ? introducedTypeErrors(baselineRun, patched)
         : [];
     const openEnumErrors =
@@ -1165,6 +1177,11 @@ export async function validateMigration(options: {
         candidateEnvironment = prepared.environment;
         patched = check;
         recordAttempt();
+        const kept = openEnumErrors.flatMap((error) => untypedRequestProperty(error) ?? []);
+        if (kept.length) {
+          repair.keptProperties = [...new Set(kept.map((entry) => entry.property))];
+          if (kept.length === openEnumErrors.length) repair.enumsUnchanged = true;
+        }
         if (check.status === 'passed') repair.stopReason = OPEN_ENUM_REPAIR;
         else {
           repair.openEnumRestored = true;
@@ -1478,7 +1495,7 @@ export async function validateSourcePatch(options: {
       signal: options.signal,
     });
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
-    let patched: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+    let patched: CheckResult = NOT_RUN;
     let candidateEnvironment: Record<string, unknown> | undefined;
     if (baseline.status === 'passed') {
       options.signal?.throwIfAborted();

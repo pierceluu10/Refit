@@ -119,7 +119,8 @@ function positiveIdentifier(value: unknown) {
   return Number(value);
 }
 
-function repositories(value: unknown, owner: string): WebhookRepository[] {
+// A repository list owned by `owner`, from a webhook or from GET /installation/repositories.
+export function parseRepositories(value: unknown, owner: string): WebhookRepository[] {
   if (!Array.isArray(value) || value.length > MAX_EVENT_REPOSITORIES)
     throw new WebhookInputError(
       422,
@@ -347,12 +348,14 @@ export function parseWebhook(body: Uint8Array, event: unknown, appId: number): G
   const owner = installation.account.login.toLowerCase();
   const added =
     event === 'installation_repositories'
-      ? repositories(payload.repositories_added, owner)
+      ? parseRepositories(payload.repositories_added, owner)
       : payload.repositories === undefined
         ? []
-        : repositories(payload.repositories, owner);
+        : parseRepositories(payload.repositories, owner);
   const removed =
-    event === 'installation_repositories' ? repositories(payload.repositories_removed, owner) : [];
+    event === 'installation_repositories'
+      ? parseRepositories(payload.repositories_removed, owner)
+      : [];
   if (removed.some((repository) => added.some((item) => item.name === repository.name)))
     throw new WebhookInputError(
       422,
