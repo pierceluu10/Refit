@@ -15,7 +15,7 @@ import {
   type ApiVersionPolicy,
 } from './api-version.ts';
 import { digest, readSpecification } from './specifications.ts';
-import { PipelineInputError, type SourceEdit } from './types.ts';
+import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { readRepository } from './repository.ts';
 import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
 import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
@@ -38,6 +38,14 @@ import {
   type GeneratedChecks,
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
+import {
+  behaviourCommand,
+  changedStripeLines,
+  compareBehaviourRuns,
+  validateBehaviourTests,
+  writeBehaviourHarness,
+  type BehaviourTest,
+} from './behaviour-tests.ts';
 import { compactPatch, renderPatch } from './patches.ts';
 import {
   crossesOpenEnums,
@@ -404,18 +412,19 @@ function typeCheckComparison(baselineRun: CheckResult, compareTypeErrors?: boole
   };
 }
 
-// A generated check changes the outcome only through a counted regression (compareGeneratedRuns);
-// a generated check that is broken or could not run is evidence that is missing, not a failure.
+// Generated checks and behaviour tests change the outcome only through a counted regression
+// (compareGeneratedRuns, compareBehaviourRuns); one that is broken or could not run is evidence that
+// is missing, not a failure.
 function checkStatus(
   baseline: CheckResult,
   patched: CheckResult,
-  generated?: { regressions: unknown[] },
+  ...counted: ({ regressions: unknown[] } | undefined)[]
 ) {
   return [baseline, patched].some((check) => check.status === 'error')
     ? ('error' as const)
     : baseline.status !== 'passed'
       ? ('baseline-failed' as const)
-      : patched.status !== 'passed' || generated?.regressions.length
+      : patched.status !== 'passed' || counted.some((evidence) => evidence?.regressions.length)
         ? ('regression' as const)
         : ('passed' as const);
 }
@@ -494,6 +503,58 @@ async function generatedStripeChecks(options: {
   }
 }
 
+// Copies the stripe-mock binary out of the local image and stages each side's contract and
+// fixtures beside the harness, read-only; the mounts put them where the sandbox command expects.
+async function stageStripeMock(
+  settings: GeneratedChecks,
+  tools: string,
+  contracts: { before: string; after: string },
+) {
+  const mock = await extractStripeMock(settings.stripeMockImage, tools);
+  const staged = (side: 'before' | 'after') => ({
+    contract: join(tools, `${side}-spec.json`),
+    fixtures: join(tools, `${side}-fixtures.json`),
+  });
+  const inputs = {
+    before: {
+      contract: await stageMockDocument(
+        contracts.before,
+        'before contract',
+        staged('before').contract,
+      ),
+      fixtures: await stageMockDocument(
+        settings.beforeFixtures,
+        'before fixtures file',
+        staged('before').fixtures,
+      ),
+    },
+    after: {
+      contract: await stageMockDocument(
+        contracts.after,
+        'after contract',
+        staged('after').contract,
+      ),
+      fixtures: await stageMockDocument(
+        settings.afterFixtures,
+        'after fixtures file',
+        staged('after').fixtures,
+      ),
+    },
+  };
+  return {
+    image: mock.imageId,
+    binaryHash: mock.binaryHash,
+    inputs,
+    mounts: (side: 'before' | 'after') => [
+      { source: mock.binary, target: '/refit/stripe-mock' },
+      { source: staged(side).contract, target: '/refit/spec.json' },
+      { source: staged(side).fixtures, target: '/refit/fixtures.json' },
+      { source: tools, target: '/refit/generated' },
+      { source: typescriptDirectory(), target: '/refit/typescript' },
+    ],
+  };
+}
+
 async function runGeneratedStripeChecks(
   options: Parameters<typeof generatedStripeChecks>[0],
   entryPoints: ReturnType<typeof generatedEntryPoints>,
@@ -501,37 +562,10 @@ async function runGeneratedStripeChecks(
 ) {
   const { entries, uncovered } = entryPoints;
   const tools = await sandboxInput(options.root, 'generated-');
-  const mock = await extractStripeMock(options.settings.stripeMockImage, tools);
-  const staged = (side: 'before' | 'after') => ({
-    contract: join(tools, `${side}-spec.json`),
-    fixtures: join(tools, `${side}-fixtures.json`),
+  const mock = await stageStripeMock(options.settings, tools, {
+    before: options.runs[0].contract,
+    after: options.runs[1].contract,
   });
-  const hashes = {
-    before: {
-      contract: await stageMockDocument(
-        options.runs[0].contract,
-        'before contract',
-        staged('before').contract,
-      ),
-      fixtures: await stageMockDocument(
-        options.settings.beforeFixtures,
-        'before fixtures file',
-        staged('before').fixtures,
-      ),
-    },
-    after: {
-      contract: await stageMockDocument(
-        options.runs[1].contract,
-        'after contract',
-        staged('after').contract,
-      ),
-      fixtures: await stageMockDocument(
-        options.settings.afterFixtures,
-        'after fixtures file',
-        staged('after').fixtures,
-      ),
-    },
-  };
   await writeHarness(
     tools,
     entries,
@@ -549,13 +583,7 @@ async function runGeneratedStripeChecks(
       image: options.image,
       command: generatedCommand(run.side),
       dependencies: run.dependencies ?? options.dependencies,
-      readOnlyMounts: [
-        { source: mock.binary, target: '/refit/stripe-mock' },
-        { source: staged(run.side).contract, target: '/refit/spec.json' },
-        { source: staged(run.side).fixtures, target: '/refit/fixtures.json' },
-        { source: tools, target: '/refit/generated' },
-        { source: typescriptDirectory(), target: '/refit/typescript' },
-      ],
+      readOnlyMounts: mock.mounts(run.side),
       signal: options.signal,
     });
   };
@@ -564,14 +592,91 @@ async function runGeneratedStripeChecks(
     : [await generatedRun(options.runs[0]), await generatedRun(options.runs[1])];
   return {
     engine: 'stripe-mock' as const,
-    image: mock.imageId,
+    image: mock.image,
     binaryHash: mock.binaryHash,
-    inputs: hashes,
+    inputs: mock.inputs,
     entryPoints: entries,
     uncoveredFindings: uncovered,
     ...compareGeneratedRuns(entries, results[0], results[1]),
     claim: GENERATED_CLAIM,
   };
+}
+
+// Runs behaviour tests (node:test files) on the original code against the before-version
+// stripe-mock and on the patched code against the after-version stripe-mock, in the offline
+// sandbox, with V8 coverage of the changed Stripe lines. Directories are prepared snapshots, as in
+// validateMigration; `dependencies` are their prepared dependency archives.
+export async function runBehaviourTests(options: {
+  tests: BehaviourTest[];
+  settings: GeneratedChecks;
+  image: string;
+  root: string;
+  original: { directory: string; contract: string; repository: Repository; dependencies?: string };
+  patched: { directory: string; contract: string; repository: Repository; dependencies?: string };
+  // Files where Refit traced Stripe usage; with files importing stripe, they are the Stripe code.
+  findings?: readonly Pick<Finding, 'file'>[];
+  onProgress?: (message: string) => void;
+  signal?: AbortSignal;
+}) {
+  validateBehaviourTests(options.tests);
+  const sources = { original: options.original.repository, patched: options.patched.repository };
+  const changed = changedStripeLines(sources.original, sources.patched, options.findings);
+  const tools = await sandboxInput(options.root, 'behaviour-');
+  const mock = await stageStripeMock(options.settings, tools, {
+    before: options.original.contract,
+    after: options.patched.contract,
+  });
+  await writeBehaviourHarness(tools, options.tests, changed, sources);
+  const run = (side: 'before' | 'after') => {
+    const input = side === 'before' ? options.original : options.patched;
+    options.onProgress?.(
+      `Running behaviour tests against ${side}-version stripe-mock in offline Docker...`,
+    );
+    return containerCheck({
+      directory: input.directory,
+      image: options.image,
+      command: behaviourCommand(side),
+      dependencies: input.dependencies,
+      readOnlyMounts: mock.mounts(side),
+      signal: options.signal,
+    });
+  };
+  const [original, patched] = (await roomForTwoSandboxes())
+    ? await Promise.all([run('before'), run('after')])
+    : [await run('before'), await run('after')];
+  return {
+    image: mock.image,
+    binaryHash: mock.binaryHash,
+    inputs: mock.inputs,
+    ...compareBehaviourRuns({ tests: options.tests, changed, sources, original, patched }),
+  };
+}
+
+// Behaviour tests that cannot be set up or run are reported as unavailable, never as a failure.
+async function behaviourEvidence(
+  options: Omit<Parameters<typeof runBehaviourTests>[0], 'settings'> & {
+    settings?: GeneratedChecks;
+  },
+) {
+  try {
+    if (!options.settings)
+      throw new PipelineInputError(
+        "Behaviour tests need generatedChecks settings: a local stripe-mock image and both versions' fixtures.",
+      );
+    return await runBehaviourTests({ ...options, settings: options.settings });
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    const reason = `Behaviour tests could not run: ${setupError(error)}`;
+    return {
+      engine: 'node-test+stripe-mock' as const,
+      status: 'unavailable' as const,
+      reason,
+      grade: null,
+      missing: [reason],
+      tests: options.tests.map((test) => ({ path: test.path, sha256: digest(test.content) })),
+      regressions: [] as { id: string; error: string }[],
+    };
+  }
 }
 
 const mentions = (files: { content: string }[], name: string) =>
@@ -617,6 +722,9 @@ export async function validateMigration(options: {
   fullDiff?: boolean;
   repairAttempts?: number;
   generatedChecks?: GeneratedChecks;
+  // Behaviour tests (refit-behaviour/<name>.test.mjs) to run on both sides once the checks pass;
+  // they need generatedChecks' stripe-mock image and fixtures. See runBehaviourTests.
+  behaviourTests?: BehaviourTest[];
   // --publish-unresolved: see withoutRequestParameters.
   leaveRequestParameters?: boolean;
   keepListedPaymentMethods?: boolean;
@@ -1263,6 +1371,36 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
+    const behaviour =
+      options.behaviourTests?.length &&
+      candidateDirectory &&
+      candidateSources &&
+      baseline.status === 'passed' &&
+      patched.status === 'passed'
+        ? await timed('behaviourTests', () =>
+            behaviourEvidence({
+              tests: options.behaviourTests!,
+              settings: options.generatedChecks,
+              image,
+              root,
+              original: {
+                directory: baselineDirectory,
+                contract: options.before,
+                repository: originalSources,
+                dependencies,
+              },
+              patched: {
+                directory: candidateDirectory!,
+                contract: options.after,
+                repository: candidateSources!,
+                dependencies: candidateDependencies ?? dependencies,
+              },
+              findings: report.findings,
+              onProgress: options.onProgress,
+              signal: options.signal,
+            }),
+          )
+        : undefined;
     const grade =
       candidateSources && patched.status !== 'not-run'
         ? await gradeEvidence({
@@ -1270,6 +1408,7 @@ export async function validateMigration(options: {
             command: options.command,
             changedFiles: publicationFiles.map((file) => file.path),
             generated,
+            behaviour,
           })
         : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
@@ -1279,7 +1418,7 @@ export async function validateMigration(options: {
         ? 'stale'
         : dependencyFailure
           ? 'untested'
-          : checkStatus(baseline, patched, generated);
+          : checkStatus(baseline, patched, generated, behaviour);
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)
@@ -1301,12 +1440,13 @@ export async function validateMigration(options: {
       baseline,
       patched,
       ...(generated ? { generated } : {}),
+      ...(behaviour ? { behaviour } : {}),
       ...(grade ? { grade } : {}),
       attempts,
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
-      ...checkFailures(baselineCommand, options.command, baseline, patched, generated),
+      ...checkFailures(baselineCommand, options.command, baseline, patched, generated, behaviour),
       ...(Object.keys(timings).length ? { timings } : {}),
       limits: validationLimits(),
       publishable: false,

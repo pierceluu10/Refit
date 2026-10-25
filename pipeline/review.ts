@@ -277,6 +277,7 @@ function replacementReasons(report: ValidationReport) {
 }
 
 const EVIDENCE_LABELS = {
+  'behaviour-tests': 'Behaviour tests ran every changed Stripe line on both API versions',
   'stripe-tests': 'Tests exercise the changed code',
   'type-check': 'Type-checked only',
   'generated-check': 'Generated stripe-mock checks only',

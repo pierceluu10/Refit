@@ -175,6 +175,28 @@ export function generatedImportMap(repository: Repository) {
   return map;
 }
 
+// The sandbox load hook and the behaviour-test coverage mapping transpile with these same options,
+// so V8's offsets into the hook's output map back to TypeScript lines through the inline source map.
+const SANDBOX_COMPILER_OPTIONS = {
+  module: ts.ModuleKind.ESNext,
+  target: ts.ScriptTarget.ES2022,
+  jsx: ts.JsxEmit.ReactJSX,
+  esModuleInterop: true,
+  inlineSourceMap: true,
+  // Comments are kept and mapped otherwise, which would make a comment line look executable.
+  removeComments: true,
+  newLine: ts.NewLineKind.LineFeed,
+};
+
+// What the sandbox runs for a TypeScript file at `fileName` (its path inside the sandbox).
+export function sandboxTranspile(content: string, fileName: string) {
+  return ts.transpileModule(content, { fileName, compilerOptions: SANDBOX_COMPILER_OPTIONS })
+    .outputText;
+}
+
+// The module behaviour tests import Stripe's recorded requests from.
+export const BEHAVIOUR_MODULE = 'refit:behaviour';
+
 // TypeScript sources are transpiled with the bundled compiler rather than Node's type stripping,
 // which keeps imports of type-only names (\`import { Price }\`) and fails at runtime.
 const RESOLVE = `import { readFileSync } from 'node:fs';
@@ -191,6 +213,7 @@ const TYPESCRIPT = /\\.(?:[cm]?ts|tsx)$/;
 const EXTENSION = /\\.[a-z]+$/i;
 const UNRESOLVED = new Set(['ERR_MODULE_NOT_FOUND', 'ERR_UNSUPPORTED_DIR_IMPORT']);
 export async function resolve(specifier, context, next) {
+  if (specifier === '${BEHAVIOUR_MODULE}') return { url: '${BEHAVIOUR_MODULE}', shortCircuit: true };
   const parent = context.parentURL?.startsWith('file:') ? fileURLToPath(context.parentURL) : '';
   const target = parent.startsWith(root) ? map[parent.slice(root.length)]?.[specifier] : undefined;
   if (target) return next(pathToFileURL(root + target).href, context);
@@ -212,29 +235,56 @@ export async function resolve(specifier, context, next) {
   }
 }
 export async function load(url, context, next) {
+  if (url === '${BEHAVIOUR_MODULE}')
+    return {
+      format: 'module',
+      source: 'export const stripeRequests = globalThis.__refitStripe.requests; export const resetStripeRequests = globalThis.__refitStripe.reset;',
+      shortCircuit: true,
+    };
   if (!url.startsWith('file:') || !TYPESCRIPT.test(url)) return next(url, context);
   const path = fileURLToPath(url);
-  const ts = compiler();
-  const output = ts.transpileModule(readFileSync(path, 'utf8'), {
+  const output = compiler().transpileModule(readFileSync(path, 'utf8'), {
     fileName: path,
-    compilerOptions: {
-      module: ts.ModuleKind.ESNext,
-      target: ts.ScriptTarget.ES2022,
-      jsx: ts.JsxEmit.ReactJSX,
-      esModuleInterop: true,
-    },
+    compilerOptions: ${JSON.stringify(SANDBOX_COMPILER_OPTIONS)},
   });
   return { format: 'module', source: output.outputText, shortCircuit: true };
 }
 `;
 
 // Redirects the Stripe SDK's HTTPS requests for api.stripe.com to stripe-mock on loopback. The SDK
-// writes request bodies after `secureConnect`, so the plain socket re-emits it on `connect`.
+// writes request bodies after `secureConnect`, so the plain socket re-emits it on `connect`. Each
+// request is recorded for behaviour tests: method, path, query and form body decoded to plain
+// objects (\`a[b][0]=x\` to \`{ a: { b: ['x'] } }\`), and the Stripe-Version header.
 const REDIRECT = `import http from 'node:http';
 import https from 'node:https';
 import { register } from 'node:module';
 register('./resolve.mjs', import.meta.url);
 const port = Number(process.env.REFIT_STRIPE_MOCK_PORT ?? ${MOCK_PORT});
+const requests = [];
+globalThis.__refitStripe = { requests, reset: () => { requests.length = 0; } };
+const decode = (text) => decodeURIComponent(text.replace(/\\+/g, ' '));
+const arrays = (value) => {
+  if (!value || typeof value !== 'object') return value;
+  const keys = Object.keys(value);
+  for (const key of keys) value[key] = arrays(value[key]);
+  return keys.length && keys.every((key, index) => key === String(index)) ? keys.map((key) => value[key]) : value;
+};
+const parseForm = (text) => {
+  const root = {};
+  for (const pair of text.split('&')) {
+    if (!pair) continue;
+    const split = pair.indexOf('=');
+    const key = decode(split < 0 ? pair : pair.slice(0, split));
+    const path = key.replace(/\\]/g, '').split('[');
+    let node = root;
+    path.forEach((part, index) => {
+      const name = part === '' ? String(Object.keys(node).length) : part;
+      if (index === path.length - 1) node[name] = split < 0 ? '' : decode(pair.slice(split + 1));
+      else node = node[name] = node[name] && typeof node[name] === 'object' ? node[name] : {};
+    });
+  }
+  return arrays(root);
+};
 const request = https.request;
 https.request = function (options, ...rest) {
   if (options && typeof options === 'object' && (options.hostname ?? options.host) === 'api.stripe.com') {
@@ -242,6 +292,18 @@ https.request = function (options, ...rest) {
     const headers = { ...plain.headers, Authorization: 'Bearer sk_test_123' };
     const req = http.request({ ...plain, headers, protocol: 'http:', hostname: '127.0.0.1', host: '127.0.0.1', port }, ...rest);
     req.once('socket', (socket) => socket.once('connect', () => socket.emit('secureConnect')));
+    const chunks = [];
+    const keep = (chunk) => { if (chunk != null && typeof chunk !== 'function') chunks.push(Buffer.from(chunk)); };
+    const write = req.write;
+    req.write = function (chunk, ...args) { keep(chunk); return write.call(this, chunk, ...args); };
+    const end = req.end;
+    req.end = function (chunk, ...args) {
+      keep(chunk);
+      const [path, query = ''] = String(plain.path ?? '/').split(/\\?(.*)/s);
+      const version = Object.entries(plain.headers ?? {}).find(([name]) => name.toLowerCase() === 'stripe-version');
+      requests.push({ method: String(plain.method ?? 'GET').toUpperCase(), path, query: parseForm(query), body: parseForm(Buffer.concat(chunks).toString()), stripeVersion: version ? String(version[1]) : null });
+      return end.call(this, chunk, ...args);
+    };
     return req;
   }
   return request.call(this, options, ...rest);

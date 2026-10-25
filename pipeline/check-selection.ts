@@ -24,7 +24,7 @@ const PLACEHOLDER_TEST = /no test specified/;
 const TEST_FILE = /(?:^|\/)(?:__tests__|tests?|spec|e2e)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const SOURCE_FILE = /\.[cm]?[jt]sx?$/;
 const JAVASCRIPT_FILE = /\.[cm]?jsx?$/;
-const STRIPE_IMPORT =
+export const STRIPE_IMPORT =
   /\bfrom\s*['"]stripe['"]|\brequire\(\s*['"]stripe['"]\s*\)|\bimport\(\s*['"]stripe['"]\s*\)/;
 const TEST_RUNNER = /\b(?:vitest|jest|mocha|ava|tap|playwright|cypress|node --test|bun test)\b/;
 const TYPE_CHECKER = /\btsc\b/;
@@ -42,7 +42,8 @@ export interface CheckSelection {
   reason: string;
 }
 
-export type EvidenceLevel = 'stripe-tests' | 'type-check' | 'generated-check' | 'none';
+export type EvidenceLevel =
+  'behaviour-tests' | 'stripe-tests' | 'type-check' | 'generated-check' | 'none';
 
 export interface EvidenceGrade {
   level: EvidenceLevel;
@@ -180,8 +181,37 @@ export function checkKinds(command: readonly string[], scripts: Record<string, u
   return kinds;
 }
 
-// How much a passing validation proves about the changed code, strongest first.
-export async function gradeEvidence(options: {
+// How much a passing validation proves about the changed code, strongest first: behaviour tests
+// that give grade A, else the checks' own grade, which then says what the behaviour tests missed.
+export async function gradeEvidence(
+  options: Parameters<typeof checksEvidence>[0] & {
+    behaviour?: {
+      grade: 'A' | null;
+      missing: string[];
+      tests: { path: string }[];
+      coverage?: { changedLines: Record<'original' | 'patched', Record<string, number[]>> };
+    };
+  },
+): Promise<EvidenceGrade> {
+  const behaviour = options.behaviour;
+  if (behaviour?.grade === 'A') {
+    const count = (side: 'original' | 'patched') =>
+      Object.values(behaviour.coverage?.changedLines[side] ?? {}).flat().length;
+    return {
+      level: 'behaviour-tests',
+      reason: `Behaviour tests (${list(behaviour.tests.map((test) => test.path))}) passed on the original code against the before-version stripe-mock and on the patched code against the after-version stripe-mock, and ran every changed Stripe line on both sides (${count('original')} original, ${count('patched')} patched).`,
+    };
+  }
+  const grade = await checksEvidence(options);
+  return behaviour
+    ? {
+        ...grade,
+        reason: `${grade.reason} Behaviour tests did not give grade A: ${behaviour.missing[0] ?? 'no reason recorded.'}`,
+      }
+    : grade;
+}
+
+async function checksEvidence(options: {
   // The patched candidate: its files and the directory tsc would run in.
   repository: Repository;
   command: readonly string[];
