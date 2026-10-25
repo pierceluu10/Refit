@@ -19,6 +19,9 @@ const POLL_MS = 20;
 // Long enough for a loop that wrongly claims or returns to do so.
 const SETTLE_MS = 200;
 const JOB_PROCESS = new URL('./fixtures/job-process.mjs', import.meta.url);
+const INVENTORY_PROCESS = new URL('./fixtures/inventory-process.mjs', import.meta.url);
+const INVENTORY_CAP_SECONDS = 1;
+const INVENTORY_GRACE_SECONDS = 0.2;
 const BUSY_MS = 3_000;
 // Fly's health check times out after 5 s; a free event loop answers in milliseconds.
 const HEALTH_LIMIT_MS = 1_000;
@@ -42,6 +45,8 @@ const READY = {
 
 const fake = vi.hoisted(() => ({
   claims: [] as unknown[],
+  inventories: [] as unknown[],
+  inventoryFinished: [] as unknown[][],
   samples: [] as { steal: number; total: number }[],
   store: {} as Record<string, ReturnType<typeof vi.fn>>,
 }));
@@ -53,7 +58,8 @@ vi.mock('./inventory-store.ts', () => ({
   openInventoryStore: vi.fn(() => ({
     request: vi.fn(async () => 0),
     requestMissing: vi.fn(async () => 0),
-    claim: vi.fn(async () => null),
+    claim: vi.fn(async () => fake.inventories.shift() ?? null),
+    finish: vi.fn(async (...args: unknown[]) => fake.inventoryFinished.push(args) > 0),
     read: vi.fn(async () => []),
   })),
 }));
@@ -75,6 +81,7 @@ vi.mock('./inventory.ts', async (original) => ({
 vi.mock('./hosted-runner.ts', async (original) => ({
   ...(await original<typeof import('./hosted-runner.ts')>()),
   runJobProcess: vi.fn(),
+  runInventoryProcess: vi.fn(),
 }));
 const worker = await import('./service-worker.ts');
 const runner = await import('./hosted-runner.ts');
@@ -84,8 +91,11 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
   vi.mocked(worker.pollServiceTarget).mockReset();
   vi.mocked(runner.runJobProcess).mockReset();
+  vi.mocked(runner.runInventoryProcess).mockReset();
   vi.unstubAllEnvs();
   fake.samples = [];
+  fake.inventories = [];
+  fake.inventoryFinished = [];
 });
 
 async function until(condition: () => boolean, what: string) {
@@ -291,6 +301,7 @@ it('runs up to --job-processes jobs at once, refills a slot when a job ends and 
     repairAttempts: 0,
     publishDraft: false,
     publishUnresolved: false,
+    supersedeDrafts: false,
     aiPatch: false,
   });
   jobs[0]();
@@ -345,6 +356,56 @@ it('answers /health within a second while a job process holds its CPU', async ()
   ]);
 });
 
+it('kills an inventory process that holds the CPU past its cap, records the timeout and goes on to claim jobs', async () => {
+  vi.stubEnv('REFIT_TEST_INVENTORY_PROCESS', 'busy');
+  const actual = await vi.importActual<typeof import('./hosted-runner.ts')>('./hosted-runner.ts');
+  vi.mocked(runner.runInventoryProcess).mockImplementation((options) =>
+    actual.runInventoryProcess({
+      ...options,
+      entry: INVENTORY_PROCESS,
+      seconds: INVENTORY_CAP_SECONDS,
+      graceSeconds: INVENTORY_GRACE_SECONDS,
+    }),
+  );
+  vi.mocked(runner.runJobProcess).mockResolvedValue(VALIDATED);
+  const claimed = {
+    installationId: 456,
+    repository: 'example/large',
+    previous: { revision: null, registry: null },
+  };
+  fake.inventories = [claimed];
+  const { url, finished, lines } = await start(1, { jobProcesses: 1 });
+  await until(() => vi.mocked(runner.runInventoryProcess).mock.calls.length === 1, 'the inventory');
+  const latencies: number[] = [];
+  while (!fake.inventoryFinished.length) {
+    const sent = Date.now();
+    const response = await fetch(`${url}/health`);
+    latencies.push(Date.now() - sent);
+    expect(await response.json()).toEqual({ status: 'listening' });
+    await delay(POLL_MS);
+  }
+  await until(() => finished.length === 1, 'the job after the inventory');
+  console.log(JSON.stringify({ latencies, lines }, null, 2));
+  expect(Math.max(...latencies)).toBeLessThan(HEALTH_LIMIT_MS);
+  const [inputs] = vi.mocked(runner.runInventoryProcess).mock.calls[0];
+  expect(inputs.inputs).toMatchObject({
+    installationId: 456,
+    repository: 'example/large',
+    previous: claimed.previous,
+    now: expect.any(Number),
+    registry: expect.objectContaining({ formatVersion: 1 }),
+  });
+  const error = `JobProcessError: Inventory took longer than ${INVENTORY_CAP_SECONDS} seconds and did not stop by itself; its process was stopped.`;
+  expect(fake.inventoryFinished).toEqual([[claimed, 'test-worker', { error }]]);
+  expect(lines.map((line) => line.message)).toContain(`[inventory example/large] ${error}`);
+  expect(finished[0]).toEqual([
+    1,
+    'test-worker',
+    'finished',
+    expect.objectContaining({ status: 'validated' }),
+  ]);
+});
+
 it('refuses --job-processes outside 1–32 or with --job-machines', async () => {
   const base = {
     database: {} as Pool,
@@ -366,4 +427,19 @@ it('refuses --job-processes outside 1–32 or with --job-machines', async () => 
       jobMachines: { machines: {} as FlyMachines, image: 'image', region: 'iad', images: [] },
     }),
   ).rejects.toThrow('--job-processes cannot be combined with --job-machines.');
+});
+
+it('refuses --supersede-drafts without --publish-draft', async () => {
+  await expect(
+    runHostedService({
+      database: {} as Pool,
+      app: { appId: '123', privateKeyFile: 'unused-test-key' },
+      directory: '/unused',
+      webhookSecret: 'webhook-secret-for-hosted-limit-tests',
+      controlToken: 'control-secret-for-hosted-limit-tests',
+      tenancy: { accounts: ['example'], limits: DEFAULT_TENANCY_LIMITS },
+      signal: new AbortController().signal,
+      supersedeDrafts: true,
+    }),
+  ).rejects.toThrow('--supersede-drafts requires --publish-draft.');
 });

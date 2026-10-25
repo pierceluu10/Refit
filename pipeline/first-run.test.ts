@@ -58,7 +58,7 @@ it('runs a root profile with no path flags and retains distinct private evidence
   expect(first.manifest.files.map((file: { path: string }) => file.path)).toEqual([
     'before.json',
     'after.json',
-    'scan.json',
+    'scan.json.gz',
   ]);
   expect(await readFile(join(sample.app, 'billing.ts'), 'utf8')).toBe(before);
   expect(await readFile(sample.path, 'utf8')).toBe(JSON.stringify(sample.configuration));
