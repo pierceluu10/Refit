@@ -4,6 +4,28 @@ import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { hostname } from 'node:os';
+import { promisify } from 'node:util';
+import { gunzip, gzip } from 'node:zlib';
+
+// Evidence that holds a full contract diff is stored gzip-compressed under its name plus this
+// suffix: a Stripe 2024-06-20 to 2026-09-30.endive scan is about 90 MB of JSON and 2 MB gzipped.
+export const COMPRESSED_SUFFIX = '.gz';
+export const compressEvidence = promisify(gzip);
+const decompress = promisify(gunzip);
+
+// The text of `name` in an evidence directory, compressed or as Refit wrote it before compression,
+// or undefined when neither exists.
+export async function readEvidence(directory: string, name: string) {
+  for (const path of [`${name}${COMPRESSED_SUFFIX}`, name]) {
+    try {
+      const content = await readFile(join(directory, path));
+      return (path === name ? content : await decompress(content)).toString('utf8');
+    } catch (error) {
+      if (!hasErrorCode(error, 'ENOENT')) throw error;
+    }
+  }
+  return undefined;
+}
 
 export function hasErrorCode(error: unknown, code: string) {
   return error instanceof Error && 'code' in error && error.code === code;
@@ -37,9 +59,13 @@ export async function readState(path: string) {
 }
 
 export async function writeState(path: string, value: unknown) {
+  await writeAtomically(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+export async function writeAtomically(path: string, content: string | Uint8Array) {
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+    await writeFile(temporary, content, { flag: 'wx', mode: 0o600 });
     const handle = await open(temporary, 'r');
     try {
       await handle.sync();
