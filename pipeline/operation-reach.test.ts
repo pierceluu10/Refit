@@ -394,3 +394,49 @@ it('keeps blocking changes Refit has no reach rule for', () => {
     ],
   ]);
 });
+
+it('reads the changed request property, not the attribute oasdiff names after it', () => {
+  const anyOf = checkout(
+    'removed `subschema #2` from the `ui_mode` request property `anyOf` list',
+    'request-property-any-of-removed',
+  );
+  const call = `export const go = () => stripe.checkout.sessions.create({ mode: 'payment', ui_mode: 'hosted' });`;
+  expect(reach(call, [anyOf])).toEqual([
+    [
+      'reached',
+      'The `checkout.sessions.create` call in app/api/checkout/route.ts sends `ui_mode`.',
+    ],
+  ]);
+});
+
+// The `currency` format is a lowercase three-letter ISO code (https://docs.stripe.com/currencies).
+it('passes the new currency format only where every sent currency is a lowercase ISO code', () => {
+  const format = () =>
+    checkout(
+      'the `line_items/items/price_data/currency` request property `format` changed from `none` to `currency`',
+      'request-property-type-changed',
+    );
+  // IncomeStreamSurfer/free-site-example convex/stripe.ts, shortened.
+  const freeSite = `export const pay = () => stripe.checkout.sessions.create({
+  line_items: [{ price_data: { currency: "usd", product_data: { name: "Unlimited Use Plan" }, unit_amount: 1999 }, quantity: 1 }],
+  mode: "payment",
+});`;
+  // heyitsadityaa/ticketr actions/createStripeCheckoutSession.ts, shortened.
+  const ticketr = `export const buy = () => stripe.checkout.sessions.create({
+  line_items: [{ price_data: { currency: "gbp", product_data: { name: "Ticket" }, unit_amount: 100 }, quantity: 1 }],
+  mode: "payment",
+});`;
+  for (const source of [freeSite, ticketr])
+    expect(reach(source, [format()])[0]).toEqual(['compatible', expect.any(String)]);
+  expect(reach(AI_COMPANION, [format()])).toEqual([
+    [
+      'reached',
+      'The `checkout.sessions.create` call in app/api/checkout/route.ts sends `line_items/items/price_data/currency` as `INR`; the target contract gives it the `currency` format, a lowercase three-letter ISO code (https://docs.stripe.com/currencies).',
+    ],
+  ]);
+  const computed = `export const go = (currency: string) => stripe.checkout.sessions.create({
+  mode: 'payment',
+  line_items: [{ price_data: { currency, unit_amount: 100 }, quantity: 1 }],
+});`;
+  expect(reach(computed, [format()])[0][0]).not.toBe('compatible');
+});
