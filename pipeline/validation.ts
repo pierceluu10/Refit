@@ -55,6 +55,7 @@ import { selectValidationRuntime } from './validation-runtime.ts';
 import { checkFailures, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
 import {
   gradeEvidence,
+  setAsideTypeError,
   TESTS_FAILED,
   TYPE_CHECK_STARTED,
   typeCheckCommand,
@@ -176,7 +177,12 @@ export function subscriptionPeriodRead(error: { message: string }) {
 const formatTypeError = (error: ReturnType<typeof typeErrors>[number]) =>
   `${error.file}(${error.line},${error.column}): error ${error.code}: ${error.message}`;
 
-export function compareTypeCheck(baseline: CheckResult, patched?: CheckResult): CheckResult {
+export function compareTypeCheck(
+  baseline: CheckResult,
+  patched?: CheckResult,
+  // Introduced errors that are listed for review instead of failing (setAsideTypeError).
+  setAside?: (file: string) => boolean,
+): CheckResult {
   const check = patched ?? baseline;
   const errors = typeErrors(check);
   if (check.status === 'error' || check.status === 'not-run') return check;
@@ -184,7 +190,9 @@ export function compareTypeCheck(baseline: CheckResult, patched?: CheckResult): 
   if (check.stdout.includes(TESTS_FAILED) || (check.exitCode !== 0 && !errors.length))
     return { ...check, status: 'failed' };
   if (!patched) return { ...check, status: 'passed' };
-  const introduced = introducedTypeErrors(baseline, check);
+  const introduced = introducedTypeErrors(baseline, check).filter(
+    (error) => !setAside?.(error.file),
+  );
   return introduced.length
     ? {
         ...check,
@@ -414,11 +422,15 @@ async function prepareCandidateDependencies(
   return { dependencies, environment: await snapshotDependencies(prepared, dependencies) };
 }
 
-function typeCheckComparison(baselineRun: CheckResult, compareTypeErrors?: boolean) {
+function typeCheckComparison(
+  baselineRun: CheckResult,
+  compareTypeErrors?: boolean,
+  setAside?: (file: string) => boolean,
+) {
   return {
     baseline: compareTypeErrors ? compareTypeCheck(baselineRun) : baselineRun,
     compared: (check: CheckResult) =>
-      compareTypeErrors ? compareTypeCheck(baselineRun, check) : check,
+      compareTypeErrors ? compareTypeCheck(baselineRun, check, setAside) : check,
   };
 }
 
@@ -882,7 +894,12 @@ export async function validateMigration(options: {
             signal: options.signal,
           }),
         );
-    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    const setAside = setAsideTypeError(options.command);
+    const { baseline, compared } = typeCheckComparison(
+      baselineRun,
+      options.compareTypeErrors,
+      setAside,
+    );
     // Tests that fail on the original code leave a chain's type check to compare (Laptop 1's ruling
     // on #288): the type check alone runs on the patch, so the patch's checks still never ran.
     const testsBroken =
@@ -1305,7 +1322,15 @@ export async function validateMigration(options: {
       !['error', 'not-run'].includes(run.status) &&
       (run.exitCode === 0 || typeErrors(run).length > 0);
     const introducedByPatch = brokenTestsTypeCheck
-      ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck)
+      ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck).filter(
+          (error) => !setAside?.(error.file),
+        )
+      : [];
+    // Errors the patch introduced in JavaScript only Refit's scoped check reads, listed for review.
+    const setAsideErrors = setAside
+      ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck ?? patched).filter((error) =>
+          setAside(error.file),
+        )
       : [];
     // Every outcome is graded: without passing checks the patch is grade D, saying which check
     // failed or why none ran, so a [Needs review] draft can state it; tests broken before the
@@ -1317,6 +1342,7 @@ export async function validateMigration(options: {
             command: options.command,
             changedFiles: publicationFiles.map((file) => file.path),
             generated,
+            setAside: setAsideErrors.map(formatTypeError),
           })
         : validationStatus === 'baseline-failed' && brokenTestsTypeCheck && candidateSources
           ? await gradeEvidence({
@@ -1338,6 +1364,7 @@ export async function validateMigration(options: {
                       }
                     : { passed: true },
               },
+              setAside: setAsideErrors.map(formatTypeError),
             })
           : validationStatus === 'stale'
             ? undefined
@@ -1374,6 +1401,9 @@ export async function validateMigration(options: {
       attempts,
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
+      ...(setAsideErrors.length
+        ? { setAsideTypeErrors: setAsideErrors.map(({ key, ...error }) => error) }
+        : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
       ...(brokenTestsTypeCheck
         ? { brokenTestsTypeCheck: { command: brokenTestsCommand, patched: brokenTestsTypeCheck } }
@@ -1475,7 +1505,11 @@ export async function validateSourcePatch(options: {
       dependencies,
       signal: options.signal,
     });
-    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    const { baseline, compared } = typeCheckComparison(
+      baselineRun,
+      options.compareTypeErrors,
+      setAsideTypeError(options.command),
+    );
     let patched: CheckResult = NOT_RUN;
     let candidateEnvironment: Record<string, unknown> | undefined;
     if (baseline.status === 'passed') {

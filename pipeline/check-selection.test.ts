@@ -9,6 +9,7 @@ import {
   REFIT_TSC,
   SCOPED_TSCONFIG,
   selectCheck,
+  setAsideTypeError,
   TESTS_FAILED,
   TYPE_CHECK,
   TYPE_CHECK_STARTED,
@@ -549,6 +550,28 @@ it('runs the type check part of a chain alone on a patch whose tests were alread
     typeCheckCommand(['sh', '-c', chain('npm test', TYPE_CHECK.join(' ')), 'refit-check']),
   ).toEqual(['sh', '-c', TYPE_CHECK.join(' '), 'refit-check']);
   expect(typeCheckCommand(['npm', 'test'])).toBeUndefined();
+});
+
+it('sets aside JavaScript type errors only for a scoped check, which caps the grade at D', async () => {
+  const rocart = await repository(ROCART);
+  const { command } = await selectCheck(rocart);
+  const setAside = setAsideTypeError(command!);
+  expect([setAside?.('api/server.js'), setAside?.('api/apply-discount.ts')]).toEqual([true, false]);
+  expect(setAsideTypeError(TYPE_CHECK)).toBeUndefined();
+  const first =
+    "api/server.js(9,3): error TS2322: Type 'string | PaymentIntent' is not assignable to type 'string'.";
+  expect(
+    await gradeEvidence({
+      repository: rocart,
+      command: command!,
+      changedFiles: ['api/server.js'],
+      setAside: [first],
+    }),
+  ).toEqual({
+    letter: 'D',
+    level: 'none',
+    reason: `The type check passed only by setting aside a new type error in JavaScript the repository does not type-check, first ${first}.`,
+  });
 });
 
 it('counts only the listed test files as reaching the changed code', async () => {
