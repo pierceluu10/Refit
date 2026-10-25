@@ -1,4 +1,4 @@
-import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -22,8 +22,9 @@ import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
-import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
+import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -51,19 +52,25 @@ import {
 import { compactPatch, renderPatch } from './patches.ts';
 import {
   crossesOpenEnums,
+  crossesTypeRemovals,
+  KEEP_UNTYPED_REQUEST_PROPERTIES,
   OPEN_ENUM_REPAIR,
   OPEN_ENUM_RULE,
   keepsPartialRestore,
   openEnumRepair,
   restorableOpenEnumErrors,
+  untypedRequestProperty,
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
 import { checkFailures, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
 import {
+  advisoryTypeError,
   gradeEvidence,
   TESTS_FAILED,
   TYPE_CHECK_STARTED,
+  typeCheckCommand,
+  unavailableTypeCheck,
   ungradedEvidence,
 } from './check-selection.ts';
 import {
@@ -115,31 +122,12 @@ export interface CheckResult {
   stderr: string;
   error?: string;
 }
-
-const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
-
-// TypeScript diagnostics in a check's output, keyed without positions so moved lines still match.
-// After a tests-then-type-check chain's tests, only the type checker's own output counts.
-export function typeErrors(check: CheckResult) {
-  const start = check.stdout.lastIndexOf(TYPE_CHECK_STARTED);
-  return (start < 0 ? `${check.stdout}\n${check.stderr}` : check.stdout.slice(start))
-    .split('\n')
-    .map((line) => TYPE_ERROR.exec(line.trim()))
-    .filter((match): match is RegExpExecArray => Boolean(match))
-    .map((match) => ({
-      file: match[1],
-      line: Number(match[2]),
-      column: Number(match[3]),
-      code: match[4],
-      message: match[5],
-      key: `${match[1]} ${match[4]} ${match[5]}`,
-    }));
-}
+const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
 // With compareTypeErrors, the original code's type errors are the baseline: a typecheck that
 // reports errors still ran, and the patched check fails only on errors the patch introduced.
 function introducedTypeErrors(baseline: CheckResult, patched: CheckResult) {
-  const before = new Set(typeErrors(baseline).map((error) => error.key));
+  const before = typeErrorKeys(baseline);
   return typeErrors(patched).filter((error) => !before.has(error.key));
 }
 
@@ -187,7 +175,12 @@ export function subscriptionPeriodRead(error: { message: string }) {
 const formatTypeError = (error: ReturnType<typeof typeErrors>[number]) =>
   `${error.file}(${error.line},${error.column}): error ${error.code}: ${error.message}`;
 
-export function compareTypeCheck(baseline: CheckResult, patched?: CheckResult): CheckResult {
+export function compareTypeCheck(
+  baseline: CheckResult,
+  patched?: CheckResult,
+  // Introduced errors that are advisory instead of failing (advisoryTypeError).
+  advisory?: (file: string) => boolean,
+): CheckResult {
   const check = patched ?? baseline;
   const errors = typeErrors(check);
   if (check.status === 'error' || check.status === 'not-run') return check;
@@ -195,7 +188,9 @@ export function compareTypeCheck(baseline: CheckResult, patched?: CheckResult): 
   if (check.stdout.includes(TESTS_FAILED) || (check.exitCode !== 0 && !errors.length))
     return { ...check, status: 'failed' };
   if (!patched) return { ...check, status: 'passed' };
-  const introduced = introducedTypeErrors(baseline, check);
+  const introduced = introducedTypeErrors(baseline, check).filter(
+    (error) => !advisory?.(error.file),
+  );
   return introduced.length
     ? {
         ...check,
@@ -501,11 +496,33 @@ async function stripeOnlyDependencies(options: {
   }
 }
 
-function typeCheckComparison(baselineRun: CheckResult, compareTypeErrors?: boolean) {
+function typeCheckComparison(
+  baselineRun: CheckResult,
+  compareTypeErrors?: boolean,
+  advisory?: (file: string) => boolean,
+  // A generated type check that checked nothing on the original code (unavailableTypeCheck): only
+  // a chain's tests decide, and without tests no check ran.
+  unavailable?: string,
+) {
+  const testsOnly = (check: CheckResult): CheckResult =>
+    ['error', 'not-run'].includes(check.status)
+      ? check
+      : { ...check, status: check.stdout.includes(TESTS_FAILED) ? 'failed' : 'passed' };
+  if (unavailable)
+    return {
+      baseline: baselineRun.stdout.includes(TYPE_CHECK_STARTED)
+        ? testsOnly(baselineRun)
+        : {
+            ...baselineRun,
+            status: 'error' as const,
+            error: `The generated type check is unavailable: ${unavailable}`,
+          },
+      compared: testsOnly,
+    };
   return {
     baseline: compareTypeErrors ? compareTypeCheck(baselineRun) : baselineRun,
     compared: (check: CheckResult) =>
-      compareTypeErrors ? compareTypeCheck(baselineRun, check) : check,
+      compareTypeErrors ? compareTypeCheck(baselineRun, check, advisory) : check,
   };
 }
 
@@ -576,11 +593,10 @@ async function generatedStripeChecks(options: {
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
-  const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
   let entryPoints: ReturnType<typeof generatedEntryPoints> = { entries: [], uncovered: 0 };
   try {
     entryPoints = generatedEntryPoints(options.original, options.findings);
-    return await runGeneratedStripeChecks(options, entryPoints, notRun);
+    return await runGeneratedStripeChecks(options, entryPoints);
   } catch (error) {
     options.signal?.throwIfAborted();
     return {
@@ -593,8 +609,8 @@ async function generatedStripeChecks(options: {
       notRunnable: [],
       unavailableEntries: [],
       regressions: [],
-      baseline: notRun,
-      patched: notRun,
+      baseline: NOT_RUN,
+      patched: NOT_RUN,
       claim: GENERATED_CLAIM,
     };
   }
@@ -655,7 +671,6 @@ async function stageStripeMock(
 async function runGeneratedStripeChecks(
   options: Parameters<typeof generatedStripeChecks>[0],
   entryPoints: ReturnType<typeof generatedEntryPoints>,
-  notRun: CheckResult,
 ) {
   const { entries, uncovered } = entryPoints;
   const tools = await sandboxInput(options.root, 'generated-');
@@ -672,7 +687,7 @@ async function runGeneratedStripeChecks(
   );
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {
-    if (!entries.length) return notRun;
+    if (!entries.length) return NOT_RUN;
     options.onProgress?.(
       `Running generated Stripe checks against ${run.side}-version stripe-mock in offline Docker...`,
     );
@@ -826,13 +841,13 @@ export async function validateMigration(options: {
   // --write-behaviour-tests: without behaviourTests, one model request writes them from the
   // original code (behaviour-test-writer.ts); --write-behaviour-tests-dry-run only builds it.
   behaviourTestWriter?: BehaviourTestWriter;
-  // --publish-unresolved: see withoutRequestParameters.
-  leaveRequestParameters?: boolean;
+  // Owner decision 1: see runPipeline.
+  leaveReviewedFindings?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
-  // --publish-unresolved: a repository-side dependency preparation failure skips the checks and
-  // returns the deterministic patch as `untested` instead of throwing.
-  recordDependencyFailures?: boolean;
+  // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
+  // no evidence, the patch is still applied and returned untested instead of throwing or dropped.
+  recordUntested?: boolean;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -864,14 +879,9 @@ export async function validateMigration(options: {
   });
   if (apiVersionSourceBlocked(preflight.apiVersion))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
-  const reviewReason = migrationReviewReason(
-    options.leaveRequestParameters && !options.aiPatch
-      ? withoutRequestParameters(preflight)
-      : preflight,
-    true,
-    true,
-    Boolean(options.aiPatch),
-  );
+  const reviewReason = options.leaveReviewedFindings
+    ? undefined
+    : migrationReviewReason(preflight, true, true, Boolean(options.aiPatch));
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
@@ -919,6 +929,23 @@ export async function validateMigration(options: {
         }),
       );
     const proposed = independent ? ahead(() => propose(true)) : undefined;
+    // With recordUntested, a patched lockfile Refit cannot install leaves the initial patch
+    // untested (owner decision 1) instead of ending the run.
+    const preparePatched = async (directory: string, untested: boolean, signal?: AbortSignal) => {
+      try {
+        return {
+          ...(await timed('candidatePreparation', () =>
+            prepareCandidateDependencies(directory, root, image, { ...options, signal }),
+          )),
+          dependencyFailure: undefined,
+        };
+      } catch (error) {
+        const failure = untested && options.recordUntested ? preparationFailure(error) : undefined;
+        if (!failure) throw error;
+        options.onProgress?.(`Preparing the patched dependencies failed: ${failure.summary}`);
+        return { dependencies: undefined, environment: undefined, dependencyFailure: failure };
+      }
+    };
     // A patch that changes the lockfile prepares its own dependencies; that install starts now.
     const candidateInstall =
       proposed && options.prepareDependencies
@@ -928,20 +955,14 @@ export async function validateMigration(options: {
             if (!diff || !packageDiff(diff)) return undefined;
             const directory = await sandboxInput(root, 'candidate-');
             await applyPatch(archive, directory, `${directory}.patch`, diff);
-            return {
-              directory,
-              ...(await timed('candidatePreparation', () =>
-                prepareCandidateDependencies(directory, root, image, {
-                  ...options,
-                  signal: speculation.signal,
-                }),
-              )),
-            };
+            return { directory, ...(await preparePatched(directory, true, speculation.signal)) };
           })
         : undefined;
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
-    let dependencyFailure: ReturnType<typeof repositoryDependencyFailure> = undefined;
+    let dependencyFailure: ReturnType<typeof preparationFailure> = undefined;
+    // The baseline checks failed with recordUntested: the patch is built but its checks never run.
+    let untestedBaseline = false;
     let prepared: Awaited<ReturnType<typeof prepareDependencies>> | undefined;
     if (options.prepareDependencies)
       try {
@@ -956,8 +977,8 @@ export async function validateMigration(options: {
       } catch (error) {
         // Behaviour tests may still run with only stripe installed (stripeOnlyDependencies).
         dependencyFailure =
-          options.recordDependencyFailures || options.behaviourTestWriter
-            ? repositoryDependencyFailure(error)
+          options.recordUntested || options.behaviourTestWriter
+            ? preparationFailure(error)
             : undefined;
         if (!dependencyFailure) throw error;
         options.onProgress?.(`Dependency preparation failed: ${dependencyFailure.summary}`);
@@ -975,12 +996,15 @@ export async function validateMigration(options: {
       originalSources: Awaited<ReturnType<typeof readRepository>>,
       report: Report,
       install?: Promise<Install>,
-    ) => timed('candidates', () => buildCandidate(diff, originalSources, report, install));
+      untested = false,
+    ) =>
+      timed('candidates', () => buildCandidate(diff, originalSources, report, install, untested));
     const buildCandidate = async (
       diff: string,
       originalSources: Awaited<ReturnType<typeof readRepository>>,
       report: Report,
-      install?: Promise<Install>,
+      install: Promise<Install> | undefined,
+      untested: boolean,
     ) => {
       // The install started with the proposal, for this diff, when the patch changes the lockfile.
       const installed = install && (await install);
@@ -992,12 +1016,18 @@ export async function validateMigration(options: {
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
-      if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure)
-        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
-          installed ??
-          (await timed('candidatePreparation', () =>
-            prepareCandidateDependencies(patchedDirectory, root, image, options),
-          )));
+      let candidateFailure: ReturnType<typeof preparationFailure>;
+      if (
+        packageDiff(diff) &&
+        options.prepareDependencies &&
+        !dependencyFailure &&
+        !untestedBaseline
+      )
+        ({
+          dependencies: candidateDependencies,
+          environment: candidateEnvironment,
+          dependencyFailure: candidateFailure,
+        } = installed ?? (await preparePatched(patchedDirectory, untested, options.signal)));
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -1062,6 +1092,7 @@ export async function validateMigration(options: {
         directory: patchedDirectory,
         dependencies: candidateDependencies,
         environment: candidateEnvironment,
+        dependencyFailure: candidateFailure,
       };
     };
     options.signal?.throwIfAborted();
@@ -1077,6 +1108,7 @@ export async function validateMigration(options: {
               await readRepository(baselineDirectory, earlyReport.adapter.packageName),
               earlyReport,
               candidateInstall,
+              true,
             ),
           )
         : undefined;
@@ -1084,6 +1116,7 @@ export async function validateMigration(options: {
       speculativeCandidate &&
       ahead(async () => {
         const candidate = await speculativeCandidate;
+        if (candidate.dependencyFailure) return NOT_RUN;
         return timed('patchedChecks', () =>
           containerCheck({
             directory: candidate.directory,
@@ -1096,7 +1129,7 @@ export async function validateMigration(options: {
       });
     if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
     const baselineRun: CheckResult = dependencyFailure
-      ? { status: 'not-run', exitCode: null, stdout: '', stderr: '' }
+      ? NOT_RUN
       : await timed('baselineChecks', () =>
           containerCheck({
             directory: baselineDirectory,
@@ -1106,13 +1139,28 @@ export async function validateMigration(options: {
             signal: options.signal,
           }),
         );
-    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    const advisory = advisoryTypeError(options.command);
+    const typeCheckUnavailable = options.compareTypeErrors
+      ? unavailableTypeCheck(options.command, baselineRun)
+      : undefined;
+    const { baseline, compared } = typeCheckComparison(
+      baselineRun,
+      options.compareTypeErrors,
+      advisory,
+      typeCheckUnavailable,
+    );
     // Tests that fail on the original code leave a chain's type check to compare (Laptop 1's ruling
-    // on #288): the patched check still runs, and only its type check can grade the patch.
+    // on #288): the type check alone runs on the patch, so the patch's checks still never ran.
     const testsBroken =
       Boolean(options.compareTypeErrors) &&
       baselineRun.stdout.includes(TESTS_FAILED) &&
-      baselineRun.stdout.includes(TYPE_CHECK_STARTED);
+      baselineRun.stdout.includes(TYPE_CHECK_STARTED) &&
+      !typeCheckUnavailable;
+    untestedBaseline =
+      Boolean(options.recordUntested) &&
+      !dependencyFailure &&
+      baseline.status !== 'passed' &&
+      !testsBroken;
     options.signal?.throwIfAborted();
     const report = earlyReport || (await propose(baseline.status === 'passed'));
     const configuredEndpointProposal = report.operationChanges.some(
@@ -1143,10 +1191,13 @@ export async function validateMigration(options: {
     const behaviourWanted = Boolean(options.behaviourTestWriter || options.behaviourTests?.length);
     let candidateFailure: string | undefined;
     const initialCandidate =
-      baseline.status === 'passed' || dependencyFailure || testsBroken
+      baseline.status === 'passed' ||
+      dependencyFailure ||
+      testsBroken ||
+      (untestedBaseline && proposal.diff)
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
-            : prepareCandidate(proposal.diff, originalSources, report))
+            : prepareCandidate(proposal.diff, originalSources, report, undefined, true))
         : behaviourWanted && proposal.diff
           ? // Built only for behaviour tests: a failure blocks them, never the validation.
             await prepareCandidate(proposal.diff, originalSources, report).catch(
@@ -1157,6 +1208,8 @@ export async function validateMigration(options: {
               },
             )
           : undefined;
+    // The patched lockfile could not be installed, so the patch is written but never checked.
+    dependencyFailure ??= initialCandidate?.dependencyFailure;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
     let candidateDirectory = initialCandidate?.directory;
     let candidateSources = initialCandidate?.sources;
@@ -1165,8 +1218,7 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
-    const runPatched =
-      initialCandidate && (baseline.status === 'passed' || testsBroken) && !dependencyFailure;
+    const runPatched = initialCandidate && baseline.status === 'passed' && !dependencyFailure;
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(
@@ -1182,7 +1234,7 @@ export async function validateMigration(options: {
                 }),
               )),
         )
-      : { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+      : NOT_RUN;
     const attempts: ValidationAttempt[] = [];
     const recordAttempt = () =>
       attempts.push({
@@ -1215,6 +1267,10 @@ export async function validateMigration(options: {
       error: string | null;
       // The open-enum restore applied to part of the errors before an AI repair of the rest.
       openEnumRestored?: boolean;
+      // Request properties stripe-node 13 stopped typing, which the restore keeps sending unchanged.
+      keptProperties?: string[];
+      // The restore kept only such properties and changed no enum types.
+      enumsUnchanged?: boolean;
     } = {
       limit: repairLimit,
       requested: 0,
@@ -1233,7 +1289,8 @@ export async function validateMigration(options: {
     // deterministic repair restores their known literals where the upgraded types reject them. It
     // is kept when every introduced error is that shape and the checks then pass, or, before an AI
     // repair of a rules proposal, when the checks then fail only on the errors it left alone: the
-    // model then repairs those errors on the restored candidate instead of all of them.
+    // model then repairs those errors on the restored candidate instead of all of them. The same
+    // restore keeps sending the request properties stripe-node 13.0.0 stopped typing.
     const sdkUpgrade =
       'sdkUpgrade' in report.patch
         ? (report.patch.sdkUpgrade as { from?: string; to?: string } | undefined)
@@ -1245,7 +1302,8 @@ export async function validateMigration(options: {
       candidateSources &&
       sdkUpgrade?.from &&
       sdkUpgrade.to &&
-      crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to)
+      (crossesOpenEnums(sdkUpgrade.from, sdkUpgrade.to) ||
+        (KEEP_UNTYPED_REQUEST_PROPERTIES && crossesTypeRemovals(sdkUpgrade.from, sdkUpgrade.to)))
         ? introducedTypeErrors(baselineRun, patched)
         : [];
     const openEnumErrors =
@@ -1308,6 +1366,11 @@ export async function validateMigration(options: {
         candidateEnvironment = prepared.environment;
         patched = check;
         recordAttempt();
+        const kept = openEnumErrors.flatMap((error) => untypedRequestProperty(error) ?? []);
+        if (kept.length) {
+          repair.keptProperties = [...new Set(kept.map((entry) => entry.property))];
+          if (kept.length === openEnumErrors.length) repair.enumsUnchanged = true;
+        }
         if (check.status === 'passed') repair.stopReason = OPEN_ENUM_REPAIR;
         else {
           repair.openEnumRestored = true;
@@ -1493,6 +1556,22 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
+    // With the tests broken before the patch, only the chain's type check runs on it.
+    const brokenTestsCommand = testsBroken ? typeCheckCommand(options.command) : undefined;
+    const brokenTestsTypeCheck =
+      brokenTestsCommand && initialCandidate && !dependencyFailure
+        ? compared(
+            await timed('patchedChecks', () =>
+              containerCheck({
+                directory: initialCandidate.directory,
+                image,
+                command: brokenTestsCommand,
+                dependencies: initialCandidate.dependencies,
+                signal: options.signal,
+              }),
+            ),
+          )
+        : undefined;
     const stripeOnly =
       dependencyFailure && candidateDirectory && candidateSources && behaviourWanted
         ? await timed('stripeOnlyPreparation', () =>
@@ -1584,7 +1663,25 @@ export async function validateMigration(options: {
     const typeChecked = (run: CheckResult) =>
       !['error', 'not-run'].includes(run.status) &&
       (run.exitCode === 0 || typeErrors(run).length > 0);
-    const introducedByPatch = testsBroken ? introducedTypeErrors(baselineRun, patched) : [];
+    const introducedByPatch = brokenTestsTypeCheck
+      ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck).filter(
+          (error) => !advisory?.(error.file),
+        )
+      : [];
+    // Errors the patch introduced in JavaScript only Refit's generated check reads: advisory.
+    const advisoryErrors =
+      advisory && !typeCheckUnavailable
+        ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck ?? patched).filter((error) =>
+            advisory(error.file),
+          )
+        : [];
+    const advisoryGrade = advisoryErrors.map((error) => ({
+      file: error.file,
+      text: formatTypeError(error),
+    }));
+    // The repository's own checks passed on both sides and only a generated stripe-mock check failed:
+    // the grade still comes from what the repository's checks reached.
+    const ownChecksPassed = baseline.status === 'passed' && patched.status === 'passed';
     // Every outcome is graded: without passing checks the patch is grade D, saying which check
     // failed or why none ran, so a [Needs review] draft can state it; tests broken before the
     // patch leave the type check as the evidence. Behaviour tests that give grade A count on
@@ -1592,46 +1689,57 @@ export async function validateMigration(options: {
     // never vetoes a correct patch. A regression is never graded A.
     const behaviourA =
       behaviour?.grade === 'A' && !['stale', 'regression'].includes(validationStatus);
-    const grade =
-      (validationStatus === 'passed' || behaviourA) && candidateSources
+    const ownGrade =
+      (validationStatus === 'passed' || ownChecksPassed || behaviourA) && candidateSources
         ? await gradeEvidence({
             repository: candidateSources,
             command: options.command,
             changedFiles: publicationFiles.map((file) => file.path),
             generated,
             behaviour: behaviour && behaviourGrade(behaviour),
+            advisory: advisoryGrade,
+            typeCheckUnavailable,
           })
-        : validationStatus === 'baseline-failed' && testsBroken && candidateSources
-          ? await gradeEvidence({
-              repository: candidateSources,
-              command: options.command,
-              changedFiles: publicationFiles.map((file) => file.path),
-              testsBroken: {
-                reason: checkFailureText({
-                  checkFailures: failures.checkFailures?.filter(
-                    (failure) => failure.side === 'baseline',
-                  ),
-                }).trim(),
-                typeCheck: !(typeChecked(baselineRun) && typeChecked(patched))
-                  ? { passed: false, detail: 'the type check did not finish on both sides' }
-                  : introducedByPatch.length
-                    ? {
-                        passed: false,
-                        detail: `the patch introduces ${introducedByPatch.length === 1 ? 'a type error' : `${introducedByPatch.length} type errors`}, first ${formatTypeError(introducedByPatch[0])}`,
-                      }
-                    : { passed: true },
-              },
-            })
-          : validationStatus === 'stale'
-            ? undefined
-            : ungradedEvidence(
-                dependencyFailure
-                  ? `Dependencies could not be prepared, so no check ran: ${dependencyFailure.summary}`
-                  : checkFailureText(failures).trim() ||
-                      (generated
-                        ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
-                        : `Validation returned ${validationStatus}.`),
-              );
+        : undefined;
+    const grade = ownGrade
+      ? validationStatus === 'passed' || !generated
+        ? ownGrade
+        : {
+            ...ownGrade,
+            reason: `${ownGrade.reason} The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`,
+          }
+      : validationStatus === 'baseline-failed' && brokenTestsTypeCheck && candidateSources
+        ? await gradeEvidence({
+            repository: candidateSources,
+            command: options.command,
+            changedFiles: publicationFiles.map((file) => file.path),
+            testsBroken: {
+              reason: checkFailureText({
+                checkFailures: failures.checkFailures?.filter(
+                  (failure) => failure.side === 'baseline',
+                ),
+              }).trim(),
+              typeCheck: !(typeChecked(baselineRun) && typeChecked(brokenTestsTypeCheck))
+                ? { passed: false, detail: 'the type check did not finish on both sides' }
+                : introducedByPatch.length
+                  ? {
+                      passed: false,
+                      detail: `the patch introduces ${introducedByPatch.length === 1 ? 'a type error' : `${introducedByPatch.length} type errors`}, first ${formatTypeError(introducedByPatch[0])}`,
+                    }
+                  : { passed: true },
+            },
+            advisory: advisoryGrade,
+          })
+        : validationStatus === 'stale'
+          ? undefined
+          : ungradedEvidence(
+              dependencyFailure
+                ? `Dependencies could not be prepared, so no check ran: ${dependencyFailure.summary}`
+                : checkFailureText(failures).trim() ||
+                    (generated
+                      ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
+                      : `Validation returned ${validationStatus}.`),
+            );
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)
@@ -1660,7 +1768,14 @@ export async function validateMigration(options: {
       attempts,
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
+      ...(advisoryErrors.length
+        ? { advisoryTypeErrors: advisoryErrors.map(({ key, ...error }) => error) }
+        : {}),
+      ...(typeCheckUnavailable ? { typeCheckUnavailable } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
+      ...(brokenTestsTypeCheck
+        ? { brokenTestsTypeCheck: { command: brokenTestsCommand, patched: brokenTestsTypeCheck } }
+        : {}),
       ...failures,
       ...(Object.keys(timings).length ? { timings } : {}),
       limits: validationLimits(),
@@ -1758,8 +1873,12 @@ export async function validateSourcePatch(options: {
       dependencies,
       signal: options.signal,
     });
-    const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
-    let patched: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+    const { baseline, compared } = typeCheckComparison(
+      baselineRun,
+      options.compareTypeErrors,
+      advisoryTypeError(options.command),
+    );
+    let patched: CheckResult = NOT_RUN;
     let candidateEnvironment: Record<string, unknown> | undefined;
     if (baseline.status === 'passed') {
       options.signal?.throwIfAborted();

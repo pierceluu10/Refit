@@ -178,7 +178,11 @@ const CORRECT = {
   ...ORIGINAL,
   'controller/payment/payment.js': PAYMENT('allowed_payment_method_types'),
   'libs/stripe.ts': CLIENT(VERSIONS.after.version),
-  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts'),
+  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts', [
+    'getSubscriptionPeriodStart',
+    'getSubscriptionPeriodEnd',
+    'getInvoiceSubscription',
+  ]),
   'libs/supabaseAdmin.ts': PERIODS(
     'getSubscriptionPeriodStart(subscription)',
     'getSubscriptionPeriodEnd(subscription)',

@@ -223,7 +223,11 @@ const CORRECT = {
   )
     .replace('subscription.current_period_start', 'getSubscriptionPeriodStart(subscription)')
     .replace('subscription.current_period_end', 'getSubscriptionPeriodEnd(subscription)'),
-  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts'),
+  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts', [
+    'getSubscriptionPeriodStart',
+    'getSubscriptionPeriodEnd',
+    'getInvoiceSubscription',
+  ]),
   'app/api/webhook/invoice.ts': INVOICE.replace(
     "import { stripe } from '@/lib/stripe';",
     "import { stripe } from '@/lib/stripe';\nimport { getInvoiceSubscription, getSubscriptionPeriodEnd } from '../../../libs/stripe-subscription-period';",

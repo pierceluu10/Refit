@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { captureSpecification } from './openapi-sources.ts';
-import { parseSpecification, readSpecification } from './specifications.ts';
+import {
+  digest,
+  parseSpecification,
+  readSpecification,
+  stripeSpecificationUrl,
+} from './specifications.ts';
 import { SpecificationUnavailableError } from './network.ts';
 
 const roots: string[] = [];
@@ -33,6 +38,34 @@ it('captures a provider-neutral YAML source and verifies its saved content prove
     JSON.stringify({ ...snapshot, content: YAML.replace('owned_by', 'owner') }),
   );
   await expect(readSpecification(saved)).rejects.toThrow(/content hash/);
+});
+
+it('keeps a file source that is already a verified Refit snapshot, as enrollment generates', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-source-test-'));
+  roots.push(root);
+  const content = JSON.stringify({ openapi: '3.0.0', paths: {} });
+  const revision = 'ce576d4f145edeef361a64d9d51b2153e3696b0b';
+  const stripe = {
+    formatVersion: 1,
+    kind: 'refit-snapshot',
+    provider: 'stripe',
+    revision,
+    url: stripeSpecificationUrl(revision),
+    hash: digest(content),
+    content,
+  };
+  const yaml = join(root, 'openapi.yaml');
+  await writeFile(yaml, YAML);
+  const source = await captureSpecification({ kind: 'file', path: yaml }, 'openai');
+  for (const snapshot of [stripe, source]) {
+    const path = join(root, `${snapshot.kind}.json`);
+    await writeFile(path, JSON.stringify(snapshot));
+    expect(await captureSpecification({ kind: 'file', path }, snapshot.provider)).toEqual(snapshot);
+    await writeFile(path, JSON.stringify({ ...snapshot, hash: digest('tampered') }));
+    await expect(captureSpecification({ kind: 'file', path }, snapshot.provider)).rejects.toThrow(
+      /content hash/,
+    );
+  }
 });
 
 it('downloads public HTTPS specifications without redirects or credentials', async () => {

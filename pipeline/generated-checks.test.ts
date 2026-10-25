@@ -130,6 +130,10 @@ export async function invoiceSubscription(id) {
 export async function broken(id) {
   throw new TypeError('Cannot read properties of undefined (reading id) for ' + id);
 }
+// supabase-js throws its error as a plain object.
+export async function plainObject(id) {
+  throw { message: 'TypeError: fetch failed', details: id, hint: '', code: '' };
+}
 `;
 
 it('redirects Stripe SDK requests to the local mock with a test key and records thrown errors', async () => {
@@ -179,6 +183,15 @@ it('redirects Stripe SDK requests to the local mock with a test key and records 
       ok: false,
       phase: 'call',
       error: expect.stringContaining('Cannot read properties of undefined'),
+    });
+    await rm(tools, { recursive: true });
+    await mkdir(tools);
+    const plain = await run('plainObject');
+    expect(generatedResults(plain.stdout).get('src/billing.mjs#plainObject')).toEqual({
+      ok: false,
+      phase: 'call',
+      error:
+        '{"message":"TypeError: fetch failed","details":"refit_placeholder_1","hint":"","code":""}',
     });
   } finally {
     server.closeAllConnections();
@@ -615,7 +628,10 @@ const PERIOD_PATCHED = {
     )
     .replace('subscription.current_period_start', 'getSubscriptionPeriodStart(subscription)')
     .replace('subscription.current_period_end', 'getSubscriptionPeriodEnd(subscription)'),
-  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts'),
+  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts', [
+    'getSubscriptionPeriodStart',
+    'getSubscriptionPeriodEnd',
+  ]),
 };
 
 it('loads a patch that adds the helper module and counts only a throwing call (simulated stripe-mock)', async () => {
@@ -817,4 +833,60 @@ it('gives placeholders to the credentials and addresses the code reads, so clien
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+it('loads the dotted and JSON imports bundlers resolve: Clerk worker sources and next/package.json', async () => {
+  // Run 40153367553: 4 entry points stopped at @clerk/shared 0.21.0's `./workerTimers.worker`
+  // (locked by Akash4510/ai-companion at f2751bb7fe1c830a3f1c50144a52925164e21f3f), which the
+  // extensionless retry skipped as if `.worker` were an extension, and 6 at @clerk/nextjs 5.6.1's
+  // `import nextPkg from "next/package.json"` (locked by jeancdevx/duolingo-clone at
+  // 7f690a25b964b273d6b1315453119936a0586949). Both packages are reduced to those imports.
+  const root = await mkdtemp(join(tmpdir(), 'refit-generated-bundled-'));
+  roots.push(root);
+  const app = join(root, 'app');
+  const tools = join(root, 'tools');
+  const files: Record<string, string> = {
+    'node_modules/next/package.json': '{"name":"next","version":"14.2.3"}',
+    'node_modules/@clerk/shared/package.json':
+      '{"name":"@clerk/shared","type":"module","exports":{"./workerTimers":"./dist/esm/utils/workerTimers/createWorkerTimers.js"}}',
+    'node_modules/@clerk/shared/dist/esm/utils/workerTimers/createWorkerTimers.js':
+      'import pollerWorkerSource from "./workerTimers.worker";\nexport const workerSourceLength = () => pollerWorkerSource.length;\n',
+    'node_modules/@clerk/shared/dist/esm/utils/workerTimers/workerTimers.worker.js':
+      "var workerTimers_worker_default = 'const respond=r=>{self.postMessage(r)}';\nexport {\n  workerTimers_worker_default as default\n};\n",
+    'node_modules/@clerk/nextjs/package.json':
+      '{"name":"@clerk/nextjs","type":"module","exports":{"./debugLogger":"./dist/esm/utils/debugLogger.js"}}',
+    'node_modules/@clerk/nextjs/dist/esm/utils/debugLogger.js':
+      'import nextPkg from "next/package.json";\nexport const nextVersion = () => nextPkg.version;\n',
+    'actions/user-subscription.mjs': `import { nextVersion } from '@clerk/nextjs/debugLogger';
+import { workerSourceLength } from '@clerk/shared/workerTimers';
+export async function createStripeUrl() {
+  return nextVersion() + ':' + workerSourceLength();
+}
+`,
+  };
+  for (const [path, content] of Object.entries(files)) {
+    await mkdir(dirname(join(app, path)), { recursive: true });
+    await writeFile(join(app, path), content);
+  }
+  await mkdir(tools);
+  await writeHarness(tools, [
+    { file: 'actions/user-subscription.mjs', name: 'createStripeUrl', parameters: 0 },
+  ]);
+  const server = createServer((_, response) => response.end('{}'));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { stdout } = await execute(
+    process.execPath,
+    ['--import', join(tools, 'redirect.mjs'), join(tools, 'harness.mjs')],
+    {
+      env: {
+        ...process.env,
+        REFIT_STRIPE_MOCK_PORT: String((server.address() as { port: number }).port),
+        REFIT_GENERATED_ROOT: `${app}/`,
+      },
+      timeout: 10_000,
+    },
+  ).finally(() => new Promise((resolve) => server.close(resolve)));
+  expect(generatedResults(stdout).get('actions/user-subscription.mjs#createStripeUrl')).toEqual({
+    ok: true,
+  });
 });

@@ -241,7 +241,8 @@ let ts;
 const compiler = () =>
   (ts ??= createRequire(import.meta.url)(process.env.REFIT_TYPESCRIPT ?? '/refit/typescript/lib/typescript.js'));
 const TYPESCRIPT = /\\.(?:[cm]?ts|tsx)$/;
-const EXTENSION = /\\.[a-z]+$/i;
+// Extensions Node or TypeScript resolve as modules; './workerTimers.worker' has none of them.
+const EXTENSION = /\\.(?:[cm]?[jt]sx?|json|node)$/i;
 const UNRESOLVED = new Set(['ERR_MODULE_NOT_FOUND', 'ERR_UNSUPPORTED_DIR_IMPORT']);
 export async function resolve(specifier, context, next) {
   if (specifier === '${BEHAVIOUR_MODULE}') return { url: '${BEHAVIOUR_MODULE}', shortCircuit: true };
@@ -272,6 +273,10 @@ export async function load(url, context, next) {
       source: 'export const stripeRequests = globalThis.__refitStripe.requests; export const resetStripeRequests = globalThis.__refitStripe.reset;',
       shortCircuit: true,
     };
+  // Bundlers import JSON without an attribute (import pkg from 'next/package.json'); Node's ESM
+  // loader refuses that, so the sandbox serves it as a module whose default export is the data.
+  if (url.startsWith('file:') && url.endsWith('.json') && context.importAttributes?.type !== 'json')
+    return { format: 'module', source: 'export default ' + readFileSync(fileURLToPath(url), 'utf8') + ';', shortCircuit: true };
   if (!url.startsWith('file:') || !TYPESCRIPT.test(url)) return next(url, context);
   const path = fileURLToPath(url);
   const output = compiler().transpileModule(readFileSync(path, 'utf8'), {
@@ -361,6 +366,11 @@ for (let attempt = 0; ; attempt++) {
   if (attempt > 100) throw new Error('stripe-mock did not start');
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
+// Clients such as supabase-js throw plain objects, which String() prints as [object Object].
+const describe = (error) => {
+  if (error instanceof Error) return error.name + ': ' + error.message;
+  try { return JSON.stringify(error) ?? String(error); } catch { return String(error); }
+};
 const timeout = () => new Promise((_, reject) => {
   const timer = setTimeout(() => reject(Object.assign(new Error('did not settle within ${ENTRY_TIMEOUT_MS / 1000} seconds'), { phase: 'timeout' })), ${ENTRY_TIMEOUT_MS});
   timer.unref();
@@ -376,7 +386,7 @@ for (const entry of entries) {
     await Promise.race([module[entry.name](...args), timeout()]);
     console.log('REFIT_GENERATED_RESULT=' + JSON.stringify({ id, ok: true }));
   } catch (error) {
-    const text = error instanceof Error ? error.name + ': ' + error.message : String(error);
+    const text = describe(error);
     phase = error?.phase === 'timeout' ? 'timeout' : phase;
     console.log('REFIT_GENERATED_RESULT=' + JSON.stringify({ id, ok: false, phase, error: text.slice(0, 500) }));
   }

@@ -5,11 +5,12 @@ import { afterEach, expect, it, vi } from 'vitest';
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { EMPTY_MODEL_PARAMETERS } from './model-parameters.ts';
 import { runModelFixes } from './model-fixes.ts';
+import { NO_OP_CHECK, NO_OP_REVIEW } from './review.ts';
 
 const published = vi.hoisted(
   () => [] as { key: string; title: string; body: string; message: string }[],
 );
-const checks = vi.hoisted(() => ({ patched: 'passed', runs: 0 }));
+const checks = vi.hoisted(() => ({ patched: 'passed', runs: 0, typeErrors: [] as string[] }));
 
 // Validation runs the proposal on the repository itself and reports the configured outcome, so
 // these tests need no Docker; model-fixes-docker.test.ts runs the real sandbox.
@@ -27,7 +28,11 @@ vi.mock('./validation.ts', () => ({
       if (options.skip?.(revision, 'p'.repeat(64)))
         return { status: 'skipped', revision, patchHash: 'p'.repeat(64) };
       checks.runs += 1;
-      const output = { exitCode: 0, stdout: '', stderr: checks.patched === 'passed' ? '' : 'boom' };
+      const output = {
+        exitCode: checks.typeErrors.length ? 2 : 0,
+        stdout: checks.typeErrors.join('\n'),
+        stderr: checks.patched === 'passed' ? '' : 'boom',
+      };
       return {
         status: checks.patched === 'passed' ? 'passed' : 'regression',
         revision,
@@ -56,6 +61,7 @@ afterEach(async () => {
   published.length = 0;
   checks.patched = 'passed';
   checks.runs = 0;
+  checks.typeErrors = [];
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -97,6 +103,60 @@ const SOURCE = [
   "export const tuned = (messages: any[]) => openai.chat.completions.create({ model: 'gpt-4', messages, temperature: 0 });",
 ].join('\n');
 
+// Owner decision 1: a check that runs no code tests nothing, so the draft says so in its title.
+it('titles a draft checked only by node -e 0 [Needs review], with the reason Stripe drafts give', async () => {
+  const root = await repository({ 'src/ai.ts': SOURCE });
+  const result = await runModelFixes({
+    repository: root,
+    registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
+    now: NOW,
+    checks: { ...CHECKS, command: NO_OP_CHECK.split(' ') },
+    publication: { repository: 'example/app', base: 'main', token: 'token' },
+  });
+  expect(result.status).toBe('draft-created');
+  expect(published[0].title).toBe('[Needs review] fix: replace 1 retiring AI model');
+  expect(published[0].message.split('\n')[0]).toBe('fix: replace 1 retiring AI model');
+  const body = published[0].body;
+  expect(body.startsWith('## Why this needs review\n')).toBe(true);
+  expect(body).toContain(`- ${NO_OP_REVIEW.reason} **Check:** ${NO_OP_REVIEW.check}`);
+  expect(body).toContain(`- [ ] ${NO_OP_REVIEW.check}`);
+  expect(body).not.toContain('exercises the changed calls');
+});
+
+// Apps enrolled with a type check only, which tsc fails before and after the swap: a Convex app
+// that commits no convex/_generated folder, and one whose handlers leave a parameter untyped on
+// several lines. The gate compares file, code and message, so the draft counts errors that way.
+it.each([
+  [
+    "convex/chat.ts(2,24): error TS2307: Cannot find module './_generated/server' or its corresponding type declarations.",
+  ],
+  [3, 9, 15].map(
+    (line) =>
+      `src/ai.ts(${line},10): error TS7006: Parameter 'messages' implicitly has an 'any' type.`,
+  ),
+])('says what a compared type check checked instead of that it passed (%#)', async (...errors) => {
+  checks.typeErrors = errors;
+  const root = await repository({ 'src/ai.ts': SOURCE });
+  const command = ['npx', 'tsc', '--noEmit'];
+  await runModelFixes({
+    repository: root,
+    registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
+    now: NOW,
+    checks: { ...CHECKS, command, compareTypeErrors: true },
+    publication: { repository: 'example/app', base: 'main', token: 'token' },
+  });
+  const existing =
+    'reported 1 existing type error on the original code, counted by file, code and message, and no error with a new file, code and message on the migrated code';
+  expect(published[0].body).toContain(
+    `- Patched \`npx tsc --noEmit\`: passed; the type check ${existing}`,
+  );
+  expect(published[0].message.replace(/\n\s*/g, ' ')).toContain(
+    `Checks: npx tsc --noEmit ${existing}, in offline Docker;`,
+  );
+});
+
 it('opens a draft pull request for validated replacements without asking first', async () => {
   const root = await repository({ 'src/ai.ts': SOURCE });
   const result = await runModelFixes({
@@ -117,6 +177,7 @@ it('opens a draft pull request for validated replacements without asking first',
   ]);
   expect(published).toHaveLength(1);
   expect(published[0].title).toBe('fix: replace 1 retiring AI model');
+  expect(published[0].body).not.toContain('## Why this needs review');
   expect(published[0].key).toBe(`model-fixes:${'a'.repeat(40)}:${result.fixKey}`);
   const body = published[0].body;
   expect(published[0].message).toContain('- src/ai.ts:3: gpt-4 -> gpt-5.6-sol, retires 2026-10-23');
