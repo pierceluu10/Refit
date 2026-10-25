@@ -26,6 +26,7 @@ gh run watch <run-id> -R refit-dev/refit-bench
 | `offset` | First repository of the list to run.                                                    |
 | `count`  | How many repositories from `offset`. Blank runs the rest of the list.                   |
 | `size`   | Repositories per shard. The first job sizes the matrix as `count / size`, rounded up.   |
+| `flags`  | Extra `benchmark:stripe` options, such as `--validation-workspace 2g` (sandbox profile) |
 
 ## Collect the results
 

@@ -63,6 +63,35 @@ export async function readCommittedFile(
   return content;
 }
 
+// The submodule paths a committed .gitmodules declares, read by Git's own config parser.
+async function declaredSubmodules(
+  git: (argumentsList: string[]) => Promise<{ stdout: string }>,
+  revision: string,
+  entries: string[],
+) {
+  if (!entries.some((entry) => REGULAR_ENTRY.test(entry) && entry.endsWith('\t.gitmodules')))
+    return new Set<string>();
+  try {
+    const { stdout } = await git([
+      'config',
+      '-z',
+      `--blob=${revision}:.gitmodules`,
+      '--get-regexp',
+      '^submodule\\..*\\.path$',
+    ]);
+    return new Set(
+      stdout
+        .split('\0')
+        .filter(Boolean)
+        .map((entry) => entry.slice(entry.indexOf('\n') + 1)),
+    );
+  } catch (error) {
+    // Exit 1: no submodule declares a path.
+    if ((error as { code?: unknown }).code === 1) return new Set<string>();
+    throw error;
+  }
+}
+
 // With `submodules` (owner decision 1) a submodule is left out instead of refused: Refit checks
 // the committed root without it, and `submodules` names each one so the draft can say so.
 export async function readCommittedRepository(
@@ -96,7 +125,16 @@ export async function readCommittedRepository(
   const linkEntries = entries
     .map((entry) => LINK_ENTRY.exec(entry))
     .filter((match): match is RegExpExecArray => Boolean(match));
-  const submodule = entries.find((entry) => !REGULAR_ENTRY.test(entry) && !LINK_ENTRY.test(entry));
+  // A gitlink .gitmodules does not declare has no URL, so every clone, CI run and deploy sees an
+  // empty directory there; git archive writes the same empty directory for validation.
+  const declared = entries.some((entry) => SUBMODULE_ENTRY.test(entry))
+    ? await declaredSubmodules(git, revision, entries)
+    : new Set<string>();
+  const submodule = entries.find((entry) => {
+    const gitlink = SUBMODULE_ENTRY.exec(entry);
+    if (gitlink) return declared.has(gitlink[1]);
+    return !REGULAR_ENTRY.test(entry) && !LINK_ENTRY.test(entry);
+  });
   if (submodule)
     throw new PipelineInputError(
       `Validation does not accept submodules; ${submodule.slice(submodule.indexOf('\t') + 1)} is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.`,

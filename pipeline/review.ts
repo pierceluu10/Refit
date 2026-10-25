@@ -682,6 +682,14 @@ export function createReviewArtifacts(
       (environment?.installation as { legacyPeerDeps?: unknown } | undefined)?.legacyPeerDeps ===
       true,
   );
+  const prunedGlibcPackages = Math.max(
+    0,
+    ...[validation.environment, validation.patchedEnvironment].map((environment) => {
+      const count = (environment?.installation as { prunedGlibcPackages?: unknown } | undefined)
+        ?.prunedGlibcPackages;
+      return typeof count === 'number' ? count : 0;
+    }),
+  );
   const commandText = (value: readonly string[]) => code(value.join(' '));
   const ai = patch.generator === 'openai';
   const model = 'model' in patch && typeof patch.model === 'string' ? patch.model : undefined;
@@ -1262,6 +1270,11 @@ export function createReviewArtifacts(
         ...(legacyPeerDeps
           ? [
               "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+            ]
+          : []),
+        ...(prunedGlibcPackages
+          ? [
+              `- Dependency Installation: after the verified \`npm ci\`, Refit removed ${prunedGlibcPackages} installed native package${prunedGlibcPackages === 1 ? '' : 's'} declared for glibc only, which cannot load on the Alpine (musl) image. The lockfile is unchanged.`,
             ]
           : []),
         `- Linter & Static Analysis: ${typeChecked ? 'TypeScript type check is the test command above; ' : 'Not run; '}${shopify ? `Refit rescanned the migrated code and every runtime Admin API pin is on ${after}.` : `Refit rescanned the migrated code and ${unresolvedReads} usage${unresolvedReads === 1 ? ' of the breaking changes remains' : 's of the breaking changes remain'}${parameterCalls.length ? `, plus ${parameterCalls.length} call${parameterCalls.length === 1 ? '' : 's'} sending a removed request parameter` : ''}${untracedSites.length ? `, plus ${untracedSites.length} untraced read${untracedSites.length === 1 ? '' : 's'} of removed field names` : ''}.`}`,
