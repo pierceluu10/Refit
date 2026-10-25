@@ -295,7 +295,10 @@ gated(
     const names = ['expired', 'live', 'unlabelled'].map(
       (kind) => `refit-test-${kind}-${randomUUID()}`,
     );
-    const labels = [`${Date.now() - 1000}`, `${Date.now() + 600_000}`, undefined];
+    // It expires only after the setup check: every sandbox start in another gated file sweeps too,
+    // and a label already in the past let one remove the container before that check.
+    const expiry = Date.now() + 30_000;
+    const labels = [`${expiry}`, `${Date.now() + 600_000}`, undefined];
     try {
       for (const [index, name] of names.entries())
         await execute('docker', [
@@ -314,6 +317,7 @@ gated(
       const id = async (name: string) =>
         (await execute('docker', ['inspect', '--format', '{{.Id}}', name])).stdout.trim();
       expect(await id(names[0])).toMatch(/^[a-f0-9]{64}$/);
+      await new Promise((resolve) => setTimeout(resolve, Math.max(0, expiry + 1000 - Date.now())));
       // A sandbox start in another gated file may remove it first, so only its absence counts.
       await removeExpiredSandboxContainers();
       await expect(id(names[0])).rejects.toThrow(/no such object/i);
