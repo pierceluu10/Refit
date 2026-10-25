@@ -2,7 +2,7 @@
 
 ## October 25 checkpoint: dependency preparation for Push 279 (unreleased, after 0.39.0)
 
-Preparation changes from #289, measured on refit-bench against the Laptop 2 base run 40144503063 (main `c65f169`, 249 repositories):
+Preparation changes from #289, measured on refit-bench against the Laptop 2 base run 40144503063 (main `c65f169`, 249 repositories, default `2g` profile). In the after-run 40149872255 (`c65f169` plus #289), 12 repositories change stage, all of them preparation refusals before, and every repository that prepared before still prepares:
 
 - **glibc-only packages on musl images.** An npm lockfile that records no `libc` makes `npm ci` on `node:22-alpine` install the glibc builds of native packages (`@next/swc`, `@swc/core`, `sharp`) beside the musl ones, about 250 MiB that cannot load there. After the verified, script-free install, Refit removes each installed package whose own `package.json` excludes musl and that declares no `bin`. The lockfile is unchanged, and every draft states how many packages it removed (`installation.prunedGlibcPackages`, beside `legacyPeerDeps`). The recipe version is now 6, so cached bundles rebuild.
   On `subsets/o2-preparation.json` (26 size refusals, default profile), before 40148428223 (main `c65f169` plus the subset lists) and after 40148454891: 8 of the 15 dependency-archive refusals now prepare, each after removing 2 to 8 such packages (archives of 795 to 988 MiB). Two validate, two pass their checks with findings left, two fail at baseline and two regress, the same outcomes the 4 GiB run 40142158182 gives them without removing anything. The other seven are pnpm trees, which pnpm already filters, or npm trees still over 1 GiB; the 4 GiB default (#303) takes them.
