@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Where affected Stripe repositories leave the validation path, from a benchmark results.json:
-// each affected row is placed at the first stage it did not pass, and validated rows by evidence
-// grade. Usage: node scripts/validation-funnel.mjs <results.json> [--json]
+// each affected row is placed at the first stage it did not pass, validated rows are counted by
+// evidence grade (A to D), and rows without a check by whether they kept a grade-D patch.
+// Usage: node scripts/validation-funnel.mjs <results.json> [--json]
 import { readFileSync } from 'node:fs';
 
 // Generated checks run only after the baseline and patched checks passed (pipeline/validation.ts),
@@ -66,17 +67,23 @@ export function funnelStage(row) {
       stage: 'preparation-refused',
       detail: row.packageManager === 'none' ? 'no-lockfile' : 'stripe-outside-root-package',
     };
-  // Since check selection, a repository without a test script or type check is not validated.
-  if (row.checks === 'generated-only' && !workflow)
-    return { stage: 'no-runnable-check', detail: row.checkSelection?.reason };
-  if (!workflow) return { stage: 'not-validated' };
+  // A repository no check can run in (`generated-only`; older runs checked it with `node -e 0`).
+  const noCheck = row.checks === 'generated-only';
+  if (!workflow)
+    return noCheck
+      ? { stage: 'no-runnable-check', detail: row.checkSelection?.reason }
+      : { stage: 'not-validated' };
   if (workflow.stage === 'scan') return { stage: 'scan-stop' };
+  if (noCheck)
+    return {
+      stage: 'no-runnable-check',
+      detail: row.checkSelection?.reason,
+      patch: Boolean(workflow.diff),
+    };
   if (workflow.status === 'error' && !workflow.validation && !missingMock) {
     const message = workflow.error ?? workflow.reason ?? '';
     return { stage: 'preparation-refused', detail: preparationGroup(message), message };
   }
-  if (row.checks === 'generated-only' || workflow.grade?.level === 'none')
-    return { stage: 'no-runnable-check', detail: workflow.grade?.reason ?? row.checks };
   if (missingMock) return { stage: 'generated-check-infrastructure', detail: row.checks };
   if (workflow.validation === 'baseline-failed')
     return { stage: 'baseline-failed', detail: workflow.baselineStop };
@@ -88,7 +95,10 @@ export function funnelStage(row) {
   }
   if (workflow.validation === 'regression') return { stage: 'patched-failed' };
   if (workflow.validation === 'passed')
-    return { stage: 'validated', detail: workflow.grade?.level ?? 'ungraded' };
+    return {
+      stage: 'validated',
+      detail: workflow.grade?.letter ?? workflow.grade?.level ?? 'ungraded',
+    };
   return { stage: 'other', detail: workflow.validation ?? workflow.status };
 }
 
@@ -111,6 +121,10 @@ export function funnel(rows) {
     stages: count((row) => row.stage),
     preparation: count((row) => (row.stage === 'preparation-refused' ? row.detail : undefined)),
     grades: count((row) => (row.stage === 'validated' ? row.detail : undefined)),
+    // Grade D without a check: the patch is kept for a [Needs review] draft, or none was proposed.
+    noCheck: count((row) =>
+      row.stage === 'no-runnable-check' ? (row.patch ? 'D, patch kept' : 'no patch') : undefined,
+    ),
     repositories: placed,
   };
 }
@@ -128,6 +142,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`${result.affected} affected of ${result.rows} rows\n`);
     console.log(`${table('Stage', result.stages)}\n`);
     console.log(`${table('Preparation refused', result.preparation)}\n`);
-    console.log(table('Validated, by evidence grade', result.grades));
+    console.log(`${table('Validated, by evidence grade', result.grades)}\n`);
+    console.log(table('No runnable check', result.noCheck));
   }
 }

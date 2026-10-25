@@ -17,6 +17,7 @@ Add `generatedChecks` to a workflow or `.refit.json`:
 - `stripeMockImage` must already exist locally; Refit never pulls it. Pull the official image once with `docker pull stripe/stripe-mock:latest`. Evidence records its image ID and the hash of the binary used.
 - The fixtures files come from the same `stripe/openapi` releases as your `before` and `after` contracts (`openapi/fixtures3.json` next to `openapi/spec3.json`). Both contracts must be JSON.
 - Generated checks run in addition to `baselineCommand` and `command`, after those pass. Changing these settings changes the reviewed configuration, so `refit enroll` asks for approval again.
+- They never raise the evidence grade above D: a changed file that only a generated check ran, and that neither the repository's tests reach nor a type check covers, leaves the validation at grade D, a `[Needs review]` draft (`pipeline/check-selection.ts`). Their placeholder fixtures check response shapes, so they are not the behaviour tests grade A requires.
 
 ## What runs
 

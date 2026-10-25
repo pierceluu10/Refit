@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { TESTS_FAILED, TYPE_CHECK_STARTED } from './check-selection.ts';
 import {
   compareTypeCheck,
   rejectedProperties,
@@ -48,6 +49,25 @@ it('fails the patched check only on errors the patch introduced, listing them fi
     added,
   ]);
   expect(compareTypeCheck(baseline, run(0, '')).status).toBe('passed');
+});
+
+it('compares only the type check of a tests-then-type-check chain, and fails failing tests', () => {
+  // ts-node prints compile errors in tsc's format; they belong to the tests, not the type check.
+  const testOutput = `src/test-helper.ts(1,1): error TS2307: Cannot find module 'vitest'.\n`;
+  const baseline = run(2, `${testOutput}${TYPE_CHECK_STARTED}\n${existing}\n`);
+  expect(typeErrors(baseline).map((error) => error.file)).toEqual(['src/a.ts']);
+  expect(compareTypeCheck(baseline).status).toBe('passed');
+  expect(compareTypeCheck(baseline, run(2, `${TYPE_CHECK_STARTED}\n${existing}`)).status).toBe(
+    'passed',
+  );
+  const patched = compareTypeCheck(
+    baseline,
+    run(2, `${TYPE_CHECK_STARTED}\n${existing}\n${added}`),
+  );
+  expect(patched.status).toBe('failed');
+  expect(patched.stdout.split('\n')[1]).toBe(added);
+  // Tests that fail never pass as a type check, whatever type errors they printed.
+  expect(compareTypeCheck(run(1, `${testOutput}${TESTS_FAILED}\n`)).status).toBe('failed');
 });
 
 it('leaves rejected literal comparisons and their never narrowing for review, not repair', () => {

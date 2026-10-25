@@ -92,7 +92,7 @@ it('checks a TypeScript repository without tests by new type errors, with its pa
     kind: 'typecheck',
     source: 'tsc over tsconfig.json, failing only on new type errors',
     reason:
-      'There is no test script; tsc over tsconfig.json checks the Stripe code in src/lib/stripe.ts.',
+      'There is no test script. The type check (tsc over tsconfig.json) covers the Stripe code in src/lib/stripe.ts.',
   });
   expect(proposal?.configuration.integrations[0]).toMatchObject({
     command: ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'],
@@ -678,7 +678,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '
     source:
       'the test script in package.json, run with npm; Refit does not install functions/package.json, which the root lockfile leaves out',
     reason:
-      'No test imports Stripe code; the tests show only that the rest of the code still works.',
+      'No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them.',
   });
   // CapChris20/Retronix-Wallpapers-Startup: that project's client sets no apiVersion, and only its
   // own lockfile records the stripe-node release.

@@ -1,4 +1,8 @@
+import { failingPart, TYPE_CHECK_STARTED } from './check-selection.ts';
 import type { CheckResult } from './validation.ts';
+
+// compareTypeCheck (validation.ts) lists the type errors a patch introduced above tsc's output.
+export const INTRODUCED_TYPE_ERRORS = 'Type errors this patch introduced:\n';
 
 const ANSI = /\u001b\[[0-9;]*m/g;
 // The first line test runners and tsc print for a failure: a failing file or test, a type error,
@@ -8,11 +12,18 @@ const FAILURE_LINE =
 const PASSED_LINE = /^\s*(?:[✓√]|PASS|ok\b)\s+\S/;
 const FAILED_LINE = /^\s*(?:FAIL|[×✗✕]|not ok\b)\s+\S/;
 
-// Which check failed or did not finish, the first failure it printed and, for a check stopped at
-// the time limit, how far it got, so a slow or failing suite is reported instead of a bare status.
+// Which check failed or did not finish (in a tests-then-type-check chain, which part), the first
+// failure it printed and, for a check stopped at the time limit, how far it got, so a slow or
+// failing suite is reported instead of a bare status.
 export function checkFailure(side: 'baseline' | 'patched', command: string[], check: CheckResult) {
   if (check.status === 'passed' || check.status === 'not-run') return undefined;
-  const lines = `${check.stdout}\n${check.stderr}`.replace(ANSI, '').split('\n');
+  const output = `${check.stdout}\n${check.stderr}`.replace(ANSI, '');
+  const part = failingPart(command, output);
+  const lines = (
+    part?.part === 'type check' && !check.stdout.startsWith(INTRODUCED_TYPE_ERRORS)
+      ? output.slice(output.lastIndexOf(TYPE_CHECK_STARTED))
+      : output
+  ).split('\n');
   const firstFailure = lines
     .find((line) => FAILURE_LINE.test(line))
     ?.trim()
@@ -21,12 +32,14 @@ export function checkFailure(side: 'baseline' | 'patched', command: string[], ch
   const failed = lines.filter((line) => FAILED_LINE.test(line)).length;
   return {
     side,
-    command: command.join(' '),
+    command: part?.command ?? command.join(' '),
+    ...(part ? { part: part.part } : {}),
     status: check.status,
     // A failed check's error is the Docker command line; only an error is a reason of its own.
     ...(check.status === 'error' && check.error ? { error: check.error } : {}),
     ...(firstFailure ? { firstFailure } : {}),
-    ...(passed || failed ? { reported: { passed, failed } } : {}),
+    // Test counts describe the tests, not a type check that failed after them.
+    ...((passed || failed) && part?.part !== 'type check' ? { reported: { passed, failed } } : {}),
   };
 }
 

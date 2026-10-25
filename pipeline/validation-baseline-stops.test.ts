@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { checkFailure, checkFailureText } from './check-failures.ts';
+import { checkFailure, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
+import { TESTS_FAILED, TYPE_CHECK, TYPE_CHECK_STARTED } from './check-selection.ts';
 import { validateSourcePatch } from './validation.ts';
 
 const TYPE_CHECK_COMMAND = ['npx', '--no-install', 'tsc', '--noEmit'];
@@ -137,4 +138,57 @@ it('reports how far a suite got before the time limit stopped it', () => {
       stderr: '',
     }),
   ).toBeUndefined();
+});
+
+it('names the part of a tests-then-type-check chain that failed, with its own first failure', () => {
+  const command = [
+    'sh',
+    '-c',
+    `npm test || { echo '${TESTS_FAILED}'; exit 1; }; echo '${TYPE_CHECK_STARTED}'; ${TYPE_CHECK.join(' ')}`,
+  ];
+  const check = (stdout: string) =>
+    ({ status: 'failed', exitCode: 1, stdout, stderr: '' }) as const;
+  expect(
+    checkFailure('baseline', command, check(`FAIL src/payments.test.ts\n${TESTS_FAILED}\n`)),
+  ).toEqual({
+    side: 'baseline',
+    command: 'npm test',
+    part: 'tests',
+    status: 'failed',
+    firstFailure: 'FAIL src/payments.test.ts',
+    reported: { passed: 0, failed: 1 },
+  });
+  // A passing suite may log errors; the type check's failure is the first line after its start.
+  expect(
+    checkFailure(
+      'baseline',
+      command,
+      check(
+        `✓ src/payments.test.ts\nTypeError: logged by a passing test\n${TYPE_CHECK_STARTED}\nnpm error could not determine executable to run\n`,
+      ),
+    ),
+  ).toEqual({
+    side: 'baseline',
+    command: TYPE_CHECK.join(' '),
+    part: 'type check',
+    status: 'failed',
+    firstFailure: 'npm error could not determine executable to run',
+  });
+  const introduced =
+    "src/billing.ts(4,9): error TS2339: Property 'plan' does not exist on type 'Subscription'.";
+  expect(
+    checkFailure(
+      'patched',
+      command,
+      check(
+        `${INTRODUCED_TYPE_ERRORS}${introduced}\n\n✓ src/payments.test.ts\n${TYPE_CHECK_STARTED}\n${introduced}\n`,
+      ),
+    ),
+  ).toEqual({
+    side: 'patched',
+    command: TYPE_CHECK.join(' '),
+    part: 'type check',
+    status: 'failed',
+    firstFailure: introduced,
+  });
 });

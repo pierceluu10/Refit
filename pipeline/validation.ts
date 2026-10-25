@@ -49,8 +49,13 @@ import {
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
-import { checkFailures } from './check-failures.ts';
-import { gradeEvidence } from './check-selection.ts';
+import { checkFailures, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
+import {
+  gradeEvidence,
+  TESTS_FAILED,
+  TYPE_CHECK_STARTED,
+  ungradedEvidence,
+} from './check-selection.ts';
 import {
   dockerSandboxArguments,
   preparationProfile,
@@ -98,8 +103,10 @@ export interface CheckResult {
 const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
 
 // TypeScript diagnostics in a check's output, keyed without positions so moved lines still match.
+// After a tests-then-type-check chain's tests, only the type checker's own output counts.
 export function typeErrors(check: CheckResult) {
-  return `${check.stdout}\n${check.stderr}`
+  const start = check.stdout.lastIndexOf(TYPE_CHECK_STARTED);
+  return (start < 0 ? `${check.stdout}\n${check.stderr}` : check.stdout.slice(start))
     .split('\n')
     .map((line) => TYPE_ERROR.exec(line.trim()))
     .filter((match): match is RegExpExecArray => Boolean(match))
@@ -168,14 +175,16 @@ export function compareTypeCheck(baseline: CheckResult, patched?: CheckResult): 
   const check = patched ?? baseline;
   const errors = typeErrors(check);
   if (check.status === 'error' || check.status === 'not-run') return check;
-  if (check.exitCode !== 0 && !errors.length) return { ...check, status: 'failed' };
+  // Failing tests fail a chain whatever type errors they printed.
+  if (check.stdout.includes(TESTS_FAILED) || (check.exitCode !== 0 && !errors.length))
+    return { ...check, status: 'failed' };
   if (!patched) return { ...check, status: 'passed' };
   const introduced = introducedTypeErrors(baseline, check);
   return introduced.length
     ? {
         ...check,
         status: 'failed',
-        stdout: `Type errors this patch introduced:\n${introduced.map(formatTypeError).join('\n')}\n\n${check.stdout}`,
+        stdout: `${INTRODUCED_TYPE_ERRORS}${introduced.map(formatTypeError).join('\n')}\n\n${check.stdout}`,
       }
     : { ...check, status: 'passed' };
 }
@@ -190,12 +199,16 @@ async function command(binary: string, args: string[], cwd?: string) {
   });
 }
 
+// Refit's compiler, which a scoped type check runs in a repository that installs none
+// (check-selection.ts REFIT_TSC).
+const typescriptMount = () => [{ source: typescriptDirectory(), target: '/refit/typescript' }];
+
 async function containerCheck({
   directory,
   image,
   command: argumentsList,
   dependencies,
-  readOnlyMounts,
+  readOnlyMounts = typescriptMount(),
   signal,
 }: {
   directory: string;
@@ -507,7 +520,7 @@ async function generatedStripeChecks(options: {
         { source: staged(run.side).contract, target: '/refit/spec.json' },
         { source: staged(run.side).fixtures, target: '/refit/fixtures.json' },
         { source: tools, target: '/refit/generated' },
-        { source: typescriptDirectory(), target: '/refit/typescript' },
+        ...typescriptMount(),
       ],
       signal: options.signal,
     });
@@ -1215,15 +1228,6 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
-    const grade =
-      candidateSources && patched.status !== 'not-run'
-        ? await gradeEvidence({
-            repository: candidateSources,
-            command: options.command,
-            changedFiles: publicationFiles.map((file) => file.path),
-            generated,
-          })
-        : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
     const validationStatus =
@@ -1232,6 +1236,27 @@ export async function validateMigration(options: {
         : dependencyFailure
           ? 'untested'
           : checkStatus(baseline, patched, generated);
+    const failures = checkFailures(baselineCommand, options.command, baseline, patched);
+    // Every outcome is graded: without passing checks the patch is grade D, saying which check
+    // failed or why none ran, so a [Needs review] draft can state it.
+    const grade =
+      validationStatus === 'passed' && candidateSources
+        ? await gradeEvidence({
+            repository: candidateSources,
+            command: options.command,
+            changedFiles: publicationFiles.map((file) => file.path),
+            generated,
+          })
+        : validationStatus === 'stale'
+          ? undefined
+          : ungradedEvidence(
+              dependencyFailure
+                ? `Dependencies could not be prepared, so no check ran: ${dependencyFailure.summary}`
+                : checkFailureText(failures).trim() ||
+                    (generated
+                      ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
+                      : `Validation returned ${validationStatus}.`),
+            );
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)
@@ -1258,7 +1283,7 @@ export async function validateMigration(options: {
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
-      ...checkFailures(baselineCommand, options.command, baseline, patched),
+      ...failures,
       ...(Object.keys(timings).length ? { timings } : {}),
       limits: validationLimits(),
       publishable: false,
