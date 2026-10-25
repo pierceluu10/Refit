@@ -91,11 +91,8 @@ it.each([
         },
       },
     ]);
-    expect(result.edits.map((edit) => edit.file).sort()).toEqual([
-      'handler.ts',
-      'handler.ts',
-      'stripe-subscription-period.ts',
-    ]);
+    // The read and the helper written into the one file that calls it.
+    expect(result.edits.map((edit) => edit.file)).toEqual(['handler.ts', 'handler.ts']);
     expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
       true,
     );
@@ -147,11 +144,8 @@ it.each([
       confidence: 'confirmed',
       webhook: { schema: 'subscription', eventTypes: ['customer.subscription.updated'] },
     });
-    expect(result.edits.map((edit) => edit.file).sort()).toEqual([
-      'handler.ts',
-      'handler.ts',
-      'stripe-subscription-period.ts',
-    ]);
+    // The read and the helper written into the one file that calls it.
+    expect(result.edits.map((edit) => edit.file)).toEqual(['handler.ts', 'handler.ts']);
     expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
       true,
     );
@@ -435,7 +429,12 @@ async function webhookOnlyRepository() {
   const result = analyze(
     `${initialize} if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
   );
-  await writeFile(join(repository, 'handler.ts'), result.repository.files[0].content);
+  // The handler on its own line: the rules bump the client's apiVersion, and an AI edit may not
+  // change a line the rules wrote.
+  await writeFile(
+    join(repository, 'handler.ts'),
+    result.repository.files[0].content.replace(' async function handle', '\nasync function handle'),
+  );
   const before = {
     openapi: '3.0.3',
     info: { title: 'Reviewed Stripe webhook projection', version: VERSION },

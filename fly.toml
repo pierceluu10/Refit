@@ -12,10 +12,25 @@ kill_timeout = 300
 
 [env]
   REFIT_AI_BUDGET_DIRECTORY = "/data/ai-budget"
-  REFIT_AI_BUDGET_USD = "2"
-  REFIT_HOSTED_FLAGS = "--publish-draft --ai-patch --repair-attempts 2"
+  # Push 279 AI (Pierce, 2026-10-25: use AI on the live drafts): L1's $10 less $0.38 spent and $5 kept
+  # for the heldout-30 run, plus the $3 spare. One installation holds all 279 forks; the secret
+  # REFIT_HOSTED_AI_BUDGET_USD is staged to the same value.
+  REFIT_AI_BUDGET_USD = "7"
+  # Push 279 ended 2026-10-25: back to one job process on shared-cpu-2x, as the push planned. A target
+  # whose doctor stops reruns every interval and counts against the 1440-job daily cap, so the
+  # worker still polls hourly.
+  REFIT_HOSTED_FLAGS = "--publish-draft --supersede-drafts --ai-patch --repair-attempts 2 --interval 3600"
+  REFIT_HOSTED_INSTALLATION_JOBS = "1"
   # Validation images named by approved .refit.json files; pulled on boot.
   REFIT_HOSTED_IMAGES = "node:22-alpine stripe/stripe-mock:latest"
+  # Prepared dependency bundles live on the volume, beside /data/docker and /data/state, not on the
+  # 8 GB root disk they filled on 2026-10-25. Above the cap the least recently used are evicted after
+  # each new bundle; four jobs can each stage one more archive (2 GiB at most), so the cache peaks
+  # near 16 GiB of the volume.
+  REFIT_DEPENDENCY_CACHE_DIRECTORY = "/data/dependencies"
+  REFIT_DEPENDENCY_CACHE_GIB = "8"
+  # Validation stages each archive in a temporary directory; four jobs could fill the root disk.
+  TMPDIR = "/data/tmp"
 
 [mounts]
   source = "refit_data"
@@ -36,6 +51,9 @@ kill_timeout = 300
     path = "/health"
     timeout = "5s"
 
+# Push 279's sizing (performance-16x, 64gb) ended with the push on 2026-10-25.
+# shortcut: the default 4 GiB sandbox asks for a 5 GiB container, more than this VM holds, and oasdiff
+# sees CPU steal here; a large repository can run out of memory or time. Scale up before heavy runs.
 [[vm]]
   size = "shared-cpu-2x"
   memory = "4gb"

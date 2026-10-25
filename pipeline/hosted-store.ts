@@ -1,7 +1,12 @@
 import { join } from 'node:path';
 import type { Pool, PoolClient } from 'pg';
-import { changeAiBudgetLimit, type AiLedger, type AiLedgerSummary } from './ai-budget.ts';
-import type { GitHubWebhook } from './github-webhooks.ts';
+import {
+  changeAiBudgetLimit,
+  type AiLedger,
+  type AiLedgerSummary,
+  type AiOptions,
+} from './ai-budget.ts';
+import type { GitHubWebhook, WebhookRepository } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
 import { transaction } from './hosted-database.ts';
 import {
@@ -28,7 +33,7 @@ import { PipelineInputError } from './types.ts';
 // A crashed worker's lease is reclaimed this many times before the job is marked failed.
 const MAX_LEASE_ATTEMPTS = 3;
 const TARGET_HASH_LENGTH = 16;
-// Serializes claims so two workers never start jobs for one installation at once.
+// Serializes claims, so the running jobs a claim counts against an installation's limit are current.
 const CLAIM_LOCK = 4_206_100_002;
 // A cancelled job keeps its cancelled status but still retains the evidence it produced.
 const FINISH_JOB = `UPDATE refit_jobs SET receipt = $4, finished_at = now(), lease_owner = NULL,
@@ -138,6 +143,78 @@ async function stop(client: PoolClient, plan: LifecyclePlan) {
     stopped.running.push(...result.running);
   }
   return stopped;
+}
+
+// One AI ledger per installation. A legacy budget.json is imported on first use, so moving the
+// ledger into PostgreSQL does not forget recorded spend.
+export function aiLedger(pool: Pool, installationId: number, legacyFile?: string): AiLedger {
+  return {
+    update: (change) =>
+      transaction(pool, async (client) => {
+        await client.query(
+          'INSERT INTO refit_ai_ledgers (installation_id) VALUES ($1) ON CONFLICT DO NOTHING',
+          [installationId],
+        );
+        const { rows } = await client.query<{ state: Record<string, unknown> | null }>(
+          'SELECT state FROM refit_ai_ledgers WHERE installation_id = $1 FOR UPDATE',
+          [installationId],
+        );
+        const stored = rows[0].state ?? (legacyFile ? await readState(legacyFile) : undefined);
+        await client.query(
+          'UPDATE refit_ai_ledgers SET state = $2, updated_at = now() WHERE installation_id = $1',
+          [installationId, change(stored)],
+        );
+      }),
+  };
+}
+
+// The ledger every installation's AI requests also reserve against.
+export function aiTotalLedger(pool: Pool): AiLedger {
+  return {
+    update: (change) =>
+      transaction(pool, async (client) => {
+        await client.query(
+          'INSERT INTO refit_ai_total_ledger DEFAULT VALUES ON CONFLICT DO NOTHING',
+        );
+        const { rows } = await client.query<{ state: Record<string, unknown> | null }>(
+          'SELECT state FROM refit_ai_total_ledger FOR UPDATE',
+        );
+        await client.query('UPDATE refit_ai_total_ledger SET state = $1, updated_at = now()', [
+          change(rows[0].state ?? undefined),
+        ]);
+      }),
+  };
+}
+
+// A job's AI options: its installation's ledger, and the ledger across all installations capped at
+// aiTotalUsd (default: the per-installation limit). The worker and its job processes share it.
+export function hostedAiPatch(
+  pool: Pool,
+  aiPatch: AiOptions | undefined,
+  aiTotalUsd: number | undefined,
+  installationId: number,
+): AiOptions | undefined {
+  return (
+    aiPatch && {
+      ...aiPatch,
+      ...(aiPatch.budget && {
+        budget: {
+          ...aiPatch.budget,
+          // Earlier workers kept a file ledger per installation under the budget directory.
+          ledger: aiLedger(
+            pool,
+            installationId,
+            join(aiPatch.budget.directory, `installation-${installationId}`, 'budget.json'),
+          ),
+          parent: {
+            ...aiPatch.budget,
+            limitUsd: aiTotalUsd ?? aiPatch.budget.limitUsd,
+            ledger: aiTotalLedger(pool),
+          },
+        },
+      }),
+    }
+  );
 }
 
 // Without a tenancy, no account is allowed: only the serving worker records deliveries.
@@ -315,6 +392,43 @@ export async function openHostedStore(
       return rows[0] ? enroll(client, Number(rows[0].installation_id), [approval.repository]) : [];
     });
 
+  const activeInstallations = async () =>
+    (
+      await pool.query<{ id: string; owner: string }>(
+        `SELECT id::text, owner FROM refit_installations WHERE status = 'active' AND allowed ORDER BY id`,
+      )
+    ).rows.map((row) => ({ id: Number(row.id), owner: row.owner }));
+
+  // Records the repositories GitHub lists for an active, allowed installation that no webhook
+  // recorded, by name or GitHub ID, and enrolls the approved ones as an added event would. Only
+  // webhooks remove a repository, so one missing from the list stays recorded.
+  const reconcile = (installationId: number, owner: string, repositories: WebhookRepository[]) =>
+    transaction(pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
+      const { rows } = await client.query<{ owner: string; status: string; allowed: boolean }>(
+        'SELECT owner, status, allowed FROM refit_installations WHERE id = $1 FOR UPDATE',
+        [installationId],
+      );
+      if (rows[0]?.owner !== owner || rows[0].status !== 'active' || !rows[0].allowed)
+        return { added: [] as string[], enrolled: [] as string[] };
+      const { rows: inserted } = await client.query<{ repository: string }>(
+        `INSERT INTO refit_installation_repositories (installation_id, repository, github_id)
+         SELECT $1::bigint, listed.repository, listed.github_id
+         FROM unnest($2::text[], $3::bigint[]) AS listed (repository, github_id)
+         WHERE NOT EXISTS (
+           SELECT 1 FROM refit_installation_repositories r WHERE r.installation_id = $1
+             AND (r.repository = listed.repository OR r.github_id = listed.github_id))
+         RETURNING repository`,
+        [
+          installationId,
+          repositories.map((repository) => repository.name),
+          repositories.map((repository) => repository.id),
+        ],
+      );
+      const added = inserted.map((row) => row.repository).sort();
+      return { added, enrolled: await enroll(client, installationId, added) };
+    });
+
   // Stops a target whose repository GitHub no longer serves, or whose name changed hands.
   const retire = (targetId: string, githubId: number | null) =>
     transaction(
@@ -356,15 +470,13 @@ export async function openHostedStore(
       )
     ).rowCount ?? 0;
 
-  // Takes the next job from the installation that waited longest, skipping installations with a
-  // live running job or at today's job cap. Reclaiming an expired lease does not count again.
+  // Takes the next job from the installation that waited longest, skipping installations at their
+  // running-job limit or at today's job cap. Reclaiming an expired lease does not count again.
   const claim = (worker: string, leaseSeconds: number) =>
     transaction(
       pool,
       async (client): Promise<{ job: number; retry: boolean; target: HostedTarget } | null> => {
         await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
-        // A paused worker starts nothing, not even a job whose worker stopped mid-lease.
-        if ((await client.query('SELECT 1 FROM refit_worker_pause')).rowCount) return null;
         await client.query(
           `UPDATE refit_jobs SET status = 'failed', finished_at = now(), lease_owner = NULL,
            receipt = jsonb_build_object('status', 'error', 'output', NULL,
@@ -372,6 +484,15 @@ export async function openHostedStore(
          WHERE status = 'running' AND lease_expires_at < now() AND attempts >= $1`,
           [MAX_LEASE_ATTEMPTS],
         );
+        // A paused worker starts nothing. A job whose worker stopped mid-lease goes back to the
+        // queue, keeping its attempts, so the drain check empties and resume continues it.
+        if ((await client.query('SELECT 1 FROM refit_worker_pause')).rowCount) {
+          await client.query(
+            `UPDATE refit_jobs SET status = 'queued', lease_owner = NULL, lease_expires_at = NULL
+             WHERE status = 'running' AND lease_expires_at < now()`,
+          );
+          return null;
+        }
         const { rows } = await client.query<{
           id: string;
           target_id: string;
@@ -390,13 +511,13 @@ export async function openHostedStore(
            WHERE t.status = 'enrolled' AND i.allowed AND i.status = 'active'
              AND (j.status = 'queued' OR (j.status = 'running' AND j.lease_expires_at < now()))
              AND (j.attempts > 0 OR coalesce(u.jobs, 0) < $3)
-             AND NOT EXISTS (
-               SELECT 1 FROM refit_jobs r JOIN refit_targets rt ON rt.id = r.target_id
+             AND (
+               SELECT count(*) FROM refit_jobs r JOIN refit_targets rt ON rt.id = r.target_id
                WHERE rt.installation_id = t.installation_id AND r.id <> j.id
-                 AND r.status = 'running' AND r.lease_expires_at >= now())
+                 AND r.status = 'running' AND r.lease_expires_at >= now()) < $4
            ORDER BY i.last_claimed_at NULLS FIRST, j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
          RETURNING id, target_id, retry, attempts`,
-          [worker, leaseSeconds, tenancy.limits.dailyJobs],
+          [worker, leaseSeconds, tenancy.limits.dailyJobs, tenancy.limits.installationJobs],
         );
         if (!rows[0]) return null;
         const { rows: targets } = await client.query<{
@@ -570,43 +691,6 @@ export async function openHostedStore(
         : TENANCY_REFUSALS.dailyInventories;
     });
 
-  // One AI ledger per installation. A legacy budget.json is imported on first use, so moving the
-  // ledger into PostgreSQL does not forget recorded spend.
-  const aiLedger = (installationId: number, legacyFile?: string): AiLedger => ({
-    update: (change) =>
-      transaction(pool, async (client) => {
-        await client.query(
-          'INSERT INTO refit_ai_ledgers (installation_id) VALUES ($1) ON CONFLICT DO NOTHING',
-          [installationId],
-        );
-        const { rows } = await client.query<{ state: Record<string, unknown> | null }>(
-          'SELECT state FROM refit_ai_ledgers WHERE installation_id = $1 FOR UPDATE',
-          [installationId],
-        );
-        const stored = rows[0].state ?? (legacyFile ? await readState(legacyFile) : undefined);
-        await client.query(
-          'UPDATE refit_ai_ledgers SET state = $2, updated_at = now() WHERE installation_id = $1',
-          [installationId, change(stored)],
-        );
-      }),
-  });
-
-  // The ledger every installation's AI requests also reserve against.
-  const aiTotalLedger = (): AiLedger => ({
-    update: (change) =>
-      transaction(pool, async (client) => {
-        await client.query(
-          'INSERT INTO refit_ai_total_ledger DEFAULT VALUES ON CONFLICT DO NOTHING',
-        );
-        const { rows } = await client.query<{ state: Record<string, unknown> | null }>(
-          'SELECT state FROM refit_ai_total_ledger FOR UPDATE',
-        );
-        await client.query('UPDATE refit_ai_total_ledger SET state = $1, updated_at = now()', [
-          change(rows[0].state ?? undefined),
-        ]);
-      }),
-  });
-
   // While paused, no worker claims a job: running jobs finish, queued ones wait and webhooks are
   // still recorded. Pausing again keeps the first pause time.
   const pause = async () =>
@@ -664,6 +748,7 @@ export async function openHostedStore(
           installationId,
           summary: await changeAiBudgetLimit(
             aiLedger(
+              pool,
               installationId,
               legacyDirectory &&
                 join(legacyDirectory, `installation-${installationId}`, 'budget.json'),
@@ -674,7 +759,7 @@ export async function openHostedStore(
     const total =
       limits.totalUsd === undefined
         ? null
-        : await changeAiBudgetLimit(aiTotalLedger(), limits.totalUsd);
+        : await changeAiBudgetLimit(aiTotalLedger(pool), limits.totalUsd);
     return { installations, total };
   };
 
@@ -718,11 +803,13 @@ export async function openHostedStore(
          FROM refit_jobs j JOIN refit_targets t ON t.id = j.target_id ORDER BY j.id`,
       ),
     ]);
-    const running = new Set(jobs.rows.filter((job) => job.live).map((job) => job.installationId));
+    const running = new Map<string, number>();
+    for (const job of jobs.rows)
+      if (job.live) running.set(job.installationId, (running.get(job.installationId) ?? 0) + 1);
     const listed = installations.rows.map((installation) => ({
       ...installation,
       refusals: installationRefusals(
-        { ...installation, running: running.has(installation.id) },
+        { ...installation, running: running.get(installation.id) ?? 0 },
         tenancy.limits,
       ),
     }));
@@ -747,6 +834,8 @@ export async function openHostedStore(
 
   return {
     accept,
+    activeInstallations,
+    reconcile,
     approve,
     retire,
     revoke,
@@ -760,8 +849,6 @@ export async function openHostedStore(
     read,
     allow,
     reserveInventory,
-    aiLedger,
-    aiTotalLedger,
     aiLedgerStates,
     changeAiLimits,
     leases,

@@ -1,5 +1,5 @@
 import ts from 'typescript-compiler';
-import { migrationReviewReason } from './migration-review.ts';
+import { migrationReviewReason, unresolvedSites } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { analyzeRepository, syntaxErrors } from './analyzer.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
@@ -17,8 +17,11 @@ import {
   addedTypeEscapes,
   changedEventTypes,
   droppedRequestPaths,
+  editedTestFiles,
   newShapeOnlyReads,
+  rewrittenRuleLines,
 } from './ai-patch-policies.ts';
+import type { RequestParameterRemoval } from './request-removals.ts';
 import {
   FieldSubstitutionError,
   findFieldSubstitutions,
@@ -84,6 +87,10 @@ Owner policies; Refit refuses a proposal that breaks one:
 Return zero edits when context is insufficient. API-version applicability is unknown.
 Do not assume the code is safe because a finding disappears. Human review remains required.`;
 export const TYPE_ERROR_CHANGE = 'type-error';
+// An SDK call traced to a breaking contract change no Refit rule migrates.
+export const CONTRACT_CHANGE = 'contract-change';
+const COVERAGE_INSTRUCTIONS = `
+These findings are what Refit's rules left unresolved; resolve only these. Findings with untraced true read a removed field name on a value Refit could not trace to a provider object: edit one only when the supplied code shows the value is that provider's object, otherwise leave it and state the uncertainty. Their reason states a limit of Refit's tracer, not evidence that the value is something else: follow the value through the supplied code, such as an element of a list response's data. The supplied files already contain the rules' edits. Where the rules migrated the same removed field elsewhere, often by calling a helper defined in the supplied files or evidence.contextFiles, migrate a remaining read of the provider's object the same way, through that helper, passing the object alone: never copy an item-selection argument the rules derived from other code. Findings with changeId "contract-change" are SDK calls that reach a breaking change in the target contract no Refit rule migrates; the reason names the change. Edit within the statement containing the call only where the code depends on what changed, otherwise leave it and state why.`;
 const TYPE_ERROR_INSTRUCTIONS = `
 Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: match the new type shapes and correct invalid literals outside request bodies. A request parameter or value the new types reject is a review item, not a migration: never rename, remove or change it. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. An edit citing a type-error finding must lie within the statement or member containing its reported position; when the cause is elsewhere, such as a type declared in another statement or file, leave that error and state it as an uncertainty. Keep values in the request objects they were sent in, such as metadata.`;
 const WEBHOOK_INSTRUCTIONS = `
@@ -96,8 +103,10 @@ evidence.rejectedProposal is why Refit rejected your previous answer to this req
 
 // A rejection of the model's edits as edits (schema, scope, matching, coverage, overlap, syntax),
 // not of what they migrate. The model gets one corrected request with the reason; policy stops
-// (event names, item choice) and the substitution guard never get one.
+// (event names, item choice) and the substitution guard never get one. A rejection that ends the
+// proposal carries what its requests cost.
 class AiEditRejection extends PipelineInputError {
+  proposal?: RequestMetadata;
   constructor(
     message: string,
     readonly edit?: { file: string; findingId: string },
@@ -107,7 +116,8 @@ class AiEditRejection extends PipelineInputError {
 }
 
 // A stop for review because the model's edits break an owner policy (event names, item choice,
-// sent request values, type escapes, dual-shape webhook reads). It carries the refused proposal.
+// sent request values, type escapes, dual-shape webhook reads, test files, lines the rules wrote).
+// It carries the refused proposal.
 export class AiPolicyStop extends PipelineInputError {
   constructor(
     message: string,
@@ -338,8 +348,12 @@ export async function proposeAiPatch(
   deterministicEdits: SourceEdit[] = [],
   // A repair round's model works on the failed candidate's sources, where its type errors point;
   // the guards then check every AI edit since the rule-patched code (`rules`, when the rules are
-  // a deterministic proposal rather than `deterministicEdits`).
-  candidate?: { files: Repository['files']; rules?: Repository['files'] },
+  // a deterministic proposal rather than `deterministicEdits`). `targets`, positioned in `files`,
+  // replace the rescan of them: the only findings, besides type errors, the model may resolve.
+  candidate?: { files: Repository['files']; rules?: Repository['files']; targets?: Finding[] },
+  // The contract's removed request parameters: one may move to its documented replacement in the
+  // same call. Repairs pass none, so validation's own check refuses any move there too.
+  requestRemovals: RequestParameterRemoval[] = [],
 ) {
   // Type-error findings already point into the rule-patched code, so rules never cover them.
   const typeErrorFindings = findings.filter((finding) => finding.changeId === TYPE_ERROR_CHANGE);
@@ -360,17 +374,15 @@ export async function proposeAiPatch(
       : repository;
   repository = candidate ? { ...repository, files: candidate.files } : ruleBase;
   if (repository !== original)
-    findings = analyzeRepository(repository, changes, provider, schemaDefinitions).findings;
+    findings =
+      candidate?.targets ??
+      analyzeRepository(repository, changes, provider, schemaDefinitions).findings;
   findings = [...findings, ...typeErrorFindings];
-  const impact = buildAssessmentEvidence(
-    repository,
-    changes,
-    findings.filter((finding) => finding.confidence === 'confirmed'),
-    provider,
-  );
-  const allowed = new Set(
-    findings.filter((finding) => finding.confidence === 'confirmed').map((finding) => finding.file),
-  );
+  const citable = candidate?.targets
+    ? findings
+    : findings.filter((finding) => finding.confidence === 'confirmed');
+  const impact = buildAssessmentEvidence(repository, changes, citable, provider);
+  const allowed = new Set(citable.map((finding) => finding.file));
   if (!allowed.size)
     throw new PipelineInputError('AI patching requires at least one confirmed finding.');
   const notes = documentationSnapshots?.length
@@ -391,6 +403,7 @@ export async function proposeAiPatch(
       ? WEBHOOK_INSTRUCTIONS
       : '') +
     (typeErrorFindings.length ? TYPE_ERROR_INSTRUCTIONS : '') +
+    (candidate?.targets ? COVERAGE_INSTRUCTIONS : '') +
     ('documentation' in noted || 'documentationOmissions' in noted
       ? VENDOR_NOTE_INSTRUCTIONS
       : '') +
@@ -425,10 +438,7 @@ export async function proposeAiPatch(
       const cited = { file: edit.file.slice(0, 200), findingId: edit.findingId.slice(0, 200) };
       const file = evidence.files.find((file) => file.path === edit.file);
       const finding = evidence.findings.find(
-        (finding) =>
-          finding.id === edit.findingId &&
-          finding.file === edit.file &&
-          finding.confidence === 'confirmed',
+        (finding) => finding.id === edit.findingId && finding.file === edit.file,
       );
       if (!file || !finding)
         throw new AiEditRejection(
@@ -448,7 +458,7 @@ export async function proposeAiPatch(
         finding.column -
         1;
       const statement =
-        finding.changeId === TYPE_ERROR_CHANGE
+        finding.changeId === TYPE_ERROR_CHANGE || finding.changeId === CONTRACT_CHANGE
           ? enclosingStatement(file.path, file.content, findingOffset)
           : { start: findingOffset, end: findingOffset + 1 };
       if (end <= statement.start || start >= statement.end)
@@ -517,10 +527,13 @@ export async function proposeAiPatch(
         ...(first.rejection.edit ? { edit: first.rejection.edit } : {}),
       })
     : first;
-  if (answer.rejection) throw answer.rejection;
-  const { value, edits, modified } = answer;
   const metadata =
     answer === first ? answer.metadata : combinedMetadata(first.metadata, answer.metadata);
+  if (answer.rejection) {
+    answer.rejection.proposal = metadata;
+    throw answer.rejection;
+  }
+  const { value, edits, modified } = answer;
   // Every file an AI edit changed since the rules, including earlier repair rounds.
   const aiFiles = new Set(
     modified.files
@@ -550,7 +563,7 @@ export async function proposeAiPatch(
       'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
       proposal(),
     );
-  const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider);
+  const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider, requestRemovals);
   if (dropped.length)
     throw new AiPolicyStop(
       `AI patch drops or changes ${dropped.map((entry) => `${entry.path} from ${entry.call} (${entry.file}:${entry.line})`).join(', ')}; removing or replacing what a request sends changes its behavior, so it stops for review.`,
@@ -582,7 +595,29 @@ export async function proposeAiPatch(
     ),
   ];
   if (substitutions.length) throw new FieldSubstitutionError(substitutions, proposal());
-  const remaining = analyzeRepository(modified, changes, provider, schemaDefinitions);
+  const tests = editedTestFiles(aiFiles);
+  if (tests.length)
+    throw new AiPolicyStop(
+      `AI patch edits ${tests.join(', ')} on the repository's test paths; the checks that judge a migration stay as the repository wrote them, so it stops for review.`,
+      proposal(),
+    );
+  const ruleLines = rewrittenRuleLines(original, ruleBase, modified, aiFiles);
+  if (ruleLines.length)
+    throw new AiPolicyStop(
+      `AI patch changes ${ruleLines.map((entry) => `${entry.file}:${entry.line}`).join(', ')}, which the deterministic rules already changed; a rule's edit changes only with its rule, so it stops for review.`,
+      proposal(),
+    );
+  // Calls that still send a removed request parameter stay unresolved too.
+  const remaining = analyzeRepository(
+    modified,
+    changes,
+    provider,
+    schemaDefinitions,
+    [],
+    [],
+    [],
+    requestRemovals,
+  );
   // One diff from the original code to rules plus model edits.
   const merged = modified.files.flatMap((file) => {
     const before = original.files.find((candidate) => candidate.path === file.path)?.content;
@@ -620,12 +655,14 @@ export async function proposeAiPatch(
     generator: 'openai' as const,
     ...(answer === first ? {} : { rejectedProposals: [first.rejection!.message] }),
     summary: value.summary,
+    uncertainties: value.uncertainties,
     evidence: noted,
     edits: edits.length + deterministicEdits.length,
     ...(deterministicEdits.length ? { ruleEdits: deterministicEdits } : {}),
     migratedWebhookFindings,
     // Reads Refit could not trace to a provider object stay unresolved, so the draft needs review.
     unresolvedFindings: remaining.findings.length,
+    ...(remaining.findings.length ? { unresolvedSites: unresolvedSites(remaining.findings) } : {}),
     diff: renderPatch(original, merged),
     validation: 'not-run',
     warnings: [

@@ -7,7 +7,7 @@ import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
 import { findRemovedProperties } from './specifications.ts';
-import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
+import { COUPON_ID_HELPER, subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -84,7 +84,7 @@ function analyze(body: string) {
 
 function getCouponId(value: object) {
   const module: { exports: Record<string, (value: object) => unknown> } = { exports: {} };
-  new Function('module', subscriptionPeriodHelperModule('cjs'))(module);
+  new Function('module', subscriptionPeriodHelperModule('cjs', [COUPON_ID_HELPER]))(module);
   return module.exports.getCouponId(value);
 }
 
@@ -125,9 +125,11 @@ export const discountCoupon = (discount: Stripe.Discount) => discount.coupon.id;
     [13, 'confirmed'],
     [15, 'confirmed'],
   ]);
-  // Four reads, the helper module and its import; the percent_off read keeps its finding unedited.
-  expect(result.edits.filter((edit) => edit.rule === 'stripe-coupon-id-helper')).toHaveLength(6);
-  expect(result.patched).toContain("import { getCouponId } from './stripe-subscription-period';");
+  // Four reads and the helper written into the one file that calls it; the percent_off read keeps
+  // its finding unedited.
+  expect(result.edits.filter((edit) => edit.rule === 'stripe-coupon-id-helper')).toHaveLength(5);
+  expect(result.patched).toContain('\nfunction getCouponId(value: object): string | undefined {');
+  expect(result.patched).not.toContain('stripeSubscriptionPeriod');
   expect(result.patched).toContain('coupon: (getCouponId(promotion_code)),');
   expect(result.patched).toContain(
     'return [(getCouponId(promoCode)), promoCode.coupon.percent_off, (promoCode == null ? undefined : getCouponId(promoCode))];',

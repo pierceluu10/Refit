@@ -90,7 +90,7 @@ On 53 more repositories from the same sets, taken next in the same order and nev
 
 ### Why Refit stops, and what to do
 
-Doctor gives each reason in one sentence with the place in your code, then the fix. The fixes, by the `id` that `refit doctor --json` reports:
+Doctor gives each reason in one sentence with the place in your code, then the fix. Under owner decision 1 (the default), `no-lockfile`, `no-checks`, `api-version-unreadable`, `api-version-several`, `api-version-account-default` and `stripe-not-locked` no longer stop: Refit generates the configuration, names the version it assumes (`api-version-assumed`), and titles each draft `[Needs review]` with the reason. `--publish-validated-only` makes them stops again. The fixes, by the `id` that `refit doctor --json` reports:
 
 | `id` | What it means | What to do |
 |---|---|---|
@@ -101,6 +101,7 @@ Doctor gives each reason in one sentence with the place in your code, then the f
 | `api-version-several` | Clients or requests send more than one API version; Refit moves one at a time. | Use the same `apiVersion` everywhere. |
 | `api-version-account-default`, `stripe-not-locked` | A client sets no `apiVersion`, and Refit cannot tell which default it sends: stripe-node before 12 sends your account's default, and Refit's table skips some later releases (21.x). | Set `apiVersion` at the place doctor names, or commit your lockfile. stripe-node's changelog names the version each release pins. |
 | `api-version-no-contract` | Refit has no contract for your API version. | Move to the target yourself, or commit a `.refit.json` with contracts for your version. |
+| `source-does-not-parse` | A file that imports `stripe` has a syntax error, so Refit cannot read its calls or API version. | Fix the syntax error in the file doctor names and commit it. |
 | `no-stripe-client` | Refit found no `new Stripe(...)` client it can follow. When it sees one it cannot follow to the calls that use it, doctor names it. | If doctor names none, create the client with `new Stripe(secretKey, { apiVersion })` in your server code. If it names one, nothing in your code: Refit does not follow that client yet. |
 | `source-resolution` | A `tsconfig.json` extends a package (`@tsconfig/node20/tsconfig.json`, a workspace's shared tsconfig) or a file a build writes (`.nuxt/tsconfig.json`), or references a project by a path without `./` (`tsconfig.vite.json`). Refit cannot tell how imports resolve under it. Doctor also stops here when a tsconfig or jsconfig is invalid, or an alias import can load more than one file. | Fix an invalid tsconfig or jsconfig. Otherwise nothing in your code: Refit does not support this yet. A project reference written as `./tsconfig.vite.json` is read. |
 | `workspace-package` | `stripe` is declared only in workspace packages the root lockfile installs. Refit does not yet generate a configuration that checks a workspace package from the root. | Commit a `.refit.json` whose checks run that package's tests from the root ([Repository setup](REPOSITORY-SETUP.md)). |

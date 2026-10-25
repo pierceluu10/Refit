@@ -509,5 +509,15 @@ it('tells the person to commit or remove a submodule, not to commit or stash fil
       'Validation does not accept submodules; vendor/plugin is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.',
     action:
       "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.",
+  }); // Owner decision 1: the root is checked without the submodule, and the check says so.
+  expect(
+    (await inspectRepositoryReadiness({ repository: app, allowUntested: true })).checks.find(
+      (check) => check.id === 'repository',
+    ),
+  ).toMatchObject({
+    status: 'passed',
+    detail: expect.stringMatching(
+      /^Clean committed root at [0-9a-f]{12}\. Refit checks it without the submodule vendor\/plugin, and each draft says so\.$/,
+    ),
   });
 });

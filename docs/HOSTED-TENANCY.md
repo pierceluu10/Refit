@@ -15,16 +15,16 @@ Allowing an account never runs anything by itself: every repository still needs 
 
 ## Guardrails per installation
 
-| Guardrail                                | Setting                                                                                                                                                      | Refusal in `/status`       |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
-| Allowed account                          | `REFIT_HOSTED_ACCOUNTS`                                                                                                                                      | `account-not-allowed`      |
-| At most one running job per installation | fixed                                                                                                                                                        | `installation-job-running` |
-| Daily job cap                            | `REFIT_HOSTED_DAILY_JOBS`, default 1440 (five targets polled every 300 seconds); a poll that reuses an unchanged target's receipt gives its reservation back | `daily-job-cap`            |
-| Daily inventory cap                      | `REFIT_HOSTED_DAILY_INVENTORIES`, default 500                                                                                                                | `daily-inventory-cap`      |
+| Guardrail                     | Setting                                                                                                                                                      | Refusal in `/status`       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| Allowed account               | `REFIT_HOSTED_ACCOUNTS`                                                                                                                                      | `account-not-allowed`      |
+| Running jobs per installation | `REFIT_HOSTED_INSTALLATION_JOBS`, default 1, counted across all workers                                                                                      | `installation-job-running` |
+| Daily job cap                 | `REFIT_HOSTED_DAILY_JOBS`, default 1440 (five targets polled every 300 seconds); a poll that reuses an unchanged target's receipt gives its reservation back | `daily-job-cap`            |
+| Daily inventory cap           | `REFIT_HOSTED_DAILY_INVENTORIES`, default 500                                                                                                                | `daily-inventory-cap`      |
 
 - A job counts against the cap when a worker first claims it. Reclaiming the same job after an expired lease does not count again. Days run in UTC. A job held back by a cap stays queued and runs after midnight UTC.
 - Inventories count through the store's `reserveInventory(installationId)`. It returns `account-not-allowed` for a disallowed, suspended or deleted installation, and `daily-inventory-cap` once the cap is reached. Approval issues ([lane PG2](HOSTED-ONBOARDING-APPROVAL.md)) count each issue inspection through it. The install inventory reserves the same daily counter when it claims a request (`pipeline/inventory-store.ts`).
-- Claims are serialized by a PostgreSQL advisory lock, so two workers never start jobs for one installation at the same time. A running job whose lease has expired no longer blocks its installation.
+- Claims are serialized by a PostgreSQL advisory lock, so each claim counts the installation's running jobs after every earlier claim has committed, and workers together never run more than `REFIT_HOSTED_INSTALLATION_JOBS` of them. A running job whose lease has expired no longer counts. `pipeline/hosted-tenancy.test.ts` races four claims against a limit of two.
 - **Fair claiming.** A worker takes the next job from the installation that was claimed least recently, and job order only breaks ties. One installation with many queued jobs therefore takes turns with the others instead of running all of its jobs first. `pipeline/hosted-tenancy.test.ts` shows this with a noisy installation that has four jobs queued ahead of a quiet one.
 - `/status` adds `allowed`, `jobsToday`, `inventoriesToday` and `refusals` to each installation, and `waiting` to each job. `waiting` names the refusal that holds back a queued job, or is `null`.
 - `refit hosted accounts` prints the same information per installation. Run it with the worker's `REFIT_HOSTED_ACCOUNTS` (or `REFIT_HOSTED_OWNER`) and cap settings. The allow state it shows is the one the serving worker last applied.
@@ -51,13 +51,13 @@ Separated per installation:
 
 - Database rows are keyed by installation. Targets, jobs, usage and AI ledgers belong to one installation.
 - Each checkout uses an installation token scoped to exactly that repository with `contents: read`. Publication tokens are scoped the same way.
-- The job and inventory caps, one running job at a time, fair claiming and a separate AI ledger all apply per installation.
+- The job and inventory caps, the running-job limit, fair claiming and a separate AI ledger all apply per installation.
 - Validation containers are offline and non-root. They get no host environment, Git metadata or Docker socket, and have CPU, memory, process and workspace limits (see [architecture](ARCHITECTURE.md)).
 
 Shared by every allowed account:
 
 - The machine, its Docker daemon and the `/data` volume. Managed checkouts and evidence of every target persist there under `/data/state/targets/<id>`.
-- The worker process, which holds the App private key, the database URL and the OpenAI key.
+- The worker process, which holds the App private key, the database URL and the OpenAI key. With `--job-processes`, each job's process holds them too, without the webhook secret, the service token and `FLY_API_TOKEN`.
 - Dependency preparation, which runs with registry network access (lifecycle scripts disabled) on the same daemon.
 
 So one customer's repository code runs in offline containers on the same machine as the owner's repositories and the worker's secrets. A container escape or Docker daemon flaw would expose them. The Fly Machine is a Firecracker VM separate from other Fly apps, but it is not a boundary between Refit's own tenants. This is why `AGENTS.md` keeps hosted mode to the owner's account until per-job isolation exists.

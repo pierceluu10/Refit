@@ -1,5 +1,6 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
+import { declaresVersion } from './api-version.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
@@ -12,6 +13,7 @@ import {
   DECLARED_TYPE_REVIEW_REASON,
   migrationReviewReason,
   REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+  targetReached,
 } from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
 import type { ProviderAdapter } from './providers.ts';
@@ -74,6 +76,47 @@ export interface ReadinessReport {
     unmappedExamples: { file: string; line: number; method: string }[];
   } | null;
   scope: string[];
+}
+
+// What a blocked check does to a hosted run under owner decision 1 (2026-10-24, pierceluu10/Refit#300).
+// `setup` still stops before scanning: there is no workflow, contract, checkout or sandbox to run.
+// The workflow finds a `workflow` check's cause itself and records it as a review reason or an
+// untested patch. Only doctor sees a `review` check, so it joins the draft's review reasons.
+const BLOCKED_CHECKS = new Map<string, 'setup' | 'workflow' | 'review'>([
+  ['configuration', 'setup'],
+  ['contracts', 'setup'],
+  ['repository', 'setup'],
+  ['analysis', 'setup'],
+  ['docker', 'setup'],
+  ['source-baseline', 'setup'],
+  ['source-provenance', 'workflow'],
+  ['webhook-migration', 'workflow'],
+  ['api-version', 'workflow'],
+  ['migration-coverage', 'workflow'],
+  ['dependencies', 'workflow'],
+  ['source-resolution', 'review'],
+  ['sdk-coverage', 'review'],
+]);
+
+export class UnclassifiedCheckError extends Error {}
+
+// The blocked checks of a report by what they do under owner decision 1. A repository whose
+// generated configuration doctor could not check has no workflow to run, so all of its are setup.
+export function sortBlockedChecks(report: ReadinessReport) {
+  const sorted = {
+    setup: [] as ReadinessCheck[],
+    workflow: [] as ReadinessCheck[],
+    review: [] as ReadinessCheck[],
+  };
+  for (const check of report.checks.filter((entry) => entry.status === 'blocked')) {
+    const kind = report.missing ? 'setup' : BLOCKED_CHECKS.get(check.id);
+    if (!kind)
+      throw new UnclassifiedCheckError(
+        `refit doctor check ${check.id} can block, but owner decision 1 does not say whether it stops a run.`,
+      );
+    sorted[kind].push(check);
+  }
+  return sorted;
 }
 
 // Names the file or program a check could not use, when the error says which.
@@ -269,15 +312,20 @@ function unmappedCallsDetail(
   return `Refit traced ${calls} ${packageName} API call${calls === 1 ? '' : 's'}, and it maps none of their methods to an operation in the contracts: ${named.join(', ')}${more ? ` and ${more} more` : ''}.`;
 }
 
-async function committedRepositoryCheck(repository: string) {
+// With `submodules` (owner decision 1) a submodule is checked around, not refused.
+async function committedRepositoryCheck(repository: string, submodules?: boolean) {
   const snapshot = await inspectCheck(
     'repository',
     'Committed repository',
     'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
-    () => readCommittedRepository(repository),
+    () => readCommittedRepository(repository, { submodules }),
   );
   if (snapshot.value)
-    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.`;
+    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.${
+      snapshot.value.submodules.length
+        ? ` Refit checks it without the submodule${snapshot.value.submodules.length === 1 ? '' : 's'} ${snapshot.value.submodules.join(', ')}, and each draft says so.`
+        : ''
+    }`;
   else if (SUBMODULE.test(snapshot.check.detail))
     snapshot.check.action =
       "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.";
@@ -287,8 +335,8 @@ async function committedRepositoryCheck(repository: string) {
 // What doctor checks in a repository that commits no .refit.json: the configuration enrollment
 // generates for it, read from the saved contracts, or why there is none. A repository without
 // Stripe keeps the guidance to add an agent.
-async function generatedWorkflow(directory: string, contracts: string) {
-  const { proposal, stops } = await proposeStripeConfiguration(directory);
+async function generatedWorkflow(directory: string, contracts: string, allowUntested?: boolean) {
+  const { proposal, stops } = await proposeStripeConfiguration(directory, { allowUntested });
   if (!proposal) {
     const stripe = !stops.some((stop) => NOT_STRIPE.has(stop.id));
     return {
@@ -346,6 +394,12 @@ export async function inspectRepositoryReadiness(options: {
   config?: string;
   integration?: string;
   contracts?: string;
+  // Versions the service already watches this target from, such as a merged Refit draft's target.
+  // Code that declares one passes the API-version check, as it passes the approval check.
+  acceptedApiVersions?: string[];
+  // Owner decision 1: check the generated configuration whose checks cannot run (no lockfile or no
+  // checks) instead of reporting why none is generated.
+  allowUntested?: boolean;
 }): Promise<ReadinessReport> {
   const configurationPath = options.config
     ? resolve(options.config)
@@ -382,12 +436,16 @@ export async function inspectRepositoryReadiness(options: {
       ? await generatedWorkflow(
           dirname(configurationPath),
           options.contracts ?? DEFAULT_CONTRACTS_DIRECTORY,
+          options.allowUntested,
         )
       : undefined;
   if (generated && !generated.workflow) {
     report.missing = true;
     // Every blocker at once, so a repository that also has, say, a submodule hears it now.
-    const snapshot = await committedRepositoryCheck(dirname(configurationPath));
+    const snapshot = await committedRepositoryCheck(
+      dirname(configurationPath),
+      options.allowUntested,
+    );
     if (snapshot.check.status === 'blocked') report.checks.push(snapshot.check);
     report.checks.push(...generated.checks);
     return report;
@@ -452,7 +510,7 @@ export async function inspectRepositoryReadiness(options: {
   }
   report.repository = resolve(repository);
   const [snapshot, scan, image] = await Promise.all([
-    committedRepositoryCheck(repository),
+    committedRepositoryCheck(repository, options.allowUntested),
     inspectCheck(
       'analysis',
       'Contracts and adapter',
@@ -567,17 +625,23 @@ export async function inspectRepositoryReadiness(options: {
       });
     }
     scan.check.detail = `${evidence.repository.scannedFiles} source files inspected; adapter contracts resolved. ${workflow.latestStripe ? 'Latest Stripe source was not fetched; only the baseline was inspected.' : 'Both supplied contracts were inspected.'}`;
+    const watched =
+      evidence.apiVersion.applicability === 'matches-before'
+        ? undefined
+        : options.acceptedApiVersions?.find((version) =>
+            declaresVersion(evidence.apiVersion.source, version),
+          );
+    const versionPassed = evidence.apiVersion.applicability === 'matches-before' || watched;
     report.checks.push({
       id: 'api-version',
       title: 'Application API version',
-      status: evidence.apiVersion.applicability === 'matches-before' ? 'passed' : 'blocked',
-      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}`,
-      action:
-        evidence.apiVersion.applicability === 'matches-before'
-          ? null
-          : evidence.apiVersion.application === null && evidence.apiVersion.before
-            ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
-            : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
+      status: versionPassed ? 'passed' : 'blocked',
+      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}${watched ? ` The code declares ${watched}, which this service already watches, so this check passes; the next poll decides whether the code reached that target.` : ''}`,
+      action: versionPassed
+        ? null
+        : evidence.apiVersion.application === null && evidence.apiVersion.before
+          ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
+          : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
     });
     if (workflow.latestStripe && !evidence.provenance.before)
       report.checks.push({
@@ -596,7 +660,8 @@ export async function inspectRepositoryReadiness(options: {
       evidence.requestChanges,
       evidence.expandedFields,
     );
-    if (unsupportedChanges.length || evidence.operationImpacts.length)
+    // A merged draft leaves the fields it migrated unread; the watcher then advances its baseline.
+    if (!targetReached(evidence) && (unsupportedChanges.length || evidence.operationImpacts.length))
       report.checks.push({
         id: 'migration-coverage',
         title: 'Supported migration coverage',

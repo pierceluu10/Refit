@@ -11,6 +11,9 @@ const MILLISECONDS_PER_SECOND = 1000;
 const APP_SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const ACCOUNT_LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 const NOT_FOUND = 404;
+const REPOSITORY_PAGE_SIZE = 100;
+// 10,000 repositories, the most a webhook repository list may carry.
+const MAX_REPOSITORY_PAGES = 100;
 
 export type GitHubAppConfiguration =
   | { appId: string; privateKeyFile: string }
@@ -231,4 +234,32 @@ export async function appInstallation(configuration: GitHubAppConfiguration, id:
     updatedAt: installation.updated_at,
     suspended: installation.suspended_at !== null && installation.suspended_at !== undefined,
   };
+}
+
+// Every repository GitHub serves to one installation, unvalidated, from GET
+// /installation/repositories with a metadata-only token for that installation.
+export async function installationRepositories(configuration: GitHubAppConfiguration, id: number) {
+  const access = await requestGitHub(
+    await appJwt(configuration),
+    'POST',
+    `/app/installations/${id}/access_tokens`,
+    { permissions: { metadata: 'read' } },
+  );
+  if (!isObject(access) || typeof access.token !== 'string' || !access.token.trim())
+    throw new PipelineInputError('GitHub did not return an installation token.');
+  const repositories: unknown[] = [];
+  for (let page = 1; page <= MAX_REPOSITORY_PAGES; page++) {
+    const list = await requestGitHub(
+      access.token,
+      'GET',
+      `/installation/repositories?per_page=${REPOSITORY_PAGE_SIZE}&page=${page}`,
+    );
+    if (!isObject(list) || !Array.isArray(list.repositories))
+      throw new PipelineInputError('GitHub returned a malformed installation repository list.');
+    repositories.push(...list.repositories);
+    if (list.repositories.length < REPOSITORY_PAGE_SIZE) return repositories;
+  }
+  throw new PipelineInputError(
+    `Installation ${id} lists more than ${MAX_REPOSITORY_PAGES * REPOSITORY_PAGE_SIZE} repositories.`,
+  );
 }

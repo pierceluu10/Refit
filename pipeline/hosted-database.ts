@@ -28,9 +28,15 @@ const UNAVAILABLE_MESSAGES = [
   'Client has encountered a connection error and is not queryable',
 ];
 
-export function openHostedPool(connectionString: string, onError: (error: Error) => void) {
+// `max` caps the pool's connections; pg defaults to 10.
+export function openHostedPool(
+  connectionString: string,
+  onError: (error: Error) => void,
+  max?: number,
+) {
   const pool = new pg.Pool({
     connectionString,
+    max,
     connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
     query_timeout: QUERY_TIMEOUT_MS,
     // A SET passes through Supabase's session pooler; a statement_timeout startup parameter might
