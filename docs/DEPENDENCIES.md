@@ -41,7 +41,7 @@ refit prepare --repository ~/Repos/refit-billing-demo \
   --image node:22-alpine
 ```
 
-It prints the recorded Node/npm versions, number of locked package records and evidence path. This is not a count of installed packages: platform-specific optional records can be skipped by npm. `--json` supplies machine output. `--cache /absolute/path/outside-git` chooses a cache explicitly; otherwise `REFIT_DEPENDENCY_CACHE_DIRECTORY` or `~/.refit/dependencies` is used. An empty environment setting uses the default.
+It prints the recorded Node/npm versions, number of locked package records and evidence path. This is not a count of installed packages: platform-specific optional records can be skipped by npm. `--json` supplies machine output. `--cache /absolute/path/outside-git` chooses a cache explicitly; otherwise `REFIT_DEPENDENCY_CACHE_DIRECTORY` or `~/.refit/dependencies` is used. An empty environment setting uses the default. The cache is capped at `REFIT_DEPENDENCY_CACHE_GIB` (a whole number of GiB from 1 to 1024, default 8); see [cache, evidence and recovery](#cache-evidence-and-recovery).
 
 You can also opt in on a run without creating a service:
 
@@ -67,6 +67,8 @@ Validation snapshots the verified dependency archive into its own private tempor
 ## Cache, evidence and recovery
 
 Cache identity includes the exact committed manifest and lock bytes, immutable Docker image ID and preparation recipe version. Completed bundles are atomically published and include `dependencies.tar`, `environment.json`, `install.log` and an unsigned hash manifest. Refit verifies file types, hashes, sizes and input identity before reuse. Truncated, changed or incomplete existing bundles stop rather than silently reinstalling. Changing manifests or images creates a different cache entry.
+
+Each new bundle is followed by eviction: Refit removes the least recently used bundles until the cache fits `REFIT_DEPENDENCY_CACHE_GIB` (default 8 GiB; a value that is not a whole number from 1 to 1024 stops preparation before it installs anything). A reuse counts as use. Eviction takes each bundle's preparation lock, so a bundle another process is preparing, verifying or copying for validation is skipped, and validation copies the archive while it holds that lock. It unpublishes a bundle with one rename before deleting it, so an interrupted eviction never leaves a partial bundle; the next preparation of that input installs it again. The bundle just written is never evicted, even when it alone exceeds the cap. A preparation that starts during the instant an eviction holds its lock fails on the lock, like two concurrent preparations of the same input.
 
 Use `refit verify --directory /absolute/path/to/bundle` for byte integrity. Verification does not authenticate the producer, audit npm packages or establish application behavior. Review `install.log` and input identity before removing an invalid bundle and deliberately preparing it again. Cache and worker state must remain outside Git repositories, including through directory symlinks. Active preparation locks are refused; a verified dead owner can be recovered using the existing state-lock rules.
 
