@@ -6,7 +6,7 @@ Stripe [moved subscription periods onto individual items in 2025-03-31.basil](ht
 
 ## Every period read: the generated helper
 
-Refit rewrites every `current_period_start/end` read on SDK responses, signed webhook payloads and `Stripe.Subscription`-typed values into a call to a generated helper. When one file calls the helpers, Refit writes the ones it uses into that file after its imports, so the patch adds no module and no import. When two or more files call them, it writes one module per repository (`stripeSubscriptionPeriod.ts` or `.js`, in the deepest folder the patched files share) and imports it in each file:
+Refit rewrites every `current_period_start/end` read on SDK responses, signed webhook payloads and `Stripe.Subscription`-typed values into a call to a generated helper. When one file calls the helpers, Refit writes the ones it uses into that file after its imports (or, without imports, after a shebang and the file's leading pragmas), so the patch adds no module and no import. When two or more files call them, it writes one module per repository (`stripeSubscriptionPeriod.ts` or `.js`, in the deepest folder the patched files share) and imports it in each file:
 
 ```ts
 getSubscriptionPeriodEnd(subscription, (items) => items[0]);
@@ -20,7 +20,7 @@ The helper returns, in order:
 
 If neither exists, step 3 returns `undefined` and the pull request says: "Subscriptions with items on different billing periods are not handled. Set `stripeSubscriptionPeriods` to choose which item counts." Missing or empty items return `undefined`, as the removed field did, so existing missing-period checks still fire. Refit never picks an earliest or latest period across items.
 
-Each migrated finding records `subscriptionPeriod.rareCase`: `item-in-code`, `price-policy` or `flagged`. The helpers written are only the ones the patch calls. A file that already uses one of the helpers' private names gets the module instead. Imports follow each file's module style, line endings and existing relative-import extensions, or `tsconfig` Node16/NodeNext resolution. Where a configured policy's guarded handler applies (below), that migration takes precedence over the helper.
+Each migrated finding records `subscriptionPeriod.rareCase`: `item-in-code`, `price-policy` or `flagged`. The helpers written are only the ones the patch calls. A file that already uses one of the helpers' private names, or declares a global they read (`Array`, `Reflect`, `Set`, `NonNullable`), gets the module instead. Inlined helpers have one cost: their type errors carry the calling file's path, so a compared type check, which counts errors by file, code and message, does not flag a helper error whose code and message match an error that file already had. A separate module's errors always count as new. Imports follow each file's module style, line endings and existing relative-import extensions, or `tsconfig` Node16/NodeNext resolution. Where a configured policy's guarded handler applies (below), that migration takes precedence over the helper.
 
 A read on one parenthesized cast of a traced receiver also moves, for every helper: `(subscription as any).current_period_end` becomes `(getSubscriptionPeriodEnd(subscription as any) as any)`, keeping the read typed `any`, and a typed cast such as `(invoice as Stripe.Invoice)` passes through as written. Double casts, a non-null assertion after a cast, a cast call result and `typeof`-guarded cast reads stay under review.
 

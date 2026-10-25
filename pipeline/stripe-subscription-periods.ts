@@ -370,6 +370,15 @@ export const INVOICE_PRICE_ID_HELPER = 'getInvoicePriceId';
 export const CHECKOUT_SHIPPING_HELPER = 'getCheckoutShippingDetails';
 export const COUPON_ID_HELPER = 'getCouponId';
 export const PRODUCT_FEATURES_HELPER = 'getProductMarketingFeatures';
+// Globals the helper bodies read, which a file declaring the same name would shadow.
+export const HELPER_GLOBALS: readonly string[] = [
+  'Array',
+  'NonNullable',
+  'Reflect',
+  'Set',
+  'undefined',
+];
+
 // Every helper the generated module can hold, in its order.
 export const HELPER_NAMES: readonly string[] = [
   ...Object.values(PERIOD_HELPERS),

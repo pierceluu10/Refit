@@ -32,6 +32,7 @@ import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
+  HELPER_GLOBALS,
   HELPER_NAMES,
   subscriptionPeriodHelperEdit,
   subscriptionPeriodHelperModule,
@@ -1994,7 +1995,8 @@ export function analyzeRepository(
     };
     // One calling file gets the helpers it uses written into it, so the patch adds no module and
     // no import, and a test that loads that file alone with a fixed set of imports still runs. The
-    // helpers' private names must be free in that file; otherwise the module keeps them private.
+    // helpers' private names, and the globals they read, must be free in that file; otherwise the
+    // module keeps them apart.
     const [single] = helperFiles;
     const inline =
       helperFiles.length === 1
@@ -2010,16 +2012,22 @@ export function analyzeRepository(
               : [],
           )
       : [];
-    if (
-      inline &&
+    const free = (source: ts.SourceFile) =>
       !nodes.some(
         (node) =>
-          node.getSourceFile() === sourceOf(single) &&
-          ts.isIdentifier(node) &&
-          declared.includes(node.text),
-      )
-    )
-      insert(single, inline.replace(/\n$/, ''), '\n\n');
+          node.getSourceFile() === source && ts.isIdentifier(node) && declared.includes(node.text),
+      ) &&
+      !checker
+        .getSymbolsInScope(
+          source,
+          ts.SymbolFlags.Value | ts.SymbolFlags.Type | ts.SymbolFlags.Alias,
+        )
+        .some(
+          (entry) =>
+            HELPER_GLOBALS.includes(entry.name) &&
+            entry.declarations?.some((declaration) => declaration.getSourceFile() === source),
+        );
+    if (inline && free(sourceOf(single))) insert(single, inline.replace(/\n$/, ''), '\n\n');
     else {
       const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
       const shared = directories[0].filter((segment, index) =>

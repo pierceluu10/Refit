@@ -10,6 +10,7 @@ import { digest, findRemovedProperties } from './specifications.ts';
 import { createReviewArtifacts } from './review.ts';
 import {
   CHECKOUT_SHIPPING_HELPER,
+  HELPER_GLOBALS,
   HELPER_NAMES,
   INVOICE_PRICE_ID_HELPER,
   INVOICE_SUBSCRIPTION_HELPER,
@@ -513,6 +514,50 @@ it('keeps the helpers in a module when the one calling file already uses a priva
     "import { getSubscriptionPeriodEnd } from './stripeSubscriptionPeriod';",
   );
   expect(result.patched('billing.ts')).not.toContain('function subscriptionPeriod(');
+});
+
+// The inlined helpers read Set; Immutable.js exports its own, which would replace it in this file.
+it('keeps the helpers in a module when the one calling file shadows a global they read', () => {
+  const content = `import { Set } from 'immutable';\n${header}export async function ends(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return [subscription.current_period_end, Set.of(id)];
+}`;
+  const result = analyzeFiles({ 'billing.ts': content });
+  expect(result.edits.map((edit) => edit.file)).toContain('stripeSubscriptionPeriod.ts');
+  expect(result.patched('billing.ts')).not.toContain('function subscriptionPeriod(');
+});
+
+it('lists every global the helper bodies read', () => {
+  const free = new Set<string>();
+  for (const kind of ['ts', 'esm', 'cjs'] as const) {
+    const source = ts.createSourceFile(
+      'helpers.ts',
+      subscriptionPeriodHelperModule(kind, HELPER_NAMES, true),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const declared = new Set<string>();
+    const used = new Set<string>();
+    const visit = (node: ts.Node) => {
+      if (ts.isIdentifier(node)) {
+        const parent = node.parent as ts.Node & { name?: ts.Node };
+        if (parent.name !== node) used.add(node.text);
+        else if (
+          ts.isParameter(parent) ||
+          ts.isVariableDeclaration(parent) ||
+          ts.isFunctionDeclaration(parent) ||
+          ts.isTypeAliasDeclaration(parent) ||
+          ts.isTypeParameterDeclaration(parent) ||
+          ts.isBindingElement(parent)
+        )
+          declared.add(node.text);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const name of used) if (!declared.has(name)) free.add(name);
+  }
+  expect([...free].sort()).toEqual([...HELPER_GLOBALS].sort());
 });
 
 // Both shapes in one repository: two calling files share one module of the helpers either calls.
