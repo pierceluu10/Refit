@@ -45,8 +45,9 @@ import { preparationStop } from './preparation-stops.ts';
 import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
 
-const RECIPE_VERSION = 5;
+const RECIPE_VERSION = 6;
 const LEGACY_PEER_DEPS_MARKER = 'REFIT_LEGACY_PEER_DEPS=1';
+const PRUNED_GLIBC_MARKER = 'REFIT_PRUNED_GLIBC_PACKAGES';
 // --replace-registry-host=always fetches every locked tarball from registry.npmjs.org, including
 // ones a lockfile resolved through a public mirror (npm-lock.ts); integrity still decides.
 const npmCi = (binary: string) =>
@@ -66,6 +67,40 @@ const MAX_LOG_BYTES = 1024 * 1024;
 const MAX_ERROR_CHARACTERS = 4096;
 const ARCHIVE = 'dependencies.tar';
 const ENVIRONMENT = 'environment.json';
+// npm lockfiles written before npm recorded `libc` install both the glibc and musl builds of native
+// packages (@next/swc, @swc/core): on node:22-alpine about 250 MiB that can never load. On a musl
+// image, packages whose own manifest excludes musl are removed; any with a bin entry are kept, so
+// no .bin link dangles. The lockfile is untouched.
+export const GLIBC_PACKAGE_PRUNE = `
+import { readdir, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
+let pruned = 0;
+function excludesMusl(libc) {
+  if (!Array.isArray(libc)) return false;
+  return libc.includes("!musl") || (libc.some((value) => !value.startsWith("!")) && !libc.includes("musl"));
+}
+async function walk(directory) {
+  let entries;
+  try { entries = await readdir(directory, { withFileTypes: true }); }
+  catch (error) { if (error.code === "ENOENT") return; throw error; }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+    const path = join(directory, entry.name);
+    if (entry.name.startsWith("@")) { await walk(path); continue; }
+    let manifest;
+    try { manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")); }
+    catch (error) { if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error; }
+    if (excludesMusl(manifest?.libc) && manifest.bin === undefined) {
+      await rm(path, { recursive: true });
+      pruned += 1;
+      continue;
+    }
+    await walk(join(path, "node_modules"));
+  }
+}
+await walk("node_modules");
+console.error("${PRUNED_GLIBC_MARKER}=" + pruned);
+`;
 export const DEPENDENCY_TREE_CHECK = `
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
@@ -142,7 +177,8 @@ function installCommand(
                 `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${NPM_CI} --legacy-peer-deps >&2; cat /workspace/.refit-npm-ci.log >&2; ` +
                 'else cat /workspace/.refit-npm-ci.log >&2; exit 1; fi; ') +
             'mkdir -p node_modules; ' +
-            (managerVersion ? 'mv /workspace/.refit-tools node_modules/.refit-tools; ' : '')) +
+            (managerVersion ? 'mv /workspace/.refit-tools node_modules/.refit-tools; ' : '') +
+            `if [ -e "/lib/ld-musl-$(uname -m).so.1" ]; then node --input-type=module -e '${GLIBC_PACKAGE_PRUNE}'; fi; `) +
       `node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
       'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +
       'for directory do if [ -d "$directory/node_modules" ]; then printf "%s\\n" "$directory/node_modules" >> /workspace/.refit-dependency-paths; fi; done; ' +
@@ -500,6 +536,9 @@ async function installDependencies(
       bytes,
       sha256: hash.digest('hex'),
       legacyPeerDeps: stderr.split('\n').includes(LEGACY_PEER_DEPS_MARKER),
+      prunedGlibcPackages: Number(
+        new RegExp(`^${PRUNED_GLIBC_MARKER}=(\\d+)$`, 'm').exec(stderr)?.[1] ?? 0,
+      ),
       stderr,
       nodeVersion,
       npmVersion,
@@ -700,6 +739,9 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
           network: 'bridge',
           lifecycleScripts: false,
           ...(result.legacyPeerDeps ? { legacyPeerDeps: true } : {}),
+          ...(result.prunedGlibcPackages
+            ? { prunedGlibcPackages: result.prunedGlibcPackages }
+            : {}),
           registry: 'https://registry.npmjs.org',
           timeoutMs: timeoutSeconds * 1000,
           ...preparation,

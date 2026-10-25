@@ -414,6 +414,12 @@ export async function GET(request: NextRequest) {
 
 it('tells the person to commit or remove a submodule, not to commit or stash files', async () => {
   const app = await repository({ formatVersion: 2, integrations: [integration('catalog')] });
+  // .gitmodules declares it, so clones fetch files this commit does not hold.
+  await writeFile(
+    join(app, '.gitmodules'),
+    '[submodule "plugin"]\n\tpath = vendor/plugin\n\turl = https://example.invalid/plugin.git\n',
+  );
+  await execute('git', ['-C', app, 'add', '.gitmodules']);
   await execute('git', [
     '-C',
     app,

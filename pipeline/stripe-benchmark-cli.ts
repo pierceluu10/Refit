@@ -29,6 +29,7 @@ import {
   workflowScanStop,
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
+import { validationProfile } from './docker-sandbox.ts';
 import { AiPolicyStop } from './ai-patches.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import {
@@ -42,7 +43,7 @@ import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
@@ -93,12 +94,18 @@ const { values } = parseArgs({
     // Continue an interrupted run in the same --output; see docs/BENCHMARK-HARNESS.md.
     resume: { type: 'boolean' },
     'allow-dirty': { type: 'boolean' },
+    // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
+    'validation-workspace': { type: 'string' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 if (values.publish && !values.validate)
   throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
 if (values.env) process.loadEnvFile(values.env);
+if (values['validation-workspace']) {
+  validationProfile(values['validation-workspace']);
+  process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
+}
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;

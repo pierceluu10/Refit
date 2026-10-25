@@ -100,6 +100,10 @@ it('gives every refusal Refit cannot fix a named stop with its .refit.json chang
       'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages } require a custom image.',
       'unsupported-workspace',
     ],
+    [
+      'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "patchedDependencies".',
+      'unsupported-workspace',
+    ],
   ] as const)
     expect(preparationStop(message)).toMatchObject({
       reason,

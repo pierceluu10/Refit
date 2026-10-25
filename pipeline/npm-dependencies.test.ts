@@ -23,6 +23,7 @@ import {
   cacheLimitBytes,
   DEPENDENCY_TREE_CHECK,
   evictDependencies,
+  GLIBC_PACKAGE_PRUNE,
   prepareDependencies,
 } from './dependency-preparation.ts';
 import {
@@ -747,4 +748,114 @@ it('evicts old bundles after preparing a new one, under REFIT_DEPENDENCY_CACHE_G
     ),
   );
   expect((await prepareDependencies(fixture.options)).reused).toBe(true);
+});
+
+it('removes glibc-only native packages npm installed on a musl image, and nothing else', async () => {
+  // nizzyabi/nizzy-starter at 66afada: its lockfile records no libc, so npm ci on node:22-alpine
+  // installed @next/swc and @swc/core for both libcs (253 of 1205 MiB), twice for react-email's Next.
+  const root = await mkdtemp(join(tmpdir(), 'refit-glibc-prune-test-'));
+  roots.push(root);
+  const manifests: Record<string, object> = {
+    'node_modules/@next/swc-linux-x64-gnu': {
+      name: '@next/swc-linux-x64-gnu',
+      os: ['linux'],
+      cpu: ['x64'],
+      libc: ['glibc'],
+    },
+    'node_modules/@next/swc-linux-x64-musl': {
+      name: '@next/swc-linux-x64-musl',
+      os: ['linux'],
+      cpu: ['x64'],
+      libc: ['musl'],
+    },
+    'node_modules/@swc/core-linux-x64-gnu': { name: '@swc/core-linux-x64-gnu', libc: ['glibc'] },
+    'node_modules/react-email/node_modules/@next/swc-linux-x64-gnu': {
+      name: '@next/swc-linux-x64-gnu',
+      libc: ['glibc'],
+    },
+    'node_modules/react-email/node_modules/next': { name: 'next', bin: { next: 'dist/bin/next' } },
+    'node_modules/not-musl': { name: 'not-musl', libc: ['!musl'] },
+    'node_modules/not-glibc': { name: 'not-glibc', libc: ['!glibc'] },
+    'node_modules/glibc-tool': { name: 'glibc-tool', libc: ['glibc'], bin: 'cli.js' },
+    'node_modules/stripe': { name: 'stripe', version: '17.7.0' },
+  };
+  for (const [directory, manifest] of Object.entries(manifests)) {
+    await mkdir(join(root, directory), { recursive: true });
+    await writeFile(join(root, directory, 'package.json'), JSON.stringify(manifest));
+  }
+  await mkdir(join(root, 'node_modules', 'broken'));
+  await writeFile(join(root, 'node_modules', 'broken', 'package.json'), '{');
+  const { stderr } = await execute(
+    process.execPath,
+    ['--input-type=module', '-e', GLIBC_PACKAGE_PRUNE],
+    { cwd: root },
+  );
+  console.log(stderr);
+  expect(stderr).toContain('REFIT_PRUNED_GLIBC_PACKAGES=4');
+  const remaining = async (directory: string) =>
+    stat(join(root, directory)).then(
+      () => true,
+      () => false,
+    );
+  const kept = Object.fromEntries(
+    await Promise.all(
+      [...Object.keys(manifests), 'node_modules/broken'].map(async (directory) => [
+        directory,
+        await remaining(directory),
+      ]),
+    ),
+  );
+  expect(kept).toEqual({
+    'node_modules/@next/swc-linux-x64-gnu': false,
+    'node_modules/@next/swc-linux-x64-musl': true,
+    'node_modules/@swc/core-linux-x64-gnu': false,
+    'node_modules/react-email/node_modules/@next/swc-linux-x64-gnu': false,
+    'node_modules/react-email/node_modules/next': true,
+    'node_modules/not-musl': false,
+    'node_modules/not-glibc': true,
+    'node_modules/glibc-tool': true,
+    'node_modules/stripe': true,
+    'node_modules/broken': true,
+  });
+});
+
+it('removes the glibc-only sharp and Next.js builds a second lockfile without libc installs', async () => {
+  // alanagoyal/branded at cf8f84c: package-lock.json v3 records @next/swc 15.5.25 and @img/sharp
+  // 0.35.4 for both libcs without "libc"; the published manifests declare libc glibc or musl.
+  const root = await mkdtemp(join(tmpdir(), 'refit-glibc-prune-test-'));
+  roots.push(root);
+  const manifests: Record<string, { libc: string[] }> = {
+    'node_modules/@next/swc-linux-x64-gnu': { libc: ['glibc'] },
+    'node_modules/@next/swc-linux-x64-musl': { libc: ['musl'] },
+    'node_modules/@img/sharp-linux-x64': { libc: ['glibc'] },
+    'node_modules/@img/sharp-libvips-linux-x64': { libc: ['glibc'] },
+    'node_modules/@img/sharp-linuxmusl-x64': { libc: ['musl'] },
+    'node_modules/@img/sharp-libvips-linuxmusl-x64': { libc: ['musl'] },
+  };
+  for (const [directory, manifest] of Object.entries(manifests)) {
+    await mkdir(join(root, directory), { recursive: true });
+    await writeFile(
+      join(root, directory, 'package.json'),
+      JSON.stringify({ name: directory.slice('node_modules/'.length), os: ['linux'], ...manifest }),
+    );
+  }
+  const { stderr } = await execute(
+    process.execPath,
+    ['--input-type=module', '-e', GLIBC_PACKAGE_PRUNE],
+    { cwd: root },
+  );
+  expect(stderr).toContain('REFIT_PRUNED_GLIBC_PACKAGES=3');
+  const kept = await Promise.all(
+    Object.keys(manifests).map((directory) =>
+      stat(join(root, directory)).then(
+        () => directory,
+        () => undefined,
+      ),
+    ),
+  );
+  expect(kept.filter(Boolean)).toEqual([
+    'node_modules/@next/swc-linux-x64-musl',
+    'node_modules/@img/sharp-linuxmusl-x64',
+    'node_modules/@img/sharp-libvips-linuxmusl-x64',
+  ]);
 });
