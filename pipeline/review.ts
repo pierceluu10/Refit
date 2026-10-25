@@ -1167,9 +1167,13 @@ export function createReviewArtifacts(
         ),
         ...(('changes' in entry && entry.changes) || []).map(plainText),
         ...(entry.gate === 'ai-patch'
-          ? aiLines.length
-            ? aiLines
-            : ['None: every changed line comes from a Refit rule.']
+          ? [
+              ...(aiLines.length ? aiLines : ['None: every changed line comes from a Refit rule.']),
+              // What the AI resolved on top of the rules' patch (owner decisions 1 and 8).
+              ...(validation.coverageAi?.resolved ?? []).map(
+                (site) => `Resolved by AI: ${code(site.file)} ${code(site.expression)}`,
+              ),
+            ]
           : []),
       ];
       return [

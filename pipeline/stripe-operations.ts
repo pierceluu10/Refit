@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { MAX_OPERATIONS, type ProviderAdapter } from './providers.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -7,79 +8,130 @@ export interface StripeOperation {
   method: string;
   schema: string;
   operationId?: string;
+  list?: true;
 }
 
 function camel(value: string) {
   return value.replace(/_([a-z0-9])/g, (_match, letter: string) => letter.toUpperCase());
 }
 
-function returnedSchema(operation: Record<string, unknown>) {
-  const responses = isObject(operation.responses) ? operation.responses : {};
-  const ok = isObject(responses['200']) ? responses['200'] : undefined;
-  const json = ok && isObject(ok.content) ? ok.content['application/json'] : undefined;
+function responseSchema(spec: Record<string, unknown>, path: string, operation: string) {
+  const paths = spec.paths;
+  if (!isObject(paths) || !isObject(paths[path])) return undefined;
+  const entry = (paths[path] as Record<string, unknown>)[operation];
+  if (!isObject(entry) || !isObject(entry.responses)) return undefined;
+  const ok = (entry.responses as Record<string, unknown>)['200'];
+  const json = isObject(ok) && isObject(ok.content) ? ok.content['application/json'] : undefined;
   const schema = isObject(json) ? json.schema : undefined;
-  // A union such as Customer | DeletedCustomer does not establish one response shape.
-  const reference = isObject(schema) ? schema.$ref : undefined;
-  return typeof reference === 'string' && reference.startsWith('#/components/schemas/')
-    ? reference.slice('#/components/schemas/'.length)
+  // A list method returns `{ object: 'list', data: [<schema>], has_more, url }` and a search method
+  // `{ object: 'search_result', data: [<schema>], … }` (docs.stripe.com/api/pagination,
+  // /api/pagination/search): their items are the object.
+  const properties = isObject(schema) && isObject(schema.properties) ? schema.properties : {};
+  const object = properties.object;
+  const items = isObject(properties.data) ? properties.data.items : undefined;
+  if (
+    isObject(object) &&
+    Array.isArray(object.enum) &&
+    object.enum.length === 1 &&
+    (object.enum[0] === 'list' || object.enum[0] === 'search_result') &&
+    isObject(items) &&
+    typeof items.$ref === 'string' &&
+    items.$ref.startsWith('#/components/schemas/')
+  )
+    return {
+      schemas: [items.$ref.slice('#/components/schemas/'.length)],
+      list: true as const,
+      operationId: typeof entry.operationId === 'string' ? entry.operationId : undefined,
+    };
+  // `customers.retrieve` returns `anyOf: [customer, deleted_customer]`; keep each referenced object.
+  const options = isObject(schema) && Array.isArray(schema.anyOf) ? schema.anyOf : [schema];
+  const schemas = options
+    .map((option) => (isObject(option) ? option.$ref : undefined))
+    .filter(
+      (reference): reference is string =>
+        typeof reference === 'string' && reference.startsWith('#/components/schemas/'),
+    )
+    .map((reference) => reference.slice('#/components/schemas/'.length));
+  return schemas.length
+    ? {
+        schemas,
+        operationId: typeof entry.operationId === 'string' ? entry.operationId : undefined,
+      }
     : undefined;
 }
 
-// stripe-node method names follow Stripe's URL shapes: `GET /v1/customers/{id}` is
-// `customers.retrieve`, `POST /v1/payment_intents/{id}/cancel` is `paymentIntents.cancel`.
-// Verified against x-stripeOperations in Stripe's SDK spec by stripe-operations.test.ts.
-function sdkMethod(path: string, httpMethod: string) {
-  const segments = path.split('/').slice(2);
-  const parameter = segments.findIndex((segment) => segment.startsWith('{'));
-  const resourceSegments = parameter < 0 ? segments : segments.slice(0, parameter);
-  const trailing = parameter < 0 ? [] : segments.slice(parameter + 1);
-  if (!resourceSegments.length || trailing.length > 1) return undefined;
-  const resource = resourceSegments.map(camel).join('.');
-  if (trailing.length === 1)
-    return httpMethod === 'post' && !trailing[0].startsWith('{')
-      ? { resource, method: camel(trailing[0]) }
-      : undefined;
-  // `GET /v1/balance` returns one object (lists have no schema reference and are skipped).
-  if (parameter < 0)
-    return httpMethod === 'post'
-      ? { resource, method: 'create' }
-      : httpMethod === 'get'
-        ? { resource, method: 'retrieve' }
-        : undefined;
-  if (parameter !== segments.length - 1) return undefined;
-  const method = { get: 'retrieve', post: 'update', delete: 'del' }[httpMethod];
-  return method ? { resource, method } : undefined;
+// One stripe-node service method as Stripe's SDK spec declares it in `x-stripeOperations`.
+export interface DeclaredOperation {
+  schema: string;
+  method: string;
+  operation: string;
+  path: string;
 }
 
-// stripe-node names that differ from the URL convention (`subscriptions.del` became `cancel`).
-const ALIASES: Record<string, string[]> = { 'subscriptions.del': ['cancel'] };
+// Every service method the pinned SDK specs declare, generated by scripts/stripe-sdk-metadata.mjs.
+const SDK_OPERATIONS = (
+  JSON.parse(readFileSync(new URL('./stripe-sdk-metadata.json', import.meta.url), 'utf8')) as {
+    operations: DeclaredOperation[];
+  }
+).operations;
 
-export function stripeContractOperations(document: Record<string, unknown>): StripeOperation[] {
+export function declaredOperations(sdkSpec: Record<string, unknown>): DeclaredOperation[] {
+  const schemas = isObject(sdkSpec.components) ? sdkSpec.components.schemas : undefined;
+  if (!isObject(schemas)) return [];
+  return Object.entries(schemas).flatMap(([schema, definition]) => {
+    const declared = isObject(definition) ? definition['x-stripeOperations'] : undefined;
+    return (Array.isArray(declared) ? declared : []).flatMap((entry) =>
+      isObject(entry) &&
+      entry.method_on === 'service' &&
+      typeof entry.path === 'string' &&
+      typeof entry.operation === 'string' &&
+      typeof entry.method_name === 'string'
+        ? [{ schema, method: entry.method_name, operation: entry.operation, path: entry.path }]
+        : [],
+    );
+  });
+}
+
+// Maps declared stripe-node methods to the object schemas they return. Only operations whose 200
+// response is that same schema in the application's own (before) contract are kept.
+export function stripeSdkOperations(
+  declared: DeclaredOperation[],
+  beforeSpec: Record<string, unknown>,
+): StripeOperation[] {
   const operations = new Map<string, StripeOperation>();
-  for (const [path, item] of Object.entries(isObject(document.paths) ? document.paths : {})) {
-    if (!isObject(item)) continue;
-    for (const [httpMethod, operation] of Object.entries(item)) {
-      if (!isObject(operation)) continue;
-      const sdk = sdkMethod(path, httpMethod);
-      const schema = returnedSchema(operation);
-      if (!sdk || !schema) continue;
-      const key = `${sdk.resource}.${sdk.method}`;
-      for (const method of [sdk.method, ...(ALIASES[key] ?? [])])
-        if (!operations.has(`${sdk.resource}.${method}`))
-          operations.set(`${sdk.resource}.${method}`, {
-            resource: sdk.resource,
-            method,
-            schema,
-            ...(typeof operation.operationId === 'string'
-              ? { operationId: operation.operationId }
-              : {}),
-          });
-    }
+  for (const { schema, method: name, operation, path } of declared) {
+    const response = responseSchema(beforeSpec, path, operation);
+    if (!response?.schemas.includes(schema)) continue;
+    // `/v1/customers/search` is `customers.search`, not a `search` sub-resource.
+    const segments = path
+      .split('/')
+      .slice(2)
+      .filter(
+        (segment, index, all) =>
+          !(name === 'search' && segment === 'search' && index === all.length - 1),
+      );
+    const parameter = segments.findIndex((segment) => segment.startsWith('{'));
+    const resource = (parameter < 0 ? segments : segments.slice(0, parameter)).map(camel).join('.');
+    // stripe-node exposes HTTP DELETE as `del`.
+    const method = name === 'delete' ? 'del' : camel(name);
+    const trailing = parameter < 0 ? [] : segments.slice(parameter + 1);
+    // Nested sub-resources (`/customers/{id}/cash_balance`) use other SDK method names; keep
+    // only the object path itself and single actions such as `/payment_intents/{id}/cancel`.
+    if (trailing.length > 1 || (trailing.length === 1 && camel(trailing[0]) !== method)) continue;
+    const key = `${resource}.${method}`;
+    if (resource && !operations.has(key))
+      operations.set(key, {
+        resource,
+        method,
+        schema,
+        ...(response.operationId ? { operationId: response.operationId } : {}),
+        ...('list' in response ? { list: true as const } : {}),
+      });
   }
   return [...operations.values()];
 }
 
-// The built-in Stripe adapter, extended with the contract's operations the application calls.
+// The built-in Stripe adapter, extended with the declared operations the application calls.
 export function stripeAdapterFor(
   base: ProviderAdapter,
   document: Record<string, unknown>,
@@ -88,7 +140,7 @@ export function stripeAdapterFor(
   const existing = new Set(
     base.operations.map((operation) => `${operation.resource}.${operation.method}`),
   );
-  const added = stripeContractOperations(document).filter(
+  const added = stripeSdkOperations(SDK_OPERATIONS, document).filter(
     (operation) =>
       calledMethods.has(`${operation.resource}.${operation.method}`) &&
       !existing.has(`${operation.resource}.${operation.method}`),

@@ -148,6 +148,8 @@ export async function runHostedService(options: {
   publishDraft?: boolean;
   // Owner decision 1: stops become [Needs review] drafts. Job machines run without it.
   publishUnresolved?: boolean;
+  // With publishDraft: close Refit's older open drafts for the same provider and integration.
+  supersedeDrafts?: boolean;
   // The worker image this process runs (FLY_IMAGE_REF). With it, a scheduled poll whose base commit,
   // approval and build match the target's last finished job stores that receipt and runs nothing.
   build?: string;
@@ -212,6 +214,8 @@ export async function runHostedService(options: {
   validateServiceSecret(options.controlToken, 'REFIT_SERVICE_TOKEN');
   if (options.webhookSecret === options.controlToken)
     throw new PipelineInputError('Webhook and service-control secrets must be different.');
+  if (options.supersedeDrafts && !options.publishDraft)
+    throw new PipelineInputError('--supersede-drafts requires --publish-draft.');
   if (options.jobMachines && (options.aiPatch || options.publishDraft))
     throw new PipelineInputError(
       '--job-machines does not support --ai-patch or --publish-draft: a job machine never holds the per-installation AI ledger or a GitHub token that can write.',
@@ -508,6 +512,7 @@ export async function runHostedService(options: {
                 repairAttempts,
                 publishDraft: Boolean(options.publishDraft),
                 publishUnresolved: Boolean(options.publishUnresolved),
+                supersedeDrafts: Boolean(options.supersedeDrafts),
                 aiPatch: Boolean(options.aiPatch),
                 aiTotalUsd: options.aiTotalUsd,
               },
@@ -529,6 +534,7 @@ export async function runHostedService(options: {
               repairAttempts,
               publishDraft: options.publishDraft,
               publishUnresolved: options.publishUnresolved,
+              supersedeDrafts: options.supersedeDrafts,
               notify: options.notify,
               onProgress: progress,
             });
