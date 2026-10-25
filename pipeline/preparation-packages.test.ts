@@ -80,8 +80,11 @@ it('prepares and checks the nested package that declares stripe and commits its 
       declarations: ['payments/src/stripe.ts'],
     }),
   ).toBe('payments');
-  // App-4-Dat-LLC/LandLORDER-rp at f360e1139c847dbba4a846a32eb513a81f2766ab: the root declares
-  // stripe too, but Node resolves landlorder/ code from landlorder's own package.
+});
+
+it('keeps the repository root whenever the files do not sit in one nested package with a lockfile', () => {
+  // App-4-Dat-LLC/LandLORDER-rp at f360e1139c847dbba4a846a32eb513a81f2766ab: landlorder/ is
+  // its own npm project, but a root file pins the API version too, so the patch edits root code.
   expect(
     decide({
       declares: ['package.json', 'landlorder/package.json'],
@@ -91,12 +94,14 @@ it('prepares and checks the nested package that declares stripe and commits its 
         'landlorder/package.json',
         'landlorder/package-lock.json',
       ],
-      findings: ['landlorder/routes/billing.js'],
+      findings: [],
+      declarations: [
+        'landlorder/services/stripe.js',
+        'landlorder/routes/billing.js',
+        'stripe-service.js',
+      ],
     }),
-  ).toBe('landlorder');
-});
-
-it('keeps the repository root whenever the files do not sit in one nested package with a lockfile', () => {
+  ).toBeUndefined();
   // cyberdreadx/cyberpunk-grok-api at its pinned commit: api/package.json does not declare stripe,
   // so the root's lockfile installs it, as before.
   expect(

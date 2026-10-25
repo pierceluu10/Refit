@@ -92,7 +92,7 @@ Everything else keeps the repository root, as before: files in the root package,
 
 Each check, the baseline, the patched and each generated check, runs for at most `checkTimeoutSeconds` from `.refit.json`, a whole number from 30 to 1800, and 600 by default. Refit then stops the container and the check reports `Check exceeded <N> seconds`, which is an execution error, never a failure of the patch. The default replaces 120 seconds and comes from measured durations, one CPU per check:
 
-- **GitHub Actions** (refit-bench run 40144503063, 249 affected repositories, 4-vCPU runners): the 106 baseline checks took 13.3 s at the median and 31.6 s at the 95th percentile, and the 103 patched checks at most 62.5 s. Two baseline test suites were still passing tests when the 120-second limit stopped them.
+- **GitHub Actions** (refit-bench run 40144503063, 249 affected repositories, 4-vCPU runners): the 106 baseline checks took 13.3 s at the median and 31.6 s at the 95th percentile, and the 103 patched checks at most 62.5 s. Two baseline test suites were still passing tests when the 120-second limit stopped them. Under 600 seconds (run 40155827550), one of them passed in 249 s on the original code and 250 s on the patch; the other was still passing tests at 600 s, so a repository like it sets a higher `checkTimeoutSeconds`.
 - **Fly** ([P1](overnight/P1.md#what-should-the-120-s-check-limit-be-on-hosted-hardware)): a type check took 24.0 s and 29.5 s on performance-2x, and the same checks were estimated at 200 to 240 s on a throttled shared-cpu-2x.
 
 The 300-second installation deadline stays: preparation took at most 51.6 s on Actions and 57 s on Fly performance-2x.
