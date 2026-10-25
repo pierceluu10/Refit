@@ -75,6 +75,7 @@ export interface JobProcessInputs {
   repairAttempts: number;
   publishDraft: boolean;
   publishUnresolved: boolean;
+  supersedeDrafts: boolean;
   aiPatch: boolean;
   aiTotalUsd?: number;
 }
@@ -179,6 +180,7 @@ export async function runHostedTarget(options: {
   repairAttempts: number;
   publishDraft?: boolean;
   publishUnresolved?: boolean;
+  supersedeDrafts?: boolean;
   notify?: SlackSend;
   onProgress?: (message: string) => void;
 }): Promise<HostedOutcome> {
@@ -201,6 +203,7 @@ export async function runHostedTarget(options: {
       repairAttempts: options.repairAttempts,
       publishDraft: options.publishDraft,
       publishUnresolved: options.publishUnresolved,
+      supersedeDrafts: options.supersedeDrafts,
       notify: options.notify,
       inspectReadiness: true,
       contracts: hostedContracts(options.directory),

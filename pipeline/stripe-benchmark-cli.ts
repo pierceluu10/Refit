@@ -39,6 +39,7 @@ import {
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const USAGE =
@@ -510,9 +511,7 @@ async function benchmark(entry: Selected, index: number) {
     const outcome = stop
       ? { status: 'needs-review', stage: 'scan', reason: stop }
       : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
-    const report = stop
-      ? {}
-      : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
+    const report = stop ? {} : JSON.parse((await readEvidence(bundle, 'report.json')) ?? '{}');
     const generated = report.validation?.generated;
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
@@ -551,7 +550,26 @@ async function benchmark(entry: Selected, index: number) {
           }
         : {}),
       repairAttempts: report.validation?.repair?.requested ?? 0,
-      aiCostUsd: report.patch?.budget?.costUsd,
+      // Why repair stopped early, such as an AI policy stop; a first-request stop is `error`.
+      ...(report.validation?.repair?.error ? { repairError: report.validation.repair.error } : {}),
+      // Every AI request of the run, refused and repair requests included.
+      aiCostUsd: report.validation?.aiCostUsd ?? report.patch?.budget?.costUsd,
+      ...(report.validation?.coverageAi
+        ? {
+            coverageAi: {
+              outcome: report.validation.coverageAi.outcome,
+              costUsd: report.validation.coverageAi.costUsd,
+              targets: report.validation.coverageAi.targets,
+              resolved: report.validation.coverageAi.resolved,
+              error: report.validation.coverageAi.error,
+              response: report.validation.coverageAi.response,
+              repair: report.validation.coverageAi.repair?.stopReason,
+              // The proposal its checks refused, which the result leaves out.
+              diff: report.validation.coverageAi.attempts?.at(-1)?.diff?.slice(0, 8000),
+              check: report.validation.coverageAi.attempts?.at(-1)?.check?.status,
+            },
+          }
+        : {}),
       diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };

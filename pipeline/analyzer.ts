@@ -306,6 +306,8 @@ export function analyzeRepository(
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
   const arrayItems = new Map<ts.Symbol, string>();
+  // List responses (`await stripe.subscriptions.list()`) and the object schema of their items.
+  const listItems = new Map<ts.Symbol, string>();
   const origins = new Map<ts.Symbol, ts.CallExpression>();
   const wrappedResponses = new Map<ts.Symbol, ts.Symbol>();
   const edits: SourceEdit[] = [];
@@ -436,6 +438,37 @@ export function analyzeRepository(
         (operation) => operation.resource === call.resource && operation.method === call.method,
       );
   }
+  // A call to a list method (docs.stripe.com/api/pagination): its result is a list object whose
+  // `data` holds `schema` objects, not one of them.
+  function listCall(node: ts.Node) {
+    const operation = responseCall(node);
+    return operation?.list ? operation : undefined;
+  }
+  // The object schema of the `data` items of a list response: a binding, or the awaited call.
+  function listItemsForExpression(expression: ts.Expression): string | undefined {
+    if (ts.isIdentifier(expression)) {
+      const binding = symbol(expression);
+      return binding ? listItems.get(binding) : undefined;
+    }
+    if (ts.isAwaitExpression(expression)) return listCall(expression.expression)?.schema;
+    if (
+      ts.isParenthesizedExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isTypeAssertionExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isSatisfiesExpression(expression)
+    )
+      return listItemsForExpression(expression.expression);
+    return undefined;
+  }
+  // `list(…).autoPagingEach(fn)` and `list(…).autoPagingToArray(…)`: stripe-node's helpers that
+  // walk every page of the list call they are chained on.
+  function autoPaging(node: ts.CallExpression, method: string) {
+    const access = node.expression;
+    return ts.isPropertyAccessExpression(access) && access.name.text === method
+      ? listCall(access.expression)
+      : undefined;
+  }
   let webhooks: ReturnType<typeof stripeWebhookPayloads> | undefined;
   function arrayItemForExpression(expression: ts.Expression): string | undefined {
     if (ts.isIdentifier(expression)) {
@@ -461,6 +494,10 @@ export function analyzeRepository(
     )
       return arrayItemForExpression(expression.left);
     if (ts.isPropertyAccessExpression(expression)) {
+      if (expression.name.text === 'data') {
+        const items = listItemsForExpression(expression.expression);
+        if (items) return items;
+      }
       const parent = schemaForExpression(expression.expression);
       if (parent) return referencedArrayItemSchema(schemaDefinitions, parent, expression.name.text);
       const list = expression.expression;
@@ -474,6 +511,10 @@ export function analyzeRepository(
       return expression.argumentExpression && numericArrayIndex(expression.argumentExpression)
         ? arrayItemForExpression(expression.expression)
         : undefined;
+    }
+    if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
+      const paged = autoPaging(expression.expression, 'autoPagingToArray');
+      if (paged) return paged.schema;
     }
     if (
       ts.isParenthesizedExpression(expression) ||
@@ -498,9 +539,10 @@ export function analyzeRepository(
   function arrayIteration(node: ts.CallExpression) {
     const method = node.expression;
     // `items?.map(…)` runs the callback on the same elements whenever it runs at all.
+    const paged = autoPaging(node, 'autoPagingEach');
     if (
       !ts.isPropertyAccessExpression(method) ||
-      !ARRAY_ITERATION_METHODS.has(method.name.text) ||
+      (!paged && !ARRAY_ITERATION_METHODS.has(method.name.text)) ||
       node.arguments.length !== 1
     )
       return undefined;
@@ -515,7 +557,7 @@ export function analyzeRepository(
       parameter.questionToken
     )
       return undefined;
-    const schema = arrayItemForExpression(method.expression);
+    const schema = paged?.schema ?? arrayItemForExpression(method.expression);
     return schema
       ? { callback, parameter: parameter.name, source: method.expression, schema }
       : undefined;
@@ -556,7 +598,7 @@ export function analyzeRepository(
     if (awaitedField(expression)) return schemaForExpression(expression.expression);
     if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
       const operation = responseCall(expression.expression);
-      return operation
+      return operation && !operation.list
         ? (resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema)
         : stripeTypes?.expressionSchema(expression);
     }
@@ -691,6 +733,12 @@ export function analyzeRepository(
       responses.set(target, schema);
       responseSchemasChanged = true;
     };
+    const assignListItems = (name: ts.Identifier, schema: string) => {
+      const target = symbol(name);
+      if (!target || listItems.get(target) === schema) return;
+      listItems.set(target, schema);
+      responseSchemasChanged = true;
+    };
     const assignArrayItems = (name: ts.Identifier, schema: string | undefined) => {
       const target = symbol(name);
       if (!target || !schema || arrayItems.get(target) === schema) return;
@@ -710,10 +758,12 @@ export function analyzeRepository(
       const origin = wrapper && wrappers.has(wrapper) ? wrappers.get(wrapper)! : awaited;
       const operation = origin ? responseCall(origin) : undefined;
       if (operation && ts.isAwaitExpression(value)) {
-        assignSchema(
-          node.name,
-          resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema,
-        );
+        if (operation.list) assignListItems(node.name, operation.schema);
+        else
+          assignSchema(
+            node.name,
+            resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema,
+          );
         origins.set(symbol(node.name)!, origin!);
         if (wrapper && wrappers.has(wrapper)) wrappedResponses.set(symbol(node.name)!, wrapper);
       }
@@ -729,6 +779,20 @@ export function analyzeRepository(
         !node.initializer
       )
         continue;
+      // `const { data } = await stripe.subscriptions.list(…)`: the page's objects.
+      const listed = listItemsForExpression(node.initializer);
+      if (listed)
+        for (const element of node.name.elements) {
+          const property = element.propertyName ?? element.name;
+          if (
+            ts.isIdentifier(element.name) &&
+            !element.initializer &&
+            !element.dotDotDotToken &&
+            (ts.isIdentifier(property) || ts.isStringLiteral(property)) &&
+            property.text === 'data'
+          )
+            assignArrayItems(element.name, listed);
+        }
       const parentSchema = schemaForExpression(node.initializer);
       if (!parentSchema) continue;
       for (const element of node.name.elements) {
@@ -778,7 +842,9 @@ export function analyzeRepository(
         continue;
       const declaration = node.initializer.declarations[0];
       if (!ts.isIdentifier(declaration.name)) continue;
-      assignSchema(declaration.name, arrayItemForExpression(node.expression));
+      // `for await (const item of stripe.subscriptions.list(…))` auto-paginates the list.
+      const paged = node.awaitModifier ? listCall(node.expression) : undefined;
+      assignSchema(declaration.name, paged?.schema ?? arrayItemForExpression(node.expression));
     }
     for (const node of nodes) {
       if (!ts.isCallExpression(node)) continue;
@@ -977,8 +1043,9 @@ export function analyzeRepository(
     if (!call) continue;
     // Literal `expand` entries that walk through a removed field (stripe-expand-paths.ts) are
     // findings no rule edits, so a patch keeps them unresolved and never publishes as validated.
+    // A list's expand paths start with `data.`; they are not checked against the item schema yet.
     const expanded = provider.packageName === STRIPE.packageName ? responseCall(node) : undefined;
-    if (expanded)
+    if (expanded && !expanded.list)
       for (const hit of removedExpandPaths(node, expanded.schema, changes, schemaDefinitions))
         findings.push({
           ...location(hit.node),
@@ -1590,6 +1657,17 @@ export function analyzeRepository(
       return stripeTypes?.typed.has(binding) || stripeTypes?.typedArrays.has(binding)
         ? { kind: 'declared-type' }
         : undefined;
+    }
+    // The list call a `for await` loop, `autoPagingEach` or `autoPagingToArray` pages through.
+    if (ts.isCallExpression(expression)) {
+      const call = listCall(expression) ? expression : undefined;
+      const paged =
+        ts.isPropertyAccessExpression(expression.expression) &&
+        (autoPaging(expression, 'autoPagingEach') || autoPaging(expression, 'autoPagingToArray'))
+          ? expression.expression.expression
+          : undefined;
+      if (call) return { kind: 'sdk', call };
+      if (paged && ts.isCallExpression(paged)) return { kind: 'sdk', call: paged };
     }
     if (ts.isAwaitExpression(expression)) {
       if (ts.isCallExpression(expression.expression)) {
