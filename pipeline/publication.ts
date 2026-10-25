@@ -441,9 +441,9 @@ export async function findExistingMigration(
   report: Awaited<ReturnType<typeof runPipeline>>,
   revision: string,
   options: PublicationConfiguration,
-  // Whether this run may generate a [Needs review] draft an earlier release wrote again; never
-  // with AI, so a Refit release spends no AI budget.
-  refresh = false,
+  // Which [Needs review] drafts this run may generate again: 'release' for one an earlier release
+  // wrote, without AI so a Refit release spends no AI budget; 'ai' for one no AI model worked on.
+  refresh: false | 'release' | 'ai' = false,
 ) {
   if (!options.app) return undefined;
   const { authentication, request } = await publicationSession(options);
@@ -504,14 +504,18 @@ export async function findExistingMigration(
     .sort((left, right) => Number(left.number) - Number(right.number));
   const pull = matches[0];
   if (!pull) return undefined;
-  // A later Refit release may migrate what an earlier one left for review: a [Needs review] draft
-  // another release wrote is generated and validated again, and publication updates it. Only on
+  // A later Refit release, or an AI model, may migrate what the rules left for review: the
+  // [Needs review] draft is generated and validated again, and publication updates it. Only on
   // the branch publication updates; a draft on an older branch name would get a second draft.
   if (
     refresh &&
     object(pull.head).ref === branch &&
     String(pull.title).startsWith(NEEDS_REVIEW_PREFIX) &&
-    !String(pull.body).includes(`"refit": "${REFIT_VERSION}"`)
+    // shortcut: a draft the AI could not improve carries no AI item, so each new job asks again;
+    // record AI attempts on the draft if that spend shows up.
+    !String(pull.body).includes(
+      refresh === 'ai' ? AI_PATCH_REVIEW.reason : `"refit": "${REFIT_VERSION}"`,
+    )
   )
     return undefined;
   const head = sha(object(pull.head).sha);

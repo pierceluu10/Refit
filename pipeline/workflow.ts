@@ -355,7 +355,7 @@ export async function runWorkflow(options: {
           scan,
           revision,
           publication,
-          !options.aiPatch && !options.assessment,
+          options.assessment ? false : options.aiPatch ? 'ai' : 'release',
         );
         if (existing) {
           stage = 'publication';

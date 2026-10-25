@@ -343,7 +343,16 @@ async function watchLocalOnce(
         ? { status: 'up-to-date', output: null }
         : isObject(previous) &&
             !(options.retry && RETRYABLE_STATUSES.has(String(previous.status))) &&
-            !(OPEN_DRAFT_STATUSES.has(String(previous.status)) && previous.refit !== REFIT_VERSION)
+            !(
+              OPEN_DRAFT_STATUSES.has(String(previous.status)) && previous.refit !== REFIT_VERSION
+            ) &&
+            // A result from a run without AI gets one run with it; a current draft is found then.
+            !(
+              configuration.aiPatch &&
+              previous.ai !== true &&
+              (previous.status === 'needs-review' ||
+                OPEN_DRAFT_STATUSES.has(String(previous.status)))
+            )
           ? {
               status: String(previous.status),
               output: typeof previous.output === 'string' ? previous.output : null,
@@ -400,6 +409,7 @@ async function watchLocalOnce(
       runId: scan.runId,
       sourceHash: snapshot.hash,
       refit: REFIT_VERSION,
+      ...(configuration.aiPatch ? { ai: true } : {}),
     };
     await writeState(statePath, state);
     const confirmedUsageCount = scan.findings.filter(
