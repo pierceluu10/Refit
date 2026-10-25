@@ -24,6 +24,8 @@ const DATABASE = process.env.REFIT_POSTGRES_URL;
 const TENANCY = { accounts: ['first', 'second'], limits: DEFAULT_TENANCY_LIMITS };
 const WAIT_MS = 30_000;
 const POLL_MS = 50;
+// Well under the 5-second first outage retry, so a worker that retries again is caught.
+const BOOT_STOP_MS = 2_000;
 const cleanups: (() => Promise<unknown>)[] = [];
 
 afterEach(async () => {
@@ -130,6 +132,26 @@ function serve(pool: pg.Pool, directory: string, progress: string[]) {
   return { service, controller, drain };
 }
 
+it('stops retrying PostgreSQL at boot on the first signal', async () => {
+  // Nothing listens on port 1, so every connection is refused.
+  const pool = new pg.Pool({ connectionString: 'postgres://refit:unused@127.0.0.1:1/refit' });
+  cleanups.push(() => pool.end());
+  const directory = await mkdtemp(join(tmpdir(), 'refit-hosted-drain-'));
+  cleanups.push(() => rm(directory, { recursive: true, force: true }));
+  const progress: string[] = [];
+  const retries = () => progress.filter((line) => line.startsWith('PostgreSQL is unavailable'));
+  const { service, drain } = serve(pool, directory, progress);
+  await until(() => retries().length > 0, 'a retry');
+  drain.abort();
+  let timer: NodeJS.Timeout | undefined;
+  const stopped = Promise.race([
+    service,
+    new Promise((resolve) => (timer = setTimeout(() => resolve('still retrying'), BOOT_STOP_MS))),
+  ]).finally(() => clearTimeout(timer));
+  await expect(stopped).rejects.toMatchObject({ name: 'AbortError' });
+  expect(retries()).toHaveLength(1);
+});
+
 it.skipIf(!DATABASE)(
   'claims no job while paused, keeps the first pause time and claims again after resume',
   async () => {
@@ -145,6 +167,35 @@ it.skipIf(!DATABASE)(
     expect(await store.claim('worker', 30)).toMatchObject({
       target: { id: hostedTargetId('first/a', 'main') },
     });
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
+  'returns a dead worker’s expired lease to the queue while paused, and fails one that expired too often',
+  async () => {
+    const pool = await database();
+    const store = await enrolled(pool);
+    const first = await store.claim('dead-worker', 30);
+    const second = await store.claim('dead-worker', 30);
+    await pool.query(`UPDATE refit_jobs SET attempts = 3 WHERE id = $1`, [second!.job]);
+    await store.pause();
+    await pool.query(`UPDATE refit_jobs SET lease_expires_at = now() - interval '1 second'`);
+    expect(await store.claim('worker', 30)).toBeNull();
+    const jobs = async () =>
+      (await store.read()).jobs.map((job) => [job.id, job.status, job.attempts]);
+    expect(await jobs()).toEqual([
+      [String(first!.job), 'queued', 1],
+      [String(second!.job), 'failed', 3],
+    ]);
+    // Resuming continues the job as the same attempt series, without a new daily reservation.
+    await store.resume();
+    expect(await store.claim('worker', 30)).toMatchObject({ job: first!.job });
+    expect(await jobs()).toEqual([
+      [String(first!.job), 'running', 2],
+      [String(second!.job), 'failed', 3],
+    ]);
+    expect((await store.read()).installations.map((entry) => entry.jobsToday)).toEqual([1, 1]);
   },
   30_000,
 );
@@ -175,6 +226,8 @@ it.skipIf(!DATABASE)(
     await store.resume();
 
     // Draining lets the running job finish, then the service returns without starting the next.
+    // The paused worker logged its own drain line, so only this worker's lines count.
+    progress.splice(0);
     const first = serve(pool, directory, progress);
     await until(() => polls.length === 1, 'the first job to start');
     first.drain.abort();
