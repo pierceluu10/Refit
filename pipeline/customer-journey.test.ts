@@ -239,13 +239,17 @@ async function expectValidated(output: string) {
   expect((await verifyArtifacts(output)).status).toBe('integrity-verified');
 }
 
-// Every request, refused ones included: each token asks for contents read only, and nothing else
-// writes (no issue, comment, branch, push or pull request). Git fetches POST to git-upload-pack.
+// Every request, refused ones included: each token asks for contents read only (or metadata read
+// only, to reconcile the installation's repository list), and nothing else writes (no issue,
+// comment, branch, push or pull request). Git fetches POST to git-upload-pack.
 function expectReadOnly(github: FakeGitHub) {
   const tokens = github.requests.filter(({ path }) => path.endsWith('/access_tokens'));
   expect(tokens.length, 'Refit asked for installation tokens').toBeGreaterThan(0);
   for (const token of tokens)
-    expect(token.body?.permissions, `${token.method} ${token.path}`).toEqual({ contents: 'read' });
+    expect(
+      [{ contents: 'read' }, { metadata: 'read' }],
+      `${token.method} ${token.path}`,
+    ).toContainEqual(token.body?.permissions);
   expect(
     github.requests.filter(
       ({ method, path }) =>

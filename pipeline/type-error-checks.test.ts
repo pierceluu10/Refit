@@ -73,6 +73,29 @@ it('compares only the type check of a tests-then-type-check chain, and fails fai
   expect(typeErrors(broken).map((error) => error.file)).toEqual(['src/a.ts']);
 });
 
+it('sets aside errors the patch introduces in files the predicate names, and fails on the rest', () => {
+  // Errors refit-bench run 40155034890 reported after stripe-node upgrades, in JavaScript the
+  // repositories never type-check: bhaveshchhimwal/PopIn at 90d47d3 (an expandable field typed
+  // string | PaymentIntent) and MeldinRadoncic/TriboAI at 48d5b9a (the old SDK's types do not know
+  // the new parameter the card rule sends).
+  const popIn =
+    "server/controllers/webhook.js(100,11): error TS2322: Type 'string | PaymentIntent' is not assignable to type 'string'.";
+  const triboAi =
+    "app/api/stripe/route.js(42,7): error TS2561: Object literal may only specify known properties, but 'allowed_payment_method_types' does not exist in type 'SessionCreateParams'. Did you mean to write 'payment_method_types'?";
+  const javascript = (file: string) => file.endsWith('.js');
+  const baseline = run(2, existing);
+  expect(
+    compareTypeCheck(baseline, run(2, `${existing}\n${popIn}\n${triboAi}`), javascript).status,
+  ).toBe('passed');
+  const failed = compareTypeCheck(baseline, run(2, `${existing}\n${popIn}\n${added}`), javascript);
+  expect(failed.status).toBe('failed');
+  expect(failed.stdout.split('\n').slice(0, 3)).toEqual([
+    'Type errors this patch introduced:',
+    added,
+    '',
+  ]);
+});
+
 it('leaves rejected literal comparisons and their never narrowing for review, not repair', () => {
   const errors = typeErrors(
     run(

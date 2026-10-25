@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
 import { unresolvedSites } from './migration-review.ts';
+import { publicationWaiver } from './publication.ts';
 import { createReviewArtifacts, writeReviewBundle } from './review.ts';
+import { validatedReport } from './fixtures/publication-report.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import type { validateMigration } from './validation.ts';
@@ -692,6 +694,101 @@ it('says an empty patch changes nothing instead of claiming a migration', async 
     'No Refit rule changes the 1 confirmed usage in 1 file, so this patch changes no files.',
   );
   expect(body).not.toContain('migrates');
+});
+
+// Owner decision 1 and 8: every reason, every place it applies and the AI's own lines.
+it('opens a [Needs review] body with each reason, where it applies and the lines an AI wrote', async () => {
+  const value = await validatedReport('a'.repeat(40));
+  value.patch.generator = 'openai' as typeof value.patch.generator;
+  value.skippedFiles = ['src/broken.ts'];
+  const reviews = publicationWaiver(value, true)!;
+  expect(reviews.map(({ gate }) => gate)).toEqual(['ai-patch', 'source-evidence']);
+  const artifacts = createReviewArtifacts(value, 'github', undefined, reviews);
+  const body = artifacts.files['pull-request.md'];
+  expect(artifacts.manifest.title).toMatch(/^\[Needs review\] /);
+  expect(body).toMatch(/^## Why this needs review\n/);
+  expect(body).toMatch(
+    /\n- Refit asked an AI model for this patch\. [^\n]+\n {2}- `billing\.ts:\d+(?:-\d+)?`\n/,
+  );
+  expect(body).toContain(
+    '\n- Unparseable source files were skipped. **Check:** Check the skipped files for usages this patch does not migrate.\n  - `src/broken.ts`\n',
+  );
+  expect(body).toContain('- [ ] Check the skipped files for usages this patch does not migrate.');
+  // A validated draft has no reasons and no section.
+  const plain = createReviewArtifacts(
+    await validatedReport('a'.repeat(40)),
+    'github',
+    undefined,
+    [],
+  );
+  expect(plain.manifest.title).not.toMatch(/^\[Needs review\]/);
+  expect(plain.files['pull-request.md']).not.toContain('## Why this needs review');
+});
+
+// Owner decision 8: a line the AI only deleted is an AI-written change too.
+it('lists the lines an AI patch deleted, alone or beside the rule edits', async () => {
+  const source = await readFile('pipeline/fixtures/repository/billing.ts', 'utf8');
+  const rewrite = (after: string) =>
+    [
+      'diff --git "a/billing.ts" "b/billing.ts"',
+      '--- "a/billing.ts"',
+      '+++ "b/billing.ts"',
+      '@@ -1,8 +1,8 @@',
+      ...source
+        .trimEnd()
+        .split('\n')
+        .map((line) => `-${line}`),
+      ...after
+        .trimEnd()
+        .split('\n')
+        .map((line) => `+${line}`),
+      '',
+    ].join('\n');
+  const aiReason = async (after: string, ruleEdits: Record<string, unknown>[]) => {
+    const value = await validatedReport('a'.repeat(40));
+    const diff = rewrite(after);
+    value.patch = {
+      ...value.patch,
+      generator: 'openai',
+      diff,
+      ruleEdits,
+    } as unknown as typeof value.patch;
+    value.validation.patchHash = digest(diff);
+    const body = createReviewArtifacts(value, 'github', undefined, publicationWaiver(value, true))
+      .files['pull-request.md'];
+    return body.slice(
+      body.indexOf('- Refit asked an AI model'),
+      body.indexOf('\n- ', body.indexOf('- Refit asked an AI model') + 1),
+    );
+  };
+  const deletedOnly = await aiReason(source.replace('  return intent.charges.data;\n', ''), []);
+  expect(deletedOnly).toContain(
+    '  - `billing.ts:6` removed `return intent.charges.data;` after this line',
+  );
+  expect(deletedOnly).not.toContain('None: every changed line comes from a Refit rule.');
+
+  const target = 'intent.charges.data';
+  const replacement = '(await stripe.charges.list({ payment_intent: intent.id })).data';
+  const start = source.indexOf(target);
+  const beside = await aiReason(
+    source
+      .replace(target, replacement)
+      .replace("import Stripe from 'stripe';\n\n", "import Stripe from 'stripe';\n"),
+    [
+      {
+        file: 'billing.ts',
+        start,
+        end: start + target.length,
+        replacement,
+        changeId: 'payment_intent.charges',
+        rule: 'stripe-charges-list',
+      },
+    ],
+  );
+  expect(beside).toContain('  - `billing.ts:1` removed a blank line after this line');
+  // The rule's own line is not the AI's.
+  expect(beside).not.toContain('billing.ts:6`\n');
+  expect(beside).not.toContain('`billing.ts:6-');
 });
 
 it('lists breaking contract changes the reach gate let through, with their paths', async () => {

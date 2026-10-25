@@ -122,14 +122,16 @@ export async function inspectRepositoryEnrollment(options: {
   github: string;
   base: string;
   contracts?: string;
+  // Owner decision 1: generate a configuration whose checks cannot run instead of refusing.
+  allowUntested?: boolean;
 }) {
   return inspectEnrollmentInputs(options);
 }
 
 // The configuration a repository without a committed .refit.json gets, with the saved contracts it
 // names, as the files the review and fingerprint read in place of committed ones.
-async function generatedInputs(directory: string, contracts: string) {
-  const { proposal, stops } = await proposeStripeConfiguration(directory);
+async function generatedInputs(directory: string, contracts: string, allowUntested?: boolean) {
+  const { proposal, stops } = await proposeStripeConfiguration(directory, { allowUntested });
   if (!proposal) throw new EnrollmentStopError(stops);
   const contents = new Map([[REPOSITORY_CONFIGURATION, proposalContent(proposal)]]);
   const paths = new Map<string, string>();
@@ -148,6 +150,7 @@ async function inspectEnrollmentInputs(options: {
   integration?: string;
   acceptedApiVersions?: string[];
   contracts?: string;
+  allowUntested?: boolean;
 }) {
   const target = validateGitHubTarget(options.github, options.base);
   const snapshot = await readCommittedRepository(options.repository);
@@ -155,7 +158,11 @@ async function inspectEnrollmentInputs(options: {
     (entry) => entry.slice(entry.indexOf('\t') + 1) === REPOSITORY_CONFIGURATION,
   )
     ? undefined
-    : await generatedInputs(snapshot.directory, options.contracts ?? DEFAULT_CONTRACTS_DIRECTORY);
+    : await generatedInputs(
+        snapshot.directory,
+        options.contracts ?? DEFAULT_CONTRACTS_DIRECTORY,
+        options.allowUntested,
+      );
   const read = (path: string, maximumBytes: number) => {
     if (!generated) return readCommittedFile(snapshot, path, maximumBytes);
     const content = generated.contents.get(path);
@@ -509,6 +516,8 @@ export async function loadApprovedRepository(options: {
   // Versions the code may send instead of the baseline's, such as the target of a merged draft.
   acceptedApiVersions?: string[];
   contracts?: string;
+  // Must match the approval's enrollment, or the regenerated configuration refuses again.
+  allowUntested?: boolean;
 }) {
   if (
     options.approval.formatVersion === 2 &&
@@ -526,6 +535,7 @@ export async function loadApprovedRepository(options: {
       integration: options.integration,
       acceptedApiVersions: options.acceptedApiVersions,
       contracts: options.contracts,
+      allowUntested: options.allowUntested,
     });
   } catch (cause) {
     if (!(cause instanceof PipelineInputError)) throw cause;

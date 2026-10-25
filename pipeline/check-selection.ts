@@ -257,8 +257,10 @@ function scopedConfiguration(root: string, base: string | undefined, files: stri
       checkJs: true,
       noEmit: true,
       skipLibCheck: true,
-      // A composite project reports every imported file the list leaves out, a new helper included.
+      // A composite project reports every imported file the list leaves out, a new helper included,
+      // and a base's rootDir (an emit setting) rejects listed importers outside it.
       composite: false,
+      rootDir: '.',
       ...(unknown
         ? {}
         : {
@@ -477,6 +479,30 @@ export function failingPart(command: readonly string[], output: string) {
       };
 }
 
+// Which type errors a check reports only because Refit added the type check: in a scoped check,
+// JavaScript files, which the repository's own build never type-checks. They are listed for
+// review instead of failing the patch (a stricter stripe-node typing is not a runtime break).
+export function setAsideTypeError(command: readonly string[]) {
+  return command[0] === 'sh' && (command[2] ?? '').includes(SCOPED_TSCONFIG)
+    ? (file: string) => JAVASCRIPT_FILE.test(file)
+    : undefined;
+}
+
+// The type check part of a tests-then-type-check chain, as a command of its own.
+export function typeCheckCommand(command: readonly string[]) {
+  const script = command[0] === 'sh' && command[1] === '-c' ? (command[2] ?? '') : '';
+  const start = script.indexOf(`echo '${TYPE_CHECK_STARTED}'; `);
+  if (start < 0) return undefined;
+  const configuration = command.slice(3).find((part) => part.startsWith('{'));
+  return [
+    'sh',
+    '-c',
+    script.slice(start + `echo '${TYPE_CHECK_STARTED}'; `.length).replace('"$config"', '"$1"'),
+    'refit-check',
+    ...(configuration ? [configuration] : []),
+  ];
+}
+
 // The files a type check command covered: a scoped check's generated configuration, or the
 // repository root's tsconfig.json.
 function checkedProgram(root: string, command: readonly string[], graph: Map<string, Set<string>>) {
@@ -520,6 +546,8 @@ export async function gradeEvidence(options: {
   // Tests that already failed on the original code: why, and whether the type check that ran after
   // them passed on both sides. They prove nothing about the patch, so only the type check can.
   testsBroken?: { reason: string; typeCheck: { passed: boolean; detail?: string } };
+  // Type errors the patch introduced that did not fail the check (setAsideTypeError), formatted.
+  setAside?: string[];
 }): Promise<EvidenceGrade> {
   if (options.behaviour?.passed && options.behaviour.coversEveryChangedLine)
     return { letter: 'A', level: 'behaviour-tests', reason: options.behaviour.reason };
@@ -528,11 +556,14 @@ export async function gradeEvidence(options: {
   const kinds = checkKinds(options.command, scripts);
   const graph = importGraph(options.repository);
   const changed = options.changedFiles.filter((path) => SOURCE_FILE.test(path));
+  const setAside = options.setAside?.length
+    ? `the type check passed only by setting aside ${options.setAside.length === 1 ? 'a new type error' : `${options.setAside.length} new type errors`} in JavaScript the repository does not type-check, first ${options.setAside[0]}`
+    : undefined;
   if (options.testsBroken) {
     const { reason, typeCheck } = options.testsBroken;
     const typed = checkedProgram(root, options.command, graph);
     const unchecked = changed.filter((path) => !typed.has(path));
-    return typeCheck.passed && changed.length && !unchecked.length
+    return typeCheck.passed && changed.length && !unchecked.length && !setAside
       ? {
           letter: 'C',
           level: 'type-check',
@@ -541,7 +572,7 @@ export async function gradeEvidence(options: {
       : {
           letter: 'D',
           level: 'none',
-          reason: `${reason} The tests were broken before the patch, and ${!typeCheck.passed ? (typeCheck.detail ?? 'the type check did not pass on both sides') : changed.length ? `the type check does not cover ${list(unchecked)}` : 'the patch changes no source file a check could reach'}.`,
+          reason: `${reason} The tests were broken before the patch, and ${!typeCheck.passed ? (typeCheck.detail ?? 'the type check did not pass on both sides') : !changed.length ? 'the patch changes no source file a check could reach' : unchecked.length ? `the type check does not cover ${list(unchecked)}` : setAside}.`,
         };
   }
   const listed = listedTests(options.command);
@@ -558,7 +589,13 @@ export async function gradeEvidence(options: {
     return {
       letter: 'B',
       level: 'stripe-tests',
-      reason: `The repository's tests reach every changed file (${list(changed)}).`,
+      reason: `The repository's tests reach every changed file (${list(changed)}).${setAside ? ` ${setAside[0].toUpperCase()}${setAside.slice(1)}.` : ''}`,
+    };
+  if (changed.length && !unchecked.length && setAside)
+    return {
+      letter: 'D',
+      level: 'none',
+      reason: `${setAside[0].toUpperCase()}${setAside.slice(1)}.`,
     };
   if (changed.length && !unchecked.length)
     return {

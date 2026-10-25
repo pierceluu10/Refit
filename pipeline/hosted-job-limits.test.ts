@@ -119,6 +119,7 @@ async function start(
     allow: vi.fn(async () => ({ enrolled: [], cancelled: [] })),
     enqueueDue: vi.fn(async () => 0),
     paused: vi.fn(async () => null),
+    activeInstallations: vi.fn(async () => []),
     claim: vi.fn(async () => fake.claims.shift() ?? null),
     retire: vi.fn(async () => false),
     renew: vi.fn(async () => true),
@@ -289,6 +290,7 @@ it('runs up to --job-processes jobs at once, refills a slot when a job ends and 
     retry: false,
     repairAttempts: 0,
     publishDraft: false,
+    publishUnresolved: false,
     aiPatch: false,
   });
   jobs[0]();

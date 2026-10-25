@@ -82,6 +82,7 @@ async function serve(overrides: Partial<HostedSetup> = {}) {
     app: { appId: String(APP_ID), privateKeyFile: keyFile },
     tenancy: hostedTenancy({ REFIT_HOSTED_ACCOUNTS: 'example,refit-dev' }),
     publishDraft: false,
+    publishUnresolved: false,
     aiPatch: false,
     contact: CONTACT,
     onProgress: (message) => progress.push(message),
@@ -139,6 +140,16 @@ it('states the worker’s real draft and AI settings and links organization sett
   expect(text).toContain('Refit opens a draft pull request for you to review. It never merges.');
   expect(text).toContain('using the operator’s own key and a capped budget');
   expect(text).toContain('ask the operator of this Refit service');
+});
+
+it('says which drafts open as [Needs review] when the worker publishes them (owner decision 1)', async () => {
+  fakeGitHub({ [INSTALLATION]: installation('refit-dev') });
+  const { get } = await serve({ publishDraft: true, publishUnresolved: true });
+  const { text } = await get(`/github/setup?installation_id=${INSTALLATION}`);
+  expect(text).toContain(
+    'When it could not run the checks on a patch, or a change needs your decision, the draft is titled [Needs review] and lists every reason. It never opens one whose checks ran and failed, and it never merges.',
+  );
+  expect(text).not.toContain('When a migration passes its checks');
 });
 
 it('tells an account that is not allowed that nothing is read or cloned', async () => {
