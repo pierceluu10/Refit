@@ -1,20 +1,20 @@
 // Rebuilds the Stripe benchmark root from the pinned repository list and labels: shallow clones
 // at the recorded commits, and each API version's spec and fixtures from its stripe/openapi tag.
-import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { parseArgs, promisify } from 'node:util';
+import { parseArgs } from 'node:util';
+import { shallowCheckout } from './ai-app-helpers.mjs';
+import { listSlice } from './aws-benchmark-helpers.mjs';
 
-const execute = promisify(execFile);
 const PINNED = 'docs/benchmarks/2026-10-14-stripe-repos.json';
 const LABELS = 'docs/benchmarks/2026-10-14-stripe-labels.json';
 const HELD_OUT = 'docs/benchmarks/2026-10-15-stripe-heldout-repos.json';
 const OPENAPI = 'https://raw.githubusercontent.com/stripe/openapi';
-const GIT_TIMEOUT_MS = 300_000;
 const { values } = parseArgs({
   options: {
     root: { type: 'string' },
+    offset: { type: 'string' },
     limit: { type: 'string' },
     'held-out': { type: 'boolean' },
     list: { type: 'string' },
@@ -23,7 +23,7 @@ const { values } = parseArgs({
 });
 if (values.help || !values.root) {
   console.log(
-    'Usage: node scripts/stripe-benchmark-setup.mjs --root <dir> [--held-out | --list <frozen.json>] [--limit N]',
+    'Usage: node scripts/stripe-benchmark-setup.mjs --root <dir> [--held-out | --list <frozen.json>] [--offset N] [--limit N]',
   );
   process.exit(values.help ? 0 : 1);
 }
@@ -34,7 +34,8 @@ const pinned = JSON.parse(await readFile(list ?? PINNED, 'utf8'));
 const labels = list
   ? { labelled: [], heldOut: pinned.repos.map((entry) => entry.repo) }
   : JSON.parse(await readFile(LABELS, 'utf8'));
-const repos = pinned.repos.slice(0, values.limit ? Number(values.limit) : undefined);
+// --offset and --limit build one shard's slice; the benchmark then runs that root without them.
+const repos = listSlice(pinned.repos, values.offset, values.limit);
 const latest = pinned.specs
   .map((spec) => spec.version)
   .sort()
@@ -68,26 +69,11 @@ for (const { version, tag } of pinned.specs) {
 
 const failures = [];
 for (const [index, entry] of repos.entries()) {
-  const directory = join(root, 'repos', entry.repo.replace('/', '__'));
-  if (existsSync(join(directory, '.git'))) continue;
   console.error(`[${index + 1}/${repos.length}] ${entry.repo}`);
   try {
-    await execute('git', ['init', '-q', directory]);
-    await execute(
-      'git',
-      [
-        '-C',
-        directory,
-        'fetch',
-        '-q',
-        '--depth',
-        '1',
-        `https://github.com/${entry.repo}`,
-        entry.commit,
-      ],
-      { timeout: GIT_TIMEOUT_MS },
-    );
-    await execute('git', ['-C', directory, 'checkout', '-q', 'FETCH_HEAD']);
+    // Reuses a clone only at the pinned commit and removes one whose fetch failed, so a rerun
+    // retries it instead of leaving an empty checkout for the benchmark to read.
+    await shallowCheckout(join(root, 'repos'), entry.repo, entry.commit);
   } catch (error) {
     failures.push({
       repo: entry.repo,
