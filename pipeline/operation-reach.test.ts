@@ -744,7 +744,7 @@ export const redirect = () => stripe.checkout.sessions.create({ mode: "subscript
     expect(report.patch).toMatchObject({
       status: 'proposed',
       summary: 'Lowercase uppercase currency codes and update the pinned Stripe API version.',
-      source: 'https://docs.stripe.com/currencies',
+      sources: [{ url: 'https://docs.stripe.com/currencies', files: ['redirect.js'] }],
       warnings: expect.arrayContaining([expect.stringContaining('Uppercase currency codes')]),
     });
     expect(report.patch.diff).toContain(
@@ -795,7 +795,7 @@ export const redirect = () => stripe.checkout.sessions.create({ mode: "subscript
     );
     expect(body).toContain('[docs.stripe.com/currencies](https://docs.stripe.com/currencies)');
     expect(body).toContain(
-      '- `redirect.js`: Sends the currency `inr` in lowercase, as the new `currency` format requires. Moves the pinned API version',
+      '- `redirect.js`: Sends the currency `inr` in lowercase, as the new `currency` format requires. Stripe documents it: [docs.stripe.com/currencies](https://docs.stripe.com/currencies). Moves the pinned API version',
     );
   },
 );
