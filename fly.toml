@@ -22,6 +22,14 @@ kill_timeout = 300
   REFIT_HOSTED_INSTALLATION_JOBS = "4"
   # Validation images named by approved .refit.json files; pulled on boot.
   REFIT_HOSTED_IMAGES = "node:22-alpine stripe/stripe-mock:latest"
+  # Prepared dependency bundles live on the volume, beside /data/docker and /data/state, not on the
+  # 8 GB root disk they filled on 2026-10-25. Above the cap the least recently used are evicted after
+  # each new bundle; four jobs can each stage one more archive (2 GiB at most), so the cache peaks
+  # near 16 GiB of the volume.
+  REFIT_DEPENDENCY_CACHE_DIRECTORY = "/data/dependencies"
+  REFIT_DEPENDENCY_CACHE_GIB = "8"
+  # Validation stages each archive in a temporary directory; four jobs could fill the root disk.
+  TMPDIR = "/data/tmp"
 
 [mounts]
   source = "refit_data"
