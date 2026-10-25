@@ -109,6 +109,8 @@ export async function runLocalService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Owner decision 1: stops become [Needs review] drafts (on unless --publish-validated-only).
+  publishUnresolved?: boolean;
   // Off unless set: a weekly comment on each open draft whose job nothing has changed.
   weeklyStatus?: boolean;
   // With publishDraft: close Refit's older open drafts for the same provider and integration.
@@ -529,6 +531,7 @@ export async function runLocalService(options: {
               aiPatch: options.aiPatch,
               repairAttempts,
               publishDraft: options.publishDraft,
+              publishUnresolved: options.publishUnresolved,
               weeklyStatus: options.weeklyStatus,
               supersedeDrafts: options.supersedeDrafts,
               notify: options.notify,

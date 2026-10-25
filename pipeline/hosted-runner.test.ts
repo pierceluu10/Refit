@@ -576,6 +576,7 @@ const PROCESS_INPUTS: JobProcessInputs = {
   retry: true,
   repairAttempts: 2,
   publishDraft: true,
+  publishUnresolved: true,
   aiPatch: true,
   aiTotalUsd: 5,
 };

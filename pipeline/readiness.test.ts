@@ -4,7 +4,12 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { inspectRepositoryReadiness } from './readiness.ts';
+import {
+  inspectRepositoryReadiness,
+  type ReadinessReport,
+  sortBlockedChecks,
+  UnclassifiedCheckError,
+} from './readiness.ts';
 import { renderReadiness } from './readiness-presentation.ts';
 import { digest, stripeSpecificationUrl } from './specifications.ts';
 
@@ -446,3 +451,70 @@ it('routes human and JSON diagnostics outside the repository and returns exit 2 
     ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown option') }),
   ]);
 }, 30_000);
+
+it('sorts every check that can block by what owner decision 1 does with it', () => {
+  const report = (ids: string[], missing = false): ReadinessReport => ({
+    formatVersion: 1,
+    kind: 'refit-readiness',
+    status: 'needs-attention',
+    configuration: '.refit.json',
+    repository: null,
+    revision: null,
+    provider: null,
+    image: null,
+    currentSourceChecked: false,
+    checks: [
+      ...ids.map((id) => ({
+        id,
+        title: id,
+        status: 'blocked' as const,
+        detail: '',
+        action: null,
+      })),
+      { id: 'contract-coverage', title: 'review', status: 'review', detail: '', action: null },
+    ],
+    ...(missing ? { missing: true as const } : {}),
+    sdkCoverage: null,
+    scope: [],
+  });
+  const ids = (checks: { id: string }[]) => checks.map((check) => check.id);
+  const sorted = sortBlockedChecks(
+    report([
+      'configuration',
+      'contracts',
+      'repository',
+      'analysis',
+      'docker',
+      'source-baseline',
+      'source-provenance',
+      'webhook-migration',
+      'api-version',
+      'migration-coverage',
+      'dependencies',
+      'source-resolution',
+      'sdk-coverage',
+    ]),
+  );
+  expect(ids(sorted.setup)).toEqual([
+    'configuration',
+    'contracts',
+    'repository',
+    'analysis',
+    'docker',
+    'source-baseline',
+  ]);
+  expect(ids(sorted.workflow)).toEqual([
+    'source-provenance',
+    'webhook-migration',
+    'api-version',
+    'migration-coverage',
+    'dependencies',
+  ]);
+  expect(ids(sorted.review)).toEqual(['source-resolution', 'sdk-coverage']);
+  // A generated configuration doctor could not check has no workflow, whatever its stops are named.
+  expect(ids(sortBlockedChecks(report(['source-resolution', 'no-checks'], true)).setup)).toEqual([
+    'source-resolution',
+    'no-checks',
+  ]);
+  expect(() => sortBlockedChecks(report(['contract-coverage']))).toThrow(UnclassifiedCheckError);
+});

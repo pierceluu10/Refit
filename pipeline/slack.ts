@@ -52,9 +52,13 @@ export function workflowNotice(result: {
   stage: string;
   reason: string;
   validation?: string;
+  // The draft is titled [Needs review] (owner decision 1).
+  needsReview?: boolean;
   error: { message: string } | null;
 }) {
   const repository = plain(result.repository);
+  if (result.status === 'draft-created' && result.needsReview)
+    return `📝 ${repository}: [Needs review] draft PR ready ${result.reason}`;
   if (result.status === 'draft-created')
     return `✅ ${repository}: validated fix, draft PR ready ${result.reason}`;
   if (result.status === 'validation-failed' && result.validation === 'regression')
