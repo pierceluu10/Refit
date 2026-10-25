@@ -302,6 +302,7 @@ async function watchLocalOnce(
         )
           throw new PipelineInputError('Interrupted job has mismatched evidence.');
         previous.status = manifest.status;
+        if (typeof manifest.reason === 'string') previous.reason = manifest.reason;
       } catch (error) {
         if (!(error instanceof Error)) throw error;
         previous.status = 'interrupted';
@@ -316,6 +317,7 @@ async function watchLocalOnce(
           ? {
               status: String(previous.status),
               output: typeof previous.output === 'string' ? previous.output : null,
+              reason: jobReason(previous),
             }
           : undefined;
     if (settled) {
@@ -328,6 +330,7 @@ async function watchLocalOnce(
           jobKey,
           sourceHash: snapshot.hash,
           previousStatus: settled.status,
+          ...(settled.reason ? { previousReason: settled.reason } : {}),
           output: join(observations, 'documentation'),
           documentationChanges: capturedDocumentation.changes,
         };
@@ -337,6 +340,7 @@ async function watchLocalOnce(
         jobKey,
         sourceHash: snapshot.hash,
         previousStatus: settled.status,
+        ...(settled.reason ? { previousReason: settled.reason } : {}),
         output: settled.output,
       };
     }
@@ -367,7 +371,11 @@ async function watchLocalOnce(
         onProgress: options.onProgress,
         documentationSnapshots: capturedDocumentation.snapshotPaths,
       });
-      jobs[jobKey] = { ...(jobs[jobKey] as object), status: result.manifest.status };
+      jobs[jobKey] = {
+        ...(jobs[jobKey] as object),
+        status: result.manifest.status,
+        reason: result.manifest.reason,
+      };
       if (documentationSources.length) state.documentation = capturedDocumentation.state;
       // The code reached the target, by a merged draft or by hand: compare the next release with it.
       const reached =
@@ -421,6 +429,13 @@ async function watchLocalOnce(
       throw error;
     }
   });
+}
+
+// Why a recorded job ended as it did, so a poll that reuses it can still say why.
+function jobReason(job: Record<string, unknown>) {
+  if (isObject(job.error) && typeof job.error.message === 'string')
+    return `${String(job.error.name)}: ${job.error.message}`;
+  return typeof job.reason === 'string' ? job.reason : undefined;
 }
 
 // The baseline a reached target replaced the configured one with; the configured baseline is part

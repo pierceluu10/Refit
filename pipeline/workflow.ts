@@ -1,6 +1,8 @@
 import type { GeneratedChecks } from './generated-checks.ts';
 import {
   migrationReviewReason,
+  REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+  removedParameterSites,
   targetReached,
   withoutRequestParameters,
 } from './migration-review.ts';
@@ -94,6 +96,9 @@ export function scanReviewReason(
     true,
     aiPatch,
   );
+  // The constant stays comparable for publication; the stop a person reads names the calls.
+  if (reviewReason === REMOVED_REQUEST_PARAMETER_REVIEW_REASON)
+    return `${reviewReason} ${removedParameterSites(scan.findings)}`;
   if (reviewReason) return reviewReason;
   if (scan.apiVersion.applicability !== 'matches-before') return scan.apiVersion.reason;
   const operationUsageCount = countBreakingOperationUsages(scan.operationImpacts);

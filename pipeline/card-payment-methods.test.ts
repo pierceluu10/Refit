@@ -8,6 +8,7 @@ import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { droppedRequestParameters } from './validation.ts';
+import { removedParameterSites } from './migration-review.ts';
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -627,6 +628,12 @@ export async function pay(kind) {
         parameter: 'payment_method_types',
       },
     }),
+  );
+  // The stop names the site without calling it a traced call.
+  expect(removedParameterSites(report.findings)).toMatch(
+    new RegExp(
+      `^Where: .*${file}:${line} sets payment_method_types outside a traced SDK request body`,
+    ),
   );
 });
 

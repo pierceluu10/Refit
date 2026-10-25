@@ -112,17 +112,12 @@ const ADAPTER = {
   ],
 };
 
-// A customer repository on acacia that reads a field basil moved and sends a parameter endive
-// removed, enrolled with an approval as `refit enroll` and `refit approve` record it.
-async function customer() {
-  const checkout = join(root, 'customer');
-  await mkdir(join(checkout, 'stripe'), { recursive: true });
-  const files = {
-    'package.json': `${JSON.stringify({ name: 'billing', dependencies: { stripe: '17.7.0' } })}\n`,
-    'billing.js': `import Stripe from 'stripe';
+const CLIENT = `import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '${ACACIA}' });
-
+`;
+// Reads a field basil moved and sends a parameter endive removed.
+const BILLING = `${CLIENT}
 export async function invoiceSubscription(id) {
   const invoice = await stripe.invoices.retrieve(id);
   return invoice.subscription;
@@ -130,7 +125,16 @@ export async function invoiceSubscription(id) {
 
 export const checkout = () =>
   stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ['card'] });
-`,
+`;
+
+// A customer repository on acacia, enrolled with an approval as `refit enroll` and `refit approve`
+// record it.
+async function customer(billing: string) {
+  const checkout = join(root, 'customer');
+  await mkdir(join(checkout, 'stripe'), { recursive: true });
+  const files = {
+    'package.json': `${JSON.stringify({ name: 'billing', dependencies: { stripe: '17.7.0' } })}\n`,
+    'billing.js': billing,
     'stripe/acacia.json': await release('before', ACACIA, 'payment_method_types'),
     'stripe/provider.json': `${JSON.stringify(ADAPTER)}\n`,
     '.refit.json': `${JSON.stringify({
@@ -178,8 +182,8 @@ export const checkout = () =>
 
 // The approved target as `refit serve` polls it, with the newest contract Stripe has published as
 // the watcher's source.
-async function service(settings: { supersedeDrafts?: boolean } = {}) {
-  const approval = await customer();
+async function service(billing = BILLING, settings: { supersedeDrafts?: boolean } = {}) {
+  const approval = await customer(billing);
   const latest = join(root, 'stripe-latest.json');
   const target = {
     id: 'billing',
@@ -211,6 +215,31 @@ async function service(settings: { supersedeDrafts?: boolean } = {}) {
     baseline: async () =>
       JSON.parse(await readFile(join(state, 'state.json'), 'utf8')).baseline?.apiVersion,
   };
+}
+
+// A customer commit on main, pushed from a fresh clone.
+async function push(path: string, content: string, message: string) {
+  const clone = await mkdtemp(join(root, 'clone-'));
+  await execute('git', ['clone', '--quiet', github.remote(REPOSITORY), clone], { env: isolated });
+  await writeFile(join(clone, path), content);
+  await execute('git', ['-C', clone, 'add', path], { env: isolated });
+  await execute(
+    'git',
+    [
+      '-C',
+      clone,
+      '-c',
+      'user.name=Customer',
+      '-c',
+      'user.email=customer@example.test',
+      'commit',
+      '--quiet',
+      '-m',
+      message,
+    ],
+    { env: isolated },
+  );
+  await github.pushBranch(REPOSITORY, 'main', clone);
 }
 
 const pulls = () =>
@@ -249,27 +278,7 @@ it('opens one draft per Stripe release, advances after each merge and stays quie
   });
   expect(await baseline()).toBe(BASIL);
   // A customer commit before the next release is quiet too.
-  const clone = join(root, 'clone');
-  await execute('git', ['clone', '--quiet', github.remote(REPOSITORY), clone], { env: isolated });
-  await writeFile(join(clone, 'README.md'), 'Billing\n');
-  await execute('git', ['-C', clone, 'add', 'README.md'], { env: isolated });
-  await execute(
-    'git',
-    [
-      '-C',
-      clone,
-      '-c',
-      'user.name=Customer',
-      '-c',
-      'user.email=customer@example.test',
-      'commit',
-      '--quiet',
-      '-m',
-      'docs: readme',
-    ],
-    { env: isolated },
-  );
-  await github.pushBranch(REPOSITORY, 'main', clone);
+  await push('README.md', 'Billing\n', 'docs: readme');
   expect(await poll()).toMatchObject({ status: 'up-to-date' });
   expect(pulls()).toEqual([{ number: 1, state: 'closed', merged: true }]);
   expect(validateMigration).toHaveBeenCalledTimes(1);
@@ -312,7 +321,7 @@ it.each([
 ])(
   'opens one cumulative draft when the next release lands first, and %s',
   async (_case, supersedeDrafts) => {
-    const { publish, poll, baseline } = await service({ supersedeDrafts });
+    const { publish, poll, baseline } = await service(BILLING, { supersedeDrafts });
     await publish('after', BASIL, 'payment_method_types');
     expect(await poll()).toMatchObject({ status: 'draft-created' });
 
@@ -354,3 +363,46 @@ it.each([
   },
   60_000,
 );
+
+it('writes nothing to GitHub for a release the code does not use, and keeps one stop with its reason', async () => {
+  // The code only creates Checkout Sessions, so basil's invoice moves do not touch it.
+  const { publish, poll } = await service(
+    `${CLIENT}\nexport const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription' });\n`,
+  );
+  const quiet = () => {
+    expect(github.pulls(REPOSITORY)).toEqual([]);
+    expect(github.comments(REPOSITORY)).toEqual([]);
+    expect(issues()).toBe(0);
+    expect(validateMigration).not.toHaveBeenCalled();
+  };
+  await publish('after', BASIL, 'payment_method_types');
+  const unused = await poll();
+  expect(unused.status).toBe('needs-review');
+  expect(unused.message).toMatch(/^No confirmed supported usage was found\./);
+  await poll();
+  await push('README.md', 'Billing\n', 'docs: readme');
+  await poll();
+  quiet();
+
+  // The customer starts sending a card and a wallet. Endive removes the parameter, and only a list
+  // of exactly ['card'] moves without review, so every poll from here is the same stop.
+  await push(
+    'billing.js',
+    `${CLIENT}\nexport const checkout = () =>\n  stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ['card', 'link'] });\n`,
+    'feat: wallets',
+  );
+  await publish('after', ENDIVE, 'allowed_payment_method_types');
+  const stop = await poll();
+  expect(stop.status).toBe('needs-review');
+  expect(stop.message).toMatch(
+    /stop for review\. The call: billing\.js:\d+ sends payment_method_types\.$/,
+  );
+  // Polling again reuses the result and still says why it stopped.
+  expect(await poll()).toEqual({
+    ...stop,
+    message: `Saved worker result reused; checks were not rerun. That run recorded: ${stop.message}`,
+  });
+  await push('README.md', 'Billing and wallets\n', 'docs: readme');
+  expect(await poll()).toMatchObject({ status: 'needs-review', message: stop.message });
+  quiet();
+}, 60_000);
