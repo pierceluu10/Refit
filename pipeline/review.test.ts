@@ -433,7 +433,7 @@ it('lists untraced reads at their migrated lines and leaves operation calls with
     line: 7,
     expression: 'item.price',
     confidence: 'review' as const,
-    untraced: true,
+    untraced: true as const,
   };
   value.findings.push(untraced);
   if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
