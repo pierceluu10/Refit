@@ -13,7 +13,9 @@ kill_timeout = 300
 [env]
   REFIT_AI_BUDGET_DIRECTORY = "/data/ai-budget"
   REFIT_AI_BUDGET_USD = "2"
-  REFIT_HOSTED_FLAGS = "--publish-draft --ai-patch --repair-attempts 2"
+  # Push 279 (2026-10-24, board #300): engine only, no --ai-patch. The push ends by restoring
+  # "--publish-draft --ai-patch --repair-attempts 2" and shared-cpu-2x with 4gb.
+  REFIT_HOSTED_FLAGS = "--publish-draft"
   # Validation images named by approved .refit.json files; pulled on boot.
   REFIT_HOSTED_IMAGES = "node:22-alpine stripe/stripe-mock:latest"
 
@@ -36,6 +38,8 @@ kill_timeout = 300
     path = "/health"
     timeout = "5s"
 
+# Dedicated CPUs keep oasdiff inside its 30-second limit (66-73% steal on shared-cpu-2x), and
+# 16gb holds the 4 GiB sandbox profile's 5 GiB container.
 [[vm]]
-  size = "shared-cpu-2x"
-  memory = "4gb"
+  size = "performance-4x"
+  memory = "16gb"
