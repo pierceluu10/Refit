@@ -39,7 +39,7 @@ import {
   publishUnresolved,
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
-import { typeErrors } from './validation.ts';
+import { typeErrors } from './type-errors.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 
 const execute = promisify(execFile);
@@ -52,12 +52,9 @@ const MAX_RECORDED_CHANGES = 500;
 // Type errors keyed without the position, so moved lines still match.
 const typeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
   new Set(
-    typeErrors({
-      status: 'failed',
-      exitCode: null,
-      stdout: check?.stdout ?? '',
-      stderr: check?.stderr ?? '',
-    }).map((error) => error.key),
+    typeErrors({ stdout: check?.stdout ?? '', stderr: check?.stderr ?? '' }).map(
+      (error) => error.key,
+    ),
   );
 
 interface Selected {

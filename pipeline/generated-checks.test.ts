@@ -628,7 +628,10 @@ const PERIOD_PATCHED = {
     )
     .replace('subscription.current_period_start', 'getSubscriptionPeriodStart(subscription)')
     .replace('subscription.current_period_end', 'getSubscriptionPeriodEnd(subscription)'),
-  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts'),
+  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts', [
+    'getSubscriptionPeriodStart',
+    'getSubscriptionPeriodEnd',
+  ]),
 };
 
 it('loads a patch that adds the helper module and counts only a throwing call (simulated stripe-mock)', async () => {
