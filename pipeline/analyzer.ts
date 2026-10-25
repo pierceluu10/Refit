@@ -289,10 +289,14 @@ export function analyzeRepository(
   // `invoicePreview`: the contract-checked move of Stripe's removed upcoming invoice call.
   // `typeCheckedPeriodReads`: where validation's patched type check rejected a `current_period_*`
   // read on Subscription (file and offset of the property name); those reads take the period helper.
+  // `modelFixClients`: trace only the client shapes the model-fix edits were decided on (AGENTS.md),
+  // leaving lazy Proxy clients with a local or bound methods, a Proxy over a filled holder and a
+  // holder used as the client to stop for review.
   options: {
     traceUnverifiedPackageImports?: boolean;
     invoicePreview?: InvoicePreviewMove;
     typeCheckedPeriodReads?: { file: string; position: number }[];
+    modelFixClients?: boolean;
   } = {},
 ) {
   const { sources, resolution, program, checker } = analysisProgram(repository);
@@ -649,10 +653,18 @@ export function analyzeRepository(
       if (sdk.creation(node.expression)) clients.add(binding);
   }
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
-  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
+  const base = options.modelFixClients;
+  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation, base });
   for (const declaration of declarations) {
-    const binding = clientBinding(proxyClient(declaration.initializer) ?? declaration.initializer);
-    if (binding && clients.has(binding)) add(clients, declaration.name);
+    const forwarded = proxyClient(declaration.initializer, base);
+    const binding = clientBinding(forwarded ?? declaration.initializer);
+    // A Proxy reads its holder on every access, so a holder that only ever holds the client
+    // (filled in the trap or by a factory) forwards to that client.
+    if (
+      binding &&
+      (clients.has(binding) || (!base && forwarded && factoryBindings.holders.has(binding)))
+    )
+      add(clients, declaration.name);
   }
   const helperBindings = helperClients({
     nodes,
@@ -666,6 +678,7 @@ export function analyzeRepository(
     rootBinding: classBindings.rootBinding,
     aliases: [...classBindings.aliases, ...helperBindings.aliases],
     localArgument: helperBindings.localArgument,
+    held: factoryBindings.held,
   };
   webhooks =
     provider.packageName === 'stripe'

@@ -2602,6 +2602,65 @@ it('lists requests on clients it cannot trace to the SDK constructor', async () 
   expect(proposal.unresolved).toMatchObject([{ file: 'src/store.ts', line: 3 }]);
 });
 
+// The Stripe tracer follows lazy Proxy clients with a local or bound methods, a Proxy over a filled
+// holder, and a holder used as the client. Model fixes were not decided on them, so their requests
+// still stop as they did before that tracing (AGENTS.md: do not widen which uses are replaced).
+it('keeps lazy Proxy and holder clients listed but not edited', async () => {
+  const openai = "chat.completions.create({ model: 'gpt-4', messages: [] })";
+  const anthropic = "messages.create({ model: 'claude-3-opus-20240229', max_tokens: 9, messages })";
+  const bound = (sdk: string, make: string) => [
+    `let cached: ${sdk} | null = null;`,
+    `function load(): ${sdk} { if (!cached) cached = ${make}; return cached; }`,
+    `export const client = new Proxy({} as ${sdk}, {`,
+    '  get(_target, prop) {',
+    '    const instance = load();',
+    '    const value = Reflect.get(instance, prop, instance);',
+    "    return typeof value === 'function' ? value.bind(instance) : value;",
+    '  },',
+    '});',
+  ];
+  const root = await repository({
+    'src/openai.ts': [
+      "import OpenAI from 'openai';",
+      ...bound('OpenAI', 'new OpenAI()'),
+      `export const ask = () => client.${openai};`,
+    ].join('\n'),
+    'src/anthropic.ts': [
+      "import Anthropic from '@anthropic-ai/sdk';",
+      ...bound('Anthropic', 'new Anthropic()'),
+      `export const ask = (messages: any[]) => client.${anthropic};`,
+    ].join('\n'),
+    'src/filled.ts': [
+      "import OpenAI from 'openai';",
+      'let held: OpenAI | null = null;',
+      'export const filled = new Proxy({} as OpenAI, {',
+      '  get(_, prop) {',
+      '    if (!held) held = new OpenAI();',
+      '    return (held as any)[prop];',
+      '  },',
+      '});',
+      `export const ask = () => filled.${openai};`,
+    ].join('\n'),
+    'src/holder.ts': [
+      "import OpenAI from 'openai';",
+      'let direct: OpenAI | null = null;',
+      'if (process.env.KEY) direct = new OpenAI();',
+      `export const ask = () => direct!.${openai};`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  const reason = (client: string, to: string) =>
+    `The client \`${client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to ${to}.`;
+  expect(proposal.stops.map((item) => [item.file, item.reason]).sort()).toEqual([
+    ['src/anthropic.ts', reason('client', 'claude-opus-4-8')],
+    ['src/filled.ts', reason('filled', 'gpt-5.6-sol')],
+    ['src/holder.ts', reason('direct', 'gpt-5.6-sol')],
+    ['src/openai.ts', reason('client', 'gpt-5.6-sol')],
+  ]);
+});
+
 // The custom-endpoint stop names the request's own client where its constructor shows one, and
 // keeps the repository-wide wording where the client cannot be followed.
 it("ties the custom-endpoint stop to the request's own client where it can", async () => {

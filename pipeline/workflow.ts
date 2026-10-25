@@ -168,6 +168,7 @@ export async function runWorkflow(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   generatedChecks?: GeneratedChecks;
   compareTypeErrors?: boolean;
@@ -393,12 +394,15 @@ export async function runWorkflow(options: {
         image: options.image,
         command: options.command,
         baselineCommand: options.baselineCommand,
+        checkTimeoutSeconds: options.checkTimeoutSeconds,
         prepareDependencies: options.prepareDependencies,
         generatedChecks: options.generatedChecks,
         compareTypeErrors: options.compareTypeErrors,
         assessment: options.assessment,
         aiPatch: options.aiPatch,
-        behaviourTestWriter: options.behaviourTestWriter,
+        // shortcut: the retry without the API-version move writes no behaviour tests, so it never
+        // pays for a second identical request; reuse the first run's tests if that retry needs grade A.
+        behaviourTestWriter: keepApiVersion ? undefined : options.behaviourTestWriter,
         documentationSnapshots: options.documentationSnapshots,
         repairAttempts: options.repairAttempts,
         leaveReviewedFindings: allowUnresolved,

@@ -19,7 +19,12 @@ import { digest, readSpecification } from './specifications.ts';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { TEST_PATH } from './source-paths.ts';
 import { readRepository } from './repository.ts';
-import { validateCheckCommand, validateRepairAttempts } from './validation-options.ts';
+import {
+  validateCheckCommand,
+  validateCheckTimeout,
+  validateRepairAttempts,
+} from './validation-options.ts';
+import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
@@ -27,6 +32,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
 import { typeErrorKeys, typeErrors } from './type-errors.ts';
+import { baselineCheck } from './validation-baseline-cache.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import ts from 'typescript-compiler';
@@ -99,9 +105,11 @@ export interface PublicationFile {
 
 const execute = promisify(execFile);
 const PROCESS_TIMEOUT_MS = 30_000;
-const CHECK_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
-const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
+const MAX_COMMAND_OUTPUT_BYTES = 50 * 1024 * 1024;
+// Committed source is copied into the validation workspace beside the unpacked dependency archive.
+// The 4 GiB workspace holds a 2 GiB archive and 256 MiB of source; smaller profiles keep 50 MiB.
+const sourceArchiveBytes = () => (validationProfile().workspace === '4g' ? 256 : 50) * 1024 * 1024;
 const MAX_REPAIR_LOG_CHARACTERS = 4096;
 
 export interface ValidationAttempt {
@@ -316,7 +324,7 @@ async function command(binary: string, args: string[], cwd?: string) {
   return execute(binary, args, {
     cwd,
     timeout: PROCESS_TIMEOUT_MS,
-    maxBuffer: MAX_ARCHIVE_BYTES,
+    maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
     encoding: 'utf8',
     env: binary === 'git' ? gitEnvironment() : undefined,
   });
@@ -325,6 +333,11 @@ async function command(binary: string, args: string[], cwd?: string) {
 // Refit's compiler, which a scoped type check runs in a repository that installs none
 // (check-selection.ts REFIT_TSC).
 const typescriptMount = () => [{ source: typescriptDirectory(), target: '/refit/typescript' }];
+// How long each check may run, and the nested package it runs in (preparation-packages.ts).
+interface CheckSandbox {
+  timeoutMs: number;
+  packageDirectory?: string;
+}
 
 async function containerCheck({
   directory,
@@ -333,6 +346,8 @@ async function containerCheck({
   dependencies,
   readOnlyMounts = typescriptMount(),
   signal,
+  timeoutMs,
+  packageDirectory,
 }: {
   directory: string;
   image: string;
@@ -340,7 +355,7 @@ async function containerCheck({
   dependencies?: string;
   readOnlyMounts?: { source: string; target: string }[];
   signal?: AbortSignal;
-}): Promise<CheckResult> {
+} & CheckSandbox): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
   await removeExpiredSandboxContainers();
   try {
@@ -352,12 +367,13 @@ async function containerCheck({
         image,
         command: argumentsList,
         network: 'none',
-        timeoutMs: CHECK_TIMEOUT_MS,
+        timeoutMs,
         dependencies,
         readOnlyMounts,
+        packageDirectory,
       }),
       {
-        timeout: CHECK_TIMEOUT_MS,
+        timeout: timeoutMs,
         maxBuffer: MAX_OUTPUT_BYTES,
         encoding: 'utf8',
         // The Docker client forwards SIGTERM to the container, where a process that ignores it keeps
@@ -386,7 +402,7 @@ async function containerCheck({
         failure.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
           ? `Check output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MiB; the container was stopped.`
           : failure.killed
-            ? `Check exceeded ${CHECK_TIMEOUT_MS / 1000} seconds; the container was stopped.`
+            ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
             : failure.message,
     };
   } finally {
@@ -427,19 +443,20 @@ async function roomForTwoSandboxes() {
 // Archives the committed revision under `root` and extracts it as the baseline directory.
 async function extractSnapshot(repository: string, revision: string, root: string) {
   const archive = join(root, 'source.tar');
+  const sourceBytes = sourceArchiveBytes();
   const archiveResult = await execute(
     'git',
     ['-C', repository, 'archive', '--format=tar', revision],
     {
       encoding: 'buffer',
       timeout: PROCESS_TIMEOUT_MS,
-      maxBuffer: MAX_ARCHIVE_BYTES,
+      maxBuffer: sourceBytes,
       env: gitEnvironment(),
     },
   ).catch((error: unknown) => {
     if ((error as { code?: unknown }).code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER')
       throw new PipelineInputError(
-        `Committed source exceeds the ${MAX_ARCHIVE_BYTES / 1024 / 1024} MiB validation archive limit.`,
+        `Committed source exceeds the ${sourceBytes / 1024 / 1024} MiB validation archive limit. Stop committing build output, media or data files (or track them with Git LFS) so the committed tree fits.`,
       );
     throw error;
   });
@@ -500,7 +517,11 @@ async function prepareCandidateDependencies(
   candidateDirectory: string,
   root: string,
   image: string,
-  options: { signal?: AbortSignal; onProgress?: (message: string) => void },
+  options: {
+    signal?: AbortSignal;
+    onProgress?: (message: string) => void;
+    packageDirectory?: string;
+  },
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
   await command('git', ['add', '-A'], candidateDirectory);
@@ -530,6 +551,7 @@ async function prepareCandidateDependencies(
   const prepared = await prepareDependencies({
     repository: candidateDirectory,
     image,
+    packageDirectory: options.packageDirectory,
     copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
@@ -672,8 +694,8 @@ function namedBaselineStop(status: string, baselineRun: CheckResult) {
     : {};
 }
 
-const validationLimits = () => ({
-  timeoutMs: CHECK_TIMEOUT_MS,
+const validationLimits = (timeoutMs: number) => ({
+  timeoutMs,
   outputBytes: MAX_OUTPUT_BYTES,
   network: 'none',
   workspace: validationProfile().workspace,
@@ -708,6 +730,7 @@ async function generatedStripeChecks(options: {
   patched: Awaited<ReturnType<typeof readRepository>>;
   findings: Parameters<typeof generatedEntryPoints>[1];
   runs: { directory: string; contract: string; side: 'before' | 'after'; dependencies?: string }[];
+  sandbox: CheckSandbox;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -816,6 +839,7 @@ async function runGeneratedStripeChecks(
       dependencies: run.dependencies ?? options.dependencies,
       readOnlyMounts: mock.mounts(run.side),
       signal: options.signal,
+      ...options.sandbox,
     });
   };
   const results = (await roomForTwoSandboxes())
@@ -846,6 +870,8 @@ export async function runBehaviourTests(options: {
   patched: { directory: string; contract: string; repository: Repository; dependencies?: string };
   // Files where Refit traced Stripe usage; with files importing stripe, they are the Stripe code.
   findings?: readonly Pick<Finding, 'file'>[];
+  // The repository's check time limit and nested package; the default limit without one.
+  sandbox?: CheckSandbox;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -870,6 +896,7 @@ export async function runBehaviourTests(options: {
       dependencies: input.dependencies,
       readOnlyMounts: mock.mounts(side),
       signal: options.signal,
+      ...(options.sandbox ?? { timeoutMs: validateCheckTimeout() * 1000 }),
     });
   };
   const [original, patched] = (await roomForTwoSandboxes())
@@ -941,6 +968,8 @@ export async function validateMigration(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  // .refit.json checkTimeoutSeconds: how long each check may run (validation-options.ts).
+  checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   compareTypeErrors?: boolean;
   assessment?: AiOptions;
@@ -972,6 +1001,7 @@ export async function validateMigration(options: {
 }) {
   validateCheckCommand(options.command);
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
+  const timeoutMs = validateCheckTimeout(options.checkTimeoutSeconds) * 1000;
   const repairLimit = validateRepairAttempts(options.repairAttempts ?? 0, Boolean(options.aiPatch));
   if (options.requireApiVersionMatch) {
     const [before, after] = await Promise.all([
@@ -1004,6 +1034,9 @@ export async function validateMigration(options: {
     ? undefined
     : migrationReviewReason(preflight, true, true, Boolean(options.aiPatch));
   if (reviewReason) throw new PipelineInputError(reviewReason);
+  // Stripe code in one nested package with its own lockfile is prepared and checked there.
+  const packageDirectory = sdkPackageDirectory(preflight, committedFiles(snapshot.entries));
+  const sandbox: CheckSandbox = { timeoutMs, packageDirectory };
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
@@ -1056,7 +1089,11 @@ export async function validateMigration(options: {
       try {
         return {
           ...(await timed('candidatePreparation', () =>
-            prepareCandidateDependencies(directory, root, image, { ...options, signal }),
+            prepareCandidateDependencies(directory, root, image, {
+              ...options,
+              packageDirectory,
+              signal,
+            }),
           )),
           dependencyFailure: undefined,
         };
@@ -1073,7 +1110,7 @@ export async function validateMigration(options: {
         ? ahead(async () => {
             const { patch } = await proposed;
             const diff = 'diff' in patch ? patch.diff : '';
-            if (!diff || !packageDiff(diff)) return undefined;
+            if (!diff || !packageDiff(diff, packageDirectory)) return undefined;
             const directory = await sandboxInput(root, 'candidate-');
             await applyPatch(archive, directory, `${directory}.patch`, diff);
             return { directory, ...(await preparePatched(directory, true, speculation.signal)) };
@@ -1091,6 +1128,7 @@ export async function validateMigration(options: {
           prepareDependencies({
             repository,
             image,
+            packageDirectory,
             submodules: options.leaveReviewedFindings,
             copyArchiveTo: join(root, 'dependencies.tar'),
             signal: options.signal,
@@ -1143,7 +1181,7 @@ export async function validateMigration(options: {
       let candidateEnvironment: Record<string, unknown> | undefined;
       let candidateFailure: ReturnType<typeof preparationFailure>;
       if (
-        packageDiff(diff) &&
+        packageDiff(diff, packageDirectory) &&
         options.prepareDependencies &&
         !dependencyFailure &&
         !untestedBaseline
@@ -1183,7 +1221,10 @@ export async function validateMigration(options: {
         );
       const publicationFiles: PublicationFile[] = [];
       const packageFiles = await Promise.all(
-        PACKAGE_FILES.map(async (path) => ({
+        [
+          ...PACKAGE_FILES,
+          ...(packageDirectory ? PACKAGE_FILES.map((file) => `${packageDirectory}/${file}`) : []),
+        ].map(async (path) => ({
           path,
           before: await readFile(join(baselineDirectory, path), 'utf8').catch(() => undefined),
           after: await readFile(join(patchedDirectory, path), 'utf8').catch(() => undefined),
@@ -1250,21 +1291,40 @@ export async function validateMigration(options: {
             command: options.command,
             dependencies: candidate.dependencies,
             signal: speculation.signal,
+            ...sandbox,
           }),
         );
       });
-    if (!dependencyFailure) options.onProgress?.('Running baseline checks in offline Docker...');
-    const baselineRun: CheckResult = dependencyFailure
-      ? NOT_RUN
+    const recordedBaseline = dependencyFailure
+      ? undefined
       : await timed('baselineChecks', () =>
-          containerCheck({
-            directory: baselineDirectory,
-            image,
-            command: baselineCommand,
-            dependencies,
-            signal: options.signal,
-          }),
+          baselineCheck(
+            {
+              revision,
+              command: baselineCommand,
+              image,
+              // The bundle's signature, not its archive hash: a rebuild changes tar bytes, not packages.
+              dependencies: environment?.signature ?? null,
+              limits: validationLimits(sandbox.timeoutMs),
+            },
+            () => {
+              options.onProgress?.('Running baseline checks in offline Docker...');
+              return containerCheck({
+                directory: baselineDirectory,
+                image,
+                command: baselineCommand,
+                dependencies,
+                signal: options.signal,
+                ...sandbox,
+              });
+            },
+          ),
         );
+    const baselineRun: CheckResult = recordedBaseline?.check ?? NOT_RUN;
+    if (recordedBaseline?.recordedAt)
+      options.onProgress?.(
+        `Reusing the baseline check result recorded ${recordedBaseline.recordedAt}.`,
+      );
     const advisory = advisoryTypeError(options.command);
     const typeCheckUnavailable = options.compareTypeErrors
       ? unavailableTypeCheck(options.command, baselineRun)
@@ -1359,6 +1419,7 @@ export async function validateMigration(options: {
                   command: options.command,
                   dependencies: initialCandidate.dependencies,
                   signal: options.signal,
+                  ...sandbox,
                 }),
               )),
         )
@@ -1475,6 +1536,7 @@ export async function validateMigration(options: {
               command: options.command,
               dependencies: prepared.dependencies,
               signal: options.signal,
+              ...sandbox,
             }),
           ),
         );
@@ -1553,6 +1615,7 @@ export async function validateMigration(options: {
             command: options.command,
             dependencies: prepared.dependencies,
             signal: options.signal,
+            ...sandbox,
           }),
         ),
       );
@@ -1720,6 +1783,7 @@ export async function validateMigration(options: {
           const check = compared(
             await timed('patchedChecks', () =>
               containerCheck({
+                ...sandbox,
                 directory: prepared.directory,
                 image,
                 command: options.command,
@@ -1881,6 +1945,7 @@ export async function validateMigration(options: {
               command: options.command,
               dependencies: preparedCandidate.dependencies,
               signal: options.signal,
+              ...sandbox,
             }),
           ),
         );
@@ -1930,9 +1995,27 @@ export async function validateMigration(options: {
                   dependencies: candidateDependencies,
                 },
               ],
+              sandbox,
               onProgress: options.onProgress,
               signal: options.signal,
             }),
+          )
+        : undefined;
+    // With the tests broken before the patch, only the chain's type check runs on it.
+    const brokenTestsCommand = testsBroken ? typeCheckCommand(options.command) : undefined;
+    const brokenTestsTypeCheck =
+      brokenTestsCommand && initialCandidate && !dependencyFailure
+        ? compared(
+            await timed('patchedChecks', () =>
+              containerCheck({
+                directory: initialCandidate.directory,
+                image,
+                command: brokenTestsCommand,
+                dependencies: initialCandidate.dependencies,
+                signal: options.signal,
+                ...sandbox,
+              }),
+            ),
           )
         : undefined;
     let generated = await generatedFor();
@@ -1960,22 +2043,6 @@ export async function validateMigration(options: {
         generated = await generatedFor();
       }
     }
-    // With the tests broken before the patch, only the chain's type check runs on it.
-    const brokenTestsCommand = testsBroken ? typeCheckCommand(options.command) : undefined;
-    const brokenTestsTypeCheck =
-      brokenTestsCommand && initialCandidate && !dependencyFailure
-        ? compared(
-            await timed('patchedChecks', () =>
-              containerCheck({
-                directory: initialCandidate.directory,
-                image,
-                command: brokenTestsCommand,
-                dependencies: initialCandidate.dependencies,
-                signal: options.signal,
-              }),
-            ),
-          )
-        : undefined;
     const stripeOnly =
       dependencyFailure && candidateDirectory && candidateSources && behaviourWanted
         ? await timed('stripeOnlyPreparation', () =>
@@ -2011,6 +2078,7 @@ export async function validateMigration(options: {
                 repository: originalSources,
                 findings: preflight.findings,
                 changes: preflight.changes,
+                removals: requestRemovals,
                 before: beforeSpecification,
                 after: afterSpecification,
                 ai: options.behaviourTestWriter!,
@@ -2040,6 +2108,7 @@ export async function validateMigration(options: {
                   stripeOnly?.dependencies?.patched ?? candidateDependencies ?? dependencies,
               },
               findings: report.findings,
+              sandbox,
               onProgress: options.onProgress,
               signal: options.signal,
             }),
@@ -2165,6 +2234,10 @@ export async function validateMigration(options: {
       archiveHash,
       patchHash: digest(proposal.diff),
       baseline,
+      // REFIT_BASELINE_CHECK_CACHE_DIRECTORY: the baseline result an identical earlier run recorded.
+      ...(recordedBaseline?.recordedAt
+        ? { baselineReused: { recordedAt: recordedBaseline.recordedAt } }
+        : {}),
       patched,
       ...(generated ? { generated } : {}),
       ...(stripeOnly ? { stripeOnly: stripeOnly.record } : {}),
@@ -2186,7 +2259,8 @@ export async function validateMigration(options: {
         : {}),
       ...failures,
       ...(Object.keys(timings).length ? { timings } : {}),
-      limits: validationLimits(),
+      ...(packageDirectory ? { packageDirectory } : {}),
+      limits: validationLimits(timeoutMs),
       publishable: false,
       reason:
         'Validation records check results only. Draft publication requires an explicit GitHub target and passing checks; migration semantics require human review.',
@@ -2217,6 +2291,7 @@ export async function validateSourcePatch(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   compareTypeErrors?: boolean;
   onProgress?: (message: string) => void;
@@ -2224,6 +2299,9 @@ export async function validateSourcePatch(options: {
 }) {
   validateCheckCommand(options.command);
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
+  const sandbox: CheckSandbox = {
+    timeoutMs: validateCheckTimeout(options.checkTimeoutSeconds) * 1000,
+  };
   const snapshot = await readCommittedRepository(options.repository);
   const { revision, entries } = snapshot;
   const runtime = await selectValidationRuntime(snapshot, options.image);
@@ -2281,6 +2359,7 @@ export async function validateSourcePatch(options: {
       command: baselineCommand,
       dependencies,
       signal: options.signal,
+      ...sandbox,
     });
     const { baseline, compared } = typeCheckComparison(
       baselineRun,
@@ -2303,6 +2382,7 @@ export async function validateSourcePatch(options: {
           command: options.command,
           dependencies: candidateDependencies,
           signal: options.signal,
+          ...sandbox,
         }),
       );
     }
@@ -2324,7 +2404,7 @@ export async function validateSourcePatch(options: {
       publicationFiles,
       ...namedBaselineStop(status, baselineRun),
       ...checkFailures(baselineCommand, options.command, baseline, patched),
-      limits: validationLimits(),
+      limits: validationLimits(sandbox.timeoutMs),
     };
   } finally {
     await rm(root, { recursive: true, force: true });

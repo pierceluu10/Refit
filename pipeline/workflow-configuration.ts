@@ -2,7 +2,11 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
-import { validateCheckCommand, validateWorkflowSources } from './validation-options.ts';
+import {
+  validateCheckCommand,
+  validateCheckTimeout,
+  validateWorkflowSources,
+} from './validation-options.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
 
 export const MAX_WORKFLOW_CONFIGURATION_BYTES = 64 * 1024;
@@ -18,6 +22,7 @@ const CONFIGURATION_KEYS = new Set([
   'image',
   'command',
   'baselineCommand',
+  'checkTimeoutSeconds',
   'providerConfig',
   'apiVersion',
   'apiVersionPolicy',
@@ -180,6 +185,9 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
     command: validateCheckCommand(value.command),
     baselineCommand:
       value.baselineCommand === undefined ? undefined : validateCheckCommand(value.baselineCommand),
+    ...(value.checkTimeoutSeconds === undefined
+      ? {}
+      : { checkTimeoutSeconds: validateCheckTimeout(value.checkTimeoutSeconds) }),
     providerConfig:
       value.providerConfig === undefined ? undefined : resolve(directory, string('providerConfig')),
     apiVersion: value.apiVersion === undefined ? undefined : string('apiVersion'),

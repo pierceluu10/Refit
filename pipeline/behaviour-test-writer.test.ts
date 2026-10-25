@@ -21,6 +21,7 @@ import {
 import { typescriptDirectory } from './generated-checks.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
 import { readRepository } from './repository.ts';
+import { removedRequestParameters } from './request-removals.ts';
 import { runPipeline } from './run.ts';
 import { digest, readSpecification } from './specifications.ts';
 import type { Finding } from './types.ts';
@@ -296,6 +297,10 @@ async function scenario(name: 'spotify' | 'docsflow', extra: Record<string, stri
     apiVersion: name === 'spotify' ? '2023-10-16' : '2025-08-27.basil',
     proposePatch: true,
   });
+  const specifications = {
+    before: await readSpecification(before),
+    after: await readSpecification(after),
+  };
   return {
     root,
     directory,
@@ -304,8 +309,13 @@ async function scenario(name: 'spotify' | 'docsflow', extra: Record<string, stri
       repository: await readRepository(directory),
       findings: report.findings,
       changes: report.changes,
-      before: await readSpecification(before),
-      after: await readSpecification(after),
+      // As validation computes them for the writer.
+      removals: removedRequestParameters(
+        report.adapter,
+        specifications.before.document,
+        specifications.after.document,
+      ),
+      ...specifications,
     },
   };
 }
@@ -447,6 +457,14 @@ it('sends the original modules, their imports and the contract change, never the
 
 it('names a removed request parameter and its contract replacement, from the original code only (nicuk/docsflow at 3e6fd71)', async () => {
   const sample = await scenario('docsflow');
+  // The kept rename covers the finding, so run.ts dropped its requestParameter; the writer still
+  // names the removed parameter from the removal the finding cites.
+  expect(sample.report.findings).toEqual([
+    expect.objectContaining({
+      changeId: 'request-parameter:PostCheckoutSessions.payment_method_types',
+    }),
+  ]);
+  expect(sample.report.findings[0].requestParameter).toBeUndefined();
   const request = behaviourTestRequest(sample.inputs);
   expect(request.evidence.files).toEqual([
     { path: 'lib/stripe-client.ts', content: DOCSFLOW_CLIENT },
@@ -571,6 +589,9 @@ it('records the model, prompt hash, tokens, cost and file hashes of one request,
 
 it('builds the same request in a dry run and estimates its tokens and cost without sending it (nicuk/docsflow at 3e6fd71)', async () => {
   const sample = await scenario('docsflow');
+  // Built before fetch is stubbed: the pipeline looks up stripe-node releases on npm.
+  const huge = `${SPOTIFY['libs/supabaseAdmin.ts']}\n${'// padding\n'.repeat(7000)}`;
+  const large = await scenario('spotify', { 'libs/supabaseAdmin.ts': huge });
   const fetcher = respond(CHECKOUT_ANSWER);
   const { record, files } = await writeBehaviourTests({
     ...sample.inputs,
@@ -600,8 +621,6 @@ it('builds the same request in a dry run and estimates its tokens and cost witho
   expect(record.estimate!.typicalUsd).toBeCloseTo(inputTokens * 2e-6 + 0.08, 9);
   expect(record.estimate!.maximumUsd).toBeCloseTo(inputTokens * 2e-6 + 0.25, 9);
 
-  const huge = `${SPOTIFY['libs/supabaseAdmin.ts']}\n${'// padding\n'.repeat(7000)}`;
-  const large = await scenario('spotify', { 'libs/supabaseAdmin.ts': huge });
   const refused = await writeBehaviourTests({
     ...large.inputs,
     ai: { model: 'gpt-6.1-sol', dryRun: true },

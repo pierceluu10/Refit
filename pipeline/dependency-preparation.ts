@@ -41,12 +41,14 @@ import {
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
 import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
+import { packageSnapshot } from './preparation-packages.ts';
 import { preparationStop } from './preparation-stops.ts';
 import { PipelineInputError } from './types.ts';
 import { verifyArtifacts } from './verification.ts';
 
-const RECIPE_VERSION = 5;
+const RECIPE_VERSION = 6;
 const LEGACY_PEER_DEPS_MARKER = 'REFIT_LEGACY_PEER_DEPS=1';
+const PRUNED_GLIBC_MARKER = 'REFIT_PRUNED_GLIBC_PACKAGES';
 // --replace-registry-host=always fetches every locked tarball from registry.npmjs.org, including
 // ones a lockfile resolved through a public mirror (npm-lock.ts); integrity still decides.
 const npmCi = (binary: string) =>
@@ -66,6 +68,40 @@ const MAX_LOG_BYTES = 1024 * 1024;
 const MAX_ERROR_CHARACTERS = 4096;
 const ARCHIVE = 'dependencies.tar';
 const ENVIRONMENT = 'environment.json';
+// npm lockfiles written before npm recorded `libc` install both the glibc and musl builds of native
+// packages (@next/swc, @swc/core): on node:22-alpine about 250 MiB that can never load. On a musl
+// image, packages whose own manifest excludes musl are removed; any with a bin entry are kept, so
+// no .bin link dangles. The lockfile is untouched.
+export const GLIBC_PACKAGE_PRUNE = `
+import { readdir, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
+let pruned = 0;
+function excludesMusl(libc) {
+  if (!Array.isArray(libc)) return false;
+  return libc.includes("!musl") || (libc.some((value) => !value.startsWith("!")) && !libc.includes("musl"));
+}
+async function walk(directory) {
+  let entries;
+  try { entries = await readdir(directory, { withFileTypes: true }); }
+  catch (error) { if (error.code === "ENOENT") return; throw error; }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+    const path = join(directory, entry.name);
+    if (entry.name.startsWith("@")) { await walk(path); continue; }
+    let manifest;
+    try { manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")); }
+    catch (error) { if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error; }
+    if (excludesMusl(manifest?.libc) && manifest.bin === undefined) {
+      await rm(path, { recursive: true });
+      pruned += 1;
+      continue;
+    }
+    await walk(join(path, "node_modules"));
+  }
+}
+await walk("node_modules");
+console.error("${PRUNED_GLIBC_MARKER}=" + pruned);
+`;
 export const DEPENDENCY_TREE_CHECK = `
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
@@ -111,6 +147,17 @@ for (const name of Object.keys(links)) {
   if (!(await lstat(resolve(workspace, name))).isSymbolicLink()) throw new Error("Missing workspace dependency link");
 }
 `;
+// `npm ci` is retried once with the same exact lockfile and --legacy-peer-deps when it rejects the
+// lockfile's peer dependencies (ERESOLVE, owner decision 2026-10-20) or reports the lockfile out of
+// sync (EUSAGE), as for a lockfile written with --legacy-peer-deps (Push 279). The retry validates the
+// lockfile again without peer edges, so a lockfile out of sync for any other reason still fails, and
+// it installs exactly the locked tree. The marker records the retry.
+export const npmCiWithPeerRetry = (ci: string, log = '/workspace/.refit-npm-ci.log') =>
+  `if ${ci} > ${log} 2>&1; then cat ${log} >&2; ` +
+  `elif grep -Eq '^npm (ERR!|error) code ERESOLVE$' ${log} || ` +
+  `{ grep -Eq '^npm (ERR!|error) code EUSAGE$' ${log} && grep -q 'are in sync' ${log}; }; then ` +
+  `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${ci} --legacy-peer-deps >&2; cat ${log} >&2; ` +
+  `else cat ${log} >&2; exit 1; fi; `;
 function installCommand(
   { manager, managerVersion, legacyPeerDeps, platformPackages }: PreparationIdentity,
   platformPackageMode?: 'skip' | 'install',
@@ -135,14 +182,10 @@ function installCommand(
             (legacyPeerDeps
               ? // The repository's own .npmrc asks for it, so there is nothing to retry.
                 `${NPM_CI} --legacy-peer-deps >&2; `
-              : // A peer dependency conflict (ERESOLVE) is retried once with the same exact lockfile
-                // and --legacy-peer-deps (owner decision, 2026-10-20); the marker records it.
-                `if ${NPM_CI} > /workspace/.refit-npm-ci.log 2>&1; then cat /workspace/.refit-npm-ci.log >&2; ` +
-                "elif grep -Eq '^npm (ERR!|error) code ERESOLVE$' /workspace/.refit-npm-ci.log; then " +
-                `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${NPM_CI} --legacy-peer-deps >&2; cat /workspace/.refit-npm-ci.log >&2; ` +
-                'else cat /workspace/.refit-npm-ci.log >&2; exit 1; fi; ') +
+              : npmCiWithPeerRetry(NPM_CI)) +
             'mkdir -p node_modules; ' +
-            (managerVersion ? 'mv /workspace/.refit-tools node_modules/.refit-tools; ' : '')) +
+            (managerVersion ? 'mv /workspace/.refit-tools node_modules/.refit-tools; ' : '') +
+            `if [ -e "/lib/ld-musl-$(uname -m).so.1" ]; then node --input-type=module -e '${GLIBC_PACKAGE_PRUNE}'; fi; `) +
       `node --input-type=module -e '${DEPENDENCY_TREE_CHECK}' "$1"; shift; ` +
       'printf "node_modules\\n" > /workspace/.refit-dependency-paths; ' +
       'for directory do if [ -d "$directory/node_modules" ]; then printf "%s\\n" "$directory/node_modules" >> /workspace/.refit-dependency-paths; fi; done; ' +
@@ -291,7 +334,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
   {
     reason: 'lockfile-out-of-sync',
     pattern:
-      /differ from the committed package-lock\.json|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
+      /differ from the committed (?:package-lock\.json|bun\.lock)|differs? from the (?:patch hash|overrides) pnpm-lock\.yaml records|^pnpm patches must be committed files whose SHA-256|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
     summary: 'the committed lockfile is out of sync with package.json',
     action: (lockfile: string) =>
       `Update \`${lockfile}\` so it matches \`package.json\` (run your package manager's install), commit it, then rerun your checks on this branch.`,
@@ -385,11 +428,13 @@ export function preparationFailure(error: unknown) {
     REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message)) ??
     (error instanceof DependencyPreparationError ? OTHER_DEPENDENCY_FAILURE : undefined);
   if (!failure) return undefined;
-  const lockfile = /pnpm/i.test(error.message)
-    ? 'pnpm-lock.yaml'
-    : /yarn/i.test(error.message)
-      ? 'yarn.lock'
-      : 'package-lock.json';
+  const lockfile = /\bbun\.lock\b/.test(error.message)
+    ? 'bun.lock'
+    : /pnpm/i.test(error.message)
+      ? 'pnpm-lock.yaml'
+      : /yarn/i.test(error.message)
+        ? 'yarn.lock'
+        : 'package-lock.json';
   return {
     reason: failure.reason,
     summary: failure.summary,
@@ -500,6 +545,9 @@ async function installDependencies(
       bytes,
       sha256: hash.digest('hex'),
       legacyPeerDeps: stderr.split('\n').includes(LEGACY_PEER_DEPS_MARKER),
+      prunedGlibcPackages: Number(
+        new RegExp(`^${PRUNED_GLIBC_MARKER}=(\\d+)$`, 'm').exec(stderr)?.[1] ?? 0,
+      ),
       stderr,
       nodeVersion,
       npmVersion,
@@ -522,6 +570,8 @@ export async function prepareDependencies(options: {
   // Prepare the committed root without its submodules, as validation checks it (owner decision 1).
   submodules?: boolean;
   cacheDirectory?: string;
+  // A nested package (preparation-packages.ts) installs from its own manifest and lockfile.
+  packageDirectory?: string;
   // Copied under the cache lock, so eviction cannot remove the bundle mid-copy.
   copyArchiveTo?: string;
   signal?: AbortSignal;
@@ -541,7 +591,14 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository, {
     submodules: options.submodules,
   })
-    .then(readPreparationInputs)
+    .then(async (snapshot) =>
+      readPreparationInputs(
+        options.packageDirectory
+          ? await packageSnapshot(snapshot, options.packageDirectory)
+          : snapshot,
+        snapshot.entries,
+      ),
+    )
     .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;
   const image = DOCKER_IMAGE_ID.test(options.image)
@@ -704,6 +761,9 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
           network: 'bridge',
           lifecycleScripts: false,
           ...(result.legacyPeerDeps ? { legacyPeerDeps: true } : {}),
+          ...(result.prunedGlibcPackages
+            ? { prunedGlibcPackages: result.prunedGlibcPackages }
+            : {}),
           registry: 'https://registry.npmjs.org',
           timeoutMs: timeoutSeconds * 1000,
           ...preparation,

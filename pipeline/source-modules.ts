@@ -257,6 +257,43 @@ export function sourceBindings(
       current = current.parent;
     if (!exportRoots.has(current)) escapingSources.add(node.getSourceFile().fileName);
   }
+  // `export { name } from './other'` re-exports the other module's binding, not one of this
+  // module's values, so importing it exposes nothing of this module.
+  const reexports = new Map<string, Map<string, { file?: string; name: string }>>();
+  const sources = new Map<string, ts.SourceFile>();
+  for (const node of nodes) {
+    if (ts.isSourceFile(node)) sources.set(node.fileName, node);
+    if (!node.parent || !ts.isSourceFile(node.parent)) continue;
+    const file = node.getSourceFile().fileName;
+    if (
+      ts.isExportDeclaration(node) &&
+      !node.isTypeOnly &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      node.exportClause &&
+      ts.isNamedExports(node.exportClause)
+    ) {
+      const target = resolveImport(node.moduleSpecifier.text, file);
+      const entries = reexports.get(file) ?? new Map<string, { file?: string; name: string }>();
+      for (const element of node.exportClause.elements)
+        if (!element.isTypeOnly)
+          entries.set(element.name.text, {
+            file: target,
+            name: (element.propertyName ?? element.name).text,
+          });
+      reexports.set(file, entries);
+    }
+  }
+  // An exported name with no runtime value (an interface, a type alias, a namespace of types
+  // only) exposes nothing. The checker merges declarations, so a type that shares its name with
+  // a variable, function, class, enum or instantiated namespace, even an ambient one, is a value.
+  const typeOnlyExport = (file: string, name: string) => {
+    const module = sources.has(file) ? symbol(sources.get(file)!) : undefined;
+    let entry = module && checker.tryGetMemberInModuleExports(name, module);
+    // An unresolved alias is the checker's unknown symbol, which counts as a value.
+    if (entry && entry.flags & ts.SymbolFlags.Alias) entry = checker.getAliasedSymbol(entry);
+    return Boolean(entry && !(entry.flags & ts.SymbolFlags.Value));
+  };
   function bind(
     name: ts.Identifier,
     file: string,
@@ -267,7 +304,18 @@ export function sourceBindings(
       formats.get(file) === kind && !escapingSources.has(file) && exports.get(file)?.get(exported);
     const local = symbol(name);
     if (target && local) aliases.set(local, target);
-    else escapingSources.add(file);
+    else if (kind === 'esm' && exported !== null && typeOnlyExport(file, exported)) return;
+    else if (kind === 'esm' && exported !== null && reexports.get(file)?.has(exported)) {
+      // `export { stripe } from './client'`: the same binding as the other module's export.
+      const other = reexports.get(file)!.get(exported)!;
+      const original =
+        other.file &&
+        formats.get(other.file) === 'esm' &&
+        !escapingSources.has(other.file) &&
+        exports.get(other.file)?.get(other.name);
+      if (original && local) aliases.set(local, original);
+      else escapingSources.add(other.file ?? file);
+    } else escapingSources.add(file);
   }
   for (const node of nodes) {
     const containingFile = node.getSourceFile().fileName;

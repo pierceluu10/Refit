@@ -6,7 +6,7 @@ import { BEHAVIOUR_DIRECTORY } from './behaviour-tests.ts';
 import { listOpenApiOperations } from './openapi-operations.ts';
 import { MAX_INPUT_BYTES, MAX_OUTPUT_TOKENS, requestStructuredOutput } from './openai.ts';
 import { generatedImportMap } from './generated-checks.ts';
-import { bodySchema, local } from './request-removals.ts';
+import { bodySchema, local, type RequestParameterRemoval } from './request-removals.ts';
 import { digest, findAddedProperties, isObject, parseObject } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type Repository } from './types.ts';
 
@@ -197,15 +197,6 @@ export interface BehaviourTestRecord {
 
 const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
 
-// A removed request parameter a kept rule edit covers loses `requestParameter` in the report (run.ts),
-// but its change id still names it, as request-removals.ts writes it.
-const REQUEST_PARAMETER_CHANGE = /^request-parameter:([^.]+)\.(.+)$/;
-function requestParameter(finding: Finding) {
-  if (finding.requestParameter) return finding.requestParameter;
-  const match = REQUEST_PARAMETER_CHANGE.exec(finding.changeId);
-  return match ? { operationId: match[1], parameter: match[2] } : undefined;
-}
-
 // The parts of a contract definition a test writer needs: type, nullability, referenced objects
 // and the start of the description.
 function definition(value: unknown) {
@@ -241,6 +232,8 @@ export function behaviourTestRequest(options: {
   repository: Repository;
   findings: Finding[];
   changes: Removal[];
+  // run.ts drops `requestParameter` from a finding a kept rule edit covers; the removal it cites stays.
+  removals: RequestParameterRemoval[];
   before: Specification;
   after: Specification;
 }) {
@@ -257,12 +250,16 @@ export function behaviourTestRequest(options: {
   const cited = options.changes.filter((change) =>
     confirmed.some((finding) => finding.changeId === change.id),
   );
+  const removed = (finding: Finding) => {
+    const removal = options.removals.find((candidate) => candidate.id === finding.changeId);
+    return removal && { operationId: removal.operationId, parameter: removal.parameter };
+  };
   const parameters = [
     ...new Map(
-      confirmed.flatMap((finding) => {
-        const parameter = requestParameter(finding);
-        return parameter ? [[`${parameter.operationId}.${parameter.parameter}`, parameter]] : [];
-      }) as [string, { operationId: string; parameter: string }][],
+      confirmed
+        .map(removed)
+        .filter((parameter) => parameter !== undefined)
+        .map((parameter) => [`${parameter.operationId}.${parameter.parameter}`, parameter]),
     ).values(),
   ];
   const version = (specification: Specification) =>
@@ -276,8 +273,8 @@ export function behaviourTestRequest(options: {
       line: finding.line,
       column: finding.column,
       expression: finding.expression.slice(0, 200),
-      change: requestParameter(finding)
-        ? { kind: 'removed-request-parameter', ...requestParameter(finding)! }
+      change: removed(finding)
+        ? { kind: 'removed-request-parameter', ...removed(finding) }
         : (() => {
             const change = cited.find((candidate) => candidate.id === finding.changeId);
             return {
@@ -634,6 +631,8 @@ export async function writeBehaviourTests(options: {
   repository: Repository;
   findings: Finding[];
   changes: Removal[];
+  // run.ts drops `requestParameter` from a finding a kept rule edit covers; the removal it cites stays.
+  removals: RequestParameterRemoval[];
   before: Specification;
   after: Specification;
   ai: BehaviourTestWriter;
