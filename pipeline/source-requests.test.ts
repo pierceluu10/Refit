@@ -313,3 +313,19 @@ export async function POST(req: Request) {
   const lines = reviewLines({ 'app/route.ts': `import Stripe from 'stripe';\n${source}` });
   expect(lines.length).toBeGreaterThan(0);
 });
+
+it.each([
+  ['a named callback', 'body.cart.forEach(fill);'],
+  ['a callback that takes the array', 'body.cart.forEach((item, index, list) => fill(list));'],
+  ['a tagged template', 'tag`${body.cart}`;'],
+])('keeps body reads for review when the list goes to %s first', (_name, code) => {
+  const source = `import Stripe from 'stripe';
+declare function fill(value: unknown): void;
+declare function tag(strings: TemplateStringsArray, ...values: unknown[]): void;
+export async function POST(req: Request) {
+  const body = await req.json();
+  ${code}
+  return body.cart[0].price;
+}`;
+  expect(reviewLines({ 'app/api/route.ts': source })).toContain('app/api/route.ts:7');
+});

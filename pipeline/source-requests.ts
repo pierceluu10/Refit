@@ -19,7 +19,17 @@ const ELEMENT_RESULTS = new Set(['find', 'findLast', 'at']);
 const COPIES = new Set(['filter', 'slice', 'toSorted', 'toReversed', 'concat']);
 // The only built-in methods that change a parsed JSON value: a request body has no methods of
 // its own.
-const MUTATORS = new Set(['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill']);
+const MUTATORS = new Set([
+  'push',
+  'pop',
+  'shift',
+  'unshift',
+  'splice',
+  'sort',
+  'reverse',
+  'fill',
+  'copyWithin',
+]);
 // Global functions that read their arguments and keep no reference to them.
 const PURE = new Set([
   'Number',
@@ -391,11 +401,15 @@ export function sourceRequests(options: {
         if (MUTATORS.has(hop)) return escape();
         const index = ELEMENT_CALLBACKS.get(hop);
         const callback = call.arguments[0] && unwrap(call.arguments[0]);
-        if (
-          index !== undefined &&
-          callback &&
-          (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))
-        ) {
+        if (index !== undefined) {
+          // A named callback, or one that takes the array itself (`(item, i, list) => …`), gets
+          // the elements or the array where this code cannot follow them.
+          if (
+            !callback ||
+            !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) ||
+            callback.parameters.length > index + 2
+          )
+            return escape();
           callbacks.add(callback);
           const element = callback.parameters[index];
           if (element && !element.dotDotDotToken)
@@ -449,7 +463,7 @@ export function sourceRequests(options: {
       ts.isBinaryExpression(parent) ||
       ts.isPrefixUnaryExpression(parent) ||
       ts.isTypeOfExpression(parent) ||
-      ts.isTemplateSpan(parent) ||
+      (ts.isTemplateSpan(parent) && !ts.isTaggedTemplateExpression(parent.parent.parent)) ||
       ts.isIfStatement(parent) ||
       ts.isWhileStatement(parent) ||
       ts.isSwitchStatement(parent) ||
