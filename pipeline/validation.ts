@@ -866,6 +866,10 @@ export async function validateMigration(options: {
       stdout: '',
       stderr: '',
     };
+    if (recordedBaseline?.recordedAt)
+      options.onProgress?.(
+        `Reusing the baseline check result recorded ${recordedBaseline.recordedAt}.`,
+      );
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
     options.signal?.throwIfAborted();
     const report = earlyReport || (await propose(baseline.status === 'passed'));

@@ -144,7 +144,9 @@ process.exit(side === 'baseline' ? ${baselineExit} : 0);
   );
   await chmod(join(binary, 'docker'), 0o755);
   vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
-  return async (extra: { prepareDependencies?: boolean } = {}) => {
+  return async (
+    extra: { prepareDependencies?: boolean; onProgress?: (message: string) => void } = {},
+  ) => {
     await rm(log, { force: true });
     const report = await validateMigration({
       repository,
@@ -165,8 +167,12 @@ it('validates with the recorded baseline instead of running it again, and says s
   const first = await validate();
   expect(first.checks).toEqual(['baseline', 'patched']);
   expect(first.report.validation).not.toHaveProperty('baselineReused');
-  const second = await validate();
+  const progress: string[] = [];
+  const second = await validate({ onProgress: (message) => progress.push(message) });
   expect(second.checks).toEqual(['patched']);
+  expect(progress.filter((message) => /baseline/i.test(message))).toEqual([
+    expect.stringMatching(/^Reusing the baseline check result recorded \d{4}-/),
+  ]);
   expect(second.report.validation).toMatchObject({
     status: 'passed',
     baseline: first.report.validation.baseline,
