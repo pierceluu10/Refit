@@ -7,6 +7,7 @@ import {
   publicationConfiguration,
   publishDraft,
   publicationWaiver,
+  publishUnresolved,
 } from './publication.ts';
 import { createReviewArtifacts } from './review.ts';
 import { migrationIdentity } from './migration-identity.ts';
@@ -949,4 +950,13 @@ it('migrates around a removed request parameter only when asked, and leaves it t
     /removed\. No reviewed replacement/,
   );
   expect(refusedRegression.fetch).not.toHaveBeenCalled();
+});
+
+it('publishes for review by default and refuses both publication flags together', () => {
+  expect(publishUnresolved({})).toBe(true);
+  expect(publishUnresolved({ 'publish-unresolved': true })).toBe(true);
+  expect(publishUnresolved({ 'publish-validated-only': true })).toBe(false);
+  expect(() =>
+    publishUnresolved({ 'publish-unresolved': true, 'publish-validated-only': true }),
+  ).toThrow('Choose either --publish-unresolved or --publish-validated-only.');
 });

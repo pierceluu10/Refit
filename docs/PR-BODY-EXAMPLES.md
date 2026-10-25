@@ -1,6 +1,6 @@
 # PR body examples
 
-**Every body below is regenerated from stored results. None was published, and no PR was republished.** Each one is the snapshot `pipeline/pr-body-snapshots.test.ts` checks, written by `createReviewArtifacts()` (or `modelFixBody()` for the model fix) from a stored `report.json`, rendered the way publication renders it: with the review reasons `--publish-unresolved` records, if any. The last three failed validation, so they are rendered as Refit stores them, as a local review artifact. The fixtures under `pipeline/fixtures/pr-bodies/` keep only what the body reads. Check logs and repair attempts are dropped, lockfile hunks are cut to their first lines (the body only names lockfiles), and `patchHash` is recomputed for the cut diff.
+**Every body below is regenerated from stored results. None was published, and no PR was republished.** Each one is the snapshot `pipeline/pr-body-snapshots.test.ts` checks, written by `createReviewArtifacts()` (or `modelFixBody()` for the model fix) from a stored `report.json`, rendered the way publication renders it: with the review reasons owner decision 1 records, if any. The last three failed validation, so they are rendered as Refit stores them, as a local review artifact. The fixtures under `pipeline/fixtures/pr-bodies/` keep only what the body reads. Check logs and repair attempts are dropped, lockfile hunks are cut to their first lines (the body only names lockfiles), and `patchHash` is recomputed for the cut diff.
 
 ## What a reviewer needed and did not get
 
@@ -29,7 +29,7 @@ Still missing:
 | Shape | Stored result | Characters | What it shows |
 |---|---|---|---|
 | [Validated deterministic patch](#validated-deterministic-patch) | refit-stripe-fresh/run-6d4f38a-b, laxmanclo/multi-agent-kit | 4,181 | The `['card']` rule, the API version pin and the stripe-node upgrade; checks passed. |
-| [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 7,018 | Published only with `--publish-unresolved`: the `no-checks` and `webhook-api-version` review reasons, with 2 webhook reads still unmigrated. |
+| [Needs-review waiver](#needs-review-waiver) | refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI | 7,018 | Published as `[Needs review]` (not with `--publish-validated-only`): the `no-checks` and `webhook-api-version` review reasons, with 2 webhook reads still unmigrated. |
 | [Untraced reads](#untraced-reads) | refit-stripe-active/run-6d4f38a, amahmood-pci/pci-update | 4,358 | One `.payment_intent` read Refit could not trace, left unchanged and listed with file and line. |
 | [AI patch](#ai-patch) | refit-stripe-benchmark/run-prs-all, webdevcody/thumbnail-critique | 5,608 | Lines written by `gpt-5.4-mini-2026-03-17` and checked by Refit, marked for review as an AI patch (owner decision 8), with the webhook review reason. |
 | [Model fix](#model-fix) | docs/benchmarks/2026-10-21-model-replacement-results.json, RiP3rQ/AI-Butler | 2,018 | **Simulated checks.** The stored validation for this repository is baseline-failed, so Refit never wrote this body. The four replacements are the stored ones; the checks are marked passed to show the body Refit publishes. |
@@ -137,7 +137,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Needs-review waiver
 
-Regenerated from refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI. Published only with `--publish-unresolved`: the `no-checks` and `webhook-api-version` review reasons, with 2 webhook reads still unmigrated.
+Regenerated from refit-stripe-fresh/run-6d4f38a-c, MeldinRadoncic/TriboAI. Published as `[Needs review]` (not with `--publish-validated-only`): the `no-checks` and `webhook-api-version` review reasons, with 2 webhook reads still unmigrated.
 
 `````markdown
 ## Why this needs review

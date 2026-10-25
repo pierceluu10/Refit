@@ -162,7 +162,7 @@ export async function runWorkflow(options: {
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
-  // --publish-unresolved without a publication target: continue past the stops owner decision 1
+  // Owner decision 1 without a publication target: continue past the stops owner decision 1
   // turns into review reasons and record them in the local review artifacts, so the saved report
   // can be published later.
   allowUnresolved?: boolean;

@@ -109,7 +109,7 @@ export async function runLocalService(options: {
   aiPatch?: AiOptions;
   repairAttempts?: number;
   publishDraft?: boolean;
-  // Owner decision 1: stops become [Needs review] drafts (--publish-unresolved).
+  // Owner decision 1: stops become [Needs review] drafts (on unless --publish-validated-only).
   publishUnresolved?: boolean;
   // Off unless set: a weekly comment on each open draft whose job nothing has changed.
   weeklyStatus?: boolean;

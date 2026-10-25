@@ -84,6 +84,17 @@ export function validateGitHubTarget(repository: string | undefined, base: strin
   return { repository, base };
 }
 
+// Owner decision 1 is on by default; --publish-validated-only publishes validated drafts only, as
+// before it.
+export function publishUnresolved(values: {
+  'publish-unresolved'?: boolean;
+  'publish-validated-only'?: boolean;
+}) {
+  if (values['publish-unresolved'] && values['publish-validated-only'])
+    throw new PipelineInputError('Choose either --publish-unresolved or --publish-validated-only.');
+  return !values['publish-validated-only'];
+}
+
 export function publicationConfiguration(
   repository: string | undefined,
   base: string | undefined,
@@ -592,7 +603,7 @@ type ReviewSite = { file: string; line: number; detail?: string };
 
 const firstSentence = (text: string) => text.split(/(?<=\.)\s/)[0];
 
-// Owner decision 1 (Pierce, 2026-10-24, pierceluu10/Refit#300): with --publish-unresolved, wherever
+// Owner decision 1 (Pierce, 2026-10-24, pierceluu10/Refit#300; the CLI default), wherever
 // Refit used to stop it publishes its best patch as a [Needs review] draft. This lists every reason
 // the draft needs review, each with what the reviewer must check; an empty list is a validated
 // draft. It returns undefined, and nothing publishes, when the option is off, when checks ran on the
@@ -806,7 +817,7 @@ export async function publishDraft(
     !report.publicationFiles.length
   )
     throw new PipelineInputError(
-      'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings (or --publish-unresolved).',
+      'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings, unless owner decision 1 publishes it for review (off with --publish-validated-only).',
     );
   const provider = `${PROVIDER_MARKER} ${report.provider} -->`;
   const target = apiVersion.after ?? 'the target contract';

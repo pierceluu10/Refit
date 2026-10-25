@@ -118,7 +118,7 @@ export async function pollServiceTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
-  // Owner decision 1: stops become [Needs review] drafts (--publish-unresolved).
+  // Owner decision 1: stops become [Needs review] drafts (on unless --publish-validated-only).
   publishUnresolved?: boolean;
   weeklyStatus?: boolean;
   supersedeDrafts?: boolean;

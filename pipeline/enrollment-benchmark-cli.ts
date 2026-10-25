@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
 import { addable, addAgents, detectProviders, scaffoldChecks } from './agent-catalog.ts';
+import { publishUnresolved } from './publication.ts';
 import { inspectRepositoryReadiness, type ReadinessReport } from './readiness.ts';
 import { inspectRepositoryEnrollment } from './repository-enrollment.ts';
 import { PipelineInputError } from './types.ts';
@@ -18,7 +19,7 @@ import { REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:enrollment -- --root <benchmark-root> --list <list.json> --mode generated|scaffold --output <results.json> [--contracts <dir>] [--publish-unresolved]';
+  'Usage: npm run benchmark:enrollment -- --root <benchmark-root> --list <list.json> --mode generated|scaffold --output <results.json> [--contracts <dir>] [--publish-unresolved | --publish-validated-only]';
 const GITHUB_BASE = 'main';
 const SCAFFOLD_CONTRACTS = { before: 'refit/stripe-before.json', after: 'refit/stripe-after.json' };
 
@@ -38,6 +39,7 @@ const { values } = parseArgs({
     output: { type: 'string' },
     contracts: { type: 'string' },
     'publish-unresolved': { type: 'boolean' },
+    'publish-validated-only': { type: 'boolean' },
   },
 });
 if (
@@ -50,7 +52,7 @@ if (
 const root = values.root;
 const contracts = values.contracts;
 // Owner decision 1: enrollment and doctor generate a configuration whose checks cannot run.
-const allowUntested = values['publish-unresolved'];
+const allowUntested = publishUnresolved(values);
 const list = JSON.parse(await readFile(values.list, 'utf8')) as { repos: Entry[] };
 const latest = JSON.parse(
   await readFile(new URL('../data/stripe-openapi-versions.json', import.meta.url), 'utf8'),
