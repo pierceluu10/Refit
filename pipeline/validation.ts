@@ -830,8 +830,9 @@ export async function validateMigration(options: {
         { configured: shopify || Boolean(report.adapter.apiVersion), declarations },
         report.apiVersion.policy,
       );
+      // Owner decision 1: pins that conflicted in the committed code may still conflict.
       if (
-        apiVersionSourceBlocked(candidateVersion) ||
+        apiVersionSourceBlocked(candidateVersion, options.leaveReviewedFindings) ||
         (report.apiVersion.source.status === 'verified' &&
           candidateVersion.source.status !== 'verified')
       )

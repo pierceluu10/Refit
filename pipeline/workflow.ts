@@ -409,8 +409,12 @@ export async function runWorkflow(options: {
       options.onProgress?.(
         'The patch failed the checks. Validating it without the API-version move...',
       );
-      const kept = await validate(true);
-      if (kept.validation.status === 'passed' && kept.publicationFiles.length) report = kept;
+      // Without the move there may be nothing to patch; the regression then stands.
+      const kept = await validate(true).catch((error: unknown) => {
+        if (error instanceof PipelineInputError) return undefined;
+        throw error;
+      });
+      if (kept?.validation.status === 'passed' && kept.publicationFiles.length) report = kept;
     }
     runId = report.runId;
     validation = report.validation.status;

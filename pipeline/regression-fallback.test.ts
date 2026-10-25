@@ -1,6 +1,8 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { STRIPE } from './providers.ts';
 import { publicationWaiver, publishDraft } from './publication.ts';
@@ -25,6 +27,7 @@ const REGRESSION =
 afterEach(async () => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -185,6 +188,25 @@ async function repository(files: Record<string, string>) {
   };
 }
 
+const execute = promisify(execFile);
+async function commit(directory: string) {
+  await execute('git', ['init', '-q', directory]);
+  await execute('git', ['-C', directory, 'add', '.']);
+  await execute('git', [
+    '-C',
+    directory,
+    '-c',
+    'user.name=Refit Test',
+    '-c',
+    'user.email=test@example.invalid',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-qm',
+    'test: seed repository',
+  ]);
+}
+
 const changedFiles = (diff: string) =>
   [...diff.matchAll(/^\+\+\+ "b\/(.+)"$/gm)].map((match) => match[1]).sort();
 
@@ -294,3 +316,62 @@ it('ends a regression that moved no API version at the scan stop, without a retr
   expect(result.manifest.reason).toBe(`${SHAPES[0].stop} ${REGRESSION}`);
   expect(publishDraft).not.toHaveBeenCalled();
 });
+
+// A docker stand-in for validation: a check fails on a tree that sends the target version, as
+// stripe-node 23's types failed these repositories' typecheck, and passes on every other tree.
+async function checksFailOnTarget() {
+  const root = await mkdtemp(join(tmpdir(), 'refit-fallback-docker-'));
+  roots.push(root);
+  await writeFile(
+    join(root, 'docker'),
+    `#!/usr/bin/env node
+const { readdirSync, readFileSync } = require('node:fs');
+const { join } = require('node:path');
+const args = process.argv.slice(2);
+if (args[0] === 'image') { console.log(args[3] === '{{.Id}}' ? 'sha256:${'a'.repeat(64)}' : JSON.stringify(['NODE_VERSION=22.23.3'])); process.exit(0); }
+if (args[0] !== 'run') process.exit(0);
+const input = args.find((arg) => arg.endsWith(',dst=/input,readonly')).slice('type=bind,src='.length, -',dst=/input,readonly'.length);
+const sends = (directory) => readdirSync(directory, { withFileTypes: true }).some((entry) =>
+  entry.isDirectory() ? sends(join(directory, entry.name)) : readFileSync(join(directory, entry.name), 'utf8').includes(${JSON.stringify(TARGET)}));
+process.exit(sends(input) ? 2 : 0);
+`,
+  );
+  await chmod(join(root, 'docker'), 0o755);
+  vi.stubEnv('PATH', root + delimiter + process.env.PATH);
+}
+
+// The same shapes through the real validation: the retry without the move must not end the run
+// in an error, whether nothing is left to patch (warranty-watcher) or the pins it leaves still
+// conflict as they did in the committed code (Loopletter).
+it.each(SHAPES)(
+  'validates the patch without the API-version move ($name)',
+  async ({ files, stop, kept }) => {
+    registry();
+    await checksFailOnTarget();
+    const inputs = await repository(files);
+    await commit(inputs.repository);
+    const { validateMigration: validate } =
+      await vi.importActual<typeof import('./validation.ts')>('./validation.ts');
+    vi.mocked(validateMigration).mockImplementation(validate);
+    const result = await runWorkflow({
+      ...inputs,
+      image: 'node:22-alpine',
+      command: ['npm', 'run', 'typecheck'],
+      publication: { repository: 'o/r', base: 'main', token: 'unused', allowUnresolved: true },
+    });
+    expect(
+      vi.mocked(validateMigration).mock.calls.map(([options]) => options.keepApiVersion),
+    ).toEqual([false, true]);
+    if (kept.length) {
+      expect(result.manifest).toMatchObject({ status: 'draft-created' });
+      const [published] = vi.mocked(publishDraft).mock.calls[0];
+      expect(published.patch).toMatchObject({ keptApiVersion: true });
+      expect(published.validation.status).toBe('passed');
+      expect(published.publicationFiles.map((file) => file.path)).toEqual(kept);
+    } else {
+      expect(result.manifest).toMatchObject({ status: 'needs-review', stage: 'validation' });
+      expect(result.manifest.reason).toBe(`${stop} ${REGRESSION}`);
+      expect(publishDraft).not.toHaveBeenCalled();
+    }
+  },
+);
