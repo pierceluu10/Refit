@@ -71,7 +71,8 @@ it('installs with the lockfile of the pinned manager when the repository CI inst
     'package-lock.json': npmLock,
     '.github/workflows/ci.yml': workflow('pnpm install --frozen-lockfile', 'pnpm typecheck'),
     '.github/workflows/css-size.yml': workflow('pnpm install --frozen-lockfile'),
-    '.github/workflows/lighthouse-ci.yml': workflow('pnpm dlx @lhci/cli@0.13.x autorun'),
+    // Its Lighthouse workflow is not valid YAML (a heredoc's lines start at column 1); it installs nothing.
+    '.github/workflows/lighthouse-ci.yml': `${workflow('pnpm dlx @lhci/cli@0.13.x autorun')}      - run: |\n          node <<'SUMMARY'\nconst fs = require('fs');\nSUMMARY\n`,
   };
   const prepared = await readPreparationInputs(await commit(portal));
   expect(prepared.inputs).toMatchObject({ manager: 'pnpm', managerVersion: '10.18.3' });

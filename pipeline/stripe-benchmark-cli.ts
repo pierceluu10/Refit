@@ -428,8 +428,13 @@ async function benchmark(entry: Selected, index: number) {
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
   const pnpm = existsSync(join(directory, 'pnpm-lock.yaml'));
   const yarn = existsSync(join(directory, 'yarn.lock'));
+  // A bun.lock is installed through its npm translation (bun-lock.ts).
   const checkable =
-    (existsSync(join(directory, 'package-lock.json')) || pnpm || yarn) && Boolean(declared.stripe);
+    (existsSync(join(directory, 'package-lock.json')) ||
+      pnpm ||
+      yarn ||
+      existsSync(join(directory, 'bun.lock'))) &&
+    Boolean(declared.stripe);
   result.validatable = checkable && hasTests;
   result.checks = !checkable
     ? 'none'

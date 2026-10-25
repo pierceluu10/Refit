@@ -232,15 +232,15 @@ const PROJECT_INSTALLS: [string, RegExp][] = [
   ['bun', /^bun\s+(?:install|i|ci)(?:\s|$)/],
 ];
 
-function workflowCommands(value: unknown): string[] {
-  if (Array.isArray(value)) return value.flatMap(workflowCommands);
-  if (typeof value !== 'object' || value === null) return [];
-  return Object.entries(value).flatMap(([key, entry]) =>
-    key === 'run' && typeof entry === 'string'
-      ? entry
-          .split(/\r?\n|&&|\|\||[;|]/)
-          .map((command) => command.trim().replace(/^(?:[A-Za-z_]\w*=\S*\s+)*/, ''))
-      : workflowCommands(entry),
+// Every shell command a workflow file could run, read line by line rather than as YAML: a file
+// GitHub cannot parse never runs, and a heredoc inside a `run` block is still read.
+function workflowCommands(text: string) {
+  return text.split(/\r?\n/).flatMap((line) =>
+    line
+      .trim()
+      .replace(/^(?:-\s*)?(?:run:\s*[|>]?[-+]?\s*)?/, '')
+      .split(/&&|\|\||[;|]/)
+      .map((command) => command.trim().replace(/^(?:[A-Za-z_]\w*=\S*\s+)*/, '')),
   );
 }
 
@@ -264,21 +264,13 @@ async function installedLockfile(
   if (!manager || !committed.includes(MANAGER_LOCKFILES[manager]) || workflows.length > 64)
     return undefined;
   const installers = new Set<string>();
-  for (const path of workflows) {
-    let workflow;
-    try {
-      workflow = parseDocumentObject(
-        await readCommittedFile(snapshot, path, MAX_PACKAGE_BYTES),
-        path,
-      );
-    } catch {
-      return undefined;
-    }
-    for (const command of workflowCommands(workflow))
+  for (const path of workflows)
+    for (const command of workflowCommands(
+      await readCommittedFile(snapshot, path, MAX_PACKAGE_BYTES),
+    ))
       if (!/\s(?:-g|--global)(?:\s|$)/.test(command))
         for (const [name, pattern] of PROJECT_INSTALLS)
           if (pattern.test(command)) installers.add(name);
-  }
   return installers.size === 1 && installers.has(manager) ? MANAGER_LOCKFILES[manager] : undefined;
 }
 
