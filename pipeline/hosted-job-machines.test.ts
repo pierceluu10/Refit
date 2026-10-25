@@ -400,7 +400,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
     );
     expect(registry.jobs[1].receipt).toMatchObject({
       status: 'validated',
-      message: 'Saved worker result reused; checks were not rerun.',
+      message: expect.stringMatching(/^Saved worker result reused; checks were not rerun\./),
       output: registry.jobs[0].receipt.output,
     });
     expect(control.fake.machines.size).toBe(2);

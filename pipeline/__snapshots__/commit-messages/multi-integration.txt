@@ -1,8 +1,7 @@
 fix(stripe): migrate removed invoice.subscription reads
 
 Stripe API 2026-09-30.endive removes fields this code reads. A
-deterministic Refit rule migrates 1 confirmed usage in 1 file so the
-code keeps working after the upgrade.
+deterministic Refit rule migrates 1 confirmed usage in 1 file.
 
 - convex/stripe.ts: Migrates reads of invoice.subscription to the
   documented new locations. Moves the pinned API version from 2024-06-20
