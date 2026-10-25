@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -7,6 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { aiSafetyStop } from './migration-review.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
+import { readEvidence } from './state-files.ts';
 import { STRIPE_SDK_RELEASES } from './stripe-package-upgrade.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
@@ -439,10 +440,12 @@ async function run(shape: Shape, ai = false) {
         }
       : {}),
   });
-  const artifact = (name: string) =>
-    readFile(join(root, 'run', name), 'utf8').catch((error) => {
-      throw new Error(`${name} is missing: ${JSON.stringify(result.manifest)}`, { cause: error });
-    });
+  const artifact = async (name: string) => {
+    const content = await readEvidence(join(root, 'run'), name);
+    if (content === undefined)
+      throw new Error(`${name} is missing: ${JSON.stringify(result.manifest)}`);
+    return content;
+  };
   const report = JSON.parse(await artifact('report.json'));
   return {
     inputs,
