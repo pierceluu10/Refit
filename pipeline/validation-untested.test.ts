@@ -123,7 +123,14 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
         reasons: ['Only an npm package-lock.json records the stripe closure Refit installs.'],
       },
     });
-    expect(report.validation).not.toHaveProperty('behaviourTestWriter');
+    // No request is built; the writer's record says why.
+    expect(report.validation).toMatchObject({
+      behaviourTestWriter: {
+        status: 'skipped',
+        reason:
+          'Dependencies could not be prepared, and the changed Stripe code cannot run on stripe alone: Only an npm package-lock.json records the stripe closure Refit installs.',
+      },
+    });
     expect(fetcher).not.toHaveBeenCalled();
   },
 );
