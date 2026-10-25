@@ -5,6 +5,9 @@ Refit opened this draft for review instead of stopping (owner decision 1). **Don
 - Refit asked an AI model for this patch. Checks that pass do not show that it keeps what the code does. **Check:** Read each AI-written line listed under Why this needs review as you would a teammate’s.
   - None: every changed line comes from a Refit rule.
 - Webhook payload reads require separate incoming API-version and migration-policy review. **Check:** Set the webhook endpoint API version to `2026-09-30.endive` when you deploy, or confirm it already is.
+- Refit cannot trace which API version the code listed here sends, or cannot move it without moving a webhook endpoint too, so the patch leaves it unchanged. Refit compared the `2023-10-16` contract with `2026-09-30.endive`; if this code sends another version, what needs migrating can differ. **Check:** Set each version listed here to `2026-09-30.endive` where its value comes from, and check what this code needs for the version it sends now.
+  - `convex/stripe.ts:28`
+  - `convex/stripe.ts:49`
 
 ## Webhook API version not verified
 
@@ -93,6 +96,7 @@ New file `convex/stripe-subscription-period.ts`; see Files changed.
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
 - [ ] Set the webhook endpoint API version to `2026-09-30.endive` when you deploy, or confirm it already is.
 - [ ] Read each AI-written line listed under Why this needs review as you would a teammate’s.
+- [ ] Set each version listed here to `2026-09-30.endive` where its value comes from, and check what this code needs for the version it sends now.
 - [ ] Migrate the 1 usage Refit left unmigrated.
 - [ ] Confirm the selected item is the one whose period this code needs when items bill on different periods (see Key Changes).
 - [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.

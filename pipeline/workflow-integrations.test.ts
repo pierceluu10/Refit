@@ -10,6 +10,7 @@ import {
   parseWorkflowConfigurations,
   readWorkflowConfiguration,
 } from './workflow-configuration.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const bin = resolve('bin/refit.mjs');
@@ -158,12 +159,12 @@ it('executes selected CLI scans from outside the checkout without mixing provide
         ),
       ).rejects.toMatchObject({ code: 2 });
       const manifest = JSON.parse(await readFile(join(output, 'manifest.json'), 'utf8'));
-      const scan = JSON.parse(await readFile(join(output, 'scan.json'), 'utf8'));
+      const scan = JSON.parse((await readEvidence(output, 'scan.json'))!);
       expect(manifest).toMatchObject({ integration, status: 'needs-review', stage: 'scan' });
       expect(scan.provider).toBe(integration === 'stripe' ? 'stripe' : 'catalog-example');
-      expect(manifest.files.some(({ path }: { path: string }) => path === 'report.json')).toBe(
-        false,
-      );
+      expect(
+        manifest.files.some(({ path }: { path: string }) => path.startsWith('report.json')),
+      ).toBe(false);
     }),
     (async () => {
       await expect(

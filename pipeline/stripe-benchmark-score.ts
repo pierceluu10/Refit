@@ -1,9 +1,9 @@
-import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { splitRows } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
+import { readEvidence } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 
 // Scores benchmark findings against the hand-checked Stripe ground truth.
@@ -190,15 +190,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       totals[level].fn += score[level].falseNegatives;
     }
     // The run's own report keeps the whole diff; results.json truncates it.
-    const report = join(
-      dirname(values.results),
-      'repos',
-      labelled.repo.replace('/', '__'),
-      'run',
+    const report = await readEvidence(
+      join(dirname(values.results), 'repos', labelled.repo.replace('/', '__'), 'run'),
       'report.json',
     );
-    const diff = existsSync(report)
-      ? (JSON.parse(await readFile(report, 'utf8')) as { patch?: { diff?: string } }).patch?.diff
+    const diff = report
+      ? (JSON.parse(report) as { patch?: { diff?: string } }).patch?.diff
       : undefined;
     const { outcome, reason } = repositoryOutcome(
       labelled,
