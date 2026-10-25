@@ -32,6 +32,7 @@ import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
+  PERIOD_HELPERS,
   HELPER_GLOBALS,
   HELPER_NAMES,
   subscriptionPeriodHelperEdit,

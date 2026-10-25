@@ -160,9 +160,9 @@ it('reads the periods the type check rejected through the version-tolerant helpe
     { rareCase: 'flagged' },
     { rareCase: 'flagged' },
   ]);
-  expect(result.patched).toContain(
-    "import { getSubscriptionPeriodStart, getSubscriptionPeriodEnd } from './stripeSubscriptionPeriod';",
-  );
+  // The helpers are written into the file that calls them.
+  expect(result.patched).toContain('function getSubscriptionPeriodStart(');
+  expect(result.patched).toContain('function getSubscriptionPeriodEnd(');
   expect(result.patched).toContain(
     '    current_period_start: (getSubscriptionPeriodStart(subscription)),\n    current_period_end: (getSubscriptionPeriodEnd(subscription)),',
   );
@@ -186,8 +186,9 @@ it('moves only the reads the type check rejected', () => {
 it('imports the helper after a "use server" directive and keeps the arithmetic', () => {
   const result = analyze(action, readsOf(action, 'route.ts', 'subscription.current_period_end'));
   expect(result.findings.filter((finding) => finding.typeChecked)).toHaveLength(1);
-  expect(result.patched.startsWith(`"use server";\n\nimport Stripe from "stripe";\nimport {`)).toBe(
-    true,
+  expect(result.patched.startsWith(`"use server";\n\nimport Stripe from "stripe";\n`)).toBe(true);
+  expect(result.patched.indexOf('function getSubscriptionPeriodEnd(')).toBeGreaterThan(
+    result.patched.indexOf('import Stripe from "stripe";'),
   );
   expect(result.patched).toContain(
     'const nextPaymentDate = new Date((getSubscriptionPeriodEnd(subscription)) * 1000);',
@@ -311,9 +312,7 @@ it('proposes the type-checked reads with the version bump and says so in the dra
     "+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-03-31.basil' });",
   );
   expect(diff).toContain('+    current_period_end: (getSubscriptionPeriodEnd(subscription)),');
-  expect(diff).toContain(
-    'diff --git "a/stripeSubscriptionPeriod.ts" "b/stripeSubscriptionPeriod.ts"',
-  );
+  expect(diff).toContain('+function getSubscriptionPeriodEnd(');
   if (!('diff' in report.patch)) throw new Error('Expected a patch');
   const draft = createReviewArtifacts({
     ...report,
