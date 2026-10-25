@@ -257,8 +257,9 @@ async function watchLocalOnce(
         revision,
         repositoryHash: scan.repository.hash,
         adapter: provider,
-        // A new release is a new target even when the changes Refit maps are the same: its draft
-        // replaces the older one (pipeline/publication.ts).
+        // A new release is a new target even when the changes Refit maps are the same: it gets its
+        // own draft (draftKey in pipeline/publication.ts). The older draft closes only with
+        // --supersede-drafts.
         apiVersion: {
           application: scan.apiVersion.application,
           before: scan.apiVersion.before,
