@@ -9,7 +9,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { reserveAiBudget } from './ai-budget.ts';
 import { authenticateGitHubRead } from './github-app.ts';
 import { runHostedService } from './hosted-service.ts';
-import { hostedTargetId, openHostedStore } from './hosted-store.ts';
+import { aiLedger, aiTotalLedger, hostedTargetId, openHostedStore } from './hosted-store.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   hostedTenancy,
@@ -158,11 +158,13 @@ it('reads allowed accounts from REFIT_HOSTED_ACCOUNTS, defaulting to REFIT_HOSTE
       REFIT_HOSTED_ACCOUNTS: 'Example, first-customer,example\nsecond',
       REFIT_HOSTED_DAILY_JOBS: '20',
       REFIT_HOSTED_DAILY_INVENTORIES: '3',
+      REFIT_HOSTED_INSTALLATION_JOBS: ' 4 ',
     }),
   ).toEqual({
     accounts: ['example', 'first-customer', 'second'],
-    limits: { dailyJobs: 20, dailyInventories: 3 },
+    limits: { dailyJobs: 20, dailyInventories: 3, installationJobs: 4 },
   });
+  expect(DEFAULT_TENANCY_LIMITS.installationJobs).toBe(1);
   for (const environment of [
     {},
     { REFIT_HOSTED_OWNER: 'example', REFIT_HOSTED_ACCOUNTS: '' },
@@ -171,9 +173,10 @@ it('reads allowed accounts from REFIT_HOSTED_ACCOUNTS, defaulting to REFIT_HOSTE
   ])
     expect(() => hostedTenancy(environment)).toThrow('REFIT_HOSTED_ACCOUNTS');
   for (const value of ['0', '-1', '1.5', 'ten', '100001', ''])
-    expect(() =>
-      hostedTenancy({ REFIT_HOSTED_OWNER: 'example', REFIT_HOSTED_DAILY_JOBS: value }),
-    ).toThrow('REFIT_HOSTED_DAILY_JOBS must be a whole number from 1 to 100000.');
+    for (const name of ['REFIT_HOSTED_DAILY_JOBS', 'REFIT_HOSTED_INSTALLATION_JOBS'])
+      expect(() => hostedTenancy({ REFIT_HOSTED_OWNER: 'example', [name]: value })).toThrow(
+        `${name} must be a whole number from 1 to 100000.`,
+      );
 });
 
 it.skipIf(!DATABASE)(
@@ -398,6 +401,55 @@ it.skipIf(!DATABASE)(
 );
 
 it.skipIf(!DATABASE)(
+  'runs up to REFIT_HOSTED_INSTALLATION_JOBS jobs of one installation at once, across workers and concurrent claims',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(pool, tenancy(['example'], { installationJobs: 2 }));
+    const repositories = ['example/a', 'example/b', 'example/c', 'example/d'];
+    for (const repository of repositories)
+      await store.approve(approval(repository), 'octo-reviewer');
+    expect((await install(store, 10, 'example', repositories)).enrolled).toHaveLength(4);
+
+    // Claims race from four connections; the claim lock lets exactly two through.
+    const claims = await Promise.all(
+      ['worker-a', 'worker-b', 'worker-c', 'worker-d'].map(async (worker) => ({
+        worker,
+        claimed: await store.claim(worker, 30),
+      })),
+    );
+    const running = claims.filter(({ claimed }) => claimed);
+    expect(running).toHaveLength(2);
+    expect(new Set(running.map(({ claimed }) => claimed!.target.repository)).size).toBe(2);
+    expect(await store.claim('worker-e', 30)).toBeNull();
+    let registry = await store.read();
+    expect(registry.installations[0].refusals).toEqual([TENANCY_REFUSALS.jobRunning]);
+    expect(registry.jobs.map((job) => [job.status, job.waiting])).toEqual(
+      expect.arrayContaining([
+        ['running', null],
+        ['queued', TENANCY_REFUSALS.jobRunning],
+      ]),
+    );
+    expect(registry.jobs.filter((job) => job.status === 'queued')).toHaveLength(2);
+
+    // A finished job frees its slot for the third.
+    await finish(store, running[0].claimed!.job, running[0].worker);
+    const third = await store.claim('worker-e', 30);
+    expect(third?.target.installationId).toBe(10);
+    expect(await store.claim('worker-f', 30)).toBeNull();
+
+    // A job whose lease expired no longer holds a slot.
+    await pool.query(
+      `UPDATE refit_jobs SET lease_expires_at = now() - interval '1 second' WHERE id = $1`,
+      [third!.job],
+    );
+    registry = await store.read();
+    expect(registry.installations[0].refusals).toEqual([]);
+    expect(await store.claim('worker-f', 30)).not.toBeNull();
+  },
+  30_000,
+);
+
+it.skipIf(!DATABASE)(
   'caps jobs and inventories per installation per UTC day with named refusals in status',
   async () => {
     const pool = await database();
@@ -474,7 +526,7 @@ it.skipIf(!DATABASE)(
     const budget = (installationId: number, legacyFile?: string) => ({
       directory,
       limitUsd: 0.05,
-      ledger: store.aiLedger(installationId, legacyFile),
+      ledger: aiLedger(pool, installationId, legacyFile),
     });
     const reserve = (installationId: number, legacyFile?: string) =>
       reserveAiBudget(budget(installationId, legacyFile), MODEL, 1000, 4096);
@@ -548,8 +600,8 @@ it.skipIf(!DATABASE)(
         {
           directory,
           limitUsd,
-          ledger: store.aiLedger(1),
-          parent: { directory, limitUsd: totalUsd, ledger: store.aiTotalLedger() },
+          ledger: aiLedger(pool, 1),
+          parent: { directory, limitUsd: totalUsd, ledger: aiTotalLedger(pool) },
         },
         MODEL,
         1000,
@@ -633,8 +685,8 @@ it.skipIf(!DATABASE)(
         {
           directory,
           limitUsd: 0.05,
-          ledger: store.aiLedger(installationId),
-          parent: { directory, limitUsd: 0.06, ledger: store.aiTotalLedger() },
+          ledger: aiLedger(pool, installationId),
+          parent: { directory, limitUsd: 0.06, ledger: aiTotalLedger(pool) },
         },
         MODEL,
         1000,

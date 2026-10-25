@@ -44,13 +44,13 @@ const HARDENING = [
   '--pids-limit',
   '128',
   '--memory',
-  '3g',
+  '5g',
   '--cpus',
   '1',
   '--ulimit',
   'core=0',
   '--tmpfs',
-  '/workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700',
+  '/workspace:rw,exec,size=4g,uid=65534,gid=65534,mode=0700',
   '--tmpfs',
   '/tmp:rw,noexec,size=64m,mode=1777',
 ];
@@ -145,7 +145,7 @@ it('gives dependency preparation the registry network and its own deadline, noth
     command: ['sh', '-c', 'npm ci'],
     network: 'bridge',
     timeoutMs: 300_000,
-    preparation: { workspace: '2g', memory: '3g' },
+    preparation: { workspace: '4g', memory: '5g' },
   });
   expect(args.slice(0, 5)).toEqual([
     'run',

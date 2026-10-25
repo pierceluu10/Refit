@@ -127,7 +127,7 @@ export const discountCoupon = (discount: Stripe.Discount) => discount.coupon.id;
   ]);
   // Four reads, the helper module and its import; the percent_off read keeps its finding unedited.
   expect(result.edits.filter((edit) => edit.rule === 'stripe-coupon-id-helper')).toHaveLength(6);
-  expect(result.patched).toContain("import { getCouponId } from './stripe-subscription-period';");
+  expect(result.patched).toContain("import { getCouponId } from './stripeSubscriptionPeriod';");
   expect(result.patched).toContain('coupon: (getCouponId(promotion_code)),');
   expect(result.patched).toContain(
     'return [(getCouponId(promoCode)), promoCode.coupon.percent_off, (promoCode == null ? undefined : getCouponId(promoCode))];',
