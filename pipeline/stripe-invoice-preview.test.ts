@@ -266,11 +266,12 @@ const stripe = new Stripe('sk', { apiVersion: '2025-02-24.acacia' });
 export const preview = (customer, subscription) => stripe.invoices.retrieveUpcoming({ customer, subscription });
 `,
   );
-  // No lockfile: the stripe-node upgrade cannot be prepared, so the rewrite is not kept.
+  // Only a bun lockfile: the stripe-node upgrade cannot be prepared, so the rewrite is not kept.
   await writeFile(
     join(root, 'package.json'),
     JSON.stringify({ dependencies: { stripe: '17.7.0' } }),
   );
+  await writeFile(join(root, 'bun.lockb'), '');
   await writeFile(
     join(root, 'provider.json'),
     JSON.stringify({

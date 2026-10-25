@@ -1753,6 +1753,126 @@
       }
     },
     {
+      "repo": "deifos/picturemeai_nextjs",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, lib/stripe.ts apiVersion 2025-10-29.clover to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "none. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe 19.2.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check."
+      }
+    },
+    {
+      "repo": "minhthuong031103/RealEstateBrokerageMarket",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 2 payment_method_types: ['card'] sites renamed (a Checkout Session and a vnd PaymentIntent route); webhook period reads through the helper, invoice.subscription only inside the invoice.payment_succeeded branch, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/lib/stripe.ts apiVersion 2023-08-16 to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "2 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^13.9.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 2 listed findings are checked."
+      }
+    },
+    {
+      "repo": "Harries/startfast-free",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed; one webhook current_period_end read through getSubscriptionPeriodEnd, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/lib/stripe.ts apiVersion 2024-12-18.acacia to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "none. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^17.0.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check."
+      }
+    },
+    {
+      "repo": "MikPoik/next13-ai-companion",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 3 Checkout Session payment_method_types: ['card'] sites renamed; webhook period reads and invoice.subscription (invoice.payment_succeeded branch) through the helpers, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, lib/stripe.ts apiVersion 2024-10-28.acacia to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "none. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe 17.3.1 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check."
+      }
+    },
+    {
+      "repo": "szymontex/donata",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: ['blik', 'p24', 'card'] moved to allowed_payment_method_types with the same methods (keep-listed; the draft names blik and p24), the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/server.ts apiVersion 2024-12-18.acacia to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "1 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^17.5.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 1 listed findings are checked."
+      }
+    },
+    {
+      "repo": "r0ld3x/DocTalk",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: ['card', 'paypal'] moved to allowed_payment_method_types (keep-listed; the draft names paypal); webhook period reads and invoice.subscription inside the invoice.payment_succeeded branch through the helpers, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, src/lib/stripe.ts apiVersion 2023-10-16 to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "4 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^14.22.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 4 listed findings are checked."
+      }
+    },
+    {
+      "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed; three webhook current_period_end reads through getSubscriptionPeriodEnd, the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, lib/stripe.ts apiVersion 2023-10-16 to 2026-09-30.endive, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "15 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^14.12.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 15 listed findings are checked."
+      }
+    },
+    {
+      "repo": "aionarae/amazon-beta",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] renamed (server/schemas/resolvers.js), the endive replacement in https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions (read 2026-10-25).",
+        "bothVersions": "request parameters are sent at the version the same patch moves to; the helper reads return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the renamed keys, the client sets no apiVersion, so the stripe-node upgrade moves the version, the generated helper where listed, and the stripe dependency.",
+        "pleaseCheck": "2 findings left unchanged and listed in the draft; not read one by one here. Not validated: with no lockfile the benchmark configures no checks and preparation needs a lockfile.",
+        "upgradeComplete": "yes: stripe ^16.6.0 to exactly 23.0.0 in package.json only. The draft says npm install resolves the rest of the tree at install time, unchecked.",
+        "wouldMerge": "yes, after npm install and the project's own type check, once the 2 listed findings are checked."
+      }
+    },
+    {
       "repo": "cesarolvr/journeylog-app",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40149082713 (before, bench/l3-upgrade-base f0cac93) and 40150074779 (after, fix/l3-upgrade-two-lockfiles 022d871), docs/benchmarks/subsets/l3-upgrade-two-lockfiles.json, --keep-listed-payment-methods on both. Before: scan stop (removed request parameter). After: patch written, validation stops at preparation (two lockfiles), so the artifact has no migration.patch; the same patch was produced by runPipeline at 022d871 on the pinned clone and read in full, lockfiles included",

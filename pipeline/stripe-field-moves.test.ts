@@ -843,6 +843,9 @@ async function run(
     join(root, 'package.json'),
     JSON.stringify({ name: 'app', dependencies: { stripe: '16.0.0' } }),
   );
+  // Refit never upgrades stripe-node beside a bun lockfile, so these patches stay the field moves
+  // and need no registry; stripe-package-upgrade.test.ts covers the upgrade.
+  await writeFile(join(root, 'bun.lockb'), '');
   const contract = (after: boolean) => ({
     openapi: '3.0.3',
     info: {
