@@ -7,6 +7,7 @@ import {
   targetReached,
 } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
+import type { BehaviourTestWriter } from './behaviour-test-writer.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -179,6 +180,7 @@ export async function runWorkflow(options: {
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
+  behaviourTestWriter?: BehaviourTestWriter;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -398,6 +400,9 @@ export async function runWorkflow(options: {
         compareTypeErrors: options.compareTypeErrors,
         assessment: options.assessment,
         aiPatch: options.aiPatch,
+        // shortcut: the retry without the API-version move writes no behaviour tests, so it never
+        // pays for a second identical request; reuse the first run's tests if that retry needs grade A.
+        behaviourTestWriter: keepApiVersion ? undefined : options.behaviourTestWriter,
         documentationSnapshots: options.documentationSnapshots,
         repairAttempts: options.repairAttempts,
         leaveReviewedFindings: allowUnresolved,

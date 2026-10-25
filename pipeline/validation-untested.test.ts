@@ -22,6 +22,7 @@ const roots: string[] = [];
 
 afterEach(async () => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -111,3 +112,37 @@ it('records how long each validation stage took', async () => {
   for (const milliseconds of Object.values(report.validation.timings ?? {}))
     expect(Number.isInteger(milliseconds) && milliseconds >= 0).toBe(true);
 });
+
+it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
+  'records why the changed modules cannot run on stripe alone when preparation is refused, with no model request',
+  async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    vi.mocked(prepareDependencies).mockRejectedValue(
+      new PipelineInputError(
+        'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
+      ),
+    );
+    const input = await options();
+    const behaviourTestWriter = { apiKey: 'test-key', model: 'gpt-6.1-sol' };
+    // billing.ts imports only stripe, but there is no package-lock.json to take stripe's closure from.
+    const report = await validateMigration({ ...input, behaviourTestWriter });
+    expect(report.validation).toMatchObject({
+      status: 'untested',
+      dependencyFailure: { reason: 'lockfile-out-of-sync' },
+      stripeOnly: {
+        status: 'not-preparable',
+        reasons: ['Only an npm package-lock.json records the stripe closure Refit installs.'],
+      },
+    });
+    // No request is built; the writer's record says why.
+    expect(report.validation).toMatchObject({
+      behaviourTestWriter: {
+        status: 'skipped',
+        reason:
+          'Dependencies could not be prepared, and the changed Stripe code cannot run on stripe alone: Only an npm package-lock.json records the stripe closure Refit installs.',
+      },
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+  },
+);

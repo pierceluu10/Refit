@@ -83,6 +83,12 @@ import {
   ungradedEvidence,
 } from './check-selection.ts';
 import {
+  behaviourTestSkip,
+  writeBehaviourTests,
+  type BehaviourTestWriter,
+} from './behaviour-test-writer.ts';
+import { stripeOnlyImports, stripeOnlyProject } from './dependency-stripe-only.ts';
+import {
   dockerSandboxArguments,
   preparationProfile,
   removeDockerContainer,
@@ -554,6 +560,82 @@ async function prepareCandidateDependencies(
   return { dependencies, environment: await snapshotDependencies(prepared, dependencies) };
 }
 
+// When the repository's dependencies cannot be prepared, the changed Stripe modules may still load
+// with only the stripe package: each side gets stripe and the closure its own lockfile records
+// (the locked version on the original side, the patch's on the patched side), installed with the
+// lockfile's integrity and scripts off by the same preparation, then run offline.
+async function stripeOnlyDependencies(options: {
+  root: string;
+  image: string;
+  original: { directory: string; repository: Repository };
+  patched: { directory: string; repository: Repository };
+  findings: readonly Pick<Finding, 'file'>[];
+  signal?: AbortSignal;
+  onProgress?: (message: string) => void;
+}) {
+  const changed = changedStripeLines(
+    options.original.repository,
+    options.patched.repository,
+    options.findings,
+  );
+  const reasons = [
+    ...new Set([
+      ...stripeOnlyImports(options.original.repository, Object.keys(changed.original)),
+      ...stripeOnlyImports(options.patched.repository, Object.keys(changed.patched)),
+    ]),
+  ];
+  if (reasons.length) return { record: { status: 'not-loadable' as const, reasons } };
+  const projects = [];
+  for (const side of ['original', 'patched'] as const) {
+    const lockfile = await readFile(
+      join(options[side].directory, 'package-lock.json'),
+      'utf8',
+    ).catch(() => undefined);
+    const project = lockfile
+      ? stripeOnlyProject(lockfile)
+      : { reason: 'Only an npm package-lock.json records the stripe closure Refit installs.' };
+    if ('reason' in project)
+      return { record: { status: 'not-preparable' as const, reasons: [project.reason] } };
+    projects.push(project);
+  }
+  try {
+    const archives: string[] = [];
+    for (const [index, project] of projects.entries()) {
+      // A patch that keeps the lockfile installs the same closure on both sides.
+      if (index === 1 && JSON.stringify(project) === JSON.stringify(projects[0])) {
+        archives.push(archives[0]);
+        continue;
+      }
+      const directory = await sandboxInput(options.root, `stripe-only-${index}-`);
+      await writeFile(join(directory, 'package.json'), `${JSON.stringify(project.manifest)}\n`);
+      await writeFile(
+        join(directory, 'package-lock.json'),
+        `${JSON.stringify(project.lockfile)}\n`,
+      );
+      archives.push(
+        (await prepareCandidateDependencies(directory, options.root, options.image, options))
+          .dependencies,
+      );
+    }
+    return {
+      record: {
+        status: 'prepared' as const,
+        versions: { original: projects[0].version, patched: projects[1].version },
+        integrity: { original: projects[0].integrity, patched: projects[1].integrity },
+      },
+      dependencies: { original: archives[0], patched: archives[1] },
+    };
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    return {
+      record: {
+        status: 'refused' as const,
+        reasons: [error instanceof Error ? error.message : String(error)],
+      },
+    };
+  }
+}
+
 function typeCheckComparison(
   baselineRun: CheckResult,
   compareTypeErrors?: boolean,
@@ -903,6 +985,9 @@ export async function validateMigration(options: {
   // Behaviour tests (refit-behaviour/<name>.test.mjs) to run on both sides once the checks pass;
   // they need generatedChecks' stripe-mock image and fixtures. See runBehaviourTests.
   behaviourTests?: BehaviourTest[];
+  // --write-behaviour-tests: without behaviourTests, one model request writes them from the
+  // original code (behaviour-test-writer.ts); --write-behaviour-tests-dry-run only builds it.
+  behaviourTestWriter?: BehaviourTestWriter;
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
   keepApiVersion?: boolean;
@@ -1051,7 +1136,11 @@ export async function validateMigration(options: {
           }),
         );
       } catch (error) {
-        dependencyFailure = options.recordUntested ? preparationFailure(error) : undefined;
+        // Behaviour tests may still run with only stripe installed (stripeOnlyDependencies).
+        dependencyFailure =
+          options.recordUntested || options.behaviourTestWriter
+            ? preparationFailure(error)
+            : undefined;
         if (!dependencyFailure) throw error;
         options.onProgress?.(`Dependency preparation failed: ${dependencyFailure.summary}`);
       }
@@ -1286,6 +1375,9 @@ export async function validateMigration(options: {
     let proposal = report.patch;
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
+    // Behaviour tests need it too, even where the repository's own baseline failed or timed out.
+    const behaviourWanted = Boolean(options.behaviourTestWriter || options.behaviourTests?.length);
+    let candidateFailure: string | undefined;
     const initialCandidate =
       baseline.status === 'passed' ||
       dependencyFailure ||
@@ -1294,7 +1386,16 @@ export async function validateMigration(options: {
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
             : prepareCandidate(proposal.diff, originalSources, report, undefined, true))
-        : undefined;
+        : behaviourWanted && proposal.diff
+          ? // Built only for behaviour tests: a failure blocks them, never the validation.
+            await prepareCandidate(proposal.diff, originalSources, report).catch(
+              (error: unknown) => {
+                options.signal?.throwIfAborted();
+                candidateFailure = error instanceof Error ? error.message : String(error);
+                return undefined;
+              },
+            )
+          : undefined;
     // The patched lockfile could not be installed, so the patch is written but never checked.
     dependencyFailure ??= initialCandidate?.dependencyFailure;
     let publicationFiles = initialCandidate?.publicationFiles ?? [];
@@ -1942,15 +2043,54 @@ export async function validateMigration(options: {
         generated = await generatedFor();
       }
     }
+    const stripeOnly =
+      dependencyFailure && candidateDirectory && candidateSources && behaviourWanted
+        ? await timed('stripeOnlyPreparation', () =>
+            stripeOnlyDependencies({
+              root,
+              image,
+              original: { directory: baselineDirectory, repository: originalSources },
+              patched: { directory: candidateDirectory!, repository: candidateSources! },
+              findings: report.findings,
+              signal: options.signal,
+              onProgress: options.onProgress,
+            }),
+          )
+        : undefined;
+    // Behaviour tests run on every patched copy whose code can load, whether or not the
+    // repository's own checks ran, except where the patched checks failed: that patch is never
+    // published.
+    const behaviourBlocked =
+      !candidateDirectory || !candidateSources
+        ? `No patched copy of the repository was built${candidateFailure ? `: ${candidateFailure}` : '.'}`
+        : baseline.status === 'passed' && patched.status === 'failed'
+          ? 'The patched checks failed, so the patch is not published.'
+          : dependencyFailure && !stripeOnly?.dependencies
+            ? `Dependencies could not be prepared, and the changed Stripe code cannot run on stripe alone: ${stripeOnly?.record.reasons?.join(' ') ?? 'no candidate.'}`
+            : undefined;
+    // Written from the original code and the preflight scan, which ran before any patch existed.
+    const written =
+      options.behaviourTestWriter && !options.behaviourTests
+        ? behaviourBlocked
+          ? { record: behaviourTestSkip(options.behaviourTestWriter, behaviourBlocked), files: [] }
+          : await timed('behaviourTestWriter', () =>
+              writeBehaviourTests({
+                repository: originalSources,
+                findings: preflight.findings,
+                changes: preflight.changes,
+                removals: requestRemovals,
+                before: beforeSpecification,
+                after: afterSpecification,
+                ai: options.behaviourTestWriter!,
+              }),
+            )
+        : undefined;
+    const behaviourTests = options.behaviourTests ?? written?.files;
     const behaviour =
-      options.behaviourTests?.length &&
-      candidateDirectory &&
-      candidateSources &&
-      baseline.status === 'passed' &&
-      patched.status === 'passed'
+      behaviourTests?.length && !behaviourBlocked
         ? await timed('behaviourTests', () =>
             behaviourEvidence({
-              tests: options.behaviourTests!,
+              tests: behaviourTests,
               settings: options.generatedChecks,
               image,
               root,
@@ -1958,13 +2098,14 @@ export async function validateMigration(options: {
                 directory: baselineDirectory,
                 contract: options.before,
                 repository: originalSources,
-                dependencies,
+                dependencies: stripeOnly?.dependencies?.original ?? dependencies,
               },
               patched: {
                 directory: candidateDirectory!,
                 contract: options.after,
                 repository: candidateSources!,
-                dependencies: candidateDependencies ?? dependencies,
+                dependencies:
+                  stripeOnly?.dependencies?.patched ?? candidateDependencies ?? dependencies,
               },
               findings: report.findings,
               sandbox,
@@ -1979,7 +2120,9 @@ export async function validateMigration(options: {
       currentRevision !== revision || currentStatus
         ? 'stale'
         : dependencyFailure
-          ? 'untested'
+          ? behaviour?.regressions.length
+            ? 'regression'
+            : 'untested'
           : checkStatus(baseline, patched, generated, behaviour);
     const failures = checkFailures(
       baselineCommand,
@@ -2014,9 +2157,13 @@ export async function validateMigration(options: {
     const ownChecksPassed = baseline.status === 'passed' && patched.status === 'passed';
     // Every outcome is graded: without passing checks the patch is grade D, saying which check
     // failed or why none ran, so a [Needs review] draft can state it; tests broken before the
-    // patch leave the type check as the evidence.
+    // patch leave the type check as the evidence. Behaviour tests that give grade A count on
+    // their own, also where the baseline failed, errored or could not be prepared: a broken check
+    // never vetoes a correct patch. A regression is never graded A.
+    const behaviourA =
+      behaviour?.grade === 'A' && !['stale', 'regression'].includes(validationStatus);
     const ownGrade =
-      (validationStatus === 'passed' || ownChecksPassed) && candidateSources
+      (validationStatus === 'passed' || ownChecksPassed || behaviourA) && candidateSources
         ? await gradeEvidence({
             repository: candidateSources,
             command: options.command,
@@ -2093,6 +2240,8 @@ export async function validateMigration(options: {
         : {}),
       patched,
       ...(generated ? { generated } : {}),
+      ...(stripeOnly ? { stripeOnly: stripeOnly.record } : {}),
+      ...(written ? { behaviourTestWriter: written.record } : {}),
       ...(behaviour ? { behaviour } : {}),
       ...(grade ? { grade } : {}),
       attempts,

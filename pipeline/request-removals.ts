@@ -72,7 +72,7 @@ export function local(value: unknown, document: Record<string, unknown>) {
 
 // The schema of the single request body media type, or undefined when the body is absent, has
 // several media types or is not a plain object schema.
-function bodySchema(operation: Record<string, unknown>, document: Record<string, unknown>) {
+export function bodySchema(operation: Record<string, unknown>, document: Record<string, unknown>) {
   const body = local(operation.requestBody, document);
   const content = body && isObject(body.content) ? Object.values(body.content) : [];
   if (content.length !== 1 || !isObject(content[0])) return undefined;

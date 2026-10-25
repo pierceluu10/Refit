@@ -33,6 +33,7 @@ import {
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { validationProfile } from './docker-sandbox.ts';
 import { AiPolicyStop } from './ai-patches.ts';
+import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import {
   publicationConfiguration,
@@ -47,7 +48,7 @@ import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -71,6 +72,12 @@ const { values } = parseArgs({
     output: { type: 'string' },
     env: { type: 'string' },
     ai: { type: 'boolean' },
+    // Writes behaviour tests during validation with one model request per repository; it needs
+    // --env with OPENAI_API_KEY and OPENAI_MODEL and never turns on AI patches.
+    'behaviour-tests': { type: 'boolean' },
+    // Builds each behaviour-test request without sending it, and records per repository whether
+    // the real run would send it, why not, and its estimated tokens and cost. No key needed.
+    'behaviour-tests-dry-run': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -98,6 +105,17 @@ if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
 }
+if (values['behaviour-tests'] && (!values.env || !values.validate))
+  throw new PipelineInputError(
+    '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
+  );
+// Fails before any repository runs when the key or model is missing.
+if (values['behaviour-tests']) assessmentConfiguration(true, process.env);
+if (values['behaviour-tests-dry-run'] && (!values.validate || values['behaviour-tests']))
+  throw new PipelineInputError(
+    '--behaviour-tests-dry-run needs --validate and replaces --behaviour-tests.',
+  );
+const writer = values['behaviour-tests'] || values['behaviour-tests-dry-run'];
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
@@ -157,7 +175,7 @@ const { rows: previous } = await openRunDirectory(
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
       // Rows may then carry baseline results an earlier run recorded (workflow.baselineReused).
       'REFIT_BASELINE_CHECK_CACHE_DIRECTORY',
-      ...(values.ai ? ['OPENAI_MODEL'] : []),
+      ...(values.ai || writer ? ['OPENAI_MODEL'] : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty,
@@ -505,6 +523,11 @@ async function benchmark(entry: Selected, index: number) {
                   '1',
                 ]
               : []),
+            ...(values['behaviour-tests']
+              ? ['--write-behaviour-tests']
+              : values['behaviour-tests-dry-run']
+                ? ['--write-behaviour-tests-dry-run']
+                : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
@@ -558,6 +581,8 @@ async function benchmark(entry: Selected, index: number) {
       ...(report.validation?.baselineReused ? { baselineReused: true } : {}),
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,
+      behaviourTestWriter: report.validation?.behaviourTestWriter,
+      stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
       baselineStop: report.validation?.baselineStop?.reason,
@@ -716,6 +741,36 @@ async function benchmark(entry: Selected, index: number) {
     log(`AI ${String((result.ai as { outcome: string }).outcome)}`);
   }
 }
+// A row the writer never reached says why, so a dry run accounts for every repository.
+function writerSkip(row: Record<string, unknown>) {
+  const workflow = row.workflow as Record<string, unknown> | undefined;
+  if (workflow?.behaviourTestWriter) return;
+  const confirmed = (row.fullAdapter as { confirmed?: number } | undefined)?.confirmed;
+  const reason = row.infrastructure
+    ? 'The repository could not be cloned.'
+    : row.read !== 'ok'
+      ? 'Refit could not read the repository.'
+      : row.scanCrash
+        ? 'The scanner crashed.'
+        : !row.mappedMethods
+          ? 'No Stripe method is mapped.'
+          : !confirmed
+            ? 'No confirmed finding.'
+            : workflow?.stage === 'scan'
+              ? `The workflow stops at the scan: ${String(workflow.reason)}`
+              : workflow
+                ? `Validation ended before behaviour tests: ${String(workflow.error ?? workflow.reason ?? workflow.status)}`
+                : row.checks === 'none'
+                  ? 'There is no root lockfile that declares stripe, so validation does not run.'
+                  : 'There is no test script or type check, so validation does not run.';
+  const record = behaviourTestSkip(
+    values['behaviour-tests-dry-run'] ? { model: DRY_RUN_MODEL, dryRun: true } : undefined,
+    reason,
+  );
+  if (workflow) workflow.behaviourTestWriter = record;
+  else row.behaviourTestWriter = record;
+}
+
 // Repositories are independent; each validation container may use up to 3 GiB, so keep this
 // within the Docker host's memory (2 on an 8 GiB host).
 const concurrency = Math.max(1, Number(values.concurrency ?? 1));
@@ -739,6 +794,7 @@ await Promise.all(
       // Timed here so early returns (not affected, unreadable) are measured too.
       const started = Date.now();
       await benchmark(entry, index);
+      if (writer) writerSkip(results[index]);
       results[index].seconds = Math.round((Date.now() - started) / 1000);
       Object.assign(results[index], classifyRow('stripe-results', results[index]));
       await writeFile(join(output, 'results.json'), json(results));

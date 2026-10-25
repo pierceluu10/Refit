@@ -661,3 +661,126 @@ it('makes folders mounted into the sandbox readable by its unprivileged user', a
   expect(directory.startsWith(join(root, 'candidate-'))).toBe(true);
   expect((await stat(directory)).mode & 0o777).toBe(0o755);
 });
+
+it.skipIf(!IMAGE)(
+  'writes behaviour tests during validation from the original code, never the patch, after both checks pass',
+  async () => {
+    const root = await repository();
+    const test = `import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { history } from '../billing.js';
+test('returns the charge history', async () => {
+  assert.equal((await history('pi_test')).length, 2);
+});
+`;
+    const fetcher = vi.fn(async (url: string, _init?: RequestInit) =>
+      url.endsWith('/input_tokens')
+        ? new Response(JSON.stringify({ input_tokens: 3000 }))
+        : new Response(
+            JSON.stringify({
+              id: 'resp_behaviour',
+              model: 'gpt-6.1-sol',
+              status: 'completed',
+              usage: { input_tokens: 3000, output_tokens: 2000 },
+              output: [
+                {
+                  type: 'message',
+                  role: 'assistant',
+                  content: [
+                    {
+                      type: 'output_text',
+                      text: JSON.stringify({
+                        summary: 'One test.',
+                        uncertainties: [],
+                        files: [
+                          {
+                            path: 'refit-behaviour/history.test.mjs',
+                            content: test,
+                            findingIds: ['f1'],
+                          },
+                        ],
+                      }),
+                    },
+                  ],
+                },
+              ],
+            }),
+          ),
+    );
+    vi.stubGlobal('fetch', fetcher);
+    // The ledger lives outside the repository, which must stay clean for the result to count.
+    const ledger = await mkdtemp(join(tmpdir(), 'refit-behaviour-budget-'));
+    directories.push(ledger);
+    const report = await validateMigration({
+      ...options,
+      repository: root,
+      command: ['node', '--version'],
+      behaviourTestWriter: {
+        apiKey: 'test-key',
+        model: 'gpt-6.1-sol',
+        budget: { directory: ledger, limitUsd: 1 },
+      },
+    });
+    expect(report.validation.status).toBe('passed');
+    expect(report.validation.behaviourTestWriter).toMatchObject({
+      status: 'generated',
+      files: [{ path: 'refit-behaviour/history.test.mjs', sha256: digest(test) }],
+    });
+    // The written files reach the harness, which needs the stripe-mock settings this run lacks.
+    expect(report.validation.behaviour).toMatchObject({
+      status: 'unavailable',
+      grade: null,
+      tests: [{ path: 'refit-behaviour/history.test.mjs', sha256: digest(test) }],
+    });
+    const sent = fetcher.mock.calls.find(([url]) => !url.endsWith('/input_tokens'))!;
+    const evidence = JSON.parse(JSON.parse(String(sent[1]!.body)).input[0].content);
+    expect(evidence.files).toEqual([{ path: 'billing.js', content: SOURCE }]);
+    expect(JSON.stringify(evidence)).not.toContain(report.patch.diff);
+    expect(fetcher.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'))).toHaveLength(1);
+  },
+  60_000,
+);
+
+it.skipIf(!IMAGE)(
+  'writes behaviour tests where the baseline fails, never where the patched checks fail',
+  async () => {
+    const root = await repository();
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const behaviourTestWriter = { model: 'gpt-6.1-sol', dryRun: true as const };
+    // A broken baseline no longer hides the patch from behaviour tests; the patched checks are
+    // not run against a suite that already fails.
+    const broken = await validateMigration({
+      ...options,
+      repository: root,
+      command: ['node', '-e', 'process.exit(8)'],
+      behaviourTestWriter,
+    });
+    expect(broken.validation).toMatchObject({
+      status: 'baseline-failed',
+      patched: { status: 'not-run' },
+      behaviourTestWriter: { status: 'dry-run', wouldRun: true, findings: 1 },
+    });
+    // A patch whose checks ran and failed is never published, so nothing is written for it.
+    const regression = await validateMigration({
+      ...options,
+      repository: root,
+      command: [
+        'node',
+        '-e',
+        "process.exit(require('fs').readFileSync('billing.js','utf8').includes('return intent.charges.data') ? 0 : 7)",
+      ],
+      behaviourTestWriter,
+    });
+    expect(regression.validation).toMatchObject({
+      status: 'regression',
+      behaviourTestWriter: {
+        status: 'dry-run',
+        wouldRun: false,
+        reason: 'The patched checks failed, so the patch is not published.',
+      },
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+  },
+  60_000,
+);
