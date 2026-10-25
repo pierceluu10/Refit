@@ -384,12 +384,13 @@ it('writes nothing to GitHub for a release the code does not use, and keeps one 
   await poll();
   quiet();
 
-  // The customer starts sending a card and a wallet. Endive removes the parameter, and only a list
-  // of exactly ['card'] moves without review, so every poll from here is the same stop.
+  // The customer starts taking in-person card payments. Endive removes the parameter, and an
+  // in-person method never moves without review (owner decision 2 moves every other value), so
+  // every poll from here is the same stop.
   await push(
     'billing.js',
-    `${CLIENT}\nexport const checkout = () =>\n  stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ['card', 'link'] });\n`,
-    'feat: wallets',
+    `${CLIENT}\nexport const checkout = () =>\n  stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ['card_present'] });\n`,
+    'feat: in-person payments',
   );
   await publish('after', ENDIVE, 'allowed_payment_method_types');
   const stop = await poll();
@@ -402,7 +403,7 @@ it('writes nothing to GitHub for a release the code does not use, and keeps one 
     ...stop,
     message: `Saved worker result reused; checks were not rerun. That run recorded: ${stop.message}`,
   });
-  await push('README.md', 'Billing and wallets\n', 'docs: readme');
+  await push('README.md', 'Billing and in-person payments\n', 'docs: readme');
   expect(await poll()).toMatchObject({ status: 'needs-review', message: stop.message });
   quiet();
 }, 60_000);
