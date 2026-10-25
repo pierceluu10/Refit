@@ -186,7 +186,7 @@ export async function gradeEvidence(options: {
   repository: Repository;
   command: readonly string[];
   changedFiles: readonly string[];
-  generated?: { entryPoints: unknown[]; notRunnable: unknown[]; patched: { status: string } };
+  generated?: { status: string; ran: number };
 }): Promise<EvidenceGrade> {
   const { scripts } = await manifestScripts(options.repository.root);
   const kinds = checkKinds(options.command, scripts);
@@ -211,8 +211,9 @@ export async function gradeEvidence(options: {
       };
   }
   const generated = options.generated;
-  const ran = generated ? generated.entryPoints.length - generated.notRunnable.length : 0;
-  if (generated?.patched.status === 'passed' && ran > 0)
+  // Only functions that ran on both sides count; an unavailable generated check adds nothing.
+  const ran = generated?.status === 'passed' ? generated.ran : 0;
+  if (ran > 0)
     return {
       level: 'generated-check',
       reason: `Only the generated stripe-mock checks ran changed code (${ran} exported ${ran === 1 ? 'function' : 'functions'}); ${command} reaches none of it.`,

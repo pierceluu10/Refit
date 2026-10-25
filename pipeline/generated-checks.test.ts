@@ -16,6 +16,7 @@ import {
   writeHarness,
 } from './generated-checks.ts';
 import { readRepository } from './repository.ts';
+import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 import { parseWorkflowConfiguration } from './workflow-configuration.ts';
 import type { Finding } from './types.ts';
 import { digest } from './specifications.ts';
@@ -102,9 +103,10 @@ it('selects exported functions with placeholder-friendly parameters and counts t
 });
 
 it('runs the harness through the bundled TypeScript compiler without type stripping', () => {
-  const command = generatedCommand().join(' ');
+  const command = generatedCommand('after').join(' ');
   expect(command).not.toContain('strip-types');
   expect(command).toContain('--import /refit/generated/redirect.mjs');
+  expect(command).toContain('REFIT_GENERATED_SIDE=after');
   expect(typescriptDirectory()).toMatch(/typescript-compiler$/);
 });
 
@@ -174,6 +176,7 @@ it('redirects Stripe SDK requests to the local mock with a test key and records 
     const broken = await run('broken');
     expect(generatedResults(broken.stdout).get('src/billing.mjs#broken')).toEqual({
       ok: false,
+      phase: 'call',
       error: expect.stringContaining('Cannot read properties of undefined'),
     });
   } finally {
@@ -217,43 +220,174 @@ it('parses generated checks only with all three settings and resolves fixture pa
     ).toThrow('generatedChecks requires');
 });
 
-it('excludes functions that cannot run on the original code and gates only regressions', () => {
-  const entries = ['a', 'b', 'c'].map((name) => ({ file: 'x.js', name, parameters: 1 }));
-  const output = (results: Record<string, boolean>) => ({
-    status: 'passed' as const,
-    exitCode: 0,
+// Harness output: one result line per entry, then the completion marker unless `done` is false.
+type Result = { ok: boolean; phase?: 'load' | 'call' | 'timeout'; error?: string };
+const harnessOutput = (results: Record<string, Result>, done = true) => ({
+  status: 'passed' as const,
+  exitCode: 0,
+  stderr: '',
+  stdout: [
+    ...Object.entries(results).map(
+      ([id, result]) => `REFIT_GENERATED_RESULT=${JSON.stringify({ id, ...result })}`,
+    ),
+    ...(done ? ['REFIT_GENERATED_DONE'] : []),
+  ].join('\n'),
+});
+
+// Entry points of two benchmark repositories: emman-tt/tilios-backend at b554dcb083a0
+// (controller/payment/payment.js, an Express handler that reads req.user) and mahin67580/FoodieFrog
+// at e71211a9aa8a (src/app/api/checkout/route.js, Next.js route handlers that read the request).
+const HANDLER = 'controller/payment/payment.js#handlePayments';
+const ROUTE_POST = 'src/app/api/checkout/route.js#POST';
+const ROUTE_GET = 'src/app/api/checkout/route.js#GET';
+const ENTRIES = [
+  { file: 'controller/payment/payment.js', name: 'handlePayments', parameters: 3 },
+  { file: 'src/app/api/checkout/route.js', name: 'POST', parameters: 1 },
+  { file: 'src/app/api/checkout/route.js', name: 'GET', parameters: 1 },
+];
+
+it('reports a broken generated check as unavailable and never counts it against the patch', () => {
+  const ran = harnessOutput({
+    [HANDLER]: { ok: true },
+    [ROUTE_POST]: { ok: true },
+    [ROUTE_GET]: { ok: true },
+  });
+  // stripe-mock never listened: the harness throws before its first entry.
+  const noMock = compareGeneratedRuns(
+    ENTRIES,
+    {
+      status: 'failed',
+      exitCode: 1,
+      stdout: '',
+      stderr: [
+        'file:///refit/generated/harness.mjs:14',
+        "  if (attempt > 100) throw new Error('stripe-mock did not start');",
+        '                           ^',
+        '',
+        'Error: stripe-mock did not start',
+        '    at file:///refit/generated/harness.mjs:14:28',
+        '',
+        'Node.js v22.21.0',
+      ].join('\n'),
+    },
+    ran,
+  );
+  expect(noMock).toMatchObject({ status: 'unavailable', ran: 0, regressions: [] });
+  expect(noMock.reason).toBe(
+    'The before-version harness stopped before its last function (exit code 1): Error: stripe-mock did not start',
+  );
+  // The after-version container hit the time limit after every entry had passed before.
+  const timedOut = compareGeneratedRuns(ENTRIES, ran, {
+    status: 'error',
+    exitCode: null,
+    stdout: `REFIT_GENERATED_RESULT=${JSON.stringify({ id: HANDLER, ok: false, phase: 'call', error: 'TypeError: x' })}`,
     stderr: '',
-    stdout: Object.entries(results)
-      .map(
-        ([name, ok]) =>
-          `REFIT_GENERATED_RESULT=${JSON.stringify({ id: `x.js#${name}`, ok, ...(ok ? {} : { error: 'Error: database unavailable' }) })}`,
-      )
-      .join('\n'),
+    error: 'Check exceeded 120 seconds; the container was stopped.',
   });
-  const clean = compareGeneratedRuns(
-    entries,
-    output({ a: true, b: false, c: true }),
-    output({ a: true, b: false, c: true }),
-  );
-  expect(clean).toMatchObject({
-    notRunnable: [{ id: 'x.js#b', error: 'Error: database unavailable' }],
+  expect(timedOut).toMatchObject({
+    status: 'unavailable',
+    reason:
+      'The after-version run did not finish: Check exceeded 120 seconds; the container was stopped.',
     regressions: [],
-    baseline: { status: 'passed' },
-    patched: { status: 'passed' },
+    unavailableEntries: [],
   });
-  const regressed = compareGeneratedRuns(
-    entries,
-    output({ a: true, b: false, c: true }),
-    output({ a: true, b: true, c: false }),
+  // Application code ended the patched process after one function: no completion marker.
+  const exited = compareGeneratedRuns(
+    ENTRIES,
+    ran,
+    harnessOutput({ [HANDLER]: { ok: false, phase: 'call', error: 'TypeError: y' } }, false),
   );
-  expect(regressed.regressions).toEqual([{ id: 'x.js#c', error: 'Error: database unavailable' }]);
-  expect(regressed.patched.status).toBe('failed');
-  const crashed = compareGeneratedRuns(
-    entries,
-    { status: 'failed', exitCode: 1, stdout: '', stderr: 'stripe-mock did not start' },
-    output({ a: true, b: true, c: true }),
+  expect(exited).toMatchObject({ status: 'unavailable', regressions: [] });
+  expect(exited.reason).toBe(
+    'The after-version harness stopped before its last function (exit code 0).',
   );
-  expect(crashed.baseline.status).toBe('failed');
+});
+
+it('counts only a call that completed on the original code and threw on the patched code', () => {
+  const entries = [
+    ...ENTRIES,
+    { file: 'libs/supabaseAdmin.ts', name: 'manageSubscriptionStatusChange', parameters: 3 },
+    { file: 'libs/supabaseAdmin.ts', name: 'createOrRetrieveCustomer', parameters: 1 },
+  ];
+  const period = 'libs/supabaseAdmin.ts#manageSubscriptionStatusChange';
+  const customer = 'libs/supabaseAdmin.ts#createOrRetrieveCustomer';
+  const original = harnessOutput({
+    [HANDLER]: {
+      ok: false,
+      phase: 'call',
+      error: "TypeError: Cannot read properties of undefined (reading 'sub')",
+    },
+    [ROUTE_POST]: { ok: true },
+    [ROUTE_GET]: { ok: true },
+    [period]: { ok: true },
+    [customer]: { ok: true },
+  });
+  const patched = harnessOutput({
+    [HANDLER]: { ok: true },
+    [ROUTE_POST]: {
+      ok: false,
+      phase: 'load',
+      error: "Error: Cannot find module '/workspace/node_modules/stripe/esm/stripe.esm.node.js'",
+    },
+    [ROUTE_GET]: { ok: false, phase: 'timeout', error: 'Error: did not settle within 10 seconds' },
+    [period]: { ok: false, phase: 'call', error: 'RangeError: Invalid time value' },
+    [customer]: { ok: true },
+  });
+  expect(compareGeneratedRuns(entries, original, patched)).toMatchObject({
+    status: 'regression',
+    ran: 1,
+    notRunnable: [
+      {
+        id: HANDLER,
+        phase: 'call',
+        error: "TypeError: Cannot read properties of undefined (reading 'sub')",
+      },
+    ],
+    unavailableEntries: [
+      {
+        id: ROUTE_POST,
+        phase: 'load',
+        error: "Error: Cannot find module '/workspace/node_modules/stripe/esm/stripe.esm.node.js'",
+      },
+      { id: ROUTE_GET, phase: 'timeout', error: 'Error: did not settle within 10 seconds' },
+    ],
+    regressions: [{ id: period, phase: 'call', error: 'RangeError: Invalid time value' }],
+  });
+  // Without the throwing call, a load failure and a timeout on the patched side do not count.
+  const loadOnly = compareGeneratedRuns(
+    entries,
+    original,
+    harnessOutput({
+      [HANDLER]: { ok: true },
+      [ROUTE_POST]: { ok: false, phase: 'load', error: 'Error: Cannot find module' },
+      [ROUTE_GET]: { ok: false, phase: 'timeout', error: 'Error: did not settle' },
+      [period]: { ok: true },
+      [customer]: { ok: true },
+    }),
+  );
+  expect(loadOnly).toMatchObject({ status: 'passed', ran: 2, regressions: [] });
+  expect(loadOnly.unavailableEntries.map((entry) => entry.id)).toEqual([ROUTE_POST, ROUTE_GET]);
+  // Nothing ran on both sides: the check has no evidence either way.
+  const nothing = compareGeneratedRuns(
+    ENTRIES,
+    harnessOutput({
+      [HANDLER]: { ok: false, phase: 'call', error: 'TypeError: a' },
+      [ROUTE_POST]: {
+        ok: false,
+        phase: 'call',
+        error: 'TypeError: request.json is not a function',
+      },
+      [ROUTE_GET]: { ok: false, phase: 'call', error: 'TypeError: Invalid URL' },
+    }),
+    harnessOutput({}),
+  );
+  expect(nothing).toMatchObject({
+    status: 'not-runnable',
+    reason: 'None of the 3 exported functions ran on the original code in isolation.',
+    ran: 0,
+    regressions: [],
+  });
+  expect(compareGeneratedRuns([], harnessOutput({}), harnessOutput({})).status).toBe('not-run');
 });
 
 it('loads aliased, extensionless and type-only TypeScript imports through the resolved import map', async () => {
@@ -416,6 +550,175 @@ export async function POST() {
   expect(results.get('app/api/checkout/route.mjs#POST')).toEqual({ ok: true });
   expect(results.get('app/api/missing/route.mjs#GET')).toEqual({
     ok: false,
+    phase: 'load',
     error: expect.stringContaining("Cannot find module '"),
   });
+});
+
+// Reduced from adityayaduvanshi/Full-Stack-Music-Web-App at
+// 90e902f43863d09fc6451f8c7f50fed7c096bcc3: libs/supabaseAdmin.ts (manageSubscriptionStatusChange,
+// exported through an export list, without its Supabase reads and writes) and libs/helper.ts
+// (toDateTime, verbatim). The Stripe client is a stand-in with stripe-node's request pattern.
+const PERIOD_FILES = {
+  'libs/stripe.ts': `import https from 'node:https';
+const request = (path: string): Promise<any> => new Promise((resolve, reject) => {
+  const req = https.request({ host: 'api.stripe.com', port: 443, path, method: 'GET', agent: new https.Agent({ keepAlive: true }) });
+  req.on('response', (res) => { let data = ''; res.on('data', (c) => (data += c)); res.on('end', () => resolve(JSON.parse(data))); });
+  req.on('error', reject);
+  req.once('socket', (socket) => socket.once('secureConnect', () => req.end()));
+});
+export const stripe = { subscriptions: { retrieve: (id: string, _params?: object) => request('/v1/subscriptions/' + id) } };
+`,
+  'libs/helper.ts': `export const toDateTime = (secs: number) => {
+  var t = new Date('1970-01-01T00:30:00Z');
+  t.setSeconds(secs);
+  return t;
+};
+`,
+  'libs/supabaseAdmin.ts': `import { stripe } from './stripe';
+import { toDateTime } from './helper';
+
+const manageSubscriptionStatusChange = async (
+  subscriptionId: string,
+  customerId: string,
+  createAction = false
+) => {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ['default_payment_method'],
+  });
+
+  const subscriptionData = {
+    id: subscription.id,
+    current_period_start: toDateTime(
+      subscription.current_period_start
+    ).toISOString(),
+    current_period_end: toDateTime(
+      subscription.current_period_end
+    ).toISOString(),
+  };
+  return subscriptionData;
+};
+
+export { manageSubscriptionStatusChange };
+`,
+};
+
+// Refit's helper patch: the reads go through the generated module beside the file, imported
+// without an extension, as the analyzer writes it for TypeScript.
+const PERIOD_PATCHED = {
+  ...PERIOD_FILES,
+  'libs/supabaseAdmin.ts': PERIOD_FILES['libs/supabaseAdmin.ts']
+    .replace(
+      "import { toDateTime } from './helper';",
+      "import { toDateTime } from './helper';\nimport { getSubscriptionPeriodEnd, getSubscriptionPeriodStart } from './stripe-subscription-period';",
+    )
+    .replace('subscription.current_period_start', 'getSubscriptionPeriodStart(subscription)')
+    .replace('subscription.current_period_end', 'getSubscriptionPeriodEnd(subscription)'),
+  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts'),
+};
+
+it('loads a patch that adds the helper module and counts only a throwing call (simulated stripe-mock)', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-generated-sides-'));
+  roots.push(root);
+  const write = async (name: string, files: Record<string, string>) => {
+    for (const [path, content] of Object.entries(files)) {
+      await mkdir(dirname(join(root, name, path)), { recursive: true });
+      await writeFile(join(root, name, path), content);
+    }
+    return readRepository(join(root, name), 'stripe');
+  };
+  const original = await write('original', PERIOD_FILES);
+  const patched = await write('patched', PERIOD_PATCHED);
+  // A wrong patch: everything but the period reads moved (here, nothing), so they read the
+  // removed fields under the after version.
+  const wrong = await write('wrong', PERIOD_FILES);
+  const entries = [
+    { file: 'libs/supabaseAdmin.ts', name: 'manageSubscriptionStatusChange', parameters: 3 },
+  ];
+  // Stripe's subscription shape before and after basil moved the periods onto the items.
+  const shapes = {
+    before: {
+      id: 'sub_1',
+      current_period_start: 1700000000,
+      current_period_end: 1702592000,
+      items: { data: [{ id: 'si_1' }] },
+    },
+    after: {
+      id: 'sub_1',
+      items: {
+        data: [{ id: 'si_1', current_period_start: 1700000000, current_period_end: 1702592000 }],
+      },
+    },
+  };
+  let shape: keyof typeof shapes = 'before';
+  const server = createServer((_, response) => {
+    response.setHeader('Content-Type', 'application/json');
+    response.end(JSON.stringify(shapes[shape]));
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = String((server.address() as { port: number }).port);
+  const run = async (
+    side: 'before' | 'after',
+    repository: { root: string },
+    patchedImports: Record<string, Record<string, string>>,
+  ) => {
+    shape = side;
+    const tools = await mkdtemp(join(root, 'tools-'));
+    await writeHarness(tools, entries, generatedImportMap(original), patchedImports);
+    const { stdout } = await execute(
+      process.execPath,
+      ['--import', join(tools, 'redirect.mjs'), join(tools, 'harness.mjs')],
+      {
+        env: {
+          ...process.env,
+          REFIT_STRIPE_MOCK_PORT: port,
+          REFIT_GENERATED_ROOT: `${await realpath(repository.root)}/`,
+          REFIT_GENERATED_SIDE: side,
+          REFIT_TYPESCRIPT: join(typescriptDirectory(), 'lib', 'typescript.js'),
+        },
+        timeout: 10_000,
+      },
+    );
+    return { status: 'passed' as const, exitCode: 0, stdout, stderr: '' };
+  };
+  try {
+    const before = await run('before', original, generatedImportMap(patched));
+    expect(generatedResults(before.stdout).get(`${entries[0].file}#${entries[0].name}`)).toEqual({
+      ok: true,
+    });
+    const migrated = await run('after', patched, generatedImportMap(patched));
+    expect(compareGeneratedRuns(entries, before, migrated)).toMatchObject({
+      status: 'passed',
+      ran: 1,
+      regressions: [],
+    });
+    // The original side's import map has no entry for the added module, so the patched module
+    // did not load: before per-side maps, this counted as a regression of a correct patch.
+    const unmapped = await run('after', patched, generatedImportMap(original));
+    expect(compareGeneratedRuns(entries, before, unmapped)).toMatchObject({
+      status: 'not-runnable',
+      regressions: [],
+      unavailableEntries: [
+        {
+          id: 'libs/supabaseAdmin.ts#manageSubscriptionStatusChange',
+          phase: 'load',
+          error: expect.stringContaining('stripe-subscription-period'),
+        },
+      ],
+    });
+    const regressed = await run('after', wrong, generatedImportMap(wrong));
+    expect(compareGeneratedRuns(entries, before, regressed)).toMatchObject({
+      status: 'regression',
+      regressions: [
+        {
+          id: 'libs/supabaseAdmin.ts#manageSubscriptionStatusChange',
+          phase: 'call',
+          error: 'RangeError: Invalid time value',
+        },
+      ],
+    });
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
 });

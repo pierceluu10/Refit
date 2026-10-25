@@ -404,22 +404,18 @@ function typeCheckComparison(baselineRun: CheckResult, compareTypeErrors?: boole
   };
 }
 
-// A generated check with no runnable function is missing evidence, not a failure.
-const generatedFailed = (check?: CheckResult) =>
-  check !== undefined && !['passed', 'not-run'].includes(check.status);
-
+// A generated check changes the outcome only through a counted regression (compareGeneratedRuns);
+// a generated check that is broken or could not run is evidence that is missing, not a failure.
 function checkStatus(
   baseline: CheckResult,
   patched: CheckResult,
-  generated?: { baseline: CheckResult; patched: CheckResult },
+  generated?: { regressions: unknown[] },
 ) {
-  return [baseline, patched, generated?.baseline, generated?.patched].some(
-    (check) => check?.status === 'error',
-  )
+  return [baseline, patched].some((check) => check.status === 'error')
     ? ('error' as const)
-    : baseline.status !== 'passed' || generatedFailed(generated?.baseline)
+    : baseline.status !== 'passed'
       ? ('baseline-failed' as const)
-      : patched.status !== 'passed' || generatedFailed(generated?.patched)
+      : patched.status !== 'passed' || generated?.regressions.length
         ? ('regression' as const)
         : ('passed' as const);
 }
@@ -443,20 +439,67 @@ const validationLimits = () => ({
   memory: validationProfile().memory,
 });
 
+// A failed Docker command's own stderr, on one line, rather than execFile's "Command failed" text.
+const setupError = (error: unknown) =>
+  (
+    ((error as { stderr?: unknown }).stderr as string | undefined)?.trim() ||
+    (error instanceof Error ? error.message : String(error))
+  )
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, 500);
+
+const GENERATED_CLAIM =
+  "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests.";
+
 // Runs the enclosing exported functions of confirmed findings against stripe-mock serving each
-// side's pinned contract and fixtures, inside the same offline sandbox as configured checks.
+// side's pinned contract and fixtures, inside the same offline sandbox as configured checks. A
+// generated check that cannot be set up (no local stripe-mock image, a YAML contract, a Docker
+// failure) is reported as unavailable with its reason and never changes the outcome.
 async function generatedStripeChecks(options: {
   settings: GeneratedChecks;
   root: string;
   image: string;
   dependencies?: string;
-  entryPoints: ReturnType<typeof generatedEntryPoints>;
-  imports: ReturnType<typeof generatedImportMap>;
+  original: Awaited<ReturnType<typeof readRepository>>;
+  patched: Awaited<ReturnType<typeof readRepository>>;
+  findings: Parameters<typeof generatedEntryPoints>[1];
   runs: { directory: string; contract: string; side: 'before' | 'after'; dependencies?: string }[];
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
-  const { entries, uncovered } = options.entryPoints;
+  const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+  let entryPoints: ReturnType<typeof generatedEntryPoints> = { entries: [], uncovered: 0 };
+  try {
+    entryPoints = generatedEntryPoints(options.original, options.findings);
+    return await runGeneratedStripeChecks(options, entryPoints, notRun);
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    return {
+      engine: 'stripe-mock' as const,
+      status: 'unavailable' as const,
+      reason: `Generated checks could not be set up: ${setupError(error)}`,
+      entryPoints: entryPoints.entries,
+      uncoveredFindings: entryPoints.uncovered,
+      ran: 0,
+      notRunnable: [],
+      unavailableEntries: [],
+      regressions: [],
+      baseline: notRun,
+      patched: notRun,
+      claim: GENERATED_CLAIM,
+    };
+  }
+}
+
+async function runGeneratedStripeChecks(
+  options: Parameters<typeof generatedStripeChecks>[0],
+  entryPoints: ReturnType<typeof generatedEntryPoints>,
+  notRun: CheckResult,
+) {
+  const { entries, uncovered } = entryPoints;
   const tools = await sandboxInput(options.root, 'generated-');
   const mock = await extractStripeMock(options.settings.stripeMockImage, tools);
   const staged = (side: 'before' | 'after') => ({
@@ -489,8 +532,12 @@ async function generatedStripeChecks(options: {
       ),
     },
   };
-  await writeHarness(tools, entries, options.imports);
-  const notRun: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+  await writeHarness(
+    tools,
+    entries,
+    generatedImportMap(options.original),
+    generatedImportMap(options.patched),
+  );
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {
     if (!entries.length) return notRun;
@@ -500,7 +547,7 @@ async function generatedStripeChecks(options: {
     return containerCheck({
       directory: run.directory,
       image: options.image,
-      command: generatedCommand(),
+      command: generatedCommand(run.side),
       dependencies: run.dependencies ?? options.dependencies,
       readOnlyMounts: [
         { source: mock.binary, target: '/refit/stripe-mock' },
@@ -516,15 +563,14 @@ async function generatedStripeChecks(options: {
     ? await Promise.all(options.runs.map(generatedRun))
     : [await generatedRun(options.runs[0]), await generatedRun(options.runs[1])];
   return {
-    engine: 'stripe-mock',
+    engine: 'stripe-mock' as const,
     image: mock.imageId,
     binaryHash: mock.binaryHash,
     inputs: hashes,
     entryPoints: entries,
     uncoveredFindings: uncovered,
     ...compareGeneratedRuns(entries, results[0], results[1]),
-    claim:
-      "Exported functions enclosing confirmed findings ran against stripe-mock serving each side's contract and fixtures. Placeholder fixtures check response shapes, not business data or application tests.",
+    claim: GENERATED_CLAIM,
   };
 }
 
@@ -1191,6 +1237,7 @@ export async function validateMigration(options: {
     const generated =
       options.generatedChecks &&
       candidateDirectory &&
+      candidateSources &&
       baseline.status === 'passed' &&
       patched.status === 'passed'
         ? await timed('generatedChecks', () =>
@@ -1199,8 +1246,9 @@ export async function validateMigration(options: {
               root,
               image,
               dependencies,
-              entryPoints: generatedEntryPoints(originalSources, report.findings),
-              imports: generatedImportMap(originalSources),
+              original: originalSources,
+              patched: candidateSources,
+              findings: report.findings,
               runs: [
                 { directory: baselineDirectory, contract: options.before, side: 'before' },
                 {
@@ -1258,7 +1306,7 @@ export async function validateMigration(options: {
       repair,
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
-      ...checkFailures(baselineCommand, options.command, baseline, patched),
+      ...checkFailures(baselineCommand, options.command, baseline, patched, generated),
       ...(Object.keys(timings).length ? { timings } : {}),
       limits: validationLimits(),
       publishable: false,

@@ -195,11 +195,7 @@ it('grades what the passing checks proved about the changed files, strongest fir
       ...(generated === undefined
         ? {}
         : {
-            generated: {
-              entryPoints: Array.from({ length: 2 }),
-              notRunnable: Array.from({ length: 2 - generated }),
-              patched: { status: 'passed' },
-            },
+            generated: { status: generated ? 'passed' : 'not-runnable', ran: generated },
           }),
     });
   expect(await grade(['npm', 'test'], ['lib/validations/webhook.ts', 'package.json'])).toEqual({

@@ -50,16 +50,25 @@ export function checkFailureText(validation: {
     .join('');
 }
 
-// Every check of a validation that failed or did not finish.
+// Every check of a validation that failed or did not finish, including each generated function
+// that completed on the original code and threw on the patched code (the only generated result
+// that counts against a patch).
 export function checkFailures(
   baselineCommand: string[],
   command: string[],
   baseline: CheckResult,
   patched: CheckResult,
+  generated?: { regressions: { id: string; error: string }[] },
 ) {
   const failures = [
     checkFailure('baseline', baselineCommand, baseline),
     checkFailure('patched', command, patched),
+    ...(generated?.regressions ?? []).map((regression) => ({
+      side: 'patched' as const,
+      command: `${regression.id} (generated stripe-mock check, which completed on the original code)`,
+      status: 'failed' as const,
+      firstFailure: regression.error.slice(0, 300),
+    })),
   ].filter((failure) => failure !== undefined);
   return failures.length ? { checkFailures: failures } : {};
 }
