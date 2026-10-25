@@ -3,7 +3,6 @@ import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
 import { applySourceEdits } from './patches.ts';
 import type { ProviderAdapter } from './providers.ts';
-import type { RequestParameterRemoval } from './request-removals.ts';
 import { TEST_PATH } from './source-paths.ts';
 import {
   CHECKOUT_SHIPPING_HELPER,
@@ -204,11 +203,6 @@ interface RequestPath {
   line: number;
 }
 
-// A path with where it was sent: the call's position among the file's traced calls of the same
-// method, whether it is written inside the call expression itself rather than in a body followed
-// to its declaration, and a key's value without whitespace.
-type SentPath = RequestPath & { site: number; direct: boolean; value?: string };
-
 // The values a function body returns, not counting nested functions.
 function returnedValues(body: ts.ConciseBody) {
   if (!ts.isBlock(body)) return [body];
@@ -302,8 +296,7 @@ function requestPaths(
       call,
     ]),
   );
-  const paths: SentPath[] = [];
-  const sites = new Map<string, number>();
+  const paths: RequestPath[] = [];
   const visit = (node: ts.Node) => {
     const call = ts.isCallExpression(node) ? starts.get(node.getStart(source)) : undefined;
     // A chained call such as `.then()` starts at the same position; the method name picks the
@@ -315,23 +308,14 @@ function requestPaths(
       node.expression.name.text === call.method
     ) {
       const name = `${call.resource}.${call.method}`;
-      const site = sites.get(name) ?? 0;
-      sites.set(name, site + 1);
-      const add = (value: string, at: ts.Node, text?: string) =>
-        paths.push({
-          call: name,
-          path: value,
-          line: lineOf(source, at),
-          site,
-          direct: at.getStart(source) >= node.getStart(source) && at.getEnd() <= node.getEnd(),
-          ...(text === undefined ? {} : { value: text }),
-        });
+      const add = (value: string, at: ts.Node) =>
+        paths.push({ call: name, path: value, line: lineOf(source, at) });
       // Declarations already being followed, so a body that spreads itself ends.
       const following = new Set<ts.Node>();
       const key = (prefix: string, text: string) => (prefix ? `${prefix}.${text}` : text);
       const sentKey = (keyPath: string, value: ts.Expression | undefined, at: ts.Node) => {
         if (value && unset(value)) return add(`${keyPath}${UNSET}`, at);
-        add(keyPath, at, (value ?? at).getText(source).replace(/\s+/g, ''));
+        add(keyPath, at);
         if (value) sent(value, keyPath);
       };
       // The bodies an expression names: a variable's initializer and its later keys, or what a
@@ -423,110 +407,37 @@ function requestPaths(
   return paths;
 }
 
-const CARD_PRESENT = /(["'`])card_present\1/;
 const inside = (inner: RequestPath, outer: RequestPath) =>
   inner.call === outer.call &&
   inner.path.length > outer.path.length &&
   inner.path.startsWith(outer.path) &&
   '=.['.includes(inner.path[outer.path.length]);
 
-// Lost paths of removed parameters that the same call now sends under their documented
-// replacement (request-removals.ts) with the same value: `payment_method_types` as
-// `allowed_payment_method_types`, `features` as `marketing_features`, `coupon` as
-// `promotion: { type: 'coupon', coupon }`. Only a key written in the call expression itself moves,
-// and never a value naming `card_present`: the owner keeps both for review
-// (docs/STRIPE-PAYMENT-METHOD-TYPES.md). Each replacement found is taken out of `added`.
-function movedToReplacement(
-  lost: SentPath[],
-  added: SentPath[],
-  removals: RequestParameterRemoval[],
-) {
-  const moved = new Set<SentPath>();
-  const take = (from: SentPath, path: string, value?: string) => {
-    const index = added.findIndex(
-      (entry) =>
-        entry.call === from.call &&
-        entry.site === from.site &&
-        entry.path === path &&
-        (value === undefined || (entry.direct && entry.value === value)),
-    );
-    if (index >= 0) added.splice(index, 1);
-    return index >= 0;
-  };
-  for (const key of lost) {
-    const removal = removals.find(
-      (entry) =>
-        `${entry.resource}.${entry.method}` === key.call &&
-        key.path ===
-          `${entry.argumentIndex ? `argument ${entry.argumentIndex + 1}.` : ''}${entry.parameter}`,
-    );
-    const target =
-      removal?.cardReplacement ??
-      (removal?.move === 'promotion' ? 'promotion.coupon' : removal?.move);
-    if (
-      !removal ||
-      !target ||
-      !key.direct ||
-      key.value === undefined ||
-      CARD_PRESENT.test(key.value)
-    )
-      continue;
-    const prefix = key.path.slice(0, -removal.parameter.length);
-    if (
-      removal.move === 'promotion' &&
-      !added.some(
-        (entry) =>
-          entry.call === key.call &&
-          entry.site === key.site &&
-          entry.path === `${prefix}promotion.type='coupon'`,
-      )
-    )
-      continue;
-    if (!take(key, `${prefix}${target}`, key.value)) continue;
-    moved.add(key);
-    for (const inner of lost)
-      if (
-        inner.site === key.site &&
-        inside(inner, key) &&
-        take(inner, `${prefix}${target}${inner.path.slice(key.path.length)}`)
-      )
-        moved.add(inner);
-  }
-  return moved;
-}
-
 // Request parameters, arguments and literal values a traced SDK call sends in the rules' code and
 // no longer sends in the AI's code, counted per file and method so moved or reordered calls still
 // match, and keys the AI's code newly unsets, such as one overriding a spread with `undefined`. A
-// removed parameter that the same call now sends under its documented replacement is not dropped.
-// A dropped path inside another dropped path, such as the value of a dropped key, is left out of
-// the result.
+// dropped path inside another dropped path, such as the value of a dropped key, is left out of
+// the result. A removed parameter moved to its documented replacement still counts: the owner
+// keeps that move to the deterministic rules (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
 export function droppedRequestPaths(
   before: Repository,
   after: Repository,
   files: Set<string>,
   provider: ProviderAdapter,
-  removals: RequestParameterRemoval[] = [],
 ) {
   const beforeCalls = analyzeRepository(before, [], provider).sdkCalls;
   const afterCalls = analyzeRepository(after, [], provider).sdkCalls;
   const dropped: (RequestPath & { file: string })[] = [];
   for (const file of files) {
     const remaining = requestPaths(after, file, afterCalls);
-    const lost: SentPath[] = [];
     for (const sent of requestPaths(before, file, beforeCalls)) {
       const index = remaining.findIndex(
         (candidate) => candidate.call === sent.call && candidate.path === sent.path,
       );
       if (index >= 0) remaining.splice(index, 1);
-      else lost.push(sent);
+      else dropped.push({ ...sent, file });
     }
-    const moved = movedToReplacement(lost, remaining, removals);
-    for (const { call, path, line } of [
-      ...lost.filter((entry) => !moved.has(entry)),
-      ...remaining.filter((added) => added.path.endsWith(UNSET)),
-    ])
-      dropped.push({ call, path, line, file });
+    for (const added of remaining) if (added.path.endsWith(UNSET)) dropped.push({ ...added, file });
   }
   return dropped.filter(
     (entry) =>

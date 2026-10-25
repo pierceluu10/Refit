@@ -351,8 +351,7 @@ export async function proposeAiPatch(
   // a deterministic proposal rather than `deterministicEdits`). `targets`, positioned in `files`,
   // replace the rescan of them: the only findings, besides type errors, the model may resolve.
   candidate?: { files: Repository['files']; rules?: Repository['files']; targets?: Finding[] },
-  // The contract's removed request parameters: one may move to its documented replacement in the
-  // same call. Repairs pass none, so validation's own check refuses any move there too.
+  // The contract's removed request parameters: calls that still send one stay unresolved.
   requestRemovals: RequestParameterRemoval[] = [],
 ) {
   // Type-error findings already point into the rule-patched code, so rules never cover them.
@@ -563,7 +562,7 @@ export async function proposeAiPatch(
       'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
       proposal(),
     );
-  const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider, requestRemovals);
+  const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider);
   if (dropped.length)
     throw new AiPolicyStop(
       `AI patch drops or changes ${dropped.map((entry) => `${entry.path} from ${entry.call} (${entry.file}:${entry.line})`).join(', ')}; removing or replacing what a request sends changes its behavior, so it stops for review.`,
