@@ -118,6 +118,15 @@ Examples from the rerun, as the branch now words them:
 - `bichsonnhat/cognito`: `Validation does not accept submodules; server/facefusion is one.`
 - `App-4-Dat-LLC/LandLORDER-rp`: `It has no package record for the root project; regenerate it with npm install.`
 
+## Lockfile drift (Push 279)
+
+`npm ci` itself installs the committed lockfile when a declaration's range changed but the locked version still satisfies it, when a declaration moved between sections, and when one was removed (npm prunes it). Refit's own check is stricter and refuses all three. Of these, only the first is drift Refit could accept without changing what validation claims: the installed tree is exactly the committed, integrity-checked lockfile, and package.json accepts every version in it. No repository of the Push 279 set has only that drift, so it is not built. Every drift refusal there keeps refusing:
+
+- A declaration the lockfile never locked (`Amarnath0077/industrialstore-main`, `LDAWoo/webprodigies-plura`, `piyush805/miro-clone`): installing would resolve a version nobody committed, for two of them the Stripe SDK itself.
+- A locked version outside the declared range (`ArhanAnsari/InspireGem` declares next 15.0.3 and locks 15.0.1; `SergeySharipov/ai-companion-saas` declares 15.3.6 and locks 15.3.0): the owner moved off the locked release, and `npm ci` refuses it too.
+- Locked packages the manifest no longer declares (`eka0789/evofuture`, behind its gitlink): `npm ci` would prune them, but O2 classified this refusal as correct, so it stays.
+- A pnpm specifier change (`Suhaib3100/online-compiler`): `pnpm install --frozen-lockfile` refuses any specifier change.
+
 ## Needs owner decision
 
 - **Yarn 1 preparation space.** Decided by owner decision 3 (2026-10-24, Push 279): preparation and validation default to the 4 GiB profile (#303). Under it all five Yarn 1 repositories of the Push 279 set that ran out of the 2 GiB workspace prepare (refit-bench run 40142158182). Yarn 1 fetches every package its lockfile records, other platforms' optional binaries included, before it reads their `os` and `cpu` fields, so no install flag avoids that download; under the smaller `2g` profile they still run out of space.
