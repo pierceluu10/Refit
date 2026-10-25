@@ -130,6 +130,10 @@ export async function invoiceSubscription(id) {
 export async function broken(id) {
   throw new TypeError('Cannot read properties of undefined (reading id) for ' + id);
 }
+// supabase-js throws its error as a plain object.
+export async function plainObject(id) {
+  throw { message: 'TypeError: fetch failed', details: id, hint: '', code: '' };
+}
 `;
 
 it('redirects Stripe SDK requests to the local mock with a test key and records thrown errors', async () => {
@@ -179,6 +183,15 @@ it('redirects Stripe SDK requests to the local mock with a test key and records 
       ok: false,
       phase: 'call',
       error: expect.stringContaining('Cannot read properties of undefined'),
+    });
+    await rm(tools, { recursive: true });
+    await mkdir(tools);
+    const plain = await run('plainObject');
+    expect(generatedResults(plain.stdout).get('src/billing.mjs#plainObject')).toEqual({
+      ok: false,
+      phase: 'call',
+      error:
+        '{"message":"TypeError: fetch failed","details":"refit_placeholder_1","hint":"","code":""}',
     });
   } finally {
     server.closeAllConnections();

@@ -195,6 +195,10 @@ export function lineCoverage(path: string, content: string, lines: number[], pro
 // line for a test file that failed before its tests ran, and each test's path of suite names.
 const REPORTER = `import { relative } from 'node:path';
 const stacks = new Map();
+const describe = (error) => {
+  if (error instanceof Error || typeof error !== 'object' || error === null) return String(error);
+  try { return JSON.stringify(error) ?? String(error); } catch { return String(error); }
+};
 export default async function* reporter(source) {
   for await (const { type, data } of source) {
     const file = data?.file ? relative(process.cwd(), data.file) : undefined;
@@ -220,7 +224,7 @@ export default async function* reporter(source) {
       ok: type === 'test:pass',
       ...(data.skip ? { skip: true } : {}),
       ...(data.todo ? { todo: true } : {}),
-      ...(type === 'test:fail' ? { phase, error: String(error?.cause ?? error?.message ?? error).slice(0, 500) } : {}),
+      ...(type === 'test:fail' ? { phase, error: describe(error?.cause ?? error?.message ?? error).slice(0, 500) } : {}),
     }) + '\\n';
   }
 }
