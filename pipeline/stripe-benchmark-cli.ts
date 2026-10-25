@@ -39,6 +39,7 @@ import {
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const USAGE =
@@ -510,9 +511,7 @@ async function benchmark(entry: Selected, index: number) {
     const outcome = stop
       ? { status: 'needs-review', stage: 'scan', reason: stop }
       : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
-    const report = stop
-      ? {}
-      : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
+    const report = stop ? {} : JSON.parse((await readEvidence(bundle, 'report.json')) ?? '{}');
     const generated = report.validation?.generated;
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',

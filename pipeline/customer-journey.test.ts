@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { devNull, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -17,6 +17,7 @@ import {
   inspectRepositoryEnrollment,
 } from './repository-enrollment.ts';
 import { verifyArtifacts } from './verification.ts';
+import { readEvidence } from './state-files.ts';
 
 vi.mock('node:child_process', async (original) =>
   (await import('./fixtures/fake-github-git.ts')).throughFakeGitHub(await original()),
@@ -232,7 +233,7 @@ const finished = (registry: any, count: number) =>
   registry.jobs.every((candidate: any) => candidate.status === 'finished');
 
 async function expectValidated(output: string) {
-  const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
+  const report = JSON.parse((await readEvidence(output, 'report.json'))!);
   expect(report.patch.generator).toBe('deterministic');
   expect(report.validation.baseline.status).toBe('passed');
   expect(report.validation.patched.status).toBe('passed');
