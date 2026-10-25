@@ -1064,8 +1064,12 @@ export function createReviewArtifacts(
       ...(unusedChanges.length
         ? [
             '## Changed, Not Used By Traced Code',
+            `${unusedChanges.length} contract change${unusedChanges.length === 1 ? '' : 's'} no traced code reaches.`,
+            // Collapsed: a full comparison can list dozens, which would bury the sections below.
+            `<details>\n<summary>Show the ${unusedChanges.length === 1 ? 'change' : `${unusedChanges.length} changes`}</summary>`,
             'The target contract changes these parts in a breaking way. No traced call sends them and no read of them was found, a kept rule edit rewrites them, or reading them is unaffected, so they do not hold back this change. Each line gives the reason.',
             siteList(unusedChanges, siteLimit),
+            '</details>',
           ]
         : []),
       '## Not Verified',

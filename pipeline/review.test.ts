@@ -733,11 +733,52 @@ it('lists breaking contract changes the reach gate let through, with their paths
     ],
   };
   const body = createReviewArtifacts(value).files['pull-request.md'];
-  expect(body).toContain('## Changed, Not Used By Traced Code');
+  expect(body).toContain(
+    '## Changed, Not Used By Traced Code\n\n1 contract change no traced code reaches.\n\n<details>\n<summary>Show the change</summary>\n\nThe target contract changes these parts',
+  );
   expect(body).toContain(
     '- `POST /v1/checkout/sessions` removed the request property \\`line\\_items/items/dynamic\\_tax\\_rates\\`: No traced \\`checkout.sessions.create\\` call sends \\`line\\_items/items/dynamic\\_tax\\_rates\\`.',
   );
   // A reached change blocks instead, and a non-breaking change is not listed.
   expect(body).not.toContain('payment\\_method\\_types\\`: The');
   expect(body).not.toContain('/v1/charges');
+});
+
+// A Checkout-only app such as nabarvn/documon never calls Payment Intents or Setup Intents, so the
+// endive removals of their payment_method_types parameter (changelog read 2026-10-25) reach nothing.
+it('collapses the unreached contract changes under a count', async () => {
+  const value = await report();
+  const removals = [
+    'POST /v1/payment_intents',
+    'POST /v1/payment_intents/{intent}',
+    'POST /v1/payment_intents/{intent}/confirm',
+    'POST /v1/setup_intents',
+    'POST /v1/setup_intents/{intent}',
+  ].map((operation) => ({
+    id: 'request-property-removed',
+    level: 3,
+    operation: operation.split(' ')[0],
+    path: operation.split(' ')[1],
+    text: 'removed the request property `payment_method_types`',
+    reach: 'unused',
+    reachReason: 'No traced call sends `payment_method_types` to this operation.',
+  }));
+  value.specificationDiff = {
+    engine: 'oasdiff',
+    version: 'oasdiff 1.33.0',
+    coverage: 'Full oasdiff changelog.',
+    changes: removals,
+  };
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  const section = body.slice(
+    body.indexOf('## Changed, Not Used By Traced Code'),
+    body.indexOf('## Not Verified'),
+  );
+  expect(section).toMatch(
+    /^## Changed, Not Used By Traced Code\n\n5 contract changes no traced code reaches\.\n\n<details>\n<summary>Show the 5 changes<\/summary>\n\n/,
+  );
+  // Every listed change sits inside the collapsed block, which closes before the next section.
+  expect(section.trimEnd().endsWith('</details>')).toBe(true);
+  expect(section.slice(section.indexOf('<details>')).match(/^- /gm)).toHaveLength(5);
+  expect(section.slice(0, section.indexOf('<details>'))).not.toContain('- ');
 });
