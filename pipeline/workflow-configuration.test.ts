@@ -5,6 +5,7 @@ import { join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -49,7 +50,7 @@ it('loads strict policy and respects an explicit CLI override without execution 
         { cwd: tmpdir() },
       ),
     ).rejects.toMatchObject({ code: 2 });
-    const scan = JSON.parse(await readFile(join(output, 'scan.json'), 'utf8'));
+    const scan = JSON.parse((await readEvidence(output, 'scan.json'))!);
     expect(scan.apiVersion.policy).toBe(policy);
     expect(scan.apiVersion.source.status).toBe('unknown');
     expect(scan.apiVersion.applicability).toBe(
@@ -139,12 +140,14 @@ it('lets an explicit CLI API version override configuration and records after-ve
       resolve(fixture, 'after.json'),
       '--api-version',
       '2022-11-15',
+      // Keeps the version mismatch a stop; by default it joins a draft's review reasons.
+      '--publish-validated-only',
       '--output',
       join(root, 'evidence'),
     ]),
   ).rejects.toMatchObject({ code: 2, stdout: expect.stringContaining('needs-review') });
   expect(
-    JSON.parse(await readFile(join(root, 'evidence/scan.json'), 'utf8')).apiVersion,
+    JSON.parse((await readEvidence(join(root, 'evidence'), 'scan.json'))!).apiVersion,
   ).toMatchObject({ application: '2022-11-15', applicability: 'matches-after' });
 });
 
@@ -216,6 +219,33 @@ it('requires explicit publication and complete app configuration before starting
   await expect(execute(process.execPath, arguments_)).rejects.toMatchObject({
     code: 1,
     stderr: expect.stringContaining('require --publish-draft'),
+  });
+  await expect(
+    execute(process.execPath, [...arguments_.slice(0, -1), '--supersede-drafts']),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('--supersede-drafts require --publish-draft'),
+  });
+  const publish = ['--publish-draft', '--github', 'example/application', '--base', 'main'];
+  await expect(
+    execute(process.execPath, [...arguments_.slice(0, -1), ...publish, '--supersede-drafts']),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('--supersede-drafts requires --github-app.'),
+  });
+  await expect(
+    execute(process.execPath, [
+      bin,
+      'serve',
+      '--config',
+      path,
+      '--state',
+      join(root, 'state'),
+      '--supersede-drafts',
+    ]),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: expect.stringContaining('--supersede-drafts requires --publish-draft.'),
   });
   await expect(
     execute(

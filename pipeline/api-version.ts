@@ -14,6 +14,8 @@ export interface ApiVersionDeclaration extends Location {
   reason: string;
   // A safely traced constructor without the version option: stripe-node 12+ sends its own pin.
   absent?: true;
+  // The literal also sets a webhook endpoint's api_version (see declared-api-versions.ts).
+  endpoint?: true;
 }
 
 export interface ApiVersionSource {
@@ -79,14 +81,25 @@ function compareDeclaredVersions(
   };
 }
 
-export function apiVersionSourceBlocked(evidence: ApiVersionEvidence) {
+// Whether every SDK declaration Refit can read sends `version`, as after a merged migration to it.
+export function declaresVersion(source: ApiVersionSource, version: string) {
   return (
-    evidence.source?.status === 'conflict' ||
+    source.status !== 'not-configured' &&
+    compareDeclaredVersions(version, true, source.declarations).status === 'verified'
+  );
+}
+
+// With `reviewConflicts` (owner decision 1) code that pins several versions is not refused: the
+// patch moves every pin to the target and the draft lists each one, so only a source-verified
+// refusal blocks.
+export function apiVersionSourceBlocked(evidence: ApiVersionEvidence, reviewConflicts = false) {
+  return (
+    (!reviewConflicts && evidence.source?.status === 'conflict') ||
     (evidence.policy === 'source-verified' && evidence.source?.status !== 'verified')
   );
 }
 
-function specificationVersion(document: Record<string, unknown>) {
+export function specificationVersion(document: Record<string, unknown>) {
   const info = document.info;
   if (!isObject(info) || typeof info.version !== 'string' || !info.version.trim()) return null;
   return info.version.trim();

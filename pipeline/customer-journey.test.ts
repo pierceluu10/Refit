@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { devNull, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -17,6 +17,7 @@ import {
   inspectRepositoryEnrollment,
 } from './repository-enrollment.ts';
 import { verifyArtifacts } from './verification.ts';
+import { readEvidence } from './state-files.ts';
 
 vi.mock('node:child_process', async (original) =>
   (await import('./fixtures/fake-github-git.ts')).throughFakeGitHub(await original()),
@@ -232,20 +233,24 @@ const finished = (registry: any, count: number) =>
   registry.jobs.every((candidate: any) => candidate.status === 'finished');
 
 async function expectValidated(output: string) {
-  const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
+  const report = JSON.parse((await readEvidence(output, 'report.json'))!);
   expect(report.patch.generator).toBe('deterministic');
   expect(report.validation.baseline.status).toBe('passed');
   expect(report.validation.patched.status).toBe('passed');
   expect((await verifyArtifacts(output)).status).toBe('integrity-verified');
 }
 
-// Every request, refused ones included: each token asks for contents read only, and nothing else
-// writes (no issue, comment, branch, push or pull request). Git fetches POST to git-upload-pack.
+// Every request, refused ones included: each token asks for contents read only (or metadata read
+// only, to reconcile the installation's repository list), and nothing else writes (no issue,
+// comment, branch, push or pull request). Git fetches POST to git-upload-pack.
 function expectReadOnly(github: FakeGitHub) {
   const tokens = github.requests.filter(({ path }) => path.endsWith('/access_tokens'));
   expect(tokens.length, 'Refit asked for installation tokens').toBeGreaterThan(0);
   for (const token of tokens)
-    expect(token.body?.permissions, `${token.method} ${token.path}`).toEqual({ contents: 'read' });
+    expect(
+      [{ contents: 'read' }, { metadata: 'read' }],
+      `${token.method} ${token.path}`,
+    ).toContainEqual(token.body?.permissions);
   expect(
     github.requests.filter(
       ({ method, path }) =>

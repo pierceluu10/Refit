@@ -54,7 +54,7 @@ Behind those reasons:
 1. **Stripe objects arrive through webhooks.** 74 of 100 repositories call `stripe.webhooks.constructEvent`, then read `event.data.object` (often `as Stripe.Subscription`). Refit doesn't trace event payloads.
 2. **Objects are passed around.** A subscription retrieved in one function is read in another, often typed as `Stripe.Subscription`. Refit's tracing stops at the first call or alias, and doesn't use TypeScript's `Stripe.*` type annotations.
 3. **Common names cause noise.** Because Stripe removed `line_item.type`, any `.type` read near Stripe code is reported, for example in a UI toast hook.
-4. **The built-in Stripe adapter maps only `paymentIntents`.** Custom adapters can't use the reserved `stripe` id. The benchmark's generated adapter uses `stripe-full`, which skips Stripe-specific extras such as the charges rule.
+4. **The built-in Stripe adapter maps only `paymentIntents`.** Custom adapters can't use the reserved `stripe` id. The benchmark's generated adapter uses `stripe-full`, which skips Stripe-specific extras such as the charges rule. (Since October 25 the built-in adapter maps every called method from Stripe's SDK spec; see [READINESS](READINESS.md).)
 
 ### Other blockers found
 
@@ -189,7 +189,7 @@ npm run benchmark:stripe-score -- --results <new-dir>/results.json \
 
 Each run also writes `summary.md`: totals, then one row per affected repository with its outcome, pull request link and stop reason.
 
-To publish validated fixes as real draft PRs, add `--publish <github-org>` (requires `--validate`). For each repository whose checks passed, Refit forks it into that organization with `GITHUB_TOKEN`, points a `refit-base` branch at the validated commit, and publishes the draft as the GitHub App (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY_FILE`). Upstream repositories are never changed. `--publish-unresolved` also publishes `[Needs review]` drafts that list unresolved findings, removed request parameters left for the owner, or untested patches whose dependency preparation failed for a repository-side reason (deterministic patches only; see the [CLI guide](CLI.md)). Publication uses the saved report; checks are not rerun.
+To publish fixes as real draft PRs, add `--publish <github-org>` (requires `--validate`). For each repository whose checks passed, or whose report owner decision 1 publishes, Refit forks it into that organization with `GITHUB_TOKEN`, points a `refit-base` branch at the validated commit, and publishes the draft as the GitHub App (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY_FILE`). Upstream repositories are never changed. By default the workflow runs as owner decision 1 does (see the [CLI guide](CLI.md)): stops become `[Needs review]` drafts with the rules' patch, and patches whose preparation or baseline checks failed are published untested. `--publish-validated-only` publishes validated fixes only, as before. Each `workflow` row records the draft's review reasons in `waivedGates`. Publication uses the saved report; checks are not rerun.
 
 The benchmark attaches the pinned Stripe changelog pages in [`benchmarks/stripe-changelog/`](benchmarks/stripe-changelog/) to AI patches for the changes each repository hits.
 

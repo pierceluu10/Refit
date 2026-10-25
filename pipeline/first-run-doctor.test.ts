@@ -229,7 +229,7 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
   await commit(app);
   const report = await inspectRepositoryReadiness({ repository: app });
   expect(report.checks.find((check) => check.id === 'source-provenance')?.action).toBe(
-    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.',
+    'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including listed and computed lists.',
   );
   // Before: "Verify the application client/account version and configure an exact
   // before-contract API-version pin."
@@ -446,5 +446,15 @@ it('tells the person to commit or remove a submodule, not to commit or stash fil
       'Validation does not accept submodules; vendor/plugin is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.',
     action:
       "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.",
+  }); // Owner decision 1: the root is checked without the submodule, and the check says so.
+  expect(
+    (await inspectRepositoryReadiness({ repository: app, allowUntested: true })).checks.find(
+      (check) => check.id === 'repository',
+    ),
+  ).toMatchObject({
+    status: 'passed',
+    detail: expect.stringMatching(
+      /^Clean committed root at [0-9a-f]{12}\. Refit checks it without the submodule vendor\/plugin, and each draft says so\.$/,
+    ),
   });
 });

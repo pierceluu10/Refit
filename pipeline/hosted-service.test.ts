@@ -17,6 +17,7 @@ import {
 } from './repository-enrollment.ts';
 import { verifyArtifacts } from './verification.ts';
 import { startFakeGitHub } from './fixtures/fake-github.ts';
+import { readEvidence } from './state-files.ts';
 
 const transport = vi.hoisted(() => ({
   source: '',
@@ -264,7 +265,7 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OAS
       attempts: 1,
       receipt: { status: 'validated', readiness: 'ready-for-validation', revision: transport.head },
     });
-    const report = JSON.parse(await readFile(join(job.receipt.output, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(job.receipt.output, 'report.json'))!);
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('passed');
     expect(report.patch.generator).toBe('deterministic');
@@ -424,7 +425,9 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE)(
     const third = await serve('registry.fly.io/refit-hosted:deployment-2', 3);
     expect(third.jobs[2].receipt).toMatchObject({
       status: 'validated',
-      message: 'Saved worker result reused; checks were not rerun.',
+      // The reused job keeps its reason, as a reused stop does.
+      message:
+        'Saved worker result reused; checks were not rerun. That run recorded: Baseline and patched checks passed. Review artifacts are ready; publication was not requested.',
       revision: transport.head,
     });
     expect(third.jobs[2].receipt.unchangedSince).toBeUndefined();
