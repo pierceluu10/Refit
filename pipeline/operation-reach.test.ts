@@ -1,8 +1,20 @@
-import { expect, it } from 'vitest';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, expect, it } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
-import { annotateReach, responsePropertyOwner } from './operation-reach.ts';
+import {
+  annotateReach,
+  CURRENCY_CODE_RULE,
+  currencyCodeEdits,
+  responsePropertyOwner,
+} from './operation-reach.ts';
+import { applySourceEdits } from './patches.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { createReviewArtifacts } from './review.ts';
+import { runPipeline } from './run.ts';
+import { digest } from './specifications.ts';
 import type { Removal, Repository } from './types.ts';
 
 // The shape of Stripe's spec3.json for the operations and objects below (stripe/openapi v2026
@@ -25,6 +37,12 @@ const before = {
           '200': { content: { 'application/json': { schema: ref('checkout.session') } } },
           default: { content: { 'application/json': { schema: ref('error') } } },
         },
+      },
+    },
+    '/v1/products': {
+      post: {
+        operationId: 'PostProducts',
+        responses: { '200': { content: { 'application/json': { schema: ref('product') } } } },
       },
     },
     '/v1/subscriptions/{subscription_exposed_id}': {
@@ -72,6 +90,7 @@ const before = {
         type: 'object',
         properties: { amount_discount: { type: 'integer' } },
       },
+      product: { type: 'object', properties: { id: { type: 'string' } } },
       subscription: { type: 'object', properties: { status: { type: 'string' } } },
       error: { type: 'object', properties: { error: ref('api_errors') } },
       api_errors: {
@@ -92,6 +111,7 @@ const provider: ProviderAdapter = {
       schema: 'checkout.session',
       operationId: 'PostCheckoutSessions',
     },
+    { resource: 'products', method: 'create', schema: 'product', operationId: 'PostProducts' },
     {
       resource: 'subscriptions',
       method: 'update',
@@ -102,6 +122,25 @@ const provider: ProviderAdapter = {
 };
 const CLIENT = "import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.KEY!);\n";
 
+function traced(source: string, path = 'app/api/checkout/route.ts') {
+  const repository: Repository = {
+    root: '/application',
+    files: [{ path, content: `${CLIENT}${source}` }],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const schemas = before.components.schemas;
+  return {
+    repository,
+    before,
+    calls: analyzeRepository(repository, [], provider, schemas).calls,
+    mappings: validateProviderOperationMappings(provider, before),
+    readFindings: (removals: Removal[]) =>
+      analyzeRepository(repository, removals, provider, schemas).findings,
+  };
+}
+
 function reach(
   source: string,
   changes: Record<string, unknown>[],
@@ -109,22 +148,9 @@ function reach(
   edited: (file: string, offset: number) => boolean = () => false,
   removals: Removal[] = [],
 ) {
-  const repository: Repository = {
-    root: '/application',
-    files: [{ path: 'app/api/checkout/route.ts', content: `${CLIENT}${source}` }],
-    dependencies: [],
-    lockfiles: [],
-    warnings: [],
-  };
-  const schemas = before.components.schemas;
-  const analysis = analyzeRepository(repository, [], provider, schemas);
   annotateReach(changes, {
-    repository,
-    before,
-    calls: analysis.calls,
-    mappings: validateProviderOperationMappings(provider, before),
+    ...traced(source),
     untracedCalls: () => untraced,
-    readFindings: (removals) => analyzeRepository(repository, removals, provider, schemas).findings,
     edited,
     removals,
   });
@@ -440,3 +466,336 @@ it('passes the new currency format only where every sent currency is a lowercase
 });`;
   expect(reach(computed, [format()])[0][0]).not.toBe('compatible');
 });
+
+const currencyFormat = (property: string, path = '/v1/checkout/sessions') => ({
+  id: 'request-property-type-changed',
+  level: 3,
+  operation: 'POST',
+  path,
+  text: `the \`${property}\` request property \`format\` changed from \`none\` to \`currency\``,
+});
+const LINE_ITEM_CURRENCY = 'line_items/items/price_data/currency';
+
+// As run.ts does it: the currency rule's edits are kept, and reach reads them.
+function lowercased(
+  source: string,
+  change: Record<string, unknown> = currencyFormat(LINE_ITEM_CURRENCY),
+  path?: string,
+) {
+  const context = traced(source, path);
+  const edits = currencyCodeEdits([change], context);
+  annotateReach([change], {
+    ...context,
+    untracedCalls: () => [],
+    removals: [],
+    edited: (file, offset) =>
+      edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
+  });
+  const content = context.repository.files[0].content;
+  return {
+    edits,
+    content,
+    patched: applySourceEdits(content, edits),
+    reach: [change.reach, change.reachReason],
+  };
+}
+
+// Hombre2014/Genius app/api/stripe/route.ts at 375bbe7, shortened.
+const GENIUS = `export async function GET() {
+  const stripeSession = await stripe.checkout.sessions.create({
+    success_url: settingsUrl,
+    mode: 'subscription',
+    line_items: [
+      {
+        price_data: {
+          currency: 'USD',
+          product_data: { name: 'My AI Tools Pro' },
+          unit_amount: 2000,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      },
+    ],
+  });
+  return new NextResponse(JSON.stringify({ url: stripeSession.url }));
+}`;
+// psykat1116/Planit actions/StripeRedirect/index.ts at 0cbae47, shortened.
+const PLANIT = `const handler = async () => {
+  const stripeSession = await stripe.checkout.sessions.create({
+    success_url: settingsURL,
+    mode: "subscription",
+    line_items: [
+      {
+        price_data: {
+          currency: "INR",
+          product_data: { name: "Planit Pro" },
+          unit_amount: 9900,
+          recurring: { interval: "month" },
+        },
+        quantity: 1,
+      },
+    ],
+  });
+  return stripeSession.url || "";
+};`;
+// sudeepmahato16/airbnb-clone services/reservation.ts at fe8a793, shortened; the file uses CRLF.
+const AIRBNB = [
+  'export const reserve = async (listing, totalPrice) => {',
+  '  const product = await stripe.products.create({',
+  '    name: "Listing",',
+  '    images: [listing.imageSrc],',
+  '    default_price_data: {',
+  '      currency: "USD",',
+  '      unit_amount: totalPrice * 100',
+  '    }',
+  '  })',
+  '  return product.default_price;',
+  '}',
+].join('\r\n');
+
+// https://docs.stripe.com/currencies: "Make sure to use all lowercase letters when entering the
+// three-letter ISO code in any payment request."
+it.each([
+  [
+    'Genius',
+    GENIUS,
+    currencyFormat(LINE_ITEM_CURRENCY),
+    "'USD'",
+    "'usd'",
+    'checkout.sessions.create',
+  ],
+  [
+    'Planit',
+    PLANIT,
+    currencyFormat(LINE_ITEM_CURRENCY),
+    '"INR"',
+    '"inr"',
+    'checkout.sessions.create',
+  ],
+  [
+    'airbnb-clone',
+    AIRBNB,
+    currencyFormat('default_price_data/currency', '/v1/products'),
+    '"USD"',
+    '"usd"',
+    'products.create',
+  ],
+])(
+  'lowercases the uppercase currency literal %s writes in its request, which handles the change',
+  (_name, source, change, literal, replacement, operation) => {
+    const { edits, content, patched, reach } = lowercased(source, change);
+    const start = content.indexOf(literal);
+    expect(edits).toEqual([
+      {
+        file: 'app/api/checkout/route.ts',
+        start,
+        end: start + literal.length,
+        replacement,
+        changeId: CURRENCY_CODE_RULE,
+        rule: CURRENCY_CODE_RULE,
+      },
+    ]);
+    // Only the literal changes, quote style and line endings included.
+    expect(patched).toBe(content.replace(literal, replacement));
+    expect(reach).toEqual([
+      'handled',
+      `A kept rule edit rewrites \`${String(change.text).match(/`([^`]+)`/)![1]}\` in every traced \`${operation}\` call that sends it, first in app/api/checkout/route.ts.`,
+    ]);
+  },
+);
+
+it('leaves a currency constant, a lowercase code and test files unedited', () => {
+  // A constant may also be displayed, so it stays for review even though Refit can read it.
+  const constant = lowercased(
+    GENIUS.replace(
+      '  const stripeSession',
+      "  const CURRENCY = 'USD';\n  const stripeSession",
+    ).replace("currency: 'USD'", 'currency: CURRENCY'),
+  );
+  expect(constant.edits).toEqual([]);
+  expect(constant.reach).toEqual([
+    'reached',
+    'The `checkout.sessions.create` call in app/api/checkout/route.ts sends `line_items/items/price_data/currency` as `USD`; the target contract gives it the `currency` format, a lowercase three-letter ISO code (https://docs.stripe.com/currencies).',
+  ]);
+  const lowercase = lowercased(GENIUS.replace("'USD'", "'usd'"));
+  expect(lowercase.edits).toEqual([]);
+  expect(lowercase.reach[0]).toBe('compatible');
+  const test = lowercased(GENIUS, undefined, 'app/api/stripe/route.test.ts');
+  expect(test.edits).toEqual([]);
+  expect(test.reach[0]).toBe('unused');
+  // A literal outside the call's own argument, even in a local constant used once, and a
+  // computed code stay reached.
+  const outside = lowercased(`export async function POST() {
+  const line_items = [{ quantity: 1, price_data: { currency: 'TRY', unit_amount: 100 } }];
+  const session = await stripe.checkout.sessions.create({ line_items, mode: 'payment' });
+  return session.url;
+}`);
+  expect(outside.edits).toEqual([]);
+  expect(outside.reach[0]).toBe('reached');
+  const computed = lowercased(GENIUS.replace("'USD'", '`${region}D`'));
+  expect(computed.edits).toEqual([]);
+  expect(computed.reach[0]).toBe('reached');
+});
+
+const roots: string[] = [];
+afterEach(async () => {
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+// Shaped like Stripe's dahlia and endive Checkout Session create bodies, where endive gives
+// `line_items[].price_data.currency` the `currency` format.
+const checkoutContract = (version: string, currency: Record<string, unknown>) => ({
+  openapi: '3.0.0',
+  info: { title: 'Stripe API', version },
+  paths: {
+    '/v1/checkout/sessions': {
+      post: {
+        operationId: 'PostCheckoutSessions',
+        requestBody: {
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: {
+                type: 'object',
+                properties: {
+                  mode: { type: 'string' },
+                  line_items: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        price_data: {
+                          type: 'object',
+                          properties: { currency, unit_amount: { type: 'integer' } },
+                        },
+                        quantity: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Session',
+            content: { 'application/json': { schema: ref('checkout.session') } },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: { 'checkout.session': { type: 'object', properties: { id: { type: 'string' } } } },
+  },
+});
+
+it.skipIf(!process.env.REFIT_OASDIFF)(
+  'proposes the lowercased currency with the endive pin and says why in the draft',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-currency-codes-'));
+    roots.push(root);
+    const files = {
+      'package.json': JSON.stringify({ dependencies: { stripe: '22.6.2' } }),
+      // psykat1116/Planit's call, in JavaScript so no stripe-node upgrade is looked up.
+      'redirect.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const redirect = () => stripe.checkout.sessions.create({ mode: "subscription", line_items: [{ price_data: { currency: "INR", unit_amount: 9900 }, quantity: 1 }] });
+`,
+      'before.json': JSON.stringify(checkoutContract('2026-08-26.dahlia', { type: 'string' })),
+      'after.json': JSON.stringify(
+        checkoutContract('2026-09-30.endive', { type: 'string', format: 'currency' }),
+      ),
+      'provider.json': JSON.stringify({
+        id: 'stripe-checkout',
+        packageName: 'stripe',
+        defaultImport: true,
+        namedExport: 'Stripe',
+        constructorCalls: true,
+        apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
+        operations: [
+          {
+            resource: 'checkout.sessions',
+            method: 'create',
+            schema: 'checkout.session',
+            operationId: 'PostCheckoutSessions',
+          },
+        ],
+      }),
+    };
+    for (const [path, content] of Object.entries(files)) await writeFile(join(root, path), content);
+    const report = await runPipeline({
+      repository: root,
+      before: join(root, 'before.json'),
+      after: join(root, 'after.json'),
+      providerConfig: join(root, 'provider.json'),
+      apiVersion: '2026-08-26.dahlia',
+      fullDiff: true,
+      proposePatch: true,
+    });
+    expect(report.specificationDiff.changes).toContainEqual(
+      expect.objectContaining({
+        text: 'the `line_items/items/price_data/currency` request property `format` changed from `none` to `currency`',
+        reach: 'handled',
+      }),
+    );
+    expect(report.operationImpacts).toEqual([]);
+    if (!('diff' in report.patch)) throw new Error('Expected a patch');
+    expect(report.patch).toMatchObject({
+      status: 'proposed',
+      summary: 'Lowercase uppercase currency codes and update the pinned Stripe API version.',
+      source: 'https://docs.stripe.com/currencies',
+      warnings: expect.arrayContaining([expect.stringContaining('Uppercase currency codes')]),
+    });
+    expect(report.patch.diff).toContain(
+      '+export const redirect = () => stripe.checkout.sessions.create({ mode: "subscription", line_items: [{ price_data: { currency: "inr", unit_amount: 9900 }, quantity: 1 }] });',
+    );
+    expect(report.patch.diff).toContain(
+      "+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-09-30.endive' });",
+    );
+    const check = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
+    const artifacts = createReviewArtifacts({
+      ...report,
+      publicationFiles: [{ path: 'redirect.js', mode: '100644', content: 'export {};' }],
+      patch: { ...report.patch, validation: 'passed' },
+      validation: {
+        status: 'passed',
+        revision: 'a'.repeat(40),
+        image: `sha256:${'b'.repeat(64)}`,
+        runtime: {
+          configured: 'node:22-alpine',
+          image: 'node:22-alpine',
+          nodeVersion: '22.23.3',
+          declarations: [],
+          reason: 'The repository declares no Node.js version.',
+        },
+        command: ['npm', 'test'],
+        baselineCommand: ['npm', 'test'],
+        archiveHash: 'c'.repeat(64),
+        patchHash: digest(report.patch.diff),
+        baseline: check,
+        patched: check,
+        limits: {
+          timeoutMs: 120_000,
+          outputBytes: 1024 * 1024,
+          network: 'none',
+          workspace: '512m' as const,
+          memory: '1g' as const,
+        },
+        publishable: true,
+        attempts: [],
+        repair: { limit: 0, requested: 0, stopReason: 'not-needed-or-disabled', error: null },
+        reason: 'Synthetic check results for artifact formatting tests.',
+      },
+    });
+    const body = artifacts.files['pull-request.md'];
+    expect(artifacts.manifest.title).toBe('fix(stripe): lowercase currency codes');
+    expect(body).toContain(
+      'expects lowercase currency codes where this code sends uppercase ones. A deterministic Refit rule migrates 1 confirmed usage in 1 file',
+    );
+    expect(body).toContain('[docs.stripe.com/currencies](https://docs.stripe.com/currencies)');
+    expect(body).toContain(
+      '- `redirect.js`: Sends the currency `inr` in lowercase, as the new `currency` format requires. Moves the pinned API version',
+    );
+  },
+);

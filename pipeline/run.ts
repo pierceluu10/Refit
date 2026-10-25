@@ -1,7 +1,7 @@
 import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
-import { annotateReach } from './operation-reach.ts';
+import { annotateReach, currencyCodeEdits } from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
@@ -325,7 +325,17 @@ async function runOpenApiPipeline(options: {
   movedTo[INVOICE_PREVIEW_RULE] =
     bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
   // The period helper reads either API version, so it does not depend on the version pin.
-  const edits = analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]);
+  const edits = [
+    ...analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]),
+    // A lowercase currency code is valid under either API version, so it needs no pin gate.
+    ...(specificationDiff && provider.packageName === STRIPE.packageName
+      ? currencyCodeEdits(specificationDiff.changes, {
+          repository,
+          calls: analysis.calls,
+          mappings: operationMappings,
+        })
+      : []),
+  ];
   const ruleEdits = edits.filter(isFieldMove);
   // A read counts as migrated only while its helper edit is kept.
   for (const finding of analysis.findings)
