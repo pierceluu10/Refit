@@ -5,7 +5,8 @@ const GITHUB_ACCOUNT = /^[a-z0-9][a-z0-9-]{0,38}$/;
 // Five targets polled at the default 300-second interval.
 const DEFAULT_DAILY_JOBS = 1440;
 const DEFAULT_DAILY_INVENTORIES = 500;
-const MAX_DAILY_LIMIT = 100_000;
+const DEFAULT_INSTALLATION_JOBS = 1;
+const MAX_LIMIT = 100_000;
 // Usage resets at midnight UTC.
 export const USAGE_DAY = `(now() AT TIME ZONE 'UTC')::date`;
 
@@ -20,6 +21,8 @@ export type TenancyRefusal = (typeof TENANCY_REFUSALS)[keyof typeof TENANCY_REFU
 export interface TenancyLimits {
   dailyJobs: number;
   dailyInventories: number;
+  // Jobs of one installation that may run at once, across all workers.
+  installationJobs: number;
 }
 export interface HostedTenancy {
   accounts: string[];
@@ -28,13 +31,14 @@ export interface HostedTenancy {
 export const DEFAULT_TENANCY_LIMITS: TenancyLimits = {
   dailyJobs: DEFAULT_DAILY_JOBS,
   dailyInventories: DEFAULT_DAILY_INVENTORIES,
+  installationJobs: DEFAULT_INSTALLATION_JOBS,
 };
 
-function dailyLimit(value: string | undefined, fallback: number, name: string) {
+function tenancyLimit(value: string | undefined, fallback: number, name: string) {
   if (value === undefined) return fallback;
   const limit = Number(value);
-  if (!/^\d+$/.test(value.trim()) || limit < 1 || limit > MAX_DAILY_LIMIT)
-    throw new PipelineInputError(`${name} must be a whole number from 1 to ${MAX_DAILY_LIMIT}.`);
+  if (!/^\d+$/.test(value.trim()) || limit < 1 || limit > MAX_LIMIT)
+    throw new PipelineInputError(`${name} must be a whole number from 1 to ${MAX_LIMIT}.`);
   return limit;
 }
 
@@ -57,15 +61,20 @@ export function hostedTenancy(environment: NodeJS.ProcessEnv): HostedTenancy {
   return {
     accounts,
     limits: {
-      dailyJobs: dailyLimit(
+      dailyJobs: tenancyLimit(
         environment.REFIT_HOSTED_DAILY_JOBS,
         DEFAULT_DAILY_JOBS,
         'REFIT_HOSTED_DAILY_JOBS',
       ),
-      dailyInventories: dailyLimit(
+      dailyInventories: tenancyLimit(
         environment.REFIT_HOSTED_DAILY_INVENTORIES,
         DEFAULT_DAILY_INVENTORIES,
         'REFIT_HOSTED_DAILY_INVENTORIES',
+      ),
+      installationJobs: tenancyLimit(
+        environment.REFIT_HOSTED_INSTALLATION_JOBS,
+        DEFAULT_INSTALLATION_JOBS,
+        'REFIT_HOSTED_INSTALLATION_JOBS',
       ),
     },
   };
@@ -94,13 +103,14 @@ export function installationRefusals(
     status: string;
     jobsToday: number;
     inventoriesToday: number;
-    running: boolean;
+    // Jobs of this installation running with a live lease.
+    running: number;
   },
   limits: TenancyLimits,
 ) {
   const refusals: TenancyRefusal[] = [];
   if (!installation.allowed) refusals.push(TENANCY_REFUSALS.notAllowed);
-  if (installation.running) refusals.push(TENANCY_REFUSALS.jobRunning);
+  if (installation.running >= limits.installationJobs) refusals.push(TENANCY_REFUSALS.jobRunning);
   if (installation.jobsToday >= limits.dailyJobs) refusals.push(TENANCY_REFUSALS.dailyJobs);
   if (installation.inventoriesToday >= limits.dailyInventories)
     refusals.push(TENANCY_REFUSALS.dailyInventories);
