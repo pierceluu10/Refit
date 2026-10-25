@@ -1679,6 +1679,22 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
+    // With the tests broken before the patch, only the chain's type check runs on it.
+    const brokenTestsCommand = testsBroken ? typeCheckCommand(options.command) : undefined;
+    const brokenTestsTypeCheck =
+      brokenTestsCommand && initialCandidate && !dependencyFailure
+        ? compared(
+            await timed('patchedChecks', () =>
+              containerCheck({
+                directory: initialCandidate.directory,
+                image,
+                command: brokenTestsCommand,
+                dependencies: initialCandidate.dependencies,
+                signal: options.signal,
+              }),
+            ),
+          )
+        : undefined;
     let generated = await generatedFor();
     if (rules && coverage?.outcome === 'checks-failed') {
       if (checkStatus(baseline, patched, generated) === 'passed') {
@@ -1704,22 +1720,6 @@ export async function validateMigration(options: {
         generated = await generatedFor();
       }
     }
-    // With the tests broken before the patch, only the chain's type check runs on it.
-    const brokenTestsCommand = testsBroken ? typeCheckCommand(options.command) : undefined;
-    const brokenTestsTypeCheck =
-      brokenTestsCommand && initialCandidate && !dependencyFailure
-        ? compared(
-            await timed('patchedChecks', () =>
-              containerCheck({
-                directory: initialCandidate.directory,
-                image,
-                command: brokenTestsCommand,
-                dependencies: initialCandidate.dependencies,
-                signal: options.signal,
-              }),
-            ),
-          )
-        : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
     const validationStatus =

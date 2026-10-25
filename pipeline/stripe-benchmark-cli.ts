@@ -39,7 +39,7 @@ import {
   publishUnresolved,
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
-import { typeErrors } from './type-errors.ts';
+import { typeErrorKeys } from './type-errors.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 import { readEvidence } from './state-files.ts';
 
@@ -50,13 +50,8 @@ const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
-// Type errors keyed without the position, so moved lines still match.
-const typeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
-  new Set(
-    typeErrors({ stdout: check?.stdout ?? '', stderr: check?.stderr ?? '' }).map(
-      (error) => error.key,
-    ),
-  );
+const reportedTypeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
+  typeErrorKeys({ stdout: check?.stdout ?? '', stderr: check?.stderr ?? '' });
 
 interface Selected {
   repo: string;
@@ -553,10 +548,10 @@ async function benchmark(entry: Selected, index: number) {
       ...(report.validation?.compareTypeErrors && report.validation?.patched
         ? {
             typeErrors: {
-              baseline: typeErrorKeys(report.validation.baseline).size,
-              patched: typeErrorKeys(report.validation.patched).size,
-              introduced: [...typeErrorKeys(report.validation.patched)].filter(
-                (error) => !typeErrorKeys(report.validation.baseline).has(error),
+              baseline: reportedTypeErrorKeys(report.validation.baseline).size,
+              patched: reportedTypeErrorKeys(report.validation.patched).size,
+              introduced: [...reportedTypeErrorKeys(report.validation.patched)].filter(
+                (error) => !reportedTypeErrorKeys(report.validation.baseline).has(error),
               ),
             },
           }

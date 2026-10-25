@@ -3,8 +3,7 @@ import { TYPE_CHECK_STARTED } from './check-selection.ts';
 const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
 
 // TypeScript diagnostics in a check's output, keyed without positions so moved lines still match.
-// After a tests-then-type-check chain's tests (pipeline/check-selection.ts), only the type
-// checker's own output counts.
+// After a tests-then-type-check chain's tests, only the type checker's own output counts.
 export function typeErrors(check: { stdout: string; stderr: string }) {
   const start = check.stdout.lastIndexOf(TYPE_CHECK_STARTED);
   return (start < 0 ? `${check.stdout}\n${check.stderr}` : check.stdout.slice(start))
