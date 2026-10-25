@@ -16,12 +16,18 @@ const MAX_REASON_SITES = 3;
 const UNTRACED_BODY = ' outside a traced SDK request body';
 const SKIPPED_SOURCE_REVIEW_REASON =
   'Unparseable source files were skipped. Their API usage and mutations are unknown; automatic migration, AI and publication require a complete source scan.';
+const CLASS_CLIENT_REVIEW_REASON =
+  'Affected SDK responses use a class client whose initialization, mutation or receiver lifetime requires review. Automatic migration, AI and publication require stable class-client provenance.';
+const HELPER_CLIENT_REVIEW_REASON =
+  'Affected SDK usage flows through a helper whose callers, client origins or mutations require review. Automatic migration, AI and publication require stable helper-client provenance.';
 
+// Every reason the evidence needs review, in the order the first one is reported, each with the
+// findings it covers (skipped files have none).
 // `leaveUnmigratedWebhooks` lets patch generation and validation proceed around webhook reads that
 // no rule migrates, when other confirmed work exists; they stay unresolved, so publication (which
 // never passes it) still stops.
 // `aiWebhooks`: AI is enabled and receives unmigrated webhook reads, so they never block on their own.
-export function migrationReviewReason(
+export function migrationReviewReasons(
   evidence: { findings: Finding[]; skippedFiles?: string[]; adapter?: ProviderAdapter },
   allowConfiguredWebhookMigration = false,
   leaveUnmigratedWebhooks = false,
@@ -32,44 +38,71 @@ export function migrationReviewReason(
     (finding) =>
       finding.confidence === 'confirmed' && (!finding.webhook || finding.webhook.migration),
   );
-  if (
-    evidence.findings.some(
-      (finding) =>
-        finding.webhook &&
-        !(aiWebhooks && !finding.webhook.migration) &&
-        finding.webhook.migration?.rule !== 'ai-version-tolerant' &&
-        !(leaveUnmigratedWebhooks && otherWork && !finding.webhook.migration) &&
-        !(
-          allowConfiguredWebhookMigration &&
-          finding.confidence === 'confirmed' &&
-          HELPER_RULES.has(finding.webhook.migration?.rule ?? '')
-        ) &&
-        (!allowConfiguredWebhookMigration ||
-          !policy ||
-          finding.confidence !== 'confirmed' ||
-          finding.webhook.schema !== 'subscription' ||
-          !['.current_period_start', '.current_period_end'].includes(finding.expression) ||
-          finding.webhook.migration?.rule !== SUBSCRIPTION_PERIOD_RULE ||
-          finding.webhook.migration.priceId !== policy.priceId ||
-          finding.webhook.migration.beforeApiVersion !== policy.beforeApiVersion ||
-          finding.webhook.migration.afterApiVersion !== policy.afterApiVersion),
-    )
-  )
-    return WEBHOOK_REVIEW_REASON;
-  if (evidence.skippedFiles?.length) return SKIPPED_SOURCE_REVIEW_REASON;
-  const contractReview = evidence.findings.find((finding) => finding.contractReview);
-  if (contractReview) return contractReview.contractReview;
-  if (evidence.findings.some((finding) => finding.requestParameter))
-    return REMOVED_REQUEST_PARAMETER_REVIEW_REASON;
-  if (evidence.findings.some((finding) => finding.classClient))
-    return 'Affected SDK responses use a class client whose initialization, mutation or receiver lifetime requires review. Automatic migration, AI and publication require stable class-client provenance.';
-  if (evidence.findings.some((finding) => finding.helperClient))
-    return 'Affected SDK usage flows through a helper whose callers, client origins or mutations require review. Automatic migration, AI and publication require stable helper-client provenance.';
-  if (
-    evidence.findings.some((finding) => finding.declaredType && finding.confidence !== 'confirmed')
-  )
-    return DECLARED_TYPE_REVIEW_REASON;
-  if (evidence.findings.some((finding) => finding.typeEvidence)) return TYPE_EVIDENCE_REVIEW_REASON;
+  const flagged = (predicate: (finding: Finding) => unknown) => evidence.findings.filter(predicate);
+  const contractReviews = [
+    ...new Set(
+      flagged((finding) => finding.contractReview).map((finding) => finding.contractReview!),
+    ),
+  ];
+  return [
+    {
+      reason: WEBHOOK_REVIEW_REASON,
+      findings: flagged(
+        (finding) =>
+          finding.webhook &&
+          !(aiWebhooks && !finding.webhook.migration) &&
+          finding.webhook.migration?.rule !== 'ai-version-tolerant' &&
+          !(leaveUnmigratedWebhooks && otherWork && !finding.webhook.migration) &&
+          !(
+            allowConfiguredWebhookMigration &&
+            finding.confidence === 'confirmed' &&
+            HELPER_RULES.has(finding.webhook.migration?.rule ?? '')
+          ) &&
+          (!allowConfiguredWebhookMigration ||
+            !policy ||
+            finding.confidence !== 'confirmed' ||
+            finding.webhook.schema !== 'subscription' ||
+            !['.current_period_start', '.current_period_end'].includes(finding.expression) ||
+            finding.webhook.migration?.rule !== SUBSCRIPTION_PERIOD_RULE ||
+            finding.webhook.migration.priceId !== policy.priceId ||
+            finding.webhook.migration.beforeApiVersion !== policy.beforeApiVersion ||
+            finding.webhook.migration.afterApiVersion !== policy.afterApiVersion),
+      ),
+    },
+    ...(evidence.skippedFiles?.length
+      ? [{ reason: SKIPPED_SOURCE_REVIEW_REASON, findings: [] as Finding[] }]
+      : []),
+    ...contractReviews.map((reason) => ({
+      reason,
+      findings: flagged((finding) => finding.contractReview === reason),
+    })),
+    {
+      reason: REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+      findings: flagged((finding) => finding.requestParameter),
+    },
+    { reason: CLASS_CLIENT_REVIEW_REASON, findings: flagged((finding) => finding.classClient) },
+    { reason: HELPER_CLIENT_REVIEW_REASON, findings: flagged((finding) => finding.helperClient) },
+    {
+      reason: DECLARED_TYPE_REVIEW_REASON,
+      findings: flagged((finding) => finding.declaredType && finding.confidence !== 'confirmed'),
+    },
+    { reason: TYPE_EVIDENCE_REVIEW_REASON, findings: flagged((finding) => finding.typeEvidence) },
+  ].filter((entry) => entry.findings.length || entry.reason === SKIPPED_SOURCE_REVIEW_REASON);
+}
+
+export function migrationReviewReason(...evidence: Parameters<typeof migrationReviewReasons>) {
+  return migrationReviewReasons(...evidence)[0]?.reason;
+}
+
+// Owner decision 1: under it AI never writes beside a finding that needs review or a traced breaking
+// operation change; the rules' patch ships instead.
+export function reviewBlocksAi(
+  evidence: Parameters<typeof migrationReviewReasons>[0] & { operationImpacts: readonly unknown[] },
+) {
+  return (
+    evidence.operationImpacts.length > 0 ||
+    Boolean(migrationReviewReason(evidence, true, true, true))
+  );
 }
 
 // Where traced calls still send a removed request parameter, and where an object Refit could not
@@ -99,15 +132,6 @@ export function unresolvedSites(findings: Finding[]) {
     confidence,
     ...(untraced ? { untraced } : {}),
   }));
-}
-
-// With --publish-unresolved, a deterministic migration proceeds around traced calls that still send
-// a removed request parameter: they stay unresolved and the draft lists them for the owner.
-export function withoutRequestParameters<T extends { findings: Finding[] }>(evidence: T): T {
-  return {
-    ...evidence,
-    findings: evidence.findings.filter((finding) => !finding.requestParameter),
-  };
 }
 
 // The code already sends the target version and Refit finds nothing the target breaks, traced or

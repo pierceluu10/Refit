@@ -71,6 +71,47 @@ export interface ReadinessReport {
   scope: string[];
 }
 
+// What a blocked check does to a hosted run under owner decision 1 (2026-10-24, pierceluu10/Refit#300).
+// `setup` still stops before scanning: there is no workflow, contract, checkout or sandbox to run.
+// The workflow finds a `workflow` check's cause itself and records it as a review reason or an
+// untested patch. Only doctor sees a `review` check, so it joins the draft's review reasons.
+const BLOCKED_CHECKS = new Map<string, 'setup' | 'workflow' | 'review'>([
+  ['configuration', 'setup'],
+  ['contracts', 'setup'],
+  ['repository', 'setup'],
+  ['analysis', 'setup'],
+  ['docker', 'setup'],
+  ['source-baseline', 'setup'],
+  ['source-provenance', 'workflow'],
+  ['webhook-migration', 'workflow'],
+  ['api-version', 'workflow'],
+  ['migration-coverage', 'workflow'],
+  ['dependencies', 'workflow'],
+  ['source-resolution', 'review'],
+  ['sdk-coverage', 'review'],
+]);
+
+export class UnclassifiedCheckError extends Error {}
+
+// The blocked checks of a report by what they do under owner decision 1. A repository whose
+// generated configuration doctor could not check has no workflow to run, so all of its are setup.
+export function sortBlockedChecks(report: ReadinessReport) {
+  const sorted = {
+    setup: [] as ReadinessCheck[],
+    workflow: [] as ReadinessCheck[],
+    review: [] as ReadinessCheck[],
+  };
+  for (const check of report.checks.filter((entry) => entry.status === 'blocked')) {
+    const kind = report.missing ? 'setup' : BLOCKED_CHECKS.get(check.id);
+    if (!kind)
+      throw new UnclassifiedCheckError(
+        `refit doctor check ${check.id} can block, but owner decision 1 does not say whether it stops a run.`,
+      );
+    sorted[kind].push(check);
+  }
+  return sorted;
+}
+
 // Names the file or program a check could not use, when the error says which.
 function missingFileDetail(title: string, error: unknown) {
   const { path, syscall, code } = error as { path?: unknown; syscall?: unknown; code?: unknown };

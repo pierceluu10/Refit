@@ -5,7 +5,7 @@ import { authenticateGitHubRead, type GitHubAppConfiguration } from './github-ap
 import { withGitHubCheckout } from './github-checkout.ts';
 import { requestGitHub } from './github.ts';
 import { publicationConfiguration } from './publication.ts';
-import { inspectRepositoryReadiness } from './readiness.ts';
+import { inspectRepositoryReadiness, sortBlockedChecks } from './readiness.ts';
 import { loadApprovedRepository } from './repository-enrollment.ts';
 import type { ServiceTarget } from './service-configuration.ts';
 import { isObject } from './specifications.ts';
@@ -70,8 +70,7 @@ export function summarizePoll(result: ServicePoll) {
     return {
       status: 'needs-attention',
       output: result.output,
-      message: `refit doctor found setup problems: ${result.readiness.checks
-        .filter((check) => check.status === 'blocked')
+      message: `refit doctor found setup problems: ${result.stops
         .map((check) => check.title)
         .join(', ')}. Scanning and checks did not run.`,
     };
@@ -115,10 +114,13 @@ export async function pollServiceTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  // Owner decision 1: stops become [Needs review] drafts (--publish-unresolved).
+  publishUnresolved?: boolean;
   weeklyStatus?: boolean;
   supersedeDrafts?: boolean;
   retry?: boolean;
-  // Runs refit doctor on the approved checkout first; blocked setup stops before scanning.
+  // Runs refit doctor on the approved checkout first; blocked setup stops before scanning. With
+  // publishUnresolved only setup checks stop, and the checks only doctor sees join the draft.
   inspectReadiness?: boolean;
   // Where the Stripe contracts of a generated configuration are kept.
   contracts?: string;
@@ -135,8 +137,10 @@ export async function pollServiceTarget(options: {
       ? {
           ...publicationConfiguration(target.repository, target.base, undefined, options.app),
           ...(options.supersedeDrafts ? { supersedeDrafts: true } : {}),
+          ...(options.publishUnresolved ? { allowUnresolved: true } : {}),
         }
       : undefined,
+    ...(options.publishUnresolved ? { allowUnresolved: true } : {}),
     ...(options.notify ? { notify: { send: options.notify, repository: target.repository } } : {}),
   };
   if (target.workflow)
@@ -187,11 +191,24 @@ export async function pollServiceTarget(options: {
           })
         : undefined;
       options.signal.throwIfAborted();
-      if (readiness?.status === 'needs-attention')
-        return { status: 'readiness-blocked' as const, output: null, readiness, checkout };
+      const sorted =
+        readiness?.status === 'needs-attention' && options.publishUnresolved
+          ? sortBlockedChecks(readiness)
+          : undefined;
+      const stops = sorted
+        ? sorted.setup
+        : (readiness?.checks.filter((check) => check.status === 'blocked') ?? []);
+      if (readiness && stops.length)
+        return { status: 'readiness-blocked' as const, output: null, readiness, stops, checkout };
       const source = target.source ?? profile.source;
+      const doctor = sorted?.review ?? [];
       const result = await watchOnce({
-        configuration: { ...profile.workflow, repository: checkout.directory, ...runtime },
+        configuration: {
+          ...profile.workflow,
+          repository: checkout.directory,
+          ...runtime,
+          ...(doctor.length ? { doctor } : {}),
+        },
         source,
         documentationSources: target.documentationSources,
         stateDirectory: options.stateDirectory,

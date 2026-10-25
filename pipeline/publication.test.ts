@@ -14,7 +14,7 @@ import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import type { validateMigration } from './validation.ts';
 import * as githubApp from './github-app.ts';
-import { repositoryDependencyFailure } from './dependency-preparation.ts';
+import { preparationFailure } from './dependency-preparation.ts';
 import { validatedReport } from './fixtures/publication-report.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -62,7 +62,8 @@ it('publishes a webhook-only review as a [Needs review] draft only with --publis
   expect(await publishDraft(evidence, allowed)).toMatchObject({ status: 'created', draft: true });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   expect(request.body.title).toMatch(/^\[Needs review\] /);
-  expect(request.body.body).toMatch(/^## Webhook API version not verified/);
+  expect(request.body.body).toMatch(/^## Why this needs review\n/);
+  expect(request.body.body).toContain('\n## Webhook API version not verified\n');
   expect(request.body.body).toContain('Dashboard > Developers > Webhooks');
   expect(request.body.body).toContain(
     `\`${finding.file}:${finding.line}\` (\`payment_intent.succeeded\`)`,
@@ -76,16 +77,35 @@ it('publishes a webhook-only review as a [Needs review] draft only with --publis
   expect(JSON.parse(local.files['report.json']).waivedGates[0].gate).toBe('webhook-api-version');
   expect(local.manifest).toMatchObject({ waivedGates: ['webhook-api-version'] });
 
-  // The waiver covers only the webhook version: any other review reason still refuses.
+  // Owner decision 1: a second review reason joins the draft instead of refusing it.
   const skipped = await webhookReport();
   skipped.skippedFiles = ['src/broken.ts'];
-  expect(publicationWaiver(skipped, true)).toBeUndefined();
-  await expect(publishDraft(skipped, allowed)).rejects.toThrow(/migration-policy/);
-  const unknownVersion = await webhookReport();
-  unknownVersion.apiVersion.applicability = 'unknown';
-  await expect(publishDraft(unknownVersion, allowed)).rejects.toThrow(
-    /Draft publication is blocked/,
+  skipped.apiVersion.applicability = 'unknown';
+  expect(publicationWaiver(skipped, true)?.map(({ gate }) => gate)).toEqual([
+    'webhook-api-version',
+    'source-evidence',
+    'api-version',
+  ]);
+  await expect(publishDraft(skipped, OPTIONS)).rejects.toThrow(/migration-policy/);
+  const both = github();
+  await publishDraft(skipped, allowed);
+  const body = String(
+    both.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!.body.body,
   );
+  expect(body).toContain('Unparseable source files were skipped.');
+  expect(body).toContain('  - `src/broken.ts`');
+  // Owner decision 7: the draft is the only thing Refit opens on a customer's repository.
+  expect(both.calls.filter((call) => call.method === 'POST' && call.path === '/issues')).toEqual(
+    [],
+  );
+  expect(body).toContain(
+    '- [ ] Confirm which API version this code and account use before merging',
+  );
+  // Code whose API-version declarations conflict still refuses, flag or not.
+  const conflict = await webhookReport();
+  conflict.apiVersion.source.status = 'conflict';
+  conflict.apiVersion.applicability = 'conflicts-with-code';
+  await expect(publishDraft(conflict, allowed)).rejects.toThrow(/Draft publication is blocked/);
 });
 
 async function endpointReport(): Promise<Report> {
@@ -696,7 +716,7 @@ async function untestedReport(): Promise<Report> {
     status: 'untested',
     baseline: notRun,
     patched: notRun,
-    dependencyFailure: repositoryDependencyFailure(
+    dependencyFailure: preparationFailure(
       new PipelineInputError(
         'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
       ),
@@ -718,8 +738,12 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   expect(await publishDraft(evidence, allowed)).toMatchObject({ status: 'created', draft: true });
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   expect(request.body.title).toMatch(/^\[Needs review\] /);
+  expect(request.body.body).toMatch(/^## Why this needs review\n/);
+  expect(request.body.body).toContain(
+    '- Refit ran no checks: preparing the dependencies failed because the committed lockfile is out of sync with package.json.',
+  );
   expect(request.body.body).toMatch(
-    /^## Untested: checks did not run\n\n\*\*Refit did not run any checks on this patch\.\*\*/,
+    /\n## Untested: checks did not run\n\n\*\*Refit did not run any checks on this patch\.\*\*/,
   );
   expect(request.body.body).toContain('the committed lockfile is out of sync with package.json');
   expect(request.body.body).toContain(
@@ -736,13 +760,11 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   );
   expect(JSON.parse(local.files['report.json']).waivedGates[0]).toMatchObject({
     gate: 'dependency-preparation',
-    reason: 'lockfile-out-of-sync',
+    failure: { reason: 'lockfile-out-of-sync' },
   });
   expect(local.manifest).toMatchObject({ waivedGates: ['dependency-preparation'] });
 
-  // Every other gate still refuses, and so do failures that are not a repository-side reason.
-  const skipped = await untestedReport();
-  skipped.skippedFiles = ['src/broken.ts'];
+  // Owner decision 1: other reasons join the untested draft, and an AI patch says so.
   const webhook = await untestedReport();
   webhook.findings[0].webhook = {
     schema: 'payment_intent',
@@ -750,19 +772,17 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
     origin: { file: 'webhook.ts', line: 1, column: 1 },
     apiVersion: 'unverified',
   };
+  webhook.patch.generator = 'openai' as typeof webhook.patch.generator;
+  expect(publicationWaiver(webhook, true)?.map(({ gate }) => gate)).toEqual([
+    'dependency-preparation',
+    'ai-patch',
+    'webhook-api-version',
+  ]);
+  // Untested with no recorded preparation failure says nothing about why; it never publishes.
   const unclassified = await untestedReport();
   delete unclassified.validation.dependencyFailure;
-  const ai = await untestedReport();
-  ai.patch.generator = 'openai' as typeof ai.patch.generator;
-  for (const value of [skipped, webhook, unclassified, ai]) {
-    expect(publicationWaiver(value, true)).toBeUndefined();
-    await expect(publishDraft(value, allowed)).rejects.toThrow();
-  }
-  const unknownVersion = await untestedReport();
-  unknownVersion.apiVersion.applicability = 'unknown';
-  await expect(publishDraft(unknownVersion, allowed)).rejects.toThrow(
-    /Draft publication is blocked/,
-  );
+  expect(publicationWaiver(unclassified, true)).toBeUndefined();
+  await expect(publishDraft(unclassified, allowed)).rejects.toThrow(/passing baseline/);
   const regression = await untestedReport();
   regression.validation.status = regression.patch.validation = 'regression';
   expect(publicationWaiver(regression, true)).toBeUndefined();
@@ -771,7 +791,7 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
 
 // The request-rename fixture plus `items.archive`, whose target contract drops `note`: the rename
 // migrates `legacy_name`, and the archive call still sends the removed `note`.
-async function parameterScan(leaveRequestParameters?: boolean) {
+async function parameterScan(leaveReviewedFindings?: boolean) {
   const fixture = resolve('pipeline/fixtures/request-renames');
   const root = await mkdtemp(join(tmpdir(), 'refit-parameter-'));
   try {
@@ -829,7 +849,7 @@ export async function archiveItem(id: string, note: string) {
       providerConfig: join(root, 'provider.json'),
       apiVersion: '1',
       proposePatch: true,
-      leaveRequestParameters,
+      leaveReviewedFindings,
     });
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -883,8 +903,9 @@ it('migrates around a removed request parameter only when asked, and leaves it t
   const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
   const body = String(request.body.body);
   expect(request.body.title).toMatch(/^\[Needs review\] /);
+  expect(body).toMatch(/^## Why this needs review\n/);
   expect(body).toMatch(
-    /^## Removed request parameters left for you\n\n\*\*Don't merge until you change the calls below\.\*\*/,
+    /\n## Removed request parameters left for you\n\n\*\*Don't merge until you change the calls below\.\*\*/,
   );
   expect(body).toContain('no longer accepts `note`, and this patch still sends it');
   expect(body).toContain('No reviewed replacement for `note` exists.');
@@ -916,13 +937,16 @@ it('migrates around a removed request parameter only when asked, and leaves it t
 
   const skipped = await parameterReport();
   skipped.skippedFiles = ['src/broken.ts'];
-  const ai = await parameterReport();
-  ai.patch.generator = 'openai' as typeof ai.patch.generator;
-  for (const value of [skipped, ai]) {
-    expect(publicationWaiver(value, true)).toBeUndefined();
-    await expect(publishDraft(value, allowed)).rejects.toThrow();
-  }
+  expect(publicationWaiver(skipped, true)?.map(({ gate }) => gate)).toEqual([
+    'source-evidence',
+    'removed-request-parameter',
+  ]);
   const regression = await parameterReport();
   regression.validation.status = regression.patch.validation = 'regression';
-  await expect(publishDraft(regression, allowed)).rejects.toThrow(/passing baseline/);
+  expect(publicationWaiver(regression, true)).toBeUndefined();
+  const refusedRegression = github();
+  await expect(publishDraft(regression, allowed)).rejects.toThrow(
+    /removed\. No reviewed replacement/,
+  );
+  expect(refusedRegression.fetch).not.toHaveBeenCalled();
 });

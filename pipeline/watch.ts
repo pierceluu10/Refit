@@ -279,6 +279,10 @@ async function watchLocalOnce(
           ? { requestChanges: scan.requestChanges.map((change) => change.id) }
           : {}),
         contractChanges,
+        // Owner decision 1 turns stops into drafts, so a settled job reruns once with it.
+        ...(configuration.allowUnresolved || configuration.publication?.allowUnresolved
+          ? { publishUnresolved: true }
+          : {}),
       }),
     );
     await writeState(join(observations, `${snapshot.hash}.json`), {

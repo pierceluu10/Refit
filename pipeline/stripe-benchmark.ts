@@ -285,13 +285,13 @@ export async function workflowScanStop(
     keepListedPaymentMethods?: boolean;
   },
   aiPatch: boolean,
-  leaveRequestParameters: boolean,
+  leaveReviewedFindings: boolean,
 ) {
-  return runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters }).then(
+  return runPipeline({ ...inputs, proposePatch: true, leaveReviewedFindings }).then(
     (scan) =>
       targetReached(scan)
         ? undefined
-        : (scanReviewReason(scan, aiPatch, leaveRequestParameters) ??
+        : (scanReviewReason(scan, aiPatch, leaveReviewedFindings) ??
           proposalReviewReason(scan, aiPatch)),
     () => undefined,
   );

@@ -13,12 +13,20 @@ import {
   migrationIdentity,
   REFIT_VERSION,
 } from './migration-identity.ts';
-import type { publicationWaiver } from './publication.ts';
+import type { ReviewReason } from './publication.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR } from './stripe-open-enums.ts';
-import { PAYMENT_METHOD_TYPES_CHANGELOG } from './patches.ts';
+import { applySourceEdits, PAYMENT_METHOD_TYPES_CHANGELOG } from './patches.ts';
 
-type PublicationWaiver = NonNullable<ReturnType<typeof publicationWaiver>>;
+// The entry for one gate, when the draft has it.
+function gated<Gate extends ReviewReason['gate']>(
+  reviews: readonly ReviewReason[] | undefined,
+  gate: Gate,
+) {
+  return reviews?.find(
+    (entry): entry is Extract<ReviewReason, { gate: Gate }> => entry.gate === gate,
+  );
+}
 
 type ValidationReport = Awaited<ReturnType<typeof validateMigration>>;
 const MAX_SUMMARY_ITEMS = 5;
@@ -33,7 +41,7 @@ export const MAX_BODY_CHARACTERS = 16_000;
 export const NEEDS_REVIEW_PREFIX = '[Needs review] ';
 const MAX_LISTED_SITES = 25;
 // The check the Stripe benchmark runs where a repository has no tests and no TypeScript.
-const NO_OP_CHECK = 'node -e 0';
+export const NO_OP_CHECK = 'node -e 0';
 // compareTypeCheck() in validation.ts lists these above the type checker's own output.
 const INTRODUCED_TYPE_ERRORS = 'Type errors this patch introduced:\n';
 // Checked on GitHub, 2026-10-24.
@@ -43,10 +51,18 @@ const STRIPE_NODE_CHANGELOG = 'https://github.com/stripe/stripe-node/blob/master
 function typeCheckOnly(command: string) {
   return /^(?:npx (?:--no-install )?)?tsc\b/.test(command);
 }
+// Gates whose check the checklist already words on its own.
+const CHECKLISTED_GATES = new Set<ReviewReason['gate']>([
+  'dependency-preparation',
+  'removed-request-parameter',
+  'webhook-api-version',
+  'baseline-failed',
+  'no-checks',
+]);
 const LOCKFILE =
   /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?)$/;
 
-function plainText(value: string) {
+export function plainText(value: string) {
   return value.replace(/[\x00-\x1f\x7f]/g, ' ').replace(/[\\`*_{}\[\]<>#|]/g, '\\$&');
 }
 
@@ -125,6 +141,37 @@ function changedFiles(diff: string) {
   for (const file of fileChanges(diff))
     files.set(file.path, { ...file, before: files.get(file.path)?.before ?? file.before });
   return [...files.values()];
+}
+
+// Lines of an AI patch that Refit's rules did not write (owner decision 8): each file's final text
+// against the original with only the rule edits applied. A package upgrade's files are the rules'.
+function aiWrittenLines(patch: ValidationReport['patch'], upgraded: boolean) {
+  const ruleEdits = ('ruleEdits' in patch && patch.ruleEdits) || [];
+  return changedFiles(patch.diff)
+    .filter(
+      (file) =>
+        !(upgraded && (/(?:^|\/)package\.json$/.test(file.path) || LOCKFILE.test(file.path))),
+    )
+    .flatMap((file) =>
+      structuredPatch(
+        file.path,
+        file.path,
+        applySourceEdits(
+          file.before,
+          ruleEdits.filter((edit) => edit.file === file.path),
+        ),
+        file.after,
+        '',
+        '',
+        { context: 0 },
+      )
+        .hunks.filter((hunk) => hunk.newLines > 0)
+        .map((hunk) =>
+          code(
+            `${file.path}:${hunk.newStart}${hunk.newLines > 1 ? `-${hunk.newStart + hunk.newLines - 1}` : ''}`,
+          ),
+        ),
+    );
 }
 
 // The innermost named function, method or function-valued variable that contains a line (1-based).
@@ -387,9 +434,12 @@ export function createReviewArtifacts(
   report: ValidationReport,
   destination: 'local' | 'github' = 'local',
   integration?: string,
-  waiver?: PublicationWaiver,
+  reviews?: readonly ReviewReason[],
 ) {
   const { validation, patch } = report;
+  const dependency = gated(reviews, 'dependency-preparation');
+  const parameterGate = gated(reviews, 'removed-request-parameter');
+  const webhookGate = gated(reviews, 'webhook-api-version');
   if (validation.patchHash !== digest(patch.diff) || patch.validation !== validation.status)
     throw new PipelineInputError(
       'Review artifacts require consistent patch and validation evidence.',
@@ -471,7 +521,7 @@ export function createReviewArtifacts(
   const scope = (
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
   ).toLowerCase();
-  const needsReview = Boolean(waiver || patch.unresolvedFindings);
+  const needsReview = Boolean(reviews?.length || patch.unresolvedFindings);
   const prefix = needsReview ? NEEDS_REVIEW_PREFIX : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
   const title =
@@ -488,7 +538,7 @@ export function createReviewArtifacts(
   const after = plainText(report.apiVersion.after ?? 'the after contract');
   // Calls that still send a removed request parameter and untraced reads (no rule edits them) are
   // counted as unresolved; each gets its own line, so the confirmed count below leaves them out.
-  const parameterCalls = waiver?.gate === 'removed-request-parameter' ? waiver.calls : [];
+  const parameterCalls = parameterGate?.calls ?? [];
   const untracedReads = report.findings.filter((finding) => finding.untraced).length;
   // Where the rescan of the migrated code still finds each usage; reports before 2026-10-24 only
   // stored the count.
@@ -828,17 +878,18 @@ export function createReviewArtifacts(
   ];
   const checklist = [
     `Read each change under Code Changes${sources.length ? ' against the provider page linked in Overview' : ''}.`,
-    ...(waiver?.gate === 'dependency-preparation'
-      ? ['Install dependencies and run your checks: Refit could not run any.']
-      : []),
-    ...(waiver?.gate === 'removed-request-parameter'
+    ...(dependency ? ['Install dependencies and run your checks: Refit could not run any.'] : []),
+    ...(parameterGate
       ? ['Change or remove each call under Removed request parameters left for you.']
       : []),
-    ...(waiver?.gate === 'webhook-api-version'
+    ...(webhookGate
       ? [
-          `Set the webhook endpoint API version to ${code(waiver.targetVersion)} when you deploy, or confirm it already is.`,
+          `Set the webhook endpoint API version to ${code(webhookGate.targetVersion)} when you deploy, or confirm it already is.`,
         ]
       : []),
+    ...(reviews ?? [])
+      .filter((entry) => !CHECKLISTED_GATES.has(entry.gate))
+      .map((entry) => entry.check),
     ...(cardRename ? ['Confirm cards stay enabled in the Stripe Dashboard.'] : []),
     ...listedMethods.map(
       (methods) => `Confirm ${code(`[${methods}]`)} are still offered where you rely on them.`,
@@ -865,7 +916,7 @@ export function createReviewArtifacts(
         ? [
             `Run the code this patch changes, or add a test that does: ${commandText(validation.command)} does not run it.`,
           ]
-        : waiver?.gate === 'dependency-preparation'
+        : dependency
           ? []
           : validation.baseline.status !== 'passed'
             ? [
@@ -886,27 +937,55 @@ export function createReviewArtifacts(
     ? sameCommand
       ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
       : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
-    : waiver?.gate === 'dependency-preparation'
-      ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
+    : dependency
+      ? `**Not run: dependency preparation failed (${code(dependency.failure.reason)}); this patch is untested.**`
       : failedChecks(validation);
+  const aiLines = gated(reviews, 'ai-patch') ? aiWrittenLines(patch, Boolean(upgrade)) : [];
+  // Every reason this draft needs review, each with what to check and where (owner decision 1).
+  const reasonList = (siteLimit: number) =>
+    (reviews ?? []).map((entry) => {
+      const sites = [
+        ...(('sites' in entry && entry.sites) || []).map(
+          (site) =>
+            `${code(site.line ? `${site.file}:${site.line}` : site.file)}${site.detail ? ` ${code(site.detail)}` : ''}`,
+        ),
+        ...(('changes' in entry && entry.changes) || []).map(plainText),
+        ...(entry.gate === 'ai-patch'
+          ? aiLines.length
+            ? aiLines
+            : ['None: every changed line comes from a Refit rule.']
+          : []),
+      ];
+      return [
+        `- ${entry.reason} **Check:** ${entry.check}`,
+        ...(sites.length ? [siteList(sites, siteLimit).replace(/^/gm, '  ')] : []),
+      ].join('\n');
+    });
   const render = (diffLimit: number, siteLimit: number, shortened?: string) =>
     [
-      ...(waiver?.gate === 'dependency-preparation'
+      ...(reviews?.length
         ? [
-            '## Untested: checks did not run',
-            `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(waiver.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
-            `> ${plainText(waiver.message.length > MAX_QUOTE ? `${waiver.message.slice(0, MAX_QUOTE)}...` : waiver.message)}`,
-            `**What to do:** ${waiver.action} Don't merge until they pass.`,
+            '## Why this needs review',
+            `Refit opened this draft for review instead of stopping (owner decision 1). **Don't merge until you have checked each item.**${aiLines.length ? ' The AI-written lines are listed with the AI item.' : ''}`,
+            reasonList(siteLimit).join('\n'),
           ]
         : []),
-      ...(waiver?.gate === 'removed-request-parameter'
+      ...(dependency
+        ? [
+            '## Untested: checks did not run',
+            `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(dependency.failure.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
+            `> ${plainText(dependency.failure.message.length > MAX_QUOTE ? `${dependency.failure.message.slice(0, MAX_QUOTE)}...` : dependency.failure.message)}`,
+            `**What to do:** ${dependency.failure.action} Don't merge until they pass.`,
+          ]
+        : []),
+      ...(parameterGate
         ? [
             '## Removed request parameters left for you',
-            `**Don't merge until you change the calls below.** ${plainText(provider)} API ${code(waiver.targetVersion)} no longer accepts ${summaryList(parameters.map(code))}, and this patch still sends ${parameterCalls.length === 1 ? 'it' : 'them'}, so ${parameterCalls.length === 1 ? 'this request fails' : 'these requests fail'} after the upgrade. Refit didn't change ${parameterCalls.length === 1 ? 'it' : 'them'}: dropping or replacing a request parameter changes what the request does, so that's your decision.`,
+            `**Don't merge until you change the calls below.** ${plainText(provider)} API ${code(parameterGate.targetVersion)} no longer accepts ${summaryList(parameters.map(code))}, and this patch still sends ${parameterCalls.length === 1 ? 'it' : 'them'}, so ${parameterCalls.length === 1 ? 'this request fails' : 'these requests fail'} after the upgrade. Refit didn't change ${parameterCalls.length === 1 ? 'it' : 'them'}: dropping or replacing a request parameter changes what the request does, so that's your decision.`,
             ...parameters.map(
               (parameter) =>
                 REMOVED_PARAMETER_NOTES[parameter] ??
-                `No reviewed replacement for ${code(parameter)} exists. Check the ${plainText(provider)} changelog for ${code(waiver.targetVersion)}, then remove or replace it.`,
+                `No reviewed replacement for ${code(parameter)} exists. Check the ${plainText(provider)} changelog for ${code(parameterGate.targetVersion)}, then remove or replace it.`,
             ),
             siteList(
               parameterCalls.map(
@@ -917,15 +996,15 @@ export function createReviewArtifacts(
             ),
           ]
         : []),
-      ...(waiver?.gate === 'webhook-api-version'
+      ...(webhookGate
         ? [
             '## Webhook API version not verified',
-            `This patch changes webhook handlers. Stripe sends webhooks in the API version set on the webhook endpoint in the Stripe dashboard, which Refit can't see from code. Before merging, check the endpoint's API version in Dashboard > Developers > Webhooks and confirm it matches ${code(waiver.targetVersion)}, or update it when you deploy.`,
+            `This patch changes webhook handlers. Stripe sends webhooks in the API version set on the webhook endpoint in the Stripe dashboard, which Refit can't see from code. Before merging, check the endpoint's API version in Dashboard > Developers > Webhooks and confirm it matches ${code(webhookGate.targetVersion)}, or update it when you deploy.`,
             siteList(
               // One read can break more than one field change; list its site once.
               [
                 ...new Set(
-                  waiver.handlers.map(
+                  webhookGate.handlers.map(
                     (handler) =>
                       `${code(`${handler.file}:${handler.line}`)}${handler.eventTypes.length ? ` (${handler.eventTypes.map(code).join(', ')})` : ''}`,
                   ),
@@ -1046,7 +1125,7 @@ export function createReviewArtifacts(
     ...(integration ? [`Refit-Integration: ${integration}`] : []),
   ].join('\n')}\n`;
   const files = {
-    'report.json': `${JSON.stringify(waiver ? { ...report, waivedGates: [waiver] } : report, null, 2)}\n`,
+    'report.json': `${JSON.stringify(reviews?.length ? { ...report, waivedGates: reviews } : report, null, 2)}\n`,
     'migration.patch': patch.diff,
     'pull-request.md': body,
   };
@@ -1054,7 +1133,7 @@ export function createReviewArtifacts(
     formatVersion: 1,
     kind: 'refit-review-bundle',
     ...(integration ? { integration } : {}),
-    ...(waiver ? { waivedGates: [waiver.gate] } : {}),
+    ...(reviews?.length ? { waivedGates: reviews.map((entry) => entry.gate) } : {}),
     runId: report.runId,
     revision: validation.revision,
     title,

@@ -1,4 +1,4 @@
-import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
+import { migrationReviewReason } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -22,7 +22,7 @@ import { proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
-import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
+import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
@@ -569,13 +569,13 @@ export async function validateMigration(options: {
   fullDiff?: boolean;
   repairAttempts?: number;
   generatedChecks?: GeneratedChecks;
-  // --publish-unresolved: see withoutRequestParameters.
-  leaveRequestParameters?: boolean;
+  // Owner decision 1: see runPipeline.
+  leaveReviewedFindings?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
-  // --publish-unresolved: a repository-side dependency preparation failure skips the checks and
-  // returns the deterministic patch as `untested` instead of throwing.
-  recordDependencyFailures?: boolean;
+  // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
+  // no evidence, the patch is still applied and returned untested instead of throwing or dropped.
+  recordUntested?: boolean;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -607,14 +607,9 @@ export async function validateMigration(options: {
   });
   if (apiVersionSourceBlocked(preflight.apiVersion))
     throw new PipelineInputError(`Validation is blocked. ${preflight.apiVersion.reason}`);
-  const reviewReason = migrationReviewReason(
-    options.leaveRequestParameters && !options.aiPatch
-      ? withoutRequestParameters(preflight)
-      : preflight,
-    true,
-    true,
-    Boolean(options.aiPatch),
-  );
+  const reviewReason = options.leaveReviewedFindings
+    ? undefined
+    : migrationReviewReason(preflight, true, true, Boolean(options.aiPatch));
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
@@ -684,7 +679,9 @@ export async function validateMigration(options: {
         : undefined;
     let dependencies: string | undefined;
     let environment: Record<string, unknown> | undefined;
-    let dependencyFailure: ReturnType<typeof repositoryDependencyFailure> = undefined;
+    let dependencyFailure: ReturnType<typeof preparationFailure> = undefined;
+    // The baseline checks failed with recordUntested: the patch is built but its checks never run.
+    let untestedBaseline = false;
     let prepared: Awaited<ReturnType<typeof prepareDependencies>> | undefined;
     if (options.prepareDependencies)
       try {
@@ -697,9 +694,7 @@ export async function validateMigration(options: {
           }),
         );
       } catch (error) {
-        dependencyFailure = options.recordDependencyFailures
-          ? repositoryDependencyFailure(error)
-          : undefined;
+        dependencyFailure = options.recordUntested ? preparationFailure(error) : undefined;
         if (!dependencyFailure) throw error;
         options.onProgress?.(`Dependency preparation failed: ${dependencyFailure.summary}`);
       }
@@ -733,7 +728,12 @@ export async function validateMigration(options: {
       // preparation reads from a committed snapshot.
       let candidateDependencies = dependencies;
       let candidateEnvironment: Record<string, unknown> | undefined;
-      if (packageDiff(diff) && options.prepareDependencies && !dependencyFailure)
+      if (
+        packageDiff(diff) &&
+        options.prepareDependencies &&
+        !dependencyFailure &&
+        !untestedBaseline
+      )
         ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
           installed ??
           (await timed('candidatePreparation', () =>
@@ -848,6 +848,8 @@ export async function validateMigration(options: {
           }),
         );
     const { baseline, compared } = typeCheckComparison(baselineRun, options.compareTypeErrors);
+    untestedBaseline =
+      Boolean(options.recordUntested) && !dependencyFailure && baseline.status !== 'passed';
     options.signal?.throwIfAborted();
     const report = earlyReport || (await propose(baseline.status === 'passed'));
     const configuredEndpointProposal = report.operationChanges.some(
@@ -875,7 +877,7 @@ export async function validateMigration(options: {
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
     const initialCandidate =
-      baseline.status === 'passed' || dependencyFailure
+      baseline.status === 'passed' || dependencyFailure || (untestedBaseline && proposal.diff)
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
             : prepareCandidate(proposal.diff, originalSources, report))
@@ -888,7 +890,7 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' ? initialCandidate?.sources.files : undefined;
     let candidateDependencies = initialCandidate?.dependencies;
     let candidateEnvironment = initialCandidate?.environment;
-    const runPatched = initialCandidate && !dependencyFailure;
+    const runPatched = initialCandidate && baseline.status === 'passed';
     if (runPatched) options.onProgress?.('Running patched checks in offline Docker...');
     let patched: CheckResult = runPatched
       ? compared(

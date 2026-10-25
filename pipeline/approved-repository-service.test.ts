@@ -15,7 +15,9 @@ import {
   inspectRepositoryEnrollment,
   RepositoryApprovalError,
 } from './repository-enrollment.ts';
-import { pollServiceTarget } from './service-worker.ts';
+import * as readiness from './readiness.ts';
+import { UnclassifiedCheckError } from './readiness.ts';
+import { pollServiceTarget, summarizePoll } from './service-worker.ts';
 import { runLocalService } from './local-service.ts';
 import { readServiceConfiguration, type ServiceTarget } from './service-configuration.ts';
 import { readWorkflowConfiguration } from './workflow-configuration.ts';
@@ -615,3 +617,72 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
   },
   60_000,
 );
+
+// Owner decision 1: under --publish-unresolved only setup checks stop a hosted job; the checks only
+// doctor sees join the draft, and the workflow reports the rest itself.
+it('lets only setup problems stop a job under --publish-unresolved and passes doctor findings on', async () => {
+  const sample = await setup();
+  const check = (id: string, title: string) => ({
+    id,
+    title,
+    status: 'blocked' as const,
+    detail: `${title} detail.`,
+    action: `${title} action.`,
+  });
+  const readinessReport = (...checks: ReturnType<typeof check>[]) => ({
+    formatVersion: 1 as const,
+    kind: 'refit-readiness' as const,
+    status: 'needs-attention' as const,
+    configuration: '.refit.json',
+    repository: null,
+    revision: null,
+    provider: null,
+    image: null,
+    currentSourceChecked: false,
+    checks,
+    sdkCoverage: null,
+    scope: [],
+  });
+  const coverage = check('sdk-coverage', 'SDK call mapping');
+  const migration = check('migration-coverage', 'Supported migration coverage');
+  const inspect = vi.spyOn(readiness, 'inspectRepositoryReadiness');
+  const worker = vi.spyOn(watch, 'watchOnce').mockResolvedValue({
+    status: 'already-processed',
+    provider: 'stripe',
+    jobKey: 'decision-1',
+    sourceHash: 'a'.repeat(64),
+    previousStatus: 'needs-review',
+    output: null,
+  });
+  const input = { ...sample.input, inspectReadiness: true };
+
+  inspect.mockResolvedValue(readinessReport(coverage, migration));
+  const stopped = await pollServiceTarget(input);
+  expect(stopped).toMatchObject({ status: 'readiness-blocked', stops: [coverage, migration] });
+  expect(summarizePoll(stopped).message).toBe(
+    'refit doctor found setup problems: SDK call mapping, Supported migration coverage. Scanning and checks did not run.',
+  );
+  expect(worker).not.toHaveBeenCalled();
+
+  expect((await pollServiceTarget({ ...input, publishUnresolved: true })).status).toBe(
+    'already-processed',
+  );
+  expect(worker.mock.calls[0][0].configuration).toMatchObject({
+    allowUnresolved: true,
+    doctor: [coverage],
+  });
+
+  const docker = check('docker', 'Local Docker image');
+  inspect.mockResolvedValue(readinessReport(coverage, docker));
+  const setupStop = await pollServiceTarget({ ...input, publishUnresolved: true });
+  expect(setupStop).toMatchObject({ status: 'readiness-blocked', stops: [docker] });
+  expect(summarizePoll(setupStop).message).toBe(
+    'refit doctor found setup problems: Local Docker image. Scanning and checks did not run.',
+  );
+
+  inspect.mockResolvedValue(readinessReport(check('new-check', 'A check nobody classified')));
+  await expect(pollServiceTarget({ ...input, publishUnresolved: true })).rejects.toBeInstanceOf(
+    UnclassifiedCheckError,
+  );
+  expect(worker).toHaveBeenCalledOnce();
+});

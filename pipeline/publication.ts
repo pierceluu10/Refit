@@ -1,8 +1,15 @@
 import { GitHubRequestError, requestGitHub } from './github.ts';
 import { authenticateGitHubApp, type GitHubAppConfiguration } from './github-app.ts';
-import { code, createReviewArtifacts, NEEDS_REVIEW_PREFIX, summaryList } from './review.ts';
+import {
+  code,
+  createReviewArtifacts,
+  NEEDS_REVIEW_PREFIX,
+  NO_OP_CHECK,
+  plainText,
+  summaryList,
+} from './review.ts';
 import { digest, isObject } from './specifications.ts';
-import { PipelineInputError } from './types.ts';
+import { PipelineInputError, type Finding } from './types.ts';
 import type { PublicationFile, validateMigration } from './validation.ts';
 import type { runPipeline } from './run.ts';
 import {
@@ -15,9 +22,10 @@ import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { apiVersionSourceBlocked } from './api-version.ts';
 import {
   migrationReviewReason,
+  migrationReviewReasons,
   REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
-  withoutRequestParameters,
 } from './migration-review.ts';
+import type { ReadinessCheck } from './readiness.ts';
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 
 const MAX_BODY_CHARACTERS = 60_000;
@@ -543,78 +551,218 @@ export async function closeResolvedDraft(
   return draftOutcome('closed', closed, sha(object(pull.head).sha), context);
 }
 
-// With --publish-unresolved, a draft may publish as [Needs review] when exactly one of these blocks
-// it and nothing else does; the PR opens with what the owner must check or do:
-// - the incoming webhook API version, which code cannot prove (lists the changed handlers);
-// - traced calls that still send a removed request parameter, an owner decision (lists the calls);
-// - checks that could not run because dependency preparation failed for a repository-side reason
-//   (the patch is untested; names the reason and the fix).
-export function publicationWaiver(report: Report, allowUnresolved: boolean | undefined) {
+// Reviewed findings are never edited, so the rescan of the migrated code finds each again; its line
+// is where the draft's code has it. A finding the rescan does not match keeps its original line.
+function draftLine(report: Report, finding: Finding) {
+  const sites = 'unresolvedSites' in report.patch ? (report.patch.unresolvedSites ?? []) : [];
+  const same = (site: Pick<Finding, 'file' | 'changeId' | 'expression'>) =>
+    site.file === finding.file &&
+    site.changeId === finding.changeId &&
+    site.expression === finding.expression;
+  const originals = report.findings.filter(same);
+  const migrated = sites.filter(same);
+  return originals.length === migrated.length
+    ? migrated[originals.indexOf(finding)].line
+    : finding.line;
+}
+
+// Where a reason applies in the migrated code; `line` 0 names a whole file.
+type ReviewSite = { file: string; line: number; detail?: string };
+
+const firstSentence = (text: string) => text.split(/(?<=\.)\s/)[0];
+
+// Owner decision 1 (Pierce, 2026-10-24, pierceluu10/Refit#300): with --publish-unresolved, wherever
+// Refit used to stop it publishes its best patch as a [Needs review] draft. This lists every reason
+// the draft needs review, each with what the reviewer must check; an empty list is a validated
+// draft. It returns undefined, and nothing publishes, when the option is off, when checks ran on the
+// patch and the run did not pass (a regression, an error, or a generated check that fails on the
+// original code), or when the checkout changed during validation. `doctor` holds refit doctor's review findings.
+export function publicationWaiver(
+  report: Report,
+  allowUnresolved: boolean | undefined,
+  doctor: readonly ReadinessCheck[] = [],
+) {
   if (!allowUnresolved) return undefined;
-  const deterministic = report.patch.generator === 'deterministic';
-  const reason = migrationReviewReason(report, deterministic);
-  const targetVersion = report.apiVersion.after ?? 'the target API version';
-  if (report.validation.status === 'untested') {
-    const failure = report.validation.dependencyFailure;
-    if (reason || !failure || !deterministic) return undefined;
-    return { gate: 'dependency-preparation' as const, ...failure };
-  }
-  if (reason === REMOVED_REQUEST_PARAMETER_REVIEW_REASON) {
-    if (!deterministic || migrationReviewReason(withoutRequestParameters(report), deterministic))
-      return undefined;
-    return {
-      gate: 'removed-request-parameter' as const,
-      targetVersion,
-      calls: report.findings
-        .filter((finding) => finding.requestParameter)
-        .map((finding) => ({
-          file: finding.file,
-          line: finding.line,
-          call: finding.expression.slice(0, finding.expression.indexOf(' ')),
-          parameter: finding.requestParameter!.parameter,
-        })),
-    };
-  }
-  if (reason !== WEBHOOK_REVIEW_REASON) return undefined;
-  const withoutWebhooks = report.findings.map(({ webhook: _webhook, ...finding }) => finding);
-  if (migrationReviewReason({ ...report, findings: withoutWebhooks }, deterministic))
+  const { validation, patch } = report;
+  // The checks failed or could not finish on the original code, so they never ran on the patch.
+  const baselineFailed =
+    ['baseline-failed', 'error'].includes(validation.status) &&
+    validation.baseline.status !== 'passed' &&
+    validation.patched.status === 'not-run';
+  const failure = validation.dependencyFailure;
+  if (
+    validation.status !== 'passed' &&
+    !(validation.status === 'untested' && failure) &&
+    !baselineFailed
+  )
     return undefined;
+  const deterministic = patch.generator === 'deterministic';
+  const targetVersion = report.apiVersion.after ?? 'the target API version';
   const changed = new Set(
-    [...report.patch.diff.matchAll(/^\+\+\+ ("b\/.+")$/gm)].map((match) =>
+    [...patch.diff.matchAll(/^\+\+\+ ("b\/.+")$/gm)].map((match) =>
       (JSON.parse(match[1]) as string).slice(2),
     ),
   );
-  return {
-    gate: 'webhook-api-version' as const,
-    targetVersion,
-    handlers: report.findings
-      .filter((finding) => finding.webhook && changed.has(finding.file))
-      .map((finding) => ({
-        file: finding.file,
-        line: finding.line,
-        eventTypes: finding.webhook!.eventTypes,
-      })),
-  };
+  const checks = code(validation.baselineCommand.join(' '));
+  const generatedRan = validation.generated
+    ? validation.generated.entryPoints.length - validation.generated.notRunnable.length
+    : 0;
+  const unmapped = unmappedBreakingChanges(
+    report.specificationDiff,
+    report.changes,
+    report.findings,
+    report.operationChanges,
+    report.requestChanges,
+    report.expandedFields,
+  ).filter(isObject);
+  const impacts: ReviewSite[] = report.operationImpacts.flatMap((impact) =>
+    impact.usages.map((usage) => ({
+      file: usage.file,
+      line: usage.line,
+      detail: `${impact.httpMethod.toUpperCase()} ${impact.path}`,
+    })),
+  );
+  return [
+    ...(failure
+      ? [
+          {
+            gate: 'dependency-preparation' as const,
+            reason: `Refit ran no checks: preparing the dependencies failed because ${failure.summary}.`,
+            check: failure.action,
+            failure,
+          },
+        ]
+      : []),
+    ...(baselineFailed
+      ? [
+          {
+            gate: 'baseline-failed' as const,
+            reason: `${checks} does not pass on the original code, so the checks say nothing about this patch and Refit did not run them on it.`,
+            check: `Make ${checks} pass on the base branch, then run it on this branch before merging.`,
+          },
+        ]
+      : []),
+    ...(validation.status === 'passed' &&
+    validation.command.join(' ') === NO_OP_CHECK &&
+    !generatedRan
+      ? [
+          {
+            gate: 'no-checks' as const,
+            reason: `The configured check ${code(NO_OP_CHECK)} runs no code, so nothing in this patch was tested.`,
+            check: `Run your tests or type check on this branch, or set a real check command in ${code('.refit.json')}.`,
+          },
+        ]
+      : []),
+    // Owner decision 8: AI patches always ship for review, whatever their checks show.
+    ...(patch.generator === 'openai'
+      ? [
+          {
+            gate: 'ai-patch' as const,
+            reason:
+              'Refit asked an AI model for this patch. Checks that pass do not show that it keeps what the code does.',
+            check:
+              'Read each AI-written line listed under Why this needs review as you would a teammate’s.',
+          },
+        ]
+      : []),
+    ...migrationReviewReasons(report, deterministic).map((entry) =>
+      entry.reason === WEBHOOK_REVIEW_REASON
+        ? {
+            gate: 'webhook-api-version' as const,
+            reason: plainText(firstSentence(entry.reason)),
+            check: `Set the webhook endpoint API version to ${code(targetVersion)} when you deploy, or confirm it already is.`,
+            targetVersion,
+            handlers: entry.findings
+              .filter((finding) => changed.has(finding.file))
+              .map((finding) => ({
+                file: finding.file,
+                line: draftLine(report, finding),
+                eventTypes: finding.webhook!.eventTypes,
+              })),
+          }
+        : entry.reason === REMOVED_REQUEST_PARAMETER_REVIEW_REASON
+          ? {
+              gate: 'removed-request-parameter' as const,
+              reason: plainText(firstSentence(entry.reason)),
+              check: 'Change or remove each call under Removed request parameters left for you.',
+              targetVersion,
+              calls: entry.findings.map((finding) => ({
+                file: finding.file,
+                line: draftLine(report, finding),
+                call: finding.expression.slice(0, finding.expression.indexOf(' ')),
+                parameter: finding.requestParameter!.parameter,
+              })),
+            }
+          : {
+              gate: 'source-evidence' as const,
+              reason: plainText(firstSentence(entry.reason)),
+              check: entry.findings.length
+                ? 'Migrate or check each usage listed here by hand; Refit left them unchanged.'
+                : 'Check the skipped files for usages this patch does not migrate.',
+              sites: (entry.findings.length
+                ? entry.findings.map((finding) => ({
+                    file: finding.file,
+                    line: draftLine(report, finding),
+                    detail: finding.expression,
+                  }))
+                : (report.skippedFiles ?? []).map((file) => ({ file, line: 0 }))) as ReviewSite[],
+            },
+    ),
+    ...(report.apiVersion.applicability === 'matches-before'
+      ? []
+      : [
+          {
+            gate: 'api-version' as const,
+            reason: plainText(report.apiVersion.reason),
+            check: `Confirm which API version this code and account use before merging; the patch assumes ${code(report.apiVersion.before ?? 'the before contract')}.`,
+          },
+        ]),
+    ...(unmapped.length || impacts.length
+      ? [
+          {
+            gate: 'contract-changes' as const,
+            reason:
+              'Traced code reaches breaking changes in the target contract that no Refit rule migrates.',
+            check:
+              'Migrate each change listed here by hand, or confirm the code does not depend on it.',
+            sites: impacts,
+            changes: unmapped.map(
+              (change) =>
+                `${change.operation} ${change.path} ${change.text}${change.reachReason ? `: ${change.reachReason}` : ''}`,
+            ),
+          },
+        ]
+      : []),
+    ...doctor.map((check) => ({
+      gate: 'doctor' as const,
+      reason: `refit doctor, ${plainText(check.title)}: ${plainText(check.detail)}`,
+      check: plainText(check.action ?? 'Check this finding before merging.'),
+    })),
+  ];
 }
+
+export type ReviewReason = NonNullable<ReturnType<typeof publicationWaiver>>[number];
 
 export async function publishDraft(
   report: Report,
   options: ReturnType<typeof publicationConfiguration>,
+  doctor: readonly ReadinessCheck[] = [],
 ) {
   const apiVersion = report.apiVersion;
   const reviewReason = migrationReviewReason(report, report.patch.generator === 'deterministic');
-  const waiver = publicationWaiver(report, options.allowUnresolved);
-  if (reviewReason && !waiver) throw new PipelineInputError(reviewReason);
+  const reviews = publicationWaiver(report, options.allowUnresolved, doctor);
+  if (reviewReason && !reviews) throw new PipelineInputError(reviewReason);
   if (
     !apiVersion ||
-    apiVersion.applicability !== 'matches-before' ||
+    (apiVersion.applicability !== 'matches-before' && !reviews) ||
     apiVersionSourceBlocked(apiVersion)
   )
     throw new PipelineInputError(
       `Draft publication is blocked. ${apiVersion?.reason ?? 'API-version evidence is missing.'}`,
     );
-  const artifacts = createReviewArtifacts(report, 'github', options.integration, waiver);
+  const artifacts = createReviewArtifacts(report, 'github', options.integration, reviews);
   if (
+    !reviews &&
     unmappedBreakingChanges(
       report.specificationDiff,
       report.changes,
@@ -628,7 +776,7 @@ export async function publishDraft(
       'Draft publication is blocked by unmapped breaking contract changes.',
     );
   if (
-    (report.validation.status !== 'passed' && waiver?.gate !== 'dependency-preparation') ||
+    (report.validation.status !== 'passed' && !reviews) ||
     (report.patch.unresolvedFindings !== 0 && !options.allowUnresolved) ||
     !report.publicationFiles.length
   )

@@ -108,6 +108,8 @@ export async function runHostedService(options: {
   aiTotalUsd?: number;
   repairAttempts?: number;
   publishDraft?: boolean;
+  // Owner decision 1: stops become [Needs review] drafts. Job machines run without it.
+  publishUnresolved?: boolean;
   // The worker image this process runs (FLY_IMAGE_REF). With it, a scheduled poll whose base commit,
   // approval and build match the target's last finished job stores that receipt and runs nothing.
   build?: string;
@@ -206,6 +208,7 @@ export async function runHostedService(options: {
         options.aiPatch?.model ?? null,
         repairAttempts,
         Boolean(options.publishDraft),
+        Boolean(options.publishUnresolved),
       ]),
     );
   const redactReceipt = <Receipt extends { message: string | null }>(receipt: Receipt) => ({
@@ -471,6 +474,7 @@ export async function runHostedService(options: {
             },
             repairAttempts,
             publishDraft: options.publishDraft,
+            publishUnresolved: options.publishUnresolved,
             notify: options.notify,
             onProgress: progress,
           });

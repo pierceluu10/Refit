@@ -233,11 +233,21 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       "Run your own tests and type check on this branch before merging; Refit's sandbox could not hold this dependency tree.",
   },
 ] as const;
+const OTHER_DEPENDENCY_FAILURE = {
+  reason: 'preparation-failed',
+  summary: 'Refit could not install them in its sandbox',
+  action: () =>
+    'Install the dependencies and run your own tests and type check on this branch before merging; Refit ran none.',
+};
 
-export function repositoryDependencyFailure(error: unknown) {
+// Why preparation refused, for a patch published untested (owner decision 1, 2026-10-24): a named
+// repository-side cause with its fix, or any other refusal Refit raised. Other errors (cancellation,
+// programming errors) are not preparation results and return undefined.
+export function preparationFailure(error: unknown) {
   if (!(error instanceof PipelineInputError)) return undefined;
-  const failure = REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message));
-  if (!failure) return undefined;
+  const failure =
+    REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message)) ??
+    OTHER_DEPENDENCY_FAILURE;
   const lockfile = /pnpm/i.test(error.message)
     ? 'pnpm-lock.yaml'
     : /yarn/i.test(error.message)

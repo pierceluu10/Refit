@@ -127,6 +127,7 @@ export async function runHostedTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  publishUnresolved?: boolean;
   notify?: SlackSend;
   onProgress?: (message: string) => void;
 }): Promise<HostedOutcome> {
@@ -148,6 +149,7 @@ export async function runHostedTarget(options: {
       aiPatch: options.aiPatch,
       repairAttempts: options.repairAttempts,
       publishDraft: options.publishDraft,
+      publishUnresolved: options.publishUnresolved,
       notify: options.notify,
       inspectReadiness: true,
       contracts: hostedContracts(options.directory),

@@ -55,7 +55,7 @@ async function options() {
   };
 }
 
-it('returns the patch untested on a repository-side preparation failure only when asked', async () => {
+it('returns the patch untested on a preparation failure only when asked', async () => {
   const input = await options();
   const outOfSync = new PipelineInputError(
     'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
@@ -63,7 +63,7 @@ it('returns the patch untested on a repository-side preparation failure only whe
   vi.mocked(prepareDependencies).mockRejectedValue(outOfSync);
   await expect(validateMigration(input)).rejects.toBe(outOfSync);
 
-  const report = await validateMigration({ ...input, recordDependencyFailures: true });
+  const report = await validateMigration({ ...input, recordUntested: true });
   expect(report.validation).toMatchObject({
     status: 'untested',
     baseline: { status: 'not-run' },
@@ -74,12 +74,18 @@ it('returns the patch untested on a repository-side preparation failure only whe
   expect(report.patch.validation).toBe('untested');
   expect(report.publicationFiles.map((file) => file.path)).toEqual(['billing.ts']);
 
-  // Docker, network and other failures still stop validation.
-  const sandbox = new PipelineInputError('Dependency preparation exceeded 300 seconds.');
-  vi.mocked(prepareDependencies).mockRejectedValue(sandbox);
-  await expect(validateMigration({ ...input, recordDependencyFailures: true })).rejects.toBe(
-    sandbox,
+  // Owner decision 1: a sandbox refusal is published untested too.
+  vi.mocked(prepareDependencies).mockRejectedValue(
+    new PipelineInputError('Dependency preparation exceeded 300 seconds.'),
   );
+  expect((await validateMigration({ ...input, recordUntested: true })).validation).toMatchObject({
+    status: 'untested',
+    dependencyFailure: { reason: 'preparation-failed' },
+  });
+  // An error that is not a preparation refusal still stops validation.
+  const crash = new TypeError('Cannot read properties of undefined');
+  vi.mocked(prepareDependencies).mockRejectedValue(crash);
+  await expect(validateMigration({ ...input, recordUntested: true })).rejects.toBe(crash);
 });
 
 it('records how long each validation stage took', async () => {
@@ -88,7 +94,7 @@ it('records how long each validation stage took', async () => {
       'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
     ),
   );
-  const report = await validateMigration({ ...(await options()), recordDependencyFailures: true });
+  const report = await validateMigration({ ...(await options()), recordUntested: true });
   // Stages that never ran (checks, here) are absent rather than zero.
   expect(Object.keys(report.validation.timings ?? {}).sort()).toEqual([
     'candidates',

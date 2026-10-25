@@ -31,7 +31,7 @@ import {
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { AiPolicyStop } from './ai-patches.ts';
 import { githubAppConfiguration } from './github-app.ts';
-import { publicationConfiguration, publishDraft } from './publication.ts';
+import { publicationConfiguration, publicationWaiver, publishDraft } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 
@@ -160,11 +160,12 @@ const { rows: previous } = await openRunDirectory(
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
-// Saves [Needs review] artifacts for waivable stops (removed request parameters) instead of stopping.
-const leaveRequestParameters = Boolean(values['publish-unresolved']) && !ai;
+// Owner decision 1: --publish-unresolved turns the workflow's stops into [Needs review] drafts, as
+// `refit run` does.
+const leaveReviewedFindings = Boolean(values['publish-unresolved']);
 // The stop the workflow applies before running any repository code, as `refit run` decides it.
 const scanStop = (scan: Awaited<ReturnType<typeof runPipeline>>) =>
-  scanReviewReason(scan, Boolean(ai), leaveRequestParameters) ??
+  scanReviewReason(scan, Boolean(ai), leaveReviewedFindings) ??
   proposalReviewReason(scan, Boolean(ai));
 
 async function benchmark(entry: Selected, index: number) {
@@ -353,7 +354,7 @@ async function benchmark(entry: Selected, index: number) {
       ...inputs,
       fullDiff: true,
       proposePatch: true,
-      leaveRequestParameters,
+      leaveReviewedFindings,
     });
     result.customerMode = { ...summarize(scan), stop: scanStop(scan) ?? null };
   } catch (error) {
@@ -385,7 +386,7 @@ async function benchmark(entry: Selected, index: number) {
         providerConfig: adapterPath,
         fullDiff: true,
         proposePatch: true,
-        leaveRequestParameters,
+        leaveReviewedFindings,
       });
       result.productionMode = { ...summarize(scan), stop: scanStop(scan) ?? null };
     } catch (error) {
@@ -463,7 +464,7 @@ async function benchmark(entry: Selected, index: number) {
         ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
       },
       Boolean(ai),
-      leaveRequestParameters,
+      leaveReviewedFindings,
     );
     lap('workflowScan');
     let exit: string | undefined;
@@ -487,7 +488,7 @@ async function benchmark(entry: Selected, index: number) {
                   '1',
                 ]
               : []),
-            // Saves [Needs review] artifacts for waivable stops so they can be published below.
+            // Turns stops into [Needs review] artifacts (owner decision 1) to publish below.
             ...(values['publish-unresolved'] ? ['--publish-unresolved'] : []),
             '--quiet',
             '--json',
@@ -513,6 +514,7 @@ async function benchmark(entry: Selected, index: number) {
       stage: outcome.stage,
       reason: outcome.reason,
       error: outcome.status ? outcome.error?.message : exit,
+      waivedGates: outcome.waivedGates,
       checks: result.checks,
       patch: report.patch?.status,
       generator: report.patch?.generator,
@@ -564,11 +566,12 @@ async function benchmark(entry: Selected, index: number) {
     log(
       `workflow ${String(workflow.status)}, production ${String((result.production as { status: string }).status)}`,
     );
-    // publishDraft decides which untested reports --publish-unresolved may publish.
+    // publicationWaiver decides which reports --publish-unresolved may publish unvalidated.
     if (
       values.publish &&
-      (report.validation?.status === 'passed' ||
-        (values['publish-unresolved'] && report.validation?.status === 'untested'))
+      report.validation &&
+      (report.validation.status === 'passed' ||
+        publicationWaiver(report, values['publish-unresolved']))
     )
       try {
         const fork = await forkAtCommit(

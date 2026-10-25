@@ -1,8 +1,5 @@
 import { expect, it } from 'vitest';
-import {
-  DependencyPreparationError,
-  repositoryDependencyFailure,
-} from './dependency-preparation.ts';
+import { DependencyPreparationError, preparationFailure } from './dependency-preparation.ts';
 import { validateNpmLock } from './npm-lock.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -17,7 +14,7 @@ function failure(packageJson: object, packages: Record<string, unknown>) {
   try {
     validateNpmLock(JSON.stringify(packageJson), JSON.stringify({ lockfileVersion: 3, packages }));
   } catch (error) {
-    return repositoryDependencyFailure(error);
+    return preparationFailure(error);
   }
   throw new Error('Expected the lockfile to be refused');
 }
@@ -42,35 +39,35 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
     }),
   ).toMatchObject({ reason: 'lockfile-integrity' });
   expect(
-    repositoryDependencyFailure(
+    preparationFailure(
       new PipelineInputError(
         'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown. Run npm install, pnpm install or yarn install and commit the package-lock.json, pnpm-lock.yaml or yarn.lock it writes.',
       ),
     ),
   ).toMatchObject({ reason: 'no-lockfile', action: expect.stringContaining('package-lock.json') });
   expect(
-    repositoryDependencyFailure(
+    preparationFailure(
       new DependencyPreparationError(
         'npm dependency preparation failed (1). npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync.',
       ),
     ),
   ).toMatchObject({ reason: 'lockfile-out-of-sync' });
   expect(
-    repositoryDependencyFailure(
+    preparationFailure(
       new DependencyPreparationError(
         'pnpm dependency preparation failed (1). ERR_PNPM_OUTDATED_LOCKFILE',
       ),
     ),
   ).toMatchObject({ action: expect.stringContaining('`pnpm-lock.yaml`') });
   expect(
-    repositoryDependencyFailure(
+    preparationFailure(
       new DependencyPreparationError(
         'Dependency archive exceeds 1024 MiB. This exceeds the largest validation profile; use a custom validation image.',
       ),
     ),
   ).toMatchObject({ reason: 'dependency-archive-limit' });
   expect(
-    repositoryDependencyFailure(
+    preparationFailure(
       new DependencyPreparationError(
         'npm dependency preparation failed (1). npm error code ERESOLVE\nnpm error ERESOLVE could not resolve\nnpm error Conflicting peer dependency: next@15.5.28',
       ),
@@ -81,12 +78,26 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
   });
 });
 
-it('leaves sandbox, network and unknown failures unclassified', () => {
+// Owner decision 1: a patch is published untested whatever refused preparation.
+it('records sandbox, network and unknown refusals as preparation-failed, keeping the message', () => {
   for (const error of [
     new DependencyPreparationError('Dependency preparation exceeded 300 seconds.'),
     new DependencyPreparationError('npm dependency preparation failed (1). npm error ENOSPC'),
     new PipelineInputError('Prepared dependency cache does not match its committed inputs.'),
-    new Error('package.json dependencies differ from the committed package-lock.json.'),
   ])
-    expect(repositoryDependencyFailure(error)).toBeUndefined();
+    expect(preparationFailure(error)).toEqual({
+      reason: 'preparation-failed',
+      summary: 'Refit could not install them in its sandbox',
+      action: expect.stringContaining('Refit ran none'),
+      message: error.message,
+    });
+});
+
+it('leaves errors that are not preparation refusals to propagate', () => {
+  for (const error of [
+    new Error('package.json dependencies differ from the committed package-lock.json.'),
+    new DOMException('The operation was aborted.', 'AbortError'),
+    'not an error',
+  ])
+    expect(preparationFailure(error)).toBeUndefined();
 });
