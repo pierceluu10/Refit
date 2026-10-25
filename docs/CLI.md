@@ -167,16 +167,20 @@ Refit turns its stops into `[Needs review]` drafts by default (owner decision 1,
 
 - findings that need review: webhook payload reads, removed request parameters, class and helper clients, declared or type-only evidence, contract reviews and skipped files;
 - an application API version that does not match the before contract;
+- code that pins more than one API version: the patch moves every traced pin to the target, and each is listed with the version it sent;
+- a client or request whose API version Refit cannot trace, which the patch leaves unchanged;
+- clients without `apiVersion` on a stripe-node whose default Refit does not know: Refit adds no pin, and the draft says your account's default decided the version before the stripe-node upgrade and the target decides it after;
+- submodules, which Refit leaves out of the checkout;
 - breaking contract changes no rule migrates, with the traced call sites;
 - a check command that runs no code (`node -e 0`);
 - an AI patch (owner decision 8), with the lines the AI wrote beyond Refit's rules;
 - on the hosted worker, `refit doctor` findings only doctor sees.
 
-Untraced reads and usages the patch leaves unmigrated are listed as before. When dependency preparation fails because of the repository's inputs or its install, or the checks fail on the original code, the patch is published untested and the draft says why; Refit's own errors during preparation, such as a held state lock, still fail the run. For a repository that commits no `.refit.json`, `refit enroll` and `refit doctor` generate a configuration even when the repository has no root lockfile (preparation then fails, so each patch is untested) or no test script and no type check (the command is `node -e 0`), and the review names each reason with its fix. A worker running that approval with `--publish-validated-only` stops it for review, as `refit enroll --publish-validated-only` refuses it. These still stop:
+Untraced reads and usages the patch leaves unmigrated are listed as before. When dependency preparation fails because of the repository's inputs or its install, or the checks fail on the original code, the patch is published untested and the draft says why; Refit's own errors during preparation, such as a held state lock, still fail the run. For a repository that commits no `.refit.json`, `refit enroll` and `refit doctor` generate a configuration even when the repository has no root lockfile (preparation then fails, so each patch is untested) or no test script and no type check (the command is `node -e 0`), and the review names each reason with its fix. The same holds for submodules, several API versions (the configuration starts from the oldest) and a version Refit cannot read or default: it assumes the versions it can read, then the locked stripe-node default, then the oldest contract (2022-08-01), and says which. A worker running that approval with `--publish-validated-only` stops it for review, as `refit enroll --publish-validated-only` refuses it. These still stop:
 
 - a patch whose checks ran and did not pass: a regression, an error, or a generated check that fails on the original code;
 - a run with no patch to publish (the manifest says so);
-- API-version declarations in the code that conflict, or that a `source-verified` policy refuses;
+- API-version declarations that a `source-verified` policy refuses;
 - setup problems such as missing contracts, an invalid configuration, a dirty checkout or a missing Docker image.
 
 AI never runs beside a finding that needs review or a traced breaking operation change; the rules' patch ships instead. Without `--publish-draft` Refit saves the same `[Needs review]` artifacts locally. `--publish-validated-only` restores the earlier behavior: only validated drafts publish and every stop above stays a stop. An AI patch is never a validated draft, so under it an AI patch whose checks pass stops for review instead of publishing. It cannot be combined with `--publish-unresolved`, which is now the default. Refit never auto-merges. A live AI migration, bounded repair and draft publication were verified on the independent billing demo; see [the live PR evaluation](https://github.com/pierceluu10/refit-billing-demo/pull/1). This remains a simulated Stripe compatibility evaluation.

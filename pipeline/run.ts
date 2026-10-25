@@ -180,7 +180,7 @@ async function runOpenApiPipeline(options: {
       : undefined;
   const {
     edits: analyzedEdits,
-    apiVersionDeclarations,
+    apiVersionDeclarations: declaredVersions,
     apiVersionLiterals,
     sourceWarnings,
     skippedFiles,
@@ -236,13 +236,31 @@ async function runOpenApiPipeline(options: {
     ]),
   } as Record<string, boolean>;
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
+  // Owner decision 1: every traced pin older than the target moves to it, including one that sends
+  // another version than the application's; the draft lists each pin with the version it sent.
+  // Stripe versions start with their date, so string order is release order, and a pin newer than
+  // the target is never moved back.
+  const movesPin = (value: string) =>
+    options.leaveReviewedFindings
+      ? typeof targetVersion === 'string' && value < targetVersion
+      : targetVersion !== applicationApiVersion && value === applicationApiVersion;
+  // A pin the application does not send that is also a webhook endpoint's api_version stays, as
+  // moving it would move that endpoint; it is listed as unresolved with why.
+  const endpointPin = (entry: { value: string | null; endpoint?: true }) =>
+    Boolean(
+      options.leaveReviewedFindings && entry.endpoint && entry.value && movesPin(entry.value),
+    );
+  const apiVersionDeclarations = declaredVersions.map((entry) =>
+    endpointPin(entry)
+      ? { ...entry, status: 'unknown' as const, reason: ENDPOINT_PIN_REASON }
+      : entry,
+  );
   const versionEdits =
     provider.packageName === STRIPE.packageName &&
     applicationApiVersion &&
-    typeof targetVersion === 'string' &&
-    targetVersion !== applicationApiVersion
+    typeof targetVersion === 'string'
       ? apiVersionLiterals
-          .filter((literal) => literal.value === applicationApiVersion)
+          .filter((literal) => movesPin(literal.value) && !endpointPin(literal))
           .filter(
             (literal, index, all) =>
               all.findIndex(
@@ -374,6 +392,14 @@ async function runOpenApiPipeline(options: {
     (edit) => !reviewed.some((finding) => editCovers(repository, [edit], finding)),
   );
   const ruleEdits = edits.filter(isFieldMove);
+  // The pin and the stripe-node upgrade ride the rules' edits. Under owner decision 1 they also
+  // make the patch when a removed request parameter is left for review, as the #88 waiver does:
+  // the parameter stays in place and the draft names it.
+  const movesVersion =
+    !configuredMigrationProposal &&
+    (ruleEdits.length > 0 ||
+      (Boolean(options.leaveReviewedFindings) &&
+        reviewed.some((finding) => finding.requestParameter)));
   // A dropped payment-method rename tells the customer which gate dropped it (F2).
   const renames = analyzedEdits.filter((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? ''));
   const unresolved = apiVersionDeclarations.find(
@@ -425,7 +451,8 @@ async function runOpenApiPipeline(options: {
   );
   if (
     (options.requireApiVersionMatch && apiVersion.applicability !== 'matches-before') ||
-    (apiVersionSourceBlocked(apiVersion) && (options.aiPatch || options.assessment))
+    (apiVersionSourceBlocked(apiVersion, options.leaveReviewedFindings) &&
+      (options.aiPatch || options.assessment))
   )
     throw new PipelineInputError(`Automated work is blocked. ${apiVersion.reason}`);
   const reviewableBreakingChanges = unmappedBreakingChanges(
@@ -482,7 +509,11 @@ async function runOpenApiPipeline(options: {
     Boolean(options.aiPatch) &&
     !configuredMigrationProposal &&
     (aiFindings.length > 0 || operationImpacts.length > 0) &&
-    !(options.leaveReviewedFindings && reviewBlocksAi({ ...reviewEvidence, operationImpacts }));
+    !(
+      options.leaveReviewedFindings &&
+      (reviewBlocksAi({ ...reviewEvidence, operationImpacts }) ||
+        apiVersion.source.status === 'conflict')
+    );
   const deterministicRequested =
     options.proposePatch ||
     (options.aiPatch && !useAi && (configuredMigrationProposal || ruleEdits.length > 0));
@@ -544,9 +575,7 @@ async function runOpenApiPipeline(options: {
         ? {
             ...proposePatch(
               repository,
-              ruleEdits.length && !configuredMigrationProposal
-                ? [...edits, ...versionEdits]
-                : edits,
+              movesVersion ? [...edits, ...versionEdits] : edits,
               unresolvedFindings.length,
               provider,
               replacements,
@@ -556,9 +585,7 @@ async function runOpenApiPipeline(options: {
               ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
               : {}),
             // AI repairs start again from the original code and must keep these rule edits.
-            ...(ruleEdits.length && !configuredMigrationProposal
-              ? { ruleEdits: [...ruleEdits, ...versionEdits] }
-              : {}),
+            ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
           }
         : {
             status: 'not-generated' as const,
@@ -573,7 +600,7 @@ async function runOpenApiPipeline(options: {
     'diff' in patch &&
     patch.status === 'proposed' &&
     'generator' in patch &&
-    (patch.generator === 'openai' || (ruleEdits.length > 0 && !configuredMigrationProposal));
+    (patch.generator === 'openai' || movesVersion);
   const upgrade =
     bumpedVersion &&
     (upgradeRequired || ruleEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE)) &&
@@ -740,6 +767,9 @@ export type PipelineReport = Awaited<ReturnType<typeof runOpenApiPipeline>>;
 
 // Shopify contracts are GraphQL schemas, not OpenAPI documents, so Shopify snapshots run the Shopify
 // pipeline. Its report carries every report field, with the OpenAPI-only ones empty.
+export const ENDPOINT_PIN_REASON =
+  "This version also sets a webhook endpoint's api_version, so moving it would change the version that endpoint receives.";
+
 export async function runPipeline(
   options: Parameters<typeof runOpenApiPipeline>[0],
 ): Promise<PipelineReport> {

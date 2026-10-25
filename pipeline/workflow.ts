@@ -90,8 +90,8 @@ function publicationOutcome(
 // The workflow's stops that need only its scan, checked in this order before dependency
 // preparation or validation. The Stripe benchmark applies them before it starts `refit run`.
 // With `leaveReviewedFindings` (owner decision 1) the draft carries a stop's reasons instead, so
-// it holds only when no patch can, or when the code's API-version declarations conflict or a
-// source-verified policy refuses them, which validation and publication refuse too.
+// it holds only when no patch can, or when a source-verified policy refuses the code's API-version
+// declarations, which validation and publication refuse too. Conflicting pins all move.
 export function scanReviewReason(
   scan: Awaited<ReturnType<typeof runPipeline>>,
   aiPatch: boolean,
@@ -99,7 +99,7 @@ export function scanReviewReason(
 ) {
   const reason = scanStop(scan, aiPatch);
   if (!reason || !leaveReviewedFindings) return reason;
-  if (apiVersionSourceBlocked(scan.apiVersion)) return scan.apiVersion.reason;
+  if (apiVersionSourceBlocked(scan.apiVersion, true)) return scan.apiVersion.reason;
   const aiWrites =
     aiPatch &&
     !reviewBlocksAi(scan) &&
