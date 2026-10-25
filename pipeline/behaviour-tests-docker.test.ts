@@ -317,7 +317,9 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
     expect(kept.regressions.map((regression) => regression.id)).toEqual([
       'refit-behaviour/payments.test.mjs > creates a Checkout Session for the order and returns its URL',
     ]);
-    expect(kept.regressions[0].error).toContain('payment_method_types');
+    // stripe-mock's own request validation, as observed in refit-bench run 40148812652.
+    expect(kept.regressions[0].error).toContain('Request validation error: validator');
+    expect(kept.regressions[0].error).toContain('additional properties are not allowed');
     const newOnly = await run('new-only', {
       ...CORRECT,
       'app/api/webhook/invoice.ts': INVOICE(

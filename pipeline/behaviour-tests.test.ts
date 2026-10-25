@@ -312,10 +312,11 @@ async function simulatedStripeMock() {
         response.statusCode = 400;
         response.end(
           JSON.stringify({
+            // stripe-mock's wording (refit-bench run 40148812652), which names no parameter.
             error: {
               type: 'invalid_request_error',
-              param,
-              message: `Received unknown parameter: ${param}`,
+              message:
+                'Request validation error: validator failed: additional properties are not allowed',
             },
           }),
         );
@@ -576,7 +577,7 @@ it('catches a patch that keeps payment_method_types and one that reads a moved f
     regressions: [
       {
         id: 'refit-behaviour/payments.test.mjs > creates a Checkout Session for the order and returns its URL',
-        error: expect.stringContaining('Received unknown parameter: payment_method_types'),
+        error: expect.stringContaining('additional properties are not allowed'),
       },
     ],
   });
