@@ -34,6 +34,7 @@ import {
   reapJobMachines,
   runHostedTarget,
   runJobMachine,
+  runInventoryProcess,
   runJobProcess,
   unchangedReceipt,
 } from './hosted-runner.ts';
@@ -601,23 +602,41 @@ export async function runHostedService(options: {
   };
 
   // A read-only inventory of an installed repository, approved or not; it never enrolls anything.
+  // With --job-processes it runs in its own process, so its scan never blocks the worker.
   const runInventory = async (claimed: InventoryClaim) => {
     const progress = (message: string) =>
       onProgress?.(`[inventory ${claimed.repository}] ${message}`);
     const started = Date.now();
     try {
       const registry = await loadDeadlineRegistry(options.registry, now());
-      const result = await refreshInventory({
-        app: options.app,
+      const inputs = {
         directory: join(directory, 'inventory', randomUUID()),
         installationId: claimed.installationId,
         repository: claimed.repository,
         registry,
         previous: claimed.previous,
-        now: now(),
-        signal: options.signal,
-        onProgress: progress,
-      });
+      };
+      const outcome = options.jobProcesses
+        ? await runInventoryProcess({
+            inputs: { ...inputs, now: now().getTime() },
+            signal: options.signal,
+            onProgress: progress,
+          })
+        : {
+            result: await refreshInventory({
+              ...inputs,
+              app: options.app,
+              now: now(),
+              signal: options.signal,
+              onProgress: progress,
+            }),
+          };
+      if ('error' in outcome) {
+        await inventories.finish(claimed, worker, outcome);
+        progress(outcome.error);
+        return;
+      }
+      const { result } = outcome;
       const recorded = await inventories.finish(claimed, worker, {
         result,
         registry: registryDigest(registry),

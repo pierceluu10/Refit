@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { tsImport } from 'tsx/esm/api';
 
-const { runForkedJob } = await tsImport('../hosted-runner.ts', {
+const { failedOutcome, runForkedProcess } = await tsImport('../hosted-runner.ts', {
   parentURL: import.meta.url,
   tsconfig: false,
 });
@@ -12,7 +12,7 @@ const WORKER_SECRETS = ['REFIT_WEBHOOK_SECRET', 'REFIT_SERVICE_TOKEN', 'FLY_API_
 const SIGNAL_SETTLE_MS = 50;
 const mode = process.env.REFIT_TEST_JOB_PROCESS;
 
-await runForkedJob(async (inputs, signal, onProgress) => {
+await runForkedProcess(async (inputs, signal, onProgress) => {
   onProgress(`Running ${inputs.target.repository}.`);
   if (mode === 'crash') process.exit(3);
   if (mode === 'busy') {
@@ -44,4 +44,4 @@ await runForkedJob(async (inputs, signal, onProgress) => {
       }),
     },
   };
-});
+}, failedOutcome);
