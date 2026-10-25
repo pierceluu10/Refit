@@ -1971,12 +1971,12 @@ export function analyzeRepository(
             ? 'mjs'
             : 'cjs'
           : 'js';
-    const base = [
-      ...shared.filter((segment) => segment !== '.'),
-      'stripe-subscription-period',
-    ].join('/');
+    // No hyphen: Convex rejects one in a module in its functions folder, where this may land.
+    const base = [...shared.filter((segment) => segment !== '.'), 'stripeSubscriptionPeriod'].join(
+      '/',
+    );
     const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
-    const stem = taken.has(base) ? `${base}-refit` : base;
+    const stem = taken.has(base) ? `${base}Refit` : base;
     edits.push({
       file: `${stem}.${extension}`,
       start: 0,
