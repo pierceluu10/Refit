@@ -399,6 +399,42 @@ it('validates Stripe code in a nested package there, under the configured check 
   await expect(validate(29)).rejects.toThrow(
     'checkTimeoutSeconds must be a whole number from 30 to 1800.',
   );
+  // refit run reads the limit from its configuration file, whose schema .refit.json shares.
+  const configuration = join(root, 'run.json');
+  await writeFile(
+    configuration,
+    JSON.stringify({
+      formatVersion: 1,
+      repository,
+      before: resolve('pipeline/fixtures/before.json'),
+      after: resolve('pipeline/fixtures/after.json'),
+      apiVersion: '2022-08-01',
+      image: 'node:22-alpine',
+      command: ['npm', 'test'],
+      prepareDependencies: true,
+      checkTimeoutSeconds: 75,
+    }),
+  );
+  const output = join(root, 'run');
+  // A run whose findings stay unresolved exits 2; the report is what this test reads.
+  await execute(process.execPath, [
+    resolve('bin/refit.mjs'),
+    'run',
+    '--config',
+    configuration,
+    '--output',
+    output,
+    '--quiet',
+    '--json',
+  ]).catch((error: unknown) => error);
+  const run = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
+  expect(run.validation).toMatchObject({
+    status: 'passed',
+    packageDirectory: 'dashboard',
+    limits: { timeoutMs: 75_000 },
+  });
+  for (const check of (await calls()).slice(-2))
+    expect(check.remainingMs).toBeLessThanOrEqual(75_000 + 60_000);
 });
 
 it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
