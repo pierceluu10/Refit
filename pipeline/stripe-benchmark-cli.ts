@@ -17,6 +17,7 @@ import { assessmentConfiguration } from './assessment.ts';
 import { selectCheck, ungradedEvidence } from './check-selection.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PASSING_REACH } from './operation-reach.ts';
+import { sdkPackageDirectory } from './preparation-packages.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
@@ -373,8 +374,10 @@ async function benchmark(entry: Selected, index: number) {
     log('no mapped Stripe methods');
     return;
   }
+  let fullReport: Awaited<ReturnType<typeof runPipeline>>;
   try {
-    result.fullAdapter = summarize(await runPipeline({ ...inputs, providerConfig: adapterPath }));
+    fullReport = await runPipeline({ ...inputs, providerConfig: adapterPath });
+    result.fullAdapter = summarize(fullReport);
   } catch (error) {
     result.fullAdapter = { error: message(error) };
     log('full-adapter scan failed');
@@ -412,8 +415,15 @@ async function benchmark(entry: Selected, index: number) {
     log('not affected');
     return;
   }
+  // Stripe code in one nested package with its own lockfile is prepared and checked there, with
+  // that package's own checks, as validation does (pipeline/preparation-packages.ts).
+  const packageDirectory = sdkPackageDirectory(fullReport, (path) =>
+    existsSync(join(directory, path)),
+  );
+  if (packageDirectory) result.packageDirectory = packageDirectory;
+  const checkRoot = join(directory, packageDirectory ?? '');
   const manifest = JSON.parse(
-    await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
+    await readFile(join(checkRoot, 'package.json'), 'utf8').catch(() => '{}'),
   );
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
@@ -421,11 +431,13 @@ async function benchmark(entry: Selected, index: number) {
   // A bun.lock is installed through its npm translation (bun-lock.ts).
   const checkable =
     ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
-      existsSync(join(directory, lockfile)),
+      existsSync(join(checkRoot, lockfile)),
     ) && Boolean(declared.stripe);
-  // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,
-  // the patch is still proposed and graded D.
-  const selection = await selectCheck(repository);
+  // The check a customer's generated configuration runs (pipeline/check-selection.ts), chosen in
+  // the package validation prepares. Without one, the patch is still proposed and graded D.
+  const selection = await selectCheck(
+    packageDirectory ? await readRepository(checkRoot, 'stripe') : repository,
+  );
   result.checkSelection = {
     kind: selection.kind,
     ...(selection.typeCheck ? { typeCheck: selection.typeCheck } : {}),
@@ -545,6 +557,7 @@ async function benchmark(entry: Selected, index: number) {
       unresolvedFindings: report.patch?.unresolvedFindings,
       sdkUpgrade: report.patch?.sdkUpgrade,
       validation: report.validation?.status,
+      packageDirectory: report.validation?.packageDirectory,
       baseline: report.validation?.baseline?.status,
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,

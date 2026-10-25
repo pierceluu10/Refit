@@ -71,16 +71,19 @@ function diffSections(diff: string) {
   return diff.split(/(?=^diff --git )/m).filter(Boolean);
 }
 // Refit renders quoted paths; `git diff` leaves plain ones unquoted.
-const touchesPackage = (section: string) =>
-  PACKAGE_FILES.some(
+const touchesPackage = (section: string, directory?: string) =>
+  PACKAGE_FILES.map((file) => (directory ? `${directory}/${file}` : file)).some(
     (path) =>
       section.startsWith(`diff --git "a/${path}" "b/${path}"`) ||
       section.startsWith(`diff --git a/${path} b/${path}\n`),
   );
 
-// The dependency part of a rendered patch (root package.json and its lockfile).
-export function packageDiff(diff: string) {
-  return diffSections(diff).filter(touchesPackage).join('');
+// The dependency part of a rendered patch (package.json and its lockfile, at the root or in the
+// nested package Refit prepares).
+export function packageDiff(diff: string, directory?: string) {
+  return diffSections(diff)
+    .filter((section) => touchesPackage(section, directory))
+    .join('');
 }
 
 export function codeDiff(diff: string) {

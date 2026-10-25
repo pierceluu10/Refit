@@ -64,7 +64,11 @@ async function hostile(files: Record<string, string | Buffer>) {
 async function check(
   files: Record<string, string | Buffer>,
   command: string[],
-  options: { prepareDependencies?: boolean; signal?: AbortSignal } = {},
+  options: {
+    prepareDependencies?: boolean;
+    signal?: AbortSignal;
+    checkTimeoutSeconds?: number;
+  } = {},
 ) {
   const fixture = await hostile(files);
   const started = Date.now();
@@ -259,14 +263,16 @@ gated(
 );
 
 gated(
-  'ends a check that ignores SIGTERM at the timeout and removes its container',
+  'ends a check that ignores SIGTERM at the configured time limit and removes its container',
   async () => {
-    const result = await check({}, ['sh', '-c', 'trap "" TERM INT; while :; do :; done']);
+    const result = await check({}, ['sh', '-c', 'trap "" TERM INT; while :; do :; done'], {
+      checkTimeoutSeconds: 30,
+    });
     expect(result).toMatchObject({
       status: 'error',
-      error: 'Check exceeded 120 seconds; the container was stopped.',
+      error: 'Check exceeded 30 seconds; the container was stopped.',
     });
-    expect(result.seconds).toBeLessThan(170);
+    expect(result.seconds).toBeLessThan(80);
     expect(await sandboxContainers('while :; do :; done')).toEqual([]);
   },
   240_000,

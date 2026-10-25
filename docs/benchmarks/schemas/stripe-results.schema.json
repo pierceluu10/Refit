@@ -77,6 +77,12 @@
       "checks": {
         "enum": ["none", "tests", "typecheck", "generated-only"]
       },
+      "packageDirectory": {
+        "type": "string",
+        "minLength": 1,
+        "x-added": "2026-10-25",
+        "description": "The nested package whose own lockfile and checks validation uses (pipeline/preparation-packages.ts); absent when it uses the repository root."
+      },
       "validationSeconds": {
         "$ref": "common.schema.json#/$defs/count"
       },

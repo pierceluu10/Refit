@@ -310,3 +310,18 @@ it('accepts only the keep-listed payment method opt-in', async () => {
     );
   }
 });
+
+it('accepts a check time limit in whole seconds from 30 to 1800', async () => {
+  const { path, configuration } = await setup();
+  expect((await readWorkflowConfiguration(path)).checkTimeoutSeconds).toBeUndefined();
+  for (const seconds of [30, 600, 1800]) {
+    await writeFile(path, JSON.stringify({ ...configuration, checkTimeoutSeconds: seconds }));
+    expect((await readWorkflowConfiguration(path)).checkTimeoutSeconds).toBe(seconds);
+  }
+  for (const value of [29, 1801, 90.5, '120', null]) {
+    await writeFile(path, JSON.stringify({ ...configuration, checkTimeoutSeconds: value }));
+    await expect(readWorkflowConfiguration(path)).rejects.toThrow(
+      'checkTimeoutSeconds must be a whole number from 30 to 1800.',
+    );
+  }
+});
