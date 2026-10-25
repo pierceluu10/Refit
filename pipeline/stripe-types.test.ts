@@ -27,7 +27,7 @@ function contract(after: boolean) {
       version: after ? '2025-03-31.basil' : '2024-06-20',
     },
     paths: {
-      '/v1/subscriptions/{subscription}': {
+      '/v1/subscriptions/{subscription_exposed_id}': {
         get: {
           operationId: 'GetSubscription',
           responses: {

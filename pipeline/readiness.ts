@@ -200,15 +200,20 @@ function unmappedCallsDetail(
   return `Refit traced ${calls} ${packageName} API call${calls === 1 ? '' : 's'}, and it maps none of their methods to an operation in the contracts: ${named.join(', ')}${more ? ` and ${more} more` : ''}.`;
 }
 
-async function committedRepositoryCheck(repository: string) {
+// With `submodules` (owner decision 1) a submodule is checked around, not refused.
+async function committedRepositoryCheck(repository: string, submodules?: boolean) {
   const snapshot = await inspectCheck(
     'repository',
     'Committed repository',
     'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
-    () => readCommittedRepository(repository),
+    () => readCommittedRepository(repository, { submodules }),
   );
   if (snapshot.value)
-    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.`;
+    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.${
+      snapshot.value.submodules.length
+        ? ` Refit checks it without the submodule${snapshot.value.submodules.length === 1 ? '' : 's'} ${snapshot.value.submodules.join(', ')}, and each draft says so.`
+        : ''
+    }`;
   else if (SUBMODULE.test(snapshot.check.detail))
     snapshot.check.action =
       "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.";
@@ -325,7 +330,10 @@ export async function inspectRepositoryReadiness(options: {
   if (generated && !generated.workflow) {
     report.missing = true;
     // Every blocker at once, so a repository that also has, say, a submodule hears it now.
-    const snapshot = await committedRepositoryCheck(dirname(configurationPath));
+    const snapshot = await committedRepositoryCheck(
+      dirname(configurationPath),
+      options.allowUntested,
+    );
     if (snapshot.check.status === 'blocked') report.checks.push(snapshot.check);
     report.checks.push(...generated.checks);
     return report;
@@ -390,7 +398,7 @@ export async function inspectRepositoryReadiness(options: {
   }
   report.repository = resolve(repository);
   const [snapshot, scan, image] = await Promise.all([
-    committedRepositoryCheck(repository),
+    committedRepositoryCheck(repository, options.allowUntested),
     inspectCheck(
       'analysis',
       'Contracts and adapter',

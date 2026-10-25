@@ -34,6 +34,7 @@ import {
   reapJobMachines,
   runHostedTarget,
   runJobMachine,
+  runInventoryProcess,
   runJobProcess,
   unchangedReceipt,
 } from './hosted-runner.ts';
@@ -147,6 +148,8 @@ export async function runHostedService(options: {
   publishDraft?: boolean;
   // Owner decision 1: stops become [Needs review] drafts. Job machines run without it.
   publishUnresolved?: boolean;
+  // With publishDraft: close Refit's older open drafts for the same provider and integration.
+  supersedeDrafts?: boolean;
   // The worker image this process runs (FLY_IMAGE_REF). With it, a scheduled poll whose base commit,
   // approval and build match the target's last finished job stores that receipt and runs nothing.
   build?: string;
@@ -211,6 +214,8 @@ export async function runHostedService(options: {
   validateServiceSecret(options.controlToken, 'REFIT_SERVICE_TOKEN');
   if (options.webhookSecret === options.controlToken)
     throw new PipelineInputError('Webhook and service-control secrets must be different.');
+  if (options.supersedeDrafts && !options.publishDraft)
+    throw new PipelineInputError('--supersede-drafts requires --publish-draft.');
   if (options.jobMachines && (options.aiPatch || options.publishDraft))
     throw new PipelineInputError(
       '--job-machines does not support --ai-patch or --publish-draft: a job machine never holds the per-installation AI ledger or a GitHub token that can write.',
@@ -507,6 +512,7 @@ export async function runHostedService(options: {
                 repairAttempts,
                 publishDraft: Boolean(options.publishDraft),
                 publishUnresolved: Boolean(options.publishUnresolved),
+                supersedeDrafts: Boolean(options.supersedeDrafts),
                 aiPatch: Boolean(options.aiPatch),
                 aiTotalUsd: options.aiTotalUsd,
               },
@@ -528,6 +534,7 @@ export async function runHostedService(options: {
               repairAttempts,
               publishDraft: options.publishDraft,
               publishUnresolved: options.publishUnresolved,
+              supersedeDrafts: options.supersedeDrafts,
               notify: options.notify,
               onProgress: progress,
             });
@@ -601,23 +608,41 @@ export async function runHostedService(options: {
   };
 
   // A read-only inventory of an installed repository, approved or not; it never enrolls anything.
+  // With --job-processes it runs in its own process, so its scan never blocks the worker.
   const runInventory = async (claimed: InventoryClaim) => {
     const progress = (message: string) =>
       onProgress?.(`[inventory ${claimed.repository}] ${message}`);
     const started = Date.now();
     try {
       const registry = await loadDeadlineRegistry(options.registry, now());
-      const result = await refreshInventory({
-        app: options.app,
+      const inputs = {
         directory: join(directory, 'inventory', randomUUID()),
         installationId: claimed.installationId,
         repository: claimed.repository,
         registry,
         previous: claimed.previous,
-        now: now(),
-        signal: options.signal,
-        onProgress: progress,
-      });
+      };
+      const outcome = options.jobProcesses
+        ? await runInventoryProcess({
+            inputs: { ...inputs, now: now().getTime() },
+            signal: options.signal,
+            onProgress: progress,
+          })
+        : {
+            result: await refreshInventory({
+              ...inputs,
+              app: options.app,
+              now: now(),
+              signal: options.signal,
+              onProgress: progress,
+            }),
+          };
+      if ('error' in outcome) {
+        await inventories.finish(claimed, worker, outcome);
+        progress(outcome.error);
+        return;
+      }
+      const { result } = outcome;
       const recorded = await inventories.finish(claimed, worker, {
         result,
         registry: registryDigest(registry),
