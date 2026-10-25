@@ -227,34 +227,6 @@ ${route}`,
   ).toEqual(['server.js:4']);
 });
 
-// bhaveshchhimwal/PopIn server/controllers/payments.js and server/routes: a named controller
-// that every reference registers as an Express route.
-it('proves req.body in a named controller only registered as a route (bhaveshchhimwal/PopIn)', () => {
-  const controller = `import Stripe from "stripe";
-export const createCheckoutSession = async (req, res) => {
-  const { eventId, price } = req.body;
-  res.json({ eventId, price });
-};`;
-  const routes = (extra: string) => `import express from "express";
-import { createCheckoutSession } from "../controllers/payments.js";
-const router = express.Router();
-router.post("/create-checkout-session", createCheckoutSession);
-${extra}
-export default router;`;
-  expect(
-    reviewLines({
-      'server/controllers/payments.js': controller,
-      'server/routes/payments.js': routes(''),
-    }),
-  ).toEqual([]);
-  expect(
-    reviewLines({
-      'server/controllers/payments.js': controller,
-      'server/routes/payments.js': routes('createCheckoutSession({ body: globalThis.x }, {});'),
-    }),
-  ).toEqual(['server/controllers/payments.js:3']);
-});
-
 // Deepanshu0211/Rocart api/server.js and api/create-payment-intent.js: the list is read in place,
 // then handed to Stripe. Handing it on afterwards cannot change what was read.
 it('proves reads that every run evaluates before the body is handed on (Deepanshu0211/Rocart)', () => {

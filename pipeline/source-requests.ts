@@ -66,7 +66,7 @@ const within = (prefix: Path, path: Path) =>
 // The data an HTTP request handler parses from the request it receives is what the sender
 // posted, not a Stripe object: `await request.json()` in an exported `POST` (or other method) of
 // a Next.js `route` file, and `req.body` in a callback of an Express app's or router's route
-// method. A handler that verifies a Stripe signature or reads `stripe-signature` receives a Stripe
+// method or in the default-exported `handler(req, res)` of a Next.js or Vercel API file. A handler that verifies a Stripe signature or reads `stripe-signature` receives a Stripe
 // event, so its body is never proven. A Stripe event that reaches a handler without a signature
 // check is still only its top-level fields and `request`, which no Stripe version removes; the
 // objects it carries are under `data`, so a value reached through `data` is never proven.
@@ -154,8 +154,8 @@ export function sourceRequests(options: {
       (unwrap(node.left) as ts.PropertyAccessExpression).name.text === 'json',
   );
 
-  // `express`, `express.Router` or `Router` from the express package.
-  function expressImport(expression: ts.Expression, exported: 'default' | 'Router') {
+  // `express` from the express package: its default import or `require('express')`.
+  function expressImport(expression: ts.Expression) {
     if (!ts.isIdentifier(expression)) return false;
     const declaration = symbol(expression)?.declarations?.[0];
     if (!declaration) return false;
@@ -163,43 +163,24 @@ export function sourceRequests(options: {
       ts.isImportDeclaration(node) &&
       ts.isStringLiteral(node.moduleSpecifier) &&
       node.moduleSpecifier.text === 'express';
-    const required = (node: ts.Expression | undefined) => {
-      const value = node && unwrap(node);
-      return Boolean(
-        value &&
-        ts.isCallExpression(value) &&
-        ts.isIdentifier(value.expression) &&
-        value.expression.text === 'require' &&
-        value.arguments.length === 1 &&
-        ts.isStringLiteralLike(value.arguments[0]) &&
-        value.arguments[0].text === 'express',
-      );
-    };
-    if (exported === 'default') {
-      if (ts.isImportClause(declaration)) return fromExpress(declaration.parent);
-      if (ts.isNamespaceImport(declaration)) return fromExpress(declaration.parent.parent);
-      return (
-        ts.isVariableDeclaration(declaration) &&
-        constant(declaration) &&
-        ts.isIdentifier(declaration.name) &&
-        required(declaration.initializer)
-      );
-    }
-    if (ts.isImportSpecifier(declaration))
-      return (
-        (declaration.propertyName ?? declaration.name).text === 'Router' &&
-        fromExpress(declaration.parent.parent.parent)
-      );
-    return (
-      ts.isBindingElement(declaration) &&
-      !declaration.dotDotDotToken &&
-      ((declaration.propertyName ?? declaration.name) as ts.Identifier).text === 'Router' &&
-      ts.isVariableDeclaration(declaration.parent.parent) &&
-      constant(declaration.parent.parent) &&
-      required(declaration.parent.parent.initializer)
+    if (ts.isImportClause(declaration)) return fromExpress(declaration.parent);
+    if (ts.isNamespaceImport(declaration)) return fromExpress(declaration.parent.parent);
+    const value =
+      ts.isVariableDeclaration(declaration) &&
+      constant(declaration) &&
+      declaration.initializer &&
+      unwrap(declaration.initializer);
+    return Boolean(
+      value &&
+      ts.isCallExpression(value) &&
+      ts.isIdentifier(value.expression) &&
+      value.expression.text === 'require' &&
+      value.arguments.length === 1 &&
+      ts.isStringLiteralLike(value.arguments[0]) &&
+      value.arguments[0].text === 'express',
     );
   }
-  // A const created by `express()`, `express.Router()` or `Router()`.
+  // A const created by `express()` or `express.Router()`.
   function expressApp(expression: ts.Expression) {
     const current = unwrap(expression);
     if (!ts.isIdentifier(current)) return false;
@@ -215,11 +196,10 @@ export function sourceRequests(options: {
     if (!ts.isCallExpression(value)) return false;
     const callee = unwrap(value.expression);
     return (
-      expressImport(callee, 'default') ||
-      expressImport(callee, 'Router') ||
+      expressImport(callee) ||
       (ts.isPropertyAccessExpression(callee) &&
         callee.name.text === 'Router' &&
-        expressImport(unwrap(callee.expression), 'default'))
+        expressImport(unwrap(callee.expression)))
     );
   }
   // `app.post('/path', …, handler)`: the handler is an argument after a literal path.
@@ -295,21 +275,7 @@ export function sourceRequests(options: {
         ))
     )
       return 'body';
-    // A named handler registered as a route, and only ever registered.
-    const binding = holder?.name && symbol(holder.name);
-    const uses = binding && references.get(binding);
-    return uses?.some(registration) &&
-      uses.every(
-        (reference) =>
-          reference === holder!.name ||
-          ts.isImportSpecifier(reference.parent) ||
-          ts.isImportClause(reference.parent) ||
-          ts.isExportSpecifier(reference.parent) ||
-          registration(reference),
-      ) &&
-      (ts.isFunctionDeclaration(holder!) || constant(holder as ts.VariableDeclaration))
-      ? 'body'
-      : undefined;
+    return undefined;
   }
 
   // Every value of the body: the node, its path below the body, and the body it belongs to.
