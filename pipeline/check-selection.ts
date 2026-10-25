@@ -258,9 +258,11 @@ function scopedConfiguration(root: string, base: string | undefined, files: stri
       noEmit: true,
       skipLibCheck: true,
       // A composite project reports every imported file the list leaves out, a new helper included,
-      // and a base's rootDir (an emit setting) rejects listed importers outside it.
+      // and a base's rootDir (an emit setting) rejects listed importers outside it. Without
+      // composite, a base's tsBuildInfoFile needs incremental (TS5069).
       composite: false,
       rootDir: '.',
+      ...(options.composite || options.tsBuildInfoFile ? { incremental: true } : {}),
       ...(unknown
         ? {}
         : {
@@ -499,7 +501,12 @@ export function unavailableTypeCheck(
   if (!scopedCheck(command) || run.status === 'error' || run.status === 'not-run') return undefined;
   const start = run.stdout.lastIndexOf(TYPE_CHECK_STARTED);
   const output = start < 0 ? run.stdout : run.stdout.slice(start);
-  const configuration = /^.*\berror TS[56]\d{3}\b.*$/m.exec(output)?.[0].trim();
+  // A configuration error is reported without a source position, or against a tsconfig file; an
+  // ordinary diagnostic in the 6xxx range (TS6133, an unused local) names a source file.
+  const configuration =
+    /^(?:error TS[56]\d{3}\b|\S*tsconfig[^\s(]*\.json\(\d+,\d+\): error TS[56]\d{3}\b).*$/m
+      .exec(output)?.[0]
+      .trim();
   if (configuration) return configuration.slice(0, 300);
   return run.exitCode !== 0 && !/\(\d+,\d+\): error TS\d+/.test(output)
     ? 'tsc failed without a diagnostic'

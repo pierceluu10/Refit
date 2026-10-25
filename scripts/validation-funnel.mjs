@@ -94,6 +94,9 @@ export function funnelStage(row) {
       : { stage: 'check-error', detail: errors.join(' | ') || undefined };
   }
   if (workflow.validation === 'regression') return { stage: 'patched-failed' };
+  // An unavailable generated type check without tests: no check ran, and the patch is kept.
+  if (workflow.validation === 'untested' && workflow.typeCheckUnavailable)
+    return { stage: 'no-runnable-check', detail: workflow.typeCheckUnavailable, patch: true };
   if (workflow.validation === 'passed')
     return {
       stage: 'validated',

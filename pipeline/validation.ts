@@ -55,6 +55,7 @@ import {
   gradeEvidence,
   TESTS_FAILED,
   TYPE_CHECK_STARTED,
+  typeCheckCommand,
   unavailableTypeCheck,
   ungradedEvidence,
 } from './check-selection.ts';
@@ -903,6 +904,8 @@ export async function validateMigration(options: {
       advisory,
       typeCheckUnavailable,
     );
+    // An unavailable generated type check with no tests is no check: the patch is kept untested.
+    const noCheck = Boolean(typeCheckUnavailable) && !typeCheckCommand(options.command);
     // Tests that fail on the original code leave a chain's type check to compare (Laptop 1's ruling
     // on #288): the patched check still runs, and only its type check can grade the patch.
     const testsBroken =
@@ -937,7 +940,7 @@ export async function validateMigration(options: {
     const originalSources = await readRepository(baselineDirectory, report.adapter.packageName);
     // An untested patch is still applied, so its publication files come from the same candidate.
     const initialCandidate =
-      baseline.status === 'passed' || dependencyFailure || testsBroken
+      baseline.status === 'passed' || dependencyFailure || testsBroken || noCheck
         ? await (speculativeCandidate && baseline.status === 'passed'
             ? speculativeCandidate
             : prepareCandidate(proposal.diff, originalSources, report))
@@ -1280,7 +1283,7 @@ export async function validateMigration(options: {
     const validationStatus =
       currentRevision !== revision || currentStatus
         ? 'stale'
-        : dependencyFailure
+        : dependencyFailure || noCheck
           ? 'untested'
           : checkStatus(baseline, patched, generated);
     const failures = checkFailures(baselineCommand, options.command, baseline, patched);
@@ -1351,7 +1354,9 @@ export async function validateMigration(options: {
           : ungradedEvidence(
               dependencyFailure
                 ? `Dependencies could not be prepared, so no check ran: ${dependencyFailure.summary}`
-                : checkFailureText(failures).trim() ||
+                : noCheck
+                  ? `No check ran: the generated type check is unavailable (${typeCheckUnavailable}), and the repository has no tests.`
+                  : checkFailureText(failures).trim() ||
                     (generated
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
