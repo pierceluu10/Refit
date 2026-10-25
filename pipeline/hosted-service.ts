@@ -584,6 +584,7 @@ export async function runHostedService(options: {
     app: options.app,
     tenancy: options.tenancy,
     publishDraft: Boolean(options.publishDraft),
+    publishUnresolved: Boolean(options.publishUnresolved),
     aiPatch: Boolean(options.aiPatch),
     contact: options.contact,
     onProgress: options.onProgress,

@@ -39,6 +39,7 @@ const MAX_TITLE = 70;
 // Longer diffs stay readable in the Files changed tab and migration.patch.
 const MAX_VISIBLE_DIFF_LINES = 80;
 const MAX_QUOTE = 300;
+const MAX_REMOVED_QUOTE = 80;
 // The body stays well under GitHub's 65,536-character limit and readable in one sitting; above
 // this, diffs and site lists shorten in steps and the body says what it left out.
 export const MAX_BODY_CHARACTERS = 16_000;
@@ -46,6 +47,12 @@ export const NEEDS_REVIEW_PREFIX = '[Needs review] ';
 const MAX_LISTED_SITES = 25;
 // The check the Stripe benchmark runs where a repository has no tests and no TypeScript.
 export const NO_OP_CHECK = 'node -e 0';
+// Why a draft checked only by NO_OP_CHECK needs review, in every draft Refit opens.
+export const NO_OP_REVIEW = {
+  reason: `The configured check \`${NO_OP_CHECK}\` runs no code, so nothing in this patch was tested.`,
+  check:
+    'Run your tests or type check on this branch, or set a real check command in `.refit.json`.',
+};
 // compareTypeCheck() in validation.ts lists these above the type checker's own output.
 const INTRODUCED_TYPE_ERRORS = 'Type errors this patch introduced:\n';
 // Refit's own reasons for stopping a check (containerCheck() in validation.ts). Any other error is the
@@ -150,8 +157,18 @@ function changedFiles(diff: string) {
   return [...files.values()];
 }
 
+// A line an AI patch deleted, quoted short enough to read in a list.
+function removedLines(lines: string[]) {
+  const [first] = lines.map((line) => line.trim()).filter(Boolean);
+  const quoted =
+    first && first.length > MAX_REMOVED_QUOTE ? `${first.slice(0, MAX_REMOVED_QUOTE)}…` : first;
+  const more = lines.length - 1;
+  return `${quoted ? code(quoted) : 'a blank line'}${more ? ` and ${more} more line${more === 1 ? '' : 's'}` : ''}`;
+}
+
 // Lines of an AI patch that Refit's rules did not write (owner decision 8): each file's final text
 // against the original with only the rule edits applied. A package upgrade's files are the rules'.
+// A deletion has no line in the patched file: jsdiff puts its newStart on the patched line after it.
 function aiWrittenLines(patch: ValidationReport['patch'], upgraded: boolean) {
   const ruleEdits = ('ruleEdits' in patch && patch.ruleEdits) || [];
   return changedFiles(patch.diff)
@@ -171,13 +188,15 @@ function aiWrittenLines(patch: ValidationReport['patch'], upgraded: boolean) {
         '',
         '',
         { context: 0 },
-      )
-        .hunks.filter((hunk) => hunk.newLines > 0)
-        .map((hunk) =>
-          code(
-            `${file.path}:${hunk.newStart}${hunk.newLines > 1 ? `-${hunk.newStart + hunk.newLines - 1}` : ''}`,
-          ),
-        ),
+      ).hunks.map((hunk) =>
+        hunk.newLines > 0
+          ? code(
+              `${file.path}:${hunk.newStart}${hunk.newLines > 1 ? `-${hunk.newStart + hunk.newLines - 1}` : ''}`,
+            )
+          : `${code(`${file.path}:${Math.max(hunk.newStart - 1, 1)}`)} removed ${removedLines(
+              hunk.lines.filter((line) => line.startsWith('-')).map((line) => line.slice(1)),
+            )} ${hunk.newStart > 1 ? 'after' : 'before'} this line`,
+      ),
     );
 }
 
@@ -445,6 +464,8 @@ export function createReviewArtifacts(
 ) {
   const { validation, patch } = report;
   const dependency = gated(reviews, 'dependency-preparation');
+  // The checks passed on the original code; only the lockfile this patch upgrades failed to install.
+  const upgradeUninstalled = Boolean(dependency) && validation.baseline.status === 'passed';
   const parameterGate = gated(reviews, 'removed-request-parameter');
   const webhookGate = gated(reviews, 'webhook-api-version');
   if (validation.patchHash !== digest(patch.diff) || patch.validation !== validation.status)
@@ -933,7 +954,13 @@ export function createReviewArtifacts(
   ];
   const checklist = [
     `Read each change under Code Changes${sources.length ? ' against the provider page linked in Overview' : ''}.`,
-    ...(dependency ? ['Install dependencies and run your checks: Refit could not run any.'] : []),
+    ...(dependency
+      ? [
+          upgradeUninstalled
+            ? 'Install the upgraded dependencies and run your checks: Refit could not run them on this patch.'
+            : 'Install dependencies and run your checks: Refit could not run any.',
+        ]
+      : []),
     ...(parameterGate
       ? ['Change or remove each call under Removed request parameters left for you.']
       : []),
@@ -996,7 +1023,9 @@ export function createReviewArtifacts(
       ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
       : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
     : dependency
-      ? `**Not run: dependency preparation failed (${code(dependency.failure.reason)}); this patch is untested.**`
+      ? upgradeUninstalled
+        ? `${commandText(validation.baselineCommand)} passed on the original code. **Not run on this patch: installing its upgraded lockfile failed (${code(dependency.failure.reason)}); this patch is untested.**`
+        : `**Not run: dependency preparation failed (${code(dependency.failure.reason)}); this patch is untested.**`
       : failedChecks(validation);
   const aiLines = gated(reviews, 'ai-patch') ? aiWrittenLines(patch, Boolean(upgrade)) : [];
   // Every reason this draft needs review, each with what to check and where (owner decision 1).
@@ -1031,7 +1060,9 @@ export function createReviewArtifacts(
       ...(dependency
         ? [
             '## Untested: checks did not run',
-            `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(dependency.failure.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
+            upgradeUninstalled
+              ? `**Refit did not run any checks on this patch.** ${commandText(validation.baselineCommand)} passed on the original code, but the upgraded lockfile this patch writes could not be installed because ${plainText(dependency.failure.summary)}, so the patched code was not built or tested. Nothing in this patch is verified.`
+              : `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(dependency.failure.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
             `> ${plainText(dependency.failure.message.length > MAX_QUOTE ? `${dependency.failure.message.slice(0, MAX_QUOTE)}...` : dependency.failure.message)}`,
             `**What to do:** ${dependency.failure.action} Don't merge until they pass.`,
           ]

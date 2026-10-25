@@ -1,6 +1,10 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import { DependencyPreparationError, preparationFailure } from './dependency-preparation.ts';
 import { validateNpmLock } from './npm-lock.ts';
+import { withStateLock } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 
 const manifest = { name: 'app', dependencies: { stripe: '10.17.0' } };
@@ -78,12 +82,12 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
   });
 });
 
-// Owner decision 1: a patch is published untested whatever refused preparation.
-it('records sandbox, network and unknown refusals as preparation-failed, keeping the message', () => {
+// Owner decision 1: a patch is published untested whatever in the repository refused preparation.
+it('records install and unnamed input refusals as preparation-failed, keeping the message', () => {
   for (const error of [
     new DependencyPreparationError('Dependency preparation exceeded 300 seconds.'),
     new DependencyPreparationError('npm dependency preparation failed (1). npm error ENOSPC'),
-    new PipelineInputError('Prepared dependency cache does not match its committed inputs.'),
+    new DependencyPreparationError('Unsupported pnpm snapshot or patched dependency.'),
   ])
     expect(preparationFailure(error)).toEqual({
       reason: 'preparation-failed',
@@ -93,11 +97,43 @@ it('records sandbox, network and unknown refusals as preparation-failed, keeping
     });
 });
 
-it('leaves errors that are not preparation refusals to propagate', () => {
-  for (const error of [
-    new Error('package.json dependencies differ from the committed package-lock.json.'),
-    new DOMException('The operation was aborted.', 'AbortError'),
-    'not an error',
-  ])
-    expect(preparationFailure(error)).toBeUndefined();
+it('never keeps an absolute path in the recorded message', () => {
+  const failure = preparationFailure(
+    new DependencyPreparationError(
+      'npm dependency preparation failed (1). npm error A complete log is in /root/.npm/_logs/debug-0.log (cache "/Users/someone/.refit/dependencies/abc"); see https://registry.npmjs.org/stripe/-/stripe-10.17.0.tgz and node_modules/stripe/package.json',
+    ),
+  );
+  expect(failure?.message).toBe(
+    'npm dependency preparation failed (1). npm error A complete log is in [path] (cache "[path]"); see https://registry.npmjs.org/stripe/-/stripe-10.17.0.tgz and node_modules/stripe/package.json',
+  );
+});
+
+// Refit's own refusals are not the repository's: the job fails and is retried instead.
+it("leaves Refit's state locks, cache and other errors to propagate", async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'refit-lock-'));
+  try {
+    const locked = await withStateLock(directory, 'prepare', () =>
+      withStateLock(directory, 'prepare', async () => undefined).catch((error: unknown) => error),
+    );
+    expect(locked).toBeInstanceOf(PipelineInputError);
+    expect(String(locked)).toContain('State is locked by active process');
+    for (const error of [
+      locked,
+      new PipelineInputError(
+        `State ownership cannot be verified: ${directory}/prepare.lock. Inspect the lock before retrying.`,
+      ),
+      new PipelineInputError(`State recovery is already in progress: ${directory}/prepare.lock.`),
+      new PipelineInputError('Prepared dependency cache does not match its committed inputs.'),
+      new PipelineInputError(
+        'REFIT_DEPENDENCY_TIMEOUT_SECONDS must be a whole number from 60 to 1800.',
+      ),
+      new PipelineInputError('An existing local Docker image is required.'),
+      new Error('package.json dependencies differ from the committed package-lock.json.'),
+      new DOMException('The operation was aborted.', 'AbortError'),
+      'not an error',
+    ])
+      expect(preparationFailure(error)).toBeUndefined();
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

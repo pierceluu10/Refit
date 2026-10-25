@@ -14,6 +14,7 @@ import { basename, join } from 'node:path';
 import { createArtifactDirectory } from './artifacts.ts';
 import { readProviderAdapter } from './providers.ts';
 import {
+  AI_PATCH_STOP,
   closeResolvedDraft,
   findExistingMigration,
   publishDraft,
@@ -392,6 +393,8 @@ export async function runWorkflow(options: {
         `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}`,
         runId,
       );
+    if (!reviews && report.patch.generator === 'openai')
+      return await finish('needs-review', AI_PATCH_STOP, runId);
     if (reviews && !report.publicationFiles.length)
       return await finish(
         'needs-review',

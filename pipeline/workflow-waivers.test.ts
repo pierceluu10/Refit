@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { preparationFailure } from './dependency-preparation.ts';
-import { publishDraft } from './publication.ts';
+import { AI_PATCH_STOP, publishDraft } from './publication.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -240,7 +240,7 @@ it('marks a passing AI patch for review and adds refit doctor findings to its re
   for (const file of [...result.manifest.files.map((entry) => entry.path), 'manifest.json'])
     expect(await readFile(join(local, file), 'utf8')).not.toContain('ghs_never_in_a_body');
 
-  // Without --publish-unresolved the doctor findings change nothing.
+  // Under --publish-validated-only a passing AI patch is never validated, so it stops unpublished.
   vi.mocked(publishDraft).mockClear();
   const plain = await runWorkflow({
     ...inputs,
@@ -248,6 +248,7 @@ it('marks a passing AI patch for review and adds refit doctor findings to its re
     doctor,
     publication: { repository: 'o/r', base: 'main', token: 'unused' },
   });
+  expect(plain.manifest).toMatchObject({ status: 'needs-review', reason: AI_PATCH_STOP });
   expect(plain.manifest).not.toHaveProperty('waivedGates');
-  expect(vi.mocked(publishDraft).mock.calls[0][2]).toBe(doctor);
+  expect(publishDraft).not.toHaveBeenCalled();
 });

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
+  AI_PATCH_STOP,
   findExistingMigration,
   publicationConfiguration,
   publishDraft,
@@ -788,6 +789,47 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   regression.validation.status = regression.patch.validation = 'regression';
   expect(publicationWaiver(regression, true)).toBeUndefined();
   await expect(publishDraft(regression, allowed)).rejects.toThrow(/passing baseline/);
+});
+
+// Owner decision 8: a passing AI patch is never a validated draft.
+it('refuses to publish a passing AI patch as validated, and publishes it for review', async () => {
+  const evidence = await report();
+  evidence.patch.generator = 'openai' as typeof evidence.patch.generator;
+  expect(evidence.validation.status).toBe('passed');
+  const refused = github();
+  await expect(publishDraft(evidence, OPTIONS)).rejects.toThrow(AI_PATCH_STOP);
+  expect(refused.fetch).not.toHaveBeenCalled();
+  const remote = github();
+  expect(await publishDraft(evidence, { ...OPTIONS, allowUnresolved: true })).toMatchObject({
+    status: 'created',
+  });
+  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
+  expect(request.body.title).toMatch(/^\[Needs review\] /);
+});
+
+it('says the checks passed on the original when only the upgraded lockfile could not be installed', async () => {
+  const evidence = await untestedReport();
+  evidence.validation.baseline = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
+  const { files } = createReviewArtifacts(
+    evidence,
+    'github',
+    undefined,
+    publicationWaiver(evidence, true),
+  );
+  const body = files['pull-request.md'];
+  expect(body).toContain(
+    '- Refit did not run the checks on this patch: preparing its upgraded dependencies failed because the committed lockfile is out of sync with package.json. They passed on the original code.',
+  );
+  expect(body).toMatch(
+    /\n## Untested: checks did not run\n\n\*\*Refit did not run any checks on this patch\.\*\* `npm test` passed on the original code, but the upgraded lockfile this patch writes could not be installed because the committed lockfile is out of sync with package\.json, so the patched code was not built or tested\./,
+  );
+  expect(body).toContain(
+    '`npm test` passed on the original code. **Not run on this patch: installing its upgraded lockfile failed (`lockfile-out-of-sync`); this patch is untested.**',
+  );
+  expect(body).toContain(
+    'Install the upgraded dependencies and run your checks: Refit could not run them on this patch.',
+  );
+  expect(body).not.toContain('neither the original nor the patched code');
 });
 
 // The request-rename fixture plus `items.archive`, whose target contract drops `note`: the rename
