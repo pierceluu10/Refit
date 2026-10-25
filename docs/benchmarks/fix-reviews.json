@@ -1783,6 +1783,21 @@
       }
     },
     {
+      "repo": "akn3107/whatsapp-store-creator",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40150505053 (after, Refit 3be9212, PR #284) against 40149686180 (before, 535d04b, main f769caf plus the subset file), docs/benchmarks/subsets/l3-esm-1.json, default flags, no AI. Before: removed-parameter stop, no patch. After: benchmark-mode patch, typecheck passed before and after in offline Docker, needs-review on 2 untraced reads. The artifact's migration.patch was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 payment_method_types: ['card'] site (lib/stripe.ts:15, checkout.sessions.create) renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions, read 2026-10-24). It is reached now because the importers' CancellationReason type import no longer marks lib/order-cancellation.ts escaping.",
+        "bothVersions": "not needed: a request parameter only, sent at the version the same patch moves to endive; no webhook read is changed.",
+        "nothingUnrelated": "yes: the renamed key, 5 apiVersion literals (2023-08-16 to 2026-09-30.endive, every Node client including the dynamically imported one in lib/order-cancellation.ts), the stripe dependency and its pnpm lockfile entries (stripe 13.11.0 to 23.0.0, qs dropped as a stripe dependency). No other line changes.",
+        "pleaseCheck": "The draft lists 2 untraced reads left unchanged: app/api/affiliate/webhook/route.ts:117 .subscription and lib/order-cancellation.ts:293 .refund. Both read Razorpay objects (a Razorpay webhook payload and razorpay.payments.refund), so both are false alarms and correctly left alone. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^13.9.0 to ^23.0.0 in package.json and pnpm-lock.yaml, and every apiVersion literal moves to 2026-09-30.endive.",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
       "repo": "Sanjdcool/ApanStack-Newsletter",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40167139452 (feat/l3-webhook-dual-reads 1f5655e) vs 40167137930 (bench/l3-webhooks-base 8473b9f = main c8977b7 + subsets/l3-webhooks.json); the base run stopped at scan with no patch. migration.patch read in full with line endings ignored",
