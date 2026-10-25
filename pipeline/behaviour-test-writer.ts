@@ -197,6 +197,15 @@ export interface BehaviourTestRecord {
 
 const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
 
+// A removed request parameter a kept rule edit covers loses `requestParameter` in the report (run.ts),
+// but its change id still names it, as request-removals.ts writes it.
+const REQUEST_PARAMETER_CHANGE = /^request-parameter:([^.]+)\.(.+)$/;
+function requestParameter(finding: Finding) {
+  if (finding.requestParameter) return finding.requestParameter;
+  const match = REQUEST_PARAMETER_CHANGE.exec(finding.changeId);
+  return match ? { operationId: match[1], parameter: match[2] } : undefined;
+}
+
 // The parts of a contract definition a test writer needs: type, nullability, referenced objects
 // and the start of the description.
 function definition(value: unknown) {
@@ -250,12 +259,10 @@ export function behaviourTestRequest(options: {
   );
   const parameters = [
     ...new Map(
-      confirmed
-        .filter((finding) => finding.requestParameter)
-        .map((finding) => [
-          `${finding.requestParameter!.operationId}.${finding.requestParameter!.parameter}`,
-          finding.requestParameter!,
-        ]),
+      confirmed.flatMap((finding) => {
+        const parameter = requestParameter(finding);
+        return parameter ? [[`${parameter.operationId}.${parameter.parameter}`, parameter]] : [];
+      }) as [string, { operationId: string; parameter: string }][],
     ).values(),
   ];
   const version = (specification: Specification) =>
@@ -269,8 +276,8 @@ export function behaviourTestRequest(options: {
       line: finding.line,
       column: finding.column,
       expression: finding.expression.slice(0, 200),
-      change: finding.requestParameter
-        ? { kind: 'removed-request-parameter', ...finding.requestParameter }
+      change: requestParameter(finding)
+        ? { kind: 'removed-request-parameter', ...requestParameter(finding)! }
         : (() => {
             const change = cited.find((candidate) => candidate.id === finding.changeId);
             return {

@@ -611,7 +611,8 @@ it('builds the same request in a dry run and estimates its tokens and cost witho
     wouldRun: false,
     reason: expect.stringContaining('64 KiB'),
   });
-  expect(fetcher).not.toHaveBeenCalled();
+  // The scan may look up stripe-node releases; nothing reaches OpenAI.
+  expect(fetcher.mock.calls.filter(([url]) => String(url).includes('api.openai.com'))).toEqual([]);
   expect(behaviourTestSkip({ model: 'gpt-6.1-sol', dryRun: true }, 'why')).toEqual({
     status: 'dry-run',
     wouldRun: false,
