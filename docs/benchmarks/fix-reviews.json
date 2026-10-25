@@ -1271,6 +1271,36 @@
         "upgradeComplete": "yes: stripe ^20.3.1 to ^23.0.0 in package.json and the lockfile; no client sets apiVersion, so the upgrade itself moves the version.",
         "wouldMerge": "yes, after one test-mode checkout."
       }
+    },
+    {
+      "repo": "Kanba-co/kanba",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40148415783, Refit b6ac0da (fix/l3-period-type-errors, TYPE_CHECKED_PERIOD_READS on) on subsets/l3-period-type-errors.json, against base 40147841617 (2e69eee, main + the subset); benchmark mode, no AI. Base validation-regression, head needs-review with both checks passing. The artifact migration.patch of both runs was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included; the only hunks that differ from the base patch are the period reads, the helper import and (iggy) the new helper file",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: app/api/stripe/webhook/route.ts:226-227 subscription.current_period_start/end on subscriptions.data[0] of a subscriptions.list call now read getSubscriptionPeriodStart/End(subscription), the subscription item period Stripe names as the replacement (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end (read 2026-10-24)). Unchanged from the base patch: 2 invoice.subscription reads through getInvoiceSubscription, the card rename at app/api/stripe/checkout/route.ts:172, lib/stripe.ts apiVersion 2023-10-16 to 2026-09-30.endive.",
+        "bothVersions": "yes: the helper returns the old top-level field when the object has it, otherwise the period every item shares.",
+        "nothingUnrelated": "yes: the two reads and the helper import line (getSubscriptionPeriodStart and getSubscriptionPeriodEnd added beside getInvoiceSubscription). The helper file was already in the base patch.",
+        "pleaseCheck": "The draft flags mixed item periods at :226-227 (no item selection: the helper returns undefined there, as the removed field did). The 2 remaining unresolved findings, :225 subscription.items.data[0].price.id, are false alarms: a subscription item keeps price (the removed price is on line_item and invoiceitem). Production mode still stops at the full-diff gate (#290).",
+        "upgradeComplete": "yes: stripe ^14.15.0 to ^23.0.0 in package.json and package-lock.json, pin moved to endive.",
+        "wouldMerge": "yes, after one test-mode checkout (cards enabled) and a subscription sync."
+      }
+    },
+    {
+      "repo": "iggy-tech/product-hunt-clone-final",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40148415783, Refit b6ac0da (fix/l3-period-type-errors, TYPE_CHECKED_PERIOD_READS on) on subsets/l3-period-type-errors.json, against base 40147841617 (2e69eee, main + the subset); benchmark mode, no AI. Base validation-regression, head needs-review with both checks passing. The artifact migration.patch of both runs was applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included; the only hunks that differ from the base patch are the period reads, the helper import and (iggy) the new helper file",
+      "reviewedAt": "2026-10-24",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: lib/stripe.ts:113 subscription.current_period_end on subscriptions.data[0] of a subscriptions.list call now reads getSubscriptionPeriodEnd(subscription) inside the same * 1000 (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end (read 2026-10-24)). Unchanged from the base patch: the card rename at lib/stripe.ts:16 and app/api/stripe/route.ts apiVersion 2024-04-10 to 2026-09-30.endive; the lib/stripe.ts client sets no apiVersion, so the stripe-node upgrade moves it.",
+        "bothVersions": "yes: the helper returns the old field when present, otherwise the items' shared period.",
+        "nothingUnrelated": "yes: the read, one import after the existing imports (below the \"use server\" directive) and the new generated lib/stripeSubscriptionPeriod.ts (the standard helper module, 110 lines, read in full).",
+        "pleaseCheck": "The draft flags mixed item periods at :113 (undefined there gives an Invalid Date, as the removed field did). The 2 remaining unresolved findings, :122 subscription.items.data[0].price.id, are false alarms (a subscription item keeps price). Baseline had 6 type errors and the patch adds none.",
+        "upgradeComplete": "yes: stripe ^15.8.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, after one test-mode checkout (cards enabled)."
+      }
     }
   ]
 }
