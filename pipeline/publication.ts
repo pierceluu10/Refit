@@ -5,6 +5,7 @@ import {
   createReviewArtifacts,
   NEEDS_REVIEW_PREFIX,
   NO_OP_CHECK,
+  NO_OP_REVIEW,
   plainText,
   summaryList,
 } from './review.ts';
@@ -603,6 +604,15 @@ type ReviewSite = { file: string; line: number; detail?: string };
 
 const firstSentence = (text: string) => text.split(/(?<=\.)\s/)[0];
 
+// Owner decision 8: AI patches always ship for review, whatever their checks show.
+const AI_PATCH_REVIEW = {
+  reason:
+    'Refit asked an AI model for this patch. Checks that pass do not show that it keeps what the code does.',
+  check: 'Read each AI-written line listed under Why this needs review as you would a teammate’s.',
+};
+// An AI patch is never validated for publication, so --publish-validated-only stops it.
+export const AI_PATCH_STOP = `${AI_PATCH_REVIEW.reason} It publishes only as a [Needs review] draft, which --publish-validated-only turns off.`;
+
 // Owner decision 1 (Pierce, 2026-10-24, pierceluu10/Refit#300; the CLI default), wherever
 // Refit used to stop it publishes its best patch as a [Needs review] draft. This lists every reason
 // the draft needs review, each with what the reviewer must check; an empty list is a validated
@@ -681,26 +691,9 @@ export function publicationWaiver(
     ...(validation.status === 'passed' &&
     validation.command.join(' ') === NO_OP_CHECK &&
     !generatedRan
-      ? [
-          {
-            gate: 'no-checks' as const,
-            reason: `The configured check ${code(NO_OP_CHECK)} runs no code, so nothing in this patch was tested.`,
-            check: `Run your tests or type check on this branch, or set a real check command in ${code('.refit.json')}.`,
-          },
-        ]
+      ? [{ gate: 'no-checks' as const, ...NO_OP_REVIEW }]
       : []),
-    // Owner decision 8: AI patches always ship for review, whatever their checks show.
-    ...(patch.generator === 'openai'
-      ? [
-          {
-            gate: 'ai-patch' as const,
-            reason:
-              'Refit asked an AI model for this patch. Checks that pass do not show that it keeps what the code does.',
-            check:
-              'Read each AI-written line listed under Why this needs review as you would a teammate’s.',
-          },
-        ]
-      : []),
+    ...(patch.generator === 'openai' ? [{ gate: 'ai-patch' as const, ...AI_PATCH_REVIEW }] : []),
     ...migrationReviewReasons(report, deterministic).map((entry) =>
       entry.reason === WEBHOOK_REVIEW_REASON
         ? {
@@ -819,6 +812,7 @@ export async function publishDraft(
     throw new PipelineInputError(
       'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings, unless owner decision 1 publishes it for review (off with --publish-validated-only).',
     );
+  if (report.patch.generator === 'openai' && !reviews) throw new PipelineInputError(AI_PATCH_STOP);
   const provider = `${PROVIDER_MARKER} ${report.provider} -->`;
   const target = apiVersion.after ?? 'the target contract';
   const version =

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { prepareDependencies } from './dependency-preparation.ts';
+import { DependencyPreparationError, prepareDependencies } from './dependency-preparation.ts';
 import { PipelineInputError } from './types.ts';
 import { validateMigration } from './validation.ts';
 
@@ -76,12 +76,18 @@ it('returns the patch untested on a preparation failure only when asked', async 
 
   // Owner decision 1: a sandbox refusal is published untested too.
   vi.mocked(prepareDependencies).mockRejectedValue(
-    new PipelineInputError('Dependency preparation exceeded 300 seconds.'),
+    new DependencyPreparationError('Dependency preparation exceeded 300 seconds.'),
   );
   expect((await validateMigration({ ...input, recordUntested: true })).validation).toMatchObject({
     status: 'untested',
     dependencyFailure: { reason: 'preparation-failed' },
   });
+  // Refit's own state lock is not the repository's to fix, so the job fails and is retried.
+  const locked = new PipelineInputError(
+    'State is locked by active process 123: /home/refit/.refit/dependencies/abc/prepare.lock.',
+  );
+  vi.mocked(prepareDependencies).mockRejectedValue(locked);
+  await expect(validateMigration({ ...input, recordUntested: true })).rejects.toBe(locked);
   // An error that is not a preparation refusal still stops validation.
   const crash = new TypeError('Cannot read properties of undefined');
   vi.mocked(prepareDependencies).mockRejectedValue(crash);

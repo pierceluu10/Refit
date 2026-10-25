@@ -240,14 +240,27 @@ const OTHER_DEPENDENCY_FAILURE = {
     'Install the dependencies and run your own tests and type check on this branch before merging; Refit ran none.',
 };
 
+// An absolute path in a refusal names the host or container layout, never the repository's files.
+const ABSOLUTE_PATH = /(?<![\w.~:/-])\/[\w.@+~-][\w.@+~/-]*/g;
+
+// A refusal of the repository's committed inputs is the repository's to fix, so a patch can be
+// published untested beside it.
+function repositoryRefusal(error: unknown): never {
+  throw error instanceof PipelineInputError && !(error instanceof DependencyPreparationError)
+    ? new DependencyPreparationError(error.message, { cause: error })
+    : error;
+}
+
 // Why preparation refused, for a patch published untested (owner decision 1, 2026-10-24): a named
-// repository-side cause with its fix, or any other refusal Refit raised. Other errors (cancellation,
-// programming errors) are not preparation results and return undefined.
+// repository-side cause with its fix, or any other refusal of the repository's inputs or install.
+// Refit's own errors (state locks, the dependency cache, Docker, settings, cancellation) return
+// undefined, so the job fails and is retried instead of publishing an untested patch.
 export function preparationFailure(error: unknown) {
   if (!(error instanceof PipelineInputError)) return undefined;
   const failure =
     REPOSITORY_DEPENDENCY_FAILURES.find((entry) => entry.pattern.test(error.message)) ??
-    OTHER_DEPENDENCY_FAILURE;
+    (error instanceof DependencyPreparationError ? OTHER_DEPENDENCY_FAILURE : undefined);
+  if (!failure) return undefined;
   const lockfile = /pnpm/i.test(error.message)
     ? 'pnpm-lock.yaml'
     : /yarn/i.test(error.message)
@@ -257,7 +270,7 @@ export function preparationFailure(error: unknown) {
     reason: failure.reason,
     summary: failure.summary,
     action: failure.action(lockfile),
-    message: error.message,
+    message: error.message.replace(ABSOLUTE_PATH, '[path]'),
   };
 }
 
@@ -394,8 +407,9 @@ export async function prepareDependencies(options: {
 async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
-  const snapshot = await readCommittedRepository(options.repository);
-  const { files, workspaceContents, inputs } = await readPreparationInputs(snapshot);
+  const { files, workspaceContents, inputs } = await readCommittedRepository(options.repository)
+    .then(readPreparationInputs)
+    .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;
   const image = DOCKER_IMAGE_ID.test(options.image)
     ? options.image

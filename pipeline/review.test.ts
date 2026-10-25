@@ -669,6 +669,72 @@ it('opens a [Needs review] body with each reason, where it applies and the lines
   expect(plain.files['pull-request.md']).not.toContain('## Why this needs review');
 });
 
+// Owner decision 8: a line the AI only deleted is an AI-written change too.
+it('lists the lines an AI patch deleted, alone or beside the rule edits', async () => {
+  const source = await readFile('pipeline/fixtures/repository/billing.ts', 'utf8');
+  const rewrite = (after: string) =>
+    [
+      'diff --git "a/billing.ts" "b/billing.ts"',
+      '--- "a/billing.ts"',
+      '+++ "b/billing.ts"',
+      '@@ -1,8 +1,8 @@',
+      ...source
+        .trimEnd()
+        .split('\n')
+        .map((line) => `-${line}`),
+      ...after
+        .trimEnd()
+        .split('\n')
+        .map((line) => `+${line}`),
+      '',
+    ].join('\n');
+  const aiReason = async (after: string, ruleEdits: Record<string, unknown>[]) => {
+    const value = await validatedReport('a'.repeat(40));
+    const diff = rewrite(after);
+    value.patch = {
+      ...value.patch,
+      generator: 'openai',
+      diff,
+      ruleEdits,
+    } as unknown as typeof value.patch;
+    value.validation.patchHash = digest(diff);
+    const body = createReviewArtifacts(value, 'github', undefined, publicationWaiver(value, true))
+      .files['pull-request.md'];
+    return body.slice(
+      body.indexOf('- Refit asked an AI model'),
+      body.indexOf('\n- ', body.indexOf('- Refit asked an AI model') + 1),
+    );
+  };
+  const deletedOnly = await aiReason(source.replace('  return intent.charges.data;\n', ''), []);
+  expect(deletedOnly).toContain(
+    '  - `billing.ts:6` removed `return intent.charges.data;` after this line',
+  );
+  expect(deletedOnly).not.toContain('None: every changed line comes from a Refit rule.');
+
+  const target = 'intent.charges.data';
+  const replacement = '(await stripe.charges.list({ payment_intent: intent.id })).data';
+  const start = source.indexOf(target);
+  const beside = await aiReason(
+    source
+      .replace(target, replacement)
+      .replace("import Stripe from 'stripe';\n\n", "import Stripe from 'stripe';\n"),
+    [
+      {
+        file: 'billing.ts',
+        start,
+        end: start + target.length,
+        replacement,
+        changeId: 'payment_intent.charges',
+        rule: 'stripe-charges-list',
+      },
+    ],
+  );
+  expect(beside).toContain('  - `billing.ts:1` removed a blank line after this line');
+  // The rule's own line is not the AI's.
+  expect(beside).not.toContain('billing.ts:6`\n');
+  expect(beside).not.toContain('`billing.ts:6-');
+});
+
 it('lists breaking contract changes the reach gate let through, with their paths', async () => {
   const value = await report();
   value.specificationDiff = {
