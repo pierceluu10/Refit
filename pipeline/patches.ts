@@ -46,6 +46,29 @@ const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string
 
 const CURRENCY_CODE_WARNING = `Uppercase currency codes written in Stripe requests are lowercased: the target contract gives these fields the \`currency\` format, and ${CURRENCY_CODE_SOURCE} asks for lowercase three-letter ISO codes in every payment request. Only literals written in the request change; other uses of the same currency in the code are unchanged.`;
 
+// Source: Stripe changelog, 2026-09-30.endive, read 2026-10-22.
+export const PAYMENT_METHOD_TYPES_CHANGELOG =
+  'https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions';
+
+// The Stripe page behind each rule edit, with the files whose edits it documents.
+function ruleSources(edits: SourceEdit[]) {
+  const pages = new Map<string, Set<string>>();
+  for (const edit of edits) {
+    const url =
+      FIELD_MOVE_SOURCES[edit.rule!] ??
+      REQUEST_MOVE_SOURCES[edit.rule!] ??
+      (edit.rule === INVOICE_PREVIEW_RULE
+        ? INVOICE_PREVIEW_SOURCE
+        : PAYMENT_METHOD_RENAME_RULES.has(edit.rule!)
+          ? PAYMENT_METHOD_TYPES_CHANGELOG
+          : edit.rule === CURRENCY_CODE_RULE
+            ? CURRENCY_CODE_SOURCE
+            : undefined);
+    if (url) pages.set(url, (pages.get(url) ?? new Set()).add(edit.file));
+  }
+  return [...pages].map(([url, files]) => ({ url, files: [...files] }));
+}
+
 export const CARD_PAYMENT_METHOD_WARNING =
   "payment_method_types: ['card'] becomes allowed_payment_method_types: ['card'] under the owner-approved policy. In 2026-09-30.endive it filters the payment methods Stripe finds eligible instead of listing them, so keep cards enabled in the Stripe Dashboard or the payment method configuration this account uses.";
 
@@ -306,15 +329,7 @@ export function proposePatch(
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
         'Patch contains source code. Review it for sensitive content before sharing.',
       ],
-      source: reads.length
-        ? FIELD_MOVE_SOURCES[reads[0].rule!]!
-        : requestMoves.length
-          ? REQUEST_MOVE_SOURCES[requestMoves[0]]
-          : preview
-            ? INVOICE_PREVIEW_SOURCE
-            : cardRename
-              ? 'docs/STRIPE-PAYMENT-METHOD-TYPES.md'
-              : CURRENCY_CODE_SOURCE,
+      sources: ruleSources(fieldMoves),
     };
   return {
     generator: 'deterministic' as const,

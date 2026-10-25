@@ -138,6 +138,19 @@ export function expansionLocation(change: Record<string, unknown>, before: objec
   return node && expansions.length ? { expansions } : undefined;
 }
 
+// A removed response property that is one of `changes`, which the scanner searches the code for.
+export function isTrackedResponseRemoval(entry: unknown, changes: Removal[]) {
+  return (
+    isObject(entry) &&
+    typeof entry.id === 'string' &&
+    RESPONSE_REMOVALS.has(entry.id) &&
+    changes.some(
+      (change) =>
+        entry.responseSchema === change.schema && entry.removedProperty === change.property,
+    )
+  );
+}
+
 export function unmappedBreakingChanges(
   diff: { engine: string; changes: unknown[] } | undefined,
   changes: Removal[],
@@ -165,14 +178,7 @@ export function unmappedBreakingChanges(
       !PASSING_REACH.has(entry.reach) &&
       !isHandledOperationRemoval(entry, operationChanges) &&
       !isHandledRequestRename(entry, requestChanges) &&
-      !(
-        typeof entry.id === 'string' &&
-        RESPONSE_REMOVALS.has(entry.id) &&
-        affected.some(
-          (change) =>
-            entry.responseSchema === change.schema && entry.removedProperty === change.property,
-        )
-      ),
+      !isTrackedResponseRemoval(entry, affected),
   );
 }
 
