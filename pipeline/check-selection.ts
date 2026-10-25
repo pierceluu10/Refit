@@ -25,14 +25,21 @@ export const REFIT_TSC = '/refit/typescript/lib/tsc.js';
 export const SCOPED_TSCONFIG = '.refit-tsconfig.json';
 // What a tests-then-type-check chain prints between its parts: type errors count only after the
 // second line, and a run that printed the first failed its tests (validation.ts compareTypeCheck).
-export const TESTS_FAILED = 'Refit: the tests failed, so the type check did not run.';
-export const TYPE_CHECK_STARTED = 'Refit: the tests passed, type-checking.';
+// The type check runs after failing tests too, so tests broken before a patch leave it as evidence.
+export const TESTS_FAILED = 'Refit: the tests failed, the type check still runs.';
+export const TYPE_CHECK_STARTED = 'Refit: type check.';
 const TSCONFIG = 'tsconfig.json';
 const BASE_CONFIGURATIONS = [TSCONFIG, 'jsconfig.json'];
 // Above this, a scoped type check covers the whole repository instead of listing files.
 const MAX_SCOPED_LIST_BYTES = 16 * 1024;
 // Default `npm init` script; it is not a check.
 const PLACEHOLDER_TEST = /no test specified/;
+// A test script that is one Vitest or Jest command, so file arguments select its test files.
+const FILE_RUNNER = /^\s*(vitest|jest)\b[^&|;<>`$()]*$/;
+// Browser suites another runner owns, which a unit runner given their paths would fail on.
+const BROWSER_TEST = /(?:^|\/)(?:e2e|playwright|cypress)(?:\/|\.)/;
+// Above this, the whole suite runs rather than a long list of files.
+const MAX_LISTED_TESTS = 50;
 const TEST_FILE = /(?:^|\/)(?:__tests__|tests?|spec|e2e)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const SOURCE_FILE = /\.[cm]?[jt]sx?$/;
 const JAVASCRIPT_FILE = /\.[cm]?jsx?$/;
@@ -290,10 +297,10 @@ function packageManager(root: string) {
 }
 
 // The one check enrollment, the hosted worker and the benchmark run. A real test script always runs.
-// A type check runs too, alone without tests, when it can cover the Stripe code: the root
-// tsconfig.json's program when it holds every Stripe file, otherwise a generated tsconfig over the
-// Stripe files and the files importing them (with Refit's compiler only when there are no tests).
-// Never a no-op.
+// A type check runs after it, or alone without tests, when it can cover the Stripe code: the root
+// tsconfig.json's program when it holds every file importing stripe, otherwise a generated tsconfig
+// over those files and every file importing them (with Refit's compiler only without tests, and
+// never for a client only `require()` loads). Never a no-op.
 export async function selectCheck(repository: Repository): Promise<CheckSelection> {
   const root = repository.root;
   const { scripts, declared } = await manifestScripts(root);
@@ -309,40 +316,71 @@ export async function selectCheck(repository: Repository): Promise<CheckSelectio
   const project = ownCompiler ? programFiles(root, rootConfiguration, graph) : new Set<string>();
   const uncovered = stripeFiles.filter((path) => !project.has(path));
   const projectCheck = project.size > 0 && !uncovered.length;
-  const scope = stripeFiles.length
-    ? [...reach(importers(graph), stripeFiles)].filter((path) => !TEST_FILE.test(path)).sort()
-    : [];
+  const dependents = stripeFiles.length ? [...reach(importers(graph), stripeFiles)].sort() : [];
+  const scope = dependents.filter((path) => !TEST_FILE.test(path));
+  // The test files that reach Stripe code, run alone when the runner takes file arguments: no other
+  // test imports a file the patch can change, and a long suite then fits the check's time limit.
+  const runner =
+    typeof scripts.test === 'string' && !/passWithNoTests/.test(scripts.test)
+      ? FILE_RUNNER.exec(scripts.test)?.[1]
+      : undefined;
+  const stripeTests = dependents.filter((path) => TEST_FILE.test(path) && !BROWSER_TEST.test(path));
+  const listed =
+    tests &&
+    runner &&
+    stripeTests.length > 0 &&
+    stripeTests.length < testFiles(repository).length &&
+    stripeTests.length <= MAX_LISTED_TESTS
+      ? stripeTests
+      : [];
   const typed = repository.files.some(
     (file) => stripeFiles.includes(file.path) && TYPED_STRIPE_IMPORT.test(file.content),
   );
   const scoped = !projectCheck && typed && (ownCompiler || !tests);
   const base = scoped ? baseConfiguration(root, stripeFiles) : undefined;
+  const manager = packageManager(root);
+  // npm passes script arguments only after `--`; pnpm and Yarn pass them as given.
+  const fileOptions = [
+    ...(manager === 'npm' ? ['--'] : []),
+    ...(runner === 'jest' ? ['--runTestsByPath'] : []),
+  ];
+  const chained = tests && (projectCheck || scoped);
+  // In a `sh -c` chain the generated tsconfig and the test files are arguments, never script text.
   const typeCheckScript = projectCheck
     ? TYPE_CHECK.join(' ')
-    : `printf '%s' "$1" > ${SCOPED_TSCONFIG} && ${ownCompiler ? 'npx --no-install tsc' : `node ${REFIT_TSC}`} --noEmit --pretty false -p ${SCOPED_TSCONFIG}`;
-  const scopedArguments = scoped
-    ? ['refit-check', JSON.stringify(scopedConfiguration(root, base, scope))]
-    : [];
-  const testCommand = [packageManager(root), 'test'];
-  const command = tests
-    ? projectCheck || scoped
-      ? [
-          'sh',
-          '-c',
-          `${testCommand.join(' ')} || { echo '${TESTS_FAILED}'; exit 1; }; echo '${TYPE_CHECK_STARTED}'; ${typeCheckScript}`,
-          ...scopedArguments,
-        ]
-      : testCommand
-    : projectCheck
-      ? TYPE_CHECK
-      : scoped
-        ? ['sh', '-c', typeCheckScript, ...scopedArguments]
-        : null;
+    : `printf '%s' "${chained && listed.length ? '$config' : '$1'}" > ${SCOPED_TSCONFIG} && ${ownCompiler ? 'npx --no-install tsc' : `node ${REFIT_TSC}`} --noEmit --pretty false -p ${SCOPED_TSCONFIG}`;
+  const testScript = [manager, 'test', ...(listed.length ? [...fileOptions, '"$@"'] : [])].join(
+    ' ',
+  );
+  const command = chained
+    ? [
+        'sh',
+        '-c',
+        `${scoped && listed.length ? 'config=$1; shift; ' : ''}${testScript} || echo '${TESTS_FAILED}'; echo '${TYPE_CHECK_STARTED}'; ${typeCheckScript}`,
+        'refit-check',
+        ...(scoped ? [JSON.stringify(scopedConfiguration(root, base, scope))] : []),
+        ...listed,
+      ]
+    : tests
+      ? [manager, 'test', ...(listed.length ? [...fileOptions, ...listed] : [])]
+      : projectCheck
+        ? TYPE_CHECK
+        : scoped
+          ? [
+              'sh',
+              '-c',
+              typeCheckScript,
+              'refit-check',
+              JSON.stringify(scopedConfiguration(root, base, scope)),
+            ]
+          : null;
   const testsClause = !tests
     ? 'There is no test script'
-    : testedStripeFiles.length
-      ? `The tests import Stripe code in ${list(testedStripeFiles)}`
-      : 'No test imports Stripe code, so the tests show only that the rest of the code still works';
+    : listed.length
+      ? `The tests import Stripe code in ${list(testedStripeFiles)}, and only the ${listed.length} test ${listed.length === 1 ? 'file' : 'files'} that reach it run (${list(listed)}); no other test reaches a file the patch can change`
+      : testedStripeFiles.length
+        ? `The tests import Stripe code in ${list(testedStripeFiles)}`
+        : 'No test imports Stripe code, so the tests show only that the rest of the code still works';
   const because = !rootConfiguration
     ? ', because there is no tsconfig.json'
     : !ownCompiler
@@ -373,7 +411,7 @@ export async function selectCheck(repository: Repository): Promise<CheckSelectio
     stripeFiles,
     testedStripeFiles,
     typeCheckedStripeFiles: projectCheck || scoped ? stripeFiles : [],
-    reason: `${testsClause}. ${typeClause[0].toUpperCase()}${typeClause.slice(1)}.${tests && (projectCheck || scoped) ? ' Both must pass.' : ''}`,
+    reason: `${testsClause}. ${typeClause[0].toUpperCase()}${typeClause.slice(1)}.${chained ? ' Both must pass.' : ''}`,
   };
 }
 
@@ -408,28 +446,44 @@ export function checkKinds(command: readonly string[], scripts: Record<string, u
   return kinds;
 }
 
-// The part of a tests-then-type-check chain that failed, when the check is one.
+// The test files a check command names, when it runs only some.
+function listedTests(command: readonly string[]) {
+  return command
+    .slice(command[0] === 'sh' ? 3 : 0)
+    .filter((part) => !part.startsWith('{') && TEST_FILE.test(part));
+}
+
+// The part of a tests-then-type-check chain that failed, when the check is one, as a command a
+// person can rerun.
 export function failingPart(command: readonly string[], output: string) {
   const script = command[0] === 'sh' && command[1] === '-c' ? (command[2] ?? '') : '';
-  const testsEnd = script.indexOf(` || { echo '${TESTS_FAILED}'`);
+  const testsEnd = script.indexOf(` || echo '${TESTS_FAILED}'`);
   const typeStart = script.indexOf(`echo '${TYPE_CHECK_STARTED}'; `);
   if (testsEnd < 0 || typeStart < 0) return undefined;
   // Without either line, the tests were still running or ended the shell.
   return output.includes(TYPE_CHECK_STARTED) && !output.includes(TESTS_FAILED)
     ? {
         part: 'type check' as const,
-        command: script.slice(typeStart + `echo '${TYPE_CHECK_STARTED}'; `.length),
+        command: script
+          .slice(typeStart + `echo '${TYPE_CHECK_STARTED}'; `.length)
+          .replace(/^printf '%s' "\$\w+" > \S+ && /, ''),
       }
-    : { part: 'tests' as const, command: script.slice(0, testsEnd) };
+    : {
+        part: 'tests' as const,
+        command: script
+          .slice(0, testsEnd)
+          .replace(/^config=\$1; shift; /, '')
+          .replace('"$@"', listedTests(command).join(' ')),
+      };
 }
 
 // The files a type check command covered: a scoped check's generated configuration, or the
 // repository root's tsconfig.json.
 function checkedProgram(root: string, command: readonly string[], graph: Map<string, Set<string>>) {
-  const last = command.at(-1) ?? '';
+  const configuration = command.slice(3).find((part) => part.startsWith('{'));
   const scoped =
-    command[0] === 'sh' && command[2]?.includes(SCOPED_TSCONFIG) && last.startsWith('{')
-      ? ts.parseConfigFileTextToJson(SCOPED_TSCONFIG, last).config
+    command[0] === 'sh' && command[2]?.includes(SCOPED_TSCONFIG) && configuration
+      ? ts.parseConfigFileTextToJson(SCOPED_TSCONFIG, configuration).config
       : undefined;
   return programFiles(
     root,
@@ -463,6 +517,9 @@ export async function gradeEvidence(options: {
   generated?: { entryPoints: unknown[]; notRunnable: unknown[]; patched: { status: string } };
   // The behaviour-test harness's result, the only evidence for grade A.
   behaviour?: BehaviourEvidence;
+  // Tests that already failed on the original code: why, and whether the type check that ran after
+  // them passed on both sides. They prove nothing about the patch, so only the type check can.
+  testsBroken?: { reason: string; typeCheck: { passed: boolean; detail?: string } };
 }): Promise<EvidenceGrade> {
   if (options.behaviour?.passed && options.behaviour.coversEveryChangedLine)
     return { letter: 'A', level: 'behaviour-tests', reason: options.behaviour.reason };
@@ -471,8 +528,25 @@ export async function gradeEvidence(options: {
   const kinds = checkKinds(options.command, scripts);
   const graph = importGraph(options.repository);
   const changed = options.changedFiles.filter((path) => SOURCE_FILE.test(path));
+  if (options.testsBroken) {
+    const { reason, typeCheck } = options.testsBroken;
+    const typed = checkedProgram(root, options.command, graph);
+    const unchecked = changed.filter((path) => !typed.has(path));
+    return typeCheck.passed && changed.length && !unchecked.length
+      ? {
+          letter: 'C',
+          level: 'type-check',
+          reason: `${reason} The tests were broken before the patch, so they prove nothing about it; tsc type-checks ${list(changed)} and passed on both sides.`,
+        }
+      : {
+          letter: 'D',
+          level: 'none',
+          reason: `${reason} The tests were broken before the patch, and ${!typeCheck.passed ? (typeCheck.detail ?? 'the type check did not pass on both sides') : changed.length ? `the type check does not cover ${list(unchecked)}` : 'the patch changes no source file a check could reach'}.`,
+        };
+  }
+  const listed = listedTests(options.command);
   const tested = kinds.has('tests')
-    ? reach(graph, testFiles(options.repository))
+    ? reach(graph, listed.length ? listed : testFiles(options.repository))
     : new Set<string>();
   const typed = kinds.has('typecheck')
     ? checkedProgram(root, options.command, graph)

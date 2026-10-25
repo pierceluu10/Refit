@@ -1,4 +1,4 @@
-import { failingPart, TYPE_CHECK_STARTED } from './check-selection.ts';
+import { failingPart, TESTS_FAILED, TYPE_CHECK_STARTED } from './check-selection.ts';
 import type { CheckResult } from './validation.ts';
 
 // compareTypeCheck (validation.ts) lists the type errors a patch introduced above tsc's output.
@@ -17,13 +17,18 @@ const FAILED_LINE = /^\s*(?:FAIL|[×✗✕]|not ok\b)\s+\S/;
 // failing suite is reported instead of a bare status.
 export function checkFailure(side: 'baseline' | 'patched', command: string[], check: CheckResult) {
   if (check.status === 'passed' || check.status === 'not-run') return undefined;
-  const output = `${check.stdout}\n${check.stderr}`.replace(ANSI, '');
-  const part = failingPart(command, output);
-  const lines = (
-    part?.part === 'type check' && !check.stdout.startsWith(INTRODUCED_TYPE_ERRORS)
-      ? output.slice(output.lastIndexOf(TYPE_CHECK_STARTED))
-      : output
-  ).split('\n');
+  const stdout = check.stdout.replace(ANSI, '');
+  const stderr = check.stderr.replace(ANSI, '');
+  const part = failingPart(command, `${stdout}\n${stderr}`);
+  // A chain part's own output: the tests' before their line, the type check's after its own, where
+  // tsc writes (the introduced errors validation lists above it come first).
+  const own =
+    part?.part === 'tests'
+      ? `${stdout.includes(TESTS_FAILED) ? stdout.slice(0, stdout.indexOf(TESTS_FAILED)) : stdout}\n${stderr}`
+      : part?.part === 'type check' && !stdout.startsWith(INTRODUCED_TYPE_ERRORS)
+        ? `${stdout.slice(stdout.lastIndexOf(TYPE_CHECK_STARTED))}\n${stderr}`
+        : `${stdout}\n${stderr}`;
+  const lines = own.split('\n');
   const firstFailure = lines
     .find((line) => FAILURE_LINE.test(line))
     ?.trim()
