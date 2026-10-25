@@ -93,6 +93,8 @@ export interface PackageUpgrade {
   from: string;
   to: string;
   files: { path: string; before: string; after: string }[];
+  // Replaces the default patch warning when the upgrade is not a verified lockfile edit.
+  warning?: string;
 }
 
 type Refusal = { reason: string };
@@ -101,7 +103,7 @@ interface Declaration {
   spec: string;
   newSpec: (target: string) => string;
   unique: boolean;
-  rewrite: (target: string, text?: string) => string;
+  rewrite: (target: string, text?: string, prefix?: string) => string;
 }
 interface Release {
   tarball: string;
@@ -152,8 +154,8 @@ export function manifestDeclaration(
     spec,
     newSpec: (target: string) => `${parsed[1]}${target}`,
     unique: (manifestText.match(declaration) ?? []).length === 1,
-    rewrite: (target: string, text = manifestText) =>
-      text.replace(declaration, `$1${parsed[1]}${target}"`),
+    rewrite: (target: string, text = manifestText, prefix = parsed[1]) =>
+      text.replace(declaration, `$1${prefix}${target}"`),
   };
 }
 
@@ -240,6 +242,7 @@ function peerConflicts(
   target: string,
   peers: Record<string, string>,
   installed: (name: string) => unknown,
+  source = 'the lockfile',
 ): Refusal | undefined {
   const conflicts = Object.entries(peers).filter(([name, range]) => {
     const version = installed(name);
@@ -247,7 +250,7 @@ function peerConflicts(
   });
   return conflicts.length
     ? {
-        reason: `stripe ${target} needs ${conflicts.map(([name, range]) => `${name} ${range}`).join(', ')}, which the lockfile does not provide; upgrade it first.`,
+        reason: `stripe ${target} needs ${conflicts.map(([name, range]) => `${name} ${range}`).join(', ')}, which ${source} does not provide; upgrade it first.`,
       }
     : undefined;
 }
@@ -262,12 +265,20 @@ export async function stripePackageUpgrade(
   if (!target)
     return { reason: `No stripe-node release is recorded for API version ${apiVersion}.` };
   const read = (path: string) => readFile(join(root, path), 'utf8').catch(() => undefined);
-  const [manifestText, npmLock, pnpmLock, yarnLock] = await Promise.all([
+  const [manifestText, npmLock, pnpmLock, yarnLock, ...otherLocks] = await Promise.all([
     read('package.json'),
     read('package-lock.json'),
     read('pnpm-lock.yaml'),
     read('yarn.lock'),
+    read('npm-shrinkwrap.json'),
+    read('bun.lock'),
+    read('bun.lockb'),
   ]);
+  if (
+    manifestText !== undefined &&
+    [npmLock, pnpmLock, yarnLock, ...otherLocks].every((text) => text === undefined)
+  )
+    return manifestUpgrade(target, manifestText);
   if (manifestText === undefined || [npmLock, pnpmLock, yarnLock].filter(Boolean).length !== 1)
     return {
       reason:
@@ -276,6 +287,66 @@ export async function stripePackageUpgrade(
   if (npmLock !== undefined) return npmUpgrade(target, manifestText, npmLock);
   if (pnpmLock !== undefined) return pnpmUpgrade(target, manifestText, pnpmLock);
   return yarnUpgrade(target, manifestText, yarnLock!);
+}
+
+// The lower bound of a declared exact, ^ or ~ version (`^20` is 20.0.0); null for any other range.
+function declaredMinimum(spec: string) {
+  const parsed = /^[~^]?(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(spec);
+  return parsed ? `${parsed[1]}.${parsed[2] ?? 0}.${parsed[3] ?? 0}` : null;
+}
+
+// Without a lockfile `npm install` resolves package.json afresh, so the upgrade is that file alone.
+// The release is pinned exactly: a ^ or ~ range could install a later stripe-node whose types
+// accept only a newer API version than the patch moves to.
+async function manifestUpgrade(
+  target: string,
+  manifestText: string,
+): Promise<{ upgrade: PackageUpgrade } | Refusal> {
+  let manifest: unknown;
+  try {
+    manifest = parseJson(manifestText);
+  } catch {
+    return { reason: 'package.json is not valid JSON.' };
+  }
+  if (!isObject(manifest)) return { reason: 'package.json is not an object.' };
+  const root = manifest;
+  if (root.workspaces !== undefined)
+    return { reason: 'Workspaces without a lockfile are not upgraded.' };
+  const declared = manifestDeclaration(root, manifestText);
+  if ('reason' in declared) return declared;
+  if (declared.spec === target) return { reason: `stripe ${target} is already declared.` };
+  if (!declared.unique) return { reason: 'package.json declares stripe more than once.' };
+  const release = await registryRelease(target);
+  if ('reason' in release) return release;
+  if (release.requiredPeers.length) return dependencyChanges(target, release.requiredPeers);
+  const conflict = peerConflicts(
+    target,
+    release.peers,
+    (name) => {
+      for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+        const declarations = root[section];
+        const spec = isObject(declarations) ? declarations[name] : undefined;
+        if (spec !== undefined) return typeof spec === 'string' ? declaredMinimum(spec) : null;
+      }
+      return undefined;
+    },
+    'package.json',
+  );
+  if (conflict) return conflict;
+  return {
+    upgrade: {
+      from: declaredMinimum(declared.spec)!,
+      to: target,
+      files: [
+        {
+          path: 'package.json',
+          before: manifestText,
+          after: declared.rewrite(target, undefined, ''),
+        },
+      ],
+      warning: `Upgrades stripe from ${declared.spec} to exactly ${target} in package.json only: the project commits no lockfile, so npm install resolves stripe ${target} and the rest of the dependency tree at install time, which Refit did not check. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+    },
+  };
 }
 
 async function npmUpgrade(

@@ -267,16 +267,98 @@ it.each([
   expect(result).toEqual({ reason: expect.stringMatching(reason) });
 });
 
-it('refuses projects without an npm lockfile and registry failures', async () => {
+async function manifestOnly(manifest: string, extra: Record<string, string> = {}) {
   const root = await mkdtemp(join(tmpdir(), 'refit-sdk-upgrade-'));
   roots.push(root);
-  await writeFile(join(root, 'package.json'), '{"dependencies":{"stripe":"^12.18.0"}}\n');
-  expect(await stripePackageUpgrade(root, '2026-09-30.endive')).toEqual({
-    reason: expect.stringMatching(/package-lock.json/),
-  });
+  await writeFile(join(root, 'package.json'), manifest);
+  for (const [path, content] of Object.entries(extra)) await writeFile(join(root, path), content);
+  return root;
+}
+
+it('refuses projects with only a bun or shrinkwrap lockfile, and registry failures', async () => {
+  const manifest = '{"dependencies":{"stripe":"^17.5.0"}}\n';
+  // Shaped like Rohit19060/stripe_hono and mageshyt/Nextjs-saas-starter (bun.lockb only) and
+  // Ardione321/prep-ai (bun.lock only).
+  for (const lock of ['bun.lockb', 'bun.lock', 'npm-shrinkwrap.json'])
+    expect(
+      await stripePackageUpgrade(
+        await manifestOnly(manifest, { [lock]: '{}' }),
+        '2026-09-30.endive',
+      ),
+    ).toEqual({ reason: expect.stringMatching(/exactly one of package-lock.json/) });
   registry({}, 404);
   expect(await stripePackageUpgrade(await project(), '2026-09-30.endive')).toEqual({
     reason: expect.stringMatching(/HTTP 404/),
+  });
+});
+
+it.each([
+  // Shaped like r0ld3x/DocTalk and szymontex/donata: a caret stripe and a caret @types/node >=20.
+  [
+    '{\n  "dependencies": {\n    "stripe": "^18.3.0"\n  },\n  "devDependencies": {\n    "@types/node": "^20"\n  }\n}\n',
+    '^18.3.0',
+    '18.3.0',
+  ],
+  // Shaped like deifos/picturemeai_nextjs and MikPoik/next13-ai-companion: exact pins.
+  [
+    '{\n  "dependencies": {\n    "@types/node": "22.9.0",\n    "stripe": "17.3.1"\n  }\n}\n',
+    '17.3.1',
+    '17.3.1',
+  ],
+  // Shaped like aionarae/amazon-beta and removisionscodefindersplatform-art/RemoVisions-Code-Finders-Platform: no @types/node declared.
+  ['{\n  "dependencies": {\n    "stripe": "^16.6.0"\n  }\n}\n', '^16.6.0', '16.6.0'],
+])(
+  'pins stripe exactly in package.json alone when no lockfile is committed (%#)',
+  async (manifest, spec, from) => {
+    const fetch = registry();
+    const result = await stripePackageUpgrade(await manifestOnly(manifest), '2026-09-30.endive');
+    if (!('upgrade' in result)) throw new Error(result.reason);
+    expect(fetch).toHaveBeenCalledWith(
+      `https://registry.npmjs.org/stripe/${TARGET}`,
+      expect.objectContaining({ redirect: 'error' }),
+    );
+    expect(result.upgrade).toMatchObject({ from, to: TARGET });
+    expect(result.upgrade.files).toEqual([
+      {
+        path: 'package.json',
+        before: manifest,
+        after: manifest.replace(`"stripe": "${spec}"`, `"stripe": "${TARGET}"`),
+      },
+    ]);
+    expect(result.upgrade.warning).toMatch(
+      new RegExp(`to exactly ${TARGET} in package.json only: the project commits no lockfile`),
+    );
+  },
+);
+
+it.each([
+  // No measured repository without a lockfile declares one this old; the peer check still applies.
+  [
+    'a declared @types/node below the peer range',
+    '{"dependencies":{"stripe":"^14.12.0"},"devDependencies":{"@types/node":"^18.11.9"}}\n',
+    /needs @types\/node >=20, which package.json does not provide/,
+  ],
+  // Shaped like suzushi-tw/celestialpdf: a dist-tag Refit cannot compare.
+  [
+    'a dist-tag @types/node',
+    '{"dependencies":{"stripe":"^13.9.0"},"devDependencies":{"@types/node":"latest"}}\n',
+    /needs @types\/node >=20, which package.json does not provide/,
+  ],
+  [
+    'workspaces',
+    '{"workspaces":["packages/*"],"dependencies":{"stripe":"^14.0.0"}}\n',
+    /Workspaces without a lockfile/,
+  ],
+  [
+    'a duplicate declaration',
+    '{"dependencies":{"stripe":"^14.0.0"},"devDependencies":{"stripe":"^14.0.0"}}\n',
+    /more than once/,
+  ],
+  ['the release already declared', `{"dependencies":{"stripe":"${TARGET}"}}\n`, /already declared/],
+])('refuses a project without a lockfile with %s', async (_label, manifest, reason) => {
+  registry();
+  expect(await stripePackageUpgrade(await manifestOnly(manifest), '2026-09-30.endive')).toEqual({
+    reason: expect.stringMatching(reason),
   });
 });
 
@@ -647,6 +729,25 @@ it('adds the SDK upgrade to a TypeScript patch that bumps the API version', asyn
   expect(packageDiff(diff)).toContain(`stripe-${TARGET}.tgz`);
   expect('warnings' in report.patch && report.patch.warnings[0]).toContain(
     `Upgrades stripe from 12.18.0 to ${TARGET}`,
+  );
+});
+
+it('adds a package.json-only upgrade to a TypeScript patch when no lockfile is committed', async () => {
+  registry();
+  const report = await scan(
+    await manifestOnly('{\n  "dependencies": {\n    "stripe": "^16.12.0"\n  }\n}\n'),
+    'billing.ts',
+  );
+  expect(report.patch).toMatchObject({
+    status: 'proposed',
+    unresolvedFindings: 0,
+    sdkUpgrade: { from: '16.12.0', to: TARGET },
+  });
+  const diff = 'diff' in report.patch ? report.patch.diff : '';
+  expect(packageDiff(diff)).toContain(`+    "stripe": "${TARGET}"`);
+  expect(packageDiff(diff)).not.toContain('lock');
+  expect('warnings' in report.patch && report.patch.warnings[0]).toMatch(
+    /^Upgrades stripe from \^16\.12\.0 to exactly 23\.0\.0 in package\.json only/,
   );
 });
 

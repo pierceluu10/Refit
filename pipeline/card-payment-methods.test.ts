@@ -197,7 +197,11 @@ it("moves ['card'] to allowed_payment_method_types together with the endive pin"
 });
 
 it.each([
-  ['without a literal API version pin', { 'checkout.js': checkout("['card']", '{}') }],
+  // A bun lockfile alone is never upgraded, so the stripe-node release cannot move the pin.
+  [
+    'without a literal API version pin',
+    { 'checkout.js': checkout("['card']", '{}'), 'bun.lockb': '' },
+  ],
   [
     'when another call sends card and PayPal',
     {
@@ -208,7 +212,7 @@ it.each([
   ],
   [
     'for a TypeScript project whose stripe package cannot be upgraded',
-    { 'checkout.ts': checkout("['card']") },
+    { 'checkout.ts': checkout("['card']"), 'bun.lockb': '' },
   ],
 ])('keeps stopping for review %s', async (_case, files) => {
   const report = await run(files);
