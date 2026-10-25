@@ -95,7 +95,8 @@ export interface FakePull {
 
 interface IssuedToken {
   installation: number;
-  repository: string;
+  // null for an installation-wide token, which only lists the installation's repositories.
+  repository: string | null;
   permissions: Record<string, string>;
   expires: number;
 }
@@ -189,7 +190,7 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
     if (!issued || issued.expires <= Date.now()) throw new Reply(401, 'Bad credentials');
     const installation = installations.get(issued.installation);
     if (
-      issued.repository.toLowerCase() !== target.fullName.toLowerCase() ||
+      issued.repository?.toLowerCase() !== target.fullName.toLowerCase() ||
       installation?.suspended !== false ||
       installationOf(target.fullName) !== installation
     )
@@ -445,6 +446,23 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
       if (!installation) throw new Reply(404, 'Not Found');
       if (installation.suspended) throw new Reply(403, 'This installation has been suspended');
       const request = json(body);
+      // Without a repository list GitHub issues a token for the whole installation; this fake lets
+      // it only list the installation's repositories.
+      if (request.repositories === undefined) {
+        const token = `ghs_${randomBytes(18).toString('base64url')}`;
+        const expires = Date.now() + TOKEN_LIFETIME_MS;
+        const permissions = {
+          ...(request.permissions as Record<string, string>),
+          metadata: 'read',
+        };
+        tokens.set(token, {
+          installation: installation.id,
+          repository: null,
+          permissions,
+          expires,
+        });
+        return [201, { token, expires_at: new Date(expires).toISOString(), permissions }];
+      }
       const names = request.repositories as string[];
       const targets = names.map((name) => repository(installation.login, name));
       if (targets.length !== 1 || installationOf(targets[0].fullName) !== installation)
@@ -469,6 +487,24 @@ export async function startFakeGitHub(options: { appId: number; webhookSecret: s
           permissions,
           repository_selection: 'selected',
           repositories: targets.map((target) => ({ id: target.id, full_name: target.fullName })),
+        },
+      ];
+    }
+    if (method === 'GET' && path === '/installation/repositories') {
+      const issued = tokens.get(bearer(authorization) ?? '');
+      if (!issued || issued.expires <= Date.now()) throw new Reply(401, 'Bad credentials');
+      const installation = installations.get(issued.installation);
+      if (installation?.suspended !== false)
+        throw new Reply(403, 'This installation has been suspended');
+      const size = Number(query.get('per_page') ?? 30);
+      const page = Number(query.get('page') ?? 1);
+      return [
+        200,
+        {
+          total_count: installation.repositories.length,
+          repositories: installation.repositories
+            .slice((page - 1) * size, page * size)
+            .map((name) => repositoryRecord(name)),
         },
       ];
     }
