@@ -1,5 +1,17 @@
 # Refit implementation checkpoints
 
+## October 25 checkpoint: dependency preparation for Push 279 (unreleased, after 0.39.0)
+
+Preparation changes from #289, measured on refit-bench against the Laptop 2 base run 40144503063 (main `c65f169`, 249 repositories):
+
+- **glibc-only packages on musl images.** An npm lockfile that records no `libc` makes `npm ci` on `node:22-alpine` install the glibc builds of native packages (`@next/swc`, `@swc/core`, `sharp`) beside the musl ones, about 250 MiB that cannot load there. After the verified, script-free install, Refit removes each installed package whose own `package.json` excludes musl and that declares no `bin`. The lockfile is unchanged, and every draft states how many packages it removed (`installation.prunedGlibcPackages`, beside `legacyPeerDeps`). The recipe version is now 6, so cached bundles rebuild.
+  On `subsets/o2-preparation.json` (26 size refusals, default profile), before 40148428223 (main `c65f169` plus the subset lists) and after 40148454891: 8 of the 15 dependency-archive refusals now prepare, each after removing 2 to 8 such packages (archives of 795 to 988 MiB). Two validate, two pass their checks with findings left, two fail at baseline and two regress, the same outcomes the 4 GiB run 40142158182 gives them without removing anything. The other seven are pnpm trees, which pnpm already filters, or npm trees still over 1 GiB; the 4 GiB default (#303) takes them.
+- **Committed source.** The `4g` profile, the default under owner decision 3 (#303), archives up to 256 MiB of committed source; `2g` and smaller keep 50 MiB. The refusal names what to stop committing.
+- **Gitlinks.** A gitlink that `.gitmodules` does not declare has no URL, so every clone sees an empty directory there; validation now reads it the same way. A declared submodule still refuses.
+- **pnpm settings.** The refusal names each unsupported setting and the file that sets it.
+
+What still refuses, and why, is in [Preparation failures](PREPARATION-FAILURES.md#lockfile-drift-push-279): lockfile drift other than a range the locked version still satisfies (no repository of the set has only that drift, so it is not built), peers missing from a lockfile written with `--legacy-peer-deps` when no committed install asks for it, and Yarn 1 trees on the `2g` profile. Tests: `pipeline/npm-dependencies.test.ts`, `pipeline/validation-source-limit.test.ts`, `pipeline/committed-repository.test.ts`, `pipeline/review.test.ts` and `pipeline/pnpm-inputs.test.ts`; the Docker suites passed on refit-bench (`gated.yml` run 40148010031).
+
 ## October 24 checkpoint: hosted validation on Linux (unreleased, after 0.39.0)
 
 The first hosted fork test ran the full path on the Fly worker: installation, stored approval, offline Docker validation and draft publication ([results](BENCHMARKS.md#hosted-fork-test-october-24)). It found two Linux-only failures that local runs could not, because Docker Desktop on macOS ignores folder modes: the unprivileged sandbox user could not read candidate or generated folders made by `mkdtemp` (#242), or `stripe-mock` contracts mounted from private run artifacts (#243). Both are fixed; generated checks now mount read-only copies, and run artifacts stay private. Fly shared CPUs throttle under back-to-back jobs until checks pass the check limit, so sustained hosted use needs a performance machine. Not exercised on the hosted worker: AI repair, approval issues, and more than one installation.
