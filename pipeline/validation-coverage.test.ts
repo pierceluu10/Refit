@@ -854,7 +854,7 @@ it.each(SAFETY.map((shape) => [shape.name, shape] as const))(
   },
 );
 
-it('stops an application pin the code contradicts at the scan, before any AI request (Small-Web-Co/tinypivot)', async () => {
+it('drafts an application pin the code contradicts for review, without any AI request (Small-Web-Co/tinypivot)', async () => {
   const { openai } = network();
   const { root, inputs } = await workspace({
     name: 'Small-Web-Co/tinypivot',
@@ -872,7 +872,9 @@ it('stops an application pin the code contradicts at the scan, before any AI req
     aiPatch: { apiKey: 'test-key', model: MODEL },
     repairAttempts: 1,
   });
-  expect(manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
+  // Owner decision 1 (#319): conflicting pins all move in a [Needs review] draft, which AI never
+  // writes beside.
+  expect(manifest).toMatchObject({ status: 'needs-review', waivedGates: ['api-version'] });
   expect(openai()).toHaveLength(0);
 });
 
