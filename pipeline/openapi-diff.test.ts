@@ -201,6 +201,13 @@ it('reports new enum values only on fields the code checks exhaustively', () => 
       usage: { file: 'billing.ts', line: 4 },
     },
   ]);
+  expect(
+    switchedEnumAdditions([{ ...check, property: 'status', compare: true }], before, after),
+  ).toMatchObject([
+    {
+      text: 'added `paused` to the `subscription.status` enum, which billing.ts:4 compares with string literals',
+    },
+  ]);
   expect(switchedEnumAdditions([{ ...check, property: 'status' }], before, before)).toEqual([]);
   expect(switchedEnumAdditions([{ ...check, property: 'id' }], before, after)).toEqual([]);
   expect(
@@ -216,7 +223,7 @@ it('reports new enum values only on fields the code checks exhaustively', () => 
   ).toMatchObject([{ property: 'collection_method', values: ['x'] }]);
 });
 
-it('records switches and never-checks over traced Stripe fields as enum checks', () => {
+it('records switches, never-checks and literal compares over traced Stripe fields as enum checks', () => {
   const repository = {
     root: '/enum-checks',
     files: [
@@ -234,7 +241,14 @@ export function label(subscription: Stripe.Subscription) {
   const unhandled: never = status;
   return unhandled;
 }
-export function other(value: { status: string }) { switch (value.status) { default: return 0; } }`,
+export function other(value: { status: string }) { switch (value.status) { default: return 0; } }
+export async function paid(id: string) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  if (['active', 'trialing'].includes(subscription.status)) return 1;
+  if (subscription.status.length) return 2;
+  return 'past_due' !== subscription.status;
+}
+export function plain(value: { status: string }) { return value.status === 'active'; }`,
       },
     ],
     dependencies: [],
@@ -246,14 +260,18 @@ export function other(value: { status: string }) { switch (value.status) { defau
     operations: [{ resource: 'subscriptions', method: 'retrieve', schema: 'subscription' }],
   };
   const result = analyzeRepository(repository, [], provider, statusSchemas(['active']));
+  const compare = { schema: 'subscription', property: 'status', compare: true };
   expect(result.enumChecks).toEqual([
     { file: 'billing.ts', line: 5, column: 3, schema: 'subscription', property: 'status' },
+    { file: 'billing.ts', line: 9, column: 7, ...compare },
     { file: 'billing.ts', line: 10, column: 9, schema: 'subscription', property: 'status' },
+    { file: 'billing.ts', line: 16, column: 7, ...compare },
+    { file: 'billing.ts', line: 18, column: 10, ...compare },
   ]);
 });
 
 it.skipIf(!process.env.REFIT_OASDIFF)(
-  'omits Stripe response enum additions and informational entries from the blocking report',
+  'lists Stripe response enum additions as compatible and omits informational entries',
   async () => {
     const contract = (values: string[]) => ({
       ...CONTRACT,
@@ -279,8 +297,16 @@ it.skipIf(!process.env.REFIT_OASDIFF)(
     ).toBe(true);
     const stripe = await compareOpenApi(before, after, { openResponseEnums: true });
     expect(
-      stripe.changes.some((change) => change.id === 'response-property-enum-value-added'),
-    ).toBe(false);
+      stripe.changes.filter((change) => change.id === 'response-property-enum-value-added'),
+    ).toEqual([
+      expect.objectContaining({
+        reach: 'compatible',
+        reachReason: expect.stringContaining('switches over or compares the field'),
+      }),
+    ]);
+    expect(
+      generic.changes.find((change) => change.id === 'response-property-enum-value-added'),
+    ).not.toHaveProperty('reach');
     expect(stripe.changes).toContainEqual(
       expect.objectContaining({
         id: 'response-optional-property-removed',

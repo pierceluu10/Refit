@@ -6,6 +6,7 @@ import { runPipeline } from './run.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import { targetReached } from './migration-review.ts';
 
 // Refit adapters accept at most 100 operations; Stripe exposes far more, so each repository
 // gets the operations its own traced calls use.
@@ -291,9 +292,10 @@ export async function workflowScan(
 ) {
   return runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters }).then(
     (scan) => ({
-      stop:
-        scanReviewReason(scan, aiPatch, leaveRequestParameters) ??
-        proposalReviewReason(scan, aiPatch),
+      stop: targetReached(scan)
+        ? undefined
+        : (scanReviewReason(scan, aiPatch, leaveRequestParameters) ??
+          proposalReviewReason(scan, aiPatch)),
       patch: scan.patch,
     }),
     (error: unknown) => ({

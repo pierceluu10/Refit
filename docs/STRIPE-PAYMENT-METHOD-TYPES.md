@@ -77,6 +77,22 @@ Only the string `"keep-listed"` is accepted; any other value is a configuration 
 
 In the 82 benchmark repositories still stopped on this parameter at `7238e46`, a source scan of the pinned clones found literal case B lists in 25: `['card', 'paypal']` in 19, and one each of `card` with `link`, `link`+`paypal`, `cashapp`, `us_bank_account`, `paypal`+`us_bank_account` and `boleto`. One repository sends `card_present` and one a computed value. The other 56 send only `['card']` and stop for other reasons: no literal pin, an SDK that could not be upgraded, or a call site Refit did not trace.
 
+#### Push 279 (2026-10-24): keep-listed by default, and computed lists move unchanged
+
+Owner decisions (Pierce, 2026-10-24, board #300 decision 2 and `AGENTS.md` via #299). The keep-listed behaviour above is now the default for every repository; `.refit.json` still accepts `"keep-listed"`, which changes nothing. On Checkout Session, PaymentIntent and SetupIntent creation, with every case A gate unchanged (the endive pin moves in the same patch, every client's version resolves, the stripe-node upgrade succeeds for TypeScript, the checks pass):
+
+| Value | What happens |
+| --- | --- |
+| `['card']` | Renamed (case A). |
+| A literal list of distinct methods with `card` | Renamed with the same methods; the draft names each non-card method. |
+| A list without `card` (`['us_bank_account']`, `['alipay']`), a variable, a function call, a spread (`[...METHODS, 'klarna']`), a conditional, a property (`config.methods`), a shorthand `{ payment_method_types }` | The key becomes `allowed_payment_method_types` with the expression unchanged (`allowed_payment_method_types: payment_method_types` for the shorthand). The patch warning and the draft name the expression and ask the reviewer to confirm its runtime values. |
+| An expression that spells `card_present` or `interac_present`, directly or through a const, property or function it names (up to four hops) | Stops: endive accepts in-person methods only on PaymentIntents and SetupIntents ([changelog](https://docs.stripe.com/changelog/endive/2026-09-30/card-present-and-interac-present-enum-values-for-allowed-payment-method-types), read 2026-10-24), and what they offer depends on reader configuration. `interac_present` is added to the decision's `card_present` for the same reason. |
+| An empty or repeated literal list, a body that already sends `allowed_payment_method_types` | Stops. |
+| A body built in a local `const`/`let` that only confirmed creation calls receive | Same as a direct body (the slice 3 card rule, now for every value above). |
+| A body a helper returns, an exported body, a body that also reaches another call, a `var`, a parameter assigned onto a body (`params.payment_method_types = …`) | Stops. The assignment was invisible before: the card rule could move the pin while it still sent the parameter. An assignment onto a body that only reaches Payment Links, which still accept the parameter, is not a stop. |
+
+Stripe's endive pages (read 2026-10-24): passing `payment_method_types` returns a 400 on all three creation calls ([Checkout](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions), [Payment Intents and Setup Intents](https://docs.stripe.com/changelog/endive/2026-09-30/removes-the-payment-method-types-parameter-from-payment-intents-and-setup-intents)); `allowed_payment_method_types` filters to compatible methods instead of erroring. Refit never drops the parameter.
+
 ### Case C: Terminal `card_present` (decided: keep stopping)
 
 In-person payments depend on reader and location configuration that offline validation cannot see. 1 repository.

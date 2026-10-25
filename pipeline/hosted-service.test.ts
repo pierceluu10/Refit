@@ -424,7 +424,9 @@ it.skipIf(!DATABASE || !process.env.REFIT_DOCKER_IMAGE)(
     const third = await serve('registry.fly.io/refit-hosted:deployment-2', 3);
     expect(third.jobs[2].receipt).toMatchObject({
       status: 'validated',
-      message: 'Saved worker result reused; checks were not rerun.',
+      // The reused job keeps its reason, as a reused stop does.
+      message:
+        'Saved worker result reused; checks were not rerun. That run recorded: Baseline and patched checks passed. Review artifacts are ready; publication was not requested.',
       revision: transport.head,
     });
     expect(third.jobs[2].receipt.unchangedSince).toBeUndefined();

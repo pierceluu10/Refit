@@ -1,8 +1,7 @@
 fix(stripe): move payment_method_types to allowed_payment_method_types
 
 Stripe API 2026-09-30.endive removes request fields this code sends. A
-deterministic Refit rule migrates 1 confirmed usage in 1 file so the
-code keeps working after the upgrade.
+deterministic Refit rule migrates 1 confirmed usage in 1 file.
 
 - lib/stripe.ts: Sends allowed_payment_method_types in place of the
   removed payment_method_types. Moves the pinned API version from

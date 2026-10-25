@@ -1,0 +1,225 @@
+{
+  "frozenAt": "2026-10-24",
+  "purpose": "Laptop 2 confirmation set for #288 at the merged main: one repository per check-selection path (listed Vitest and Jest test files, a broken baseline with a type check, scoped type checks with the repository's and Refit's compiler, a require()-only client, tests plus tsc). Built from push-279-affected.json; no held-out repository.",
+  "criteria": "Entries of subsets/f5-tuned-sets.json whose row in refit-bench run 40117208880 (main fc4dc00 + #287 reporting, default flags, no AI) has fullAdapter.status \"affected\". Entries unchanged, in list order.",
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "get-convex/convex-saas",
+      "stars": 375,
+      "commit": "2bb768c8d95c3f6c9592fd9dd2c7afc0086d89f3",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "dalemoncayo/express-stripe",
+      "stars": 90,
+      "commit": "a18c6d391ba6815627435ef87003b1ff4a226938",
+      "before": "2024-04-10",
+      "beforeSource": "SDK version",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "MuhammadTanveerAbbas/Clario-ai",
+      "stars": 14,
+      "commit": "1cb1754244fcec19b23e8ce809606a20a24920a9",
+      "before": "2026-02-25.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+      "stars": 4,
+      "commit": "982052f27557a18b93e2fe6cc7bd0b3308b6778f",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Deepanshu0211/Rocart",
+      "stars": 3,
+      "commit": "15ce8d83cb54c9a430bc8711d8f0ab5189093927",
+      "before": "2024-09-30.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^19.1.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "emman-tt/tilios-backend",
+      "stars": 2,
+      "commit": "b554dcb083a058353c5d849d668d5ddf9c5159b2",
+      "before": "2026-01-28.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.3.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "4NDR3S-01/StyleHub",
+      "stars": 1,
+      "commit": "8071226b297b67a09e895f40d0bb32ddaf82508b",
+      "before": "2025-07-30.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.4.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ArkanaDeck/arcana-marketplace",
+      "stars": 1,
+      "commit": "2c723117e7ef2ed6eb003322be7c5a07a36dba6b",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "beindigital-products/wedillybird",
+      "stars": 0,
+      "commit": "4efeeed8e8d112cdddf9cabfde80003f9dbdfd9a",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.0"
+    },
+    {
+      "repo": "muhallimir/ampertalent",
+      "stars": 0,
+      "commit": "ba02c46a72249238776bbbf98c04875ec3cddfb1",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.10.0"
+    }
+  ]
+}

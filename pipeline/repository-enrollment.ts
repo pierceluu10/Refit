@@ -2,7 +2,7 @@ import { lstat, mkdir, readdir, realpath, rm, writeFile } from 'node:fs/promises
 import { dirname, join, posix, resolve } from 'node:path';
 import { readCommittedFile, readCommittedRepository } from './committed-repository.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
-import { compareApiVersion, validateApiVersion } from './api-version.ts';
+import { compareApiVersion, declaresVersion, validateApiVersion } from './api-version.ts';
 import { parseProviderAdapter, STRIPE, validateProviderMappings } from './providers.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { validateGitHubTarget } from './publication.ts';
@@ -146,6 +146,7 @@ async function inspectEnrollmentInputs(options: {
   github: string;
   base: string;
   integration?: string;
+  acceptedApiVersions?: string[];
   contracts?: string;
 }) {
   const target = validateGitHubTarget(options.github, options.base);
@@ -237,7 +238,8 @@ async function inspectEnrollmentInputs(options: {
     );
     if (
       (options.integration === undefined || entry.id === options.integration) &&
-      apiVersion.applicability !== 'matches-before'
+      apiVersion.applicability !== 'matches-before' &&
+      !options.acceptedApiVersions?.some((version) => declaresVersion(apiVersion.source, version))
     )
       throw new PipelineInputError(
         `${integration ? `Integration ${integration}: ` : ''}${apiVersion.reason}`,
@@ -504,6 +506,8 @@ export async function loadApprovedRepository(options: {
   approval: RepositoryApproval;
   stateDirectory: string;
   integration?: string;
+  // Versions the code may send instead of the baseline's, such as the target of a merged draft.
+  acceptedApiVersions?: string[];
   contracts?: string;
 }) {
   if (
@@ -520,6 +524,7 @@ export async function loadApprovedRepository(options: {
       github: options.approval.repository,
       base: options.approval.base,
       integration: options.integration,
+      acceptedApiVersions: options.acceptedApiVersions,
       contracts: options.contracts,
     });
   } catch (cause) {

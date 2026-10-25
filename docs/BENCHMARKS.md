@@ -388,6 +388,15 @@ The single-tenant hosted worker (`refit hosted serve` on Fly, with `--publish-dr
 
 Nobody runs Refit on this set or reads its repositories' code before the final run, so the list stays unseen while Refit is tuned.
 
+## P4 draft lifecycle stack on the dev set (October 24)
+
+Laptop 1's review of the P4 stack (#251 to #275) ran the 30-repository `subsets/dev-30.json` once at the stack head `c27f2dc`, which has `main` at `2143ee5` merged in: GitHub Actions run 40147129332 on `refit-dev/refit-bench`, `benchmark.yml` with `list=subsets/dev-30.json offset=0 size=2 count=30`, no AI, no publication. Each repository's row was compared with its row in run 40117208880 (`604cb81`, `subsets/f5-tuned-sets.json`).
+
+- **18 rows unchanged.**
+- **8 rows changed only in the reason text**, as #273 intends: the removed-parameter stop now ends with the calls that still send `payment_method_types` (one call in 7 rows, "and 4 more in the run report" in qesmsep/noir-crm-dashboard). Same status and stage.
+- **4 rows changed outcome, all from `main`, not the stack.** Each was an `error` in the baseline because preparation hit the old 2 GiB workspace (ENOSPC once, a dependency archive over 1 GiB three times). With the 4 GiB default from #303 they ran: 2 `validated` (adamhitzger/financehb, tejashVaishnav/Fast-saas-next.js-boilerplate), 1 `needs-review` with 1 unresolved finding (shagunmistry/FlowCraft) and 1 `validation-failed`: the patch broke alanagoyal/branded's tests (regression).
+- **Not measured:** publication and draft updates, which the benchmark never exercises; the stack's lifecycle is covered by `pipeline/draft-lifecycle.test.ts` and `pipeline/release-replay.test.ts` against simulated GitHub.
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

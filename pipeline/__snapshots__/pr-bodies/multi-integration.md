@@ -1,6 +1,6 @@
 ## Overview
 
-Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Refit rule migrates 1 confirmed usage in 1 file so the code keeps working after the upgrade. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).
+Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Refit rule migrates 1 confirmed usage in 1 file. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).
 
 ## API Impact & Spec Changes
 
@@ -14,6 +14,7 @@ Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Ref
 - `convex/stripe-subscription-period.ts`: Adds the generated helper that reads the removed fields under either API version.
 - `package.json`: Upgrades `stripe` from `16.5.0` to `23.0.0`.
 - `package-lock.json`: Upgrades `stripe` from `16.5.0` to `23.0.0`.
+- Review: Upgrades `stripe` across major versions, `16.5.0` to `23.0.0`; [its changelog](https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md) lists type and behavior changes the checks may not cover.
 
 ## Code Changes
 
@@ -85,13 +86,14 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 ## Automated Verification Gates
 
+- Evidence Strength: **Type-checked only.** No code ran.
 - Test Suite Output: `npx --no-install tsc --noEmit --pretty false -p .` passed on the original and migrated code in offline Docker. Generated stripe-mock checks did not run.
-- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 confirmed usages of the breaking changes remain.
+- Linter & Static Analysis: TypeScript type check is the test command above; Refit rescanned the migrated code and 0 usages of the breaking changes remain.
 - Security Scans: Not run.
 
 ## Not Verified
 
-- Refit made no request to Stripe. The checks ran on this repository's code in offline Docker, so they cover only the code paths they exercise.
+- Refit made no request to Stripe, and `npx --no-install tsc --noEmit --pretty false -p .` runs none of this repository's code.
 - Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.
 
 ## Rollback
@@ -105,7 +107,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 ## Reviewer Checklist
 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
-- [ ] Confirm `npx --no-install tsc --noEmit --pretty false -p .` exercises the code this patch changes, or add a test that does.
+- [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.
 
 ## Related Telemetry
 
@@ -116,4 +118,4 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 
 <!-- refit-migration:d632b2df4c8e4e3b8e9cc0c49de4f4c236e785d0df1eee8255c963ff44b5d0df -->
 
-<!-- refit-evidence "runId": "1da7a5d798d9259e7066a90ce774203bf43b5fc9a399d44fd5bb0cc60b8461b5", "patchHash": "c93ce56b8ae769674c9c162fbad43d3d7ebe185300049054e645fe25a946c2b7" -->
+<!-- refit-evidence "runId": "1da7a5d798d9259e7066a90ce774203bf43b5fc9a399d44fd5bb0cc60b8461b5", "patchHash": "c93ce56b8ae769674c9c162fbad43d3d7ebe185300049054e645fe25a946c2b7", "refit": "<release>" -->
