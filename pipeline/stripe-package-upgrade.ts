@@ -268,14 +268,43 @@ export async function stripePackageUpgrade(
     read('pnpm-lock.yaml'),
     read('yarn.lock'),
   ]);
-  if (manifestText === undefined || [npmLock, pnpmLock, yarnLock].filter(Boolean).length !== 1)
+  const locks = [
+    npmLock && (() => npmUpgrade(target, manifestText!, npmLock)),
+    pnpmLock && (() => pnpmUpgrade(target, manifestText!, pnpmLock)),
+    yarnLock && (() => yarnUpgrade(target, manifestText!, yarnLock)),
+  ].filter((upgrade) => typeof upgrade === 'function');
+  if (manifestText === undefined || !locks.length)
     return {
       reason:
-        'Only root npm, pnpm or Yarn 1 projects with package.json and exactly one of package-lock.json, pnpm-lock.yaml or yarn.lock are upgraded.',
+        'Only root npm, pnpm or Yarn 1 projects with package.json and at least one of package-lock.json, pnpm-lock.yaml or yarn.lock are upgraded.',
     };
-  if (npmLock !== undefined) return npmUpgrade(target, manifestText, npmLock);
-  if (pnpmLock !== undefined) return pnpmUpgrade(target, manifestText, pnpmLock);
-  return yarnUpgrade(target, manifestText, yarnLock!);
+  if (locks.length === 1) return locks[0]();
+  return everyLockfileUpgrade(locks);
+}
+
+// A project that commits several lockfiles installs from whichever its package manager reads, so
+// each one is upgraded by its own rules and the upgrade is kept only when every one succeeds from
+// the same locked release.
+async function everyLockfileUpgrade(
+  locks: (() => Promise<{ upgrade: PackageUpgrade } | Refusal>)[],
+): Promise<{ upgrade: PackageUpgrade } | Refusal> {
+  const upgrades: PackageUpgrade[] = [];
+  for (const lock of locks) {
+    const result = await lock();
+    if ('reason' in result) return result;
+    upgrades.push(result.upgrade);
+  }
+  const [first, ...rest] = upgrades;
+  const lockPath = (upgrade: PackageUpgrade) => upgrade.files[1].path;
+  const other = rest.find((upgrade) => upgrade.from !== first.from);
+  if (other)
+    return {
+      reason: `${lockPath(first)} locks stripe ${first.from} and ${lockPath(other)} locks ${other.from}; the lockfiles disagree, so the installed release is not known.`,
+    };
+  // Every manager rewrites package.json the same way, so the first rewrite stands for all.
+  return {
+    upgrade: { ...first, files: [first.files[0], ...upgrades.map((upgrade) => upgrade.files[1])] },
+  };
 }
 
 async function npmUpgrade(

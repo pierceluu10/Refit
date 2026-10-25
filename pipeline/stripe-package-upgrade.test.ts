@@ -542,6 +542,95 @@ it.each([
   ).toEqual({ reason: expect.stringMatching(reason) });
 });
 
+const SHASUM_DIST = {
+  dist: {
+    tarball: `https://registry.npmjs.org/stripe/-/stripe-${TARGET}.tgz`,
+    integrity: INTEGRITY,
+    shasum: 'b'.repeat(40),
+  },
+};
+const npmLockText = (lock: unknown) => `${JSON.stringify(lock, null, 2)}\n`;
+
+async function withLock(root: string, path: string, content: string) {
+  await writeFile(join(root, path), content);
+  return root;
+}
+
+// Each lockfile alone, upgraded by its own rules, for comparison with the combined upgrade.
+async function alone(manifest: string, path: string, content: string) {
+  const root = await mkdtemp(join(tmpdir(), 'refit-sdk-upgrade-alone-'));
+  roots.push(root);
+  await writeFile(join(root, 'package.json'), manifest);
+  await writeFile(join(root, path), content);
+  const result = await stripePackageUpgrade(root, '2026-09-30.endive');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  return result.upgrade.files;
+}
+
+it('upgrades package-lock.json and yarn.lock together when both lock the same stripe', async () => {
+  // Shaped like cesarolvr/journeylog-app, ensarokumus/tldr-app and Librum-Reader/Librum-Website.
+  registry(SHASUM_DIST);
+  const root = await withLock(await project(), 'yarn.lock', yarnLock());
+  const result = await stripePackageUpgrade(root, '2026-09-30.endive');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  expect(result.upgrade).toMatchObject({ from: '12.18.0', to: TARGET });
+  const manifest = result.upgrade.files[0].before;
+  const [npmManifest, npm] = await alone(manifest, 'package-lock.json', npmLockText(lockfile()));
+  const [, yarn] = await alone(manifest, 'yarn.lock', yarnLock());
+  expect(result.upgrade.files).toEqual([npmManifest, npm, yarn]);
+});
+
+it('upgrades package-lock.json and pnpm-lock.yaml together when both lock the same stripe', async () => {
+  // Shaped like dubbl-org/dubbl: an npm lockfile beside the pnpm 9 lockfile, both on one release.
+  registry();
+  const npmLock = npmLockText(lockfile('^16.12.0')).replaceAll('12.18.0', '16.12.0');
+  const root = await withLock(await pnpmProject(pnpmLock()), 'package-lock.json', npmLock);
+  const result = await stripePackageUpgrade(root, '2026-09-30.endive');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  expect(result.upgrade).toMatchObject({ from: '16.12.0', to: TARGET });
+  const manifest = result.upgrade.files[0].before;
+  const [, npm] = await alone(manifest, 'package-lock.json', npmLock);
+  const [pnpmManifest, pnpm] = await alone(manifest, 'pnpm-lock.yaml', pnpmLock());
+  expect(result.upgrade.files).toEqual([pnpmManifest, npm, pnpm]);
+});
+
+it.each([
+  // Shaped like avikalp987/quill, dheerajcl/Jynx2.0 and omar99elnemr/Docubot.
+  [
+    'lockfiles that lock different stripe releases',
+    npmLockText(lockfile('^16.12.0')),
+    /package-lock.json locks stripe 12.18.0 and pnpm-lock.yaml locks 16.12.0; the lockfiles disagree/,
+  ],
+  // Shaped like LucasKlemke/doctor-reborn and passion-27/QuotesAI.
+  [
+    'a package-lock.json that does not lock stripe',
+    npmLockText({
+      ...lockfile('^16.12.0'),
+      packages: { '': { name: 'app', version: '1.0.0', dependencies: { stripe: '^16.12.0' } } },
+    }),
+    /package-lock.json does not lock stripe at the project root/,
+  ],
+])('refuses a project with several lockfiles and %s', async (_label, npmLock, reason) => {
+  registry();
+  const root = await withLock(await pnpmProject(pnpmLock()), 'package-lock.json', npmLock);
+  expect(await stripePackageUpgrade(root, '2026-09-30.endive')).toEqual({
+    reason: expect.stringMatching(reason),
+  });
+});
+
+it('ignores an empty lockfile beside the one that locks stripe', async () => {
+  registry();
+  const result = await stripePackageUpgrade(
+    await withLock(await project(), 'yarn.lock', ''),
+    '2026-09-30.endive',
+  );
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  expect(result.upgrade.files.map((file) => file.path)).toEqual([
+    'package.json',
+    'package-lock.json',
+  ]);
+});
+
 it('splits a rendered patch into its code and dependency parts', () => {
   const code =
     'diff --git "a/src/a.ts" "b/src/a.ts"\n--- "a/src/a.ts"\n+++ "b/src/a.ts"\n@@ -1 +1 @@\n-a\n+b\n';
