@@ -1751,6 +1751,21 @@
         "upgradeComplete": "yes: stripe ^12.9.0 (lockfile 12.10.0) to ^23.0.0 in package.json and package-lock.json, and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
         "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
       }
+    },
+    {
+      "repo": "profullstack/vibe-stack",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40150652070 (subsets/l3-proxy-a.json) at Refit 1a3f2cf, PR #269 with let-holder clients, against base 40147835670 at 13d6b48 (main plus the subset files); benchmark mode needs-review (checks passed, findings unresolved). Only one hunk is new: every other file section of the artifact's migration.patch is byte-identical to the base run's",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: the new hunk moves the apiVersion of the module let holder in src/services/stripe-payment-service.js (let stripe; try { stripe = new Stripe(..., { apiVersion: '2023-10-16' }) }) to 2026-09-30.endive, the same target as the other six pins. Before, that client was untraced, so the patch left it at 2023-10-16 while stripe moved to 23.",
+        "bothVersions": "yes: the generated subscriptionPeriod helper still returns the old top-level field when present; the new hunk is a version pin only.",
+        "nothingUnrelated": "yes: seven apiVersion pins, the current_period reads through the helper, stripe ^14.22.0 to ^23.0.0 and its pnpm-lock entries.",
+        "pleaseCheck": "40 review findings stay unresolved (needs-review), mostly bin/ script reads such as unit_amount in bin/create-stripe-products.js; no draft is published.",
+        "upgradeComplete": "yes: all seven Node clients now move to endive and stripe moves to 23.0.0.",
+        "wouldMerge": "not as is: the unresolved review reads need a person first."
+      }
     }
   ]
 }
