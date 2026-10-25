@@ -60,6 +60,11 @@
       "productionMode": {
         "$ref": "#/$defs/scan"
       },
+      "customerMode": {
+        "$ref": "#/$defs/scan",
+        "x-added": "2026-10-24",
+        "description": "The built-in adapter with the full contract diff on, as a hosted customer's worker scans; never validated."
+      },
       "changelogNotes": {
         "type": "array",
         "items": {
@@ -100,6 +105,11 @@
           },
           "pullRequest": {
             "type": "boolean"
+          },
+          "fullDiff": {
+            "type": "boolean",
+            "x-added": "2026-10-24",
+            "description": "True when the workflow itself ran with the full contract diff, because production mode did not stop before validation."
           }
         }
       },
@@ -124,6 +134,30 @@
       },
       "infrastructure": {
         "$ref": "common.schema.json#/$defs/infrastructure"
+      },
+      "production": {
+        "x-added": "2026-10-24",
+        "description": "The production-mode outcome (full contract diff on): the scan stop before validation, or the workflow's own outcome when it ran with fullDiff. Only rows the workflow ran for.",
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stage": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "validation": {
+            "type": "string"
+          }
+        }
       }
     }
   },
@@ -186,6 +220,79 @@
             },
             "reviewReasons": {
               "$ref": "common.schema.json#/$defs/counts"
+            },
+            "stop": {
+              "type": ["string", "null"],
+              "x-added": "2026-10-24",
+              "description": "The workflow's stop before validation for this scan (null when it would continue)."
+            },
+            "impacts": {
+              "x-added": "2026-10-24",
+              "description": "Each operation impact: the called operation, its call sites and the oasdiff changes on it.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["operationId", "method", "path", "usages", "changes"],
+                "properties": {
+                  "operationId": {
+                    "type": "string"
+                  },
+                  "method": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "usages": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "changes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["id", "text"],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "unmappedChanges": {
+              "$ref": "common.schema.json#/$defs/count",
+              "x-added": "2026-10-24"
+            },
+            "unmapped": {
+              "x-added": "2026-10-24",
+              "description": "The first 500 breaking oasdiff changes no rule or finding accounts for, on any adapter-selected operation.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "text"],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "operation": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         }
