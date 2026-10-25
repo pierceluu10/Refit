@@ -543,6 +543,8 @@ async function benchmark(entry: Selected, index: number) {
       baseline: report.validation?.baseline?.status,
       patched: report.validation?.patched?.status,
       grade: report.validation?.grade,
+      advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
+      typeCheckUnavailable: report.validation?.typeCheckUnavailable,
       baselineStop: report.validation?.baselineStop?.reason,
       checkErrors: {
         baseline: report.validation?.baseline?.error,
