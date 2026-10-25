@@ -397,6 +397,28 @@ Laptop 1's review of the P4 stack (#251 to #275) ran the 30-repository `subsets/
 - **4 rows changed outcome, all from `main`, not the stack.** Each was an `error` in the baseline because preparation hit the old 2 GiB workspace (ENOSPC once, a dependency archive over 1 GiB three times). With the 4 GiB default from #303 they ran: 2 `validated` (adamhitzger/financehb, tejashVaishnav/Fast-saas-next.js-boilerplate), 1 `needs-review` with 1 unresolved finding (shagunmistry/FlowCraft) and 1 `validation-failed`: the patch broke alanagoyal/branded's tests (regression).
 - **Not measured:** publication and draft updates, which the benchmark never exercises; the stack's lifecycle is covered by `pipeline/draft-lifecycle.test.ts` and `pipeline/release-replay.test.ts` against simulated GitHub.
 
+## Owner decision 1 on the dev set (October 24)
+
+Two runs of `subsets/dev-30.json` on `refit-dev/refit-bench` (`benchmark.yml` with `list=subsets/dev-30.json offset=0 size=2 count=30`, no AI, no publication), each row compared with its row in run 40117208880 (`604cb81`):
+
+- **Before the default changed:** run 40150763480 at `7487773` with `flags=--publish-unresolved`.
+- **After:** run 40151036594 at `32d686c`, no flags, where decision 1 is the default.
+
+The two runs have the same outcome and a byte-identical patch for every repository (21 ran the workflow). Both predate the merges of #296, #304, #285 and #314 into this branch. In all 21 reports, none of the 77 findings that need review is touched by the patch.
+
+| Outcome | Repositories |
+| --- | --- |
+| Validated (5) | Anassarwar14/Chat-Nest-AI, imran-farooq7/next-gen-ai-yt, MuhammadTanveerAbbas/Clario-ai, nicuk/docsflow; tejashVaishnav/Fast-saas-next.js-boilerplate (an `error` in the baseline, fixed on `main` by the 4 GiB workspace) |
+| New `[Needs review]` draft (8) | adamhitzger/financehb and shagunmistry/FlowCraft (contract changes no rule migrates; `error` in the baseline); ArhanAnsari/InspireGem and Miguel07Alm/text2question (preparation failed, untested; `error` in the baseline); brunobola-portfolio/GitHub-Repo-Manager (checks did not finish on the original code, webhook API version, contract changes); doganarif/build-it (`node -e 0`, removed parameter, contract changes), JensenMPillay/pdfai (baseline fails, removed parameter, contract changes) and karljuhl/Club_Connect (preparation failed, removed parameter, contract changes), all three stopped at scan in the baseline |
+| Validated to `[Needs review]` (1) | Emmah-oo/spotify-clone: a breaking contract change on a traced operation that no rule migrates (unknown reach) |
+| `[Needs review]` as before (3) | Devanshjain2110/QueryPDF and palashb01/DocuChat (untraced reads, unchanged); samiamjidkhan/dota2-helper (now names its `node -e 0` check) |
+| No PR: checks failed on the patch (4) | 4lbatr0s/jiro, ggallon/type-last and manu14357/smartdoc (stopped at scan in the baseline; the `payment_method_types` they keep sending fails `tsc` after the stripe-node upgrade); alanagoyal/branded (`error` in the baseline; its tests reject the helper import) |
+| No PR: conflicting API versions (3) | createdbymax/Loopletter-Open-source-email-marketing-platform, qesmsep/noir-crm-dashboard, Small-Web-Co/tinypivot |
+| No PR: no patch (1) | liamstamper/lamp-bot: its only change is a removed parameter left for review |
+| Not affected (5) | benlamiro/ShipGenAI, Harries/startfast-free, pretzelai/lumen, rishabhsingroha/MusicListeningPlatform, UNC-GDSC/Micro-SaaS-Starter-Kit |
+
+Not measured: publication (the benchmark publishes nothing), the hosted worker and AI patches.
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

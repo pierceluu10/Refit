@@ -18,6 +18,7 @@ import {
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
 import { STRIPE } from './providers.ts';
 import { readRepository } from './repository.ts';
+import { NO_OP_CHECK } from './review.ts';
 import { configurationTarget } from './source-configurations.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { STRIPE_SDK_RELEASES } from './stripe-package-upgrade.ts';
@@ -34,6 +35,9 @@ const FIRST_PINNING_MAJOR = 12;
 const MAX_PLACES = 3;
 const MAX_QUOTED = 60;
 const OWN_CONFIGURATION = `or commit a ${REPOSITORY_CONFIGURATION} that sets it (docs/REPOSITORY-SETUP.md)`;
+// Stops after which a configuration can still run, untested (owner decision 1, #300): without a
+// lockfile preparation fails, and without checks the command is a no-op the draft names.
+const UNTESTED_STOPS = new Set(['no-lockfile', 'no-checks']);
 
 // Why Refit cannot propose a configuration: one plain sentence and the exact change that fixes it.
 export interface EnrollmentStop {
@@ -47,7 +51,9 @@ export interface StripeProposal {
   configuration: { formatVersion: 2; integrations: Record<string, unknown>[] };
   apiVersion: { value: string; source: string };
   target: string;
-  checks: { kind: 'tests' | 'typecheck'; source: string; reason: string };
+  checks: { kind: 'tests' | 'typecheck' | 'none'; source: string; reason: string };
+  // Why Refit cannot test a patch under this configuration; empty unless allowUntested proposed it.
+  untested: EnrollmentStop[];
 }
 
 const at = (location: Location) => `${location.file}:${location.line}`;
@@ -467,8 +473,14 @@ function applicationVersion(
 // Proposes the Stripe configuration a repository without a .refit.json gets, from its committed
 // files only: the API version its code sends, the contracts for that version and Refit's newest,
 // and the checks the Stripe benchmark runs. Every reason it cannot is returned, never guessed.
-export async function proposeStripeConfiguration(directory: string) {
+// With allowUntested, a missing lockfile or missing checks no longer stop it; they stay as reasons.
+export async function proposeStripeConfiguration(
+  directory: string,
+  options: { allowUntested?: boolean } = {},
+) {
   const stops: EnrollmentStop[] = [];
+  const blocking = () =>
+    stops.filter((stop) => !options.allowUntested || !UNTESTED_STOPS.has(stop.id));
   const repository = await readRepository(directory, STRIPE.packageName);
   const manifest = existsSync(join(directory, MANIFEST))
     ? parseObject(await readFile(join(directory, MANIFEST), 'utf8'), MANIFEST)
@@ -566,13 +578,13 @@ export async function proposeStripeConfiguration(directory: string) {
   // Generation for stripe only in workspace packages is withheld under the decision bar (P5, #270):
   // no measured repository generates this way, nothing shows the root check covers the package, and
   // the stripe-node upgrade edits only the root package.json.
-  if (!rooted && !stops.length)
+  if (!rooted && !blocking().length)
     stops.push({
       id: 'workspace-package',
       detail: `stripe is declared in ${listed([...new Set(repository.dependencies.map((dependency) => dependency.file))])}, not in the root package.json, and Refit does not yet generate a configuration that checks a workspace package from the root.`,
       action: `Commit a ${REPOSITORY_CONFIGURATION} whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).`,
     });
-  if (stops.length || Array.isArray(version) || !check.kind) return { proposal: null, stops };
+  if (blocking().length || Array.isArray(version)) return { proposal: null, stops };
   const target = latestStripeContract().version;
   const typeChecked =
     check.typeCheck === 'project'
@@ -580,12 +592,15 @@ export async function proposeStripeConfiguration(directory: string) {
       : check.typeCheck === 'scoped'
         ? 'tsc over the Stripe code, failing only on new type errors'
         : undefined;
-  const checked = [
-    check.kind === 'tests' ? `the test script in ${MANIFEST}, run with ${manager}` : undefined,
-    typeChecked,
-  ]
-    .filter(Boolean)
-    .join(', then ');
+  // Owner decision 1: without any check the command is a no-op the draft names (untested).
+  const checked = check.kind
+    ? [
+        check.kind === 'tests' ? `the test script in ${MANIFEST}, run with ${manager}` : undefined,
+        typeChecked,
+      ]
+        .filter(Boolean)
+        .join(', then ')
+    : `${NO_OP_CHECK}, which tests nothing`;
   const proposal: StripeProposal = {
     configuration: {
       formatVersion: 2,
@@ -597,7 +612,7 @@ export async function proposeStripeConfiguration(directory: string) {
           apiVersion: version.value,
           image: NODE_22_IMAGE,
           prepareDependencies: true,
-          command: check.command,
+          command: check.command ?? NO_OP_CHECK.split(' '),
           ...(check.compareTypeErrors ? { compareTypeErrors: true } : {}),
         },
       ],
@@ -605,10 +620,11 @@ export async function proposeStripeConfiguration(directory: string) {
     apiVersion: version,
     target,
     checks: {
-      kind: check.kind,
+      kind: check.kind ?? 'none',
       source: `${checked}${outside.length ? `; Refit does not install ${listed(outside)}, which the root lockfile leaves out` : ''}`,
       reason: check.reason,
     },
+    untested: stops,
   };
   return { proposal, stops };
 }
@@ -625,7 +641,8 @@ export function generatedVersionCheck(source: ApiVersionSource) {
 
 // One sentence a person reads before approving or running a generated configuration.
 export function proposalSummary(proposal: StripeProposal) {
-  return `No ${REPOSITORY_CONFIGURATION} is committed, so Refit generated one: Stripe API version ${proposal.apiVersion.value} (${proposal.apiVersion.source}), moving to ${proposal.target}, checked by ${proposal.checks.source}. ${proposal.checks.reason}`;
+  const untested = proposal.untested.map((stop) => `${stop.detail} ${stop.action}`).join(' ');
+  return `No ${REPOSITORY_CONFIGURATION} is committed, so Refit generated one: Stripe API version ${proposal.apiVersion.value} (${proposal.apiVersion.source}), moving to ${proposal.target}, checked by ${proposal.checks.source}. ${proposal.checks.reason}${untested ? ` Refit cannot test a patch here, so each draft it opens is titled [Needs review]: ${untested}` : ''}`;
 }
 
 export function proposalContent(proposal: StripeProposal) {

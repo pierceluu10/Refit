@@ -288,13 +288,13 @@ type ScanInputs = {
 export async function workflowScan(
   inputs: ScanInputs,
   aiPatch: boolean,
-  leaveRequestParameters: boolean,
+  leaveReviewedFindings: boolean,
 ) {
-  return runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters }).then(
+  return runPipeline({ ...inputs, proposePatch: true, leaveReviewedFindings }).then(
     (scan) => ({
       stop: targetReached(scan)
         ? undefined
-        : (scanReviewReason(scan, aiPatch, leaveRequestParameters) ??
+        : (scanReviewReason(scan, aiPatch, leaveReviewedFindings) ??
           proposalReviewReason(scan, aiPatch)),
       patch: scan.patch,
     }),

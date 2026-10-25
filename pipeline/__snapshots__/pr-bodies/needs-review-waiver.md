@@ -1,3 +1,10 @@
+## Why this needs review
+
+Refit opened this draft for review instead of stopping (owner decision 1). **Don't merge until you have checked each item.**
+
+- The configured check `node -e 0` runs no code, so nothing in this patch was tested. **Check:** Run your tests or type check on this branch, or set a real check command in `.refit.json`.
+- Webhook payload reads require separate incoming API-version and migration-policy review. **Check:** Set the webhook endpoint API version to `2026-09-30.endive` when you deploy, or confirm it already is.
+
 ## Webhook API version not verified
 
 This patch changes webhook handlers. Stripe sends webhooks in the API version set on the webhook endpoint in the Stripe dashboard, which Refit can't see from code. Before merging, check the endpoint's API version in Dashboard > Developers > Webhooks and confirm it matches `2026-09-30.endive`, or update it when you deploy.

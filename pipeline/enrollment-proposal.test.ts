@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
 import {
   proposalContent,
+  proposalSummary,
   proposeStripeConfiguration,
   stripeNodeDefaultVersion,
 } from './enrollment-proposal.ts';
@@ -528,6 +529,85 @@ it('stops without a lockfile', async () => {
         'Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
     },
   ]);
+});
+
+it('proposes a configuration without a lockfile or checks only when asked, keeping why', async () => {
+  const unlocked = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'src/lib/stripe.ts': QUILL,
+  });
+  const refused = await proposeStripeConfiguration(unlocked);
+  expect(refused.proposal).toBeNull();
+  const untested = await proposeStripeConfiguration(unlocked, { allowUntested: true });
+  expect(untested.stops).toEqual(refused.stops);
+  expect(untested.proposal).toMatchObject({
+    apiVersion: { value: '2026-04-22.dahlia' },
+    checks: { kind: 'tests', source: 'the test script in package.json, run with npm' },
+    untested: refused.stops,
+  });
+  // Preparation then fails on the missing lockfile, so the patch is published untested.
+  expect(untested.proposal!.configuration.integrations[0]).toMatchObject({
+    prepareDependencies: true,
+    command: ['npm', 'test'],
+  });
+  expect(proposalSummary(untested.proposal!)).toBe(
+    'No .refit.json is committed, so Refit generated one: Stripe API version 2026-04-22.dahlia (set at src/lib/stripe.ts:3), moving to 2026-09-30.endive, checked by the test script in package.json, run with npm. No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them. Refit cannot test a patch here, so each draft it opens is titled [Needs review]: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+  );
+
+  // No test script, and a client only require() loads, which no type check can cover.
+  const unchecked = await repository({
+    'package.json': manifest('^22.1.1'),
+    'package-lock.json': npmLock('22.1.1'),
+    'src/lib/stripe.js': QUILL.replace(
+      'import Stripe from "stripe";',
+      'const Stripe = require("stripe");',
+    ),
+  });
+  expect((await proposeStripeConfiguration(unchecked)).proposal).toBeNull();
+  const noop = (await proposeStripeConfiguration(unchecked, { allowUntested: true })).proposal!;
+  // The no-op check is the one the draft names as testing nothing (pipeline/publication.ts).
+  expect(noop.configuration.integrations[0]).toEqual({
+    id: 'stripe',
+    before: './refit/stripe-2026-04-22.dahlia.json',
+    after: './refit/stripe-2026-09-30.endive.json',
+    apiVersion: '2026-04-22.dahlia',
+    image: 'node:22-alpine',
+    prepareDependencies: true,
+    command: ['node', '-e', '0'],
+  });
+  expect(noop.checks).toEqual({
+    kind: 'none',
+    source: 'node -e 0, which tests nothing',
+    reason:
+      'There is no test script. Stripe is loaded with require() (src/lib/stripe.js), which TypeScript leaves untyped, so no type check can cover the Stripe code.',
+  });
+  expect(noop.untested.map((stop) => stop.id)).toEqual(['no-checks']);
+});
+
+it('still refuses an untested repository for any other reason, and names every reason', async () => {
+  const unparsed = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'src/lib/stripe.ts': QUILL,
+    'src/billing.ts': "import Stripe from 'stripe';\nconst total = ;\n",
+  });
+  expect(await proposeStripeConfiguration(unparsed, { allowUntested: true })).toEqual(
+    await proposeStripeConfiguration(unparsed),
+  );
+  // Without the lockfile stop in the way, the workspace-package stop is reached and still refuses.
+  const workspace = await repository({
+    'package.json': JSON.stringify({ name: 'faster-fixes', scripts: { test: 'turbo run test' } }),
+    'pnpm-workspace.yaml': 'packages:\n  - "apps/*"\n',
+    'apps/web/package.json': manifest('^20.2.0', { name: 'web' }),
+    'apps/web/src/stripe.ts': `import Stripe from "stripe";
+export const stripe = new Stripe("", { apiVersion: "2025-12-15.clover" });
+`,
+  });
+  expect((await proposeStripeConfiguration(workspace)).stops.map((stop) => stop.id)).toEqual([
+    'no-lockfile',
+  ]);
+  const allowed = await proposeStripeConfiguration(workspace, { allowUntested: true });
+  expect(allowed.proposal).toBeNull();
+  expect(allowed.stops.map((stop) => stop.id)).toEqual(['no-lockfile', 'workspace-package']);
 });
 
 // pnpm and Yarn lockfiles cut to the importer and entry Refit reads for one workspace package.

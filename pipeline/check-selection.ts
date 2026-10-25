@@ -477,6 +477,21 @@ export function failingPart(command: readonly string[], output: string) {
       };
 }
 
+// The type check part of a tests-then-type-check chain, as a command of its own.
+export function typeCheckCommand(command: readonly string[]) {
+  const script = command[0] === 'sh' && command[1] === '-c' ? (command[2] ?? '') : '';
+  const start = script.indexOf(`echo '${TYPE_CHECK_STARTED}'; `);
+  if (start < 0) return undefined;
+  const configuration = command.slice(3).find((part) => part.startsWith('{'));
+  return [
+    'sh',
+    '-c',
+    script.slice(start + `echo '${TYPE_CHECK_STARTED}'; `.length).replace('"$config"', '"$1"'),
+    'refit-check',
+    ...(configuration ? [configuration] : []),
+  ];
+}
+
 // The files a type check command covered: a scoped check's generated configuration, or the
 // repository root's tsconfig.json.
 function checkedProgram(root: string, command: readonly string[], graph: Map<string, Set<string>>) {

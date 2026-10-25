@@ -7,7 +7,13 @@ import {
   type ModelReplacementStop,
 } from './model-retirements.ts';
 import { publicationConfiguration, publishFiles } from './publication.ts';
-import { MAX_BODY_CHARACTERS, wrap } from './review.ts';
+import {
+  MAX_BODY_CHARACTERS,
+  NEEDS_REVIEW_PREFIX,
+  NO_OP_CHECK,
+  NO_OP_REVIEW,
+  wrap,
+} from './review.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // The repository's approved checks, from its enrolled Refit configuration.
@@ -61,6 +67,10 @@ function fixKey(replacements: ModelReplacement[]) {
   );
 }
 
+// A check that runs no code tests nothing, so its draft needs review (owner decision 1).
+const noOpChecked = (validation: { command: string[] }) =>
+  validation.command.join(' ') === NO_OP_CHECK;
+
 // The draft pull request description: what changed and why, what was checked and what was not,
 // and what stays for a person to review.
 export function modelFixBody(options: {
@@ -80,8 +90,19 @@ export function modelFixBody(options: {
   const sources = new Map(options.registry.deadlines.map((entry) => [entry.id, entry]));
   const more = (count: number, where: string) =>
     count > 0 ? [`- and ${count} more; ${where}.`] : [];
+  const noOp = noOpChecked(validation);
   const render = (rowLimit: number, stopLimit: number) => {
     const lines = [
+      ...(noOp
+        ? [
+            '## Why this needs review',
+            '',
+            "Refit opened this draft for review (owner decision 1). **Don't merge until you have checked each item.**",
+            '',
+            `- ${NO_OP_REVIEW.reason} **Check:** ${NO_OP_REVIEW.check}`,
+            '',
+          ]
+        : []),
       '## Retiring AI models',
       '',
       'Refit replaced model IDs that their provider retires, using the replacement in its reviewed deadline registry. Requests to a retired model fail.',
@@ -125,7 +146,9 @@ export function modelFixBody(options: {
       '## Reviewer Checklist',
       '',
       '- [ ] Try each changed call against the provider and compare its answers.',
-      `- [ ] Confirm ${code(validation.command.join(' '))} exercises the changed calls.`,
+      noOp
+        ? `- [ ] ${NO_OP_REVIEW.check}`
+        : `- [ ] Confirm ${code(validation.command.join(' '))} exercises the changed calls.`,
       ...(stops.length ? ['- [ ] Decide each use under Left for review.'] : []),
       '',
       'Refit opened this as a draft and never merges it.',
@@ -288,7 +311,7 @@ export async function runModelFixes(options: {
     revision: validation.revision,
     key: `model-fixes:${validation.revision}:${fixKey(replacements)}`,
     files: validation.publicationFiles,
-    title: modelFixTitle(replacements),
+    title: `${noOpChecked(validation) ? NEEDS_REVIEW_PREFIX : ''}${modelFixTitle(replacements)}`,
     body: modelFixBody({ replacements, stops, registry: options.registry, validation }),
     message: modelFixMessage({ replacements, stops, registry: options.registry, validation }),
   });

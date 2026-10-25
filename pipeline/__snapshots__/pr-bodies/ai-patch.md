@@ -1,3 +1,11 @@
+## Why this needs review
+
+Refit opened this draft for review instead of stopping (owner decision 1). **Don't merge until you have checked each item.**
+
+- Refit asked an AI model for this patch. Checks that pass do not show that it keeps what the code does. **Check:** Read each AI-written line listed under Why this needs review as you would a teammate’s.
+  - None: every changed line comes from a Refit rule.
+- Webhook payload reads require separate incoming API-version and migration-policy review. **Check:** Set the webhook endpoint API version to `2026-09-30.endive` when you deploy, or confirm it already is.
+
 ## Webhook API version not verified
 
 This patch changes webhook handlers. Stripe sends webhooks in the API version set on the webhook endpoint in the Stripe dashboard, which Refit can't see from code. Before merging, check the endpoint's API version in Dashboard > Developers > Webhooks and confirm it matches `2026-09-30.endive`, or update it when you deploy.
@@ -84,6 +92,7 @@ New file `convex/stripe-subscription-period.ts`; see Files changed.
 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
 - [ ] Set the webhook endpoint API version to `2026-09-30.endive` when you deploy, or confirm it already is.
+- [ ] Read each AI-written line listed under Why this needs review as you would a teammate’s.
 - [ ] Migrate the 1 usage Refit left unmigrated.
 - [ ] Confirm the selected item is the one whose period this code needs when items bill on different periods (see Key Changes).
 - [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.

@@ -289,6 +289,7 @@ it('runs up to --job-processes jobs at once, refills a slot when a job ends and 
     retry: false,
     repairAttempts: 0,
     publishDraft: false,
+    publishUnresolved: false,
     aiPatch: false,
   });
   jobs[0]();

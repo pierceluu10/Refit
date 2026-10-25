@@ -36,9 +36,9 @@ const stored = (name: string) => rendered(createReviewArtifacts(fixture(name)));
 const shapes: Record<string, () => { body: string; message: string; title?: string }> = {
   validated: () => published('validated'),
   'needs-review-waiver': () => {
-    expect(publicationWaiver(fixture('needs-review-waiver'), true)?.gate).toBe(
-      'webhook-api-version',
-    );
+    expect(
+      publicationWaiver(fixture('needs-review-waiver'), true)?.map(({ gate }) => gate),
+    ).toEqual(['no-checks', 'webhook-api-version']);
     return published('needs-review-waiver');
   },
   'untraced-reads': () => published('untraced-reads'),

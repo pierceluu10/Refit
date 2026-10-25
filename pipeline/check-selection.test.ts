@@ -12,6 +12,7 @@ import {
   TESTS_FAILED,
   TYPE_CHECK,
   TYPE_CHECK_STARTED,
+  typeCheckCommand,
 } from './check-selection.ts';
 import { readRepository } from './repository.ts';
 
@@ -530,6 +531,24 @@ it('grades each changed file by the strongest check that reached it', async () =
       behaviour: { passed: true, coversEveryChangedLine: true, reason: 'Ran every changed line.' },
     }),
   ).toEqual({ letter: 'A', level: 'behaviour-tests', reason: 'Ran every changed line.' });
+});
+
+it('runs the type check part of a chain alone on a patch whose tests were already broken', () => {
+  const configuration = '{"files":["api/pay.ts"],"include":[]}';
+  expect(
+    typeCheckCommand([
+      'sh',
+      '-c',
+      `config=$1; shift; ${chain('npm test -- "$@"', scopedScript('npx --no-install tsc').replace('"$1"', '"$config"'))}`,
+      'refit-check',
+      configuration,
+      'tests/pay.test.ts',
+    ]),
+  ).toEqual(['sh', '-c', scopedScript('npx --no-install tsc'), 'refit-check', configuration]);
+  expect(
+    typeCheckCommand(['sh', '-c', chain('npm test', TYPE_CHECK.join(' ')), 'refit-check']),
+  ).toEqual(['sh', '-c', TYPE_CHECK.join(' '), 'refit-check']);
+  expect(typeCheckCommand(['npm', 'test'])).toBeUndefined();
 });
 
 it('counts only the listed test files as reaching the changed code', async () => {
