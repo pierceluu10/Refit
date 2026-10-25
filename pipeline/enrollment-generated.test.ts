@@ -60,7 +60,7 @@ async function commit(repository: string, message: string) {
   ]);
 }
 
-async function repository(options: { lockfile?: boolean } = {}) {
+async function repository(options: { lockfile?: boolean; files?: Record<string, string> } = {}) {
   const root = join(await directory(), 'app');
   await mkdir(join(root, 'src/lib'), { recursive: true });
   await writeFile(
@@ -82,7 +82,10 @@ async function repository(options: { lockfile?: boolean } = {}) {
         },
       }),
     );
-  await writeFile(join(root, 'src/lib/stripe.ts'), CLIENT);
+  for (const [path, content] of Object.entries(options.files ?? { 'src/lib/stripe.ts': CLIENT })) {
+    await mkdir(join(root, path, '..'), { recursive: true });
+    await writeFile(join(root, path), content);
+  }
   await execute('git', ['-C', root, 'init', '-qb', 'main']);
   await commit(root, 'test: seed');
   return root;
@@ -249,9 +252,9 @@ it.skipIf(!SAVED)(
     const app = await repository({ lockfile: false });
     const enroll = { repository: app, github: 'acme/app', base: 'main', contracts: SAVED };
     const enrollment = await inspectRepositoryEnrollment({ ...enroll, allowUntested: true });
-    expect(enrollment.generated?.untested.map((stop) => stop.id)).toEqual(['no-lockfile']);
+    expect(enrollment.generated?.reviews.map((stop) => stop.id)).toEqual(['no-lockfile']);
     expect(enrollmentReviewText(enrollment)).toContain(
-      'Refit cannot test a patch here, so each draft it opens is titled [Needs review]: Refit installs dependencies only from a committed lockfile',
+      'Each draft Refit opens with it is titled [Needs review]: Refit installs dependencies only from a committed lockfile',
     );
     const state = await directory();
     const { approval } = await approveRepositoryEnrollment({
@@ -287,6 +290,75 @@ it.skipIf(!SAVED)(
     const sorted = sortBlockedChecks(report);
     expect(sorted.workflow.map((check) => check.id)).toContain('dependencies');
     expect(sorted.setup.map((check) => check.id)).not.toContain('dependencies');
+  },
+);
+
+// Owner decision 1: two shapes whose version enrollment used to refuse, several pinned versions and
+// one it cannot read. Each enrolls only for a worker that publishes for review, and doctor leaves the
+// version check to the workflow, which lists the pins in the draft.
+const VERSION_SHAPES: {
+  files: Record<string, string>;
+  apiVersion: string;
+  reviews: string[];
+  versionCheck: 'blocked' | 'passed';
+}[] = [
+  {
+    files: {
+      'src/lib/stripe.ts': CLIENT,
+      'app/api/webhooks/stripe/route.ts': `import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-10-29.clover' });\nexport const POST = () => stripe.events.list();\n`,
+    },
+    apiVersion: '2025-10-29.clover',
+    reviews: ['api-version-several'],
+    versionCheck: 'blocked',
+  },
+  {
+    files: {
+      'src/lib/stripe.ts': CLIENT.replace(
+        '"2026-04-22.dahlia"',
+        'process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion',
+      ),
+    },
+    apiVersion: '2026-04-22.dahlia',
+    reviews: ['api-version-unreadable', 'api-version-assumed'],
+    versionCheck: 'passed',
+  },
+];
+it.skipIf(!SAVED).each(VERSION_SHAPES)(
+  'enrolls code on $reviews only for a worker that publishes it for review',
+  async ({ files, apiVersion, reviews, versionCheck }) => {
+    const app = await repository({ files });
+    const enroll = { repository: app, github: 'acme/app', base: 'main', contracts: SAVED };
+    await expect(inspectRepositoryEnrollment(enroll)).rejects.toThrow();
+    const enrollment = await inspectRepositoryEnrollment({ ...enroll, allowUntested: true });
+    expect(enrollment.generated?.apiVersion.value).toBe(apiVersion);
+    expect(enrollment.generated?.reviews.map((stop) => stop.id)).toEqual(reviews);
+    expect(enrollmentReviewText(enrollment)).toContain(
+      'Each draft Refit opens with it is titled [Needs review]: ',
+    );
+    const state = await directory();
+    const { approval } = await approveRepositoryEnrollment({
+      enrollment,
+      fingerprint: enrollment.fingerprint,
+      output: join(state, 'approval.json'),
+    });
+    const load = (allowUntested?: boolean) =>
+      loadApprovedRepository({
+        repository: app,
+        approval,
+        stateDirectory: state,
+        integration: 'stripe',
+        contracts: SAVED,
+        allowUntested,
+      });
+    await expect(load()).rejects.toThrow(RepositoryApprovalError);
+    expect((await load(true)).workflow).toMatchObject({ apiVersion });
+    const report = await inspectRepositoryReadiness({
+      repository: app,
+      contracts: SAVED,
+      allowUntested: true,
+    });
+    expect(report.checks.find((check) => check.id === 'api-version')?.status).toBe(versionCheck);
+    expect(sortBlockedChecks(report).setup.map((check) => check.id)).not.toContain('api-version');
   },
 );
 

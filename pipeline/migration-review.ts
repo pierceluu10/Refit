@@ -1,7 +1,11 @@
 import { WEBHOOK_REVIEW_REASON } from './stripe-webhook-payloads.ts';
 import type { Finding } from './types.ts';
 import type { ProviderAdapter } from './providers.ts';
-import { declaresVersion } from './api-version.ts';
+import {
+  apiVersionSourceBlocked,
+  declaresVersion,
+  type ApiVersionEvidence,
+} from './api-version.ts';
 import { countBreakingOperationUsages } from './provider-operations.ts';
 import { isTrackedResponseRemoval, unmappedBreakingChanges } from './openapi-diff.ts';
 import type { runPipeline } from './run.ts';
@@ -96,8 +100,9 @@ export function migrationReviewReason(...evidence: Parameters<typeof migrationRe
   return migrationReviewReasons(...evidence)[0]?.reason;
 }
 
-// Owner decision 1: under it AI never writes beside a finding that needs review or a traced breaking
-// operation change; the rules' patch ships instead.
+// Owner decision 1: under it AI never writes the first patch beside a finding that needs review or a
+// traced breaking operation change; the rules' patch comes first, and validation lets AI build on
+// it unless aiSafetyStop holds.
 export function reviewBlocksAi(
   evidence: Parameters<typeof migrationReviewReasons>[0] & { operationImpacts: readonly unknown[] },
 ) {
@@ -105,6 +110,24 @@ export function reviewBlocksAi(
     evidence.operationImpacts.length > 0 ||
     Boolean(migrationReviewReason(evidence, true, true, true))
   );
+}
+
+// Owner decisions 1 and 8 (2026-10-24): with AI on, coverage stops (a removed request parameter,
+// call sites traced to breaking changes, contract changes outside the rules, findings the rules
+// leave unresolved) let AI build on the rules' patch. These safety stops still keep AI out: the
+// API-version evidence, webhook payload version policy and every other finding that needs its
+// source evidence reviewed.
+export function aiSafetyStop(
+  evidence: Parameters<typeof migrationReviewReasons>[0] & { apiVersion: ApiVersionEvidence },
+) {
+  if (
+    evidence.apiVersion.applicability !== 'matches-before' ||
+    apiVersionSourceBlocked(evidence.apiVersion)
+  )
+    return evidence.apiVersion.reason;
+  return migrationReviewReasons(evidence, true, true, true).find(
+    (entry) => entry.reason !== REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+  )?.reason;
 }
 
 // Where traced calls still send a removed request parameter, and where an object Refit could not

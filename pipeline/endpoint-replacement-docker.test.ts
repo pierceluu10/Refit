@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { runWorkflow } from './workflow.ts';
 import { verifyArtifacts } from './verification.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const FIXTURE = resolve('pipeline/fixtures/endpoint-replacement');
@@ -90,7 +91,7 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
     const result = await runWorkflow(options);
     expect(result.manifest).toMatchObject({ status: 'validated', stage: 'validation' });
     expect(fetcher).not.toHaveBeenCalled();
-    const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(output, 'report.json'))!);
     expect(report.patch).toMatchObject({ generator: 'deterministic', unresolvedFindings: 0 });
     expect(report.operationChanges).toMatchObject([{ supported: true }]);
     expect(report.validation.baseline.status).toBe('passed');
@@ -149,7 +150,7 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
       command: [...options.command, '1'],
     });
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(options.output, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(options.output, 'report.json'))!);
     expect(report.apiVersion).toMatchObject({
       applicability: 'matches-before',
       policy: 'source-verified',
@@ -178,7 +179,7 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
     const original = await readFile(join(repository, 'src/items.ts'), 'utf8');
     const result = await runWorkflow(options);
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(output, 'report.json'))!);
     expect(report.sdkCalls).toMatchObject([
       { resource: 'inventory.legacy.items', method: 'retrieveLegacy' },
     ]);
@@ -207,7 +208,7 @@ it.skipIf(!DOCKER_IMAGE || !process.env.REFIT_OASDIFF)(
     await writeFile(providerConfig, JSON.stringify(provider));
     const result = await runWorkflow({ ...options, providerConfig });
     expect(result.manifest.status).toBe('validation-failed');
-    const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(output, 'report.json'))!);
     expect(report.validation.baseline.status).toBe('passed');
     expect(report.validation.patched.status).toBe('failed');
     expect(report.validation.patched.stderr).toContain('missingMethod is not a function');

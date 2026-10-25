@@ -86,6 +86,64 @@ it('maps stripe-node methods to the objects they return in the application contr
   ]);
 });
 
+it('maps list and search methods to the objects their pages hold', () => {
+  const operation = (method_name: string, path: string) => ({
+    method_name,
+    method_on: 'service',
+    operation: 'get',
+    path,
+  });
+  const sdk = {
+    components: {
+      schemas: {
+        subscription: {
+          'x-stripeOperations': [
+            operation('list', '/v1/subscriptions'),
+            operation('search', '/v1/subscriptions/search'),
+          ],
+        },
+        // A list of another object, and a page that is not a Stripe list, map to nothing.
+        invoice: { 'x-stripeOperations': [operation('list', '/v1/invoices')] },
+        customer: { 'x-stripeOperations': [operation('list', '/v1/customers')] },
+      },
+    },
+  };
+  // The shapes of spec3.sdk.json's GET /v1/subscriptions and /v1/subscriptions/search.
+  const page = (object: string, schema: string) => ({
+    type: 'object',
+    properties: {
+      object: { type: 'string', enum: [object] },
+      data: { type: 'array', items: ref(schema) },
+      has_more: { type: 'boolean' },
+      url: { type: 'string' },
+    },
+  });
+  const before = {
+    paths: {
+      '/v1/subscriptions': { get: returns(page('list', 'subscription')) },
+      '/v1/subscriptions/search': { get: returns(page('search_result', 'subscription')) },
+      '/v1/invoices': { get: returns(page('list', 'invoiceitem')) },
+      '/v1/customers': { get: returns(page('customer', 'customer')) },
+    },
+  };
+  expect(stripeOperations(sdk, before)).toEqual([
+    {
+      resource: 'subscriptions',
+      method: 'list',
+      schema: 'subscription',
+      operationId: 'Op',
+      list: true,
+    },
+    {
+      resource: 'subscriptions',
+      method: 'search',
+      schema: 'subscription',
+      operationId: 'Op',
+      list: true,
+    },
+  ]);
+});
+
 it('forks into the organization and points refit-base at the validated commit', async () => {
   const commit = 'a'.repeat(40);
   const calls: string[] = [];

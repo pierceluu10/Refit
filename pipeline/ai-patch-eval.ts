@@ -2,6 +2,7 @@
 // what happened on the AI path of each frozen case, from the bundle's manifest and report alone.
 import { readdir, readFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
+import { readEvidence } from './state-files.ts';
 
 export const AI_PATCH_OUTCOMES = [
   'pass',
@@ -183,7 +184,7 @@ export async function scoreRun(root: string, ids: string[]) {
   const bundles = await findBundles(root);
   const read = async (directory: string | undefined, file: string) =>
     directory
-      ? (JSON.parse(await readFile(join(directory, file), 'utf8').catch(() => 'null')) ?? undefined)
+      ? (JSON.parse((await readEvidence(directory, file)) ?? 'null') ?? undefined)
       : undefined;
   return Promise.all(
     ids.map(async (id) =>
