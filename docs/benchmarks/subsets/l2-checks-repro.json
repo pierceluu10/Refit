@@ -1,6 +1,6 @@
 {
   "frozenAt": "2026-10-24",
-  "purpose": "Laptop 2 reproduction set for #288 after its measured commit: the rows run 40155034890 showed for type errors set aside in JavaScript (3), the base rootDir (1), tests broken before the patch, listed test files (2), a no-check patch and two scoped type checks. Built from push-279-affected.json; no held-out repository.",
+  "purpose": "Laptop 2 reproduction set for #288 after its measured commit: the rows run 40155034890 showed for type errors set aside in JavaScript (4), the base rootDir (1), tests broken before the patch, listed test files (2), a scoped type check and a no-check patch. Built from push-279-affected.json; no held-out repository.",
   "criteria": "Entries of subsets/f5-tuned-sets.json whose row in refit-bench run 40117208880 (main fc4dc00 + #287 reporting, default flags, no AI) has fullAdapter.status \"affected\". Entries unchanged, in list order.",
   "specs": [
     {
@@ -130,14 +130,6 @@
   ],
   "repos": [
     {
-      "repo": "get-convex/convex-saas",
-      "stars": 375,
-      "commit": "2bb768c8d95c3f6c9592fd9dd2c7afc0086d89f3",
-      "before": "2024-06-20",
-      "beforeSource": "apiVersion pin",
-      "packageManager": "npm"
-    },
-    {
       "repo": "dalemoncayo/express-stripe",
       "stars": 90,
       "commit": "a18c6d391ba6815627435ef87003b1ff4a226938",
@@ -206,6 +198,15 @@
       "before": "2025-07-30.basil",
       "beforeSource": "apiVersion pin",
       "stripeDependency": "^18.4.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ArkanaDeck/arcana-marketplace",
+      "stars": 1,
+      "commit": "2c723117e7ef2ed6eb003322be7c5a07a36dba6b",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.0",
       "packageManager": "npm"
     },
     {
