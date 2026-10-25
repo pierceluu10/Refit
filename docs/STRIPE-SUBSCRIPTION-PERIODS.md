@@ -42,6 +42,12 @@ Stripe [removed `checkout.session.shipping_details`](https://docs.stripe.com/cha
 
 The new object holds only `address` and `name`, not the old Shipping object's `carrier`, `phone` and `tracking_number`, so a read of one of those three stays for review.
 
+## Narrowed reads share one local
+
+TypeScript narrows a field after a test such as `if (session.shipping_details)`, `session.shipping_details?.address ? … : null`, `!invoice.subscription` or `typeof invoice.subscription === 'string'`, but it does not narrow separate helper calls, so a call per read stops compiling (`Object is possibly 'null'`). In a TypeScript file, when one of several reads of `invoice.subscription` or `session.shipping_details` on the same receiver is tested, Refit declares one local before the statement holding the first of them, named after the receiver (`const sessionShippingDetails = getCheckoutShippingDetails(session)`), and every read in the block holding the test uses it. A case clause shares its switch's scope, so a test there uses the block around the switch. The local narrows as the field did and reads the payload once.
+
+Only when that is safe: the receiver is a parameter or a `const`, declared once, never assigned, its field never written or deleted, and the receiver is not used whole (passed to a call, aliased, spread) between the local and the last read. Optional receivers (`session?.shipping_details`), a block that also reads `carrier`, `phone` or `tracking_number`, and arrow functions without a block body keep a helper call per read. JavaScript does not narrow, so each read calls the helper. The period helpers return a number and need no local. A `typeof`-tested `invoice.subscription` that cannot share a local stays for review.
+
 ## Approved configuration
 
 Use a provider adapter referenced by a checked-in `.refit.json` through its existing `providerConfig` field. The adapter's ID is distinct from the reserved built-in `stripe` ID; its package is `stripe`, so signed-event tracing still applies. Add:

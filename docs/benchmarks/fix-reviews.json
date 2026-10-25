@@ -1753,6 +1753,36 @@
       }
     },
     {
+      "repo": "Mangu-Commerce/madcaptees",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166159662 (fix/l3-shipping-details 550f7f2) vs 40166157968 (bench/l3-ship-base 3589c26 = main c8977b7 + subsets/l3-ship.json); migration.patch read in full with line endings ignored, and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: in both webhook handlers the 8 shipping_details reads go through one const sessionShippingDetails = getCheckoutShippingDetails(session) declared before the insert, instead of 8 helper calls, so the existing narrowing holds (https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details).",
+        "bothVersions": "yes: the helper returns the old shipping_details when present, else collected_information.shipping_details; one call returns the same value the 8 calls did (session is a const, not written between).",
+        "nothingUnrelated": "yes: the base patch plus the two const lines and the reads that use them.",
+        "pleaseCheck": "Validated (before: validation regression on \"Object is possibly null\"). collected_information.shipping_details has only address and name, which is all this code reads.",
+        "upgradeComplete": "yes, as in the base patch (stripe-node upgraded with the lockfile).",
+        "wouldMerge": "yes, after one test-mode checkout with shipping."
+      }
+    },
+    {
+      "repo": "ABHINAVJINDAL26/VANTAGE-Golf-Charity-Platform",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40166159662 (fix/l3-shipping-details 550f7f2) vs 40166157968 (bench/l3-ship-base 3589c26 = main c8977b7 + subsets/l3-ship.json); migration.patch read in full with line endings ignored, and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the tested invoice.subscription read and the later retrieve argument share const sessionSubscription = getInvoiceSubscription(session) inside the invoice branch (https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).",
+        "bothVersions": "yes: the helper reads the old field when present, else parent.subscription_details.subscription.",
+        "nothingUnrelated": "yes: only the two reads move into the const; everything else is byte-identical to the base patch.",
+        "pleaseCheck": "Validated before and after; production mode follows the full-diff gate.",
+        "upgradeComplete": "yes, as in the base patch.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
       "repo": "deifos/picturemeai_nextjs",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40166592478 (before, bench/l3-upgrade-base f0cac93) and 40166727162 (after, fix/l3-upgrade-no-lockfile 7bc8c04), docs/benchmarks/subsets/l3-upgrade-no-lockfile.json, --keep-listed-payment-methods on both. Benchmark checks are none (no lockfile), so no workflow ran: production mode moves from the removed-request-parameter stop to the contract gate. The patch was produced by runPipeline (proposePatch, keep-listed) at 7bc8c04 on the pinned clone and read in full",
