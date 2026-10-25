@@ -14,6 +14,7 @@ import {
   REFIT_VERSION,
 } from './migration-identity.ts';
 import type { publicationWaiver } from './publication.ts';
+import { movedPaymentMethodExpressions } from './patches.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR } from './stripe-open-enums.ts';
 import { PAYMENT_METHOD_TYPES_CHANGELOG } from './patches.ts';
@@ -442,15 +443,20 @@ export function createReviewArtifacts(
       .map((finding) => finding.file),
   );
   const cardRename = cardFiles.size > 0;
-  // Lists of card plus other methods the repository opted to keep, as the patch writes them.
+  // Lists other than `['card']` the patch keeps, as it writes them, and other value expressions
+  // it moves unchanged, as its warnings name them.
   const listedMethods = [
     ...new Set(
       [...patch.diff.matchAll(/^\+.*allowed_payment_method_types['"]?\s*:\s*\[([^\]]*)\]/gm)]
         .map((match) => [...match[1].matchAll(/['"]([^'"]+)['"]/g)].map((entry) => entry[1]))
-        .filter((methods) => methods.length > 1)
+        .filter((methods) => methods.length && methods.join() !== 'card')
         .map((methods) => methods.join(', ')),
     ),
   ];
+  const movedExpressions = movedPaymentMethodExpressions(patch.warnings ?? []);
+  const cardOnly = /^\+.*allowed_payment_method_types['"]?\s*:\s*\[\s*['"]card['"]\s*\]/m.test(
+    patch.diff,
+  );
   const request = requestChanges[0];
   const subscriptionPolicy = report.findings.some((finding) => finding.webhook?.migration)
     ? report.adapter.stripeSubscriptionPeriods
@@ -634,16 +640,18 @@ export function createReviewArtifacts(
           (entry) =>
             `Renames request field ${code(entry.removed)} to ${code(entry.replacement)} in ${code(`${entry.resource}.${entry.method}`)}.`,
         ),
-        // The keep-listed rule shares the card rule's findings; only a written `['card']` is this one.
-        ...(cardRename &&
-        /^\+.*allowed_payment_method_types['"]?\s*:\s*\[\s*['"]card['"]\s*\]/m.test(patch.diff)
+        ...(cardRename && cardOnly
           ? [
               `Removes request field ${code('payment_method_types')}; ${code("['card']")} moves to ${code('allowed_payment_method_types')} under the owner-approved policy.`,
             ]
           : []),
         ...listedMethods.map(
           (methods) =>
-            `Moves ${code(`[${methods}]`)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')}, because this repository set ${code('stripePaymentMethodTypes: "keep-listed"')} in ${code('.refit.json')}.`,
+            `Moves ${code(`[${methods}]`)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')} with the same methods, under the owner decision of 2026-10-24 to keep listed payment methods.`,
+        ),
+        ...movedExpressions.map(
+          (expression) =>
+            `Moves ${code(expression)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')} unchanged, under the owner decision of 2026-10-24 for computed lists.`,
         ),
         ...operationChanges.map(
           (entry) =>
@@ -659,7 +667,10 @@ export function createReviewArtifacts(
       ];
   const overviewCauses = [
     ...(readChanges.length ? ['removes fields this code reads'] : []),
-    ...(cardRename || listedMethods.length || requestChanges.some((entry) => entry.usages.length)
+    ...(cardRename ||
+    listedMethods.length ||
+    movedExpressions.length ||
+    requestChanges.some((entry) => entry.usages.length)
       ? ['removes request fields this code sends']
       : []),
     ...(operationChanges.some((entry) => entry.usages.length)
@@ -677,7 +688,7 @@ export function createReviewArtifacts(
           `**The upgraded SDK types reject these comparisons, often misspelled webhook event names that never matched.** Refit does not change event names; fix them by hand: ${summaryList([...new Set(validation.reviewTypeErrors.map((error) => code(`${error.file}:${error.line}`)))])}.`,
         ]
       : []),
-    ...(cardRename
+    ...(cardOnly
       ? [
           `${code('allowed_payment_method_types')} filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.`,
         ]
@@ -698,6 +709,10 @@ export function createReviewArtifacts(
           `Upgrades ${code('stripe')} across major versions, ${code(upgrade.from)} to ${code(upgrade.to)}; [its changelog](${STRIPE_NODE_CHANGELOG}) lists type and behavior changes the checks may not cover.`,
         ]
       : []),
+    ...movedExpressions.map(
+      (expression) =>
+        `Refit cannot read which payment methods ${code(expression)} holds at runtime. Stripe now filters them by each buyer's eligibility (country, currency, amount, device). Before merging, confirm it holds only methods this call accepts in ${code('allowed_payment_method_types')} and that each one is still offered where you rely on it.`,
+    ),
     ...(subscriptionPolicy
       ? [
           `Selects subscription periods from the single item priced ${code(subscriptionPolicy.priceId)}, keyed on the signed event ${code('api_version')}.`,
@@ -767,7 +782,9 @@ export function createReviewArtifacts(
         ...('source' in patch && typeof patch.source === 'string' ? [patch.source] : []),
         ...rulePages.map((page) => page.url),
         ...vendorNotes(patch).map((note) => note.url),
-        ...(cardRename || listedMethods.length ? [PAYMENT_METHOD_TYPES_CHANGELOG] : []),
+        ...(cardRename || listedMethods.length || movedExpressions.length
+          ? [PAYMENT_METHOD_TYPES_CHANGELOG]
+          : []),
       ].filter((url) => link(url)),
     ),
   ];
@@ -845,9 +862,12 @@ export function createReviewArtifacts(
           `Set the webhook endpoint API version to ${code(waiver.targetVersion)} when you deploy, or confirm it already is.`,
         ]
       : []),
-    ...(cardRename ? ['Confirm cards stay enabled in the Stripe Dashboard.'] : []),
+    ...(cardOnly ? ['Confirm cards stay enabled in the Stripe Dashboard.'] : []),
     ...listedMethods.map(
       (methods) => `Confirm ${code(`[${methods}]`)} are still offered where you rely on them.`,
+    ),
+    ...movedExpressions.map(
+      (expression) => `Confirm the runtime values of ${code(expression)} (see Key Changes).`,
     ),
     ...(untracedSites.length ? ['Check each read under Left Unchanged.'] : []),
     ...(unresolvedReads

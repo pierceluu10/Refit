@@ -108,7 +108,13 @@ export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscript
 }
 
 it.each([
-  ['a removed parameter with card and link', "payment_method_types: ['card', 'link']", {}, 'scan'],
+  [
+    'a removed parameter with card and link',
+    "payment_method_types: ['card', 'link']",
+    {},
+    'validation',
+  ],
+  ['an in-person removed parameter', "payment_method_types: ['card_present']", {}, 'scan'],
   ['the reviewed card-only rename', "payment_method_types: ['card']", {}, 'validation'],
   [
     'a listed opt-in for card and link',
@@ -118,11 +124,11 @@ it.each([
   ],
   [
     '--publish-unresolved on a removed parameter',
-    "payment_method_types: ['card', 'link']",
+    "payment_method_types: ['card_present']",
     { leave: true },
     'scan',
   ],
-  ['AI on a removed parameter', "payment_method_types: ['card', 'link']", { ai: true }, 'scan'],
+  ['AI on a removed parameter', "payment_method_types: ['card_present']", { ai: true }, 'scan'],
   ['an application pin the code contradicts', '', { apiVersion: '2026-07-30.basil' }, 'scan'],
   ['an unchanged contract', "payment_method_types: ['card']", { sameContract: true }, 'scan'],
 ] as const)(
