@@ -16,7 +16,7 @@ import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
 import type { validateMigration } from './validation.ts';
 import * as githubApp from './github-app.ts';
-import { preparationFailure } from './dependency-preparation.ts';
+import { DependencyPreparationError, preparationFailure } from './dependency-preparation.ts';
 import { validatedReport } from './fixtures/publication-report.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -830,6 +830,20 @@ it('says the checks passed on the original when only the upgraded lockfile could
     'Install the upgraded dependencies and run your checks: Refit could not run them on this patch.',
   );
   expect(body).not.toContain('neither the original nor the patched code');
+  // The generic reason says Refit could not install it, without repeating itself.
+  evidence.validation.dependencyFailure = {
+    ...evidence.validation.dependencyFailure!,
+    ...preparationFailure(new DependencyPreparationError('npm dependency preparation failed (1).')),
+  };
+  const generic = createReviewArtifacts(
+    evidence,
+    'github',
+    undefined,
+    publicationWaiver(evidence, true),
+  ).files['pull-request.md'];
+  expect(generic).toContain(
+    '`npm test` passed on the original code, but Refit could not install the upgraded lockfile this patch writes in its sandbox, so the patched code was not built or tested.',
+  );
 });
 
 // The request-rename fixture plus `items.archive`, whose target contract drops `note`: the rename

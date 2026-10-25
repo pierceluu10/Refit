@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
 import { unresolvedSites } from './migration-review.ts';
 import { publicationWaiver } from './publication.ts';
-import { createReviewArtifacts, writeReviewBundle } from './review.ts';
+import { code, createReviewArtifacts, writeReviewBundle } from './review.ts';
 import { validatedReport } from './fixtures/publication-report.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
@@ -295,7 +295,8 @@ it('keeps Markdown from repository file names out of the PR text structure', asy
   value.findings[0].file = '```\n# forged heading';
   value.findings[0].untraced = true;
   const body = createReviewArtifacts(value).files['pull-request.md'];
-  expect(body).toContain('````` # forged heading');
+  // The fence is padded, so the name's own backticks stay inside the code span.
+  expect(body).toContain('```` ``` # forged heading');
   expect(body).not.toContain('\n# forged heading');
 });
 
@@ -780,4 +781,11 @@ it('lists breaking contract changes the reach gate let through, with their paths
   // A reached change blocks instead, and a non-breaking change is not listed.
   expect(body).not.toContain('payment\\_method\\_types\\`: The');
   expect(body).not.toContain('/v1/charges');
+});
+
+it('pads inline code whose content starts or ends with a backtick', () => {
+  expect(code('npm test')).toBe('`npm test`');
+  expect(code('a`b')).toBe('``a`b``');
+  expect(code('`start')).toBe('`` `start ``');
+  expect(code('end`')).toBe('`` end` ``');
 });

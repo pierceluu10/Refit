@@ -14,6 +14,7 @@ import {
   REFIT_VERSION,
 } from './migration-identity.ts';
 import type { ReviewReason } from './publication.ts';
+import { OTHER_DEPENDENCY_FAILURE } from './dependency-preparation.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR, UNTYPED_REQUEST_PROPERTIES } from './stripe-open-enums.ts';
 import {
@@ -85,7 +86,9 @@ export function code(value: string) {
   const fence = '`'.repeat(
     Math.max(1, ...(content.match(/`+/g) ?? []).map((run) => run.length + 1)),
   );
-  return `${fence}${content}${fence}`;
+  // CommonMark strips one space from each side, so a backtick at an edge stays content.
+  const pad = /^`|`$/.test(content) ? ' ' : '';
+  return `${fence}${pad}${content}${pad}${fence}`;
 }
 
 export function summaryList(values: string[]) {
@@ -1061,7 +1064,7 @@ export function createReviewArtifacts(
         ? [
             '## Untested: checks did not run',
             upgradeUninstalled
-              ? `**Refit did not run any checks on this patch.** ${commandText(validation.baselineCommand)} passed on the original code, but the upgraded lockfile this patch writes could not be installed because ${plainText(dependency.failure.summary)}, so the patched code was not built or tested. Nothing in this patch is verified.`
+              ? `**Refit did not run any checks on this patch.** ${commandText(validation.baselineCommand)} passed on the original code, but ${dependency.failure.reason === OTHER_DEPENDENCY_FAILURE.reason ? 'Refit could not install the upgraded lockfile this patch writes in its sandbox' : `the upgraded lockfile this patch writes could not be installed because ${plainText(dependency.failure.summary)}`}, so the patched code was not built or tested. Nothing in this patch is verified.`
               : `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(dependency.failure.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
             `> ${plainText(dependency.failure.message.length > MAX_QUOTE ? `${dependency.failure.message.slice(0, MAX_QUOTE)}...` : dependency.failure.message)}`,
             `**What to do:** ${dependency.failure.action} Don't merge until they pass.`,
