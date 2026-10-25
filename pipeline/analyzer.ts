@@ -185,6 +185,9 @@ function comparedWithLiterals(node: ts.Node) {
   return undefined;
 }
 
+// Comments TypeScript, JSX and Flow read only above a file's first statement.
+const FILE_PRAGMA = /^\/\/\/\s*<|@ts-(?:no)?check\b|@jsx|@flow\b/;
+
 // Node runs a script whose shebang follows a byte order mark, and tsc strips the mark when it
 // reads a file, but the parser accepts a shebang only at offset 0. A comment of the same length
 // keeps every offset that edits use.
@@ -1965,14 +1968,24 @@ export function analyzeRepository(
                 )),
           ),
       );
-      const anchor = prologue.at(-1)?.getEnd() ?? 0;
+      // Without a prologue, after a byte order mark, a shebang (a comment after a mark, see
+      // parseableText) and the leading file pragmas and comments set apart by a blank line. A
+      // comment directly above the first statement, such as @ts-expect-error, stays on it.
+      const head = /^\uFEFF?(?:#!.*|(?<=^\uFEFF)\/\/.*)?/.exec(source.text)![0].length;
+      const header = (ts.getLeadingCommentRanges(source.text, head) ?? []).filter(
+        ({ pos, end }) =>
+          FILE_PRAGMA.test(source.text.slice(pos, end)) ||
+          /^[^\S\r\n]*\r?\n[^\S\r\n]*\r?\n/.test(source.text.slice(end)),
+      );
+      const anchor = prologue.at(-1)?.getEnd() ?? header.at(-1)?.end ?? head;
       const newline = source.text.includes('\r\n') ? '\r\n' : '\n';
       const lines = text.replaceAll('\n', newline);
+      const atLineEnd = /[^\uFEFF]$/.test(source.text.slice(0, anchor));
       edits.push({
         file,
         start: anchor,
         end: anchor,
-        replacement: anchor
+        replacement: atLineEnd
           ? `${separator.replaceAll('\n', newline)}${lines}`
           : `${lines}${separator.replaceAll('\n', newline)}`,
         changeId: 'stripe-subscription-period-helper',

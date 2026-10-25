@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { analyzeRepository } from './analyzer.ts';
+import { analyzeRepository, syntaxErrors } from './analyzer.ts';
 import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
@@ -415,6 +415,90 @@ it.each(
     ownLineEndings(patched, newline);
   },
 );
+
+// Files whose first statement is not an import: a CommonJS sync script run by its shebang (also
+// after a byte order mark), an ES module script, and a TypeScript file that turns checking off.
+// Above the shebang Node rejects the script; above the pragma TypeScript ignores it.
+const sync = `#!/usr/bin/env node
+require('dotenv').config();
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+async function sync(id) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return subscription.current_period_end;
+}
+sync(process.argv[2]).then(console.log);
+`;
+const headed = [
+  { file: 'scripts/sync.js', kind: 'cjs', content: sync, head: '#!/usr/bin/env node' },
+  {
+    file: 'scripts/sync.js',
+    kind: 'cjs',
+    content: `\uFEFF${sync}`,
+    head: '\uFEFF#!/usr/bin/env node',
+  },
+  {
+    file: 'scripts/renewals.mjs',
+    kind: 'esm',
+    content: `#!/usr/bin/env node
+// Prints when a subscription renews.
+
+process.env.TZ ??= 'UTC';
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+const subscription = await stripe.subscriptions.retrieve(process.argv[2]);
+console.log(new Date(subscription.current_period_end * 1000));
+`,
+    head: '#!/usr/bin/env node\n// Prints when a subscription renews.',
+  },
+  {
+    file: 'lib/legacy-billing.ts',
+    kind: 'ts',
+    content: `// @ts-nocheck
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+export async function ends(id) {
+  const subscription = await stripe.subscriptions.retrieve(id);
+  return subscription.current_period_end;
+}
+`,
+    head: '// @ts-nocheck',
+  },
+] as const;
+
+it.each(headed)(
+  'writes the helpers below the head of $file ($head)',
+  ({ file, kind, content, head }) => {
+    const patched = analyzeFiles({ [file]: content }).patched(file);
+    expect(patched).toContain('getSubscriptionPeriodEnd(subscription)');
+    expect(
+      patched.startsWith(
+        `${head}\n\n${subscriptionPeriodHelperModule(kind, ['getSubscriptionPeriodEnd'], true)}`,
+      ),
+    ).toBe(true);
+    expect(syntaxErrors(file, patched)).toEqual([]);
+  },
+);
+
+// A comment directly above the first statement applies to that statement, so it stays on it.
+it('keeps a line directive on the first statement below the helpers', () => {
+  const directive = '// eslint-disable-next-line @typescript-eslint/no-require-imports';
+  const content = sync.replace('#!/usr/bin/env node', directive);
+  const patched = analyzeFiles({ 'scripts/sync.js': content }).patched('scripts/sync.js');
+  expect(
+    patched.startsWith(subscriptionPeriodHelperModule('cjs', ['getSubscriptionPeriodEnd'], true)),
+  ).toBe(true);
+  expect(patched).toContain(`\n\n${directive}\nrequire('dotenv').config();`);
+});
+
+it('imports the shared helper module below the shebang of each script', () => {
+  const files = { 'scripts/sync.js': sync, 'scripts/renew.js': sync };
+  const result = analyzeFiles(files);
+  for (const file of Object.keys(files))
+    expect(result.patched(file)).toMatch(
+      /^#!\/usr\/bin\/env node\nconst \{ getSubscriptionPeriodEnd \} = require\('\.\/stripeSubscriptionPeriod'\);\nrequire\('dotenv'\)/,
+    );
+});
 
 // The inlined helpers' private names would clash with this file's own `subscriptionPeriod`.
 it('keeps the helpers in a module when the one calling file already uses a private helper name', () => {
