@@ -17,8 +17,11 @@ import {
   addedTypeEscapes,
   changedEventTypes,
   droppedRequestPaths,
+  editedTestFiles,
   newShapeOnlyReads,
+  rewrittenRuleLines,
 } from './ai-patch-policies.ts';
+import type { RequestParameterRemoval } from './request-removals.ts';
 import {
   FieldSubstitutionError,
   findFieldSubstitutions,
@@ -107,7 +110,8 @@ class AiEditRejection extends PipelineInputError {
 }
 
 // A stop for review because the model's edits break an owner policy (event names, item choice,
-// sent request values, type escapes, dual-shape webhook reads). It carries the refused proposal.
+// sent request values, type escapes, dual-shape webhook reads, test files, lines the rules wrote).
+// It carries the refused proposal.
 export class AiPolicyStop extends PipelineInputError {
   constructor(
     message: string,
@@ -340,6 +344,9 @@ export async function proposeAiPatch(
   // the guards then check every AI edit since the rule-patched code (`rules`, when the rules are
   // a deterministic proposal rather than `deterministicEdits`).
   candidate?: { files: Repository['files']; rules?: Repository['files'] },
+  // The contract's removed request parameters: one may move to its documented replacement in the
+  // same call. Repairs pass none, so validation's own check refuses any move there too.
+  requestRemovals: RequestParameterRemoval[] = [],
 ) {
   // Type-error findings already point into the rule-patched code, so rules never cover them.
   const typeErrorFindings = findings.filter((finding) => finding.changeId === TYPE_ERROR_CHANGE);
@@ -550,7 +557,7 @@ export async function proposeAiPatch(
       'AI patch chooses a subscription item for the billing period; item selection needs a reviewed policy and stops for review.',
       proposal(),
     );
-  const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider);
+  const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider, requestRemovals);
   if (dropped.length)
     throw new AiPolicyStop(
       `AI patch drops or changes ${dropped.map((entry) => `${entry.path} from ${entry.call} (${entry.file}:${entry.line})`).join(', ')}; removing or replacing what a request sends changes its behavior, so it stops for review.`,
@@ -582,6 +589,18 @@ export async function proposeAiPatch(
     ),
   ];
   if (substitutions.length) throw new FieldSubstitutionError(substitutions, proposal());
+  const tests = editedTestFiles(aiFiles);
+  if (tests.length)
+    throw new AiPolicyStop(
+      `AI patch edits ${tests.join(', ')} on the repository's test paths; the checks that judge a migration stay as the repository wrote them, so it stops for review.`,
+      proposal(),
+    );
+  const ruleLines = rewrittenRuleLines(original, ruleBase, modified, aiFiles);
+  if (ruleLines.length)
+    throw new AiPolicyStop(
+      `AI patch changes ${ruleLines.map((entry) => `${entry.file}:${entry.line}`).join(', ')}, which the deterministic rules already changed; a rule's edit changes only with its rule, so it stops for review.`,
+      proposal(),
+    );
   const remaining = analyzeRepository(modified, changes, provider, schemaDefinitions);
   // One diff from the original code to rules plus model edits.
   const merged = modified.files.flatMap((file) => {
