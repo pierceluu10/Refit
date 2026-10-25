@@ -42,7 +42,12 @@ async function options() {
 }
 function result(
   input: Parameters<typeof runWorkflow>[0],
-  status: 'validated' | 'validation-failed' | 'up-to-date' | 'draft-created' = 'validated',
+  status:
+    | 'validated'
+    | 'validation-failed'
+    | 'up-to-date'
+    | 'draft-created'
+    | 'needs-review' = 'validated',
 ) {
   return {
     directory: input.output,
@@ -394,6 +399,32 @@ it('reuses a job without a draft that an earlier Refit release recorded', async 
     status: 'already-processed',
     previousStatus: 'validation-failed',
   });
+  expect(runWorkflow).toHaveBeenCalledTimes(1);
+});
+
+it('runs a review or draft job once more when AI is turned on, then reuses it', async () => {
+  const input = await options();
+  const withAi = {
+    ...input,
+    configuration: { ...input.configuration, aiPatch: { apiKey: 'unused', model: 'unused' } },
+  };
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'needs-review'));
+  const first = await watchOnce(input);
+  expect(await watchOnce(withAi)).toMatchObject({ status: 'processed', jobKey: first.jobKey });
+  expect(await watchOnce(withAi)).toMatchObject({ status: 'already-processed' });
+  expect(runWorkflow).toHaveBeenCalledTimes(2);
+});
+
+it('reuses a failed job without AI when AI is turned on', async () => {
+  const input = await options();
+  vi.mocked(runWorkflow).mockImplementation(async (value) => result(value, 'validation-failed'));
+  await watchOnce(input);
+  expect(
+    await watchOnce({
+      ...input,
+      configuration: { ...input.configuration, aiPatch: { apiKey: 'unused', model: 'unused' } },
+    }),
+  ).toMatchObject({ status: 'already-processed', previousStatus: 'validation-failed' });
   expect(runWorkflow).toHaveBeenCalledTimes(1);
 });
 
