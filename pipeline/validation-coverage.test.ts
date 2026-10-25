@@ -5,6 +5,7 @@ import { delimiter, dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { aiSafetyStop } from './migration-review.ts';
+import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { STRIPE_SDK_RELEASES } from './stripe-package-upgrade.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
@@ -344,7 +345,11 @@ interface Request {
 
 // The npm registry's stripe metadata, and OpenAI's Responses API, where each request gets
 // `answer(request, n)` as its edits. Without `answer` any OpenAI request fails the test.
-function network(answer?: (request: Request, count: number) => unknown[]) {
+function network(
+  answer?: (request: Request, count: number) => unknown[],
+  // OpenAI's HTTP status for every request, such as 401 for a rejected key.
+  status = 200,
+) {
   const requests: Request[] = [];
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === `https://registry.npmjs.org/stripe/${SDK}`)
@@ -359,6 +364,7 @@ function network(answer?: (request: Request, count: number) => unknown[]) {
         },
       });
     if (!url.startsWith(OPENAI) || !answer) throw new Error(`Unexpected request to ${url}`);
+    if (status !== 200) return new Response('{}', { status });
     const sent = JSON.parse(String(init!.body));
     if (url.endsWith('/input_tokens')) return Response.json({ input_tokens: 1000 });
     const request = {
@@ -601,6 +607,52 @@ it.each(REMOVED_PARAMETER.map((shape) => [shape.name, shape] as const))(
         expression: expect.stringContaining('payment_method_types'),
       }),
     );
+  },
+);
+
+// The draft's title, as `refit run` and publication name it.
+const title = (
+  report: Parameters<typeof createReviewArtifacts>[0] & {
+    waivedGates?: Parameters<typeof createReviewArtifacts>[3];
+  },
+) => createReviewArtifacts(report, 'local', undefined, report.waivedGates).manifest.title;
+
+it.each([
+  ['a rejected key (HTTP 401)', 401, UNTRACED[0]],
+  ['a rejected key (HTTP 401)', 401, REMOVED_PARAMETER[0]],
+  [
+    'evidence over the input limit',
+    200,
+    {
+      ...UNTRACED[1],
+      files: {
+        'src/lib/stripe.ts': `${UNTRACED[1].files['src/lib/stripe.ts']}// ${'x'.repeat(70 * 1024)}\n`,
+      },
+    },
+  ],
+] as const)(
+  'leaves the rules-only outcome and title unchanged when the AI request fails: %s on %s',
+  async (_failure, status, shape) => {
+    network(() => [], status);
+    const ai = await run(shape, true);
+    const off = await run(shape);
+    console.log(shape.name, 'AI failed:', ai.manifest.status, ai.report.validation.coverageAi);
+    expect(ai.report.validation.coverageAi).toMatchObject({ outcome: 'refused', costUsd: 0 });
+    expect(ai.report.validation.coverageAi.error).toMatch(
+      status === 401 ? /HTTP 401/ : /input limit/,
+    );
+    expect(ai.manifest).toMatchObject({
+      status: off.manifest.status,
+      stage: off.manifest.stage,
+      reason: off.manifest.reason,
+    });
+    expect(gates(ai.report)).toEqual(gates(off.report));
+    expect(title(ai.report)).toBe(title(off.report));
+    expect(ai.publication).toEqual(off.publication);
+    expect(ai.report.patch).toMatchObject({
+      generator: 'deterministic',
+      diff: off.report.patch.diff,
+    });
   },
 );
 

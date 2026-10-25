@@ -425,6 +425,7 @@ One AI run of `subsets/dev-30.json` on `refit-dev/refit-bench` at `4433c96` (fea
 
 - **AI was asked on 6 rows**, all coverage stops after the rules' patch passed its checks: adamhitzger/financehb (7 targets), doganarif/build-it (11), Emmah-oo/spotify-clone (2), palashb01/DocuChat (4), samiamjidkhan/dota2-helper (2) and shagunmistry/FlowCraft (5). No other row reached a coverage attempt; the safety stops (Loopletter, noir-crm-dashboard and tinypivot at the scan) made no request.
 - **No request was billed: $0.00.** Five requests failed at OpenAI token counting with HTTP 401, so the repository's `OPENAI_API_KEY` secret is not accepted; financehb's evidence was over the 64 KiB input limit before any request. Each of the 6 rows fell back to the rules' `[Needs review]` draft, as designed, and recorded the refusal in `workflow.coverageAi`.
+- **A failed AI attempt left the outcome as it was.** The 6 rows have the same status, stage, review gates, full-diff mode and patch as in run 40151036594 (decision 1, no AI, `32d686c`). financehb and spotify-clone are `validated` in run 40152743957 only because `4f86323` predates decision 1 (#316). Under decision 1 the production scan no longer stops on their contract changes, so the workflow runs the full diff and lists them for review, with or without AI.
 - **Not measured:** whether AI patches validate or are correct. That needs a working key and another run.
 
 ## What these benchmarks do not show
