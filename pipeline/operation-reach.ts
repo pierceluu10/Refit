@@ -22,7 +22,13 @@ export interface ChangeReach {
 
 const PATH_PARAMETER = /\{[^}]+\}/g;
 const SUBSCHEMA = /^anyOf\[subschema #(\d+)(?:: [^\]]*)?\]$/;
-const REQUEST_PROPERTY = [/request property `([^`]+)`/, /the `([^`]+)` request property/];
+// "the `currency` request property `format` changed …" names the property first, so that form is
+// tried before "removed the request property `currency`".
+const REQUEST_PROPERTY = [/the `([^`]+)` request property/, /request property `([^`]+)`/];
+// https://docs.stripe.com/currencies: "use all lowercase letters when entering the three-letter ISO
+// code in any payment request", which is what the new `currency` format describes.
+const CURRENCY_FORMAT = /request property `format` changed from `none` to `currency`$/;
+const STRIPE_CURRENCY = /^[a-z]{3}$/;
 const REMOVED_ENUM_VALUE = /^removed the enum value `([^`]+)` of the request property `[^`]+`$/;
 // Response property path and status in oasdiff 1.33 texts.
 const RESPONSE_PROPERTY = [
@@ -270,8 +276,10 @@ function requestReach(change: Record<string, unknown>, context: ReachContext): C
   // when it is top level.
   const required = ALWAYS_REACHED.has(String(change.id));
   const path = property.split('/');
+  const currencyFormat = CURRENCY_FORMAT.test(text);
   let unknown: string | undefined;
   let handled: string | undefined;
+  let compatible: string | undefined;
   for (const { file, body } of callBodies(context.repository, calls, argumentIndex)) {
     if (required) {
       const parents = path.length > 1 ? sentValues(body, path.slice(0, -1)) : [body];
@@ -297,6 +305,19 @@ function requestReach(change: Record<string, unknown>, context: ReachContext): C
         }
         if (value.text !== removedValue) continue;
       }
+      if (currencyFormat) {
+        const value = ts.isIdentifier(sent) ? constantValue(sent) : sent;
+        if (value && ts.isStringLiteralLike(value)) {
+          if (STRIPE_CURRENCY.test(value.text)) {
+            compatible ??= file;
+            continue;
+          }
+          return {
+            reach: 'reached',
+            reachReason: `The \`${operation}\` call in ${file} sends \`${property}\` as \`${value.text}\`; the target contract gives it the \`currency\` format, a lowercase three-letter ISO code (https://docs.stripe.com/currencies).`,
+          };
+        }
+      }
       // The card rule renames `payment_method_types` where it is written.
       if (ts.isPropertyAssignment(sent.parent) && context.edited(file, sent.parent.getStart())) {
         handled ??= file;
@@ -318,10 +339,15 @@ function requestReach(change: Record<string, unknown>, context: ReachContext): C
           reach: 'handled',
           reachReason: `A kept rule edit rewrites \`${property}\` in every traced \`${operation}\` call that sends it, first in ${handled}.`,
         }
-      : {
-          reach: 'unused',
-          reachReason: `No traced \`${operation}\` call sends \`${property}\`${removedValue ? ` as \`${removedValue}\`` : ''}.`,
-        };
+      : compatible
+        ? {
+            reach: 'compatible',
+            reachReason: `Every traced \`${operation}\` call that sends \`${property}\` sends a lowercase three-letter ISO code, which the new \`currency\` format describes (https://docs.stripe.com/currencies), first in ${compatible}.`,
+          }
+        : {
+            reach: 'unused',
+            reachReason: `No traced \`${operation}\` call sends \`${property}\`${removedValue ? ` as \`${removedValue}\`` : ''}.`,
+          };
 }
 
 // Annotates each oasdiff change with its reach. Response changes are traced like removed fields:
@@ -349,7 +375,10 @@ export function annotateReach(changes: Record<string, unknown>[], context: Reach
     let reach: ChangeReach;
     const id = String(change.id);
     if (change.usage)
-      reach = { reach: 'reached', reachReason: 'The code checks this enum exhaustively.' };
+      reach = {
+        reach: 'reached',
+        reachReason: 'The code switches over, exhaustively checks or compares this enum field.',
+      };
     else if (COMPATIBLE[id]) reach = { reach: 'compatible', reachReason: COMPATIBLE[id] };
     else if (id.startsWith('request-') || ALWAYS_REACHED.has(id))
       reach = requestReach(change, context);

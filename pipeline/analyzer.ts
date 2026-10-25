@@ -167,6 +167,32 @@ function numericArrayIndex(expression: ts.Expression) {
   return Number.isSafeInteger(index) && index >= 0;
 }
 
+const EQUALITY_TOKENS = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+
+// The value a node compares with string literals: `value === 'a'` or `['a', 'b'].includes(value)`.
+function comparedWithLiterals(node: ts.Node) {
+  if (ts.isBinaryExpression(node) && EQUALITY_TOKENS.has(node.operatorToken.kind)) {
+    if (ts.isStringLiteralLike(node.right)) return node.left;
+    if (ts.isStringLiteralLike(node.left)) return node.right;
+  }
+  if (
+    ts.isCallExpression(node) &&
+    node.arguments.length === 1 &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    node.expression.name.text === 'includes' &&
+    ts.isArrayLiteralExpression(node.expression.expression) &&
+    node.expression.expression.elements.length &&
+    node.expression.expression.elements.every(ts.isStringLiteralLike)
+  )
+    return node.arguments[0];
+  return undefined;
+}
+
 // Node runs a script whose shebang follows a byte order mark, and tsc strips the mark when it
 // reads a file, but the parser accepts a shebang only at offset 0. A comment of the same length
 // keeps every offset that edits use.
@@ -1795,16 +1821,19 @@ export function analyzeRepository(
       }
     }
   }
-  // `switch (subscription.status)` or `const unhandled: never = subscription.status`, directly or
-  // through one const alias; new enum values on these fields can reach unhandled code.
-  const enumChecks: (Location & { schema: string; property: string })[] = [];
+  // `switch (subscription.status)`, `const unhandled: never = subscription.status`, or a compare
+  // with string literals (`subscription.status === 'active'`, `['active'].includes(...)`), directly
+  // or through one const alias; new enum values on these fields can reach unhandled code (owner
+  // decision 6, 2026-10-24).
+  const enumChecks: (Location & { schema: string; property: string; compare?: true })[] = [];
   const apiVersionLiterals: { file: string; start: number; end: number; value: string }[] = [];
   for (const node of nodes) {
+    const compared = comparedWithLiterals(node);
     let checked = ts.isSwitchStatement(node)
       ? node.expression
       : ts.isVariableDeclaration(node) && node.type?.kind === ts.SyntaxKind.NeverKeyword
         ? node.initializer
-        : undefined;
+        : compared;
     if (checked && ts.isIdentifier(checked)) {
       const declaration = symbol(checked)?.valueDeclaration;
       checked = declarations.find((entry) => entry === declaration)?.initializer;
@@ -1818,7 +1847,13 @@ export function analyzeRepository(
       checked = checked.expression;
     if (!checked || !ts.isPropertyAccessExpression(checked)) continue;
     const schema = schemaForExpression(checked.expression);
-    if (schema) enumChecks.push({ ...location(node), schema, property: checked.name.text });
+    if (schema)
+      enumChecks.push({
+        ...location(node),
+        schema,
+        property: checked.name.text,
+        ...(compared && { compare: true as const }),
+      });
   }
   function dropPeriodHelper(file: string) {
     for (let index = edits.length - 1; index >= 0; index--)
