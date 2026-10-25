@@ -1751,6 +1751,96 @@
         "upgradeComplete": "yes: stripe ^12.9.0 (lockfile 12.10.0) to ^23.0.0 in package.json and package-lock.json, and the only client's apiVersion moves from 2022-11-15 to 2026-09-30.endive.",
         "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive on a price with a trial; if Stripe rejects trial_from_plan or the subscription starts without the trial, replace it with subscription_data.trial_period_days."
       }
+    },
+    {
+      "repo": "Kanba-co/kanba",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40173305515 (feat/l3-list-responses b79336b, subsets/l3-249.json) vs main efb3ddae run 40167312081 (same code but fly.toml); migration.patch read in full with line endings ignored and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: current_period_start/end on subscriptions.list().data[0] now go through getSubscriptionPeriodStart/End (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end); before, these list-element reads were left unchanged and stripe-node 23 rejected them (validation regression).",
+        "bothVersions": "yes: the period helper returns the old subscription field when present, otherwise the period every item shares or the item the code already selects.",
+        "nothingUnrelated": "yes: the base patch plus the two reads on the listed subscription.",
+        "pleaseCheck": "Validated (checks pass before and after).",
+        "upgradeComplete": "yes, as in the base patch.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "iggy-tech/product-hunt-clone-final",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40173305515 (feat/l3-list-responses b79336b, subsets/l3-249.json) vs main efb3ddae run 40167312081 (same code but fly.toml); migration.patch read in full with line endings ignored and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: nextPaymentDate reads current_period_end on the first listed subscription through getSubscriptionPeriodEnd (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end); before, a validation regression.",
+        "bothVersions": "yes: the period helper returns the old subscription field when present, otherwise the period every item shares or the item the code already selects.",
+        "nothingUnrelated": "yes: that read, the in-file helper and the base patch.",
+        "pleaseCheck": "Validated.",
+        "upgradeComplete": "yes, as in the base patch.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "jeanchrinot/shipaisaas-starter",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40173305515 (feat/l3-list-responses b79336b, subsets/l3-249.json) vs main efb3ddae run 40167312081 (same code but fly.toml); migration.patch read in full with line endings ignored and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the two payment_method_types: [\"card\"] sites become allowed_payment_method_types, the clover pin moves to endive and stripe-node is upgraded (patch unchanged from main). It now validates because product.description on a products.list() element is traced as a Product, whose description is not removed.",
+        "bothVersions": "yes: the period helper returns the old subscription field when present, otherwise the period every item shares or the item the code already selects.",
+        "nothingUnrelated": "yes: the two keys, the pin, the stripe dependency and its lockfile.",
+        "pleaseCheck": "Validated. Keep cards enabled in the Dashboard.",
+        "upgradeComplete": "yes: stripe ^20.1.2 to ^23.0.0 with the lockfile.",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "shagunmistry/FlowCraft",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40173305515 (feat/l3-list-responses b79336b, subsets/l3-249.json) vs main efb3ddae run 40167312081 (same code but fly.toml); migration.patch read in full with line endings ignored and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the subscriptions.list().data.some(s => s.current_period_end …) read goes through getSubscriptionPeriodEnd(s, …) (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end), the same edit Laptop 1's AI run 40166116141 wrote by AI.",
+        "bothVersions": "yes: the period helper returns the old subscription field when present, otherwise the period every item shares or the item the code already selects.",
+        "nothingUnrelated": "yes: one more read than the base patch.",
+        "pleaseCheck": "[Needs review]: other contract changes and 4 unresolved reads remain.",
+        "upgradeComplete": "yes, as in the base patch.",
+        "wouldMerge": "not yet: the remaining reads."
+      }
+    },
+    {
+      "repo": "habibjutt/nextjs_boilerplate",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40173305515 (feat/l3-list-responses b79336b, subsets/l3-249.json) vs main efb3ddae run 40167312081 (same code but fly.toml); migration.patch read in full with line endings ignored and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: period reads on listed subscriptions in scripts/auto-sync-subscriptions.ts and scripts/sync-subscriptions.ts go through the helpers (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).",
+        "bothVersions": "yes: the period helper returns the old subscription field when present, otherwise the period every item shares or the item the code already selects.",
+        "nothingUnrelated": "yes: those reads and their imports on top of the base patch.",
+        "pleaseCheck": "Validation still fails for reasons unchanged from main (45 unresolved findings remain).",
+        "upgradeComplete": "yes, as in the base patch.",
+        "wouldMerge": "no: the remaining findings and the failing validation."
+      }
+    },
+    {
+      "repo": "cyberdreadx/cyberpunk-grok-api",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40173305515 (feat/l3-list-responses b79336b, subsets/l3-249.json) vs main efb3ddae run 40167312081 (same code but fly.toml); migration.patch read in full with line endings ignored and diffed against the base patch",
+      "reviewedAt": "2026-10-25",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: (s as any).current_period_end on a listed subscription goes through the helper with the cast kept, as the cast-receiver rule writes it (https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).",
+        "bothVersions": "yes: the period helper returns the old subscription field when present, otherwise the period every item shares or the item the code already selects.",
+        "nothingUnrelated": "yes: that read and its import on top of the base patch.",
+        "pleaseCheck": "[Needs review]: 92 unresolved findings remain.",
+        "upgradeComplete": "yes, as in the base patch.",
+        "wouldMerge": "no: the remaining findings."
+      }
     }
   ]
 }
