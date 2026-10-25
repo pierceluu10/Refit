@@ -414,10 +414,25 @@ it('accepts committed patches and overrides only as pnpm-lock.yaml records them'
       (sample) => delete sample.lock.overrides,
     ],
     [
-      'set in both pnpm-workspace.yaml and package.json',
-      (sample) => (sample.workspace.overrides = { axios: '1.18.0' }),
+      'patchedDependencies is set in both',
+      (sample) =>
+        (sample.workspace.patchedDependencies = { 'ai@6.0.200': 'patches/ai@6.0.200.patch' }),
     ],
   ];
+  // shagunmistry/FlowCraft at ae2e307 has no patches; pnpm merged its package.json resolutions into
+  // the overrides pnpm-lock.yaml records. Inputs without patches keep main's checks, so it prepares.
+  const flowcraft = scenario();
+  flowcraft.manifest.pnpm = { overrides: { 'cookie@<0.7.0': '>=0.7.0' } };
+  flowcraft.manifest.resolutions = { '@tldraw/tldraw': '2.0.0-alpha.19' };
+  flowcraft.lock.overrides = { '@tldraw/tldraw': '2.0.0-alpha.19', 'cookie@<0.7.0': '>=0.7.0' };
+  expect(validate(flowcraft)).not.toHaveProperty('patchHashes');
+  flowcraft.lock.overrides = { 'cookie@<0.7.0': '>=0.7.1' };
+  expect(validate(flowcraft)).toMatchObject({ manager: 'pnpm' });
+  // With a patch, the same merge must equal what the lockfile records.
+  flowcraft.lock.overrides = { '@tldraw/tldraw': '2.0.0-alpha.19', 'cookie@<0.7.0': '>=0.7.0' };
+  flowcraft.manifest.pnpm.patchedDependencies = { stripe: 'patches/stripe.patch' };
+  flowcraft.lock.patchedDependencies = { stripe: { hash, path: 'patches/stripe.patch' } };
+  expect(validate(flowcraft).patchHashes).toEqual({ 'patches/stripe.patch': hash });
   for (const [message, mutate] of refusals) {
     const sample = structuredClone(hackerai);
     mutate(sample);

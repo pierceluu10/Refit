@@ -203,27 +203,35 @@ export function validatePnpmInputs(
   }
   if (manifest.workspaces !== undefined)
     throw new PipelineInputError('pnpm workspaces must be declared only in pnpm-workspace.yaml.');
-  const settings = [workspace, isObject(manifest.pnpm) ? manifest.pnpm : {}];
-  const setting = (key: string) => {
-    const sources = settings.filter((source) => source[key] !== undefined);
-    if (sources.length > 1)
-      throw new PipelineInputError(
-        `pnpm ${key} is set in both pnpm-workspace.yaml and package.json; keep it in one place.`,
-      );
-    return (sources[0]?.[key] ?? {}) as Record<string, unknown>;
-  };
-  // A frozen install applies the overrides and patches pnpm-lock.yaml recorded when it was written;
-  // configuration that differs from the lockfile would need a new resolution.
+  // Patches are new to this preparation, so only inputs with patches meet the checks below; every
+  // other input keeps main's checks. pnpm's frozen install applies what pnpm-lock.yaml recorded: each
+  // patch file's SHA-256 and the overrides pnpm resolved with (package.json resolutions, the "pnpm"
+  // field's overrides and the workspace's overrides, merged as pnpm merges them).
+  const pnpmField = isObject(manifest.pnpm) ? manifest.pnpm : {};
+  const patchSources = [workspace, pnpmField].filter(
+    (source) => source.patchedDependencies !== undefined,
+  );
+  if (patchSources.length > 1)
+    throw new PipelineInputError(
+      'pnpm patchedDependencies is set in both pnpm-workspace.yaml and package.json; keep it in one place.',
+    );
+  const patches = (patchSources[0]?.patchedDependencies ?? {}) as Record<string, unknown>;
+  const recordedPatches = isObject(lock.patchedDependencies) ? lock.patchedDependencies : {};
   const flat = (value: unknown) =>
     JSON.stringify(
       Object.entries(isObject(value) ? value : {}).sort(([a], [b]) => (a < b ? -1 : 1)),
     );
-  if (flat(setting('overrides')) !== flat(lock.overrides))
+  if (
+    (Object.keys(patches).length || Object.keys(recordedPatches).length) &&
+    flat({
+      ...(isObject(manifest.resolutions) ? manifest.resolutions : {}),
+      ...(isObject(pnpmField.overrides) ? pnpmField.overrides : {}),
+      ...(isObject(workspace.overrides) ? workspace.overrides : {}),
+    }) !== flat(lock.overrides)
+  )
     throw new PipelineInputError(
       'pnpm overrides differ from the overrides pnpm-lock.yaml records. Run pnpm install and commit the updated pnpm-lock.yaml.',
     );
-  const patches = setting('patchedDependencies');
-  const recordedPatches = isObject(lock.patchedDependencies) ? lock.patchedDependencies : {};
   const patchHashes: Record<string, string> = {};
   for (const name of new Set([...Object.keys(patches), ...Object.keys(recordedPatches)])) {
     const recorded = recordedPatches[name];
