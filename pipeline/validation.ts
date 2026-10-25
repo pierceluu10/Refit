@@ -24,6 +24,7 @@ import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, repositoryDependencyFailure } from './dependency-preparation.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { typeErrors } from './type-errors.ts';
 import { inspectArtifactFile } from './verification.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
@@ -94,24 +95,6 @@ export interface CheckResult {
   stdout: string;
   stderr: string;
   error?: string;
-}
-
-const TYPE_ERROR = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
-
-// TypeScript diagnostics in a check's output, keyed without positions so moved lines still match.
-export function typeErrors(check: CheckResult) {
-  return `${check.stdout}\n${check.stderr}`
-    .split('\n')
-    .map((line) => TYPE_ERROR.exec(line.trim()))
-    .filter((match): match is RegExpExecArray => Boolean(match))
-    .map((match) => ({
-      file: match[1],
-      line: Number(match[2]),
-      column: Number(match[3]),
-      code: match[4],
-      message: match[5],
-      key: `${match[1]} ${match[4]} ${match[5]}`,
-    }));
 }
 
 // With compareTypeErrors, the original code's type errors are the baseline: a typecheck that

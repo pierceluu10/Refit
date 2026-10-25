@@ -18,6 +18,7 @@ import { movedPaymentMethodExpressions } from './patches.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR, UNTYPED_REQUEST_PROPERTIES } from './stripe-open-enums.ts';
 import { PAYMENT_METHOD_TYPES_CHANGELOG } from './patches.ts';
+import { typeErrors } from './type-errors.ts';
 
 type PublicationWaiver = NonNullable<ReturnType<typeof publicationWaiver>>;
 
@@ -297,6 +298,29 @@ function failedChecks(validation: Validation) {
 
 // How much a validation shows, from what ran; Refit does not measure which lines a repository's own
 // command reaches.
+// A compared typecheck passes on tsc's nonzero exit when every error it reports predates the patch,
+// so it says how many it reported instead of that it passed.
+function passedChecks(validation: Validation) {
+  const [original, migrated] = [validation.baselineCommand, validation.command].map((command) =>
+    code(command.join(' ')),
+  );
+  const sameCommand = original === migrated;
+  if (
+    !validation.compareTypeErrors ||
+    [validation.baseline, validation.patched].every((check) => check.exitCode === 0)
+  )
+    return sameCommand
+      ? `${migrated} passed on the original and migrated code in offline Docker.`
+      : `${original} passed on the original and ${migrated} on the migrated code in offline Docker.`;
+  const [before, after] = [validation.baseline, validation.patched].map(
+    (check) => typeErrors(check).length,
+  );
+  const existing = `existing type error${before === 1 ? '' : 's'}`;
+  return before === after
+    ? `${sameCommand ? migrated : `${original} on the original and ${migrated} on the migrated code`} reported the same ${before} ${existing}${sameCommand ? ' on the original and migrated code' : ''} and none new, in offline Docker.`
+    : `${original} reported ${before} ${existing} on the original code and ${sameCommand ? '' : `${migrated} `}${after || 'none'} on the migrated code, none of them new, in offline Docker.`;
+}
+
 function evidenceStrength(validation: Validation, generated: boolean) {
   if (validation.status !== 'passed')
     return '**None.** The checks did not pass, so nothing in this patch is verified.';
@@ -552,7 +576,6 @@ export function createReviewArtifacts(
   const unconfirmed = report.findings.filter((finding) => finding.untraced);
   const selectedPeriods = [...periodReads('item-in-code'), ...periodReads('price-policy')];
   const generated = validation.generated;
-  const sameCommand = validation.baselineCommand.join(' ') === validation.command.join(' ');
   const command = validation.command.join(' ');
   const typeChecked = /\btsc\b|\btype-?check\b/.test(command);
   // What the passing checks ran: none of the repository's code for a type check or the no-op.
@@ -938,9 +961,7 @@ export function createReviewArtifacts(
           : `No Refit rule changes the ${usageCount} in ${fileCount}, so this patch changes no files.`
       }`;
   const checks = passed
-    ? sameCommand
-      ? `${commandText(validation.command)} passed on the original and migrated code in offline Docker.`
-      : `${commandText(validation.baselineCommand)} passed on the original and ${commandText(validation.command)} on the migrated code in offline Docker.`
+    ? passedChecks(validation)
     : waiver?.gate === 'dependency-preparation'
       ? `**Not run: dependency preparation failed (${code(waiver.reason)}); this patch is untested.**`
       : failedChecks(validation);

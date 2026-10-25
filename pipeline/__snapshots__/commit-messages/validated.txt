@@ -9,8 +9,9 @@ deterministic Refit rule migrates 1 confirmed usage in 1 file.
 - package.json: Upgrades stripe from 20.4.1 to 23.0.0.
 - package-lock.json: Upgrades stripe from 20.4.1 to 23.0.0.
 
-Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
-original and migrated code in offline Docker.
+Checks: npx --no-install tsc --noEmit --pretty false -p . reported the
+same 3 existing type errors on the original and migrated code and none
+new, in offline Docker.
 
 Source: https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions
 

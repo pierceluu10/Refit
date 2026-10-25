@@ -76,8 +76,65 @@ it('accepts a compared typecheck that exits nonzero on errors that predate the p
   };
   expect(() => createReviewArtifacts(passed)).toThrow('two successful check results');
   const compared = { ...passed, validation: { ...passed.validation, compareTypeErrors: true } };
-  expect(createReviewArtifacts(compared).files['pull-request.md']).toContain('passed');
+  expect(createReviewArtifacts(compared).files['pull-request.md']).toContain(
+    '`npm test` reported the same 1 existing type error on the original and migrated code and none new',
+  );
 });
+
+// Convex templates such as webdevcody/thumbnail-critique and
+// projectplannerai/nextjs-clerk-convex-stripe-resend-template commit no convex/_generated folder,
+// so tsc reports the same missing modules before and after the patch.
+const missingModule = (file: string, line: number) =>
+  `${file}(${line},29): error TS2307: Cannot find module './_generated/server' or its corresponding type declarations.`;
+it.each([
+  [
+    [missingModule('convex/stripe.ts', 3), missingModule('convex/http.ts', 2)],
+    [missingModule('convex/stripe.ts', 4), missingModule('convex/http.ts', 2)],
+    'reported the same 2 existing type errors on the original and migrated code and none new, in offline Docker.',
+  ],
+  [
+    [missingModule('convex/users.ts', 1)],
+    [missingModule('convex/users.ts', 1)],
+    'reported the same 1 existing type error on the original and migrated code and none new, in offline Docker.',
+  ],
+  [
+    [missingModule('convex/stripe.ts', 3), missingModule('convex/http.ts', 2)],
+    [missingModule('convex/http.ts', 2)],
+    'reported 2 existing type errors on the original code and 1 on the migrated code, none of them new, in offline Docker.',
+  ],
+  [
+    [missingModule('convex/stripe.ts', 3)],
+    [],
+    'reported 1 existing type error on the original code and none on the migrated code, none of them new, in offline Docker.',
+  ],
+])(
+  'says how many existing type errors a compared typecheck reported (%#)',
+  async (before, after, text) => {
+    const base = await report();
+    const command = ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'];
+    const check = (errors: string[]) => ({
+      status: 'passed' as const,
+      exitCode: errors.length ? 2 : 0,
+      stdout: errors.join('\n'),
+      stderr: '',
+    });
+    const body = createReviewArtifacts({
+      ...base,
+      patch: { ...base.patch, validation: 'passed' },
+      validation: {
+        ...base.validation,
+        status: 'passed',
+        compareTypeErrors: true,
+        command,
+        baselineCommand: command,
+        baseline: check(before),
+        patched: check(after),
+      },
+    }).files['pull-request.md'];
+    expect(body).toContain(`- Test Suite Output: \`${command.join(' ')}\` ${text}`);
+    expect(body).not.toContain('passed on the original and migrated code');
+  },
+);
 
 it('exports regression evidence without implying that checks passed or a PR exists', async () => {
   const artifacts = createReviewArtifacts(await report());

@@ -11,8 +11,9 @@ deterministic Refit rule migrates 1 confirmed usage in 1 file.
 - package.json: Upgrades stripe from 16.5.0 to 23.0.0.
 - package-lock.json: Upgrades stripe from 16.5.0 to 23.0.0.
 
-Checks: npx --no-install tsc --noEmit --pretty false -p . passed on the
-original and migrated code in offline Docker.
+Checks: npx --no-install tsc --noEmit --pretty false -p . reported the
+same 1 existing type error on the original and migrated code and none
+new, in offline Docker.
 
 Source: https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects
 

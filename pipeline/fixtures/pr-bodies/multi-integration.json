@@ -280,14 +280,14 @@
     "baseline": {
       "status": "passed",
       "exitCode": 2,
-      "stdout": "",
+      "stdout": "unrecorded.ts(1,1): error TS0000: The stored result kept only the count of these type errors.\n",
       "stderr": "",
       "error": "Command failed: docker run --name refit-1c3f09fc-197b-4d04-8b7a-9a2b252c0cb0 --pull never --network none --read-only --user 65534:65534 --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 3g --cpus 1 --tmpfs /workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700 --tmpfs /tmp:rw,noexec,size=64m,mode=1777 --mount type=bind,src=/tmp/refit-validation-4NzVRq/baseline,dst=/input,readonly --mount type=bind,src=/tmp/refit-validation-4NzVRq/dependencies.tar,dst=/dependencies.tar,readonly --workdir /workspace --entrypoint /bin/sh sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 -c cp -R /input/. /workspace/ && tar -xf /dependencies.tar -C /workspace/ && export PATH=\"/workspace/node_modules/.refit-tools/node_modules/.bin:/workspace/node_modules/.bin:$PATH\" && exec \"$@\" refit-check npx --no-install tsc --noEmit --pretty false -p .\n"
     },
     "patched": {
       "status": "passed",
       "exitCode": 2,
-      "stdout": "",
+      "stdout": "unrecorded.ts(1,1): error TS0000: The stored result kept only the count of these type errors.\n",
       "stderr": "",
       "error": "Command failed: docker run --name refit-76a89df9-1869-4ec7-a0cb-b04c919a6934 --pull never --network none --read-only --user 65534:65534 --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 3g --cpus 1 --tmpfs /workspace:rw,exec,size=2g,uid=65534,gid=65534,mode=0700 --tmpfs /tmp:rw,noexec,size=64m,mode=1777 --mount type=bind,src=/tmp/refit-validation-4NzVRq/candidate-BPug4s,dst=/input,readonly --mount type=bind,src=/tmp/refit-validation-4NzVRq/candidate-BPug4s-dependencies.tar,dst=/dependencies.tar,readonly --workdir /workspace --entrypoint /bin/sh sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 -c cp -R /input/. /workspace/ && tar -xf /dependencies.tar -C /workspace/ && export PATH=\"/workspace/node_modules/.refit-tools/node_modules/.bin:/workspace/node_modules/.bin:$PATH\" && exec \"$@\" refit-check npx --no-install tsc --noEmit --pretty false -p .\n"
     },
@@ -349,5 +349,5 @@
     }
   ],
   "storedResult": "refit-stripe-fresh/run-6d4f38a-c/repos/tmachnacki__podvex/run/report.json",
-  "storedResultNote": "Lockfile hunks are cut to their first lines; patchHash is recomputed for the cut diff."
+  "storedResultNote": "Lockfile hunks are cut to their first lines; patchHash is recomputed for the cut diff. The stored result kept no check output: each side's stdout holds 1 placeholder type error, the baseline count docs/benchmarks/2026-10-22-baseline-failures.json records for this run, repeated on the migrated side, where validation found none new."
 }
