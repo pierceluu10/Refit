@@ -6,7 +6,7 @@ import {
   type AiLedgerSummary,
   type AiOptions,
 } from './ai-budget.ts';
-import type { GitHubWebhook } from './github-webhooks.ts';
+import type { GitHubWebhook, WebhookRepository } from './github-webhooks.ts';
 import { WebhookInputError } from './github-webhooks.ts';
 import { transaction } from './hosted-database.ts';
 import {
@@ -390,6 +390,43 @@ export async function openHostedStore(
         [approval.repository],
       );
       return rows[0] ? enroll(client, Number(rows[0].installation_id), [approval.repository]) : [];
+    });
+
+  const activeInstallations = async () =>
+    (
+      await pool.query<{ id: string; owner: string }>(
+        `SELECT id::text, owner FROM refit_installations WHERE status = 'active' AND allowed ORDER BY id`,
+      )
+    ).rows.map((row) => ({ id: Number(row.id), owner: row.owner }));
+
+  // Records the repositories GitHub lists for an active, allowed installation that no webhook
+  // recorded, by name or GitHub ID, and enrolls the approved ones as an added event would. Only
+  // webhooks remove a repository, so one missing from the list stays recorded.
+  const reconcile = (installationId: number, owner: string, repositories: WebhookRepository[]) =>
+    transaction(pool, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock($1)', [CLAIM_LOCK]);
+      const { rows } = await client.query<{ owner: string; status: string; allowed: boolean }>(
+        'SELECT owner, status, allowed FROM refit_installations WHERE id = $1 FOR UPDATE',
+        [installationId],
+      );
+      if (rows[0]?.owner !== owner || rows[0].status !== 'active' || !rows[0].allowed)
+        return { added: [] as string[], enrolled: [] as string[] };
+      const { rows: inserted } = await client.query<{ repository: string }>(
+        `INSERT INTO refit_installation_repositories (installation_id, repository, github_id)
+         SELECT $1::bigint, listed.repository, listed.github_id
+         FROM unnest($2::text[], $3::bigint[]) AS listed (repository, github_id)
+         WHERE NOT EXISTS (
+           SELECT 1 FROM refit_installation_repositories r WHERE r.installation_id = $1
+             AND (r.repository = listed.repository OR r.github_id = listed.github_id))
+         RETURNING repository`,
+        [
+          installationId,
+          repositories.map((repository) => repository.name),
+          repositories.map((repository) => repository.id),
+        ],
+      );
+      const added = inserted.map((row) => row.repository).sort();
+      return { added, enrolled: await enroll(client, installationId, added) };
     });
 
   // Stops a target whose repository GitHub no longer serves, or whose name changed hands.
@@ -797,6 +834,8 @@ export async function openHostedStore(
 
   return {
     accept,
+    activeInstallations,
+    reconcile,
     approve,
     retire,
     revoke,
