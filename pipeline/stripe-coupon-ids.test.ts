@@ -7,7 +7,7 @@ import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
 import { findRemovedProperties } from './specifications.ts';
-import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
+import { COUPON_ID_HELPER, subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -84,7 +84,7 @@ function analyze(body: string) {
 
 function getCouponId(value: object) {
   const module: { exports: Record<string, (value: object) => unknown> } = { exports: {} };
-  new Function('module', subscriptionPeriodHelperModule('cjs'))(module);
+  new Function('module', subscriptionPeriodHelperModule('cjs', [COUPON_ID_HELPER]))(module);
   return module.exports.getCouponId(value);
 }
 

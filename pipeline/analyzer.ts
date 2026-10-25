@@ -32,25 +32,20 @@ import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
-  PERIOD_HELPERS,
+  HELPER_NAMES,
   subscriptionPeriodHelperEdit,
   subscriptionPeriodHelperModule,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
   HELPER_RULES,
-  INVOICE_SUBSCRIPTION_HELPER,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   invoiceSubscriptionHelperEdit,
-  INVOICE_PRICE_ID_HELPER,
   INVOICE_PRICE_ID_HELPER_RULE,
   invoicePriceIdHelperEdit,
-  COUPON_ID_HELPER,
   COUPON_ID_HELPER_RULE,
   couponIdHelperEdit,
-  PRODUCT_FEATURES_HELPER,
   PRODUCT_FEATURES_HELPER_RULE,
   productFeaturesHelperEdit,
-  CHECKOUT_SHIPPING_HELPER,
   CHECKOUT_SHIPPING_HELPER_RULE,
   checkoutShippingHelperEdit,
   type PeriodRareCase,
@@ -1904,14 +1899,6 @@ export function analyzeRepository(
   const kind = (['ts', 'esm', 'cjs'] as const)
     .map((candidate) => ({ candidate, count: kinds.filter((entry) => entry === candidate).length }))
     .sort((a, b) => b.count - a.count)[0]?.candidate;
-  const helperNames = [
-    ...Object.values(PERIOD_HELPERS),
-    INVOICE_SUBSCRIPTION_HELPER,
-    INVOICE_PRICE_ID_HELPER,
-    CHECKOUT_SHIPPING_HELPER,
-    COUPON_ID_HELPER,
-    PRODUCT_FEATURES_HELPER,
-  ] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
     /"module(?:Resolution)?"\s*:\s*"node(?:16|next)"/i.test(file.content),
@@ -1923,7 +1910,7 @@ export function analyzeRepository(
         (node) =>
           node.getSourceFile() === source &&
           ts.isIdentifier(node) &&
-          helperNames.includes(node.text) &&
+          HELPER_NAMES.includes(node.text) &&
           !edits.some(
             (edit) =>
               edit.file === locations.get(source.fileName) &&
@@ -1966,17 +1953,8 @@ export function analyzeRepository(
     );
     const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
     const stem = taken.has(base) ? `${base}Refit` : base;
-    edits.push({
-      file: `${stem}.${extension}`,
-      start: 0,
-      end: 0,
-      replacement: subscriptionPeriodHelperModule(kind),
-      changeId: 'stripe-subscription-period-helper',
-      rule: moduleRule,
-    });
-    for (const file of helperFiles) {
-      const source = helperSources.find((entry) => locations.get(entry.fileName) === file)!;
-      const used = helperNames.filter((name) =>
+    const usedIn = (file: string) =>
+      HELPER_NAMES.filter((name) =>
         edits.some(
           (edit) =>
             edit.file === file &&
@@ -1984,6 +1962,17 @@ export function analyzeRepository(
             edit.replacement.includes(`${name}(`),
         ),
       );
+    edits.push({
+      file: `${stem}.${extension}`,
+      start: 0,
+      end: 0,
+      replacement: subscriptionPeriodHelperModule(kind, [...new Set(helperFiles.flatMap(usedIn))]),
+      changeId: 'stripe-subscription-period-helper',
+      rule: moduleRule,
+    });
+    for (const file of helperFiles) {
+      const source = helperSources.find((entry) => locations.get(entry.fileName) === file)!;
+      const used = usedIn(file);
       const relativeImports = source.statements
         .filter(ts.isImportDeclaration)
         .map((statement) => (statement.moduleSpecifier as ts.StringLiteral).text)
@@ -2019,11 +2008,12 @@ export function analyzeRepository(
           ),
       );
       const anchor = prologue.at(-1)?.getEnd() ?? 0;
+      const newline = source.text.includes('\r\n') ? '\r\n' : '\n';
       edits.push({
         file,
         start: anchor,
         end: anchor,
-        replacement: anchor ? `\n${declaration}` : `${declaration}\n`,
+        replacement: anchor ? `${newline}${declaration}` : `${declaration}${newline}`,
         changeId: 'stripe-subscription-period-helper',
         rule: moduleRule,
       });

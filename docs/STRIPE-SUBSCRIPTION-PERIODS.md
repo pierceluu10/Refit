@@ -20,7 +20,7 @@ The helper returns, in order:
 
 If neither exists, step 3 returns `undefined` and the pull request says: "Subscriptions with items on different billing periods are not handled. Set `stripeSubscriptionPeriods` to choose which item counts." Missing or empty items return `undefined`, as the removed field did, so existing missing-period checks still fire. Refit never picks an earliest or latest period across items.
 
-Each migrated finding records `subscriptionPeriod.rareCase`: `item-in-code`, `price-policy` or `flagged`. Imports follow each file's module style and its existing relative-import extensions, or `tsconfig` Node16/NodeNext resolution. Where a configured policy's guarded handler applies (below), that migration takes precedence over the helper.
+Each migrated finding records `subscriptionPeriod.rareCase`: `item-in-code`, `price-policy` or `flagged`. The generated file holds only the helpers the patch calls. Imports follow each file's module style, line endings and existing relative-import extensions, or `tsconfig` Node16/NodeNext resolution. Where a configured policy's guarded handler applies (below), that migration takes precedence over the helper.
 
 A read on one parenthesized cast of a traced receiver also moves, for every helper: `(subscription as any).current_period_end` becomes `(getSubscriptionPeriodEnd(subscription as any) as any)`, keeping the read typed `any`, and a typed cast such as `(invoice as Stripe.Invoice)` passes through as written. Double casts, a non-null assertion after a cast, a cast call result and `typeof`-guarded cast reads stay under review.
 

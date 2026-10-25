@@ -370,6 +370,15 @@ export const INVOICE_PRICE_ID_HELPER = 'getInvoicePriceId';
 export const CHECKOUT_SHIPPING_HELPER = 'getCheckoutShippingDetails';
 export const COUPON_ID_HELPER = 'getCouponId';
 export const PRODUCT_FEATURES_HELPER = 'getProductMarketingFeatures';
+// Every helper the generated module can hold, in its order.
+export const HELPER_NAMES: readonly string[] = [
+  ...Object.values(PERIOD_HELPERS),
+  INVOICE_SUBSCRIPTION_HELPER,
+  INVOICE_PRICE_ID_HELPER,
+  CHECKOUT_SHIPPING_HELPER,
+  COUPON_ID_HELPER,
+  PRODUCT_FEATURES_HELPER,
+];
 // Fields of the old Shipping object that the new checkout address details no longer carry.
 const DROPPED_SHIPPING_FIELDS = new Set(['carrier', 'phone', 'tracking_number']);
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
@@ -687,24 +696,36 @@ type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;
 `;
 };
 
-export function subscriptionPeriodHelperModule(kind: 'ts' | 'esm' | 'cjs') {
+// Only the helpers the patch calls, so the module adds no unused code to the repository.
+export function subscriptionPeriodHelperModule(
+  kind: 'ts' | 'esm' | 'cjs',
+  helpers: readonly string[],
+) {
   const typed = kind === 'ts';
   const t = (annotation: string) => (typed ? annotation : '');
   const exported = kind === 'cjs' ? '' : 'export ';
   const parameters = typed ? 'subscription: object, planItem?: PlanItem' : 'subscription, planItem';
   const result = typed ? ': number' : '';
-  return `${HELPER_BODY(typed)}
-${exported}function getSubscriptionPeriodStart(${parameters})${result} {
+  const sections: [string, string][] = [
+    [
+      PERIOD_HELPERS.current_period_start,
+      `${exported}function getSubscriptionPeriodStart(${parameters})${result} {
   return subscriptionPeriod(subscription, 'current_period_start', planItem);
 }
-
-${exported}function getSubscriptionPeriodEnd(${parameters})${result} {
+`,
+    ],
+    [
+      PERIOD_HELPERS.current_period_end,
+      `${exported}function getSubscriptionPeriodEnd(${parameters})${result} {
   return subscriptionPeriod(subscription, 'current_period_end', planItem);
 }
-
-${
-  typed
-    ? `// Typed like the removed field under old stripe types, like the new location under new ones.
+`,
+    ],
+    [
+      INVOICE_SUBSCRIPTION_HELPER,
+      `${
+        typed
+          ? `// Typed like the removed field under old stripe types, like the new location under new ones.
 type InvoiceSubscription<T> = T extends { subscription: infer S }
   ? S
   : T extends { parent: infer P }
@@ -716,8 +737,8 @@ type InvoiceSubscription<T> = T extends { subscription: infer S }
     : string | null;
 
 `
-    : ''
-}// The old top-level field when present (old-version payloads), otherwise the new location.
+          : ''
+      }// The old top-level field when present (old-version payloads), otherwise the new location.
 ${exported}function getInvoiceSubscription${typed ? '<T extends object>(invoice: T): InvoiceSubscription<T>' : '(invoice)'} {
   const legacy${t(': unknown')} = Reflect.get(invoice, 'subscription');
   const parent${t(': unknown')} = Reflect.get(invoice, 'parent');
@@ -727,8 +748,11 @@ ${exported}function getInvoiceSubscription${typed ? '<T extends object>(invoice:
     details && typeof details === 'object' ? Reflect.get(details, 'subscription') : undefined;
   return (legacy !== undefined ? legacy : (moved ?? null))${typed ? ' as InvoiceSubscription<T>' : ''};
 }
-
-// The old Price object's ID when present (old-version payloads), otherwise the price at
+`,
+    ],
+    [
+      INVOICE_PRICE_ID_HELPER,
+      `// The old Price object's ID when present (old-version payloads), otherwise the price at
 // pricing.price_details: an ID, or a Price when expanded.
 ${exported}function getInvoicePriceId(line${t(': object')})${t(': string | undefined')} {
   const legacy${t(': unknown')} = Reflect.get(line, 'price');
@@ -742,10 +766,13 @@ ${exported}function getInvoicePriceId(line${t(': object')})${t(': string | undef
   const id${t(': unknown')} = price && typeof price === 'object' ? Reflect.get(price, 'id') : price;
   return typeof id === 'string' ? id : undefined;
 }
-
-${
-  typed
-    ? `// Typed like the removed field under old stripe types, like the new location under new ones.
+`,
+    ],
+    [
+      CHECKOUT_SHIPPING_HELPER,
+      `${
+        typed
+          ? `// Typed like the removed field under old stripe types, like the new location under new ones.
 type CheckoutShippingDetails<T> = T extends { shipping_details: infer S }
   ? S
   : T extends { collected_information: infer C }
@@ -755,8 +782,8 @@ type CheckoutShippingDetails<T> = T extends { shipping_details: infer S }
     : null;
 
 `
-    : ''
-}// The old top-level field when present (old-version payloads), otherwise
+          : ''
+      }// The old top-level field when present (old-version payloads), otherwise
 // collected_information.shipping_details, which holds only address and name.
 ${exported}function getCheckoutShippingDetails${typed ? '<T extends object>(session: T): CheckoutShippingDetails<T>' : '(session)'} {
   const legacy${t(': unknown')} = Reflect.get(session, 'shipping_details');
@@ -765,8 +792,11 @@ ${exported}function getCheckoutShippingDetails${typed ? '<T extends object>(sess
     collected && typeof collected === 'object' ? Reflect.get(collected, 'shipping_details') : undefined;
   return (legacy !== undefined ? legacy : (moved ?? null))${typed ? ' as CheckoutShippingDetails<T>' : ''};
 }
-
-// The old auto-expanded Coupon's ID when present (old-version payloads), otherwise the coupon a
+`,
+    ],
+    [
+      COUPON_ID_HELPER,
+      `// The old auto-expanded Coupon's ID when present (old-version payloads), otherwise the coupon a
 // promotion code's promotion or a discount's source holds: an ID, or a Coupon when expanded.
 ${exported}function getCouponId(value${t(': object')})${t(': string | undefined')} {
   const legacy${t(': unknown')} = Reflect.get(value, 'coupon');
@@ -780,10 +810,13 @@ ${exported}function getCouponId(value${t(': object')})${t(': string | undefined'
   const id${t(': unknown')} = coupon && typeof coupon === 'object' ? Reflect.get(coupon, 'id') : coupon;
   return typeof id === 'string' ? id : undefined;
 }
-
-${
-  typed
-    ? `// Typed like the removed field under old stripe types, like the new name under new ones.
+`,
+    ],
+    [
+      PRODUCT_FEATURES_HELPER,
+      `${
+        typed
+          ? `// Typed like the removed field under old stripe types, like the new name under new ones.
 type ProductMarketingFeatures<T> = T extends { features: infer F }
   ? F
   : T extends { marketing_features: infer M }
@@ -791,11 +824,18 @@ type ProductMarketingFeatures<T> = T extends { features: infer F }
     : { name?: string }[];
 
 `
-    : ''
-}// The old features list when present (old-version payloads), otherwise marketing_features.
+          : ''
+      }// The old features list when present (old-version payloads), otherwise marketing_features.
 ${exported}function getProductMarketingFeatures${typed ? '<T extends object>(product: T): ProductMarketingFeatures<T>' : '(product)'} {
   const legacy${t(': unknown')} = Reflect.get(product, 'features');
   return (legacy !== undefined ? legacy : Reflect.get(product, 'marketing_features'))${typed ? ' as ProductMarketingFeatures<T>' : ''};
 }
-${kind === 'cjs' ? '\nmodule.exports = { getSubscriptionPeriodStart, getSubscriptionPeriodEnd, getInvoiceSubscription, getInvoicePriceId, getCheckoutShippingDetails, getCouponId, getProductMarketingFeatures };\n' : ''}`;
+`,
+    ],
+  ];
+  const emitted = sections.filter(([name]) => helpers.includes(name));
+  const periods = Object.values(PERIOD_HELPERS).some((name) => helpers.includes(name));
+  return `${[...(periods ? [HELPER_BODY(typed)] : []), ...emitted.map(([, text]) => text)].join('\n')}${
+    kind === 'cjs' ? `\nmodule.exports = { ${emitted.map(([name]) => name).join(', ')} };\n` : ''
+  }`;
 }

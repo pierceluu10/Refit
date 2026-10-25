@@ -8,7 +8,14 @@ import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
 import { digest, findRemovedProperties } from './specifications.ts';
 import { createReviewArtifacts } from './review.ts';
-import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
+import {
+  CHECKOUT_SHIPPING_HELPER,
+  HELPER_NAMES,
+  INVOICE_PRICE_ID_HELPER,
+  INVOICE_SUBSCRIPTION_HELPER,
+  PERIOD_HELPERS,
+  subscriptionPeriodHelperModule,
+} from './stripe-subscription-periods.ts';
 import ts from 'typescript-compiler';
 import { migrationReviewReason } from './migration-review.ts';
 
@@ -152,7 +159,10 @@ function helper(planText?: string) {
   const module: { exports: Record<string, (subscription: object, plan?: unknown) => unknown> } = {
     exports: {},
   };
-  new Function('module', subscriptionPeriodHelperModule('cjs'))(module);
+  new Function(
+    'module',
+    subscriptionPeriodHelperModule('cjs', [PERIOD_HELPERS.current_period_end]),
+  )(module);
   const plan = planText ? new Function(`return ${planText};`)() : undefined;
   return (subscription: object) => module.exports.getSubscriptionPeriodEnd(subscription, plan);
 }
@@ -180,7 +190,7 @@ it('reads every subscription period through the generated helper', () => {
   expect(result.patched).not.toMatch(/Math\.(max|min)/);
   expect(
     result.edits.find((edit) => edit.file === 'stripeSubscriptionPeriod.ts')?.replacement,
-  ).toBe(subscriptionPeriodHelperModule('ts'));
+  ).toBe(subscriptionPeriodHelperModule('ts', Object.values(PERIOD_HELPERS)));
   // Convex pushes every file in its functions folder and rejects names with characters other than
   // letters, digits, `_` and `.`.
   expect(result.edits.every((edit) => /^[\w./]+$/.test(edit.file))).toBe(true);
@@ -324,12 +334,85 @@ module.exports = { ends };
   );
   expect(
     result.edits.find((edit) => edit.file === 'lib/stripeSubscriptionPeriod.js')?.replacement,
-  ).toBe(subscriptionPeriodHelperModule('cjs'));
+  ).toBe(subscriptionPeriodHelperModule('cjs', [PERIOD_HELPERS.current_period_end]));
 });
+
+// The Quill webhook route that nabarvn/documon, JensenMPillay/pdfai and 4lbatr0s/jiro (CRLF) share,
+// and the Supabase admin module of the nextjs-subscription-payments template.
+const helperRepositories = [
+  {
+    file: 'src/app/api/webhooks/stripe/route.ts',
+    content: `import { headers } from 'next/headers';
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2024-06-20' });
+export async function POST(request: Request) {
+  const session = JSON.parse(await request.text());
+  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  console.log(headers(), subscription.items.data[0]?.price.id);
+  return new Date(subscription.current_period_end * 1000);
+}
+`,
+    helpers: ['getSubscriptionPeriodEnd'],
+  },
+  {
+    file: 'utils/supabase/admin.ts',
+    content: `import Stripe from 'stripe';
+import { toDateTime } from '../helpers';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2024-06-20' });
+export async function manageSubscriptionStatusChange(subscriptionId: string) {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ['default_payment_method'],
+  });
+  return {
+    id: subscription.id,
+    current_period_start: toDateTime(subscription.current_period_start).toISOString(),
+    current_period_end: toDateTime(subscription.current_period_end).toISOString(),
+  };
+}
+`,
+    helpers: ['getSubscriptionPeriodStart', 'getSubscriptionPeriodEnd'],
+  },
+];
+
+it.each(
+  helperRepositories.flatMap((repository) =>
+    ['\n', '\r\n'].map((newline) => ({ ...repository, newline })),
+  ),
+)(
+  'generates only the helpers $file calls and keeps its line endings ($newline)',
+  ({ file, content: lf, helpers, newline }) => {
+    const content = lf.replaceAll('\n', newline);
+    const result = analyzeRepository(
+      {
+        root: '/helpers',
+        files: [{ path: file, content }],
+        dependencies: [],
+        lockfiles: [],
+        warnings: [],
+      },
+      findRemovedProperties(schemas(false), schemas(true), provider.id),
+      provider,
+      schemas(false),
+    );
+    const module = result.edits.find((edit) => edit.file.endsWith('stripeSubscriptionPeriod.ts'));
+    expect(module?.replacement).toBe(subscriptionPeriodHelperModule('ts', helpers));
+    const unused = HELPER_NAMES.filter((name) => !helpers.includes(name));
+    expect(unused.filter((name) => module?.replacement.includes(name))).toEqual([]);
+    const patched = applySourceEdits(
+      content,
+      result.edits.filter((edit) => edit.file === file),
+    );
+    expect(patched).toContain(
+      `import { ${helpers.join(', ')} } from './stripeSubscriptionPeriod';${newline}`,
+    );
+    // Every line keeps the file's own ending: no bare LF in a CRLF file.
+    expect(newline === '\r\n' ? patched.match(/(?<!\r)\n/g) : patched.match(/\r/g)).toBeNull();
+  },
+);
 
 it('generates a TypeScript helper that compiles strictly without Stripe types', () => {
   const files = new Map([
-    ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
+    ['/check/helper.ts', subscriptionPeriodHelperModule('ts', HELPER_NAMES)],
     [
       '/check/use.ts',
       `import { getSubscriptionPeriodEnd, getInvoicePriceId, getCheckoutShippingDetails } from './helper';
@@ -396,7 +479,7 @@ it('reads a webhook invoice.subscription through the generated helper for either
   expect(diff).toContain(
     "+import { getSubscriptionPeriodEnd, getInvoiceSubscription } from './stripeSubscriptionPeriod';",
   );
-  const helper = subscriptionPeriodHelperModule('cjs');
+  const helper = subscriptionPeriodHelperModule('cjs', [INVOICE_SUBSCRIPTION_HELPER]);
   const { getInvoiceSubscription } = new Function('module', `${helper}; return module.exports;`)(
     {},
   );
@@ -863,7 +946,7 @@ it('reads a webhook line item price ID through the helper for either version', a
   expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
   const { getInvoicePriceId } = new Function(
     'module',
-    `${subscriptionPeriodHelperModule('cjs')}; return module.exports;`,
+    `${subscriptionPeriodHelperModule('cjs', [INVOICE_PRICE_ID_HELPER])}; return module.exports;`,
   )({});
   expect(getInvoicePriceId({ price: { id: 'price_old' } })).toBe('price_old');
   expect(getInvoicePriceId({ price: null })).toBeUndefined();
@@ -903,7 +986,7 @@ it('reads Checkout Session shipping details through the generated helper', async
   });
   const { getCheckoutShippingDetails } = new Function(
     'module',
-    `${subscriptionPeriodHelperModule('cjs')}; return module.exports;`,
+    `${subscriptionPeriodHelperModule('cjs', [CHECKOUT_SHIPPING_HELPER])}; return module.exports;`,
   )({});
   const address = { address: { city: 'Toronto' }, name: 'Ada' };
   expect(getCheckoutShippingDetails({ shipping_details: address })).toBe(address);
@@ -1022,7 +1105,7 @@ it.each([
 
 it('keeps an `as any` receiver typed any under the generic helpers', () => {
   const files = new Map([
-    ['/check/helper.ts', subscriptionPeriodHelperModule('ts')],
+    ['/check/helper.ts', subscriptionPeriodHelperModule('ts', HELPER_NAMES)],
     [
       '/check/use.ts',
       `import { getInvoiceSubscription, getCheckoutShippingDetails, getSubscriptionPeriodEnd } from './helper';
