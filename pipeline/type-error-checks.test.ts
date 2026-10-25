@@ -66,8 +66,11 @@ it('compares only the type check of a tests-then-type-check chain, and fails fai
   );
   expect(patched.status).toBe('failed');
   expect(patched.stdout.split('\n')[1]).toBe(added);
-  // Tests that fail never pass as a type check, whatever type errors they printed.
-  expect(compareTypeCheck(run(1, `${testOutput}${TESTS_FAILED}\n`)).status).toBe('failed');
+  // Tests that fail never pass as a type check, whatever type errors they printed, though the type
+  // check after them still runs and is compared.
+  const broken = run(2, `${testOutput}${TESTS_FAILED}\n${TYPE_CHECK_STARTED}\n${existing}\n`);
+  expect(compareTypeCheck(broken).status).toBe('failed');
+  expect(typeErrors(broken).map((error) => error.file)).toEqual(['src/a.ts']);
 });
 
 it('leaves rejected literal comparisons and their never narrowing for review, not repair', () => {
