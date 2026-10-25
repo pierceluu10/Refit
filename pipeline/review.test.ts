@@ -371,7 +371,16 @@ it('says when npm installed the committed lockfile with --legacy-peer-deps', asy
   expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('legacy-peer-deps');
   value.validation.environment = { installation: { legacyPeerDeps: true } };
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
-    "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`.",
+    "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies, so Refit installed the same lockfile with `--legacy-peer-deps`.",
+  );
+});
+
+it('says when Refit installed a translation of the committed bun.lock', async () => {
+  const value = await report();
+  expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('bun.lock');
+  value.validation.environment = { bunLockHash: 'b'.repeat(64), installation: {} };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: Refit translated the committed `bun.lock` into an npm lockfile with the same packages, versions, paths and integrity hashes, and installed it with `npm ci`; Bun itself did not run.',
   );
 });
 

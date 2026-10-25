@@ -613,6 +613,9 @@ export function createReviewArtifacts(
       (environment?.installation as { legacyPeerDeps?: unknown } | undefined)?.legacyPeerDeps ===
       true,
   );
+  const fromBunLock = [validation.environment, validation.patchedEnvironment].some(
+    (environment) => typeof environment?.bunLockHash === 'string',
+  );
   const prunedGlibcPackages = Math.max(
     0,
     ...[validation.environment, validation.patchedEnvironment].map((environment) => {
@@ -1142,7 +1145,12 @@ export function createReviewArtifacts(
         `- Test Suite Output: ${checks}${generatedResult}`,
         ...(legacyPeerDeps
           ? [
-              "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies (ERESOLVE), so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+              "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies, so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+            ]
+          : []),
+        ...(fromBunLock
+          ? [
+              '- Dependency Installation: Refit translated the committed `bun.lock` into an npm lockfile with the same packages, versions, paths and integrity hashes, and installed it with `npm ci`; Bun itself did not run.',
             ]
           : []),
         ...(prunedGlibcPackages
