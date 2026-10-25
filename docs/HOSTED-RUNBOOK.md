@@ -93,9 +93,11 @@ The worker process is not listening. `fly status` and `fly logs`: a crash loop s
 
 1. Run the hosted tests against a local PostgreSQL ([Hosted onboarding](HOSTED-ONBOARDING.md#implemented-single-tenant-hosted-worker)) and `npm test`.
 2. [Drain](#drain-the-worker): `refit hosted pause`, then wait until no job is running.
-3. `fly deploy -a refit-hosted`. Fly builds the image from `Dockerfile`, replaces the Machine and keeps the volume.
+3. `fly deploy -a refit-hosted`. Fly builds the image from `Dockerfile`, replaces the Machine and keeps the volume. The Machine comes back still paused, at the `[[vm]]` size in `fly.toml` (shared-cpu-2x). `--vm-size` does not override that section.
 4. Verify: `curl https://refit-hosted.fly.dev/health`, `fly status`, then `fly ssh console -C "refit hosted health"`.
-5. `fly ssh console -a refit-hosted -C "refit hosted resume"`, then retry any job the deploy interrupted (`refit hosted jobs --status failed`).
+5. `fly scale vm performance-2x --vm-memory 4096 -a refit-hosted` for the first round. That round never reuses a receipt ([Unchanged polls](#unchanged-polls)), and a target whose scan changed runs in full. On a throttled shared vCPU a full run can stop at the 300-second dependency limit: job 1024, after the 2026-10-24 deploy, ran at 55% CPU steal.
+6. `fly ssh console -a refit-hosted -C "refit hosted resume"`, then retry any job the deploy interrupted (`refit hosted jobs --status failed`). The worker notices the resume when its loop next wakes, up to one polling interval (300 s) later.
+7. When that round ends, pause, wait until no job is running, run `fly scale vm shared-cpu-2x --vm-memory 4096 -a refit-hosted`, and resume.
 
 ## Roll back to the previous image
 

@@ -352,6 +352,12 @@ it.each([
     await github.merge(REPOSITORY, 2, 'squash');
     expect(await poll()).toMatchObject({ status: 'up-to-date' });
     expect(await baseline()).toBe(ENDIVE);
+    // Without the flag the basil draft stays open after the merge; the customer closes it.
+    expect(pulls()[0]).toEqual({
+      number: 1,
+      state: supersedeDrafts ? 'closed' : 'open',
+      merged: false,
+    });
     expect(github.comments(REPOSITORY)).toEqual(superseded);
     expect(issues()).toBe(0);
   },
@@ -394,7 +400,7 @@ it('writes nothing to GitHub for a release the code does not use, and keeps one 
   // Polling again reuses the result and still says why it stopped.
   expect(await poll()).toEqual({
     ...stop,
-    message: `Saved worker result reused; checks were not rerun. ${stop.message}`,
+    message: `Saved worker result reused; checks were not rerun. That run recorded: ${stop.message}`,
   });
   await push('README.md', 'Billing and wallets\n', 'docs: readme');
   expect(await poll()).toMatchObject({ status: 'needs-review', message: stop.message });

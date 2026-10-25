@@ -103,7 +103,7 @@ export function summarizePoll(result: ServicePoll) {
           ].join(' ')
         : result.status === 'documentation-changed'
           ? `Provider documentation changed. Refit saved a unified diff and did not start a migration. The prior API workflow status remains ${result.previousStatus}.`
-          : `Saved worker result reused; checks were not rerun.${result.previousReason ? ` ${result.previousReason}` : ''}${result.weeklyStatus ? ` Weekly status posted on ${result.weeklyStatus}.` : ''}`,
+          : `Saved worker result reused; checks were not rerun.${result.previousReason ? ` That run recorded: ${result.previousReason}` : ''}${result.weeklyStatus ? ` Weekly status posted on ${result.weeklyStatus}.` : ''}`,
   };
 }
 

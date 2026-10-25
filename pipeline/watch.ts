@@ -222,6 +222,8 @@ async function watchLocalOnce(
           'The advanced watch baseline does not match its recorded hash.',
         );
       configuration.apiVersion = advanced.apiVersion;
+      // Nobody attested this pin; only the code's own declarations, checked on every poll, back it.
+      configuration.apiVersionPolicy = 'source-verified';
     }
     const after = join(snapshots, `${snapshot.hash}.json`);
     try {
@@ -263,8 +265,9 @@ async function watchLocalOnce(
         revision,
         repositoryHash: scan.repository.hash,
         adapter: provider,
-        // A new release is a new target even when the changes Refit maps are the same: its draft
-        // replaces the older one (pipeline/publication.ts).
+        // A new release is a new target even when the changes Refit maps are the same: it gets its
+        // own draft (draftKey in pipeline/publication.ts). The older draft closes only with
+        // --supersede-drafts.
         apiVersion: {
           application: scan.apiVersion.application,
           before: scan.apiVersion.before,

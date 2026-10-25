@@ -424,6 +424,37 @@ it('lists each usage the migrated code still has, counts a site once and names t
   expect(body).toContain('- [ ] Migrate the 1 usage Refit left unmigrated (see Left Unchanged).');
 });
 
+it('lists untraced reads at their migrated lines and leaves operation calls with no site to the run report', async () => {
+  const value = await report();
+  const [finding] = value.findings;
+  const untraced = {
+    ...finding,
+    file: 'legacy.ts',
+    line: 7,
+    expression: 'item.price',
+    confidence: 'review' as const,
+    untraced: true as const,
+  };
+  value.findings.push(untraced);
+  if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
+  // The patch added a line above the untraced read, and one changed-operation call has no site.
+  value.patch.unresolvedFindings = 3;
+  value.patch.unresolvedSites = unresolvedSites([
+    { ...finding, line: 14 },
+    { ...untraced, line: 8 },
+  ]);
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  expect(body).toContain('- `legacy.ts:8` reads `item.price`');
+  expect(body).not.toContain('legacy.ts:7');
+  expect(body).toContain(
+    '2 usages of the breaking changes are still unmigrated: no rule changed them',
+  );
+  expect(body).toContain(
+    "1 is listed under Left Unchanged; the other 1 (a call to a changed operation) is in Refit's run report.",
+  );
+  expect(body).not.toContain('less certainty');
+});
+
 it('counts a traced site with two removed fields once and says how many of those left are confirmed', async () => {
   const value = await report();
   const [finding] = value.findings;
@@ -490,6 +521,7 @@ it('counts a traced site with two removed fields once and says how many of those
 
 it.each([
   [['npx', 'tsc', '--noEmit'], false, '**Type-checked only.** No code ran.'],
+  [['npm', 'run', 'typecheck'], false, '**Type-checked only.** No code ran.'],
   [
     ['npx', 'tsc', '--noEmit'],
     true,
@@ -538,6 +570,23 @@ it('says a check that could not finish on the original code never ran on the mig
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
     '- Test Suite Output: **Validation did not pass (error).** `npm test` could not finish on the original code (Check exceeded 120 seconds; the container was stopped). Refit did not run the checks on the migrated code.',
   );
+});
+
+it("keeps a check's raw error output out of the body, and names only its exit code", async () => {
+  const value = await report();
+  value.patch.validation = value.validation.status = 'error';
+  value.validation.baseline = {
+    status: 'error',
+    exitCode: 137,
+    stdout: '',
+    stderr: 'PRIVATE STDERR',
+    error: 'Command failed: docker run --rm /Users/someone/checkout\nPRIVATE STDERR',
+  };
+  value.validation.patched = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  expect(body).toContain('`npm test` could not finish on the original code (exit code 137).');
+  expect(body).not.toContain('PRIVATE');
+  expect(body).not.toContain('/Users/someone');
 });
 
 it('names the first type error a patch introduced, once, from the compared type check', async () => {
