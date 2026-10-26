@@ -1,0 +1,2499 @@
+{
+  "purpose": "Laptop 2, Push 279, dependency preparation round 3: the 26 rows of refit-bench run 40236299492 (main 179c6bc, engine only, default flags, held-out rows removed) whose preparation was refused for conflicting lockfiles (12) or lockfile drift (11 npm, 3 pnpm). Each repository was read at its push-279-affected.json commit through the GitHub API; nothing from it was installed or run. \"refitAloneOnMain\" is main 443f8bf7's preparation reader on that lockfile with the other one hidden; \"after\" is feat/l2-prep-3's reader on the full commit.",
+  "npmCi": {
+    "rule": "npm ci accepts a committed lockfile when every dependency edge resolves to a locked entry whose version satisfies its range. It builds the ideal tree from the lockfile with the root read from package.json; only missing or invalid edges are re-resolved from the registry, and any ideal-tree node the lockfile lacks or locks at another version fails with EUSAGE (\"are in sync\"). Root records that differ from package.json only mark flags suspect; entries nothing depends on are pruned, not reported.",
+    "read": [
+      "npm/cli v10.9.2 lib/commands/ci.js L49-77: loadVirtual, buildIdealTree, validateLockfile, usageError \"...are in sync\"",
+      "npm/cli v10.9.2 lib/utils/validate-lockfile.js L13-26: iterates the ideal tree only; \"Missing: ... from lock file\" and \"Invalid: lock file's X does not satisfy Y\"",
+      "npm/cli v10.9.2 workspaces/arborist/lib/arborist/build-ideal-tree.js L261-289 (#initTree: root from package.json, then loadVirtual({ root })), L1114-1160 (#problemEdges: only edges with no target, unless peerOptional, or !edge.valid), L1465-1480 (prune extraneous nodes when flags are suspect)",
+      "npm/cli v10.9.2 workspaces/arborist/lib/arborist/load-virtual.js L117-174 (#checkRootEdges: a differing root record sets flagsSuspect, not an error)",
+      "npm/cli v10.9.2 workspaces/arborist/lib/dep-valid.js L46-66: range or version -> semver.satisfies(version, spec, true); \"*\" any; tag -> a registry resolution; alias -> its sub-spec"
+    ]
+  },
+  "pnpm": {
+    "frozenSpecifiers": "pnpm v10.34.7 lockfile/verification/src/satisfiesPackageManifest.ts L37-46 and L94: a frozen install requires every importer specifier to equal package.json's, so specifier drift is never accepted by pnpm itself.",
+    "patchHashes": "pnpm v9.15.9 lockfile/settings-checker/src/calcPatchHashes.ts L9 hashes patches with createBase32HashFromFile; v10.34.7 L9 uses createHexHashFromFile (crypto/hash/src/index.ts L11, L30-37: SHA-256 hex of the file with CRLF as LF). Both compare lockfile.patchedDependencies by equality (getOutdatedLockfileSetting.ts v9.15.9 L45, v10.34.7 L59)."
+  },
+  "summary": {
+    "candidateA": ["eka0789/evofuture", "brandbite/brandbite"],
+    "candidateB": [
+      "LucasKlemke/doctor-reborn",
+      "saidMounaim/tick-event",
+      "omar99elnemr/Docubot",
+      "Yosef-Ali/compasstio-ai",
+      "karljuhl/Club_Connect"
+    ],
+    "pnpm10Patches": ["kondax-com/Bocker"],
+    "alreadyPreparedOnMain": ["shagunmistry/FlowCraft"],
+    "staysRefused": [
+      "ArhanAnsari/InspireGem",
+      "LDAWoo/webprodigies-plura",
+      "cesarolvr/journeylog-app",
+      "piyush805/miro-clone",
+      "RicardoGEsteves/next-digital-marketplace",
+      "helloworld9912/Stripe-Account-Migration",
+      "baifan1366/project-management-system",
+      "Librum-Reader/Librum-Website",
+      "SergeySharipov/ai-companion-saas",
+      "passion-27/QuotesAI",
+      "Suhaib3100/online-compiler",
+      "Ankit-Sharma1011/Quill",
+      "avikalp987/quill",
+      "dheerajcl/Jynx2.0",
+      "ensarokumus/tldr-app",
+      "Eziox-Development/eziox-web",
+      "Amarnath0077/industrialstore-main"
+    ]
+  },
+  "rows": [
+    {
+      "repo": "LucasKlemke/doctor-reborn",
+      "commit": "8a870fdd8a2684c148c7dcf45c02470c0454de58",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: @ai-sdk/openai is \"^1.3.22\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        },
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "prepared",
+          "lockfileVersion": "9.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@ai-sdk/openai",
+          "packageJson": "^1.3.22",
+          "lockRecord": "^1.3.22",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@ai-sdk/react",
+          "packageJson": "^1.2.12",
+          "lockRecord": "^1.2.12",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@stripe/stripe-js",
+          "packageJson": "^4.6.0",
+          "lockRecord": "^4.6.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@hookform/resolvers",
+          "packageJson": "^5.0.1",
+          "lockRecord": "^5.0.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@next-auth/prisma-adapter",
+          "packageJson": "^1.0.7",
+          "lockRecord": "^1.0.7",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@prisma/client",
+          "packageJson": "^6.8.2",
+          "lockRecord": "^6.8.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-dialog",
+          "packageJson": "^1.1.13",
+          "lockRecord": "^1.1.13",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-label",
+          "packageJson": "^2.1.6",
+          "lockRecord": "^2.1.6",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-select",
+          "packageJson": "^2.2.4",
+          "lockRecord": "^2.2.4",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-slot",
+          "packageJson": "^1.2.2",
+          "lockRecord": "^1.2.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@types/bcrypt",
+          "packageJson": "^5.0.2",
+          "lockRecord": "^5.0.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "ai",
+          "packageJson": "^4.3.15",
+          "lockRecord": "^4.3.15",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "bcrypt",
+          "packageJson": "^6.0.0",
+          "lockRecord": "^6.0.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "class-variance-authority",
+          "packageJson": "^0.7.1",
+          "lockRecord": "^0.7.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "clsx",
+          "packageJson": "^2.1.1",
+          "lockRecord": "^2.1.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "lucide-react",
+          "packageJson": "^0.511.0",
+          "lockRecord": "^0.511.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "motion",
+          "packageJson": "^12.12.1",
+          "lockRecord": "^12.12.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next-auth",
+          "packageJson": "^4.24.11",
+          "lockRecord": "^4.24.11",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next-themes",
+          "packageJson": "^0.4.6",
+          "lockRecord": "^0.4.6",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "prisma",
+          "packageJson": "^6.8.2",
+          "lockRecord": "^6.8.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-hook-form",
+          "packageJson": "^7.56.4",
+          "lockRecord": "^7.56.4",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-markdown",
+          "packageJson": "^10.1.0",
+          "lockRecord": "^10.1.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "remark-gfm",
+          "packageJson": "^4.0.1",
+          "lockRecord": "^4.0.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "sonner",
+          "packageJson": "^2.0.3",
+          "lockRecord": "^2.0.3",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "stripe",
+          "packageJson": "^18.1.1",
+          "lockRecord": "^18.1.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "tailwind-merge",
+          "packageJson": "^3.3.0",
+          "lockRecord": "^3.3.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "zod",
+          "packageJson": "^3.24.4",
+          "lockRecord": "^3.24.4",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "zustand",
+          "packageJson": "^5.0.4",
+          "lockRecord": "^5.0.4",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "eslint-config-prettier",
+          "packageJson": "^10.1.5",
+          "lockRecord": "^10.1.5",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "prettier",
+          "packageJson": "^3.5.3",
+          "lockRecord": "^3.5.3",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "prettier-plugin-tailwindcss",
+          "packageJson": "^0.6.11",
+          "lockRecord": "^0.6.11",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "tw-animate-css",
+          "packageJson": "^1.3.0",
+          "lockRecord": "^1.3.0",
+          "locked": null,
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "package-lock.json lacks 32 declared dependencies; pnpm-lock.yaml matches package.json.",
+      "after": {
+        "candidate": "b",
+        "outcome": "prepared from pnpm-lock.yaml with pnpm@9.15.9; package-lock.json not read (out of sync)"
+      }
+    },
+    {
+      "repo": "ArhanAnsari/InspireGem",
+      "commit": "a6bf456cd830a5f5d7267d69407c5c0a5fcc8336",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: next is \"15.0.3\" in package.json but \"15.0.1\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: next is \"15.0.3\" in package.json but \"15.0.1\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next",
+          "packageJson": "15.0.3",
+          "lockRecord": "15.0.1",
+          "locked": "15.0.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react",
+          "packageJson": "^18.3.1",
+          "lockRecord": "^18.2.0",
+          "locked": "18.3.1",
+          "satisfiesRange": true
+        }
+      ],
+      "reading": "next 15.0.3 is declared, 15.0.1 locked; npm ci rejects it (react ^18.3.1 at 18.3.1 alone would pass).",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: next is \"15.0.3\" in package.json but \"15.0.1\" in the lockfile. Run npm install and commit the updated package-lock.json."
+      }
+    },
+    {
+      "repo": "LDAWoo/webprodigies-plura",
+      "commit": "a72ff4ce18f329766365081802a176fadb89d076",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: @stripe/react-stripe-js is \"^2.8.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json", "bun.lockb"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "Not a #324 case: bun.lockb is binary and never read, so the other lockfile is the only one.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: @stripe/react-stripe-js is \"^2.8.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@stripe/react-stripe-js",
+          "packageJson": "^2.8.0",
+          "lockRecord": "^2.8.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@stripe/stripe-js",
+          "packageJson": "^4.3.0",
+          "lockRecord": "^4.3.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-table",
+          "packageJson": "^8.20.1",
+          "lockRecord": "^8.20.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tremor/react",
+          "packageJson": "^3.17.4",
+          "lockRecord": "^3.17.4",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@types/react-beautiful-dnd",
+          "packageJson": "^13.1.8",
+          "lockRecord": "^13.1.8",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@types/uuid",
+          "packageJson": "^10.0.0",
+          "lockRecord": "^10.0.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-beautiful-dnd",
+          "packageJson": "^13.1.1",
+          "lockRecord": "^13.1.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "stripe",
+          "packageJson": "^14.12.0",
+          "lockRecord": "^14.12.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "uuid",
+          "packageJson": "^10.0.0",
+          "lockRecord": "^10.0.0",
+          "locked": null,
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "9 declared dependencies are not in package-lock.json; bun.lockb is binary.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: @stripe/react-stripe-js is \"^2.8.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-l"
+      }
+    },
+    {
+      "repo": "cesarolvr/journeylog-app",
+      "commit": "74f52ec4edde36542396a8619448bc52ec430e45",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "yarn.lock"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "prepared",
+          "recordsMatchPackageJson": true,
+          "npmCiAccepts": true
+        },
+        "yarn.lock": {
+          "refitAloneOnMain": "prepared",
+          "everyDeclaredRangeRecorded": true
+        }
+      },
+      "differingDependencies": [],
+      "reading": "Both lockfiles match package.json, so which one its installs use is unknown.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package m"
+      }
+    },
+    {
+      "repo": "saidMounaim/tick-event",
+      "commit": "18df56697c9369308e8a295e6e031cbbf491f68f",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: next is \"15.3.8\" in package.json but \"15.3.4\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        },
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "prepared",
+          "lockfileVersion": "9.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next",
+          "packageJson": "15.3.8",
+          "lockRecord": "15.3.4",
+          "locked": "15.3.4",
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "package-lock.json locks next 15.3.4 for 15.3.8; pnpm-lock.yaml matches package.json.",
+      "after": {
+        "candidate": "b",
+        "outcome": "prepared from pnpm-lock.yaml with pnpm@9.15.9; package-lock.json not read (out of sync)"
+      }
+    },
+    {
+      "repo": "piyush805/miro-clone",
+      "commit": "eddde6ac5a4655e76187cd7ccd7d1a8ddd95ba9a",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: stripe is \"^16.7.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: stripe is \"^16.7.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "stripe",
+          "packageJson": "^16.7.0",
+          "lockRecord": "^16.7.0",
+          "locked": null,
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "stripe ^16.7.0 is declared and not locked.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: stripe is \"^16.7.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json."
+      }
+    },
+    {
+      "repo": "RicardoGEsteves/next-digital-marketplace",
+      "commit": "85af5b6a6772bae5369aaeb2a6e55ec2da698114",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: @payloadcms/db-mongodb is \"3.25.0\" in package.json but \"3.17.1\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: @payloadcms/db-mongodb is \"3.25.0\" in package.json but \"3.17.1\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@payloadcms/db-mongodb",
+          "packageJson": "3.25.0",
+          "lockRecord": "3.17.1",
+          "locked": "3.17.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-dialog",
+          "packageJson": "1.1.6",
+          "lockRecord": "1.1.4",
+          "locked": "1.1.4",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-dropdown-menu",
+          "packageJson": "2.1.6",
+          "lockRecord": "2.1.4",
+          "locked": "2.1.4",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-label",
+          "packageJson": "2.1.2",
+          "lockRecord": "2.1.1",
+          "locked": "2.1.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-scroll-area",
+          "packageJson": "1.2.3",
+          "lockRecord": "1.2.2",
+          "locked": "1.2.2",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-separator",
+          "packageJson": "1.1.2",
+          "lockRecord": "1.1.1",
+          "locked": "1.1.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-slot",
+          "packageJson": "1.1.2",
+          "lockRecord": "1.1.1",
+          "locked": "1.1.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@react-email/components",
+          "packageJson": "0.0.33",
+          "lockRecord": "0.0.32",
+          "locked": "0.0.32",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-query",
+          "packageJson": "5.66.10",
+          "lockRecord": "5.64.2",
+          "locked": "5.64.2",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-query-devtools",
+          "packageJson": "5.66.10",
+          "lockRecord": "5.64.2",
+          "locked": "5.64.2",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@trpc/client",
+          "packageJson": "11.0.0-rc.818",
+          "lockRecord": "11.0.0-rc.708",
+          "locked": "11.0.0-rc.708",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@trpc/next",
+          "packageJson": "11.0.0-rc.818",
+          "lockRecord": "11.0.0-rc.708",
+          "locked": "11.0.0-rc.708",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@trpc/react-query",
+          "packageJson": "11.0.0-rc.818",
+          "lockRecord": "11.0.0-rc.708",
+          "locked": "11.0.0-rc.708",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@trpc/server",
+          "packageJson": "11.0.0-rc.818",
+          "lockRecord": "11.0.0-rc.708",
+          "locked": "11.0.0-rc.708",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "lucide-react",
+          "packageJson": "0.476.0",
+          "lockRecord": "0.473.0",
+          "locked": "0.473.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next",
+          "packageJson": "15.2.0",
+          "lockRecord": "15.1.5",
+          "locked": "15.1.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "nodemailer",
+          "packageJson": "6.10.0",
+          "lockRecord": "6.9.16",
+          "locked": "6.9.16",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "resend",
+          "packageJson": "4.1.2",
+          "lockRecord": "4.1.1",
+          "locked": "4.1.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "sonner",
+          "packageJson": "1.7.4",
+          "lockRecord": "1.7.2",
+          "locked": "1.7.2",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "stripe",
+          "packageJson": "17.7.0",
+          "lockRecord": "17.5.0",
+          "locked": "17.5.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "swiper",
+          "packageJson": "11.2.4",
+          "lockRecord": "11.2.1",
+          "locked": "11.2.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "zod",
+          "packageJson": "3.24.2",
+          "lockRecord": "3.24.1",
+          "locked": "3.24.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@types/node",
+          "packageJson": "22.13.5",
+          "lockRecord": "22.10.7",
+          "locked": "22.10.7",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@types/react",
+          "packageJson": "19.0.10",
+          "lockRecord": "19.0.7",
+          "locked": "19.0.7",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@types/react-dom",
+          "packageJson": "19.0.4",
+          "lockRecord": "19.0.3",
+          "locked": "19.0.3",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "eslint-config-next",
+          "packageJson": "15.2.0",
+          "lockRecord": "15.1.5",
+          "locked": "15.1.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "postcss",
+          "packageJson": "8.5.3",
+          "lockRecord": "8.5.1",
+          "locked": "8.5.1",
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "27 exact pins moved past their locked versions.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: @payloadcms/db-mongodb is \"3.25.0\" in package.json but \"3.17.1\" in the lockfile. Run npm install and commit the updated package-l"
+      }
+    },
+    {
+      "repo": "helloworld9912/Stripe-Account-Migration",
+      "commit": "a934f5eee999c8fe415f15df84844764306f862d",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: @types/xlsx is \"^0.0.36\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: @types/xlsx is \"^0.0.36\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@types/xlsx",
+          "packageJson": "^0.0.36",
+          "lockRecord": "^0.0.36",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "axios",
+          "packageJson": "^1.7.2",
+          "lockRecord": "^1.7.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "xlsx",
+          "packageJson": "^0.18.5",
+          "lockRecord": "^0.18.5",
+          "locked": null,
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "3 declared dependencies are not locked.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: @types/xlsx is \"^0.0.36\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json."
+      }
+    },
+    {
+      "repo": "baifan1366/project-management-system",
+      "commit": "700d3177f49130baa36930eefbeb832ad9dd3f57",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: sonner is \"^2.0.5\" in package.json but \"^2.0.1\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: sonner is \"^2.0.5\" in package.json but \"^2.0.1\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "sonner",
+          "packageJson": "^2.0.5",
+          "lockRecord": "^2.0.1",
+          "locked": "2.0.1",
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "sonner ^2.0.5 is declared, 2.0.1 locked.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: sonner is \"^2.0.5\" in package.json but \"^2.0.1\" in the lockfile. Run npm install and commit the updated package-lock.json."
+      }
+    },
+    {
+      "repo": "Librum-Reader/Librum-Website",
+      "commit": "60d5159126dae8b4ac5251fe437d16a75fffab1f",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "yarn.lock"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": ["netlify.toml:"],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "prepared",
+          "recordsMatchPackageJson": true,
+          "npmCiAccepts": true
+        },
+        "yarn.lock": {
+          "refitAloneOnMain": "Every yarn.lock entry must resolve an exact version to a public registry tarball with SHA-256-or-stronger integrity.",
+          "everyDeclaredRangeRecorded": true
+        }
+      },
+      "differingDependencies": [],
+      "reading": "Both match package.json; yarn.lock also lacks integrity. Which one is used is unknown.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package m"
+      }
+    },
+    {
+      "repo": "SergeySharipov/ai-companion-saas",
+      "commit": "b680ee296e699edda4db4325e42fbeb1fbf97cc3",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: next is \"15.3.6\" in package.json but \"15.3.0\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: next is \"15.3.6\" in package.json but \"15.3.0\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next",
+          "packageJson": "15.3.6",
+          "lockRecord": "15.3.0",
+          "locked": "15.3.0",
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "next 15.3.6 is declared, 15.3.0 locked.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: next is \"15.3.6\" in package.json but \"15.3.0\" in the lockfile. Run npm install and commit the updated package-lock.json."
+      }
+    },
+    {
+      "repo": "omar99elnemr/Docubot",
+      "commit": "c9d7c887ee54e682b38f019e7d81f5d4194e4399",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: @radix-ui/react-slot is \"^1.0.2\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        },
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "prepared",
+          "lockfileVersion": "6.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-slot",
+          "packageJson": "^1.0.2",
+          "lockRecord": "^1.0.2",
+          "locked": "1.0.2",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@vercel/analytics",
+          "packageJson": "^1.1.1",
+          "lockRecord": "^1.1.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@vercel/speed-insights",
+          "packageJson": "^1.0.1",
+          "lockRecord": "^1.0.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-loading-skeleton",
+          "packageJson": "^3.3.1",
+          "lockRecord": "^3.3.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "shadcn-ui",
+          "packageJson": "^0.4.1",
+          "lockRecord": "^0.4.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "stripe",
+          "packageJson": "^14.8.0",
+          "lockRecord": "^14.5.0",
+          "locked": "14.5.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "uploadthing",
+          "packageJson": "^6.0.4",
+          "lockRecord": "^6.0.3",
+          "locked": "6.0.3",
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "package-lock.json lacks 4 declared dependencies and locks stripe 14.5.0 for ^14.8.0 and uploadthing 6.0.3 for ^6.0.4; pnpm-lock.yaml (v6) matches.",
+      "after": {
+        "candidate": "b",
+        "outcome": "prepared from pnpm-lock.yaml with pnpm@8.15.9; package-lock.json not read (out of sync)"
+      }
+    },
+    {
+      "repo": "passion-27/QuotesAI",
+      "commit": "d8edc8d2c091658622df44b5a263e94b737ad17b",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "Automatic preparation supports public npm registry dependencies only; package.json declares google as \"link:@next/font/google\". Local, Git and URL dependencies require a custom image.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        },
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "pnpm declarations must use public registry, configured catalogs or explicit local workspaces; package.json declares google as \"link:@next/font/google\".",
+          "lockfileVersion": "9.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@next-auth/prisma-adapter",
+          "packageJson": "^1.0.7",
+          "lockRecord": "^1.0.7",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@prisma/client",
+          "packageJson": "^5.10.2",
+          "lockRecord": "^5.10.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-avatar",
+          "packageJson": "^1.0.4",
+          "lockRecord": "^1.0.4",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-dialog",
+          "packageJson": "^1.0.5",
+          "lockRecord": "^1.0.5",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-dropdown-menu",
+          "packageJson": "^2.0.6",
+          "lockRecord": "^2.0.6",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-icons",
+          "packageJson": "^1.3.0",
+          "lockRecord": "^1.3.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-label",
+          "packageJson": "^2.0.2",
+          "lockRecord": "^2.0.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-scroll-area",
+          "packageJson": "^1.0.5",
+          "lockRecord": "^1.0.5",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@radix-ui/react-toast",
+          "packageJson": "^1.1.5",
+          "lockRecord": "^1.1.5",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@vercel/analytics",
+          "packageJson": "^1.3.1",
+          "lockRecord": "^1.3.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@vercel/speed-insights",
+          "packageJson": "^1.0.11",
+          "lockRecord": "^1.0.11",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "axios",
+          "packageJson": "^1.6.7",
+          "lockRecord": "^1.6.7",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "cheerio",
+          "packageJson": "1.0.0-rc.12",
+          "lockRecord": "1.0.0-rc.12",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "flask",
+          "packageJson": "^0.2.10",
+          "lockRecord": "^0.2.10",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "framer-motion",
+          "packageJson": "^11.0.8",
+          "lockRecord": "^11.0.8",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "google",
+          "packageJson": "link:@next/font/google",
+          "lockRecord": "link:@next/font/google",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "micro",
+          "packageJson": "^10.0.1",
+          "lockRecord": "^10.0.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "nanoid",
+          "packageJson": "^5.0.6",
+          "lockRecord": "^5.0.6",
+          "locked": "3.3.7",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next-auth",
+          "packageJson": "^4.24.6",
+          "lockRecord": "^4.24.6",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next-headers",
+          "packageJson": "^0.0.5",
+          "lockRecord": "^0.0.5",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next-themes",
+          "packageJson": "^0.2.1",
+          "lockRecord": "^0.2.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "prisma",
+          "packageJson": "^5.10.2",
+          "lockRecord": "^5.10.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "radix-ui",
+          "packageJson": "^1.0.1",
+          "lockRecord": "^1.0.1",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react",
+          "packageJson": "^18.2.0",
+          "lockRecord": "^18",
+          "locked": "18.2.0",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-dom",
+          "packageJson": "^18.2.0",
+          "lockRecord": "^18",
+          "locked": "18.2.0",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "recharts",
+          "packageJson": "^2.12.2",
+          "lockRecord": "^2.12.2",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "stripe",
+          "packageJson": "^15.12.0",
+          "lockRecord": "^15.12.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "types",
+          "packageJson": "link:next-themes/dist/types",
+          "lockRecord": "link:next-themes/dist/types",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "vaul",
+          "packageJson": "^0.9.0",
+          "lockRecord": "^0.9.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "zod",
+          "packageJson": "^3.22.4",
+          "lockRecord": "^3.22.4",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@types/node",
+          "packageJson": "^20.11.24",
+          "lockRecord": "^20",
+          "locked": "20.11.17",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@types/react",
+          "packageJson": "^18.2.61",
+          "lockRecord": "^18",
+          "locked": "18.2.55",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@types/react-dom",
+          "packageJson": "^18.2.19",
+          "lockRecord": "^18",
+          "locked": "18.2.19",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "autoprefixer",
+          "packageJson": "^10.4.18",
+          "lockRecord": "^10.0.1",
+          "locked": "10.4.17",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "eslint",
+          "packageJson": "^8.57.0",
+          "lockRecord": "^8",
+          "locked": "8.56.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "postcss",
+          "packageJson": "^8.4.35",
+          "lockRecord": "^8",
+          "locked": "8.4.35",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "tailwindcss",
+          "packageJson": "^3.4.1",
+          "lockRecord": "^3.3.0",
+          "locked": "3.4.1",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "typescript",
+          "packageJson": "^5.3.3",
+          "lockRecord": "^5",
+          "locked": "5.3.3",
+          "satisfiesRange": true
+        }
+      ],
+      "reading": "Both lockfiles are refused for the link: dependency google (\"link:@next/font/google\") before their sync is checked.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the pack"
+      }
+    },
+    {
+      "repo": "Suhaib3100/online-compiler",
+      "commit": "f982961a6c7b5598e53015c2fea2accce64cc513",
+      "category": "pnpm-drift",
+      "refusal": "pnpm importer specifiers differ from committed manifests: prisma is \"^5.20.0\" in package.json but \"^5.17.0\" in pnpm-lock.yaml. Run pnpm install and commit the updated pnpm-lock.yaml.",
+      "lockfiles": ["pnpm-lock.yaml", "bun.lockb"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "Not a #324 case: bun.lockb is binary and never read, so the other lockfile is the only one.",
+      "lockfileState": {
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "pnpm importer specifiers differ from committed manifests: prisma is \"^5.20.0\" in package.json but \"^5.17.0\" in pnpm-lock.yaml. Run pnpm install and commit the updated pnpm-lock.yaml.",
+          "lockfileVersion": "9.0",
+          "importerSpecifiersMatch": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "pnpm-lock.yaml",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "prisma",
+          "packageJson": "^5.20.0",
+          "lockRecord": "^5.17.0",
+          "locked": "5.17.0",
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "prisma ^5.20.0 is declared; pnpm-lock.yaml records ^5.17.0 at 5.17.0. pnpm frozen installs require equal specifiers, so pnpm itself rejects it.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: pnpm importer specifiers differ from committed manifests: prisma is \"^5.20.0\" in package.json but \"^5.17.0\" in pnpm-lock.yaml. Run pnpm install and commit the updated pnpm-lock.yaml."
+      }
+    },
+    {
+      "repo": "Ankit-Sharma1011/Quill",
+      "commit": "bdd4055bf5887ba1c25ba22dcf68fb8e7e53e4e2",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "packageManager": "pnpm@11.1.2",
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "packageManager pins pnpm@11.1.2, but no GitHub workflow installs dependencies (.github/workflows/update-readme.yml); #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "The declared package manager differs from the committed npm lockfile.",
+          "recordsMatchPackageJson": true,
+          "npmCiAccepts": true
+        },
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "prepared",
+          "lockfileVersion": "9.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [],
+      "reading": "Both match package.json; package-lock.json alone is refused because packageManager pins pnpm. Choosing by the pin alone would widen #324 (pin and CI), so it stays refused.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the pack"
+      }
+    },
+    {
+      "repo": "avikalp987/quill",
+      "commit": "c8752fb04496999c2e16852e66f7dab20fe88d33",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "prepared",
+          "recordsMatchPackageJson": true,
+          "npmCiAccepts": true
+        },
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "prepared",
+          "lockfileVersion": "6.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [],
+      "reading": "Both lockfiles match package.json, so which one its installs use is unknown.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the pack"
+      }
+    },
+    {
+      "repo": "Yosef-Ali/compasstio-ai",
+      "commit": "51248326567925c5965bb18254971a9865a9ad84",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "yarn.lock"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: @blocknote/core is \"^0.26.0\" in package.json but \"^0.8.0\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        },
+        "yarn.lock": {
+          "refitAloneOnMain": "prepared",
+          "everyDeclaredRangeRecorded": true
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@blocknote/core",
+          "packageJson": "^0.26.0",
+          "lockRecord": "^0.8.0",
+          "locked": "0.8.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@blocknote/react",
+          "packageJson": "^0.26.0",
+          "lockRecord": "^0.8.0",
+          "locked": "0.8.0",
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "package-lock.json locks @blocknote/core and @blocknote/react 0.8.0 for ^0.26.0; yarn.lock records every declared range.",
+      "after": {
+        "candidate": "b",
+        "outcome": "prepared from yarn.lock with yarn@1.22.22; package-lock.json not read (out of sync)"
+      }
+    },
+    {
+      "repo": "dheerajcl/Jynx2.0",
+      "commit": "1ee684ef3ac2ba1c17e771dbc5b8bdc1b754318a",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "prepared",
+          "recordsMatchPackageJson": true,
+          "npmCiAccepts": true
+        },
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "prepared",
+          "lockfileVersion": "6.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [],
+      "reading": "Both lockfiles match package.json, so which one its installs use is unknown.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the pack"
+      }
+    },
+    {
+      "repo": "eka0789/evofuture",
+      "commit": "af720ff8553f976e37d1459d31751eac6df4dc45",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: socket.io is missing in package.json but \"^4.8.3\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [".github/workflows/ci.yml: npm ci"],
+      "deployFiles": [
+        "Dockerfile: # Install dependencies only when needed ; RUN npm ci",
+        "vercel.json: \"buildCommand\": \"prisma generate && next build\", ; \"devCommand\": \"next dev\", ; \"installCommand\": \"npm install\","
+      ],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: socket.io is missing in package.json but \"^4.8.3\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": true
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "socket.io",
+          "packageJson": null,
+          "lockRecord": "^4.8.3",
+          "note": "only in the lockfile record; npm ci prunes it"
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "socket.io-client",
+          "packageJson": null,
+          "lockRecord": "^4.8.3",
+          "note": "only in the lockfile record; npm ci prunes it"
+        }
+      ],
+      "reading": "Only the lockfile record still lists socket.io and socket.io-client; npm ci prunes them. Its own CI runs npm ci.",
+      "after": {
+        "candidate": "a",
+        "outcome": "prepared: npm ci accepts the committed package-lock.json unchanged"
+      }
+    },
+    {
+      "repo": "ensarokumus/tldr-app",
+      "commit": "566f26eba716ec137eb695ed597ceeb6b0a5d6bf",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "yarn.lock"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "prepared",
+          "recordsMatchPackageJson": true,
+          "npmCiAccepts": true
+        },
+        "yarn.lock": {
+          "refitAloneOnMain": "prepared",
+          "everyDeclaredRangeRecorded": true
+        }
+      },
+      "differingDependencies": [],
+      "reading": "Both lockfiles match package.json, so which one its installs use is unknown.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package m"
+      }
+    },
+    {
+      "repo": "Eziox-Development/eziox-web",
+      "commit": "1b42f1e2b2fa6729c402409c3aa52c8e67071cff",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: @tailwindcss/vite is \"^4.2.0\" in package.json but \"^4.1.18\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json", "bun.lock"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [
+        ".npmrc: # Legacy peer deps (for compatibility) ; legacy-peer-deps=false",
+        "vercel.json: \"buildCommand\": \"bun run build\", ; \"installCommand\": \"bun install\", ; \"devCommand\": null,"
+      ],
+      "why324DidNotApply": "Not a #324 case: Refit reads bun.lock only when it is the sole lockfile, so package-lock.json is used.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: @tailwindcss/vite is \"^4.2.0\" in package.json but \"^4.1.18\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        },
+        "bun.lock": {
+          "refitAloneOnMain": "Automatic preparation does not read bunfig.toml, which can change the registry or the node_modules layout Bun installs. Validate with a custom image."
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tailwindcss/vite",
+          "packageJson": "^4.2.0",
+          "lockRecord": "^4.1.18",
+          "locked": "4.1.18",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-devtools",
+          "packageJson": "^0.9.6",
+          "lockRecord": "^0.9.2",
+          "locked": "0.9.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-query",
+          "packageJson": "^5.90.21",
+          "lockRecord": "^5.90.16",
+          "locked": "5.90.20",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-query-devtools",
+          "packageJson": "^5.91.3",
+          "lockRecord": "^5.91.2",
+          "locked": "5.91.3",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-router",
+          "packageJson": "^1.162.1",
+          "lockRecord": "^1.158.1",
+          "locked": "1.159.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-router-devtools",
+          "packageJson": "^1.162.1",
+          "lockRecord": "^1.158.1",
+          "locked": "1.159.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-router-ssr-query",
+          "packageJson": "^1.162.1",
+          "lockRecord": "^1.158.1",
+          "locked": "1.159.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/react-start",
+          "packageJson": "^1.162.1",
+          "lockRecord": "^1.158.3",
+          "locked": "1.159.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/router-plugin",
+          "packageJson": "^1.162.1",
+          "lockRecord": "^1.158.1",
+          "locked": "1.159.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/start-plugin-core",
+          "packageJson": "^1.162.1",
+          "lockRecord": "^1.158.3",
+          "locked": "1.159.5",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@tanstack/start-server-core",
+          "packageJson": "^1.162.1",
+          "lockRecord": "^1.158.3",
+          "locked": "1.159.4",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "cloudinary",
+          "packageJson": "^2.9.0",
+          "lockRecord": "^2.8.0",
+          "locked": "2.9.0",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "emoji-picker-react",
+          "packageJson": "^4.18.0",
+          "lockRecord": "^4.18.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "i18next",
+          "packageJson": "^25.8.13",
+          "lockRecord": "^25.8.0",
+          "locked": "25.8.4",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "i18next-browser-languagedetector",
+          "packageJson": "^8.2.1",
+          "lockRecord": "^8.2.0",
+          "locked": "8.2.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "motion",
+          "packageJson": "^12.34.3",
+          "lockRecord": "^12.26.1",
+          "locked": "12.34.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "otplib",
+          "packageJson": "^13.3.0",
+          "lockRecord": "^13.1.1",
+          "locked": "13.2.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react",
+          "packageJson": "^19.2.4",
+          "lockRecord": "^19.2.3",
+          "locked": "19.2.4",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-day-picker",
+          "packageJson": "^9.13.2",
+          "lockRecord": "^9.13.0",
+          "locked": "9.13.2",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-dom",
+          "packageJson": "^19.2.4",
+          "lockRecord": "^19.2.3",
+          "locked": "19.2.4",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-hook-form",
+          "packageJson": "^7.71.2",
+          "lockRecord": "^7.71.0",
+          "locked": "7.71.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "react-resizable-panels",
+          "packageJson": "^4.6.5",
+          "lockRecord": "^4.4.0",
+          "locked": "4.6.2",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "recharts",
+          "packageJson": "^3.7.0",
+          "lockRecord": "^3.6.0",
+          "locked": "3.7.0",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "resend",
+          "packageJson": "^6.9.2",
+          "lockRecord": "^6.8.0",
+          "locked": "6.9.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "stripe",
+          "packageJson": "^20.3.1",
+          "lockRecord": "^20.2.0",
+          "locked": "20.3.1",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "tailwind-merge",
+          "packageJson": "^3.5.0",
+          "lockRecord": "^3.4.0",
+          "locked": "3.4.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "tailwindcss",
+          "packageJson": "^4.2.0",
+          "lockRecord": "^4.1.18",
+          "locked": "4.1.18",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "vite-tsconfig-paths",
+          "packageJson": "^6.1.1",
+          "lockRecord": "^6.0.4",
+          "locked": "6.1.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "zod",
+          "packageJson": "^4.3.6",
+          "lockRecord": "^4.3.5",
+          "locked": "4.3.6",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@tanstack/router-cli",
+          "packageJson": "^1.162.1",
+          "lockRecord": "^1.149.0",
+          "locked": "1.159.4",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@testing-library/react",
+          "packageJson": "^16.3.2",
+          "lockRecord": "^16.3.1",
+          "locked": "16.3.2",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@types/bun",
+          "packageJson": "^1.3.9",
+          "lockRecord": "^1.3.5",
+          "locked": "1.3.8",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@types/react",
+          "packageJson": "^19.2.14",
+          "lockRecord": "^19.2.8",
+          "locked": "19.2.13",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@typescript-eslint/eslint-plugin",
+          "packageJson": "^8.56.0",
+          "lockRecord": "^8.53.0",
+          "locked": "8.55.0",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "@vitejs/plugin-react",
+          "packageJson": "^5.1.4",
+          "lockRecord": "^5.1.2",
+          "locked": "5.1.4",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "drizzle-kit",
+          "packageJson": "^0.31.9",
+          "lockRecord": "^0.31.8",
+          "locked": "0.31.9",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "eslint-plugin-unused-imports",
+          "packageJson": "^4.4.1",
+          "lockRecord": "^4.3.0",
+          "locked": "4.4.1",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "npm-check-updates",
+          "packageJson": "^19.4.1",
+          "lockRecord": "^19.3.1",
+          "locked": "19.3.2",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "prettier",
+          "packageJson": "^3.8.1",
+          "lockRecord": "^3.7.4",
+          "locked": "3.8.1",
+          "satisfiesRange": true
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "vite",
+          "packageJson": "npm:rolldown-vite@7.1.16",
+          "lockRecord": "npm:rolldown-vite@latest",
+          "locked": "7.3.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "vitest",
+          "packageJson": "^4.0.18",
+          "lockRecord": "^4.0.17",
+          "locked": "4.0.18",
+          "satisfiesRange": true
+        }
+      ],
+      "reading": "27 declarations are not satisfied by the locked versions; its deploy uses bun install, but its bun.lock path is refused for the committed bunfig.toml.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: @tailwindcss/vite is \"^4.2.0\" in package.json but \"^4.1.18\" in the lockfile. Run npm install and commit the updated package-lock."
+      }
+    },
+    {
+      "repo": "karljuhl/Club_Connect",
+      "commit": "5c3cc8acc606128a130463137e12f1e3442d75fd",
+      "category": "conflicting-lockfiles",
+      "refusal": "Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "nestedLockfiles": ["chatbotjs/package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": [],
+      "why324DidNotApply": "No packageManager pin and no GitHub workflow that installs dependencies; #324 needs both.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: jsdom is \"^24.0.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        },
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "prepared",
+          "lockfileVersion": "6.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "jsdom",
+          "packageJson": "^24.0.0",
+          "lockRecord": "^24.0.0",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "next-themes",
+          "packageJson": "^0.3.0",
+          "lockRecord": "^0.2.1",
+          "locked": "0.2.1",
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "nodemailer",
+          "packageJson": "^6.9.13",
+          "lockRecord": "^6.9.13",
+          "locked": null,
+          "satisfiesRange": false
+        },
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "devDependencies",
+          "name": "eslint",
+          "packageJson": "8.56.0",
+          "lockRecord": "8.11.0",
+          "locked": "8.11.0",
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "package-lock.json lacks jsdom and nodemailer and locks next-themes 0.2.1 and eslint 8.11.0 outside their ranges; pnpm-lock.yaml (v6) matches. chatbotjs/package-lock.json is a separate project.",
+      "after": {
+        "candidate": "b",
+        "outcome": "prepared from pnpm-lock.yaml with pnpm@8.15.9; package-lock.json not read (out of sync)"
+      }
+    },
+    {
+      "repo": "shagunmistry/FlowCraft",
+      "commit": "ae2e307c4e725bde23e9829d8d1bc97946338c8d",
+      "category": "pnpm-drift",
+      "refusal": "pnpm overrides differ from the overrides pnpm-lock.yaml records. Run pnpm install and commit the updated pnpm-lock.yaml.",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": ["vercel.json: \"buildCommand\": \"npm run build\""],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "prepared",
+          "lockfileVersion": "9.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [],
+      "reading": "Run 40236299492 was at 179c6bc; main 443f8bf7 has c8d5e771, so FlowCraft prepares there already (its resolutions merge into the recorded overrides).",
+      "after": {
+        "candidate": "none",
+        "outcome": "already prepared on main 443f8bf7 (pnpm@9.15.9; c8d5e771 checks overrides only with patches)"
+      }
+    },
+    {
+      "repo": "Amarnath0077/industrialstore-main",
+      "commit": "32a6cd5110ba2d8c59406eefd26be2fb7e842515",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: @vercel/node is \"^5.0.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": ["vercel.json:"],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: @vercel/node is \"^5.0.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": false
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "@vercel/node",
+          "packageJson": "^5.0.0",
+          "lockRecord": "^5.0.0",
+          "locked": null,
+          "satisfiesRange": false
+        }
+      ],
+      "reading": "@vercel/node ^5.0.0 is declared and not locked.",
+      "after": {
+        "candidate": "none",
+        "outcome": "stays refused: package.json dependencies differ from the committed package-lock.json: @vercel/node is \"^5.0.0\" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json."
+      }
+    },
+    {
+      "repo": "kondax-com/Bocker",
+      "commit": "084bfee71fa441fac8850a11b5ade649e9005bb4",
+      "category": "pnpm-drift",
+      "refusal": "pnpm dependency preparation failed (1).  added 1 package in 2s  ERR_PNPM_LOCKFILE_CONFIG_MISMATCH  Cannot proceed with the frozen installation. The current \"patchedDependencies\" configuration doesn't match the value found in the lockfile  Update your lockfile using \"pnpm install --no-frozen-lockfile...",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [],
+      "deployFiles": ["vercel.json:"],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "pnpm-lock.yaml": {
+          "refitAloneOnMain": "NOT FETCHED: patches/next@15.3.6.patch",
+          "lockfileVersion": "9.0",
+          "importerSpecifiersMatch": true
+        }
+      },
+      "differingDependencies": [],
+      "reading": "No packageManager pin; pnpm-lock.yaml records next@15.3.6's patch with SHA-256 5d1eaeaa…, equal to the committed file (no CRLF). pnpm 9.15.9 hashes patches as base32, so its frozen install failed.",
+      "after": {
+        "candidate": "pnpm-10-patches",
+        "outcome": "prepared with pnpm@10.34.7: the lockfile records pnpm 10's SHA-256 patch hashes, which pnpm 9.15.9 (main's fallback) cannot match"
+      }
+    },
+    {
+      "repo": "brandbite/brandbite",
+      "commit": "22f3265b033e9d67d6939f1221f1cebd475a2b96",
+      "category": "npm-drift",
+      "refusal": "package.json dependencies differ from the committed package-lock.json: pdfjs-dist is \"4.10.38\" in package.json but \"^4.10.38\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+      "lockfiles": ["package-lock.json"],
+      "packageManager": null,
+      "githubWorkflowInstalls": [
+        ".github/workflows/ci.yml: npm ci",
+        ".github/workflows/lighthouse.yml: npm ci"
+      ],
+      "deployFiles": ["vercel.json: \"buildCommand\": \"npm run vercel-build\","],
+      "why324DidNotApply": "Not a #324 case: one lockfile.",
+      "lockfileState": {
+        "package-lock.json": {
+          "refitAloneOnMain": "package.json dependencies differ from the committed package-lock.json: pdfjs-dist is \"4.10.38\" in package.json but \"^4.10.38\" in the lockfile. Run npm install and commit the updated package-lock.json.",
+          "recordsMatchPackageJson": false,
+          "npmCiAccepts": true
+        }
+      },
+      "differingDependencies": [
+        {
+          "lockfile": "package-lock.json",
+          "importer": ".",
+          "section": "dependencies",
+          "name": "pdfjs-dist",
+          "packageJson": "4.10.38",
+          "lockRecord": "^4.10.38",
+          "locked": "4.10.38",
+          "satisfiesRange": true
+        }
+      ],
+      "reading": "pdfjs-dist is pinned at 4.10.38, the locked version (the record says ^4.10.38). Its own CI runs npm ci.",
+      "after": {
+        "candidate": "a",
+        "outcome": "prepared: npm ci accepts the committed package-lock.json unchanged"
+      }
+    }
+  ]
+}
