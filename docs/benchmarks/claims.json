@@ -15814,7 +15814,18 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "refit-bench run [40283655210](https://github.com/refit-dev/refit-bench/actions/runs/40283655210) ran `refit classify-release`",
+      "quote": "run [40285557374](https://github.com/refit-dev/refit-bench/actions/runs/40285557374) at",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40285557374",
+          "reason": "A GitHub Actions run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "run [40283655210](https://github.com/refit-dev/refit-bench/actions/runs/40283655210) at",
       "values": [],
       "ignore": [
         {
@@ -15825,14 +15836,15 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Handling matched the catalog on 95 of 125 change statements.** 124 were classified; the one endive page whose output listed too many identifiers was refused and counts as wrong.",
+      "quote": "| Catalog statements whose matched changes all have its handling | 70/125 | 95/125 |",
       "values": [
         {
-          "says": "95",
+          "says": "70/125",
           "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
             "rows": "/rows",
-            "where": [
+            "measure": "fraction",
+            "part": [
               {
                 "field": "handlingCorrect",
                 "equals": true
@@ -15841,22 +15853,15 @@
           }
         },
         {
-          "says": "125",
+          "says": "95/125",
           "query": {
             "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
             "rows": "/rows",
-            "where": []
-          }
-        },
-        {
-          "says": "124",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/rows",
-            "where": [
+            "measure": "fraction",
+            "part": [
               {
-                "field": "predicted",
-                "exists": true
+                "field": "handlingCorrect",
+                "equals": true
               }
             ]
           }
@@ -15865,8 +15870,255 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Dangerous errors: 8**, a rule or AI edit where the catalog stops or has no signal. 5 are in basil.",
+      "quote": "| Catalog statements no change was matched to | 17 | 1 |",
       "values": [
+        {
+          "says": "17",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "handling",
+                "exists": false
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "handling",
+                "exists": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Catalog statements given a rule or AI edit where the catalog stops or has no signal (dangerous) | 8 | 8 |",
+      "values": [
+        {
+          "says": "8",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "dangerous",
+                "equals": true
+              }
+            ]
+          }
+        },
+        {
+          "says": "8",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
+            "rows": "/rows",
+            "where": [
+              {
+                "field": "dangerous",
+                "equals": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Pages with the catalog's category (API or Stripe.js) | 78/79 | 78/79 |",
+      "values": [
+        {
+          "says": "78/79",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
+            "rows": "/entries",
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "predicted.category",
+                "equalsField": "catalog.category"
+              }
+            ]
+          }
+        },
+        {
+          "says": "78/79",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
+            "rows": "/entries",
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "predicted.category",
+                "equalsField": "catalog.category"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Pages whose weakest handling is the catalog's | 62/79 | 61/79 |",
+      "values": [
+        {
+          "says": "62/79",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
+            "rows": "/entries",
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "predicted.handling",
+                "equalsField": "catalog.handling"
+              }
+            ]
+          }
+        },
+        {
+          "says": "61/79",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
+            "rows": "/entries",
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "predicted.handling",
+                "equalsField": "catalog.handling"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Statements whose matched changes all have the implied pack family | 9/26 | 21/26 |",
+      "values": [
+        {
+          "says": "9/26",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
+            "rows": "/rows",
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "familyCorrect",
+                "equals": true
+              }
+            ],
+            "where": [
+              {
+                "field": "catalog.family",
+                "notIn": ["none"]
+              }
+            ]
+          }
+        },
+        {
+          "says": "21/26",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
+            "rows": "/rows",
+            "measure": "fraction",
+            "part": [
+              {
+                "field": "familyCorrect",
+                "equals": true
+              }
+            ],
+            "where": [
+              {
+                "field": "catalog.family",
+                "notIn": ["none"]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Spend | $0.70 | $0.56 |",
+      "values": [
+        {
+          "says": "$0.70",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
+            "value": "/costUsd"
+          }
+        },
+        {
+          "says": "$0.56",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
+            "value": "/costUsd"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **The pages-only model listed 189 changes;** 2 shared no content word with any catalog statement and count as errors.",
+      "values": [
+        {
+          "says": "189",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
+            "value": "/summary/modelStatements"
+          }
+        },
+        {
+          "says": "2",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-results.json"],
+            "rows": "/extras"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Word matching is approximate.** Read by hand, the pages-only run's 50 rule or AI changes describe 8 catalog statements that stop or have no signal, the same 8 as with statements given; word matching put 15 of those 50 changes on a different catalog statement than the hand reading.",
+      "values": [
+        {
+          "says": "50",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-review.json"],
+            "rows": "/changes"
+          }
+        },
+        {
+          "says": "8",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-review.json"],
+            "rows": "/changes",
+            "flatten": "catalog",
+            "measure": "distinct",
+            "field": "statement",
+            "within": [
+              {
+                "field": "dangerous",
+                "equals": true
+              }
+            ],
+            "where": [
+              {
+                "field": "handling",
+                "in": ["stop", "none"]
+              }
+            ]
+          }
+        },
         {
           "says": "8",
           "query": {
@@ -15881,28 +16133,61 @@
           }
         },
         {
-          "says": "5",
+          "says": "15",
           "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/rows",
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-review.json"],
+            "rows": "/changes",
             "where": [
               {
-                "field": "dangerous",
-                "equals": true
-              },
-              {
-                "field": "release",
-                "equals": "2025-03-31.basil"
+                "field": "wordMatchAgrees",
+                "equals": false
               }
             ]
+          }
+        },
+        {
+          "says": "50",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-review.json"],
+            "rows": "/changes"
           }
         }
       ]
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Predicted `rule` was right on 7 of 12 statements,** and 7 of the catalog's 10 rules were predicted as rules; the other 3 were predicted `stop`.",
+      "quote": "- **Predicted `rule` was right on 7 of 18 pages-only changes, by hand,** and on 7 of 12 statements given.",
       "values": [
+        {
+          "says": "7",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-review.json"],
+            "rows": "/changes",
+            "where": [
+              {
+                "field": "handling",
+                "equals": "rule"
+              },
+              {
+                "field": "ruleNotInCatalog",
+                "equals": false
+              }
+            ]
+          }
+        },
+        {
+          "says": "18",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-26-release-classification-pages-review.json"],
+            "rows": "/changes",
+            "where": [
+              {
+                "field": "handling",
+                "equals": "rule"
+              }
+            ]
+          }
+        },
         {
           "says": "7",
           "query": {
@@ -15910,7 +16195,7 @@
             "rows": "/rows",
             "where": [
               {
-                "field": "predicted.handling",
+                "field": "handling",
                 "equals": "rule"
               },
               {
@@ -15927,55 +16212,8 @@
             "rows": "/rows",
             "where": [
               {
-                "field": "predicted.handling",
+                "field": "handling",
                 "equals": "rule"
-              }
-            ]
-          }
-        },
-        {
-          "says": "7",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/rows",
-            "where": [
-              {
-                "field": "catalog.handling",
-                "equals": "rule"
-              },
-              {
-                "field": "predicted.handling",
-                "equals": "rule"
-              }
-            ]
-          }
-        },
-        {
-          "says": "10",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/rows",
-            "where": [
-              {
-                "field": "catalog.handling",
-                "equals": "rule"
-              }
-            ]
-          }
-        },
-        {
-          "says": "3",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/rows",
-            "where": [
-              {
-                "field": "catalog.handling",
-                "equals": "rule"
-              },
-              {
-                "field": "predicted.handling",
-                "equals": "stop"
               }
             ]
           }
@@ -15984,88 +16222,14 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Page category (API or Stripe.js) matched on 78 of 79 pages;** the missing one is the refused page.",
+      "quote": "- A first dispatch, run 40283460948 with `gpt-5.6-luna`, was refused with HTTP 403 on all 79 pages and billed nothing; the key accepts only `gpt-6.1-sol`.",
       "values": [
-        {
-          "says": "78",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/entries",
-            "where": [
-              {
-                "field": "predicted.category",
-                "equalsField": "catalog.category"
-              }
-            ]
-          }
-        },
-        {
-          "says": "79",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/entries",
-            "where": []
-          }
-        }
-      ]
-    },
-    {
-      "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Pack families matched on 21 of 26 statements** where the catalog implies one.",
-      "values": [
-        {
-          "says": "21",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/rows",
-            "where": [
-              {
-                "field": "catalog.family",
-                "notIn": ["none"]
-              },
-              {
-                "field": "familyCorrect",
-                "equals": true
-              }
-            ]
-          }
-        },
-        {
-          "says": "26",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "rows": "/rows",
-            "where": [
-              {
-                "field": "catalog.family",
-                "notIn": ["none"]
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Spend: $0.56** of the $3 cap. The first dispatch, run 40283460948 with `gpt-5.6-luna`, was refused with HTTP 403 on all 79 pages and billed nothing; the key accepts only `gpt-6.1-sol`.",
-      "values": [
-        {
-          "says": "$0.56",
-          "query": {
-            "results": ["docs/benchmarks/2026-10-26-release-classification-results.json"],
-            "value": "/costUsd"
-          }
-        },
         {
           "says": "79",
           "notCheckable": "From the artifact of refit-bench run 40283460948, whose results (79 pages, each refused with HTTP 403) are not committed."
         }
       ],
       "ignore": [
-        {
-          "token": "$3",
-          "reason": "A configured limit or setting, not a measurement."
-        },
         {
           "token": "40283460948",
           "reason": "A GitHub Actions run id, not a measurement."
