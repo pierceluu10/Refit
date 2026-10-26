@@ -108,20 +108,125 @@ it('installs with the lockfile of the pinned manager when the repository CI inst
   ).rejects.toThrow(conflict);
 });
 
-it('keeps refusing conflicting lockfiles without a pinned manager', async () => {
-  // Yosef-Ali/compasstio-ai at 5124832 commits package-lock.json and yarn.lock, with no
-  // packageManager and no CI: which manager is real is a guess.
+// A package-lock.json whose root records stripe as `recorded` and locks stripe `version`.
+const npmLockAt = (recorded: string, version: string) =>
+  JSON.stringify({
+    name: 'app',
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      '': { name: 'app', dependencies: { stripe: recorded } },
+      'node_modules/stripe': {
+        version,
+        resolved: `https://registry.npmjs.org/stripe/-/stripe-${version}.tgz`,
+        integrity: INTEGRITY,
+      },
+    },
+  });
+const yarnLock = (range: string, integrity = `  integrity ${INTEGRITY}\n`) =>
+  `# yarn lockfile v1\n\n\n"stripe@${range}":\n  version "10.17.0"\n  resolved "https://registry.yarnpkg.com/stripe/-/stripe-10.17.0.tgz"\n${integrity}`;
+const manifest = (range: string) =>
+  JSON.stringify({ name: 'app', dependencies: { stripe: range } });
+
+it('installs the one committed lockfile in sync with package.json and records why the other was not read', async () => {
+  // saidMounaim/tick-event at 18df566 (no packageManager, no CI): package.json pins next 15.3.8,
+  // package-lock.json still locks 15.3.4, and pnpm-lock.yaml matches package.json.
+  const tickEvent = await readPreparationInputs(
+    await commit({
+      'package.json': manifest('10.17.0'),
+      'package-lock.json': npmLockAt('10.16.0', '10.16.0'),
+      'pnpm-lock.yaml': pnpmLock(),
+    }),
+  );
+  expect(tickEvent.inputs).toMatchObject({
+    manager: 'pnpm',
+    lockfileChoice: {
+      lockfile: 'pnpm-lock.yaml',
+      outOfSync: {
+        'package-lock.json':
+          'package.json dependencies differ from the committed package-lock.json: stripe is "10.17.0" in package.json but "10.16.0" in the lockfile.',
+      },
+    },
+  });
+  expect([...tickEvent.files.keys()]).not.toContain('package-lock.json');
+  // Yosef-Ali/compasstio-ai at 5124832 (no packageManager, no CI): package.json asks for
+  // @blocknote/core ^0.26.0, package-lock.json still locks 0.8.0, and yarn.lock records ^0.26.0.
+  const compasstio = await readPreparationInputs(
+    await commit({
+      'package.json': manifest('^10.17.0'),
+      'package-lock.json': npmLockAt('^9.0.0', '9.0.0'),
+      'yarn.lock': yarnLock('^10.17.0'),
+    }),
+  );
+  expect(compasstio.inputs).toMatchObject({
+    manager: 'yarn',
+    lockfileChoice: {
+      lockfile: 'yarn.lock',
+      outOfSync: {
+        'package-lock.json':
+          'package.json dependencies differ from the committed package-lock.json: stripe is "^10.17.0" in package.json but "^9.0.0" in the lockfile.',
+      },
+    },
+  });
+  expect([...compasstio.files.keys()]).toEqual(['package.json', 'yarn.lock']);
+});
+
+it('keeps refusing several lockfiles unless exactly one is in sync and the others are out of sync', async () => {
+  const conflict = (other: string) =>
+    `The repository commits package-lock.json and ${other}; keep only the lockfile of the package manager you use.`;
+  // cesarolvr/journeylog-app at 74f52ec: both lockfiles match package.json, so either could be the
+  // one its installs use.
   await expect(
     readPreparationInputs(
       await commit({
-        'package.json': JSON.stringify({ name: 'compasstio', dependencies: { stripe: '10.17.0' } }),
-        'package-lock.json': npmLock,
-        'yarn.lock': '# yarn lockfile v1\n',
+        'package.json': manifest('10.17.0'),
+        'package-lock.json': npmLockAt('10.17.0', '10.17.0'),
+        'yarn.lock': yarnLock('10.17.0'),
       }),
     ),
-  ).rejects.toThrow(
-    'The repository commits package-lock.json and yarn.lock; keep only the lockfile of the package manager you use.',
-  );
+  ).rejects.toThrow(conflict('yarn.lock'));
+  // Librum-Reader/Librum-Website at 60d5159: yarn.lock is refused for missing integrity, which says
+  // nothing about which lockfile its installs use.
+  await expect(
+    readPreparationInputs(
+      await commit({
+        'package.json': manifest('10.17.0'),
+        'package-lock.json': npmLockAt('10.17.0', '10.17.0'),
+        'yarn.lock': yarnLock('10.17.0', ''),
+      }),
+    ),
+  ).rejects.toThrow(conflict('yarn.lock'));
+  // Neither is in sync.
+  await expect(
+    readPreparationInputs(
+      await commit({
+        'package.json': manifest('10.17.0'),
+        'package-lock.json': npmLockAt('10.16.0', '10.16.0'),
+        'pnpm-lock.yaml': pnpmLock().replace('"specifier":"10.17.0"', '"specifier":"10.16.0"'),
+      }),
+    ),
+  ).rejects.toThrow(conflict('pnpm-lock.yaml'));
+  // Only one is in sync, but check selection would run the checks with pnpm, which the lockfile in
+  // sync does not install with.
+  const stalePnpmLock = pnpmLock().replace('"specifier":"10.17.0"', '"specifier":"10.16.0"');
+  await expect(
+    readPreparationInputs(
+      await commit({
+        'package.json': manifest('10.17.0'),
+        'package-lock.json': npmLockAt('10.17.0', '10.17.0'),
+        'pnpm-lock.yaml': stalePnpmLock,
+      }),
+    ),
+  ).rejects.toThrow(conflict('pnpm-lock.yaml'));
+  await expect(
+    readPreparationInputs(
+      await commit({
+        'package.json': manifest('10.17.0'),
+        'pnpm-lock.yaml': stalePnpmLock,
+        'yarn.lock': yarnLock('10.17.0'),
+      }),
+    ),
+  ).rejects.toThrow('keep only the lockfile of the package manager you use.');
 });
 
 it('gives pnpm each committed patch file whose SHA-256 pnpm-lock.yaml records', async () => {

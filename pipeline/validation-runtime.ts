@@ -214,6 +214,21 @@ function parseVersion(version: string): Version {
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
 
+// Whether a release version is inside an npm dependency range, read with the grammar above. A
+// prerelease, or a range it cannot read (a tag, an alias, a URL), answers false.
+export function satisfiesNpmRange(version: string, range: string) {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+  if (!match) return false;
+  const parsed: Version = [Number(match[1]), Number(match[2]), Number(match[3])];
+  try {
+    return npmRange({ source: 'engines.node', value: range }).some((interval) =>
+      contains(interval, parsed),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function satisfiesNodeDeclarations(version: string, declarations: NodeDeclaration[]) {
   const parsed = parseVersion(version);
   return declarations.every((declaration) =>

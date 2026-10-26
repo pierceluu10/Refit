@@ -125,6 +125,118 @@ it('requires matching root dependency declarations and rejects non-registry over
   ).toThrow(/overrides/);
 });
 
+const locked = (versions: Record<string, string | Record<string, unknown>>) =>
+  Object.fromEntries(
+    Object.entries(versions).map(([name, version]) => [
+      `node_modules/${name}`,
+      typeof version === 'string'
+        ? {
+            version,
+            resolved: `https://registry.npmjs.org/${name}/-/${name.split('/').at(-1)}-${version}.tgz`,
+            integrity: STRONG_INTEGRITY,
+          }
+        : version,
+    ]),
+  );
+
+interface Drift {
+  declared: Record<string, string>;
+  recorded: Record<string, string>;
+  versions: Record<string, string | Record<string, unknown>>;
+}
+
+// npm ci keeps a locked version that satisfies the declared range and prunes what package.json no
+// longer declares, so it installs these committed lockfiles unchanged.
+it.each<Drift & { repository: string }>([
+  {
+    // brandbite/brandbite at 22f3265 pins pdfjs-dist 4.10.38, the version its lockfile locks.
+    repository: 'brandbite/brandbite',
+    declared: { 'pdfjs-dist': '4.10.38' },
+    recorded: { 'pdfjs-dist': '^4.10.38' },
+    versions: { 'pdfjs-dist': '4.10.38' },
+  },
+  {
+    // eka0789/evofuture at af720ff dropped socket.io and socket.io-client from package.json only.
+    repository: 'eka0789/evofuture',
+    declared: { stripe: '^20.4.0' },
+    recorded: { stripe: '^20.4.0', 'socket.io': '^4.8.3', 'socket.io-client': '^4.8.3' },
+    versions: { stripe: '20.4.0', 'socket.io': '4.8.3', 'socket.io-client': '4.8.3' },
+  },
+])('accepts drift npm ci accepts ($repository)', ({ declared, recorded, versions }) => {
+  const lockContent = JSON.stringify({
+    lockfileVersion: 3,
+    packages: { '': { name: 'app', dependencies: recorded }, ...locked(versions) },
+  });
+  expect(
+    validateNpmLock(JSON.stringify({ name: 'app', dependencies: declared }), lockContent),
+  ).toMatchObject({ lockHash: digest(lockContent) });
+});
+
+it.each<Drift & { section: string; message: string }>([
+  {
+    // SergeySharipov/ai-companion-saas at b680ee2 pins next 15.3.6; the lockfile locks 15.3.0.
+    section: 'dependencies',
+    declared: { next: '15.3.6' },
+    recorded: { next: '15.3.0' },
+    versions: { next: '15.3.0' },
+    message: 'next is "15.3.6" in package.json but "15.3.0" in the lockfile.',
+  },
+  {
+    // baifan1366/project-management-system at 700d317: ^2.0.5 excludes the locked sonner 2.0.1.
+    section: 'dependencies',
+    declared: { sonner: '^2.0.5' },
+    recorded: { sonner: '^2.0.1' },
+    versions: { sonner: '2.0.1' },
+    message: 'sonner is "^2.0.5" in package.json but "^2.0.1" in the lockfile.',
+  },
+  {
+    // piyush805/miro-clone at eddde6a added stripe to package.json and never locked it.
+    section: 'dependencies',
+    declared: { stripe: '^16.7.0' },
+    recorded: {},
+    versions: {},
+    message: 'stripe is "^16.7.0" in package.json but missing in the lockfile.',
+  },
+  {
+    // Eziox-Development/eziox-web at 1b42f1e locks rolldown-vite 7.3.1 under the vite alias.
+    // Aliased entries are never compared, so drift on one refuses.
+    section: 'devDependencies',
+    declared: { vite: 'npm:rolldown-vite@7.1.16' },
+    recorded: { vite: 'npm:rolldown-vite@latest' },
+    versions: {
+      vite: {
+        name: 'rolldown-vite',
+        version: '7.3.1',
+        resolved: 'https://registry.npmjs.org/rolldown-vite/-/rolldown-vite-7.3.1.tgz',
+        integrity: STRONG_INTEGRITY,
+      },
+    },
+    message: 'vite is "npm:rolldown-vite@7.1.16" in package.json but "npm:rolldown-vite@latest"',
+  },
+])(
+  'refuses drift npm ci rejects, naming the declaration it rejects: $message',
+  ({ section, declared, recorded, versions, message }) => {
+    // ArhanAnsari/InspireGem at a6bf456 also moved react to ^18.3.1, which the locked 18.3.1
+    // satisfies: npm ci accepts that first difference, so the refusal names the next one.
+    const shape = (react: string, value: Record<string, string>) =>
+      section === 'dependencies'
+        ? { dependencies: { react, ...value } }
+        : { dependencies: { react }, [section]: value };
+    expect(() =>
+      validateNpmLock(
+        JSON.stringify({ name: 'app', ...shape('^18.3.1', declared) }),
+        JSON.stringify({
+          lockfileVersion: 3,
+          packages: {
+            '': { name: 'app', ...shape('^18.2.0', recorded) },
+            ...locked({ react: '18.3.1', ...versions }),
+          },
+        }),
+      ),
+    ).toThrow(`package.json ${section} differ from the committed package-lock.json: ${message}`);
+  },
+);
+
 // npm's own lockfile entry bundles its dependencies: they ship inside npm's verified tarball.
 const npmRecord = {
   version: '10.9.2',

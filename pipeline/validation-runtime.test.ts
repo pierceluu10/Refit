@@ -9,6 +9,7 @@ import { validateSourcePatch } from './validation.ts';
 import {
   nodeDeclarations,
   satisfiesNodeDeclarations,
+  satisfiesNpmRange,
   selectValidationRuntime,
   type NodeDeclaration,
 } from './validation-runtime.ts';
@@ -106,6 +107,17 @@ it('resolves npm engines ranges the way npm does for release versions', () => {
     for (const version of refused)
       expect(satisfiesNodeDeclarations(version, engines(range)), `${range} ${version}`).toBe(false);
   }
+});
+
+it('reads npm dependency ranges with the same grammar and refuses forms it cannot compare', () => {
+  expect(satisfiesNpmRange('4.10.38', '4.10.38')).toBe(true);
+  expect(satisfiesNpmRange('2.0.1', '^2.0.5')).toBe(false);
+  expect(satisfiesNpmRange('0.0.36', '^0.0.36')).toBe(true);
+  expect(satisfiesNpmRange('0.0.37', '^0.0.36')).toBe(false);
+  // A prerelease, a tag and an alias are not compared, so drift on them still refuses.
+  expect(satisfiesNpmRange('11.0.0-rc.818', '^11.0.0-rc.708')).toBe(false);
+  expect(satisfiesNpmRange('7.3.1', 'latest')).toBe(false);
+  expect(satisfiesNpmRange('7.3.1', 'npm:rolldown-vite@^7.1.16')).toBe(false);
 });
 
 it('treats version-manager pins as their release line and needs every declaration to hold', () => {

@@ -2171,6 +2171,51 @@
         "upgradeComplete": "yes: stripe ^15.12.0 to ^23.0.0 in package.json, package-lock.json and yarn.lock (qs block only the old stripe reached removed); both lockfiles locked 15.12.0.",
         "wouldMerge": "yes, after npm install and the project's own type check, once the 4 listed findings are checked."
       }
+    },
+    {
+      "repo": "Yosef-Ali/compasstio-ai",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40283157523 (before, bench/l2-prep3-before 3f42dd5 = main 443f8bf7 + docs/benchmarks/subsets/l2-prep-3.json) and 40295039626 (after, feat/l2-prep-3 be77f1a), default flags, no AI. Before: dependencies refused (two lockfiles), the patch with the pin moved published untested. After: yarn.lock installed as the only lockfile in sync; tsc failed on the pin move (stripe-node upgrade skipped: yarn.lock locks stripe for more than the root declaration), so the workflow kept the pins and validated the rest; migration.patch from the shard-5 artifact read in full",
+      "reviewedAt": "2026-10-26",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: in convex/stripe.ts both current_period_end reads go through getSubscriptionPeriodEnd and, inside the invoice.payment_succeeded branch, the invoice's subscription goes through getInvoiceSubscription (parent.subscription_details.subscription in basil); the checkout.session.completed branch keeps Checkout Session.subscription, which Stripe kept.",
+        "bothVersions": "yes: each helper returns the old field when the object has it, and every client still sends 2023-10-16.",
+        "nothingUnrelated": "yes: one file, the generated helpers and three read sites; the whole-file hunk rewrites the same lines.",
+        "pleaseCheck": "The draft lists the three 2023-10-16 pins left (convex/stripe.ts:23, :70, :132) and the untraced Checkout request in app/actions/stripe.ts.",
+        "upgradeComplete": "no: apiVersion and stripe-node are left; the draft asks to move each pin to 2026-09-30.endive, upgrade stripe-node and fix what tsc reports.",
+        "wouldMerge": "yes, as forward-compatible preparation; the version upgrade is still manual. tsc passes on both sides (grade C)."
+      }
+    },
+    {
+      "repo": "karljuhl/Club_Connect",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40283157523 (before, main 443f8bf7 + subset) and 40295039626 (after, feat/l2-prep-3 be77f1a). Before: dependencies refused (two lockfiles), the patch with the pin moved published untested. After: pnpm-lock.yaml installed as the only lockfile in sync; tsc failed on the pin move (stripe-node upgrade skipped: stripe 23.0.0 needs @types/node >=20), so the workflow kept the pin and validated the rest; migration.patch from the shard-7 artifact read in full",
+      "reviewedAt": "2026-10-26",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: in app/api/webhooks/stripe/route.ts both current_period_end reads go through getSubscriptionPeriodEnd (items[0] where items differ, the existing helper's choice), and the invoice.payment_succeeded branch reads the subscription id through getInvoiceSubscription; the checkout.session.completed branch keeps Checkout Session.subscription.",
+        "bothVersions": "yes: the helpers return the old field when the webhook payload has it, so events at either version work.",
+        "nothingUnrelated": "yes: one file, the generated helpers and three read sites.",
+        "pleaseCheck": "The draft lists the pin left at its committed version and every unresolved finding.",
+        "upgradeComplete": "no: the pin and stripe-node stay; the draft asks to move the pin to 2026-09-30.endive, upgrade stripe-node (after @types/node 20) and fix what tsc reports.",
+        "wouldMerge": "yes, as forward-compatible preparation; tsc passes on both sides with 177 errors already on the original code (compareTypeErrors, none introduced)."
+      }
+    },
+    {
+      "repo": "omar99elnemr/Docubot",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40283157523 (before, main 443f8bf7 + subset) and 40295039626 (after, feat/l2-prep-3 be77f1a). Before: dependencies refused (two lockfiles), the patch with src/lib/stripe.ts moved to 2026-09-30.endive published untested. After: pnpm-lock.yaml (v6, pnpm 8.15.9) installed as the only lockfile in sync; tsc failed on the pin move (stripe-node upgrade skipped: the two lockfiles lock stripe 14.5.0 and 14.8.0), so the workflow kept the pin and validated the rest; migration.patch from the shard-3 artifact read in full",
+      "reviewedAt": "2026-10-26",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: in src/app/api/webhooks/stripe/route.ts both current_period_end reads go through getSubscriptionPeriodEnd (items[0] where items differ, the existing helper's choice), and the invoice.payment_succeeded branch reads the subscription id through getInvoiceSubscription; the checkout.session.completed branch keeps Checkout Session.subscription.",
+        "bothVersions": "yes: the helpers return the old field when the webhook payload has it.",
+        "nothingUnrelated": "yes: one file, the generated helpers and three read sites; src/lib/stripe.ts is no longer edited.",
+        "pleaseCheck": "The draft lists the src/lib/stripe.ts pin left at 2023-10-16 and every unresolved finding.",
+        "upgradeComplete": "no: the pin and stripe-node stay; the draft asks to move the pin to 2026-09-30.endive, upgrade stripe-node and fix what tsc reports.",
+        "wouldMerge": "yes, as forward-compatible preparation; tsc passes on both sides with 9 errors already on the original code (none introduced)."
+      }
     }
   ]
 }

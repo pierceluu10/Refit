@@ -583,9 +583,10 @@ it('checks committed npm inputs through the same preparation gate without instal
     status: 'passed',
     detail: expect.stringContaining('Installation and engine compatibility were not tested'),
   });
+  // A dependency the lockfile neither records nor locks; npm ci rejects it (a locked 1.0.0 would do).
   await writeFile(
     join(sample.repository, 'package-lock.json'),
-    JSON.stringify({ ...lock, packages: { ...lock.packages, '': { dependencies: {} } } }),
+    JSON.stringify({ ...lock, packages: { '': { dependencies: {} } } }),
   );
   await commit(sample.repository);
   const rejected = await inspectRepositoryReadiness({ repository: sample.repository });

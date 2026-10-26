@@ -446,6 +446,25 @@ it('says when Refit installed a translation of the committed bun.lock', async ()
   );
 });
 
+it('says which of several committed lockfiles Refit installed and why it did not read the other', async () => {
+  const value = await report();
+  expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('only one in sync');
+  // karljuhl/Club_Connect at 5c3cc8a commits package-lock.json beside the pnpm-lock.yaml it uses.
+  value.validation.environment = {
+    installation: {},
+    lockfileChoice: {
+      lockfile: 'pnpm-lock.yaml',
+      outOfSync: {
+        'package-lock.json':
+          'package.json dependencies differ from the committed package-lock.json: jsdom is "^24.0.0" in package.json but missing in the lockfile.',
+      },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the repository commits `pnpm-lock.yaml` and `package-lock.json`. Refit installed `pnpm-lock.yaml`, the only one in sync with `package.json`, and did not read the other: package.json dependencies differ from the committed package-lock.json: jsdom is "^24.0.0" in package.json but missing in the lockfile. Delete the lockfile your package manager does not use.',
+  );
+});
+
 it('says how many glibc-only packages Refit removed after the verified npm install', async () => {
   const value = await report();
   expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('glibc');
