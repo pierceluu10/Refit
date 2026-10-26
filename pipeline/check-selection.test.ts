@@ -373,6 +373,160 @@ it('lists importers outside the base configuration rootDir, which only governs e
   });
 });
 
+// different-ai/embedbase at fb0afda5e8c2ad0212ea8c0dfa495be9865221d5: no root package.json; the
+// dashboard is its own npm project, which validation prepares and checks (preparation-packages.ts).
+const EMBEDBASE_DASHBOARD = {
+  scripts: { dev: 'next dev', build: 'next build', start: 'next start', lint: 'next lint' },
+  dependencies: { next: '^13.4.4', stripe: '^11.13.0' },
+  devDependencies: { typescript: '4.9.5' },
+};
+const EMBEDBASE = {
+  'dashboard/package.json': JSON.stringify(EMBEDBASE_DASHBOARD),
+  'dashboard/package-lock.json': '{}',
+  'dashboard/tsconfig.json': JSON.stringify({
+    compilerOptions: {
+      target: 'es5',
+      allowJs: true,
+      noEmit: true,
+      incremental: true,
+      module: 'esnext',
+      moduleResolution: 'node',
+      jsx: 'preserve',
+    },
+    include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts'],
+    exclude: ['node_modules', 'supabase'],
+  }),
+  'dashboard/utils/stripe.ts':
+    "import Stripe from 'stripe';\nexport const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2022-11-15' });\n",
+  'dashboard/utils/supabase-admin.ts':
+    "import Stripe from 'stripe'\nimport { stripe } from './stripe'\nexport const customer = (id: string) => stripe.customers.retrieve(id) as Promise<Stripe.Customer>\n",
+  'dashboard/pages/api/webhooks.ts':
+    "import Stripe from 'stripe';\nimport { customer } from '../../utils/supabase-admin';\nexport default async function handler(event: Stripe.Event) { return customer(event.id); }\n",
+  'sdk/embedbase-js/package.json': JSON.stringify({
+    scripts: { test: 'jest' },
+    devDependencies: { typescript: '^4.9.5' },
+  }),
+  'sdk/embedbase-js/package-lock.json': '{}',
+  'sdk/embedbase-js/src/index.test.ts': "it('splits', () => 1);\n",
+};
+// starmanv4/react-typescript-docker at 109c4528fba9c6c0efe67a250704ece82441bad9: payments is one
+// of eight services with their own package-lock.json, and there is no root package.json.
+const STARMAN = {
+  'payments/package.json': JSON.stringify({
+    scripts: { start: 'ts-node-dev src/index.ts', test: 'jest --watchAll --no-cache' },
+    dependencies: { stripe: '^11.17.0', typescript: '^4.7.4' },
+    devDependencies: { jest: '^28.1.1', 'ts-jest': '^28.0.5' },
+  }),
+  'payments/package-lock.json': '{}',
+  'payments/tsconfig.json': JSON.stringify({
+    compilerOptions: { target: 'es2016', module: 'commonjs', esModuleInterop: true, strict: true },
+  }),
+  'payments/src/stripe.ts':
+    'import Stripe from "stripe";\nexport const stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: "2022-11-15" });\n',
+  'payments/src/routes/new.ts':
+    'import { stripe } from "../stripe";\nexport const charge = (source: string) => stripe.charges.create({ currency: "usd", amount: 100, source });\n',
+  'payments/src/app.ts': 'import { charge } from "./routes/new";\nexport const app = { charge };\n',
+  'payments/src/routes/__test__/new.test.ts':
+    'import { app } from "../../app";\nimport { stripe } from "../../stripe";\nit("charges", () => expect(app && stripe).toBeTruthy());\n',
+  'payments/src/events/listeners/__test__/order-created-listener.test.ts':
+    'it("listens", () => 1);\n',
+  'auth/package.json': JSON.stringify({ scripts: { test: 'jest --watchAll --no-cache' } }),
+  'auth/package-lock.json': '{}',
+  'auth/src/routes/__test__/signup.test.ts': 'it("signs up", () => 1);\n',
+};
+
+it('selects and grades the check of the nested package it runs in, with paths from there', async () => {
+  // Run 40236299492 selected both from the repository root but ran them in the package, so the
+  // generated tsconfig extended /workspace/dashboard/dashboard/tsconfig.json (TS5083).
+  const embedbase = await repository(EMBEDBASE);
+  const dashboard = await selectCheck(embedbase, 'dashboard');
+  const stripeFiles = [
+    'dashboard/pages/api/webhooks.ts',
+    'dashboard/utils/stripe.ts',
+    'dashboard/utils/supabase-admin.ts',
+  ];
+  expect(dashboard).toEqual({
+    kind: 'typecheck',
+    command: TYPE_CHECK,
+    compareTypeErrors: true,
+    typeCheck: 'project',
+    stripeFiles,
+    testedStripeFiles: [],
+    typeCheckedStripeFiles: stripeFiles,
+    reason:
+      'There is no test script. The type check (tsc over tsconfig.json) covers the Stripe code in dashboard/pages/api/webhooks.ts, dashboard/utils/stripe.ts, dashboard/utils/supabase-admin.ts.',
+  });
+  const changed = ['dashboard/pages/api/webhooks.ts', 'dashboard/utils/stripe.ts'];
+  await expect(
+    gradeEvidence({
+      repository: embedbase,
+      command: dashboard.command!,
+      changedFiles: changed,
+      packageDirectory: 'dashboard',
+    }),
+  ).resolves.toEqual({
+    letter: 'C',
+    level: 'type-check',
+    reason:
+      'tsc type-checks dashboard/pages/api/webhooks.ts, dashboard/utils/stripe.ts; no test ran that code.',
+  });
+  // Without TypeScript of its own, the generated tsconfig is written in the package and names
+  // every path from it.
+  const untyped = await repository({
+    ...EMBEDBASE,
+    'dashboard/package.json': JSON.stringify({ ...EMBEDBASE_DASHBOARD, devDependencies: {} }),
+  });
+  const scoped = await selectCheck(untyped, 'dashboard');
+  expect(scoped.command!.slice(0, 3)).toEqual(['sh', '-c', scopedScript(`node ${REFIT_TSC}`)]);
+  expect(scopedConfiguration(scoped.command)).toEqual({
+    extends: './tsconfig.json',
+    compilerOptions: JAVASCRIPT_CHECK,
+    files: ['pages/api/webhooks.ts', 'utils/stripe.ts', 'utils/supabase-admin.ts'],
+    include: [],
+  });
+  await expect(
+    gradeEvidence({
+      repository: untyped,
+      command: scoped.command!,
+      changedFiles: changed,
+      packageDirectory: 'dashboard',
+    }),
+  ).resolves.toMatchObject({ letter: 'C' });
+
+  // The service's own test script runs, with the test files that reach Stripe code named from it.
+  const starman = await repository(STARMAN);
+  const payments = await selectCheck(starman, 'payments');
+  expect(payments).toEqual({
+    kind: 'tests',
+    command: [
+      'sh',
+      '-c',
+      chain('npm test -- --runTestsByPath "$@"', TYPE_CHECK.join(' ')),
+      'refit-check',
+      'src/routes/__test__/new.test.ts',
+    ],
+    compareTypeErrors: true,
+    typeCheck: 'project',
+    stripeFiles: ['payments/src/stripe.ts'],
+    testedStripeFiles: ['payments/src/stripe.ts'],
+    typeCheckedStripeFiles: ['payments/src/stripe.ts'],
+    reason:
+      'The tests import Stripe code in payments/src/stripe.ts, and only the 1 test file that reach it run (payments/src/routes/__test__/new.test.ts); no other test reaches a file the patch can change. The type check (tsc over tsconfig.json) covers the Stripe code in payments/src/stripe.ts. Both must pass.',
+  });
+  await expect(
+    gradeEvidence({
+      repository: starman,
+      command: payments.command!,
+      changedFiles: ['payments/src/stripe.ts'],
+      packageDirectory: 'payments',
+    }),
+  ).resolves.toEqual({
+    letter: 'B',
+    level: 'stripe-tests',
+    reason: "The repository's tests reach every changed file (payments/src/stripe.ts).",
+  });
+});
+
 it("type-checks a JavaScript repository that installs no TypeScript with Refit's compiler", async () => {
   const tilios = await selectCheck(await repository(TILIOS));
   expect(tilios).toMatchObject({

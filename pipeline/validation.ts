@@ -2175,6 +2175,7 @@ export async function validateMigration(options: {
             behaviour: behaviour && behaviourGrade(behaviour),
             advisory: advisoryGrade,
             typeCheckUnavailable,
+            packageDirectory,
           })
         : undefined;
     const grade = ownGrade
@@ -2205,6 +2206,7 @@ export async function validateMigration(options: {
                   : { passed: true },
             },
             advisory: advisoryGrade,
+            packageDirectory,
           })
         : validationStatus === 'stale'
           ? undefined
