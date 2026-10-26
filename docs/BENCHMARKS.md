@@ -491,6 +491,17 @@ Why: a request rebuilt locally from the shard's report, specifications and chang
 - Every other row has the same status, stage, reason, gates and patch as the AI-off run 40156098317. financehb is still refused over 64 KiB; type-last spent $0.02872 in the repair loop.
 - **Not fixed here:** FlowCraft's adapter maps `subscriptions.retrieve` but not `subscriptions.list`, which is why the rules could not trace that read.
 
+## AI release classification against the Stripe catalog (October 26)
+
+refit-bench run [40283655210](https://github.com/refit-dev/refit-bench/actions/runs/40283655210) ran `refit classify-release` at `54b5bb22b158a4c93e5c49dd5dde710b986bb22b` over basil, clover, dahlia and endive with `gpt-6.1-sol` (`gh workflow run classify.yml -R refit-dev/refit-bench -f commit=54b5bb22b158a4c93e5c49dd5dde710b986bb22b -f ai_budget=3 -f model=gpt-6.1-sol`). The model read each saved changelog page and the catalog's change statements, never the catalog's handling; it was scored against the hand catalog. Results: [`2026-10-26-release-classification-results.json`](benchmarks/2026-10-26-release-classification-results.json); every prompt and output: [`2026-10-26-release-classification-audit.json`](benchmarks/2026-10-26-release-classification-audit.json). Details and the review it calls for: [Release classification](RELEASE-CLASSIFICATION.md).
+
+- **Handling matched the catalog on 95 of 125 change statements.** 124 were classified; the one endive page whose output listed too many identifiers was refused and counts as wrong.
+- **Dangerous errors: 8**, a rule or AI edit where the catalog stops or has no signal. 5 are in basil.
+- **Predicted `rule` was right on 7 of 12 statements,** and 7 of the catalog's 10 rules were predicted as rules; the other 3 were predicted `stop`.
+- **Page category (API or Stripe.js) matched on 78 of 79 pages;** the missing one is the refused page.
+- **Pack families matched on 21 of 26 statements** where the catalog implies one.
+- **Spend: $0.56** of the $3 cap. The first dispatch, run 40283460948 with `gpt-5.6-luna`, was refused with HTTP 403 on all 79 pages and billed nothing; the key accepts only `gpt-6.1-sol`.
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

@@ -263,6 +263,10 @@
     "2026-10-24-p3-enrollment-results.json": {
       "format": "enrollment-results",
       "predates": []
+    },
+    "2026-10-26-release-classification-results.json": {
+      "format": "release-classification-results",
+      "predates": []
     }
   }
 }

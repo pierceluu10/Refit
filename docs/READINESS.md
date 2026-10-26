@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 26 checkpoint: AI classification of Stripe release changes (unreleased, after 0.39.0)
+
+`refit classify-release` sends each saved changelog page of a Stripe release, with the catalog's change statements but never its handling, to OpenAI through the shared client and spending ledger, and scores the strict-JSON answer (category, handling, rule-pack family, identifiers) against the hand catalog. It is review only: nothing it predicts edits code or feeds a pack. On refit-bench run 40283655210 (`gpt-6.1-sol`, $0.56), handling matched on 95 of 125 statements with 8 dangerous errors (a rule or AI edit where the catalog stops or has no signal), so every `rule` and `ai` prediction needs human review ([Release classification](RELEASE-CLASSIFICATION.md)). Tests: `pipeline/release-classification.test.ts`, which replays the recorded outputs to the committed score.
+
 ## October 25 checkpoint: Bun lockfiles, CI-chosen lockfiles and pnpm patches (unreleased, after 0.39.0)
 
 Preparation now builds the refusals O2 classified as buildable and #289 left:
