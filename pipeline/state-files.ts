@@ -1,9 +1,9 @@
-import { mkdir, open, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
-import { hostname } from 'node:os';
+import { hostname, uptime } from 'node:os';
 import { promisify } from 'node:util';
 import { gunzip, gzip } from 'node:zlib';
 
@@ -78,6 +78,26 @@ export async function writeAtomically(path: string, content: string | Uint8Array
   }
 }
 
+// Linux's identifier for the current boot; other systems have none.
+export const BOOT_ID_PATH = '/proc/sys/kernel/random/boot_id';
+
+async function bootId() {
+  try {
+    return (await readFile(BOOT_ID_PATH, 'utf8')).trim();
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) return undefined;
+    throw error;
+  }
+}
+
+// After a restart a lock's process ID can belong to another process (on Fly the machine keeps its
+// hostname), so a lock from an earlier boot is stale. A lock without a boot id, written before
+// they were recorded or where there is none, is from an earlier boot when its file predates it.
+async function fromEarlierBoot(path: string, owner: Record<string, unknown>, boot?: string) {
+  if (typeof owner.boot === 'string') return boot !== undefined && owner.boot !== boot;
+  return (await stat(path)).mtimeMs < Date.now() - uptime() * 1000;
+}
+
 export async function withStateLock<T>(
   directory: string,
   name: string,
@@ -109,13 +129,14 @@ export async function withStateLock<T>(
         throw new PipelineInputError(
           `State ownership cannot be verified: ${path}. Inspect the lock before retrying.`,
         );
-      let alive = true;
-      try {
-        process.kill(Number(owner.pid), 0);
-      } catch (error) {
-        if (hasErrorCode(error, 'ESRCH')) alive = false;
-        else throw error;
-      }
+      let alive = !(await fromEarlierBoot(path, owner, await bootId()));
+      if (alive)
+        try {
+          process.kill(Number(owner.pid), 0);
+        } catch (error) {
+          if (hasErrorCode(error, 'ESRCH')) alive = false;
+          else throw error;
+        }
       if (alive)
         throw new PipelineInputError(`State is locked by active process ${owner.pid}: ${path}.`);
       const recovery = `${path}.recovery`;
@@ -140,8 +161,14 @@ export async function withStateLock<T>(
     } else throw error;
   }
   try {
+    const boot = await bootId();
     await handle.writeFile(
-      JSON.stringify({ pid: process.pid, host: hostname(), nonce: randomUUID() }),
+      JSON.stringify({
+        pid: process.pid,
+        host: hostname(),
+        nonce: randomUUID(),
+        ...(boot ? { boot } : {}),
+      }),
     );
     return await operation();
   } finally {
