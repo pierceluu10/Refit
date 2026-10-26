@@ -232,11 +232,12 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
   async () => {
     const root = await benchmarkRoot();
     const env = join(root, 'ai.env');
-    // Never sent: no repository here reaches validation, and AI patches stay off.
+    // Never sent: the affected repository commits no lockfile, so it now runs the workflow (owner
+    // decision 1, #338), which stops at its scan before the writer; AI patches stay off.
     await writeFile(env, 'OPENAI_API_KEY=unused-test-key\nOPENAI_MODEL=gpt-6.1-sol\n');
     const output = join(root, 'out');
     const { stderr } = await run(root, output, '--behaviour-tests', '--env', env, '--validate');
-    expect(stderr).toContain('acme/history: affected (1 usages), AI not requested');
+    expect(stderr).toContain('acme/history: workflow needs-review');
     const harness = await read(join(output, 'harness.json'));
     expect(harness.options).toMatchObject({
       'behaviour-tests': true,
@@ -246,6 +247,14 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
     expect(JSON.stringify(harness)).not.toContain('unused-test-key');
     const [history] = await read(join(output, 'results.json'));
     expect(history.ai).toBeUndefined();
+    expect(history.workflow).toMatchObject({
+      stage: 'scan',
+      behaviourTestWriter: {
+        status: 'skipped',
+        reason:
+          'The workflow stops at the scan: Confirmed usage has no deterministic migration rule. Enable AI patch generation or migrate manually.',
+      },
+    });
   },
 );
 
@@ -277,11 +286,16 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
     const output = join(root, 'out');
     await run(root, output, '--behaviour-tests-dry-run', '--validate');
     const rows = await read(join(output, 'results.json'));
-    expect(rows.map((row: Record<string, unknown>) => row.behaviourTestWriter)).toEqual([
+    // A row with a workflow carries the writer's record there (writerSkip).
+    const writer = (row: { workflow?: Record<string, unknown>; behaviourTestWriter?: unknown }) =>
+      row.workflow?.behaviourTestWriter ?? row.behaviourTestWriter;
+    expect(rows.map(writer)).toEqual([
+      // The lockfile-less repository runs its workflow (owner decision 1, #338) to its scan stop.
       {
         status: 'dry-run',
         wouldRun: false,
-        reason: 'There is no root lockfile that declares stripe, so validation does not run.',
+        reason:
+          'The workflow stops at the scan: Confirmed usage has no deterministic migration rule. Enable AI patch generation or migrate manually.',
       },
       { status: 'dry-run', wouldRun: false, reason: 'The repository could not be cloned.' },
       { status: 'dry-run', wouldRun: false, reason: 'No Stripe method is mapped.' },
