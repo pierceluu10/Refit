@@ -37,7 +37,7 @@ it('compares stripe/openapi tags by number, not as text, and refuses other names
 });
 
 it('reads the tag and API version the SDK map was generated from', () => {
-  expect(sdkMapSource(metadata)).toEqual({ tag: 'v2526', version: '2026-09-30.endive' });
+  expect(sdkMapSource(map({}))).toEqual({ tag: 'v100', version: '2026-09-30.endive' });
   expect(() => sdkMapSource({ source: 'hand-written' })).toThrow('Unrecognized SDK map source');
 });
 
@@ -198,7 +198,8 @@ it('refuses a classification that does not match the schema', () => {
 });
 
 it('checks the committed SDK map and refuses one that lost a class the tracer needs', () => {
-  expect(checkSdkMap(metadata)).toMatchObject({ tag: 'v2526', classes: 320 });
+  // The committed map's tag and counts are pinned by the generated stripe-sdk-release.test.ts.
+  expect(checkSdkMap(metadata).classes).toBe(Object.keys(metadata.classes).length);
   const { Customer: _, ...classes } = metadata.classes;
   expect(() => checkSdkMap({ ...metadata, classes })).toThrow('no class Customer');
   expect(() =>
