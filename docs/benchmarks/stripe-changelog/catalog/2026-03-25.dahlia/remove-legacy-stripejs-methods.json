@@ -1,0 +1,12 @@
+{
+  "version": "2026-03-25.dahlia",
+  "title": "Removes deprecated Payment Intents, Setup Intents, and Sources methods from Stripe.js",
+  "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/remove-legacy-stripejs-methods",
+  "checkedAt": "2026-10-24",
+  "category": "stripejs",
+  "changed": [
+    "handleCardPayment, confirmPaymentIntent, handleFpxPayment, handleCardSetup, confirmSetupIntent, createSource, retrieveSource removed"
+  ],
+  "handling": "none",
+  "reason": "Stripe.js change. Refit traces stripe-node SDK calls against the stripe/openapi contracts and does not analyze @stripe/stripe-js or @stripe/react-stripe-js code."
+}

@@ -1,0 +1,30 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Renames the countries filter to country on Financial Connections Sessions",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/rename-financial-connections-countries-filter-to-country",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "financialConnections.sessions.create filters.countries (array) replaced by filters.country (string)",
+    "FinancialConnections.Session.filters.countries removed"
+  ],
+  "handling": "stop",
+  "reason": "Only with fullDiff (oasdiff; the watch worker default, off in `refit run` and in the benchmark fix stage): compareOpenApi (openapi-diff.ts) reports the request change and findBreakingOperationImpacts (provider-operations.ts) lists every traced call of that operation as an operation impact, which blocks AI and stops the run in scanReviewReason (workflow.ts), whether or not the call sends the changed value. Without fullDiff Refit reports nothing.",
+  "parts": [
+    {
+      "changed": [
+        "financialConnections.sessions.create filters.countries (array) replaced by filters.country (string)"
+      ],
+      "handling": "stop",
+      "reason": "Only with fullDiff (oasdiff; the watch worker default, off in `refit run` and in the benchmark fix stage): compareOpenApi (openapi-diff.ts) reports the request change and findBreakingOperationImpacts (provider-operations.ts) lists every traced call of that operation as an operation impact, which blocks AI and stops the run in scanReviewReason (workflow.ts), whether or not the call sends the changed value. Without fullDiff Refit reports nothing.",
+      "fullDiffOnly": true
+    },
+    {
+      "changed": [
+        "FinancialConnections.Session.filters.countries removed"
+      ],
+      "handling": "ai",
+      "how": "findRemovedProperties (specifications.ts) reports the removed field and analyzeRepository (analyzer.ts) reports each traced read as a confirmed finding; STRIPE_MOVE_REVIEW (stripe-field-moves.ts) appends the named Stripe reason where it has one. No rule edits the read, so a deterministic patch leaves it unresolved and the AI patch path (run.ts aiFindings, ai-patches.ts proposeAiPatch) receives it."
+    }
+  ]
+}

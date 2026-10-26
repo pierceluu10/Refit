@@ -1,0 +1,36 @@
+{
+  "version": "2025-09-30.clover",
+  "title": "Promotion Codes now reference Coupons using a polymorphic field for promotions",
+  "source": "https://docs.stripe.com/changelog/clover/2025-09-30/polymorphic-coupon",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "coupon request parameter removed from promotionCodes.create (now promotion: { type: coupon, coupon })",
+    "PromotionCode.coupon removed: `.coupon.id` reads",
+    "other PromotionCode.coupon field reads (the coupon is no longer expanded)"
+  ],
+  "handling": "ai",
+  "parts": [
+    {
+      "changed": [
+        "coupon request parameter removed from promotionCodes.create (now promotion: { type: coupon, coupon })"
+      ],
+      "handling": "rule",
+      "how": "requestMove and requestMoveEdit (stripe-request-moves.ts, PROMOTION_CODE_PROMOTION_RULE) send `promotion: { type: 'coupon', coupon }` after checking both contracts; run.ts keeps it with the target pin and, for TypeScript, the stripe-node upgrade."
+    },
+    {
+      "changed": [
+        "PromotionCode.coupon removed: `.coupon.id` reads"
+      ],
+      "handling": "rule",
+      "how": "couponIdHelperEdit (stripe-subscription-periods.ts) rewrites `x.coupon.id` to the generated getCouponId helper."
+    },
+    {
+      "changed": [
+        "other PromotionCode.coupon field reads (the coupon is no longer expanded)"
+      ],
+      "handling": "ai",
+      "how": "findRemovedProperties (specifications.ts) reports the removed field and analyzeRepository (analyzer.ts) reports each traced read as a confirmed finding; STRIPE_MOVE_REVIEW (stripe-field-moves.ts) appends the named Stripe reason where it has one. No rule edits the read, so a deterministic patch leaves it unresolved and the AI patch path (run.ts aiFindings, ai-patches.ts proposeAiPatch) receives it."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "version": "2025-09-30.clover",
+  "title": "Adds the Discount source property and removes the Discount coupon property",
+  "source": "https://docs.stripe.com/changelog/clover/2025-09-30/add-discount-source-property",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "Discount.coupon removed: `.coupon.id` reads",
+    "other Discount.coupon field reads, and DeletedDiscount.coupon"
+  ],
+  "handling": "ai",
+  "parts": [
+    {
+      "changed": [
+        "Discount.coupon removed: `.coupon.id` reads"
+      ],
+      "handling": "rule",
+      "how": "couponIdHelperEdit (stripe-subscription-periods.ts) rewrites `x.coupon.id` to the generated getCouponId helper (source.coupon when source.type is coupon)."
+    },
+    {
+      "changed": [
+        "other Discount.coupon field reads, and DeletedDiscount.coupon"
+      ],
+      "handling": "ai",
+      "how": "findRemovedProperties (specifications.ts) reports the removed field and analyzeRepository (analyzer.ts) reports each traced read as a confirmed finding; STRIPE_MOVE_REVIEW (stripe-field-moves.ts) appends the named Stripe reason where it has one. No rule edits the read, so a deterministic patch leaves it unresolved and the AI patch path (run.ts aiFindings, ai-patches.ts proposeAiPatch) receives it."
+    }
+  ]
+}

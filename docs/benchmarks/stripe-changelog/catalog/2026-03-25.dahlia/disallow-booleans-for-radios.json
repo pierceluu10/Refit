@@ -1,0 +1,12 @@
+{
+  "version": "2026-03-25.dahlia",
+  "title": "Removes support for boolean values in options.layout.radios",
+  "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/disallow-booleans-for-radios",
+  "checkedAt": "2026-10-24",
+  "category": "stripejs",
+  "changed": [
+    "Payment Element options.layout.radios no longer accepts booleans"
+  ],
+  "handling": "none",
+  "reason": "Stripe.js change. Refit traces stripe-node SDK calls against the stripe/openapi contracts and does not analyze @stripe/stripe-js or @stripe/react-stripe-js code."
+}

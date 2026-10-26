@@ -1,0 +1,51 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Adds support for multiple (partial) payments on invoices",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "Invoice.payment_intent, charge, paid, paid_out_of_band, application_fee_amount, transfer_data removed",
+    "PaymentIntent.invoice and Charge.invoice removed",
+    "CreditNote.refund removed",
+    "literal expand entries through a removed field, such as 'latest_invoice.payment_intent'",
+    "refund request parameter removed from creditNotes.create",
+    "refund query parameter removed from creditNotes.preview and listPreviewLineItems",
+    "Invoice.amount_paid now includes out-of-band payments"
+  ],
+  "handling": "none",
+  "reason": "Not mapped: the adapter names GET /v1/credit_notes/preview `creditNotes.preview.preview` from its URL, and removedRequestParameters compares request bodies only, so the removed query parameter is reported nowhere.",
+  "parts": [
+    {
+      "changed": [
+        "Invoice.payment_intent, charge, paid, paid_out_of_band, application_fee_amount, transfer_data removed",
+        "PaymentIntent.invoice and Charge.invoice removed",
+        "CreditNote.refund removed",
+        "literal expand entries through a removed field, such as 'latest_invoice.payment_intent'"
+      ],
+      "handling": "ai",
+      "how": "findRemovedProperties (specifications.ts) reports the removed field and analyzeRepository (analyzer.ts) reports each traced read as a confirmed finding; STRIPE_MOVE_REVIEW (stripe-field-moves.ts) appends the named Stripe reason where it has one. No rule edits the read, so a deterministic patch leaves it unresolved and the AI patch path (run.ts aiFindings, ai-patches.ts proposeAiPatch) receives it. Expand entries are reported by removedExpandPaths (stripe-expand-paths.ts) and stay unresolved the same way."
+    },
+    {
+      "changed": [
+        "refund request parameter removed from creditNotes.create"
+      ],
+      "handling": "stop",
+      "reason": "removedRequestParameters (request-removals.ts) finds the removed top-level body parameter on the mapped operation; analyzeRepository marks each traced call that still sends it with requestParameter, and migrationReviewReason (migration-review.ts) stops automatic migration, AI and publication with REMOVED_REQUEST_PARAMETER_REVIEW_REASON."
+    },
+    {
+      "changed": [
+        "refund query parameter removed from creditNotes.preview and listPreviewLineItems"
+      ],
+      "handling": "none",
+      "reason": "Not mapped: the adapter names GET /v1/credit_notes/preview `creditNotes.preview.preview` from its URL, and removedRequestParameters compares request bodies only, so the removed query parameter is reported nowhere."
+    },
+    {
+      "changed": [
+        "Invoice.amount_paid now includes out-of-band payments"
+      ],
+      "handling": "none",
+      "reason": "Behaviour change with no difference in the recorded stripe/openapi contracts, so Refit has no signal for it."
+    }
+  ]
+}

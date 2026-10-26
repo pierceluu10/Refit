@@ -1,0 +1,30 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Adds expired status for Issuing Authorizations",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/issuing-authorizations-expired",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "expired added to Issuing.Authorization.status",
+    "authorizations expired by Stripe move from reversed to expired"
+  ],
+  "handling": "generic",
+  "parts": [
+    {
+      "changed": [
+        "expired added to Issuing.Authorization.status"
+      ],
+      "handling": "generic",
+      "how": "Only with fullDiff: compareOpenApi lists Stripe response enum additions as compatible (openResponseEnums), and switchedEnumAdditions (openapi-diff.ts) adds a blocking entry for the new value where traced code switches over the field, assigns it to `never`, or compares it with string literals (`===`, `!==`, `==`, `!=` or `['a'].includes(...)`; analyzer.ts enumChecks, owner decision 6). unmappedBreakingChanges keeps that entry, so scanReviewReason (workflow.ts) stops the run for review and publication is blocked. Other reads need no edit. Without fullDiff nothing is reported.",
+      "fullDiffOnly": true
+    },
+    {
+      "changed": [
+        "authorizations expired by Stripe move from reversed to expired"
+      ],
+      "handling": "generic",
+      "how": "Only with fullDiff, and only because the same release adds `expired` to the field: a compare with the old value (`x.field === <old value>`, `!==`, `==`, `!=` or `['a'].includes(...)`) is an enumCheck since owner decision 6 (analyzer.ts), so switchedEnumAdditions (openapi-diff.ts) reports the added values there and scanReviewReason (workflow.ts) stops the run for review. The entry names the added values, not the replaced one; reads that do not compare or switch are not reported. Without fullDiff nothing is reported.",
+      "fullDiffOnly": true
+    }
+  ]
+}

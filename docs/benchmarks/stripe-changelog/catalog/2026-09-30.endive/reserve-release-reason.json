@@ -1,0 +1,12 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Renames the Reserve Release reason enum value",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/reserve-release-reason",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "Reserve.Release.reason bulk_hold_expiry renamed hold_expired"
+  ],
+  "handling": "none",
+  "reason": "The recorded spec3.json contracts have no Reserve Release object, so Refit has no signal for it."
+}

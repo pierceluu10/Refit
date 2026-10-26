@@ -1,0 +1,12 @@
+{
+  "version": "2026-03-25.dahlia",
+  "title": "Updates the events_from parameter on event destinations to accept string values",
+  "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/updates-eventsfrom-parameter-on-event-destinations",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "V2.Core.EventDestination events_from changed from enum (self, other_accounts) to string (@self, @accounts, ...)"
+  ],
+  "handling": "none",
+  "reason": "API v2 change. The recorded stripe/openapi spec3.json contracts have no /v2 paths, so Refit sees neither the calls nor the change."
+}

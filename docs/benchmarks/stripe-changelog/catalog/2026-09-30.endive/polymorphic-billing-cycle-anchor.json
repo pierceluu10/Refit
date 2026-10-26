@@ -1,0 +1,30 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Unifies the billing cycle anchor format across Subscriptions and Invoices",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/polymorphic-billing-cycle-anchor",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "subscriptions.update and subscriptions.resume billing_cycle_anchor changed from now/unchanged to an object with type",
+    "invoices.createPreview subscription_details.billing_cycle_anchor changed to an object with type and timestamp"
+  ],
+  "handling": "none",
+  "reason": "Not mapped: the adapter names POST /v1/invoices/create_preview `invoices.createPreview.create` from its URL (stripe-operations.ts stripeContractOperations, stripe-benchmark.ts stripeOperations), but stripe-node calls it `invoices.createPreview`, so the call is not traced and no finding names it. (Under fullDiff, oasdiff can still report the operation's change when another mapped call returns the same object, which stops the whole run without naming this call.) (A retrieveUpcoming call that sends subscription_billing_cycle_anchor stops in invoicePreviewEdits, because accepts() sees the new shape.)",
+  "parts": [
+    {
+      "changed": [
+        "subscriptions.update and subscriptions.resume billing_cycle_anchor changed from now/unchanged to an object with type"
+      ],
+      "handling": "stop",
+      "reason": "Only with fullDiff (oasdiff; the watch worker default, off in `refit run` and in the benchmark fix stage): compareOpenApi (openapi-diff.ts) reports the request change and findBreakingOperationImpacts (provider-operations.ts) lists every traced call of that operation as an operation impact, which blocks AI and stops the run in scanReviewReason (workflow.ts), whether or not the call sends the changed value. Without fullDiff Refit reports nothing.",
+      "fullDiffOnly": true
+    },
+    {
+      "changed": [
+        "invoices.createPreview subscription_details.billing_cycle_anchor changed to an object with type and timestamp"
+      ],
+      "handling": "none",
+      "reason": "Not mapped: the adapter names POST /v1/invoices/create_preview `invoices.createPreview.create` from its URL (stripe-operations.ts stripeContractOperations, stripe-benchmark.ts stripeOperations), but stripe-node calls it `invoices.createPreview`, so the call is not traced and no finding names it. (Under fullDiff, oasdiff can still report the operation's change when another mapped call returns the same object, which stops the whole run without naming this call.) (A retrieveUpcoming call that sends subscription_billing_cycle_anchor stops in invoicePreviewEdits, because accepts() sees the new shape.)"
+    }
+  ]
+}

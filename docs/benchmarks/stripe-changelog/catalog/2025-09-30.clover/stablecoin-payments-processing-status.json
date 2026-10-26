@@ -1,0 +1,12 @@
+{
+  "version": "2025-09-30.clover",
+  "title": "Adds a processing status to submitted stablecoin payments",
+  "source": "https://docs.stripe.com/changelog/clover/2025-09-30/stablecoin-payments-processing-status",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "crypto PaymentIntents report processing while the transaction confirms"
+  ],
+  "handling": "none",
+  "reason": "Behaviour change with no difference in the recorded stripe/openapi contracts, so Refit has no signal for it."
+}
