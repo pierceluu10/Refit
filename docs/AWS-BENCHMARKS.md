@@ -1,5 +1,7 @@
 # Benchmarks on AWS
 
+Not the default route: every benchmark runs on [GitHub Actions](GITHUB-BENCHMARKS.md) (owner decision, 2026-10-26). This guide stays for reference and is used only when the owner asks for an AWS run.
+
 `scripts/aws-benchmark.mjs` runs a benchmark as parallel shards on EC2, one instance per shard, so validation in Docker does not load a laptop. Each instance builds Refit from a pinned commit, runs its slice, uploads its results to S3 and terminates itself. Nothing needs SSH or an open port.
 
 ## One-time setup

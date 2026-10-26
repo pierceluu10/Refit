@@ -1,7 +1,7 @@
 import { listOpenApiOperations } from './openapi-operations.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { isObject } from './specifications.ts';
-import { requestMove, type RequestMove } from './stripe-request-moves.ts';
+import { requestMove } from './request-move-families.ts';
 
 // A top-level request body parameter that a mapped SDK operation accepts in the before contract and
 // no longer accepts in the after contract. Code that still sends it has no reviewed replacement.
@@ -18,8 +18,8 @@ export interface RequestParameterRemoval {
   // Keep a literal list of `card` plus other methods under the replacement too, and move any other
   // value expression (the default since 2026-10-24; `stripePaymentMethodTypes: "keep-listed"`).
   keepListed?: boolean;
-  // A reviewed move to the parameter's documented replacement (stripe-request-moves.ts).
-  move?: RequestMove;
+  // A reviewed move to the parameter's documented replacement, named by it (data/packs).
+  move?: string;
 }
 
 // Why Refit leaves a removed parameter for the owner, shown in [Needs review] drafts.

@@ -1,6 +1,8 @@
 import { PipelineInputError } from './types.ts';
 
 export const MAX_REPAIR_ATTEMPTS = 2;
+// What the hosted worker runs (fly.toml REFIT_HOSTED_FLAGS); AI benchmarks default to it.
+export const HOSTED_REPAIR_ATTEMPTS = 2;
 // Seconds one check (baseline, patched or generated) may run before its container is stopped.
 // The default is set from measured durations in docs/DEPENDENCIES.md ("Check time limit").
 export const DEFAULT_CHECK_TIMEOUT_SECONDS = 600;

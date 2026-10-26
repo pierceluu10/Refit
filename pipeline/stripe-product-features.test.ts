@@ -4,7 +4,7 @@ import { applySourceEdits } from './patches.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { removedRequestParameters } from './request-removals.ts';
 import { findRemovedProperties } from './specifications.ts';
-import { PRODUCT_MARKETING_FEATURES_RULE } from './stripe-request-moves.ts';
+const PRODUCT_MARKETING_FEATURES_RULE = 'stripe-product-marketing-features';
 import {
   PRODUCT_FEATURES_HELPER,
   subscriptionPeriodHelperModule,

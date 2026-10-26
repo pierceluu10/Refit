@@ -1,0 +1,89 @@
+{
+  "formatVersion": 1,
+  "provider": "shopify",
+  "fieldMoves": [],
+  "requestMoves": [],
+  "readReviews": {},
+  "sdkFacts": [
+    {
+      "family": "member-since",
+      "package": "@shopify/shopify-api",
+      "symbol": "ApiVersion",
+      "since": {
+        "October24": "11.5.0",
+        "January25": "11.7.0",
+        "April25": "11.11.0",
+        "July25": "11.12.0",
+        "October25": "11.14.0",
+        "January26": "12.1.0",
+        "April26": "12.3.0",
+        "July26": "13.1.0",
+        "October26": "14.0.0"
+      },
+      "source": "https://www.npmjs.com/package/@shopify/shopify-api",
+      "checkedAt": "2026-10-16"
+    },
+    {
+      "family": "constant-value",
+      "package": "@shopify/shopify-api",
+      "symbol": "LATEST_API_VERSION",
+      "values": [
+        ["7.0.0", "April23"],
+        ["7.5.0", "July23"],
+        ["8.0.2", "October23"],
+        ["9.0.0", "January24"],
+        ["9.7.0", "April24"],
+        ["11.1.0", "July24"],
+        ["11.5.0", "October24"],
+        ["11.8.1", "January25"],
+        ["11.12.0", "April25"],
+        ["11.14.0", "July25"]
+      ],
+      "removedIn": "12.0.0",
+      "source": "https://www.npmjs.com/package/@shopify/shopify-api",
+      "checkedAt": "2026-10-16"
+    },
+    {
+      "family": "minimum-major",
+      "package": "@shopify/shopify-api",
+      "major": 12,
+      "source": "https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/CHANGELOG.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "family": "minimum-major",
+      "package": "@shopify/shopify-app-remix",
+      "major": 4,
+      "source": "https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-app-remix/CHANGELOG.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "family": "minimum-major",
+      "package": "@shopify/shopify-app-react-router",
+      "major": 1,
+      "source": "https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-app-react-router/CHANGELOG.md",
+      "checkedAt": "2026-10-22"
+    },
+    {
+      "family": "minimum-major",
+      "package": "@shopify/shopify-app-express",
+      "major": 6,
+      "source": "https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-app-express/CHANGELOG.md",
+      "checkedAt": "2026-10-22"
+    }
+  ],
+  "symbolReviews": {
+    "RELEASE_CANDIDATE_API_VERSION": {
+      "reason": "RELEASE_CANDIDATE_API_VERSION was removed in @shopify/shopify-api 12.0.0 (48d3631); choose a dated ApiVersion member.",
+      "source": "https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/CHANGELOG.md"
+    },
+    "getJwt": {
+      "reason": "getJwt became asynchronous in @shopify/shopify-api 12.0.0 (dc41d09); its callers must await it.",
+      "source": "https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/docs/migrating-to-v12.md"
+    },
+    "setCrypto": {
+      "reason": "@shopify/shopify-api 12.0.0 (dc41d09) uses globalThis.crypto and says to remove setCrypto calls.",
+      "source": "https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/docs/migrating-to-v12.md"
+    }
+  }
+}

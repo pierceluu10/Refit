@@ -1,8 +1,8 @@
 # GitHub Actions benchmarks
 
-The public repository `refit-dev/refit-bench` runs the Stripe benchmark on GitHub-hosted runners, one job per shard. It costs nothing while the repository is public, needs no AWS sign-in and does not load a laptop. Prefer it to [AWS benchmarks](AWS-BENCHMARKS.md) for Stripe runs, and whenever EC2 is unavailable.
+The public repository `refit-dev/refit-bench` runs the Stripe and Shopify benchmarks on GitHub-hosted runners, one job per shard. It costs nothing while the repository is public, needs no AWS sign-in and does not load a laptop. Owner decision (2026-10-26): every benchmark, with or without AI, runs here. [AWS benchmarks](AWS-BENCHMARKS.md) remain documented but are not the default route.
 
-Its workflow, `.github/workflows/benchmark.yml`, checks out this repository at a pinned commit with a read-only token (`REFIT_READ_TOKEN`), installs dependencies and oasdiff, then runs per shard the same commands as an AWS shard:
+Its Stripe workflow, `.github/workflows/benchmark.yml`, checks out this repository at a pinned commit with a read-only token (`REFIT_READ_TOKEN`), installs dependencies and oasdiff, then runs per shard:
 
 ```sh
 node scripts/stripe-benchmark-setup.mjs --root <root> --list docs/benchmarks/<list> --offset <start> --limit <size>
@@ -19,14 +19,6 @@ gh run list -R refit-dev/refit-bench -L 1
 gh run watch <run-id> -R refit-dev/refit-bench
 ```
 
-| Input    | Meaning                                                                                 |
-| -------- | --------------------------------------------------------------------------------------- |
-| `commit` | Full 40-character commit SHA. A short SHA fails at checkout. The commit must be pushed. |
-| `list`   | A frozen list in `docs/benchmarks/` at that commit.                                     |
-| `offset` | First repository of the list to run.                                                    |
-| `count`  | How many repositories from `offset`. Blank runs the rest of the list.                   |
-| `size`   | Repositories per shard. The first job sizes the matrix as `count / size`, rounded up.   |
-| `flags`  | Extra `benchmark:stripe` options, such as `--validation-workspace 2g` (sandbox profile) |
 | Input    | Meaning                                                                                                                                                                             |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `commit` | Full 40-character commit SHA. A short SHA fails at checkout. The commit must be pushed.                                                                                             |
@@ -34,6 +26,7 @@ gh run watch <run-id> -R refit-dev/refit-bench
 | `offset` | First repository of the list to run.                                                                                                                                                |
 | `count`  | How many repositories from `offset`; `all` runs the rest of the list. `gh workflow run` drops an empty `-f count=`, which then means the default of 5, so pass `all` or the number. |
 | `size`   | Repositories per shard. The first job sizes the matrix as `count / size`, rounded up.                                                                                               |
+| `flags`  | Extra `benchmark:stripe` options, such as `--validation-workspace 2g` (sandbox profile).                                                                                            |
 
 ## Collect the results
 
@@ -60,6 +53,23 @@ node scripts/benchmark-merge.mjs --shards <dir>/shards --list <list> --offset <o
 
 `scripts/benchmark-merge.mjs` writes the same files as the merge job: `results.json`, the `expected`, `present`, `missing`, `unexpected` and `duplicated` lists, `images.txt` and `summary.md` (the outcome classes, the benchmark's `summaryTable` and the AI spend). The merge job itself runs it whenever the benchmarked commit has it, and keeps its older inline steps for commits that do not; for run 40143839963 both wrote byte-identical files. `summary.md` uses the checkout's own `summaryTable`, so run the script from a checkout at the run's commit when the summary must match the job's exactly. Without `--end` the range runs to the end of the list. It prints the missing, unexpected and duplicated counts; a run with any of them is incomplete, as above.
 
+## Shopify
+
+`.github/workflows/shopify.yml` runs `npm run benchmark:shopify` with the same plan, shard and merge jobs and the same inputs, without AI (the Shopify benchmark has none) and with no secret but `REFIT_READ_TOKEN`. A `snapshots` job reads each Admin API schema the list names once from Shopify's public documentation proxy (`refit shopify-snapshot`; no store or credentials) and uploads them as the artifact `snapshots`. Each shard downloads those saved files and runs:
+
+```sh
+node scripts/shopify-benchmark-setup.mjs --root <root> --list <list with the snapshot hashes> --offset <start> --limit <size>
+REFIT_DOCKER_IMAGE=node:22-alpine npm run benchmark:shopify -- --root <root> --list <root>/list.json --output <out>/run --validate
+```
+
+Shopify changes published schemas in place: on 2026-10-26 none of the four schemas matched either frozen list's hashes. `contracts=current`, the default, runs on the schemas read in the run and names the changed versions in the merged summary, beside each schema's hash (`merged/schemas.json`); compare only runs with the same hashes. `contracts=pinned` stops in the `snapshots` job unless Shopify still serves the frozen hashes. `flags` passes extra `benchmark:shopify` options, such as `--sdk-upgrade`.
+
+```sh
+gh workflow run shopify.yml -R refit-dev/refit-bench \
+  -f commit=$(git rev-parse HEAD) \
+  -f list=2026-10-16-shopify-fresh-repos.json -f offset=0 -f count=50 -f size=5
+```
+
 ## Shards
 
 A run has `count / size` shards, rounded up. Which repositories each shard runs comes from their measured durations: the merge job of every run without AI keeps each repository's newest `seconds` in a cache (`refit-timings-v1-…`, shared by every list), the plan job fills repositories the cache lacks from recent runs' `merged` results (newest first, up to 50), and then `.github/scripts/plan-shards.mjs` in refit-bench assigns repositories longest first to the least-loaded shard, counting a repository without a timing as the median. It balances only when at least half of the slice has a timing; otherwise, and if the planner fails, shards are the contiguous slices runs always had. A balanced plan is reused for the same list slice (list content, offset, count and size) for 24 hours, so a rerun of a commit, or a run of a nearby one, gets the same shards and so the same per-shard caches. Each shard runs setup on a list file of its own entries; the merged results list rows shard by shard, as before. On run 40144503063's timings the plan's slowest shard is 1,341 seconds, one repository on its own, where the contiguous slices' slowest took 3,545.
@@ -76,10 +86,25 @@ GitHub keeps 10 GB of caches for this repository (`GET /repos/refit-dev/refit-be
 ## Limits
 
 - AI is off by default. `-f ai=true -f ai_budget=<USD>` (more than 0, at most 1000, the most Refit accepts) adds `--ai` with the repository's `OPENAI_API_KEY` secret and the `model` input. `-f ai_scope=behaviour-tests` passes `--behaviour-tests` instead of `--ai`, so the budget pays only for generated behaviour tests; the benchmarked commit must have that flag. The default, `patches`, is the `--ai` run. The budget is split evenly across shards, each with its own ledger, so a run cannot spend more than `ai_budget`; the merged summary reports the spend. The key goes to a file under the runner's temporary directory, not the environment of the benchmark, and GitHub masks it in logs. Logs and artifacts are public, so never pass a key through `flags`; the workflow refuses `--ai`, `--env` and `--publish` there.
-- Stripe only. Shopify needs its saved Admin schema snapshots and is not wired in.
 - A run holds at most 256 shards (GitHub's matrix limit); raise `size` for longer lists. About 20 jobs run at once on the free plan; the rest queue.
 - A shard times out after 300 minutes. Runners are 4-vCPU Linux machines, so validation times differ from a laptop or EC2; compare outcomes, not seconds, across environments.
 - Changing the workflow is a push to `refit-dev/refit-bench`. A run uses the workflow as it was when dispatched.
+
+## How this matches production
+
+Production is the hosted worker on Fly (`fly.toml`, `Dockerfile`). The Stripe workflow matches it in what can change an outcome, except where noted:
+
+- **Same:** Node 22, oasdiff 1.33.0, validation in offline Docker on `node:22-alpine` with `stripe/stripe-mock:latest` for generated checks (each run records the digests; the worker pulls `latest` on boot, so digests can differ), the default validation sandbox profile, and the default publication policy (stops become `[Needs review]` findings unless `--publish-validated-only`).
+- **AI repairs:** with `--ai` the benchmark passes `--repair-attempts` `HOSTED_REPAIR_ATTEMPTS` (2, in `pipeline/validation-options.ts`), the value in `REFIT_HOSTED_FLAGS`; a test fails if the two drift. `--repair-attempts 0|1|2` overrides it for experiments. Runs of earlier commits used 1.
+- **Checks (accepted difference):** the worker runs the approved `.refit.json` checks. Benchmark repositories have none, so the benchmark selects a check itself and adds the checks Refit generates.
+- **Model (not closed):** the worker's model is the `OPENAI_MODEL` Fly secret, which no document records. The workflow offers only `gpt-6.1-sol`; until the production model is written down, an AI run is not known to use it.
+- **AI budget:** the worker caps each installation at `REFIT_AI_BUDGET_USD` (`fly.toml`) in one ledger across its repositories. The workflow splits `ai_budget` evenly across shards, so each shard's repositories share a smaller ledger; set `ai_budget` to about the per-installation cap times the shard count to match.
+- **Vendor notes:** the benchmark attaches the pinned Stripe changelog pages in `docs/benchmarks/stripe-changelog/` to AI requests. The worker attaches only documentation snapshots from a repository's configured documentation sources.
+- **Contracts and adapter:** the benchmark uses the frozen list's API versions and pinned Stripe specs, and reports production mode with its SDK-spec adapter; `customerMode` repeats the scan with the built-in adapter the worker uses (see [Collect the results](#collect-the-results)).
+- **Not exercised:** the worker's doctor and approval steps, draft publication (`--publish-draft --supersede-drafts`; the workflow refuses `--publish`), polling, and its dependency-bundle cache, which reuses only bundles whose inputs match.
+- **Runtime:** the worker runs the packaged CLI on a 2-vCPU, 4 GB Fly machine; shards run the source at the pinned commit with `tsx` on 4-vCPU, 16 GB runners. Compare outcomes, not seconds.
+
+Shopify runs differ the same way, without AI, and on the Admin schemas read in the run (see [Shopify](#shopify)).
 
 ## Checked
 

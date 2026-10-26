@@ -4,14 +4,7 @@ import { analyzeRepository } from './analyzer.ts';
 import { applySourceEdits } from './patches.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { TEST_PATH } from './source-paths.ts';
-import {
-  CHECKOUT_SHIPPING_HELPER,
-  COUPON_ID_HELPER,
-  INVOICE_PRICE_ID_HELPER,
-  INVOICE_SUBSCRIPTION_HELPER,
-  PERIOD_HELPERS,
-  PRODUCT_FEATURES_HELPER,
-} from './stripe-subscription-periods.ts';
+import { STRIPE_PACK } from './rule-pack.ts';
 import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
 
 // Owner policies an AI patch must follow. A patch that breaks one stops for review, and the model
@@ -19,16 +12,13 @@ import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
 
 // Generated helpers that read the old shape when present and the new one otherwise, with the
 // removed field each one reads from its first argument.
-const VERSION_TOLERANT_HELPERS = new Map<string, { schema: string; property: string }>([
-  ...Object.entries(PERIOD_HELPERS).map(
-    ([property, helper]) => [helper, { schema: 'subscription', property }] as const,
+const VERSION_TOLERANT_HELPERS = new Map<string, { schema: string; property: string }>(
+  STRIPE_PACK.fieldMoves.flatMap((move) =>
+    Object.entries(
+      move.family === 'period-helper' ? move.helpers : { [move.property]: move.helper },
+    ).map(([property, helper]) => [helper, { schema: move.schemas[0], property }] as const),
   ),
-  [INVOICE_SUBSCRIPTION_HELPER, { schema: 'invoice', property: 'subscription' }],
-  [INVOICE_PRICE_ID_HELPER, { schema: 'line_item', property: 'price' }],
-  [CHECKOUT_SHIPPING_HELPER, { schema: 'checkout.session', property: 'shipping_details' }],
-  [COUPON_ID_HELPER, { schema: 'discount', property: 'coupon' }],
-  [PRODUCT_FEATURES_HELPER, { schema: 'product', property: 'features' }],
-]);
+);
 const SUPPRESSION = /@ts-(?:ignore|expect-error|nocheck)\b|eslint-disable\b/g;
 
 const parse = (path: string, content: string) =>

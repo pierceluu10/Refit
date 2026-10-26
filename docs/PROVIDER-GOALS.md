@@ -379,7 +379,7 @@ Partial items count as not done. Also done, outside the ten: the facts in [What 
 | 9   | Google     | Largest surface and a non-OpenAPI contract format; needs an architecture decision first                                                            |
 | 10  | Salesforce | Community SDK, breakage inside SOQL strings, few public repositories                                                                               |
 
-The order weighs reuse of existing work, how common the SDK is in public repositories, how often the provider breaks users, and whether a machine-readable contract exists. Counts of how common each SDK is come only from Refit's own sets for Stripe, Shopify, OpenAI, Anthropic and Meta; for the others the ranking is a judgement to confirm with a code search before freezing a set.
+[Provider family fit](PROVIDER-FAMILY-FIT.md) ranks the same providers by how many of their recorded breaking changes existing rule-pack families and shared mechanisms cover, from the `data/` files only. The order weighs reuse of existing work, how common the SDK is in public repositories, how often the provider breaks users, and whether a machine-readable contract exists. Counts of how common each SDK is come only from Refit's own sets for Stripe, Shopify, OpenAI, Anthropic and Meta; for the others the ranking is a judgement to confirm with a code search before freezing a set.
 
 ## Shared work
 
