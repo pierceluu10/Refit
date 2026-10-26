@@ -15844,6 +15844,70 @@
           "reason": "A GitHub Actions run identifier, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "Both runs used the GitHub workflow `shopify.yml` in `refit-dev/refit-bench` on the frozen 50-repository list `2026-10-16-shopify-repos.json`, no AI, `contracts=current`, dispatched together, with identical Admin schema hashes (2026-01 `28b7deb873ac`, 2026-04 `dc4e89a095fb`, 2026-07 `e9f0a5087a66`, 2026-10 `688152ce99cf`; these differ from the frozen list's, so compare only with runs on the same hashes).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "The frozen list's size, a setting of the run, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Before (`feat/stripe-rule-pack`) | `7c28763bad3ad746f37ef344c7c8b711ad605c2c` | 40283606752 |",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40283606752",
+          "reason": "A GitHub Actions run identifier, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| After | `4b6389729bb31f5e5483fa2f8876fd3296623572` | 40283610311 |",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40283610311",
+          "reason": "A GitHub Actions run identifier, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "Every repository's result record is identical apart from timings: 39 stopped, 3 current, 3 current for the SDK, 2 without Admin usage, 2 with no outcome recorded (same in both), 1 patched (validated).",
+      "values": [
+        {
+          "says": "39",
+          "notCheckable": "From refit-bench runs 40283606752 and 40283610311 (shopify.yml); their results files are run artifacts, not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From refit-bench runs 40283606752 and 40283610311 (shopify.yml); their results files are run artifacts, not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From refit-bench runs 40283606752 and 40283610311 (shopify.yml); their results files are run artifacts, not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From refit-bench runs 40283606752 and 40283610311 (shopify.yml); their results files are run artifacts, not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From refit-bench runs 40283606752 and 40283610311 (shopify.yml); their results files are run artifacts, not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40283606752 and 40283610311 (shopify.yml); their results files are run artifacts, not committed."
+        }
+      ],
+      "ignore": []
     }
   ]
 }
