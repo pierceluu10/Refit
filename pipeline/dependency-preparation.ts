@@ -334,7 +334,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
   {
     reason: 'lockfile-out-of-sync',
     pattern:
-      /differ from the committed (?:package-lock\.json|bun\.lock)|differs? from the (?:patch hash|overrides) pnpm-lock\.yaml records|^pnpm patches must be committed files whose SHA-256|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
+      /differ from the committed (?:package-lock\.json|bun\.lock)|differs? from the (?:patch hash|overrides) pnpm-lock\.yaml records|^pnpm patches must be committed files whose SHA-256|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^pnpm importer (?:specifiers|declarations) differ from committed manifests|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
     summary: 'the committed lockfile is out of sync with package.json',
     action: (lockfile: string) =>
       `Update \`${lockfile}\` so it matches \`package.json\` (run your package manager's install), commit it, then rerun your checks on this branch.`,

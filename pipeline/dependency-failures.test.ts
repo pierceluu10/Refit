@@ -68,6 +68,16 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
       ),
     ),
   ).toMatchObject({ action: expect.stringContaining('`pnpm-lock.yaml`') });
+  // Suhaib3100/online-compiler at f982961 declares prisma ^5.20.0; pnpm-lock.yaml records ^5.17.0,
+  // which a frozen pnpm install refuses. The second message is the same check's other form.
+  for (const message of [
+    'pnpm importer specifiers differ from committed manifests: prisma is "^5.20.0" in package.json but "^5.17.0" in pnpm-lock.yaml. Run pnpm install and commit the updated pnpm-lock.yaml.',
+    'pnpm importer declarations differ from committed manifests: zod is in package.json dependencies but not in pnpm-lock.yaml. Run pnpm install and commit the updated pnpm-lock.yaml.',
+  ])
+    expect(preparationFailure(new PipelineInputError(message))).toMatchObject({
+      reason: 'lockfile-out-of-sync',
+      action: expect.stringContaining('Update `pnpm-lock.yaml` so it matches `package.json`'),
+    });
   expect(
     preparationFailure(
       new DependencyPreparationError(
