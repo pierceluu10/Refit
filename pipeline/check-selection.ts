@@ -2,6 +2,7 @@ import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { baselineStop } from './preparation-stops.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { parseObject } from './specifications.ts';
 import type { Repository } from './types.ts';
@@ -537,6 +538,17 @@ export function unavailableTypeCheck(
     : undefined;
 }
 
+// A tests-then-type-check chain whose tests failed only because the test runner found no test
+// files (preparation-stops.ts no-tests-found): they prove nothing, so only the type check counts.
+export function testsFoundNone(run: { stdout: string; stderr: string }) {
+  const testsEnd = run.stdout.indexOf(TESTS_FAILED);
+  return (
+    testsEnd >= 0 &&
+    run.stdout.includes(TYPE_CHECK_STARTED) &&
+    baselineStop(`${run.stdout.slice(0, testsEnd)}\n${run.stderr}`)?.reason === 'no-tests-found'
+  );
+}
+
 // The type check part of a tests-then-type-check chain, as a command of its own.
 export function typeCheckCommand(command: readonly string[]) {
   const script = command[0] === 'sh' && command[1] === '-c' ? (command[2] ?? '') : '';
@@ -607,6 +619,8 @@ export async function gradeEvidence(options: {
   typeCheckUnavailable?: string;
   // The nested package the command ran in (selectCheck); changed files stay repository paths.
   packageDirectory?: string;
+  // The chain's test script found no test files (testsFoundNone), so only its type check counts.
+  testsFoundNone?: boolean;
 }): Promise<EvidenceGrade> {
   if (options.behaviour?.passed && options.behaviour.coversEveryChangedLine)
     return { letter: 'A', level: 'behaviour-tests', reason: options.behaviour.reason };
@@ -614,10 +628,14 @@ export async function gradeEvidence(options: {
   const check = checkDirectory(options.repository, options.packageDirectory);
   const { scripts } = await manifestScripts(check.root);
   const kinds = checkKinds(options.command, scripts);
+  if (options.testsFoundNone) kinds.delete('tests');
   const graph = importGraph(options.repository);
   const changed = options.changedFiles.filter((path) => SOURCE_FILE.test(path));
   const advisory = options.advisory ?? [];
   const notes = [
+    options.testsFoundNone
+      ? 'The test script finds no test files, so only the type check counts.'
+      : '',
     options.typeCheckUnavailable
       ? `The generated type check is unavailable (${options.typeCheckUnavailable}), so it counts for nothing.`
       : '',

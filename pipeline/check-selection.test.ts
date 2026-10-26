@@ -13,6 +13,7 @@ import {
   TESTS_FAILED,
   TYPE_CHECK,
   TYPE_CHECK_STARTED,
+  testsFoundNone,
   typeCheckCommand,
   unavailableTypeCheck,
 } from './check-selection.ts';
@@ -851,6 +852,143 @@ it('counts a generated type check that fails on configuration as unavailable, ne
       ),
     ),
   ).toBeUndefined();
+});
+
+// The tests' part of a chain as refit-bench run 40236299492 printed it, before Refit's own lines.
+const NO_JEST_TESTS =
+  '> jest\n\nNo tests found, exiting with code 1\nRun with `--passWithNoTests` to exit with code 0\n';
+const NO_MOCHA_TESTS = '\u001b[31mError: No test files found: "test"\u001b[39m\n';
+const chained = (tests: string, stderr = '') => ({
+  stdout: `${tests}${TESTS_FAILED}\n${TYPE_CHECK_STARTED}\n`,
+  stderr,
+});
+
+it('counts only the test runner finding no test files as a chain without tests', () => {
+  // JensenMPillay/pdfai at 76eee198ded23bf4fafba0e2d431cf01d2f60290 and Panda2Chan/ai-asmr at
+  // cbaf6a28512730839a9a0d72a852416e97f0f0dc: `jest`, and the repository has no test file.
+  expect(testsFoundNone(chained(NO_JEST_TESTS))).toBe(true);
+  // JiantaoFu/insightly at e752d3c311780e3e11ec9738b16a4f6a549cb321: `mocha` reads ./test, which
+  // does not exist; Mocha prints its result in red on stderr.
+  expect(testsFoundNone(chained('\n> insightly@0.0.0 test\n> mocha\n\n', NO_MOCHA_TESTS))).toBe(
+    true,
+  );
+  // Any other failure of the tests is a failure: a failing test, or a runner that cannot start.
+  expect(testsFoundNone(chained('FAIL src/payments.test.ts\n  expected 2 to be 3\n'))).toBe(false);
+  expect(testsFoundNone(chained("Error: Cannot find module 'next/jest'\n"))).toBe(false);
+  // Tests that passed with none found, and a test script alone, which keeps its baseline stop.
+  expect(
+    testsFoundNone({
+      stdout: `No tests found, exiting with code 0\n${TYPE_CHECK_STARTED}\n`,
+      stderr: '',
+    }),
+  ).toBe(false);
+  expect(testsFoundNone({ stdout: NO_JEST_TESTS, stderr: '' })).toBe(false);
+  // Only the tests' own output counts, never what follows Refit's lines.
+  expect(
+    testsFoundNone({
+      stdout: `FAIL a.test.ts\n${TESTS_FAILED}\n${TYPE_CHECK_STARTED}\nNo tests found, exiting with code 1\n`,
+      stderr: '',
+    }),
+  ).toBe(false);
+});
+
+it('grades a chain whose test script finds no test files by its type check alone', async () => {
+  // JensenMPillay/pdfai at 76eee198ded23bf4fafba0e2d431cf01d2f60290.
+  const pdfai = await repository({
+    'package.json': JSON.stringify({
+      scripts: { test: 'jest' },
+      dependencies: { stripe: '^14.25.0' },
+      devDependencies: { jest: '^29.7.0', typescript: '^5.4.5' },
+    }),
+    'pnpm-lock.yaml': "lockfileVersion: '6.0'\n",
+    'jest.config.js':
+      "const nextJest = require('next/jest');\nmodule.exports = nextJest({ dir: './' })({ testEnvironment: 'jest-environment-jsdom' });\n",
+    'tsconfig.json': JSON.stringify({
+      compilerOptions: {
+        strict: true,
+        noEmit: true,
+        module: 'esnext',
+        moduleResolution: 'bundler',
+        jsx: 'preserve',
+        paths: { '@/*': ['./src/*'] },
+      },
+      include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts', 'jest.config.js'],
+      exclude: ['node_modules'],
+    }),
+    'src/lib/stripe.ts':
+      'import Stripe from "stripe";\nexport const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: "2023-10-16" });\n',
+    'src/app/api/webhooks/stripe/route.ts':
+      'import { stripe } from "@/lib/stripe";\nimport type Stripe from "stripe";\nexport const POST = (event: Stripe.Event) => stripe.subscriptions.retrieve(event.id);\n',
+  });
+  const selection = await selectCheck(pdfai);
+  expect(selection.command).toEqual([
+    'sh',
+    '-c',
+    chain('pnpm test', TYPE_CHECK.join(' ')),
+    'refit-check',
+  ]);
+  const changedFiles = ['src/app/api/webhooks/stripe/route.ts', 'src/lib/stripe.ts'];
+  await expect(
+    gradeEvidence({ repository: pdfai, command: selection.command!, changedFiles }),
+  ).resolves.toMatchObject({ reason: expect.stringMatching(/^The tests pass but reach none/) });
+  await expect(
+    gradeEvidence({
+      repository: pdfai,
+      command: selection.command!,
+      changedFiles,
+      testsFoundNone: true,
+    }),
+  ).resolves.toEqual({
+    letter: 'C',
+    level: 'type-check',
+    reason:
+      'tsc type-checks src/app/api/webhooks/stripe/route.ts, src/lib/stripe.ts; no test ran that code. The test script finds no test files, so only the type check counts.',
+  });
+  // JiantaoFu/insightly at e752d3c311780e3e11ec9738b16a4f6a549cb321: its own tests (server/tests)
+  // are not what `mocha` runs, and the Stripe code is JavaScript only the generated check reads.
+  const insightly = await repository({
+    'package.json': JSON.stringify({
+      type: 'module',
+      scripts: { test: 'mocha', 'test:server': 'mocha server/tests/sitemap.test.js' },
+      dependencies: { stripe: '^18.2.1' },
+      devDependencies: { mocha: '^11.1.0', typescript: '^5.5.3' },
+    }),
+    'package-lock.json': '{}',
+    'tsconfig.json': JSON.stringify({
+      files: [],
+      references: [{ path: './tsconfig.app.json' }, { path: './tsconfig.node.json' }],
+    }),
+    'tsconfig.app.json': JSON.stringify({ compilerOptions: { noEmit: true }, include: ['src'] }),
+    'tsconfig.node.json': JSON.stringify({
+      compilerOptions: { noEmit: true },
+      include: ['vite.config.ts'],
+    }),
+    'server/index.js':
+      "import Stripe from 'stripe';\nexport const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });\n",
+    'server/sitemap.js': 'export const sitemap = () => [];\n',
+    'server/tests/sitemap.test.js':
+      "import { sitemap } from '../sitemap.js';\nit('maps', () => sitemap());\n",
+  });
+  const scoped = await selectCheck(insightly);
+  expect(scoped).toMatchObject({ kind: 'tests', typeCheck: 'scoped' });
+  await expect(
+    gradeEvidence({
+      repository: insightly,
+      command: scoped.command!,
+      changedFiles: ['server/index.js'],
+      testsFoundNone: true,
+      advisory: [
+        {
+          file: 'server/index.js',
+          text: `server/index.js(76,35): error TS2322: Type '"2026-09-30.endive"' is not assignable to type '"2025-05-28.basil"'.`,
+        },
+      ],
+    }),
+  ).resolves.toEqual({
+    letter: 'D',
+    level: 'none',
+    reason: `The type check does not cover server/index.js, and no generated check ran it. The test script finds no test files, so only the type check counts. The generated type check reports an advisory type error this patch introduces in JavaScript the repository never type-checks, first server/index.js(76,35): error TS2322: Type '"2026-09-30.endive"' is not assignable to type '"2025-05-28.basil"'..`,
+  });
 });
 
 it('counts only the listed test files as reaching the changed code', async () => {
