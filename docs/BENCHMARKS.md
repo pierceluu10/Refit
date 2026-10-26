@@ -491,6 +491,19 @@ Why: a request rebuilt locally from the shard's report, specifications and chang
 - Every other row has the same status, stage, reason, gates and patch as the AI-off run 40156098317. financehb is still refused over 64 KiB; type-last spent $0.02872 in the repair loop.
 - **Not fixed here:** FlowCraft's adapter maps `subscriptions.retrieve` but not `subscriptions.list`, which is why the rules could not trace that read.
 
+## Rule pack refactor (October 26)
+
+Moving Stripe's built-in rules into `data/packs/stripe.json` (families plus data, [Rule packs](RULE-PACKS.md)) changed no result. Both runs used the GitHub workflow `benchmark.yml` in `refit-dev/refit-bench` on the frozen 100-repository list `2026-10-14-stripe-repos.json`, no AI, with validation.
+
+|        | Commit                                     | Run         |
+| ------ | ------------------------------------------ | ----------- |
+| Before | `705b138af028aa78f1aba51fcab4cc7e0de02ae3` | 40282252631 |
+| After  | `7c28763bad3ad746f37ef344c7c8b711ad605c2c` | 40283157378 |
+
+Every repository's result record is identical once timings, the recorded commit, and per-run container names and temporary paths are removed (`jq` `walk` over both `results.json` files, then `diff`: no lines).
+
+`gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<sha> -f list=2026-10-14-stripe-repos.json -f offset=0 -f size=2 -f count=100`
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

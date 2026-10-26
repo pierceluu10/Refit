@@ -908,7 +908,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … **correct** | **1** |",
+      "quote": "| \u2026 **correct** | **1** |",
       "values": [
         {
           "says": "1",
@@ -927,7 +927,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … wrong | 7 |",
+      "quote": "| \u2026 wrong | 7 |",
       "values": [
         {
           "says": "7",
@@ -1015,7 +1015,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16–1.25 per repository, with a median of 37 s. Refit's AI spend across all 531 repositories was $0.07.",
+      "quote": "- **Cost: $6.45** for 17 agent runs plus one debug run, under a $20 cap. That is $0.16\u20131.25 per repository, with a median of 37 s. Refit's AI spend across all 531 repositories was $0.07.",
       "values": [
         {
           "says": "$6.45",
@@ -1045,7 +1045,7 @@
           }
         },
         {
-          "says": "$0.16–1.25",
+          "says": "$0.16\u20131.25",
           "query": {
             "results": ["docs/benchmarks/2026-10-21-agent-comparison-results.json"],
             "rows": "/repos",
@@ -1760,7 +1760,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "The fresh set skews toward old, idle code: 38% pin a 2022–2023 API version, and the median repository has 3 stars.",
+      "quote": "The fresh set skews toward old, idle code: 38% pin a 2022\u20132023 API version, and the median repository has 3 stars.",
       "values": [
         {
           "says": "38%",
@@ -1853,7 +1853,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Kept.** 66 after dropping repositories already on endive (3), with no derivable API version (2) or that could not be cloned (1). 14 are owned by organisations. 46 of 66 pin a 2025–2026 API version.",
+      "quote": "- **Kept.** 66 after dropping repositories already on endive (3), with no derivable API version (2) or that could not be cloned (1). 14 are owned by organisations. 46 of 66 pin a 2025\u20132026 API version.",
       "values": [
         {
           "says": "66",
@@ -1975,7 +1975,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: `payment_method_types` outside the card rule | 6 |",
+      "quote": "| \u2026 stopped: `payment_method_types` outside the card rule | 6 |",
       "values": [
         {
           "says": "6",
@@ -1994,7 +1994,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … refused at validation preparation (registry URL, lockfile, size) | 3 |",
+      "quote": "| \u2026 refused at validation preparation (registry URL, lockfile, size) | 3 |",
       "values": [
         {
           "says": "3",
@@ -2013,7 +2013,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: unparseable source files | 2 |",
+      "quote": "| \u2026 stopped: unparseable source files | 2 |",
       "values": [
         {
           "says": "2",
@@ -2032,7 +2032,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … validated | 0 |",
+      "quote": "| \u2026 validated | 0 |",
       "values": [
         {
           "says": "0",
@@ -2575,7 +2575,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: sends a removed request parameter | | 10 |",
+      "quote": "| \u2026 stopped: sends a removed request parameter | | 10 |",
       "values": [
         {
           "says": "10",
@@ -2585,7 +2585,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … refused or failed at dependency preparation | | 4 |",
+      "quote": "| \u2026 refused or failed at dependency preparation | | 4 |",
       "values": [
         {
           "says": "4",
@@ -2595,7 +2595,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: committed source over the 50 MiB validation archive | | 2 |",
+      "quote": "| \u2026 stopped: committed source over the 50 MiB validation archive | | 2 |",
       "values": [
         {
           "says": "2",
@@ -2611,7 +2611,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … checks passed, untraced read left unchanged: `[Needs review]` draft | | 1 |",
+      "quote": "| \u2026 checks passed, untraced read left unchanged: `[Needs review]` draft | | 1 |",
       "values": [
         {
           "says": "1",
@@ -2621,7 +2621,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … checks did not finish | | 1 |",
+      "quote": "| \u2026 checks did not finish | | 1 |",
       "values": [
         {
           "says": "1",
@@ -2631,7 +2631,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: unparseable source files | | 1 |",
+      "quote": "| \u2026 stopped: unparseable source files | | 1 |",
       "values": [
         {
           "says": "1",
@@ -2641,7 +2641,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: helper client needs review | | 1 |",
+      "quote": "| \u2026 stopped: helper client needs review | | 1 |",
       "values": [
         {
           "says": "1",
@@ -2651,7 +2651,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … **validated** | 0 | **1** |",
+      "quote": "| \u2026 **validated** | 0 | **1** |",
       "values": [
         {
           "says": "0",
@@ -2880,7 +2880,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- original 100: 4 → 11;",
+      "quote": "- original 100: 4 \u2192 11;",
       "values": [
         {
           "says": "100",
@@ -2902,7 +2902,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- held-out 50: 1 → 7;",
+      "quote": "- held-out 50: 1 \u2192 7;",
       "values": [
         {
           "says": "50",
@@ -2924,7 +2924,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- fresh 381: 5 → 35.",
+      "quote": "- fresh 381: 5 \u2192 35.",
       "values": [
         {
           "says": "381",
@@ -3222,7 +3222,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: sends the removed `payment_method_types` request parameter | **148** |",
+      "quote": "| \u2026 stopped: sends the removed `payment_method_types` request parameter | **148** |",
       "values": [
         {
           "says": "148",
@@ -3241,7 +3241,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: declared Stripe types without traced provenance, or a conflicting SDK pin | 5 |",
+      "quote": "| \u2026 stopped: declared Stripe types without traced provenance, or a conflicting SDK pin | 5 |",
       "values": [
         {
           "says": "5",
@@ -3260,7 +3260,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … stopped: an invalid source file (a stray brace, an unescaped quote, an unterminated literal; each checked by hand) | 4 |",
+      "quote": "| \u2026 stopped: an invalid source file (a stray brace, an unescaped quote, an unterminated literal; each checked by hand) | 4 |",
       "values": [
         {
           "says": "4",
@@ -3279,7 +3279,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … repository refused for validation (tracked `node_modules`, a lockfile over 20,000 records) | 3 |",
+      "quote": "| \u2026 repository refused for validation (tracked `node_modules`, a lockfile over 20,000 records) | 3 |",
       "values": [
         {
           "says": "3",
@@ -3304,7 +3304,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … AI evidence over the 64 KiB limit, or AI declined | 3 |",
+      "quote": "| \u2026 AI evidence over the 64 KiB limit, or AI declined | 3 |",
       "values": [
         {
           "says": "3",
@@ -3329,7 +3329,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … proposed, no preparable checks | 2 |",
+      "quote": "| \u2026 proposed, no preparable checks | 2 |",
       "values": [
         {
           "says": "2",
@@ -3348,7 +3348,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … validation regression: an AI patch introduced type errors; caught, not proposed | 1 |",
+      "quote": "| \u2026 validation regression: an AI patch introduced type errors; caught, not proposed | 1 |",
       "values": [
         {
           "says": "1",
@@ -3367,7 +3367,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … **validated** | **5** |",
+      "quote": "| \u2026 **validated** | **5** |",
       "values": [
         {
           "says": "5",
@@ -3526,7 +3526,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Production mode** (the full oasdiff contract diff) completed for 300 of 300. In the first run, 47 timed out under CPU load: four benchmark processes ran at a load average near 11, and one timeout was reused for every repository on the same API version. On a normal load, the same comparisons finish in 2–4 seconds. The benchmark no longer reuses a timeout, and the 30-second limit is unchanged, as the [plan](STRIPE-PLAN.md) records.",
+      "quote": "- **Production mode** (the full oasdiff contract diff) completed for 300 of 300. In the first run, 47 timed out under CPU load: four benchmark processes ran at a load average near 11, and one timeout was reused for every repository on the same API version. On a normal load, the same comparisons finish in 2\u20134 seconds. The benchmark no longer reuses a timeout, and the 30-second limit is unchanged, as the [plan](STRIPE-PLAN.md) records.",
       "values": [
         {
           "says": "300",
@@ -3545,7 +3545,7 @@
           "notCheckable": "A timing from a run whose per-repository times are not committed."
         },
         {
-          "says": "2–4",
+          "says": "2\u20134",
           "notCheckable": "A timing from a run whose per-repository times are not committed."
         }
       ],
@@ -3686,7 +3686,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| … validated in offline Docker | 1 | **6** |",
+      "quote": "| \u2026 validated in offline Docker | 1 | **6** |",
       "values": [
         {
           "says": "1",
@@ -3868,7 +3868,7 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "- **Helper tracing** raised traced documents on the original 50 from 255 to 336, and halved unreadable ones (55 → 27), with no outcome changes.",
+      "quote": "- **Helper tracing** raised traced documents on the original 50 from 255 to 336, and halved unreadable ones (55 \u2192 27), with no outcome changes.",
       "values": [
         {
           "says": "50",
@@ -6249,10 +6249,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| `refit deadlines`, per repository | **0.4–0.5 s** (581 repositories in 259 s) |",
+      "quote": "| `refit deadlines`, per repository | **0.4\u20130.5 s** (581 repositories in 259 s) |",
       "values": [
         {
-          "says": "0.4–0.5",
+          "says": "0.4\u20130.5",
           "notCheckable": "A timing from a run whose per-repository times are not committed."
         },
         {
@@ -6313,10 +6313,10 @@
     },
     {
       "doc": "docs/BENCHMARKS.md",
-      "quote": "| AI spend per call | $0.002–0.006 on `gpt-5.6-luna` |",
+      "quote": "| AI spend per call | $0.002\u20130.006 on `gpt-5.6-luna` |",
       "values": [
         {
-          "says": "$0.002–0.006",
+          "says": "$0.002\u20130.006",
           "notCheckable": "AI spend is kept in each run's budget ledger outside the repository; no committed results file records it."
         }
       ]
@@ -6493,7 +6493,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "- **Most of the active repositories these searches find are really exposed.** 28 of 32 labelled repositories (88%, 95% CI 72–95%) have a live call path that pins a registry version or model. 17 of the 28 are already past the date.",
+      "quote": "- **Most of the active repositories these searches find are really exposed.** 28 of 32 labelled repositories (88%, 95% CI 72\u201395%) have a live call path that pins a registry version or model. 17 of the 28 are already past the date.",
       "values": [
         {
           "says": "28",
@@ -6552,7 +6552,7 @@
           }
         },
         {
-          "says": "72–95%",
+          "says": "72\u201395%",
           "query": {
             "results": ["docs/benchmarks/2026-10-16-deadline-repos.json"],
             "rows": "/repos",
@@ -6613,7 +6613,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "- **OpenAI's 2026-10-23 shutdown:** 15 of the 34 sampled OpenAI repositories (44%, 29–61%) send one of the models OpenAI retires that day from a live call path.",
+      "quote": "- **OpenAI's 2026-10-23 shutdown:** 15 of the 34 sampled OpenAI repositories (44%, 29\u201361%) send one of the models OpenAI retires that day from a live call path.",
       "values": [
         {
           "says": "15",
@@ -6637,21 +6637,21 @@
           "notCheckable": "Needs which labelled versions OpenAI retires on 2026-10-23, from the registry as it stood on 2026-10-15; not reproducible from committed data."
         },
         {
-          "says": "29–61%",
+          "says": "29\u201361%",
           "notCheckable": "Needs which labelled versions OpenAI retires on 2026-10-23, from the registry as it stood on 2026-10-15; not reproducible from committed data."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "- **Repository recall:** 28/28 (88–100%) after the matcher fix, and still 28/28 with live-only evidence.",
+      "quote": "- **Repository recall:** 28/28 (88\u2013100%) after the matcher fix, and still 28/28 with live-only evidence.",
       "values": [
         {
           "says": "28/28",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "88–100%",
+          "says": "88\u2013100%",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -6662,14 +6662,14 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "- **Repository precision:** 28/31 (75–97%) after the matcher fix, then 28/28 (88–100%) with live-only evidence.",
+      "quote": "- **Repository precision:** 28/31 (75\u201397%) after the matcher fix, then 28/28 (88\u2013100%) with live-only evidence.",
       "values": [
         {
           "says": "28/31",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "75–97%",
+          "says": "75\u201397%",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -6677,7 +6677,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "88–100%",
+          "says": "88\u2013100%",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
@@ -7259,7 +7259,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| **Truly exposed** (≥1 live pin) | **28/32, 88%** (72–95) | 8/11, 73% (43–90) | 11/11 (74–100) | 9/10, 90% (60–98) |",
+      "quote": "| **Truly exposed** (\u22651 live pin) | **28/32, 88%** (72\u201395) | 8/11, 73% (43\u201390) | 11/11 (74\u2013100) | 9/10, 90% (60\u201398) |",
       "values": [
         {
           "says": "28/32",
@@ -7328,7 +7328,7 @@
           }
         },
         {
-          "says": "72–95",
+          "says": "72\u201395",
           "query": {
             "results": ["docs/benchmarks/2026-10-16-deadline-repos.json"],
             "rows": "/repos",
@@ -7435,7 +7435,7 @@
           }
         },
         {
-          "says": "43–90",
+          "says": "43\u201390",
           "query": {
             "results": ["docs/benchmarks/2026-10-16-deadline-repos.json"],
             "rows": "/repos",
@@ -7509,7 +7509,7 @@
           }
         },
         {
-          "says": "74–100",
+          "says": "74\u2013100",
           "query": {
             "results": ["docs/benchmarks/2026-10-16-deadline-repos.json"],
             "rows": "/repos",
@@ -7620,7 +7620,7 @@
           }
         },
         {
-          "says": "60–98",
+          "says": "60\u201398",
           "query": {
             "results": ["docs/benchmarks/2026-10-16-deadline-repos.json"],
             "rows": "/repos",
@@ -7666,7 +7666,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Exposed, counting model lists | 31/32, 97% (84–99) | 11/11 | 11/11 | 9/10 |",
+      "quote": "| Exposed, counting model lists | 31/32, 97% (84\u201399) | 11/11 | 11/11 | 9/10 |",
       "values": [
         {
           "says": "31/32",
@@ -7735,7 +7735,7 @@
           }
         },
         {
-          "says": "84–99",
+          "says": "84\u201399",
           "query": {
             "results": ["docs/benchmarks/2026-10-16-deadline-repos.json"],
             "rows": "/repos",
@@ -7882,19 +7882,19 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Past due | 0–7 days | 8–30 days | 31–90 days | Later |",
+      "quote": "| Past due | 0\u20137 days | 8\u201330 days | 31\u201390 days | Later |",
       "values": [],
       "ignore": [
         {
-          "token": "0–7",
+          "token": "0\u20137",
           "reason": "A timing bucket the table defines."
         },
         {
-          "token": "8–30",
+          "token": "8\u201330",
           "reason": "A timing bucket the table defines."
         },
         {
-          "token": "31–90",
+          "token": "31\u201390",
           "reason": "A timing bucket the table defines."
         }
       ]
@@ -7927,7 +7927,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "- 11 Meta repositories on v13.0–v20.0;",
+      "quote": "- 11 Meta repositories on v13.0\u2013v20.0;",
       "values": [
         {
           "says": "11",
@@ -7957,29 +7957,29 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "- **0–7 days:** Shopify 2025-10, which stops being accessible on 2026-10-16.",
+      "quote": "- **0\u20137 days:** Shopify 2025-10, which stops being accessible on 2026-10-16.",
       "values": [],
       "ignore": [
         {
-          "token": "0–7",
+          "token": "0\u20137",
           "reason": "A timing bucket the table defines."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "- **8–30 days:** OpenAI `gpt-3.5-turbo` on 2026-10-23.",
+      "quote": "- **8\u201330 days:** OpenAI `gpt-3.5-turbo` on 2026-10-23.",
       "values": [],
       "ignore": [
         {
-          "token": "8–30",
+          "token": "8\u201330",
           "reason": "A timing bucket the table defines."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "Over all 97 repositories Refit flags, by the most urgent *flagged* deadline (an upper bound, since not every flag is live): 63 past due, 16 in 0–7 days, 17 in 8–30 days, 0 in 31–90 days, 1 later.",
+      "quote": "Over all 97 repositories Refit flags, by the most urgent *flagged* deadline (an upper bound, since not every flag is live): 63 past due, 16 in 0\u20137 days, 17 in 8\u201330 days, 0 in 31\u201390 days, 1 later.",
       "values": [
         {
           "says": "97",
@@ -8008,15 +8008,15 @@
       ],
       "ignore": [
         {
-          "token": "0–7",
+          "token": "0\u20137",
           "reason": "A timing bucket the table defines."
         },
         {
-          "token": "8–30",
+          "token": "8\u201330",
           "reason": "A timing bucket the table defines."
         },
         {
-          "token": "31–90",
+          "token": "31\u201390",
           "reason": "A timing bucket the table defines."
         }
       ]
@@ -8052,7 +8052,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| **Live call path uses a 2026-10-23 model** | **15/34, 44%** (29–61) |",
+      "quote": "| **Live call path uses a 2026-10-23 model** | **15/34, 44%** (29\u201361) |",
       "values": [
         {
           "says": "15/34",
@@ -8063,14 +8063,14 @@
           "notCheckable": "Needs which labelled versions OpenAI retires on 2026-10-23, from the registry as it stood on 2026-10-15; not reproducible from committed data."
         },
         {
-          "says": "29–61",
+          "says": "29\u201361",
           "notCheckable": "Needs which labelled versions OpenAI retires on 2026-10-23, from the registry as it stood on 2026-10-15; not reproducible from committed data."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Precision of the 2026-10-23 flag | 15/31, 48% (32–65) |",
+      "quote": "| Precision of the 2026-10-23 flag | 15/31, 48% (32\u201365) |",
       "values": [
         {
           "says": "15/31",
@@ -8081,7 +8081,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "32–65",
+          "says": "32\u201365",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
@@ -8102,7 +8102,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| **Repository precision** | 26/30, 87% (70–95) | **28/31, 90%** (75–97) |",
+      "quote": "| **Repository precision** | 26/30, 87% (70\u201395) | **28/31, 90%** (75\u201397) |",
       "values": [
         {
           "says": "26/30",
@@ -8113,7 +8113,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "70–95",
+          "says": "70\u201395",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8125,14 +8125,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "75–97",
+          "says": "75\u201397",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| **Repository recall** | 26/28, 93% (77–98) | **28/28, 100%** (88–100) |",
+      "quote": "| **Repository recall** | 26/28, 93% (77\u201398) | **28/28, 100%** (88\u2013100) |",
       "values": [
         {
           "says": "26/28",
@@ -8143,7 +8143,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "77–98",
+          "says": "77\u201398",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8155,14 +8155,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "88–100",
+          "says": "88\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Repository × deadline recall | 35/37, 95% (82–99) | 36/37, 97% (86–99.5) |",
+      "quote": "| Repository \u00d7 deadline recall | 35/37, 95% (82\u201399) | 36/37, 97% (86\u201399.5) |",
       "values": [
         {
           "says": "35/37",
@@ -8173,7 +8173,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "82–99",
+          "says": "82\u201399",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8185,14 +8185,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "86–99.5",
+          "says": "86\u201399.5",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| **Line precision** | 79/211, 37% (31–44) | **81/199, 41%** (34–48) |",
+      "quote": "| **Line precision** | 79/211, 37% (31\u201344) | **81/199, 41%** (34\u201348) |",
       "values": [
         {
           "says": "79/211",
@@ -8203,7 +8203,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "31–44",
+          "says": "31\u201344",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8215,14 +8215,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "34–48",
+          "says": "34\u201348",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line recall | 94/107, 88% (80–93) | 96/107, 90% (82–94) |",
+      "quote": "| Line recall | 94/107, 88% (80\u201393) | 96/107, 90% (82\u201394) |",
       "values": [
         {
           "says": "94/107",
@@ -8233,7 +8233,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "80–93",
+          "says": "80\u201393",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8245,7 +8245,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "82–94",
+          "says": "82\u201394",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
@@ -8312,14 +8312,14 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Repository precision | 8/11 (43–90) | 11/11 (74–100) | 9/9 (70–100) |",
+      "quote": "| Repository precision | 8/11 (43\u201390) | 11/11 (74\u2013100) | 9/9 (70\u2013100) |",
       "values": [
         {
           "says": "8/11",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "43–90",
+          "says": "43\u201390",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8327,7 +8327,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "74–100",
+          "says": "74\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8335,14 +8335,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "70–100",
+          "says": "70\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line precision | 19/133, **14%** (9–21) | 47/47, **100%** (92–100) | 15/19, 79% (57–92) |",
+      "quote": "| Line precision | 19/133, **14%** (9\u201321) | 47/47, **100%** (92\u2013100) | 15/19, 79% (57\u201392) |",
       "values": [
         {
           "says": "19/133",
@@ -8353,7 +8353,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "9–21",
+          "says": "9\u201321",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8365,7 +8365,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "92–100",
+          "says": "92\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8377,21 +8377,21 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "57–92",
+          "says": "57\u201392",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line recall | 19/19 (83–100) | 62/63, 98% (92–100) | 15/25, **60%** (41–77) |",
+      "quote": "| Line recall | 19/19 (83\u2013100) | 62/63, 98% (92\u2013100) | 15/25, **60%** (41\u201377) |",
       "values": [
         {
           "says": "19/19",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "83–100",
+          "says": "83\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8403,7 +8403,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "92–100",
+          "says": "92\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8415,7 +8415,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "41–77",
+          "says": "41\u201377",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
@@ -8438,7 +8438,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Repository precision | 26/30, 87% (70–95) | 28/31, 90% (75–97) | **28/28, 100%** (88–100) |",
+      "quote": "| Repository precision | 26/30, 87% (70\u201395) | 28/31, 90% (75\u201397) | **28/28, 100%** (88\u2013100) |",
       "values": [
         {
           "says": "26/30",
@@ -8449,7 +8449,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "70–95",
+          "says": "70\u201395",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8461,7 +8461,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "75–97",
+          "says": "75\u201397",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8473,14 +8473,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "88–100",
+          "says": "88\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Repository recall | 26/28, 93% (77–98) | 28/28, 100% (88–100) | **28/28, 100%** (88–100) |",
+      "quote": "| Repository recall | 26/28, 93% (77\u201398) | 28/28, 100% (88\u2013100) | **28/28, 100%** (88\u2013100) |",
       "values": [
         {
           "says": "26/28",
@@ -8491,7 +8491,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "77–98",
+          "says": "77\u201398",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8503,7 +8503,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "88–100",
+          "says": "88\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8515,14 +8515,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "88–100",
+          "says": "88\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Repository × deadline recall | 35/37, 95% (82–99) | 36/37, 97% (86–99.5) | 36/37, 97% (86–99.5) |",
+      "quote": "| Repository \u00d7 deadline recall | 35/37, 95% (82\u201399) | 36/37, 97% (86\u201399.5) | 36/37, 97% (86\u201399.5) |",
       "values": [
         {
           "says": "35/37",
@@ -8533,7 +8533,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "82–99",
+          "says": "82\u201399",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8545,7 +8545,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "86–99.5",
+          "says": "86\u201399.5",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8557,14 +8557,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "86–99.5",
+          "says": "86\u201399.5",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line precision, all | 79/211, 37% (31–44) | 81/199, 41% (34–48) | **81/89, 91%** (83–95) |",
+      "quote": "| Line precision, all | 79/211, 37% (31\u201344) | 81/199, 41% (34\u201348) | **81/89, 91%** (83\u201395) |",
       "values": [
         {
           "says": "79/211",
@@ -8575,7 +8575,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "31–44",
+          "says": "31\u201344",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8587,7 +8587,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "34–48",
+          "says": "34\u201348",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8599,14 +8599,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "83–95",
+          "says": "83\u201395",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line precision, OpenAI | | 19/133, 14% (9–21) | **19/23, 83%** (63–93) |",
+      "quote": "| Line precision, OpenAI | | 19/133, 14% (9\u201321) | **19/23, 83%** (63\u201393) |",
       "values": [
         {
           "says": "19/133",
@@ -8617,7 +8617,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "9–21",
+          "says": "9\u201321",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8629,14 +8629,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "63–93",
+          "says": "63\u201393",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line precision, Meta | | 47/47, 100% (92–100) | 47/47, 100% (92–100) |",
+      "quote": "| Line precision, Meta | | 47/47, 100% (92\u2013100) | 47/47, 100% (92\u2013100) |",
       "values": [
         {
           "says": "47/47",
@@ -8647,7 +8647,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "92–100",
+          "says": "92\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8659,14 +8659,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "92–100",
+          "says": "92\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line precision, Shopify | | 15/19, 79% (57–92) | 15/19, 79% (57–92) |",
+      "quote": "| Line precision, Shopify | | 15/19, 79% (57\u201392) | 15/19, 79% (57\u201392) |",
       "values": [
         {
           "says": "15/19",
@@ -8677,7 +8677,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "57–92",
+          "says": "57\u201392",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8689,14 +8689,14 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "57–92",
+          "says": "57\u201392",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line recall | 94/107, 88% (80–93) | 96/107, 90% (82–94) | 96/107, 90% (82–94) |",
+      "quote": "| Line recall | 94/107, 88% (80\u201393) | 96/107, 90% (82\u201394) | 96/107, 90% (82\u201394) |",
       "values": [
         {
           "says": "94/107",
@@ -8707,7 +8707,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "80–93",
+          "says": "80\u201393",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8719,7 +8719,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "82–94",
+          "says": "82\u201394",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8731,21 +8731,21 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "82–94",
+          "says": "82\u201394",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Line recall, OpenAI | | 19/19 (83–100) | 19/19 (83–100) |",
+      "quote": "| Line recall, OpenAI | | 19/19 (83\u2013100) | 19/19 (83\u2013100) |",
       "values": [
         {
           "says": "19/19",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "83–100",
+          "says": "83\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8753,7 +8753,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "83–100",
+          "says": "83\u2013100",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
@@ -8901,7 +8901,7 @@
     },
     {
       "doc": "docs/DEADLINE-BENCHMARK.md",
-      "quote": "| Flag precision | 15/31, 48% (32–65) | **15/20, 75%** (53–89) |",
+      "quote": "| Flag precision | 15/31, 48% (32\u201365) | **15/20, 75%** (53\u201389) |",
       "values": [
         {
           "says": "15/31",
@@ -8912,7 +8912,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "32–65",
+          "says": "32\u201365",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
@@ -8924,7 +8924,7 @@
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         },
         {
-          "says": "53–89",
+          "says": "53\u201389",
           "notCheckable": "From the benchmark's Refit runs (before, after, classified) and the loose search; only the labels, the frozen list and the frame are committed, not those runs' outputs."
         }
       ]
@@ -10632,7 +10632,7 @@
     },
     {
       "doc": "docs/PROVIDER-GOALS.md",
-      "quote": "- 10 name only non-text models (DALL·E, Whisper, TTS, `gpt-image`, transcription), which the rule never replaces.",
+      "quote": "- 10 name only non-text models (DALL\u00b7E, Whisper, TTS, `gpt-image`, transcription), which the rule never replaces.",
       "values": [
         {
           "says": "10",
@@ -11282,7 +11282,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "The 50 apps in [`2026-10-16-shopify-repos.json`](benchmarks/2026-10-16-shopify-repos.json) were chosen and frozen before any Refit Shopify code existed. A GitHub code search for Shopify Admin clients with a pinned `apiVersion` returned 187 repositories. 155 were not forks or archived, were under 50 MB, had been pushed since 2024-01, and declared a Shopify SDK in their root `package.json`; the 50 most starred were pinned at their default-branch HEAD. Development used 10 other eligible apps (ranks 51–60), never these.",
+      "quote": "The 50 apps in [`2026-10-16-shopify-repos.json`](benchmarks/2026-10-16-shopify-repos.json) were chosen and frozen before any Refit Shopify code existed. A GitHub code search for Shopify Admin clients with a pinned `apiVersion` returned 187 repositories. 155 were not forks or archived, were under 50 MB, had been pushed since 2024-01, and declared a Shopify SDK in their root `package.json`; the 50 most starred were pinned at their default-branch HEAD. Development used 10 other eligible apps (ranks 51\u201360), never these.",
       "values": [
         {
           "says": "50",
@@ -11319,7 +11319,7 @@
           "reason": "A configured limit or setting, not a measurement."
         },
         {
-          "token": "51–60",
+          "token": "51\u201360",
           "reason": "Ranks of the development apps, not a measurement."
         }
       ]
@@ -12988,7 +12988,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| Apps with REST calls | 10 → 8 | 54 → 46 |",
+      "quote": "| Apps with REST calls | 10 \u2192 8 | 54 \u2192 46 |",
       "values": [
         {
           "says": "10",
@@ -13010,7 +13010,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| REST calls reported | 32 → 28 | 184 → 152 |",
+      "quote": "| REST calls reported | 32 \u2192 28 | 184 \u2192 152 |",
       "values": [
         {
           "says": "32",
@@ -13032,7 +13032,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| … raw `graphql.json` requests removed from REST | 4 (2 apps) | 56 (11 apps) |",
+      "quote": "| \u2026 raw `graphql.json` requests removed from REST | 4 (2 apps) | 56 (11 apps) |",
       "values": [
         {
           "says": "4",
@@ -13054,7 +13054,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| … calls on REST client variables, newly reported one by one | 0 | 24 |",
+      "quote": "| \u2026 calls on REST client variables, newly reported one by one | 0 | 24 |",
       "values": [
         {
           "says": "0",
@@ -13068,7 +13068,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| … with method and path (`GET products/{id}.json`) | 3 | 80 |",
+      "quote": "| \u2026 with method and path (`GET products/{id}.json`) | 3 | 80 |",
       "values": [
         {
           "says": "3",
@@ -13082,7 +13082,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| … resource operation with method (`Product.all`, GET) | 11 | 20 |",
+      "quote": "| \u2026 resource operation with method (`Product.all`, GET) | 11 | 20 |",
       "values": [
         {
           "says": "11",
@@ -13096,7 +13096,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| … new resource record (`new Metafield`, sent by `save()`) | 14 | 5 |",
+      "quote": "| \u2026 new resource record (`new Metafield`, sent by `save()`) | 14 | 5 |",
       "values": [
         {
           "says": "14",
@@ -13110,7 +13110,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| … path only, or method only | 0 | 19 |",
+      "quote": "| \u2026 path only, or method only | 0 | 19 |",
       "values": [
         {
           "says": "0",
@@ -13124,7 +13124,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| … client construction, nothing else stated | 0 | 28 |",
+      "quote": "| \u2026 client construction, nothing else stated | 0 | 28 |",
       "values": [
         {
           "says": "0",
@@ -13138,7 +13138,7 @@
     },
     {
       "doc": "docs/SHOPIFY-BENCHMARK.md",
-      "quote": "| Stopped: REST Admin calls | 8 → **6** | 39 → **32** |",
+      "quote": "| Stopped: REST Admin calls | 8 \u2192 **6** | 39 \u2192 **32** |",
       "values": [
         {
           "says": "8",
@@ -13241,7 +13241,7 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "- **Repositories:** GitHub code search for TypeScript/JavaScript files using the `stripe` package (imports, `require`, `new Stripe(…apiVersion…)`, common calls) found 1,556 repositories. We kept those that are not archived or forks, are under 50 MB and were pushed since January 2024. From the 140 most-starred we cloned them shallowly, kept the ones with a `stripe` dependency whose API version maps to a real specification, and took the top 100 that have an upgrade ahead of them (7 to 2,110 stars). Repositories and commits are pinned in [`benchmarks/2026-10-14-stripe-repos.json`](benchmarks/2026-10-14-stripe-repos.json). No repository code was installed or run.",
+      "quote": "- **Repositories:** GitHub code search for TypeScript/JavaScript files using the `stripe` package (imports, `require`, `new Stripe(\u2026apiVersion\u2026)`, common calls) found 1,556 repositories. We kept those that are not archived or forks, are under 50 MB and were pushed since January 2024. From the 140 most-starred we cloned them shallowly, kept the ones with a `stripe` dependency whose API version maps to a real specification, and took the top 100 that have an upgrade ahead of them (7 to 2,110 stars). Repositories and commits are pinned in [`benchmarks/2026-10-14-stripe-repos.json`](benchmarks/2026-10-14-stripe-repos.json). No repository code was installed or run.",
       "values": [
         {
           "says": "1,556",
@@ -13290,7 +13290,7 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "- **Each repository's API version:** taken from its literal `apiVersion: '…'` (68 of the 100), or else from its locked or declared `stripe` package version (32). We read each stripe-node release's `OPENAPI_VERSION` and `apiVersion` to map 175 SDK releases to 31 API versions.",
+      "quote": "- **Each repository's API version:** taken from its literal `apiVersion: '\u2026'` (68 of the 100), or else from its locked or declared `stripe` package version (32). We read each stripe-node release's `OPENAPI_VERSION` and `apiVersion` to map 175 SDK releases to 31 API versions.",
       "values": [
         {
           "says": "68",
@@ -13441,7 +13441,7 @@
       "values": [
         {
           "says": "100",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13451,7 +13451,7 @@
       "values": [
         {
           "says": "97",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13461,7 +13461,7 @@
       "values": [
         {
           "says": "96",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13471,7 +13471,7 @@
       "values": [
         {
           "says": "54",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13481,7 +13481,7 @@
       "values": [
         {
           "says": "83",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13491,7 +13491,7 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13501,7 +13501,7 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13511,7 +13511,7 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13521,7 +13521,7 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13531,7 +13531,7 @@
       "values": [
         {
           "says": "10",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13541,19 +13541,19 @@
       "values": [
         {
           "says": "55",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "355",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "1,556",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "23%",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13563,11 +13563,11 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "54",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ],
       "ignore": [
@@ -13583,23 +13583,23 @@
       "values": [
         {
           "says": "66",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "58",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "40",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "30",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "11",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13609,7 +13609,7 @@
       "values": [
         {
           "says": "31",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "80",
@@ -13626,15 +13626,15 @@
         },
         {
           "says": "39%",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "97",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "21",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13644,17 +13644,17 @@
       "values": [
         {
           "says": "6,539",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "| \"Response or SDK client may be mutated or escape through an alias or call…\" | 6,026 |",
+      "quote": "| \"Response or SDK client may be mutated or escape through an alias or call\u2026\" | 6,026 |",
       "values": [
         {
           "says": "6,026",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13664,7 +13664,7 @@
       "values": [
         {
           "says": "513",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13674,7 +13674,7 @@
       "values": [
         {
           "says": "74",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "100",
@@ -13727,11 +13727,11 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "- **Production mode can't diff real Stripe specs.** The 30s `oasdiff` limit is exceeded on 8–11 MB specifications, and some pairs fail to compare at all. The default worker mode therefore never reaches the code stage for Stripe.",
+      "quote": "- **Production mode can't diff real Stripe specs.** The 30s `oasdiff` limit is exceeded on 8\u201311 MB specifications, and some pairs fail to compare at all. The default worker mode therefore never reaches the code stage for Stripe.",
       "values": [
         {
-          "says": "8–11",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "says": "8\u201311",
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ],
       "ignore": [
@@ -13799,7 +13799,7 @@
         },
         {
           "says": "17",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -13903,7 +13903,7 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "Refit reports every real break but can't separate it from about 3,000 false matches, so it confirms none. Phase 2 of the [plan](STRIPE-PLAN.md) targets confirmed recall ≥ 90% at precision ≥ 98%.",
+      "quote": "Refit reports every real break but can't separate it from about 3,000 false matches, so it confirms none. Phase 2 of the [plan](STRIPE-PLAN.md) targets confirmed recall \u2265 90% at precision \u2265 98%.",
       "values": [
         {
           "says": "3,000",
@@ -14004,7 +14004,7 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "Across all 100 repositories: 0 scan crashes (was 3), 25 repositories with confirmed affected code (was 0), and 6,555 → about 1,000 review flags.",
+      "quote": "Across all 100 repositories: 0 scan crashes (was 3), 25 repositories with confirmed affected code (was 0), and 6,555 \u2192 about 1,000 review flags.",
       "values": [
         {
           "says": "100",
@@ -14180,19 +14180,19 @@
         },
         {
           "says": "5",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "4",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "76",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "23",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14210,11 +14210,11 @@
         },
         {
           "says": "744",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "673",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14224,19 +14224,19 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "74",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "74",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "74",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14257,23 +14257,23 @@
       "values": [
         {
           "says": "35",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "22",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "30",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "4",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14283,19 +14283,19 @@
       "values": [
         {
           "says": "14",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "11",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "10",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "4",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14305,19 +14305,19 @@
       "values": [
         {
           "says": "14",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "2",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "12",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "2",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14327,19 +14327,19 @@
       "values": [
         {
           "says": "9",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "7",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "8",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14349,11 +14349,11 @@
       "values": [
         {
           "says": "3",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14363,11 +14363,11 @@
       "values": [
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14377,17 +14377,17 @@
       "values": [
         {
           "says": "44",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "- **Pierce's price-ID webhook rule handles 0.** No repository configures a price policy, none targets the exact `2025-02-24.acacia → 2025-03-31.basil` incoming pair, and only one confirmed period read is a webhook payload.",
+      "quote": "- **Pierce's price-ID webhook rule handles 0.** No repository configures a price policy, none targets the exact `2025-02-24.acacia \u2192 2025-03-31.basil` incoming pair, and only one confirmed period read is a webhook payload.",
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14397,15 +14397,15 @@
       "values": [
         {
           "says": "38",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "19",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "2",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14415,11 +14415,11 @@
       "values": [
         {
           "says": "5",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14429,7 +14429,7 @@
       "values": [
         {
           "says": "14",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14439,11 +14439,11 @@
       "values": [
         {
           "says": "4",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "23",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14453,41 +14453,41 @@
       "values": [
         {
           "says": "4",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "16",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "| … blocked by the webhook incoming-version gate | | 9 |",
+      "quote": "| \u2026 blocked by the webhook incoming-version gate | | 9 |",
       "values": [
         {
           "says": "9",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "| … blocked by skipped files, unverified alias context or declared-type mutation | | 3 |",
+      "quote": "| \u2026 blocked by skipped files, unverified alias context or declared-type mutation | | 3 |",
       "values": [
         {
           "says": "3",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "| … stopped by the AI budget ledger or sandbox dependency preparation | | 4 |",
+      "quote": "| \u2026 stopped by the AI budget ledger or sandbox dependency preparation | | 4 |",
       "values": [
         {
           "says": "4",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14497,15 +14497,15 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "6",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "7",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14515,15 +14515,15 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "6",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "6",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14533,11 +14533,11 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "3",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14547,11 +14547,11 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14561,11 +14561,11 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14575,15 +14575,15 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "6",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14593,11 +14593,11 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ],
       "ignore": [
@@ -14620,11 +14620,11 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "- **The other six are correct at runtime when a subscription's items share one billing period.** All six are TypeScript projects on stripe-node 12–16. Type-checking the patched code against stripe@12.9.0 and stripe@16.12.0 types fails twice: `apiVersion` is typed as the package's own version literal, and `SubscriptionItem` has no `current_period_end`. They need the `stripe` package upgrade before they build (plan open decision 7).",
+      "quote": "- **The other six are correct at runtime when a subscription's items share one billing period.** All six are TypeScript projects on stripe-node 12\u201316. Type-checking the patched code against stripe@12.9.0 and stripe@16.12.0 types fails twice: `apiVersion` is typed as the package's own version literal, and `SubscriptionItem` has no `current_period_end`. They need the `stripe` package upgrade before they build (plan open decision 7).",
       "values": [],
       "ignore": [
         {
-          "token": "12–16",
+          "token": "12\u201316",
           "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
         },
         {
@@ -14655,7 +14655,7 @@
         },
         {
           "says": "23",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "$0.038",
@@ -14675,7 +14675,7 @@
       "values": [
         {
           "says": "6",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14685,7 +14685,7 @@
       "values": [
         {
           "says": "2",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14695,7 +14695,7 @@
       "values": [
         {
           "says": "2",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14705,7 +14705,7 @@
       "values": [
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14715,7 +14715,7 @@
       "values": [
         {
           "says": "3",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14725,7 +14725,7 @@
       "values": [
         {
           "says": "10",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ],
       "ignore": [
@@ -14737,15 +14737,15 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "[Generated checks](GENERATED-CHECKS.md) now find an entry point in 5 of the 6 patched repositories, all the Vercel/Supabase template's `manageSubscriptionStatusChange`, exported through an `export { … }` list. The sixth patch is in a webhook route. None of the five ran: `kpirabaharan/Spotify-Clone`'s Next.js dependencies exceed the 256 MiB archive limit, which the 512 MiB validation workspace imposes. These helpers also query Supabase before calling Stripe, so even with room they would be excluded offline as not runnable in isolation.",
+      "quote": "[Generated checks](GENERATED-CHECKS.md) now find an entry point in 5 of the 6 patched repositories, all the Vercel/Supabase template's `manageSubscriptionStatusChange`, exported through an `export { \u2026 }` list. The sixth patch is in a webhook route. None of the five ran: `kpirabaharan/Spotify-Clone`'s Next.js dependencies exceed the 256 MiB archive limit, which the 512 MiB validation workspace imposes. These helpers also query Supabase before calling Stripe, so even with room they would be excluded offline as not runnable in isolation.",
       "values": [
         {
           "says": "5",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "6",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ],
       "ignore": [
@@ -14798,7 +14798,7 @@
       "values": [
         {
           "says": "23",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14808,15 +14808,15 @@
       "values": [
         {
           "says": "18",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "3",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "15",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14826,15 +14826,15 @@
       "values": [
         {
           "says": "5",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "4",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14844,7 +14844,7 @@
       "values": [
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14854,7 +14854,7 @@
       "values": [
         {
           "says": "1",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14864,7 +14864,7 @@
       "values": [
         {
           "says": "0",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ]
     },
@@ -14874,7 +14874,7 @@
       "values": [
         {
           "says": "11",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ],
       "ignore": [
@@ -14890,11 +14890,11 @@
       "values": [
         {
           "says": "74",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         },
         {
           "says": "74",
-          "notCheckable": "From the October 14–15 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
+          "notCheckable": "From the October 14\u201315 Stripe runs on the original 100, whose per-repository results are not committed (only the frozen list and labels are)."
         }
       ],
       "ignore": [
@@ -15000,7 +15000,7 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "| Stopped for review: removed request parameter | — | 16 |",
+      "quote": "| Stopped for review: removed request parameter | \u2014 | 16 |",
       "values": [
         {
           "says": "16",
@@ -15245,7 +15245,7 @@
     },
     {
       "doc": "docs/STRIPE-BENCHMARK.md",
-      "quote": "Of the 54 confirmed \"false positives\", 48 are removed `payment_method_types` request parameters, which the labels do not cover, and 6 are the disputed Checkout Session casts above; type evidence adds none. The remaining miss is in JavaScript (`vue-stripe-subscriptions`, `latest_invoice.payment_intent`), which the checker cannot type. Across all 100 repositories, with SDK versions approximated from lockfiles or the lower bound of the `package.json` range (91 resolved; 22 of 30 match the labelled versions): 41 → 44 affected repositories and 18 newly confirmed reads in 7 repositories, all `current_period_start`/`current_period_end` reads on subscriptions (spot-checked by hand). The labelled scan took 2m11s before and 4m17s after.",
+      "quote": "Of the 54 confirmed \"false positives\", 48 are removed `payment_method_types` request parameters, which the labels do not cover, and 6 are the disputed Checkout Session casts above; type evidence adds none. The remaining miss is in JavaScript (`vue-stripe-subscriptions`, `latest_invoice.payment_intent`), which the checker cannot type. Across all 100 repositories, with SDK versions approximated from lockfiles or the lower bound of the `package.json` range (91 resolved; 22 of 30 match the labelled versions): 41 \u2192 44 affected repositories and 18 newly confirmed reads in 7 repositories, all `current_period_start`/`current_period_end` reads on subscriptions (spot-checked by hand). The labelled scan took 2m11s before and 4m17s after.",
       "values": [
         {
           "says": "54",
@@ -15809,6 +15809,39 @@
         {
           "says": "2",
           "notCheckable": "From the hosted fork test on the Fly worker (October 24, main c6c7665), read from the worker log; the drafts are linked in the section, and no results file is committed."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "Both runs used the GitHub workflow `benchmark.yml` in `refit-dev/refit-bench` on the frozen 100-repository list `2026-10-14-stripe-repos.json`, no AI, with validation.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "100",
+          "reason": "The frozen list's size, a setting of the run, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Before | `705b138af028aa78f1aba51fcab4cc7e0de02ae3` | 40282252631 |",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40282252631",
+          "reason": "A GitHub Actions run identifier, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| After | `7c28763bad3ad746f37ef344c7c8b711ad605c2c` | 40283157378 |",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40283157378",
+          "reason": "A GitHub Actions run identifier, not a measurement."
         }
       ]
     }
