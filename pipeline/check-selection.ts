@@ -540,6 +540,8 @@ export function unavailableTypeCheck(
 
 // A tests-then-type-check chain whose tests failed only because the test runner found no test
 // files (preparation-stops.ts no-tests-found): they prove nothing, so only the type check counts.
+// shortcut: a test script that runs more commands after the runner with `;` or `||` could fail in
+// one of those too; read the script here if such a script appears in a measured set.
 export function testsFoundNone(run: { stdout: string; stderr: string }) {
   const testsEnd = run.stdout.indexOf(TESTS_FAILED);
   return (
