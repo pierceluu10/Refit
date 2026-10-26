@@ -17,10 +17,11 @@ import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
 import { lockedShopifyApi } from './shopify-pipeline.ts';
-import { SHOPIFY_API, SHOPIFY_SDK_MAJORS } from './shopify-sdk-upgrade.ts';
+import { SHOPIFY_SDK_MAJORS } from './shopify-sdk-upgrade.ts';
 import {
   enumFromVersion,
   latestApiVersion,
+  SHOPIFY_API,
   SHOPIFY_API_ENUM_SINCE,
   sdkHasEnumMember,
 } from './shopify-versions.ts';

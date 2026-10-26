@@ -504,6 +504,19 @@ Every repository's result record is identical once timings, the recorded commit,
 
 `gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<sha> -f list=2026-10-14-stripe-repos.json -f offset=0 -f size=2 -f count=100`
 
+## Shopify rule pack (October 26)
+
+Moving Shopify's SDK facts and symbol reviews into `data/packs/shopify.json` changed no outcome. Both runs used the GitHub workflow `shopify.yml` in `refit-dev/refit-bench` on the frozen 50-repository list `2026-10-16-shopify-repos.json`, no AI, `contracts=current`, dispatched together, with identical Admin schema hashes (2026-01 `28b7deb873ac`, 2026-04 `dc4e89a095fb`, 2026-07 `e9f0a5087a66`, 2026-10 `688152ce99cf`; these differ from the frozen list's, so compare only with runs on the same hashes).
+
+|                                  | Commit                                     | Run         |
+| -------------------------------- | ------------------------------------------ | ----------- |
+| Before (`feat/stripe-rule-pack`) | `7c28763bad3ad746f37ef344c7c8b711ad605c2c` | 40283606752 |
+| After                            | `4b6389729bb31f5e5483fa2f8876fd3296623572` | 40283610311 |
+
+Every repository's result record is identical apart from timings: 39 stopped, 3 current, 3 current for the SDK, 2 without Admin usage, 2 with no outcome recorded (same in both), 1 patched (validated).
+
+`gh workflow run shopify.yml -R refit-dev/refit-bench -f commit=<sha> -f list=2026-10-16-shopify-repos.json -f offset=0 -f count=50 -f size=5`
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

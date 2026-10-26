@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { minimumMajors, SHOPIFY_PACK } from './rule-pack.ts';
 import { readBoundedResponse, SpecificationUnavailableError } from './network.ts';
-import { SHOPIFY_API_ENUM_SINCE } from './shopify-versions.ts';
+import { SHOPIFY_API, SHOPIFY_API_ENUM_SINCE } from './shopify-versions.ts';
 import { isObject, parseJson } from './specifications.ts';
 import {
   INTEGRITY,
@@ -13,16 +14,10 @@ import {
 } from './stripe-package-upgrade.ts';
 import { PipelineInputError } from './types.ts';
 
-export const SHOPIFY_API = '@shopify/shopify-api';
-// The oldest major of each package a project declares that serves a supported Admin API version:
-// each depends on @shopify/shopify-api 12, whose 12.1.0 first ships ApiVersion.January26. Read on
-// 2026-10-22 from the shopify-app-js changelogs and the npm registry.
-export const SHOPIFY_SDK_MAJORS: Record<string, number> = {
-  [SHOPIFY_API]: 12,
-  '@shopify/shopify-app-remix': 4,
-  '@shopify/shopify-app-react-router': 1,
-  '@shopify/shopify-app-express': 6,
-};
+// The oldest major of each package a project declares that serves a supported Admin API version
+// (data/packs/shopify.json): each depends on @shopify/shopify-api 12, whose 12.1.0 first ships
+// ApiVersion.January26.
+export const SHOPIFY_SDK_MAJORS = minimumMajors(SHOPIFY_PACK);
 const APP_PACKAGES = Object.keys(SHOPIFY_SDK_MAJORS).filter((name) => name !== SHOPIFY_API);
 // Packages released together from Shopify/shopify-app-js. The upgrade moves them as one; any other
 // package may only be added or moved when it has no dependencies of its own.
