@@ -81,6 +81,8 @@ From the pages-only run, which is what a new release gets:
 
 AI classification can draft a release's catalog and rule-pack candidates; it cannot replace the person who decides which become rules. Giving it the hand statements raises statement-level agreement (95 against 70 of 125) but not safety: the dangerous set is the same.
 
+[Release PRs](RELEASE-PRS.md) apply this to each new Stripe release: every `rule` and `ai` prediction is listed for a person's decision.
+
 ## Limits
 
 - One run per mode, one model at default reasoning settings; repeat runs were not measured.
