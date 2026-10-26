@@ -232,8 +232,8 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
   async () => {
     const root = await benchmarkRoot();
     const env = join(root, 'ai.env');
-    // Never sent: the affected repository commits no lockfile, so its workflow (owner decision 1,
-    // #338) cannot prepare dependencies and stripe alone cannot run its code; AI patches stay off.
+    // Never sent: the affected repository commits no lockfile, so it now runs the workflow (owner
+    // decision 1, #338), which stops at its scan before the writer; AI patches stay off.
     await writeFile(env, 'OPENAI_API_KEY=unused-test-key\nOPENAI_MODEL=gpt-6.1-sol\n');
     const output = join(root, 'out');
     const { stderr } = await run(root, output, '--behaviour-tests', '--env', env, '--validate');
@@ -248,10 +248,11 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
     const [history] = await read(join(output, 'results.json'));
     expect(history.ai).toBeUndefined();
     expect(history.workflow).toMatchObject({
-      validation: 'untested',
+      stage: 'scan',
       behaviourTestWriter: {
         status: 'skipped',
-        reason: expect.stringContaining('cannot run on stripe alone'),
+        reason:
+          'The workflow stops at the scan: Confirmed usage has no deterministic migration rule. Enable AI patch generation or migrate manually.',
       },
     });
   },
@@ -289,11 +290,12 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
     const writer = (row: { workflow?: Record<string, unknown>; behaviourTestWriter?: unknown }) =>
       row.workflow?.behaviourTestWriter ?? row.behaviourTestWriter;
     expect(rows.map(writer)).toEqual([
-      // The lockfile-less repository runs its workflow (owner decision 1, #338).
+      // The lockfile-less repository runs its workflow (owner decision 1, #338) to its scan stop.
       {
         status: 'dry-run',
         wouldRun: false,
-        reason: expect.stringContaining('cannot run on stripe alone'),
+        reason:
+          'The workflow stops at the scan: Confirmed usage has no deterministic migration rule. Enable AI patch generation or migrate manually.',
       },
       { status: 'dry-run', wouldRun: false, reason: 'The repository could not be cloned.' },
       { status: 'dry-run', wouldRun: false, reason: 'No Stripe method is mapped.' },
