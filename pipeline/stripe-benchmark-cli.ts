@@ -50,7 +50,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--behaviour-test-stubs] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -82,6 +82,9 @@ const { values } = parseArgs({
     // Builds each behaviour-test request without sending it, and records per repository whether
     // the real run would send it, why not, and its estimated tokens and cost. No key needed.
     'behaviour-tests-dry-run': { type: 'boolean' },
+    // Off by default (needs an owner decision): passes --behaviour-test-stubs to `refit run`, so the
+    // writer may stub non-Stripe modules on both sides; each row records it.
+    'behaviour-test-stubs': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -125,6 +128,10 @@ if (values['behaviour-tests-dry-run'] && (!values.validate || values['behaviour-
     '--behaviour-tests-dry-run needs --validate and replaces --behaviour-tests.',
   );
 const writer = values['behaviour-tests'] || values['behaviour-tests-dry-run'];
+if (values['behaviour-test-stubs'] && !writer)
+  throw new PipelineInputError(
+    '--behaviour-test-stubs needs --behaviour-tests or --behaviour-tests-dry-run.',
+  );
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
@@ -540,6 +547,7 @@ async function benchmark(entry: Selected, index: number) {
               : values['behaviour-tests-dry-run']
                 ? ['--write-behaviour-tests-dry-run']
                 : []),
+            ...(values['behaviour-test-stubs'] ? ['--behaviour-test-stubs'] : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
@@ -815,6 +823,7 @@ await Promise.all(
       const started = Date.now();
       await benchmark(entry, index);
       if (writer) writerSkip(results[index]);
+      if (values['behaviour-test-stubs']) results[index].behaviourTestStubs = true;
       results[index].seconds = Math.round((Date.now() - started) / 1000);
       Object.assign(results[index], classifyRow('stripe-results', results[index]));
       await writeFile(join(output, 'results.json'), json(results));

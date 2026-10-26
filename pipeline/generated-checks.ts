@@ -140,7 +140,12 @@ export function generatedEntryPoints(repository: Repository, findings: Finding[]
 
 // Maps each source file's static and literal dynamic import specifiers to the repository file Refit's
 // own resolver chose, so the sandbox can load extensionless and tsconfig-aliased TypeScript imports.
-export function generatedImportMap(repository: Repository) {
+// `stubs` (behaviour-test stubs, module to stub path): an import of a stubbed repository file, or of
+// a stubbed bare specifier that resolves to no repository file, loads the stub instead.
+export function generatedImportMap(
+  repository: Repository,
+  stubs: ReadonlyMap<string, string> = new Map(),
+) {
   const root = resolve(repository.root);
   const sources = new Map(repository.files.map((file) => [resolve(root, file.path), file.content]));
   const resolver = createSourceImportResolver(repository, sources);
@@ -168,8 +173,10 @@ export function generatedImportMap(repository: Repository) {
     visit(source);
     for (const specifier of specifiers) {
       const target = resolver.resolve(specifier, resolve(root, file.path));
-      if (target && sources.has(target))
-        (map[file.path] ??= {})[specifier] = relative(root, target).split('\\').join('/');
+      const path =
+        target && sources.has(target) ? relative(root, target).split('\\').join('/') : undefined;
+      const mapped = path ? (stubs.get(path) ?? path) : stubs.get(specifier);
+      if (mapped) (map[file.path] ??= {})[specifier] = mapped;
     }
   }
   return map;

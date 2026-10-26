@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
+import { isBuiltin } from 'node:module';
 import { join } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
@@ -32,6 +33,96 @@ export interface BehaviourTest {
 
 export type LinesByFile = Record<string, number[]>;
 type Side = 'original' | 'patched';
+
+// --behaviour-test-stubs (off by default, needs an owner decision): a stub is an ES module that
+// replaces one non-Stripe module, a repository file or a bare package specifier, with the same file
+// on both sides, so a test can reach Stripe code behind authentication, a database client or a
+// framework request context. The Stripe code, its requests and stripe-mock's responses stay real.
+export interface BehaviourStub {
+  module: string;
+  path: string;
+  content: string;
+}
+export const MAX_STUBS = 6;
+export const STUB_PATH = /^refit-behaviour\/stubs\/[A-Za-z0-9][A-Za-z0-9_-]{0,63}\.mjs$/;
+// npm package names, with a subpath; a tsconfig alias such as '@/lib/db' or '~/db' is not one.
+const PACKAGE_SPECIFIER =
+  /^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*(?:\/[A-Za-z0-9._~@-]+)*$/;
+// Every refusal names the rule it enforces.
+export const STUB_RULES = {
+  module: 'a stub replaces one repository file, named by its path, or one bare package specifier',
+  'stripe-and-http':
+    'never stub stripe, a module under it, a Node built-in or the HTTP layer (undici, fetch)',
+  'stripe-code':
+    'never stub a repository file that imports stripe, holds a finding or has Stripe code the migration may change',
+  imports:
+    'stubs import only Node built-ins, refit:behaviour and repository files without Stripe code',
+  isolation: 'stubs never touch globals, fetch or the Stripe request log',
+  'both-sides': 'the same stubs run unchanged on the original and the patched code',
+} as const;
+export const stubRuleBroken = (rule: keyof typeof STUB_RULES, subject: string) =>
+  `${subject} breaks stub rule ${rule}: ${STUB_RULES[rule]}.`;
+
+// Modules no stub may replace in any repository: Stripe's packages, Node's built-ins and the HTTP
+// layer the Stripe SDK sends through.
+export const protectedModule = (module: string) =>
+  /^(?:stripe|@stripe\/[^/]+)(?:\/|$)/.test(module) ||
+  /^(?:undici|node-fetch|cross-fetch|isomorphic-fetch|whatwg-fetch)(?:\/|$)/.test(module) ||
+  isBuiltin(module);
+
+// The rule a stub's module breaks before any repository file is read, if any: what it names must be
+// a repository file Refit read (`files`) or a bare package specifier, and never a protected module.
+export function stubModuleRule(module: string, files: ReadonlySet<string>) {
+  if (protectedModule(module)) return 'stripe-and-http' as const;
+  if (!files.has(module) && !PACKAGE_SPECIFIER.test(module)) return 'module' as const;
+  return undefined;
+}
+
+// Stubs are written into the sandbox's copy of both sides, so each is checked against both before
+// anything runs. A repository file a stub replaces must be the same on both sides and hold no Stripe
+// code; a package must not be an alias of a repository file (the stub would not apply everywhere).
+export function validateBehaviourStubs(
+  stubs: readonly BehaviourStub[],
+  sources: Record<Side, Repository>,
+  findings: readonly Pick<Finding, 'file'>[] = [],
+) {
+  if (!stubs.length) return;
+  if (stubs.length > MAX_STUBS)
+    throw new PipelineInputError(`Behaviour tests take at most ${MAX_STUBS} stubs.`);
+  for (const key of ['path', 'module'] as const)
+    if (new Set(stubs.map((stub) => stub[key])).size !== stubs.length)
+      throw new PipelineInputError(`Behaviour test stubs must have unique ${key}s.`);
+  const content = (side: Side, path: string) =>
+    sources[side].files.find((file) => file.path === path)?.content;
+  const files = new Set(sources.original.files.map((file) => file.path));
+  const imported = (['original', 'patched'] as const).map((side) =>
+    Object.values(generatedImportMap(sources[side])),
+  );
+  for (const stub of stubs) {
+    const subject = `Stub ${JSON.stringify(stub.path)} for ${JSON.stringify(stub.module)}`;
+    if (!STUB_PATH.test(stub.path))
+      throw new PipelineInputError(
+        `${subject} must be a ${BEHAVIOUR_DIRECTORY}/stubs/<name>.mjs file.`,
+      );
+    if (Buffer.byteLength(stub.content) > MAX_TEST_BYTES)
+      throw new PipelineInputError(`${subject} exceeds ${MAX_TEST_BYTES} bytes.`);
+    const rule = stubModuleRule(stub.module, files);
+    if (rule) throw new PipelineInputError(stubRuleBroken(rule, subject));
+    if (files.has(stub.module)) {
+      const original = content('original', stub.module)!;
+      if (
+        findings.some((finding) => finding.file === stub.module) ||
+        STRIPE_IMPORT.test(original)
+      )
+        throw new PipelineInputError(stubRuleBroken('stripe-code', subject));
+      if (content('patched', stub.module) !== original)
+        throw new PipelineInputError(stubRuleBroken('both-sides', subject));
+    } else if (imported.some((maps) => maps.some((map) => Object.hasOwn(map, stub.module))))
+      throw new PipelineInputError(
+        stubRuleBroken('module', `${subject}, an alias of a repository file,`),
+      );
+  }
+}
 
 // Test files are written into the sandbox's copy of the repository, so their paths are checked.
 export function validateBehaviourTests(tests: readonly BehaviourTest[]) {
@@ -275,15 +366,23 @@ console.log('REFIT_BEHAVIOUR_COVERAGE=' + JSON.stringify(scripts));
 console.log('REFIT_BEHAVIOUR_DONE');
 `;
 
-// Behaviour tests may import code with the repository's own aliases and extensionless paths.
-function behaviourImportMap(repository: Repository, tests: readonly BehaviourTest[]) {
-  return generatedImportMap({
-    ...repository,
-    files: [
-      ...repository.files,
-      ...tests.map((test) => ({ path: test.path, content: test.content })),
-    ],
-  } as Repository);
+// Behaviour tests may import code with the repository's own aliases and extensionless paths. Each
+// stubbed module maps to its stub by the same rule on both sides.
+function behaviourImportMap(
+  repository: Repository,
+  tests: readonly BehaviourTest[],
+  stubs: readonly BehaviourStub[],
+) {
+  return generatedImportMap(
+    {
+      ...repository,
+      files: [
+        ...repository.files,
+        ...[...tests, ...stubs].map((file) => ({ path: file.path, content: file.content })),
+      ],
+    } as Repository,
+    new Map(stubs.map((stub) => [stub.module, stub.path])),
+  );
 }
 
 export async function writeBehaviourHarness(
@@ -291,12 +390,13 @@ export async function writeBehaviourHarness(
   tests: readonly BehaviourTest[],
   changed: Record<Side, LinesByFile>,
   sources: Record<Side, Repository>,
+  stubs: readonly BehaviourStub[] = [],
 ) {
   await writeHarness(
     directory,
     [],
-    behaviourImportMap(sources.original, tests),
-    behaviourImportMap(sources.patched, tests),
+    behaviourImportMap(sources.original, tests, stubs),
+    behaviourImportMap(sources.patched, tests, stubs),
     generatedEnvironment(sources.original, sources.patched),
   );
   await writeFile(join(directory, 'reporter.mjs'), REPORTER, { mode: 0o444 });
@@ -309,7 +409,8 @@ export async function writeBehaviourHarness(
       mode: 0o444,
     });
   await mkdir(join(directory, 'tests'), { mode: 0o755 });
-  for (const test of tests)
+  if (stubs.length) await mkdir(join(directory, 'tests', 'stubs'), { mode: 0o755 });
+  for (const test of [...tests, ...stubs])
     await writeFile(
       join(directory, 'tests', test.path.slice(BEHAVIOUR_DIRECTORY.length + 1)),
       test.content,
@@ -319,12 +420,16 @@ export async function writeBehaviourHarness(
     );
 }
 
-export function behaviourCommand(side: 'before' | 'after') {
+// With stubs, both sides copy the same stub files beside the tests.
+export function behaviourCommand(side: 'before' | 'after', stubs = false) {
   return [
     'sh',
     '-c',
     `(/refit/stripe-mock -http-addr 127.0.0.1:${MOCK_PORT} -spec /refit/spec.json -fixtures /refit/fixtures.json >/tmp/refit-stripe-mock.log 2>&1 &); ` +
       `mkdir -p /workspace/${BEHAVIOUR_DIRECTORY} && cp /refit/generated/tests/*.test.mjs /workspace/${BEHAVIOUR_DIRECTORY}/ && ` +
+      (stubs
+        ? `mkdir -p /workspace/${BEHAVIOUR_DIRECTORY}/stubs && cp /refit/generated/tests/stubs/*.mjs /workspace/${BEHAVIOUR_DIRECTORY}/stubs/ && `
+        : '') +
       `STRIPE_SECRET_KEY=sk_test_123 STRIPE_API_KEY=sk_test_123 STRIPE_KEY=sk_test_123 REFIT_GENERATED_SIDE=${side} ` +
       'exec node /refit/generated/behaviour.mjs',
   ];
@@ -392,6 +497,7 @@ export function compareBehaviourRuns(options: {
   sources: Record<Side, Repository>;
   original: CheckResult;
   patched: CheckResult;
+  stubs?: readonly BehaviourStub[];
 }) {
   const sides = (['original', 'patched'] as const).map((side) => {
     const check = options[side];
@@ -503,6 +609,16 @@ export function compareBehaviourRuns(options: {
       sha256: digest(test.content),
       content: test.content,
     })),
+    ...(options.stubs?.length
+      ? {
+          stubs: options.stubs.map((stub) => ({
+            module: stub.module,
+            path: stub.path,
+            sha256: digest(stub.content),
+            content: stub.content,
+          })),
+        }
+      : {}),
     coverage,
     regressions,
     sides: Object.fromEntries(
@@ -539,15 +655,20 @@ export function behaviourGrade(result: {
   missing: string[];
   tests: { path: string }[];
   coverage?: { changedLines: Record<Side, LinesByFile> };
+  stubs?: { module: string; path: string }[];
 }): BehaviourEvidence {
   const count = (side: Side) =>
     Object.values(result.coverage?.changedLines[side] ?? {}).flat().length;
+  // The grade's reason reaches the draft, so a grade A built on stubs names every stubbed module.
+  const stubs = result.stubs?.length
+    ? ` The same stubs stood in for ${result.stubs.map((stub) => `${stub.module} (${stub.path})`).join(', ')} on both sides; the Stripe code, its requests and stripe-mock's responses were not stubbed.`
+    : '';
   return {
     passed: result.status === 'passed',
     coversEveryChangedLine: result.grade === 'A',
     reason:
       result.grade === 'A'
-        ? `Behaviour tests (${result.tests.map((test) => test.path).join(', ')}) passed on ${sideText.original} and on ${sideText.patched}, and ran every changed Stripe line on both sides (${count('original')} original, ${count('patched')} patched).`
+        ? `Behaviour tests (${result.tests.map((test) => test.path).join(', ')}) passed on ${sideText.original} and on ${sideText.patched}, and ran every changed Stripe line on both sides (${count('original')} original, ${count('patched')} patched).${stubs}`
         : `Behaviour tests did not give grade A: ${result.missing[0] ?? 'no reason recorded.'}`,
   };
 }

@@ -54,8 +54,10 @@ import {
   changedStripeLines,
   compareBehaviourRuns,
   behaviourGrade,
+  validateBehaviourStubs,
   validateBehaviourTests,
   writeBehaviourHarness,
+  type BehaviourStub,
   type BehaviourTest,
 } from './behaviour-tests.ts';
 import { compactPatch, renderPatch } from './patches.ts';
@@ -873,6 +875,8 @@ async function runGeneratedStripeChecks(
 // validateMigration; `dependencies` are their prepared dependency archives.
 export async function runBehaviourTests(options: {
   tests: BehaviourTest[];
+  // --behaviour-test-stubs: modules both sides load from the same stub (behaviour-tests.ts).
+  stubs?: BehaviourStub[];
   settings: GeneratedChecks;
   image: string;
   root: string;
@@ -887,13 +891,15 @@ export async function runBehaviourTests(options: {
 }) {
   validateBehaviourTests(options.tests);
   const sources = { original: options.original.repository, patched: options.patched.repository };
+  const stubs = options.stubs ?? [];
+  validateBehaviourStubs(stubs, sources, options.findings);
   const changed = changedStripeLines(sources.original, sources.patched, options.findings);
   const tools = await sandboxInput(options.root, 'behaviour-');
   const mock = await stageStripeMock(options.settings, tools, {
     before: options.original.contract,
     after: options.patched.contract,
   });
-  await writeBehaviourHarness(tools, options.tests, changed, sources);
+  await writeBehaviourHarness(tools, options.tests, changed, sources, stubs);
   const run = (side: 'before' | 'after') => {
     const input = side === 'before' ? options.original : options.patched;
     options.onProgress?.(
@@ -902,7 +908,7 @@ export async function runBehaviourTests(options: {
     return containerCheck({
       directory: input.directory,
       image: options.image,
-      command: behaviourCommand(side),
+      command: behaviourCommand(side, stubs.length > 0),
       dependencies: input.dependencies,
       readOnlyMounts: mock.mounts(side),
       signal: options.signal,
@@ -916,7 +922,7 @@ export async function runBehaviourTests(options: {
     image: mock.image,
     binaryHash: mock.binaryHash,
     inputs: mock.inputs,
-    ...compareBehaviourRuns({ tests: options.tests, changed, sources, original, patched }),
+    ...compareBehaviourRuns({ tests: options.tests, changed, sources, original, patched, stubs }),
   };
 }
 
@@ -2086,7 +2092,11 @@ export async function validateMigration(options: {
     const written =
       options.behaviourTestWriter && !options.behaviourTests
         ? behaviourBlocked
-          ? { record: behaviourTestSkip(options.behaviourTestWriter, behaviourBlocked), files: [] }
+          ? {
+              record: behaviourTestSkip(options.behaviourTestWriter, behaviourBlocked),
+              files: [],
+              stubs: [],
+            }
           : await timed('behaviourTestWriter', () =>
               writeBehaviourTests({
                 repository: originalSources,
@@ -2096,6 +2106,7 @@ export async function validateMigration(options: {
                 before: beforeSpecification,
                 after: afterSpecification,
                 ai: options.behaviourTestWriter!,
+                scanned: [...preflight.imports, ...preflight.sdkCalls, ...preflight.calls],
               }),
             )
         : undefined;
@@ -2105,6 +2116,7 @@ export async function validateMigration(options: {
         ? await timed('behaviourTests', () =>
             behaviourEvidence({
               tests: behaviourTests,
+              stubs: written?.stubs,
               settings: options.generatedChecks,
               image,
               root,

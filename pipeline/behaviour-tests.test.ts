@@ -6,16 +6,31 @@ import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import {
+  behaviourCommand,
   behaviourGrade,
   changedStripeLines,
   compareBehaviourRuns,
   lineCoverage,
+  validateBehaviourStubs,
   validateBehaviourTests,
   writeBehaviourHarness,
+  type BehaviourStub,
   type BehaviourTest,
 } from './behaviour-tests.ts';
 import { gradeEvidence } from './check-selection.ts';
-import { typescriptDirectory, writeHarness } from './generated-checks.ts';
+import {
+  CHAT_NEST,
+  CHAT_NEST_ROUTE,
+  CHAT_NEST_STUBS,
+  CHAT_NEST_TEST,
+  chatNestPatch,
+  CLARIO_ROUTE,
+  CLARIO_SERVER,
+  SPOTIFY,
+  SPOTIFY_STUB,
+  SPOTIFY_TEST,
+} from './fixtures/behaviour-stubs.ts';
+import { generatedImportMap, typescriptDirectory, writeHarness } from './generated-checks.ts';
 import { readRepository } from './repository.ts';
 import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 import type { CheckResult } from './validation.ts';
@@ -358,19 +373,21 @@ async function simulatedStripeMock() {
   };
 }
 
-// Runs the sandbox runner outside Docker against the simulated stripe-mock, as one side.
+// Runs the sandbox runner outside Docker against the simulated stripe-mock, as one side, after
+// copying the tests and stubs in as behaviourCommand does.
 async function runSide(
   mock: Awaited<ReturnType<typeof simulatedStripeMock>>,
   side: 'before' | 'after',
   app: string,
   tools: string,
   tests: BehaviourTest[],
+  stubs: BehaviourStub[] = [],
 ): Promise<CheckResult> {
   mock.use(side);
   await rm(join(app, 'refit-behaviour'), { recursive: true, force: true });
   await rm(join(app, '.refit-coverage'), { recursive: true, force: true });
-  await mkdir(join(app, 'refit-behaviour'));
-  for (const test of tests) await writeFile(join(app, test.path), test.content);
+  await mkdir(join(app, 'refit-behaviour', 'stubs'), { recursive: true });
+  for (const test of [...tests, ...stubs]) await writeFile(join(app, test.path), test.content);
   const { stdout, stderr } = await execute(process.execPath, [join(tools, 'behaviour.mjs')], {
     env: {
       ...process.env,
@@ -385,24 +402,38 @@ async function runSide(
   return { status: 'passed', exitCode: 0, stdout, stderr };
 }
 
-async function behaviourRun(patchedFiles: Record<string, string>, tests = TESTS) {
+async function behaviourRun(
+  patchedFiles: Record<string, string>,
+  tests = TESTS,
+  {
+    originalFiles = ORIGINAL,
+    findings = FINDINGS,
+    stubs = [],
+  }: {
+    originalFiles?: Record<string, string>;
+    findings?: { file: string }[];
+    stubs?: BehaviourStub[];
+  } = {},
+) {
   const root = await scratch();
-  const original = await writeApp(join(root, 'original'), ORIGINAL);
+  const original = await writeApp(join(root, 'original'), originalFiles);
   const patched = await writeApp(join(root, 'patched'), patchedFiles);
-  const changed = changedStripeLines(original, patched, FINDINGS);
+  validateBehaviourStubs(stubs, { original, patched }, findings);
+  const changed = changedStripeLines(original, patched, findings);
   const tools = join(root, 'tools');
   await mkdir(tools);
-  await writeBehaviourHarness(tools, tests, changed, { original, patched });
+  await writeBehaviourHarness(tools, tests, changed, { original, patched }, stubs);
   const mock = await simulatedStripeMock();
   try {
-    const before = await runSide(mock, 'before', original.root, tools, tests);
-    const after = await runSide(mock, 'after', patched.root, tools, tests);
+    const before = await runSide(mock, 'before', original.root, tools, tests, stubs);
+    const after = await runSide(mock, 'after', patched.root, tools, tests, stubs);
     return compareBehaviourRuns({
       tests,
       changed,
       sources: { original, patched },
       original: before,
       patched: after,
+      stubs,
     });
   } finally {
     await mock.close();
@@ -741,4 +772,291 @@ it('needs the same tests on both sides', () => {
   });
   expect(result).toMatchObject({ status: 'not-passing', grade: null, regressions: [] });
   expect(result.missing[0]).toBe('b ran on one side only.');
+});
+
+// --behaviour-test-stubs, on two of the repositories whose writer request in refit-bench run
+// 40276445481 returned no tests (pipeline/fixtures/behaviour-stubs.ts). The Stripe SDK stand-in
+// enters node_modules as the repository's own stripe would, and next/server's NextResponse is a
+// Response, as in a sandbox where next is installed.
+const PACKAGES = {
+  'package.json': JSON.stringify({ type: 'module' }),
+  'node_modules/stripe/package.json': JSON.stringify({
+    name: 'stripe',
+    type: 'module',
+    main: 'index.js',
+  }),
+  'node_modules/stripe/index.js': `${CLIENT}export default class Stripe {\n  constructor() {\n    return stripe;\n  }\n}\n`,
+  'node_modules/next/package.json': JSON.stringify({ name: 'next', type: 'module' }),
+  'node_modules/next/server.js': 'export class NextResponse extends Response {}\n',
+};
+const ENDIVE = '2026-09-30.endive';
+const CHAT_NEST_RUN = {
+  originalFiles: { ...PACKAGES, ...CHAT_NEST },
+  findings: [{ file: 'app/api/stripe/route.ts' }],
+  stubs: CHAT_NEST_STUBS,
+};
+
+it('reaches a Checkout Session behind Clerk and Prisma through stubs both sides share, and counts a wrong patch (Anassarwar14/Chat-Nest-AI at 38dd23e, simulated stripe-mock)', async () => {
+  const correct = await behaviourRun(
+    { ...PACKAGES, ...chatNestPatch(ENDIVE) },
+    [CHAT_NEST_TEST],
+    CHAT_NEST_RUN,
+  );
+  expect(correct.missing).toEqual([]);
+  expect(correct).toMatchObject({ status: 'passed', grade: 'A', regressions: [] });
+  // The endive pin and the renamed parameter ran on both sides, in the route and client as committed.
+  expect(correct.coverage.covered).toEqual({
+    original: { 'app/api/stripe/route.ts': [38], 'lib/stripe.ts': [4] },
+    patched: { 'app/api/stripe/route.ts': [38], 'lib/stripe.ts': [4] },
+  });
+  expect(correct.stubs).toEqual(
+    CHAT_NEST_STUBS.map((stub) => ({ ...stub, sha256: expect.stringMatching(/^[a-f0-9]{64}$/) })),
+  );
+  // The grade's reason, which the draft prints, names every stubbed module.
+  const evidence = behaviourGrade(correct);
+  expect(evidence).toMatchObject({ passed: true, coversEveryChangedLine: true });
+  expect(evidence.reason).toContain(
+    'The same stubs stood in for @clerk/nextjs/server (refit-behaviour/stubs/clerk-server.mjs), lib/prismaDB.ts (refit-behaviour/stubs/prisma-db.mjs) on both sides; the Stripe code, its requests and stripe-mock',
+  );
+  const grade = await gradeEvidence({
+    repository: { root: '/nonexistent', files: [] } as never,
+    command: ['node', '-e', '0'],
+    changedFiles: ['app/api/stripe/route.ts', 'lib/stripe.ts'],
+    behaviour: evidence,
+  });
+  expect(grade).toMatchObject({ letter: 'A', reason: evidence.reason });
+
+  // Keeping the parameter endive removed fails the same test on the patched side.
+  const kept = await behaviourRun(
+    { ...PACKAGES, ...chatNestPatch(ENDIVE, 'payment_method_types') },
+    [CHAT_NEST_TEST],
+    CHAT_NEST_RUN,
+  );
+  expect(kept).toMatchObject({ status: 'regression', grade: null });
+  expect(kept.regressions.map((regression) => regression.id)).toEqual([
+    'refit-behaviour/checkout.test.mjs > sends a signed-in user without a subscription to a card-only Checkout Session',
+  ]);
+
+  // Stubs never stand in for coverage: with no one signed in the test passes on both sides, but the
+  // changed route line never ran, so there is no grade A.
+  const signedOut = {
+    path: 'refit-behaviour/signed-out.test.mjs',
+    content: `import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { stripeRequests, resetStripeRequests } from 'refit:behaviour';
+import { signIn } from './stubs/clerk-server.mjs';
+const { GET } = await import('../app/api/stripe/route.ts');
+test('refuses a visitor who is not signed in', async () => {
+  signIn(null);
+  resetStripeRequests();
+  assert.equal((await GET()).status, 401);
+  assert.equal(stripeRequests.length, 0);
+});
+`,
+  };
+  const unreached = await behaviourRun(
+    { ...PACKAGES, ...chatNestPatch(ENDIVE) },
+    [signedOut],
+    CHAT_NEST_RUN,
+  );
+  expect(unreached).toMatchObject({ status: 'passed', grade: null });
+  expect(unreached.missing).toEqual([
+    'app/api/stripe/route.ts line 38 did not run on the original code against the before-version stripe-mock.',
+    'app/api/stripe/route.ts line 38 did not run on the patched code against the after-version stripe-mock.',
+  ]);
+  expect(behaviourGrade(unreached).coversEveryChangedLine).toBe(false);
+}, 120_000);
+
+it('stubs a package the Stripe module itself imports, never the module (Emmah-oo/spotify-clone at 23f84d4, simulated stripe-mock)', async () => {
+  const helpers =
+    'import { toDateTime } from "./helpers";\nimport { getSubscriptionPeriodEnd, getSubscriptionPeriodStart } from "./stripe-subscription-period";';
+  const patched = {
+    ...PACKAGES,
+    ...SPOTIFY,
+    'libs/stripe.ts': SPOTIFY['libs/stripe.ts'].replace('2023-10-16', '2025-03-31.basil'),
+    'libs/supabaseAdmin.ts': SPOTIFY['libs/supabaseAdmin.ts']
+      .replace('import { toDateTime } from "./helpers";', helpers)
+      .replace('subscription.current_period_start', 'getSubscriptionPeriodStart(subscription)')
+      .replace('subscription.current_period_end', 'getSubscriptionPeriodEnd(subscription)'),
+    'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts', [
+      'getSubscriptionPeriodStart',
+      'getSubscriptionPeriodEnd',
+    ]),
+  };
+  const run = (files: Record<string, string>) =>
+    behaviourRun(files, [SPOTIFY_TEST], {
+      originalFiles: { ...PACKAGES, ...SPOTIFY },
+      findings: [{ file: 'libs/supabaseAdmin.ts' }],
+      stubs: [SPOTIFY_STUB],
+    });
+  const correct = await run(patched);
+  expect(correct.missing).toEqual([]);
+  expect(correct).toMatchObject({ status: 'passed', grade: 'A', regressions: [] });
+  expect(correct.coverage.covered.patched).toEqual({
+    'libs/stripe.ts': [4],
+    'libs/supabaseAdmin.ts': [5, 34, 37],
+  });
+  // Reading the periods only where basil removed them fails once the patch moves the pin.
+  const unmigrated = await run({
+    ...patched,
+    'libs/supabaseAdmin.ts': SPOTIFY['libs/supabaseAdmin.ts'],
+  });
+  expect(unmigrated).toMatchObject({ status: 'regression', grade: null });
+  expect(unmigrated.regressions[0].error).toContain('Invalid time value');
+}, 120_000);
+
+it('maps every import of a stubbed module to its stub, by the same rule on both sides, and leaves the default map alone', async () => {
+  const root = await scratch();
+  const original = await writeApp(join(root, 'original'), { ...PACKAGES, ...CHAT_NEST });
+  const patched = await writeApp(join(root, 'patched'), {
+    ...PACKAGES,
+    ...chatNestPatch(ENDIVE),
+  });
+  const tools = join(root, 'tools');
+  await mkdir(tools);
+  await writeBehaviourHarness(
+    tools,
+    [CHAT_NEST_TEST],
+    changedStripeLines(original, patched, CHAT_NEST_RUN.findings),
+    { original, patched },
+    CHAT_NEST_STUBS,
+  );
+  const imports = async (side: string) =>
+    JSON.parse(await readFile(join(tools, `imports-${side}.json`), 'utf8'));
+  const before = await imports('before');
+  // A package by its specifier, a repository file through the alias the route imports it by.
+  for (const file of ['app/api/stripe/route.ts', 'app/api/webhook/route.ts'])
+    expect(before[file]).toMatchObject({
+      '@/lib/prismaDB': 'refit-behaviour/stubs/prisma-db.mjs',
+      '@/lib/stripe': 'lib/stripe.ts',
+    });
+  expect(before['app/api/stripe/route.ts']['@clerk/nextjs/server']).toBe(
+    'refit-behaviour/stubs/clerk-server.mjs',
+  );
+  expect(before['app/api/webhook/route.ts']).not.toHaveProperty('next/headers');
+  expect(await imports('after')).toEqual(before);
+  expect(await readFile(join(tools, 'tests', 'stubs', 'clerk-server.mjs'), 'utf8')).toBe(
+    CHAT_NEST_STUBS[0].content,
+  );
+  // Without stubs packages stay unmapped and repository files map to themselves, as before.
+  expect(generatedImportMap(original)['app/api/stripe/route.ts']).toEqual({
+    '@/lib/prismaDB': 'lib/prismaDB.ts',
+    '@/lib/stripe': 'lib/stripe.ts',
+    '@/lib/utils': 'lib/utils.ts',
+  });
+  // Both sides copy the same stubs beside the tests; without stubs the command is unchanged.
+  expect(behaviourCommand('after', true)[2]).toContain(
+    'mkdir -p /workspace/refit-behaviour/stubs && cp /refit/generated/tests/stubs/*.mjs /workspace/refit-behaviour/stubs/ && ',
+  );
+  expect(behaviourCommand('after')).toEqual([
+    'sh',
+    '-c',
+    '(/refit/stripe-mock -http-addr 127.0.0.1:12111 -spec /refit/spec.json -fixtures /refit/fixtures.json >/tmp/refit-stripe-mock.log 2>&1 &); mkdir -p /workspace/refit-behaviour && cp /refit/generated/tests/*.test.mjs /workspace/refit-behaviour/ && STRIPE_SECRET_KEY=sk_test_123 STRIPE_API_KEY=sk_test_123 STRIPE_KEY=sk_test_123 REFIT_GENERATED_SIDE=after exec node /refit/generated/behaviour.mjs',
+  ]);
+});
+
+it.each([
+  ['replaces stripe', { module: 'stripe' }, 'breaks stub rule stripe-and-http'],
+  [
+    'replaces a module under stripe',
+    { module: 'stripe/cjs/stripe.cjs.node.js' },
+    'stripe-and-http',
+  ],
+  ["replaces one of Stripe's packages", { module: '@stripe/stripe-js' }, 'stripe-and-http'],
+  ['replaces node:https', { module: 'node:https' }, 'stripe-and-http'],
+  ['replaces http', { module: 'http' }, 'stripe-and-http'],
+  ['replaces undici', { module: 'undici' }, 'stripe-and-http'],
+  ['replaces a fetch package', { module: 'node-fetch' }, 'stripe-and-http'],
+  ['replaces the Stripe client', { module: 'lib/stripe.ts' }, 'breaks stub rule stripe-code'],
+  ['replaces a file that imports stripe', { module: 'app/api/webhook/route.ts' }, 'stripe-code'],
+  ['replaces the file with the finding', { module: 'app/api/stripe/route.ts' }, 'stripe-code'],
+  ['names a file by its alias', { module: '@/lib/prismaDB' }, 'breaks stub rule module'],
+  ['names a file by a relative path', { module: './lib/prismaDB' }, 'breaks stub rule module'],
+  [
+    'lies outside refit-behaviour/stubs',
+    { path: 'refit-behaviour/prisma.mjs' },
+    'stubs/<name>.mjs',
+  ],
+])(
+  'refuses a stub that %s, naming the rule (Anassarwar14/Chat-Nest-AI at 38dd23e)',
+  async (_name, change, reason) => {
+    const root = await scratch();
+    const sources = {
+      original: await writeApp(join(root, 'original'), CHAT_NEST),
+      patched: await writeApp(join(root, 'patched'), chatNestPatch(ENDIVE)),
+    };
+    const stubs = [{ ...CHAT_NEST_STUBS[1], ...change }];
+    expect(() => validateBehaviourStubs(stubs, sources, CHAT_NEST_RUN.findings)).toThrow(reason);
+  },
+);
+
+it('refuses stubs that differ between the sides, that alias a repository file or that repeat (Anassarwar14/Chat-Nest-AI at 38dd23e, MuhammadTanveerAbbas/Clario-ai at 1cb1754)', async () => {
+  const root = await scratch();
+  const original = await writeApp(join(root, 'original'), CHAT_NEST);
+  const sources = (patched: Awaited<ReturnType<typeof writeApp>>) => ({ original, patched });
+  const prisma = CHAT_NEST_STUBS[1];
+  expect(() =>
+    validateBehaviourStubs(
+      CHAT_NEST_STUBS,
+      { original, patched: original },
+      CHAT_NEST_RUN.findings,
+    ),
+  ).not.toThrow();
+  // A file the patch changes is not the same module on both sides.
+  const changed = await writeApp(join(root, 'changed'), {
+    ...chatNestPatch(ENDIVE),
+    'lib/prismaDB.ts': `${CHAT_NEST['lib/prismaDB.ts']}\n`,
+  });
+  expect(() => validateBehaviourStubs([prisma], sources(changed))).toThrow(
+    'Stub "refit-behaviour/stubs/prisma-db.mjs" for "lib/prismaDB.ts" breaks stub rule both-sides: the same stubs run unchanged on the original and the patched code.',
+  );
+  // A bare-looking specifier that a tsconfig baseUrl resolves to a repository file is an alias.
+  const bare = await writeApp(join(root, 'bare'), {
+    ...CHAT_NEST,
+    'tsconfig.json': JSON.stringify({ compilerOptions: { baseUrl: '.' } }),
+    'app/api/stripe/route.ts': CHAT_NEST_ROUTE.replace('"@/lib/prismaDB"', '"lib/prismaDB"'),
+  });
+  expect(() =>
+    validateBehaviourStubs([{ ...prisma, module: 'lib/prismaDB' }], {
+      original: bare,
+      patched: bare,
+    }),
+  ).toThrow('an alias of a repository file, breaks stub rule module');
+  // MuhammadTanveerAbbas/Clario-ai's checkout route reaches Supabase auth through
+  // '@/lib/supabase/server'; the stub must name src/lib/supabase/server.ts.
+  const clario = await writeApp(join(root, 'clario'), {
+    'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./src/*'] } } }),
+    'src/lib/supabase/server.ts': CLARIO_SERVER,
+    'src/app/api/stripe/create-checkout/route.ts': CLARIO_ROUTE,
+  });
+  const supabase = {
+    module: '@/lib/supabase/server',
+    path: 'refit-behaviour/stubs/supabase-server.mjs',
+    content: 'export async function createClient() {}\n',
+  };
+  expect(() => validateBehaviourStubs([supabase], { original: clario, patched: clario })).toThrow(
+    'breaks stub rule module',
+  );
+  expect(() =>
+    validateBehaviourStubs([{ ...supabase, module: 'src/lib/supabase/server.ts' }], {
+      original: clario,
+      patched: clario,
+    }),
+  ).not.toThrow();
+  expect(() =>
+    validateBehaviourStubs([prisma, { ...prisma, path: 'refit-behaviour/stubs/other.mjs' }], {
+      original,
+      patched: original,
+    }),
+  ).toThrow('unique modules');
+  expect(() =>
+    validateBehaviourStubs(
+      Array.from({ length: 7 }, (_, index) => ({
+        ...prisma,
+        module: `pkg-${index}`,
+        path: `refit-behaviour/stubs/s${index}.mjs`,
+      })),
+      { original, patched: original },
+    ),
+  ).toThrow('at most 6 stubs');
 });
