@@ -32,6 +32,7 @@ import {
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { validationProfile } from './docker-sandbox.ts';
+import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
 import { AiPolicyStop } from './ai-patches.ts';
 import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 import { githubAppConfiguration } from './github-app.ts';
@@ -49,7 +50,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -73,6 +74,8 @@ const { values } = parseArgs({
     output: { type: 'string' },
     env: { type: 'string' },
     ai: { type: 'boolean' },
+    // Defaults with --ai to what the hosted worker runs (HOSTED_REPAIR_ATTEMPTS).
+    'repair-attempts': { type: 'string' },
     // Writes behaviour tests during validation with one model request per repository; it needs
     // --env with OPENAI_API_KEY and OPENAI_MODEL and never turns on AI patches.
     'behaviour-tests': { type: 'boolean' },
@@ -101,6 +104,11 @@ const { values } = parseArgs({
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 if (values.publish && !values.validate)
   throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
+if (values.ai) values['repair-attempts'] ??= String(HOSTED_REPAIR_ATTEMPTS);
+const repairAttempts = validateRepairAttempts(
+  Number(values['repair-attempts'] ?? 0),
+  Boolean(values.ai),
+);
 if (values.env) process.loadEnvFile(values.env);
 if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
@@ -524,7 +532,7 @@ async function benchmark(entry: Selected, index: number) {
                   '--ai-patch',
                   ...notes.flatMap((path) => ['--documentation-snapshot', path]),
                   '--repair-attempts',
-                  '1',
+                  String(repairAttempts),
                 ]
               : []),
             ...(values['behaviour-tests']

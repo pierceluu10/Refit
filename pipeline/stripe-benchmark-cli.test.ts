@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import { validateRunDirectory } from '../scripts/benchmark-results.mjs';
+import { HOSTED_REPAIR_ATTEMPTS } from './validation-options.ts';
 
 // End to end through `npm run benchmark:stripe` on a tiny root built like the setup script's:
 // pinned checkouts, contracts and an SDK spec that maps `paymentIntents.retrieve`.
@@ -290,3 +291,18 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
     });
   },
 );
+
+it('repairs as often as the hosted worker by default and checks --repair-attempts before any repository runs', async () => {
+  const flags = (await readFile('fly.toml', 'utf8')).match(/REFIT_HOSTED_FLAGS = "([^"]*)"/)?.[1];
+  expect(flags).toContain('--ai-patch');
+  expect(flags).toContain(`--repair-attempts ${HOSTED_REPAIR_ATTEMPTS}`);
+  const root = await benchmarkRoot();
+  await expect(run(root, join(root, 'out-a'), '--repair-attempts', '1')).rejects.toMatchObject({
+    stderr: expect.stringContaining('Repair attempts require --ai-patch.'),
+  });
+  await expect(
+    run(root, join(root, 'out-b'), '--ai', '--repair-attempts', '3'),
+  ).rejects.toMatchObject({
+    stderr: expect.stringContaining('Repair attempts must be an integer from 0 to 2.'),
+  });
+});
