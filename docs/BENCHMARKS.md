@@ -491,6 +491,19 @@ Why: a request rebuilt locally from the shard's report, specifications and chang
 - Every other row has the same status, stage, reason, gates and patch as the AI-off run 40156098317. financehb is still refused over 64 KiB; type-last spent $0.02872 in the repair loop.
 - **Not fixed here:** FlowCraft's adapter maps `subscriptions.retrieve` but not `subscriptions.list`, which is why the rules could not trace that read.
 
+## Rule pack refactor (October 26)
+
+Moving Stripe's built-in rules into `data/packs/stripe.json` (families plus data, [Rule packs](RULE-PACKS.md)) changed no result. Both runs used the GitHub workflow `benchmark.yml` in `refit-dev/refit-bench` on the frozen 100-repository list `2026-10-14-stripe-repos.json`, no AI, with validation.
+
+|        | Commit                                     | Run         |
+| ------ | ------------------------------------------ | ----------- |
+| Before | `705b138af028aa78f1aba51fcab4cc7e0de02ae3` | 40282252631 |
+| After  | `7c28763bad3ad746f37ef344c7c8b711ad605c2c` | 40283157378 |
+
+Every repository's result record is identical once timings, the recorded commit, and per-run container names and temporary paths are removed (`jq` `walk` over both `results.json` files, then `diff`: no lines).
+
+`gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<sha> -f list=2026-10-14-stripe-repos.json -f offset=0 -f size=2 -f count=100`
+
 ## Shopify rule pack (October 26)
 
 Moving Shopify's SDK facts and symbol reviews into `data/packs/shopify.json` changed no outcome. Both runs used the GitHub workflow `shopify.yml` in `refit-dev/refit-bench` on the frozen 50-repository list `2026-10-16-shopify-repos.json`, no AI, `contracts=current`, dispatched together, with identical Admin schema hashes (2026-01 `28b7deb873ac`, 2026-04 `dc4e89a095fb`, 2026-07 `e9f0a5087a66`, 2026-10 `688152ce99cf`; these differ from the frozen list's, so compare only with runs on the same hashes).

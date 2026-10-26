@@ -84,7 +84,7 @@ The honest reading: the edit families pay off when a provider's breaking changes
 
 ## Behaviour check
 
-The pack replaced hand-written rules without changing their output: the full test suite passes unchanged except for imports, and the no-AI Stripe benchmark on the frozen 100-repository list gave the same outcome for every repository before and after the change (runs and commits in [Benchmarks](BENCHMARKS.md#rule-pack-refactor)).
+The pack replaced hand-written rules without changing their output: the full test suite passes unchanged except for imports, and the no-AI Stripe benchmark on the frozen 100-repository list gave an identical result record for every repository before and after the change (runs and commits in [Benchmarks](BENCHMARKS.md#rule-pack-refactor-october-26)).
 
 The Shopify pack changed no outcome either: the no-AI Shopify benchmark on the frozen 50-repository list gave identical results for every repository before and after (runs in [Benchmarks](BENCHMARKS.md#shopify-rule-pack-october-26)).
 
