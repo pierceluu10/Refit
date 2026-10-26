@@ -1,0 +1,12 @@
+{
+  "version": "2025-09-30.clover",
+  "title": "Removes currency conversion field from Checkout Sessions",
+  "source": "https://docs.stripe.com/changelog/clover/2025-09-30/remove-checkout-session-currency-conversion-field",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "Checkout.Session.currency_conversion no longer populated (use presentment_details)"
+  ],
+  "handling": "none",
+  "reason": "The recorded stripe/openapi contracts still declare checkout.session.currency_conversion, so findRemovedProperties reports no removal."
+}

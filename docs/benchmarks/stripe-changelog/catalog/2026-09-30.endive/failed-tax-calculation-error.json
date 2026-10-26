@@ -1,0 +1,12 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Adds Failed Tax Calculation error",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/failed-tax-calculation-error",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "failed_tax_calculation error code added"
+  ],
+  "handling": "none",
+  "reason": "Error codes are strings in the contracts, so the new code is not a contract change."
+}

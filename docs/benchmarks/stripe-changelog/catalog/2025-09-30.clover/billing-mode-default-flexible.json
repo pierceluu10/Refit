@@ -1,0 +1,12 @@
+{
+  "version": "2025-09-30.clover",
+  "title": "Makes flexible billing mode the default for new subscriptions",
+  "source": "https://docs.stripe.com/changelog/clover/2025-09-30/billing-mode-default-flexible",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "subscriptions created through the API default to flexible billing mode"
+  ],
+  "handling": "none",
+  "reason": "Behaviour change with no difference in the recorded stripe/openapi contracts, so Refit has no signal for it."
+}

@@ -1,0 +1,12 @@
+{
+  "version": "2026-03-25.dahlia",
+  "title": "Changes the Address Element state field to default to Latin-formatted characters",
+  "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/address-element-getvalue-and-change-event-formatting",
+  "checkedAt": "2026-10-24",
+  "category": "stripejs",
+  "changed": [
+    "Address Element state defaults to Latin characters"
+  ],
+  "handling": "none",
+  "reason": "Stripe.js change. Refit traces stripe-node SDK calls against the stripe/openapi contracts and does not analyze @stripe/stripe-js or @stripe/react-stripe-js code."
+}

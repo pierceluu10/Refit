@@ -45,7 +45,9 @@ export const PREPARATION_STOPS = [
 export const BASELINE_STOPS = [
   {
     reason: 'no-tests-found',
-    pattern: /^No tests found, exiting with code 1|^No test files found, exiting with code 1/m,
+    // Jest's, Vitest's and Mocha's own results (Mocha prints its line in red).
+    pattern:
+      /^No tests found, exiting with code 1|^No test files found, exiting with code 1|^(?:\u001b\[31m)?Error: No test files found\b/m,
     summary: 'the configured test command finds no tests',
     action:
       'In .refit.json, set "command" and "baselineCommand" to checks this repository has, for example its type check (["npx", "--no-install", "tsc", "--noEmit"]).',

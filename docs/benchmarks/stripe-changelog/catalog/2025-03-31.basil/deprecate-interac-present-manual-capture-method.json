@@ -1,0 +1,12 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Removes manual capture method for Interac cards",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-interac-present-manual-capture-method",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "paymentIntents with interac_present no longer accept capture_method manual"
+  ],
+  "handling": "none",
+  "reason": "The contracts keep capture_method and its values; the error depends on the combination of values, which no contract records. Refit has no signal for it."
+}

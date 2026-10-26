@@ -1,0 +1,12 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Removes support for the payment method types option in Elements",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-elements-deferred-intent-payment-method-types",
+  "checkedAt": "2026-10-24",
+  "category": "stripejs",
+  "changed": [
+    "Elements option paymentMethodTypes removed (use allowedPaymentMethodTypes)"
+  ],
+  "handling": "none",
+  "reason": "Stripe.js change. Refit traces stripe-node SDK calls against the stripe/openapi contracts and does not analyze @stripe/stripe-js or @stripe/react-stripe-js code."
+}

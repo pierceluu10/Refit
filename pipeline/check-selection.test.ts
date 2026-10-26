@@ -13,6 +13,7 @@ import {
   TESTS_FAILED,
   TYPE_CHECK,
   TYPE_CHECK_STARTED,
+  testsFoundNone,
   typeCheckCommand,
   unavailableTypeCheck,
 } from './check-selection.ts';
@@ -120,6 +121,7 @@ const ROCART = {
   }),
   'tsconfig.app.json': JSON.stringify({
     compilerOptions: {
+      tsBuildInfoFile: './node_modules/.tmp/tsconfig.app.tsbuildinfo',
       target: 'ES2020',
       module: 'ESNext',
       moduleResolution: 'bundler',
@@ -307,7 +309,7 @@ it('scopes the type check to the Stripe code when the root program leaves it out
   // The app project sets its own target, module and jsx, so nothing else is added.
   expect(scopedConfiguration(rocart.command)).toEqual({
     extends: './tsconfig.app.json',
-    compilerOptions: JAVASCRIPT_CHECK,
+    compilerOptions: { ...JAVASCRIPT_CHECK, incremental: true },
     files: ['api/create-payment-intent.js', 'api/server.js'],
     include: [],
   });
@@ -322,16 +324,23 @@ it('scopes the type check to the Stripe code when the root program leaves it out
         references: [{ path: './tsconfig.app.json' }, { path: './tsconfig.node.json' }],
       }),
       'tsconfig.app.json': JSON.stringify({
-        compilerOptions: { composite: true, target: 'ES2020', module: 'ESNext', jsx: 'react-jsx' },
+        compilerOptions: {
+          composite: true,
+          tsBuildInfoFile: './node_modules/.tmp/tsconfig.app.tsbuildinfo',
+          target: 'ES2020',
+          module: 'ESNext',
+          jsx: 'react-jsx',
+        },
         include: ['src', 'convex'],
       }),
       'convex/stripe.ts': "import Stripe from 'stripe';\nexport const stripe = new Stripe('sk');\n",
       'convex/http.ts': "import { stripe } from './stripe';\nexport default stripe;\n",
     }),
   );
+  // refit-bench run 40180681405: without incremental, tsc rejected the inherited tsBuildInfoFile (TS5069).
   expect(scopedConfiguration(convex.command)).toEqual({
     extends: './tsconfig.app.json',
-    compilerOptions: JAVASCRIPT_CHECK,
+    compilerOptions: { ...JAVASCRIPT_CHECK, incremental: true },
     files: ['convex/http.ts', 'convex/stripe.ts'],
     include: [],
   });
@@ -362,6 +371,160 @@ it('lists importers outside the base configuration rootDir, which only governs e
     extends: './api/tsconfig.json',
     compilerOptions: { rootDir: '.' },
     files: ['api/_lib/stripe-finance.ts', 'scripts/backfill-legacy-sub-credits.ts'],
+  });
+});
+
+// different-ai/embedbase at fb0afda5e8c2ad0212ea8c0dfa495be9865221d5: no root package.json; the
+// dashboard is its own npm project, which validation prepares and checks (preparation-packages.ts).
+const EMBEDBASE_DASHBOARD = {
+  scripts: { dev: 'next dev', build: 'next build', start: 'next start', lint: 'next lint' },
+  dependencies: { next: '^13.4.4', stripe: '^11.13.0' },
+  devDependencies: { typescript: '4.9.5' },
+};
+const EMBEDBASE = {
+  'dashboard/package.json': JSON.stringify(EMBEDBASE_DASHBOARD),
+  'dashboard/package-lock.json': '{}',
+  'dashboard/tsconfig.json': JSON.stringify({
+    compilerOptions: {
+      target: 'es5',
+      allowJs: true,
+      noEmit: true,
+      incremental: true,
+      module: 'esnext',
+      moduleResolution: 'node',
+      jsx: 'preserve',
+    },
+    include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts'],
+    exclude: ['node_modules', 'supabase'],
+  }),
+  'dashboard/utils/stripe.ts':
+    "import Stripe from 'stripe';\nexport const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2022-11-15' });\n",
+  'dashboard/utils/supabase-admin.ts':
+    "import Stripe from 'stripe'\nimport { stripe } from './stripe'\nexport const customer = (id: string) => stripe.customers.retrieve(id) as Promise<Stripe.Customer>\n",
+  'dashboard/pages/api/webhooks.ts':
+    "import Stripe from 'stripe';\nimport { customer } from '../../utils/supabase-admin';\nexport default async function handler(event: Stripe.Event) { return customer(event.id); }\n",
+  'sdk/embedbase-js/package.json': JSON.stringify({
+    scripts: { test: 'jest' },
+    devDependencies: { typescript: '^4.9.5' },
+  }),
+  'sdk/embedbase-js/package-lock.json': '{}',
+  'sdk/embedbase-js/src/index.test.ts': "it('splits', () => 1);\n",
+};
+// starmanv4/react-typescript-docker at 109c4528fba9c6c0efe67a250704ece82441bad9: payments is one
+// of eight services with their own package-lock.json, and there is no root package.json.
+const STARMAN = {
+  'payments/package.json': JSON.stringify({
+    scripts: { start: 'ts-node-dev src/index.ts', test: 'jest --watchAll --no-cache' },
+    dependencies: { stripe: '^11.17.0', typescript: '^4.7.4' },
+    devDependencies: { jest: '^28.1.1', 'ts-jest': '^28.0.5' },
+  }),
+  'payments/package-lock.json': '{}',
+  'payments/tsconfig.json': JSON.stringify({
+    compilerOptions: { target: 'es2016', module: 'commonjs', esModuleInterop: true, strict: true },
+  }),
+  'payments/src/stripe.ts':
+    'import Stripe from "stripe";\nexport const stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: "2022-11-15" });\n',
+  'payments/src/routes/new.ts':
+    'import { stripe } from "../stripe";\nexport const charge = (source: string) => stripe.charges.create({ currency: "usd", amount: 100, source });\n',
+  'payments/src/app.ts': 'import { charge } from "./routes/new";\nexport const app = { charge };\n',
+  'payments/src/routes/__test__/new.test.ts':
+    'import { app } from "../../app";\nimport { stripe } from "../../stripe";\nit("charges", () => expect(app && stripe).toBeTruthy());\n',
+  'payments/src/events/listeners/__test__/order-created-listener.test.ts':
+    'it("listens", () => 1);\n',
+  'auth/package.json': JSON.stringify({ scripts: { test: 'jest --watchAll --no-cache' } }),
+  'auth/package-lock.json': '{}',
+  'auth/src/routes/__test__/signup.test.ts': 'it("signs up", () => 1);\n',
+};
+
+it('selects and grades the check of the nested package it runs in, with paths from there', async () => {
+  // Run 40236299492 selected both from the repository root but ran them in the package, so the
+  // generated tsconfig extended /workspace/dashboard/dashboard/tsconfig.json (TS5083).
+  const embedbase = await repository(EMBEDBASE);
+  const dashboard = await selectCheck(embedbase, 'dashboard');
+  const stripeFiles = [
+    'dashboard/pages/api/webhooks.ts',
+    'dashboard/utils/stripe.ts',
+    'dashboard/utils/supabase-admin.ts',
+  ];
+  expect(dashboard).toEqual({
+    kind: 'typecheck',
+    command: TYPE_CHECK,
+    compareTypeErrors: true,
+    typeCheck: 'project',
+    stripeFiles,
+    testedStripeFiles: [],
+    typeCheckedStripeFiles: stripeFiles,
+    reason:
+      'There is no test script. The type check (tsc over tsconfig.json) covers the Stripe code in dashboard/pages/api/webhooks.ts, dashboard/utils/stripe.ts, dashboard/utils/supabase-admin.ts.',
+  });
+  const changed = ['dashboard/pages/api/webhooks.ts', 'dashboard/utils/stripe.ts'];
+  await expect(
+    gradeEvidence({
+      repository: embedbase,
+      command: dashboard.command!,
+      changedFiles: changed,
+      packageDirectory: 'dashboard',
+    }),
+  ).resolves.toEqual({
+    letter: 'C',
+    level: 'type-check',
+    reason:
+      'tsc type-checks dashboard/pages/api/webhooks.ts, dashboard/utils/stripe.ts; no test ran that code.',
+  });
+  // Without TypeScript of its own, the generated tsconfig is written in the package and names
+  // every path from it.
+  const untyped = await repository({
+    ...EMBEDBASE,
+    'dashboard/package.json': JSON.stringify({ ...EMBEDBASE_DASHBOARD, devDependencies: {} }),
+  });
+  const scoped = await selectCheck(untyped, 'dashboard');
+  expect(scoped.command!.slice(0, 3)).toEqual(['sh', '-c', scopedScript(`node ${REFIT_TSC}`)]);
+  expect(scopedConfiguration(scoped.command)).toEqual({
+    extends: './tsconfig.json',
+    compilerOptions: JAVASCRIPT_CHECK,
+    files: ['pages/api/webhooks.ts', 'utils/stripe.ts', 'utils/supabase-admin.ts'],
+    include: [],
+  });
+  await expect(
+    gradeEvidence({
+      repository: untyped,
+      command: scoped.command!,
+      changedFiles: changed,
+      packageDirectory: 'dashboard',
+    }),
+  ).resolves.toMatchObject({ letter: 'C' });
+
+  // The service's own test script runs, with the test files that reach Stripe code named from it.
+  const starman = await repository(STARMAN);
+  const payments = await selectCheck(starman, 'payments');
+  expect(payments).toEqual({
+    kind: 'tests',
+    command: [
+      'sh',
+      '-c',
+      chain('npm test -- --runTestsByPath "$@"', TYPE_CHECK.join(' ')),
+      'refit-check',
+      'src/routes/__test__/new.test.ts',
+    ],
+    compareTypeErrors: true,
+    typeCheck: 'project',
+    stripeFiles: ['payments/src/stripe.ts'],
+    testedStripeFiles: ['payments/src/stripe.ts'],
+    typeCheckedStripeFiles: ['payments/src/stripe.ts'],
+    reason:
+      'The tests import Stripe code in payments/src/stripe.ts, and only the 1 test file that reach it run (payments/src/routes/__test__/new.test.ts); no other test reaches a file the patch can change. The type check (tsc over tsconfig.json) covers the Stripe code in payments/src/stripe.ts. Both must pass.',
+  });
+  await expect(
+    gradeEvidence({
+      repository: starman,
+      command: payments.command!,
+      changedFiles: ['payments/src/stripe.ts'],
+      packageDirectory: 'payments',
+    }),
+  ).resolves.toEqual({
+    letter: 'B',
+    level: 'stripe-tests',
+    reason: "The repository's tests reach every changed file (payments/src/stripe.ts).",
   });
 });
 
@@ -671,6 +834,161 @@ it('counts a generated type check that fails on configuration as unavailable, ne
     unavailableTypeCheck(command, run(`${TYPE_CHECK_STARTED}\napi/a.ts(1,1): error TS2322: x\n`)),
   ).toBeUndefined();
   expect(unavailableTypeCheck(TYPE_CHECK, run('error TS6059: x'))).toBeUndefined();
+  // get-convex/convex-saas in run 40180681405: an error against the generated config.
+  expect(
+    unavailableTypeCheck(
+      command,
+      run(
+        `${TYPE_CHECK_STARTED}\n.refit-tsconfig.json(1,34): error TS5069: Option 'tsBuildInfoFile' cannot be specified without specifying option 'incremental' or option 'composite'.\n`,
+      ),
+    ),
+  ).toMatch(/^\.refit-tsconfig\.json\(1,34\): error TS5069/);
+  // Deepanshu0211/Rocart in the same run: TS6133, an unused local, is an ordinary diagnostic.
+  expect(
+    unavailableTypeCheck(
+      command,
+      run(
+        `${TYPE_CHECK_STARTED}\napi/server.js(65,11): error TS6133: 'adjustedLineItems' is declared but its value is never read.\n`,
+      ),
+    ),
+  ).toBeUndefined();
+});
+
+// The tests' part of a chain as refit-bench run 40236299492 printed it, before Refit's own lines.
+const NO_JEST_TESTS =
+  '> jest\n\nNo tests found, exiting with code 1\nRun with `--passWithNoTests` to exit with code 0\n';
+const NO_MOCHA_TESTS = '\u001b[31mError: No test files found: "test"\u001b[39m\n';
+const chained = (tests: string, stderr = '') => ({
+  stdout: `${tests}${TESTS_FAILED}\n${TYPE_CHECK_STARTED}\n`,
+  stderr,
+});
+
+it('counts only the test runner finding no test files as a chain without tests', () => {
+  // JensenMPillay/pdfai at 76eee198ded23bf4fafba0e2d431cf01d2f60290 and Panda2Chan/ai-asmr at
+  // cbaf6a28512730839a9a0d72a852416e97f0f0dc: `jest`, and the repository has no test file.
+  expect(testsFoundNone(chained(NO_JEST_TESTS))).toBe(true);
+  // JiantaoFu/insightly at e752d3c311780e3e11ec9738b16a4f6a549cb321: `mocha` reads ./test, which
+  // does not exist; Mocha prints its result in red on stderr.
+  expect(testsFoundNone(chained('\n> insightly@0.0.0 test\n> mocha\n\n', NO_MOCHA_TESTS))).toBe(
+    true,
+  );
+  // Any other failure of the tests is a failure: a failing test, or a runner that cannot start.
+  expect(testsFoundNone(chained('FAIL src/payments.test.ts\n  expected 2 to be 3\n'))).toBe(false);
+  expect(testsFoundNone(chained("Error: Cannot find module 'next/jest'\n"))).toBe(false);
+  // Tests that passed with none found, and a test script alone, which keeps its baseline stop.
+  expect(
+    testsFoundNone({
+      stdout: `No tests found, exiting with code 0\n${TYPE_CHECK_STARTED}\n`,
+      stderr: '',
+    }),
+  ).toBe(false);
+  expect(testsFoundNone({ stdout: NO_JEST_TESTS, stderr: '' })).toBe(false);
+  // Only the tests' own output counts, never what follows Refit's lines.
+  expect(
+    testsFoundNone({
+      stdout: `FAIL a.test.ts\n${TESTS_FAILED}\n${TYPE_CHECK_STARTED}\nNo tests found, exiting with code 1\n`,
+      stderr: '',
+    }),
+  ).toBe(false);
+});
+
+it('grades a chain whose test script finds no test files by its type check alone', async () => {
+  // JensenMPillay/pdfai at 76eee198ded23bf4fafba0e2d431cf01d2f60290.
+  const pdfai = await repository({
+    'package.json': JSON.stringify({
+      scripts: { test: 'jest' },
+      dependencies: { stripe: '^14.25.0' },
+      devDependencies: { jest: '^29.7.0', typescript: '^5.4.5' },
+    }),
+    'pnpm-lock.yaml': "lockfileVersion: '6.0'\n",
+    'jest.config.js':
+      "const nextJest = require('next/jest');\nmodule.exports = nextJest({ dir: './' })({ testEnvironment: 'jest-environment-jsdom' });\n",
+    'tsconfig.json': JSON.stringify({
+      compilerOptions: {
+        strict: true,
+        noEmit: true,
+        module: 'esnext',
+        moduleResolution: 'bundler',
+        jsx: 'preserve',
+        paths: { '@/*': ['./src/*'] },
+      },
+      include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts', 'jest.config.js'],
+      exclude: ['node_modules'],
+    }),
+    'src/lib/stripe.ts':
+      'import Stripe from "stripe";\nexport const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: "2023-10-16" });\n',
+    'src/app/api/webhooks/stripe/route.ts':
+      'import { stripe } from "@/lib/stripe";\nimport type Stripe from "stripe";\nexport const POST = (event: Stripe.Event) => stripe.subscriptions.retrieve(event.id);\n',
+  });
+  const selection = await selectCheck(pdfai);
+  expect(selection.command).toEqual([
+    'sh',
+    '-c',
+    chain('pnpm test', TYPE_CHECK.join(' ')),
+    'refit-check',
+  ]);
+  const changedFiles = ['src/app/api/webhooks/stripe/route.ts', 'src/lib/stripe.ts'];
+  await expect(
+    gradeEvidence({ repository: pdfai, command: selection.command!, changedFiles }),
+  ).resolves.toMatchObject({ reason: expect.stringMatching(/^The tests pass but reach none/) });
+  await expect(
+    gradeEvidence({
+      repository: pdfai,
+      command: selection.command!,
+      changedFiles,
+      testsFoundNone: true,
+    }),
+  ).resolves.toEqual({
+    letter: 'C',
+    level: 'type-check',
+    reason:
+      'tsc type-checks src/app/api/webhooks/stripe/route.ts, src/lib/stripe.ts; no test ran that code. The test script finds no test files, so only the type check counts.',
+  });
+  // JiantaoFu/insightly at e752d3c311780e3e11ec9738b16a4f6a549cb321: its own tests (server/tests)
+  // are not what `mocha` runs, and the Stripe code is JavaScript only the generated check reads.
+  const insightly = await repository({
+    'package.json': JSON.stringify({
+      type: 'module',
+      scripts: { test: 'mocha', 'test:server': 'mocha server/tests/sitemap.test.js' },
+      dependencies: { stripe: '^18.2.1' },
+      devDependencies: { mocha: '^11.1.0', typescript: '^5.5.3' },
+    }),
+    'package-lock.json': '{}',
+    'tsconfig.json': JSON.stringify({
+      files: [],
+      references: [{ path: './tsconfig.app.json' }, { path: './tsconfig.node.json' }],
+    }),
+    'tsconfig.app.json': JSON.stringify({ compilerOptions: { noEmit: true }, include: ['src'] }),
+    'tsconfig.node.json': JSON.stringify({
+      compilerOptions: { noEmit: true },
+      include: ['vite.config.ts'],
+    }),
+    'server/index.js':
+      "import Stripe from 'stripe';\nexport const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });\n",
+    'server/sitemap.js': 'export const sitemap = () => [];\n',
+    'server/tests/sitemap.test.js':
+      "import { sitemap } from '../sitemap.js';\nit('maps', () => sitemap());\n",
+  });
+  const scoped = await selectCheck(insightly);
+  expect(scoped).toMatchObject({ kind: 'tests', typeCheck: 'scoped' });
+  await expect(
+    gradeEvidence({
+      repository: insightly,
+      command: scoped.command!,
+      changedFiles: ['server/index.js'],
+      testsFoundNone: true,
+      advisory: [
+        {
+          file: 'server/index.js',
+          text: `server/index.js(76,35): error TS2322: Type '"2026-09-30.endive"' is not assignable to type '"2025-05-28.basil"'.`,
+        },
+      ],
+    }),
+  ).resolves.toEqual({
+    letter: 'D',
+    level: 'none',
+    reason: `The type check does not cover server/index.js, and no generated check ran it. The test script finds no test files, so only the type check counts. The generated type check reports an advisory type error this patch introduces in JavaScript the repository never type-checks, first server/index.js(76,35): error TS2322: Type '"2026-09-30.endive"' is not assignable to type '"2025-05-28.basil"'..`,
+  });
 });
 
 it('counts only the listed test files as reaching the changed code', async () => {

@@ -1,0 +1,30 @@
+{
+  "version": "2025-09-30.clover",
+  "title": "Adds specific descriptions for risk requirements during legal, PEP, and sanctions review",
+  "source": "https://docs.stripe.com/changelog/clover/2025-09-30/expanded-risk-requirement-descriptions",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "external_request added to requirements.errors[].code",
+    "risk requirement strings change from other_supportability_inquiry to legal_hold, pep_review or sanctions_review"
+  ],
+  "handling": "none",
+  "reason": "Requirement entries are strings in the contracts; Refit has no signal for the new values.",
+  "parts": [
+    {
+      "changed": [
+        "external_request added to requirements.errors[].code"
+      ],
+      "handling": "generic",
+      "how": "Only with fullDiff: compareOpenApi lists Stripe response enum additions as compatible (openResponseEnums), and switchedEnumAdditions (openapi-diff.ts) adds a blocking entry for the new value where traced code switches over the field, assigns it to `never`, or compares it with string literals (`===`, `!==`, `==`, `!=` or `['a'].includes(...)`; analyzer.ts enumChecks, owner decision 6). unmappedBreakingChanges keeps that entry, so scanReviewReason (workflow.ts) stops the run for review and publication is blocked. Other reads need no edit. Without fullDiff nothing is reported.",
+      "fullDiffOnly": true
+    },
+    {
+      "changed": [
+        "risk requirement strings change from other_supportability_inquiry to legal_hold, pep_review or sanctions_review"
+      ],
+      "handling": "none",
+      "reason": "Requirement entries are strings in the contracts; Refit has no signal for the new values."
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Removes the payment method types parameter from Payment Intents and Setup Intents",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/removes-the-payment-method-types-parameter-from-payment-intents-and-setup-intents",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "paymentIntents.create and setupIntents.create payment_method_types: an exact literal ['card'] (or an opted-in literal list with card)",
+    "paymentIntents.create and setupIntents.create payment_method_types: every other value",
+    "paymentIntents.update and confirm, setupIntents.update payment_method_types removed"
+  ],
+  "handling": "stop",
+  "reason": "removedRequestParameters (request-removals.ts) finds the removed top-level body parameter on the mapped operation; analyzeRepository marks each traced call that still sends it with requestParameter, and migrationReviewReason (migration-review.ts) stops automatic migration, AI and publication with REMOVED_REQUEST_PARAMETER_REVIEW_REASON. The card rename covers creation calls only (CARD_OPERATIONS).",
+  "parts": [
+    {
+      "changed": [
+        "paymentIntents.create and setupIntents.create payment_method_types: an exact literal ['card'] (or an opted-in literal list with card)"
+      ],
+      "handling": "rule",
+      "how": "The same card rename as Checkout Sessions (request-removals.ts CARD_OPERATIONS: PostPaymentIntents, PostSetupIntents), kept only with the endive pin and the stripe-node upgrade."
+    },
+    {
+      "changed": [
+        "paymentIntents.create and setupIntents.create payment_method_types: every other value",
+        "paymentIntents.update and confirm, setupIntents.update payment_method_types removed"
+      ],
+      "handling": "stop",
+      "reason": "removedRequestParameters (request-removals.ts) finds the removed top-level body parameter on the mapped operation; analyzeRepository marks each traced call that still sends it with requestParameter, and migrationReviewReason (migration-review.ts) stops automatic migration, AI and publication with REMOVED_REQUEST_PARAMETER_REVIEW_REASON. The card rename covers creation calls only (CARD_OPERATIONS)."
+    }
+  ]
+}

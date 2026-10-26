@@ -1,0 +1,12 @@
+{
+  "version": "2026-03-25.dahlia",
+  "title": "Adds retention policy cancellation reason to Subscriptions",
+  "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/adds-new-cancellation-reason-subscription-test-retention-policy",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "canceled_by_retention_policy added to Subscription.cancellation_details.reason, replacing cancellation_requested for test subscriptions the retention policy cancels"
+  ],
+  "handling": "none",
+  "reason": "subscription.cancellation_details is a nullable `anyOf` reference in the recorded contracts, and the analyzer resolves nested schemas only through direct `$ref`s (analyzer.ts referencedPropertySchema), so reads, switches and literal compares below it are not traced: nothing is reported, with or without fullDiff."
+}

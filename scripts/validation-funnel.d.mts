@@ -13,6 +13,7 @@ export function funnel(rows: Record<string, unknown>[]): {
   affected: number;
   stages: Record<string, number>;
   preparation: Record<string, number>;
+  preparationPatch: Record<string, number>;
   grades: Record<string, number>;
   noCheck: Record<string, number>;
   repositories: ({ repo: string } & FunnelStage)[];
