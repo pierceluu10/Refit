@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "block-custom-checkout-confirmation-pending-updates",
+  "url": "https://docs.stripe.com/changelog/endive/2026-09-30/block-custom-checkout-confirmation-pending-updates.md",
+  "revision": "9457ff07820f14ea32e8176b17a1b0b2d8ced44cff0e8a1cc72cdef236cbd075",
+  "hash": "9457ff07820f14ea32e8176b17a1b0b2d8ced44cff0e8a1cc72cdef236cbd075",
+  "content": "# Sets canConfirm to false while updates are pending in Elements with Checkout Sessions\n\n## What’s new\n\nUpdates [canConfirm](https://docs.stripe.com/js/custom_checkout/session_object#custom_checkout_session_object-canConfirm) to `false` while a Custom Checkout server update is queued or in progress. After all pending updates finish, `canConfirm` reflects whether the checkout is otherwise ready for confirmation. This provides a signal that integrations can use to avoid confirming with outdated information.\n\n## Why is this a breaking change?\n\nElements with Checkout Sessions changes `canConfirm` to `false` while updates are pending, which could change behavior if you rely on `canConfirm` in your checkout flow. Previously, Stripe.js didn’t change `canConfirm` while server updates were pending.\n\n## Impact\n\nYour integration can prevent customers from confirming with outdated information by allowing confirmation only when `canConfirm` is `true`. Make sure that your integration handles the updated information when the pending requests resolve, and updates the state of your confirmation control when `canConfirm` changes. See [Submit the payment](https://docs.stripe.com/payments/accept-a-payment.md?payment-ui=elements&api-integration=checkout#submit-payment) for implementation examples.",
+  "contentType": "text/markdown"
+}
