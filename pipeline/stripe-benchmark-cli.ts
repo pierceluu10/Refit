@@ -451,7 +451,7 @@ async function benchmark(entry: Selected, index: number) {
     ) && Boolean(declared.stripe);
   // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,
   // the patch is still proposed and graded D.
-  const selection = await selectCheck(repository);
+  const selection = await selectCheck(repository, packageDirectory);
   result.checkSelection = {
     kind: selection.kind,
     ...(selection.typeCheck ? { typeCheck: selection.typeCheck } : {}),

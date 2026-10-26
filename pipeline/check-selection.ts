@@ -2,6 +2,7 @@ import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { baselineStop } from './preparation-stops.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { parseObject } from './specifications.ts';
 import type { Repository } from './types.ts';
@@ -167,6 +168,19 @@ function reach(graph: Map<string, Set<string>>, start: Iterable<string>) {
 const testFiles = (repository: Repository) =>
   repository.files.map((file) => file.path).filter((path) => TEST_FILE.test(path));
 
+// Where a check runs: the repository root, or the nested package validation prepares and checks
+// in (preparation-packages.ts). Its manifest, lockfile and tsconfig decide, and the command names
+// paths from there; files outside a package are not part of its check.
+function checkDirectory(repository: Repository, packageDirectory?: string) {
+  const prefix = packageDirectory ? `${packageDirectory}/` : '';
+  return {
+    root: join(repository.root, packageDirectory ?? ''),
+    inside: (path: string) => path.startsWith(prefix),
+    local: (path: string) => path.slice(prefix.length),
+    prefix,
+  };
+}
+
 function readConfiguration(path: string, existingOptions: ts.CompilerOptions = {}) {
   return existsSync(path)
     ? ts.getParsedCommandLineOfConfigFile(path, existingOptions, CONFIGURATION_HOST)
@@ -305,22 +319,33 @@ function packageManager(root: string) {
 // tsconfig.json's program when it holds every file importing stripe, otherwise a generated tsconfig
 // over those files and every file importing them (with Refit's compiler only without tests, and
 // never for a client only `require()` loads). Never a no-op.
-export async function selectCheck(repository: Repository): Promise<CheckSelection> {
-  const root = repository.root;
+export async function selectCheck(
+  repository: Repository,
+  // The nested package the check runs in, relative to the repository root (sdkPackageDirectory).
+  packageDirectory?: string,
+): Promise<CheckSelection> {
+  const { root, inside, local } = checkDirectory(repository, packageDirectory);
   const { scripts, declared } = await manifestScripts(root);
   const tests = typeof scripts.test === 'string' && !PLACEHOLDER_TEST.test(scripts.test);
   const ownCompiler = Boolean(declared.typescript);
   const graph = importGraph(repository);
   const stripeFiles = repository.files
-    .filter((file) => !TEST_FILE.test(file.path) && STRIPE_IMPORT.test(file.content))
+    .filter(
+      (file) => inside(file.path) && !TEST_FILE.test(file.path) && STRIPE_IMPORT.test(file.content),
+    )
     .map((file) => file.path);
-  const tested = tests ? reach(graph, testFiles(repository)) : new Set<string>();
+  const allTests = testFiles(repository).filter(inside);
+  const tested = tests ? reach(graph, allTests) : new Set<string>();
   const testedStripeFiles = stripeFiles.filter((path) => tested.has(path));
   const rootConfiguration = readConfiguration(join(root, TSCONFIG));
-  const project = ownCompiler ? programFiles(root, rootConfiguration, graph) : new Set<string>();
+  const project = ownCompiler
+    ? programFiles(repository.root, rootConfiguration, graph)
+    : new Set<string>();
   const uncovered = stripeFiles.filter((path) => !project.has(path));
   const projectCheck = project.size > 0 && !uncovered.length;
-  const dependents = stripeFiles.length ? [...reach(importers(graph), stripeFiles)].sort() : [];
+  const dependents = stripeFiles.length
+    ? [...reach(importers(graph), stripeFiles)].filter(inside).sort()
+    : [];
   const scope = dependents.filter((path) => !TEST_FILE.test(path));
   // The test files that reach Stripe code, run alone when the runner takes file arguments: no other
   // test imports a file the patch can change, and a long suite then fits the check's time limit.
@@ -333,7 +358,7 @@ export async function selectCheck(repository: Repository): Promise<CheckSelectio
     tests &&
     runner &&
     stripeTests.length > 0 &&
-    stripeTests.length < testFiles(repository).length &&
+    stripeTests.length < allTests.length &&
     stripeTests.length <= MAX_LISTED_TESTS
       ? stripeTests
       : [];
@@ -341,7 +366,7 @@ export async function selectCheck(repository: Repository): Promise<CheckSelectio
     (file) => stripeFiles.includes(file.path) && TYPED_STRIPE_IMPORT.test(file.content),
   );
   const scoped = !projectCheck && typed && (ownCompiler || !tests);
-  const base = scoped ? baseConfiguration(root, stripeFiles) : undefined;
+  const base = scoped ? baseConfiguration(root, stripeFiles.map(local)) : undefined;
   const manager = packageManager(root);
   // npm passes script arguments only after `--`; pnpm and Yarn pass them as given.
   const fileOptions = [
@@ -362,11 +387,11 @@ export async function selectCheck(repository: Repository): Promise<CheckSelectio
         '-c',
         `${scoped && listed.length ? 'config=$1; shift; ' : ''}${testScript} || echo '${TESTS_FAILED}'; echo '${TYPE_CHECK_STARTED}'; ${typeCheckScript}`,
         'refit-check',
-        ...(scoped ? [JSON.stringify(scopedConfiguration(root, base, scope))] : []),
-        ...listed,
+        ...(scoped ? [JSON.stringify(scopedConfiguration(root, base, scope.map(local)))] : []),
+        ...listed.map(local),
       ]
     : tests
-      ? [manager, 'test', ...(listed.length ? [...fileOptions, ...listed] : [])]
+      ? [manager, 'test', ...(listed.length ? [...fileOptions, ...listed.map(local)] : [])]
       : projectCheck
         ? TYPE_CHECK
         : scoped
@@ -375,7 +400,7 @@ export async function selectCheck(repository: Repository): Promise<CheckSelectio
               '-c',
               typeCheckScript,
               'refit-check',
-              JSON.stringify(scopedConfiguration(root, base, scope)),
+              JSON.stringify(scopedConfiguration(root, base, scope.map(local))),
             ]
           : null;
   const testsClause = !tests
@@ -513,6 +538,19 @@ export function unavailableTypeCheck(
     : undefined;
 }
 
+// A tests-then-type-check chain whose tests failed only because the test runner found no test
+// files (preparation-stops.ts no-tests-found): they prove nothing, so only the type check counts.
+// shortcut: a test script that runs more commands after the runner with `;` or `||` could fail in
+// one of those too; read the script here if such a script appears in a measured set.
+export function testsFoundNone(run: { stdout: string; stderr: string }) {
+  const testsEnd = run.stdout.indexOf(TESTS_FAILED);
+  return (
+    testsEnd >= 0 &&
+    run.stdout.includes(TYPE_CHECK_STARTED) &&
+    baselineStop(`${run.stdout.slice(0, testsEnd)}\n${run.stderr}`)?.reason === 'no-tests-found'
+  );
+}
+
 // The type check part of a tests-then-type-check chain, as a command of its own.
 export function typeCheckCommand(command: readonly string[]) {
   const script = command[0] === 'sh' && command[1] === '-c' ? (command[2] ?? '') : '';
@@ -529,8 +567,13 @@ export function typeCheckCommand(command: readonly string[]) {
 }
 
 // The files a type check command covered: a scoped check's generated configuration, or the
-// repository root's tsconfig.json.
-function checkedProgram(root: string, command: readonly string[], graph: Map<string, Set<string>>) {
+// tsconfig.json of the directory the check runs in (`checkRoot`).
+function checkedProgram(
+  root: string,
+  checkRoot: string,
+  command: readonly string[],
+  graph: Map<string, Set<string>>,
+) {
   const configuration = command.slice(3).find((part) => part.startsWith('{'));
   const scoped =
     command[0] === 'sh' && command[2]?.includes(SCOPED_TSCONFIG) && configuration
@@ -542,11 +585,11 @@ function checkedProgram(root: string, command: readonly string[], graph: Map<str
       ? ts.parseJsonConfigFileContent(
           scoped,
           CONFIGURATION_HOST,
-          root,
+          checkRoot,
           undefined,
-          join(root, SCOPED_TSCONFIG),
+          join(checkRoot, SCOPED_TSCONFIG),
         )
-      : readConfiguration(join(root, TSCONFIG)),
+      : readConfiguration(join(checkRoot, TSCONFIG)),
     graph,
   );
 }
@@ -576,16 +619,25 @@ export async function gradeEvidence(options: {
   advisory?: { file: string; text: string }[];
   // Why the generated type check was unavailable, if it was; it then counts for nothing.
   typeCheckUnavailable?: string;
+  // The nested package the command ran in (selectCheck); changed files stay repository paths.
+  packageDirectory?: string;
+  // The chain's test script found no test files (testsFoundNone), so only its type check counts.
+  testsFoundNone?: boolean;
 }): Promise<EvidenceGrade> {
   if (options.behaviour?.passed && options.behaviour.coversEveryChangedLine)
     return { letter: 'A', level: 'behaviour-tests', reason: options.behaviour.reason };
   const root = options.repository.root;
-  const { scripts } = await manifestScripts(root);
+  const check = checkDirectory(options.repository, options.packageDirectory);
+  const { scripts } = await manifestScripts(check.root);
   const kinds = checkKinds(options.command, scripts);
+  if (options.testsFoundNone) kinds.delete('tests');
   const graph = importGraph(options.repository);
   const changed = options.changedFiles.filter((path) => SOURCE_FILE.test(path));
   const advisory = options.advisory ?? [];
   const notes = [
+    options.testsFoundNone
+      ? 'The test script finds no test files, so only the type check counts.'
+      : '',
     options.typeCheckUnavailable
       ? `The generated type check is unavailable (${options.typeCheckUnavailable}), so it counts for nothing.`
       : '',
@@ -600,7 +652,7 @@ export async function gradeEvidence(options: {
     options.typeCheckUnavailable
       ? new Set<string>()
       : new Set(
-          [...checkedProgram(root, options.command, graph)].filter(
+          [...checkedProgram(root, check.root, options.command, graph)].filter(
             (path) => !advisory.some((error) => error.file === path),
           ),
         );
@@ -624,9 +676,9 @@ export async function gradeEvidence(options: {
           ),
         };
   }
-  const listed = listedTests(options.command);
+  const listed = listedTests(options.command).map((path) => `${check.prefix}${path}`);
   const tested = kinds.has('tests')
-    ? reach(graph, listed.length ? listed : testFiles(options.repository))
+    ? reach(graph, listed.length ? listed : testFiles(options.repository).filter(check.inside))
     : new Set<string>();
   const typed = kinds.has('typecheck') ? typeChecked() : new Set<string>();
   const reached = changed.filter((path) => tested.has(path));
