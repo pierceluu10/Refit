@@ -302,9 +302,127 @@ export function stripeWebhookPayloads(options: {
       origin: location(events.get(binding)!),
     };
   }
-  function mappedPayload(expression: ts.Expression) {
+  function mappedPayload(
+    expression: ts.Expression,
+    seen = new Set<ts.Symbol>(),
+  ): ReturnType<typeof mappedEvent> {
     const binding = payloadEvent(expression);
-    return binding ? mappedEvent(binding, expression) : undefined;
+    return binding ? mappedEvent(binding, expression) : handlerPayload(expression, seen);
+  }
+  // The parameter of a private function declaration (`async function paid(invoice)`) that every
+  // call passes a signed payload of one mapped schema, narrowed at the call. The function must be
+  // referenced only by those calls, and must never write the parameter or a member of it.
+  const handlers = new Map<ts.Symbol, ReturnType<typeof mappedEvent>>();
+  function handlerPayload(expression: ts.Expression, seen: Set<ts.Symbol>) {
+    const value = unwrap(expression);
+    const parameter = ts.isIdentifier(value) ? symbol(value) : undefined;
+    if (!parameter || seen.has(parameter)) return;
+    if (!handlers.has(parameter)) handlers.set(parameter, handlerParameter(parameter, seen));
+    return handlers.get(parameter);
+  }
+  function handlerParameter(parameter: ts.Symbol, seen: Set<ts.Symbol>) {
+    const declaration = parameter.valueDeclaration;
+    if (
+      !declaration ||
+      !ts.isParameter(declaration) ||
+      !ts.isIdentifier(declaration.name) ||
+      declaration.initializer ||
+      declaration.dotDotDotToken ||
+      !ts.isFunctionDeclaration(declaration.parent) ||
+      !declaration.parent.name ||
+      !declaration.parent.body ||
+      ts
+        .getModifiers(declaration.parent)
+        ?.some(
+          (modifier) =>
+            modifier.kind === ts.SyntaxKind.ExportKeyword ||
+            modifier.kind === ts.SyntaxKind.DefaultKeyword,
+        )
+    )
+      return;
+    const handler = declaration.parent;
+    const file = handler.getSourceFile();
+    // A private function is called only from its own file, where the payloads must start.
+    if (![...events.values()].some((call) => call.getSourceFile() === file)) return;
+    const index = handler.parameters.indexOf(declaration);
+    const name = handler.name!.text;
+    const binding = symbol(handler.name!);
+    const root = (node: ts.Expression): ts.Expression =>
+      ts.isPropertyAccessExpression(node) ||
+      ts.isElementAccessExpression(node) ||
+      ts.isParenthesizedExpression(node) ||
+      ts.isNonNullExpression(node) ||
+      ts.isAsExpression(node) ||
+      ts.isTypeAssertionExpression(node) ||
+      ts.isSatisfiesExpression(node)
+        ? root(node.expression)
+        : node;
+    const calls: ts.CallExpression[] = [];
+    let rejected = false;
+    const references = (node: ts.Node) => {
+      // `export { paid }` and `module.exports = { paid }` resolve to other symbols.
+      if (
+        (ts.isExportSpecifier(node) && (node.propertyName ?? node.name).getText() === name) ||
+        (ts.isShorthandPropertyAssignment(node) && node.name.text === name)
+      )
+        rejected = true;
+      else if (
+        ts.isIdentifier(node) &&
+        node.text === name &&
+        node !== handler.name &&
+        symbol(node) === binding
+      ) {
+        const call = node.parent;
+        if (ts.isCallExpression(call) && call.expression === node && !call.questionDotToken)
+          calls.push(call);
+        else rejected = true;
+      }
+      if (!rejected) ts.forEachChild(node, references);
+    };
+    const writes = (node: ts.Node) => {
+      const target =
+        ts.isBinaryExpression(node) &&
+        node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+        node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
+          ? node.left
+          : (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+              [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(node.operator)
+            ? node.operand
+            : ts.isDeleteExpression(node)
+              ? node.expression
+              : undefined;
+      const written = target && root(target);
+      if (
+        written &&
+        ts.isIdentifier(written) &&
+        written.text === declaration.name.getText() &&
+        symbol(written) === parameter
+      )
+        rejected = true;
+      if (!rejected) ts.forEachChild(node, writes);
+    };
+    references(file);
+    writes(handler.body!);
+    if (rejected) return;
+    let mapped: ReturnType<typeof mappedEvent>;
+    for (const call of calls) {
+      const argument = call.arguments[index];
+      if (!argument || call.arguments.slice(0, index + 1).some(ts.isSpreadElement)) return;
+      const source = mappedPayload(argument, new Set([...seen, parameter]));
+      if (
+        !source?.contractResolved ||
+        unsafeEvents.has(source.binding) ||
+        (mapped && mapped.schema !== source.schema)
+      )
+        return;
+      mapped = mapped
+        ? {
+            ...mapped,
+            eventTypes: [...new Set([...mapped.eventTypes, ...source.eventTypes])].sort(),
+          }
+        : source;
+    }
+    return mapped;
   }
   function payload(expression: ts.Expression) {
     const mapped = mappedPayload(expression);

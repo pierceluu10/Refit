@@ -1,9 +1,12 @@
+import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import {
   proposalContent,
+  proposalSummary,
   proposeStripeConfiguration,
   stripeNodeDefaultVersion,
 } from './enrollment-proposal.ts';
@@ -37,6 +40,19 @@ const npmLock = (stripe: string) =>
     },
   });
 const TESTS = { scripts: { test: 'vitest run' } };
+
+// Owner decision 1: with allowUntested a version stop is a reason each draft is titled [Needs
+// review], and the configuration names the version it assumes.
+async function reviewed(root: string) {
+  const { proposal } = await proposeStripeConfiguration(root, { allowUntested: true });
+  return { apiVersion: proposal?.apiVersion, reviews: proposal?.reviews.map((stop) => stop.id) };
+}
+const ASSUMED = (value: string, why: string, every = false) => ({
+  id: 'api-version-assumed',
+  detail: `Refit could not read ${every ? 'every' : 'which'} Stripe API version this code sends, so the configuration assumes ${value}, ${why}. Refit compares the ${value} contract with 2026-09-30.endive; if the code sends another version, what needs migrating can differ.`,
+  action:
+    'Confirm the version your code and Stripe account use before merging a draft, and set apiVersion in the code.',
+});
 
 // Ankit-Sharma1011/Quill src/lib/stripe.ts
 const QUILL = `import Stripe from "stripe";
@@ -91,6 +107,8 @@ it('checks a TypeScript repository without tests by new type errors, with its pa
   expect(proposal?.checks).toEqual({
     kind: 'typecheck',
     source: 'tsc over tsconfig.json, failing only on new type errors',
+    reason:
+      'There is no test script. The type check (tsc over tsconfig.json) covers the Stripe code in src/lib/stripe.ts.',
   });
   expect(proposal?.configuration.integrations[0]).toMatchObject({
     command: ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'],
@@ -171,6 +189,14 @@ export const auth = betterAuth({ plugins: [stripe({ stripeClient })] })
   expect(stops).toMatchObject([
     { id: 'api-version-unreadable', detail: expect.stringMatching(detail) },
   ]);
+  // The lockfile's importer differs from package.json, so Refit reads no locked release either.
+  const why = 'the oldest version Refit has a contract for';
+  expect(await reviewed(root)).toEqual({
+    apiVersion: { value: '2022-08-01', source: `assumed: ${why}` },
+    reviews: ['api-version-unreadable', 'api-version-assumed'],
+  });
+  const assumed = (await proposeStripeConfiguration(root, { allowUntested: true })).proposal;
+  expect(assumed!.reviews[1]).toEqual(ASSUMED('2022-08-01', why));
 });
 
 it('uses the default of the locked stripe-node release for a client with no apiVersion', async () => {
@@ -215,6 +241,23 @@ exports.handler = async (event, context) => {
   });
 });
 
+it('joins a pinned client and a release default that send the same version', async () => {
+  const root = await repository({
+    'package.json': manifest('^18.2.1', TESTS),
+    'package-lock.json': npmLock('18.2.1'),
+    'src/lib/stripe.ts': QUILL.replace('2026-04-22.dahlia', '2025-05-28.basil'),
+    'src/admin.ts': `import Stripe from "stripe";\n\nexport const admin = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");\n`,
+  });
+  const { proposal, stops } = await proposeStripeConfiguration(root);
+  expect(stops).toEqual([]);
+  // Before: "set at src/lib/stripe.ts:3 and the default of stripe-node 18.2.1, …"
+  expect(proposal?.apiVersion).toEqual({
+    value: '2025-05-28.basil',
+    source:
+      'set at src/lib/stripe.ts:3, and the default of stripe-node 18.2.1, which the lockfile records',
+  });
+});
+
 it('stops on a version read from the environment, and names the line', async () => {
   // kevinknielsen/superfan-core lib/stripe.ts
   const root = await repository({
@@ -243,6 +286,38 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       },
     ],
   });
+  expect(await reviewed(root)).toEqual({
+    apiVersion: {
+      value: '2022-08-01',
+      source: 'assumed: the oldest version Refit has a contract for',
+    },
+    reviews: ['api-version-unreadable', 'api-version-assumed'],
+  });
+});
+
+// Constructed from the two clients above with a lockfile that matches package.json: a client whose
+// version Refit cannot read may send its stripe-node default when the variable is unset.
+it.each([
+  "{ apiVersion: process.env.STRIPE_API_VERSION || '2023-10-16' }",
+  "{ ['apiVersion']: '2025-10-29.clover' }",
+])('assumes the locked stripe-node default for a client it cannot read: %s', async (options) => {
+  const root = await repository({
+    'package.json': manifest('^22.6.2', TESTS),
+    'package-lock.json': npmLock('22.6.2'),
+    'lib/stripe.ts': `import Stripe from 'stripe';\nexport const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, ${options});\n`,
+  });
+  expect((await proposeStripeConfiguration(root)).proposal).toBeNull();
+  const why = 'the version stripe-node 22.6.2 sends by default, which the lockfile records';
+  const { proposal } = await proposeStripeConfiguration(root, { allowUntested: true });
+  expect(proposal!.apiVersion).toEqual({ value: '2026-08-26.dahlia', source: `assumed: ${why}` });
+  expect(proposal!.reviews.map((stop) => stop.id)).toEqual([
+    'api-version-unreadable',
+    'api-version-assumed',
+  ]);
+  expect(proposal!.reviews[1]).toEqual(ASSUMED('2026-08-26.dahlia', why));
+  expect(proposalSummary(proposal!)).toContain(
+    'Each draft Refit opens with it is titled [Needs review]: Refit cannot tell which Stripe API version the client at lib/stripe.ts:2 uses',
+  );
 });
 
 it('stops on a file that imports stripe and does not parse, naming it with the other stops', async () => {
@@ -390,6 +465,15 @@ module.exports = { updatePayment };
         'If updateObject sets no apiVersion, commit a .refit.json that sets "apiVersion": "2022-11-15", the version your clients send (docs/REPOSITORY-SETUP.md).',
     },
   ]);
+  const source = 'the default of stripe-node 12.18.0, which the lockfile records';
+  expect(await reviewed(root)).toEqual({
+    apiVersion: { value: '2022-11-15', source },
+    reviews: ['api-version-unreadable', 'api-version-assumed'],
+  });
+  const { proposal } = await proposeStripeConfiguration(root, { allowUntested: true });
+  expect(proposal!.reviews[1]).toEqual(
+    ASSUMED('2022-11-15', `the oldest version Refit can read (${source})`, true),
+  );
 });
 
 it('reports an unreadable request together with clients and requests on different versions', async () => {
@@ -454,11 +538,15 @@ void setup();
     {
       id: 'api-version-several',
       detail:
-        "This repository sends more than one Stripe API version (2026-03-25.dahlia at src/server/api/routers/billing.ts:5; stripe-node 23.0.0's default 2026-09-30.endive at src/lib/stripe.ts:5, tools/stripe-portal-setup.ts:4), and Refit moves one version at a time.",
+        "This repository sends more than one Stripe API version (2026-03-25.dahlia at src/server/api/routers/billing.ts:5; stripe-node 23.0.0's default 2026-09-30.endive at src/lib/stripe.ts:5 and tools/stripe-portal-setup.ts:4), and Refit moves one version at a time.",
       action:
         'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
     },
   ]);
+  expect(await reviewed(root)).toMatchObject({
+    apiVersion: { value: '2026-03-25.dahlia' },
+    reviews: ['api-version-unreadable', 'api-version-several', 'api-version-assumed'],
+  });
 });
 
 it('keeps the literal fix for a request that sets apiVersion from a variable', async () => {
@@ -483,6 +571,10 @@ export function createCustomer(email: string, version: string) {
         "Write the request's apiVersion at src/customers.ts:4 as a string literal, or remove it so the request uses the client's version, or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).",
     },
   ]);
+  expect(await reviewed(root)).toEqual({
+    apiVersion: { value: '2026-04-22.dahlia', source: 'set at src/lib/stripe.ts:3' },
+    reviews: ['api-version-unreadable', 'api-version-assumed'],
+  });
 });
 
 it('stops when clients send different versions, naming each', async () => {
@@ -510,6 +602,21 @@ export async function createProduct(access_token, name) {
         'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
     },
   ]);
+  const { proposal } = await proposeStripeConfiguration(root, { allowUntested: true });
+  expect(proposal).toMatchObject({
+    apiVersion: {
+      value: '2023-10-16',
+      source: 'the oldest version set at lib/stripe.js:4 and src/lib/stripe.ts:3',
+    },
+    reviews: [
+      {
+        id: 'api-version-several',
+        detail:
+          'This repository sends more than one Stripe API version (2023-10-16 at lib/stripe.js:4; 2026-04-22.dahlia at src/lib/stripe.ts:3). The configuration starts from the oldest, 2023-10-16, and each draft moves every pin it can trace to 2026-09-30.endive and lists them.',
+        action: 'Check each pin the draft lists before merging it.',
+      },
+    ],
+  });
 });
 
 it('stops without a lockfile', async () => {
@@ -526,6 +633,85 @@ it('stops without a lockfile', async () => {
         'Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
     },
   ]);
+});
+
+it('proposes a configuration without a lockfile or checks only when asked, keeping why', async () => {
+  const unlocked = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'src/lib/stripe.ts': QUILL,
+  });
+  const refused = await proposeStripeConfiguration(unlocked);
+  expect(refused.proposal).toBeNull();
+  const untested = await proposeStripeConfiguration(unlocked, { allowUntested: true });
+  expect(untested.stops).toEqual(refused.stops);
+  expect(untested.proposal).toMatchObject({
+    apiVersion: { value: '2026-04-22.dahlia' },
+    checks: { kind: 'tests', source: 'the test script in package.json, run with npm' },
+    reviews: refused.stops,
+  });
+  // Preparation then fails on the missing lockfile, so the patch is published untested.
+  expect(untested.proposal!.configuration.integrations[0]).toMatchObject({
+    prepareDependencies: true,
+    command: ['npm', 'test'],
+  });
+  expect(proposalSummary(untested.proposal!)).toBe(
+    'No .refit.json is committed, so Refit generated one: Stripe API version 2026-04-22.dahlia (set at src/lib/stripe.ts:3), moving to 2026-09-30.endive, checked by the test script in package.json, run with npm. No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them. Each draft Refit opens with it is titled [Needs review]: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+  );
+
+  // No test script, and a client only require() loads, which no type check can cover.
+  const unchecked = await repository({
+    'package.json': manifest('^22.1.1'),
+    'package-lock.json': npmLock('22.1.1'),
+    'src/lib/stripe.js': QUILL.replace(
+      'import Stripe from "stripe";',
+      'const Stripe = require("stripe");',
+    ),
+  });
+  expect((await proposeStripeConfiguration(unchecked)).proposal).toBeNull();
+  const noop = (await proposeStripeConfiguration(unchecked, { allowUntested: true })).proposal!;
+  // The no-op check is the one the draft names as testing nothing (pipeline/publication.ts).
+  expect(noop.configuration.integrations[0]).toEqual({
+    id: 'stripe',
+    before: './refit/stripe-2026-04-22.dahlia.json',
+    after: './refit/stripe-2026-09-30.endive.json',
+    apiVersion: '2026-04-22.dahlia',
+    image: 'node:22-alpine',
+    prepareDependencies: true,
+    command: ['node', '-e', '0'],
+  });
+  expect(noop.checks).toEqual({
+    kind: 'none',
+    source: 'node -e 0, which tests nothing',
+    reason:
+      'There is no test script. Stripe is loaded with require() (src/lib/stripe.js), which TypeScript leaves untyped, so no type check can cover the Stripe code.',
+  });
+  expect(noop.reviews.map((stop) => stop.id)).toEqual(['no-checks']);
+});
+
+it('still refuses an untested repository for any other reason, and names every reason', async () => {
+  const unparsed = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'src/lib/stripe.ts': QUILL,
+    'src/billing.ts': "import Stripe from 'stripe';\nconst total = ;\n",
+  });
+  expect(await proposeStripeConfiguration(unparsed, { allowUntested: true })).toEqual(
+    await proposeStripeConfiguration(unparsed),
+  );
+  // Without the lockfile stop in the way, the workspace-package stop is reached and still refuses.
+  const workspace = await repository({
+    'package.json': JSON.stringify({ name: 'faster-fixes', scripts: { test: 'turbo run test' } }),
+    'pnpm-workspace.yaml': 'packages:\n  - "apps/*"\n',
+    'apps/web/package.json': manifest('^20.2.0', { name: 'web' }),
+    'apps/web/src/stripe.ts': `import Stripe from "stripe";
+export const stripe = new Stripe("", { apiVersion: "2025-12-15.clover" });
+`,
+  });
+  expect((await proposeStripeConfiguration(workspace)).stops.map((stop) => stop.id)).toEqual([
+    'no-lockfile',
+  ]);
+  const allowed = await proposeStripeConfiguration(workspace, { allowUntested: true });
+  expect(allowed.proposal).toBeNull();
+  expect(allowed.stops.map((stop) => stop.id)).toEqual(['no-lockfile', 'workspace-package']);
 });
 
 // pnpm and Yarn lockfiles cut to the importer and entry Refit reads for one workspace package.
@@ -656,7 +842,7 @@ it('stops on a project the root lockfile does not install, or with no root packa
     {
       id: 'nested-project',
       detail:
-        'stripe is declared in serverless/payment/checkStripeSession/package.json, serverless/payment/createStripeSession/package.json, which the root lockfile does not install, so Refit cannot prepare those projects.',
+        'stripe is declared in serverless/payment/checkStripeSession/package.json and serverless/payment/createStripeSession/package.json, which the root lockfile does not install, so Refit cannot prepare those projects.',
       action:
         'Refit installs and checks only from the root package.json and its lockfile: make those projects a workspace of the root and commit the lockfile, or commit a .refit.json with a custom image (docs/DEPENDENCIES.md).',
     },
@@ -695,6 +881,8 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '
     kind: 'tests',
     source:
       'the test script in package.json, run with npm; Refit does not install functions/package.json, which the root lockfile leaves out',
+    reason:
+      'No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them.',
   });
   // CapChris20/Retronix-Wallpapers-Startup: that project's client sets no apiVersion, and only its
   // own lockfile records the stripe-node release.
@@ -723,6 +911,14 @@ exports.customers = functions.https.onRequest(async (request, response) => {
       action: 'Set apiVersion at extras/functions/index.js:6.',
     },
   ]);
+  // The root lockfile does not install that client, so its default is not assumed.
+  expect(await reviewed(functions)).toEqual({
+    apiVersion: {
+      value: '2022-08-01',
+      source: 'assumed: the oldest version Refit has a contract for',
+    },
+    reviews: ['stripe-not-locked', 'api-version-assumed'],
+  });
 });
 
 it('says which tsconfig extends it does not read when that hides every client', async () => {
@@ -869,7 +1065,7 @@ it('blames a tsconfig only when it hides a client, and names a client it sees bu
     {
       id: 'no-stripe-client',
       detail:
-        'Refit sees Stripe clients created at backend/server.js:4, backend/worker.js:4, but cannot follow them to the calls that use them.',
+        'Refit sees Stripe clients created at backend/server.js:4 and backend/worker.js:4, but cannot follow them to the calls that use them.',
       action: UNFOLLOWED_ACTION.replace('this one', 'these'),
     },
   ]);
@@ -941,6 +1137,14 @@ export function getStripe(): Stripe {
         'Set apiVersion at src/lib/stripe.ts:13 to the version stripe-node 21.0.1 pins (its changelog names it), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).',
     },
   ]);
+  const oldest = {
+    apiVersion: {
+      value: '2022-08-01',
+      source: 'assumed: the oldest version Refit has a contract for',
+    },
+    reviews: ['api-version-account-default', 'api-version-assumed'],
+  };
+  expect(await reviewed(pinning)).toEqual(oldest);
   // Mangoz1x/GptRewrite pages/api/intent/[plan].js: stripe-node 11 sends the account's default.
   const account = await repository({
     'package.json': manifest('^11.10.0', TESTS),
@@ -962,6 +1166,7 @@ const stripe = gateway(process.env.STRIPE_KEY);
         'Set apiVersion at pages/api/intent/[plan].js:6 to the version your account uses, or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).',
     },
   ]);
+  expect(await reviewed(account)).toEqual(oldest);
 });
 
 it('knows a release’s default only inside a major the release table covers', () => {
@@ -973,4 +1178,49 @@ it('knows a release’s default only inside a major the release table covers', (
   expect(stripeNodeDefaultVersion('21.0.0')).toBeUndefined();
   expect(stripeNodeDefaultVersion('23.1.0')).toBeUndefined();
   expect(stripeNodeDefaultVersion('18.2.1-beta.1')).toBeUndefined();
+});
+
+// A checked-out submodule's files are not in `git archive`, which validation reads, so enrollment
+// leaves them out too: enroll, doctor and the worker (which checks out none) propose the same.
+it.each<{ path: string; files: Record<string, string> }>([
+  { path: 'vendor/lib', files: { 'stripe.js': QUILL.replace('2026-04-22.dahlia', '2024-06-20') } },
+  {
+    path: 'packages/ui',
+    files: {
+      'package.json': manifest('^14.25.0'),
+      'src/stripe.ts': QUILL.replace('2026-04-22.dahlia', '2023-10-16'),
+    },
+  },
+])('leaves the files of a checked-out submodule at $path out', async ({ path, files }) => {
+  const git = (directory: string, ...args: string[]) =>
+    promisify(execFile)('git', [
+      '-C',
+      directory,
+      '-c',
+      'user.name=Refit Tests',
+      '-c',
+      'user.email=tests@refit.local',
+      '-c',
+      'protocol.file.allow=always',
+      ...args,
+    ]);
+  const library = await repository(files);
+  await git(library, 'init', '-qb', 'main');
+  await git(library, 'add', '.');
+  await git(library, 'commit', '-qm', 'library');
+  const root = await repository({
+    'package.json': manifest('^22.1.1', TESTS),
+    'package-lock.json': npmLock('22.1.1'),
+    'src/lib/stripe.ts': QUILL,
+  });
+  await git(root, 'init', '-qb', 'main');
+  await git(root, 'submodule', '-q', 'add', library, path);
+  await git(root, 'add', '.');
+  await git(root, 'commit', '-qm', 'app');
+  const { proposal, stops } = await proposeStripeConfiguration(root, { allowUntested: true });
+  expect(stops).toEqual([]);
+  expect(proposal!.apiVersion).toEqual({
+    value: '2026-04-22.dahlia',
+    source: 'set at src/lib/stripe.ts:3',
+  });
 });

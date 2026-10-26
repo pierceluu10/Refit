@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import ts from 'typescript-compiler';
 import { scaffoldChecks } from './agent-catalog.ts';
 import { analyzeRepository, SourceParseError } from './analyzer.ts';
+import { selectCheck } from './check-selection.ts';
 import {
   validateApiVersion,
   type ApiVersionDeclaration,
@@ -13,10 +14,12 @@ import {
   latestStripeContract,
   stripeContractFile,
   stripeContractVersion,
+  stripeContractVersions,
 } from './enrollment-contracts.ts';
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
 import { STRIPE } from './providers.ts';
 import { readRepository } from './repository.ts';
+import { NO_OP_CHECK } from './review.ts';
 import { configurationTarget } from './source-configurations.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { STRIPE_SDK_RELEASES } from './stripe-package-upgrade.ts';
@@ -27,15 +30,24 @@ import { YARN_LOCKFILE } from './yarn-lock.ts';
 
 export const STRIPE_INTEGRATION = 'stripe';
 const MANIFEST = 'package.json';
-const TSCONFIG = 'tsconfig.json';
 const RELEASE = /^(\d+)\.(\d+)\.(\d+)$/;
 // stripe-node 12 is the first major that sends its own API version (pipeline/api-version.ts).
 const FIRST_PINNING_MAJOR = 12;
-// The benchmark's type check (pipeline/stripe-benchmark-cli.ts): no install, no network.
-const TYPE_CHECK = ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'];
 const MAX_PLACES = 3;
 const MAX_QUOTED = 60;
 const OWN_CONFIGURATION = `or commit a ${REPOSITORY_CONFIGURATION} that sets it (docs/REPOSITORY-SETUP.md)`;
+// Stops after which a configuration can still run (owner decision 1, #300), each a reason every
+// draft is titled [Needs review]: without a lockfile preparation fails, without checks the command
+// is a no-op, and an API version Refit cannot read, or several, is assumed or moved together.
+const REVIEWED_STOPS = new Set([
+  'no-lockfile',
+  'no-checks',
+  'api-version-unreadable',
+  'stripe-not-locked',
+  'api-version-account-default',
+  'api-version-several',
+  'api-version-assumed',
+]);
 
 // Why Refit cannot propose a configuration: one plain sentence and the exact change that fixes it.
 export interface EnrollmentStop {
@@ -49,15 +61,18 @@ export interface StripeProposal {
   configuration: { formatVersion: 2; integrations: Record<string, unknown>[] };
   apiVersion: { value: string; source: string };
   target: string;
-  checks: { kind: 'tests' | 'typecheck'; source: string };
+  checks: { kind: 'tests' | 'typecheck' | 'none'; source: string; reason: string };
+  // Why each draft under this configuration needs review; empty unless allowUntested proposed it.
+  reviews: EnrollmentStop[];
 }
 
 const at = (location: Location) => `${location.file}:${location.line}`;
 
 // Names at most a few places, so a proposal over many clients stays one readable line.
-function listed(names: string[]) {
-  const named = names.slice(0, MAX_PLACES).join(', ');
-  return names.length > MAX_PLACES ? `${named} and ${names.length - MAX_PLACES} more` : named;
+export function listed(names: string[]) {
+  if (names.length > MAX_PLACES)
+    return `${names.slice(0, MAX_PLACES).join(', ')} and ${names.length - MAX_PLACES} more`;
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names.join('');
 }
 
 const places = (locations: Location[]) => listed(locations.map(at));
@@ -320,10 +335,17 @@ export function unreadableExtendsReason(configurations: Repository['files']) {
   };
 }
 
+// With allowUntested (owner decision 1) a version Refit cannot read, or several versions, is a
+// reason each draft needs review, not a refusal; the configuration takes the oldest version the
+// code sends, else the locked stripe-node default, else the oldest contract Refit has.
 function applicationVersion(
   declarations: ApiVersionDeclaration[],
   repository: Repository,
-): { value: string; source: string } | EnrollmentStop[] {
+  allowUntested = false,
+): { value: string; source: string; reviews: EnrollmentStop[] } | EnrollmentStop[] {
+  const reviews: EnrollmentStop[] = [];
+  // Clients whose version Refit cannot read; only allowUntested gets past them.
+  const unread: Location[] = [];
   const owner = stripeOwner(repository.dependencies);
   const unreadable = unreadableExtendsReason(repository.configurations ?? []);
   const creates = (found: ApiVersionDeclaration[]) =>
@@ -376,14 +398,17 @@ function applicationVersion(
       requests.push(declaration);
     else if (declaration.status === 'unknown') {
       const written = writtenVersion(repository.files, declaration);
-      if (written !== 'absent' && 'unread' in written)
-        return [
-          {
-            id: 'api-version-unreadable',
-            detail: `Refit cannot tell which Stripe API version the client at ${at(declaration)} uses: ${written.unread}.`,
-            action: `Write the apiVersion at ${at(declaration)} as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), ${OWN_CONFIGURATION}.`,
-          },
-        ];
+      if (written !== 'absent' && 'unread' in written) {
+        const unreadable = {
+          id: 'api-version-unreadable',
+          detail: `Refit cannot tell which Stripe API version the client at ${at(declaration)} uses: ${written.unread}.`,
+          action: `Write the apiVersion at ${at(declaration)} as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), ${OWN_CONFIGURATION}.`,
+        };
+        if (!allowUntested) return [unreadable];
+        reviews.push(unreadable);
+        unread.push(declaration);
+        continue;
+      }
       unfollowed.push(declaration);
       if (written === 'absent') absent.push(declaration);
       else pinned.push({ ...declaration, value: written.value });
@@ -394,23 +419,20 @@ function applicationVersion(
     const dependency = owner(client.file);
     const release = dependency?.lock.status === 'locked' ? dependency.lock.version : null;
     const value = release ? stripeNodeDefaultVersion(release) : undefined;
-    if (!release)
-      return [
-        dependency && dependency.file !== MANIFEST
-          ? {
-              id: 'stripe-not-locked',
-              detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit reads only the root lockfile, which does not install ${dependency.file}, so it cannot tell which stripe-node release sends the default.`,
-              action: `Set apiVersion at ${at(client)}.`,
-            }
-          : {
-              id: 'stripe-not-locked',
-              detail: `The Stripe client at ${at(client)} sets no apiVersion, and no committed lockfile records which stripe-node release sends the default.`,
-              action: `Set apiVersion at ${at(client)}, or commit your lockfile.`,
-            },
-      ];
-    if (!value)
-      return [
-        Number(RELEASE.exec(release)?.[1] ?? 0) >= FIRST_PINNING_MAJOR
+    const unknown = !release
+      ? dependency && dependency.file !== MANIFEST
+        ? {
+            id: 'stripe-not-locked',
+            detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit reads only the root lockfile, which does not install ${dependency.file}, so it cannot tell which stripe-node release sends the default.`,
+            action: `Set apiVersion at ${at(client)}.`,
+          }
+        : {
+            id: 'stripe-not-locked',
+            detail: `The Stripe client at ${at(client)} sets no apiVersion, and no committed lockfile records which stripe-node release sends the default.`,
+            action: `Set apiVersion at ${at(client)}, or commit your lockfile.`,
+          }
+      : !value
+        ? Number(RELEASE.exec(release)?.[1] ?? 0) >= FIRST_PINNING_MAJOR
           ? {
               id: 'api-version-account-default',
               detail: `The Stripe client at ${at(client)} sets no apiVersion, so it sends the API version stripe-node ${release} pins, and Refit's table of stripe-node releases does not record which one that is.`,
@@ -420,11 +442,16 @@ function applicationVersion(
               id: 'api-version-account-default',
               detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit does not know which version stripe-node ${release} sends by default, so requests may use your Stripe account's default version.`,
               action: `Set apiVersion at ${at(client)} to the version your account uses, ${OWN_CONFIGURATION}.`,
-            },
-      ];
-    defaults.push({ ...client, release, value });
+            }
+        : undefined;
+    if (unknown && !allowUntested) return [unknown];
+    if (unknown) {
+      reviews.push(unknown);
+      unread.push(client);
+    } else defaults.push({ ...client, release: release!, value: value! });
   }
   const used = [...new Set([...pinned, ...defaults].map((client) => client.value))];
+  const oldest = [...used].sort()[0];
   // Checked after the clients, so the fix can name the one version they all send.
   const stops = requests.length ? [unreadableRequest(repository.files, requests[0], used)] : [];
   if (used.length > 1)
@@ -448,29 +475,58 @@ function applicationVersion(
             ),
           ].join(', '),
         )
-        .join('; ')}), and Refit moves one version at a time.`,
-      action:
-        'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
+        .join(
+          '; ',
+        )})${allowUntested ? `. The configuration starts from the oldest, ${oldest}, and each draft moves every pin it can trace to ${latestStripeContract().version} and lists them` : ', and Refit moves one version at a time'}.`,
+      action: allowUntested
+        ? 'Check each pin the draft lists before merging it.'
+        : 'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
     });
-  if (stops.length) return stops;
+  if (!allowUntested && stops.length) return stops;
+  reviews.push(...stops);
   const releases = [...new Set(defaults.map((client) => client.release))];
   const sources = [
     ...(pinned.length ? [`set at ${places(pinned)}`] : []),
     ...(releases.length
-      ? [`the default of stripe-node ${releases.join(' and ')}, which the lockfile records`]
+      ? [`the default of stripe-node ${listed(releases)}, which the lockfile records`]
       : []),
   ];
-  return {
-    value: used[0],
-    source: `${sources.join(' and ')}${unfollowed.length ? `; Refit cannot follow every use of the client at ${places(unfollowed)}, so check that no request there sends another version` : ''}`,
-  };
+  const source = `${used.length > 1 ? 'the oldest version ' : ''}${sources.join(', and ')}${unfollowed.length ? `; Refit cannot follow every use of the client at ${places(unfollowed)}, so check that no request there sends another version` : ''}`;
+  if (!unread.length && !requests.length) return { value: oldest, source, reviews };
+  // Only with allowUntested. A client whose version Refit cannot read may still send its
+  // stripe-node default (an unset environment variable), when one lockfile installs them all.
+  const projects = [...new Set(unread.map((client) => owner(client.file)))];
+  const lock = projects.length === 1 ? projects[0]?.lock : undefined;
+  const release = lock?.status === 'locked' ? lock.version : undefined;
+  const fallback = release ? stripeNodeDefaultVersion(release) : undefined;
+  const [value, why] = used.length
+    ? [oldest, `the oldest version Refit can read (${source})`]
+    : fallback
+      ? [
+          fallback,
+          `the version stripe-node ${release} sends by default, which the lockfile records`,
+        ]
+      : [stripeContractVersions()[0].version, 'the oldest version Refit has a contract for'];
+  reviews.push({
+    id: 'api-version-assumed',
+    detail: `Refit could not read ${used.length ? 'every' : 'which'} Stripe API version this code sends, so the configuration assumes ${value}, ${why}. Refit compares the ${value} contract with ${latestStripeContract().version}; if the code sends another version, what needs migrating can differ.`,
+    action:
+      'Confirm the version your code and Stripe account use before merging a draft, and set apiVersion in the code.',
+  });
+  return { value, source: used.length ? source : `assumed: ${why}`, reviews };
 }
 
 // Proposes the Stripe configuration a repository without a .refit.json gets, from its committed
 // files only: the API version its code sends, the contracts for that version and Refit's newest,
 // and the checks the Stripe benchmark runs. Every reason it cannot is returned, never guessed.
-export async function proposeStripeConfiguration(directory: string) {
+// With allowUntested, a missing lockfile or missing checks no longer stop it; they stay as reasons.
+export async function proposeStripeConfiguration(
+  directory: string,
+  options: { allowUntested?: boolean } = {},
+) {
   const stops: EnrollmentStop[] = [];
+  const blocking = () =>
+    stops.filter((stop) => !options.allowUntested || !REVIEWED_STOPS.has(stop.id));
   const repository = await readRepository(directory, STRIPE.packageName);
   const manifest = existsSync(join(directory, MANIFEST))
     ? parseObject(await readFile(join(directory, MANIFEST), 'utf8'), MANIFEST)
@@ -479,7 +535,7 @@ export async function proposeStripeConfiguration(directory: string) {
     ...(manifest?.dependencies as Record<string, unknown> | undefined),
     ...(manifest?.devDependencies as Record<string, unknown> | undefined),
   };
-  const { testScript, lockfile } = await scaffoldChecks(directory);
+  const { lockfile } = await scaffoldChecks(directory);
   const rooted = Boolean(declared[STRIPE.packageName]);
   if (!rooted) {
     const nested = [...new Set(repository.dependencies.map((dependency) => dependency.file))];
@@ -536,13 +592,14 @@ export async function proposeStripeConfiguration(directory: string) {
     : existsSync(join(directory, YARN_LOCKFILE))
       ? 'yarn'
       : 'npm';
-  const typecheck = existsSync(join(directory, TSCONFIG)) && Boolean(declared.typescript);
-  if (!testScript && !typecheck)
+  const check = await selectCheck(repository);
+  if (!check.kind)
     stops.push({
       id: 'no-checks',
       detail:
         'This repository has no test script and no TypeScript type check, so Refit has nothing that shows a change still works.',
-      action: `Add a "test" script to package.json, or a ${TSCONFIG} with typescript in devDependencies.`,
+      action:
+        'Add a "test" script to package.json, or a tsconfig.json with typescript in devDependencies.',
     });
   let analysis: ReturnType<typeof analyzeRepository>;
   try {
@@ -556,9 +613,14 @@ export async function proposeStripeConfiguration(directory: string) {
     });
     return { proposal: null, stops };
   }
-  const version = applicationVersion(analysis.apiVersionDeclarations, repository);
+  const version = applicationVersion(
+    analysis.apiVersionDeclarations,
+    repository,
+    options.allowUntested,
+  );
   if (Array.isArray(version)) stops.push(...version);
-  else if (!stripeContractVersion(version.value))
+  else stops.push(...version.reviews);
+  if (!Array.isArray(version) && !stripeContractVersion(version.value))
     stops.push({
       id: 'api-version-no-contract',
       detail: `Your code uses Stripe API version ${version.value}, and Refit has no contract for it.`,
@@ -567,17 +629,29 @@ export async function proposeStripeConfiguration(directory: string) {
   // Generation for stripe only in workspace packages is withheld under the decision bar (P5, #270):
   // no measured repository generates this way, nothing shows the root check covers the package, and
   // the stripe-node upgrade edits only the root package.json.
-  if (!rooted && !stops.length)
+  if (!rooted && !blocking().length)
     stops.push({
       id: 'workspace-package',
       detail: `stripe is declared in ${listed([...new Set(repository.dependencies.map((dependency) => dependency.file))])}, not in the root package.json, and Refit does not yet generate a configuration that checks a workspace package from the root.`,
       action: `Commit a ${REPOSITORY_CONFIGURATION} whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).`,
     });
-  if (stops.length || Array.isArray(version)) return { proposal: null, stops };
+  if (blocking().length || Array.isArray(version)) return { proposal: null, stops };
   const target = latestStripeContract().version;
-  const checked = testScript
-    ? `the test script in ${MANIFEST}, run with ${manager}`
-    : `tsc over ${TSCONFIG}, failing only on new type errors`;
+  const typeChecked =
+    check.typeCheck === 'project'
+      ? 'tsc over tsconfig.json, failing only on new type errors'
+      : check.typeCheck === 'scoped'
+        ? 'tsc over the Stripe code, failing only on new type errors'
+        : undefined;
+  // Owner decision 1: without any check the command is a no-op the draft names (untested).
+  const checked = check.kind
+    ? [
+        check.kind === 'tests' ? `the test script in ${MANIFEST}, run with ${manager}` : undefined,
+        typeChecked,
+      ]
+        .filter(Boolean)
+        .join(', then ')
+    : `${NO_OP_CHECK}, which tests nothing`;
   const proposal: StripeProposal = {
     configuration: {
       formatVersion: 2,
@@ -589,17 +663,19 @@ export async function proposeStripeConfiguration(directory: string) {
           apiVersion: version.value,
           image: NODE_22_IMAGE,
           prepareDependencies: true,
-          command: testScript ? [manager, 'test'] : TYPE_CHECK,
-          ...(testScript ? {} : { compareTypeErrors: true }),
+          command: check.command ?? NO_OP_CHECK.split(' '),
+          ...(check.compareTypeErrors ? { compareTypeErrors: true } : {}),
         },
       ],
     },
-    apiVersion: version,
+    apiVersion: { value: version.value, source: version.source },
     target,
     checks: {
-      kind: testScript ? 'tests' : 'typecheck',
+      kind: check.kind ?? 'none',
       source: `${checked}${outside.length ? `; Refit does not install ${listed(outside)}, which the root lockfile leaves out` : ''}`,
+      reason: check.reason,
     },
+    reviews: stops,
   };
   return { proposal, stops };
 }
@@ -616,7 +692,8 @@ export function generatedVersionCheck(source: ApiVersionSource) {
 
 // One sentence a person reads before approving or running a generated configuration.
 export function proposalSummary(proposal: StripeProposal) {
-  return `No ${REPOSITORY_CONFIGURATION} is committed, so Refit generated one: Stripe API version ${proposal.apiVersion.value} (${proposal.apiVersion.source}), moving to ${proposal.target}, checked by ${proposal.checks.source}.`;
+  const reviews = proposal.reviews.map((stop) => `${stop.detail} ${stop.action}`).join(' ');
+  return `No ${REPOSITORY_CONFIGURATION} is committed, so Refit generated one: Stripe API version ${proposal.apiVersion.value} (${proposal.apiVersion.source}), moving to ${proposal.target}, checked by ${proposal.checks.source}. ${proposal.checks.reason}${reviews ? ` Each draft Refit opens with it is titled [Needs review]: ${reviews}` : ''}`;
 }
 
 export function proposalContent(proposal: StripeProposal) {

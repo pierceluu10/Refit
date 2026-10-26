@@ -4,8 +4,11 @@ import {
   addedTypeEscapes,
   changedEventTypes,
   droppedRequestPaths,
+  editedTestFiles,
   newShapeOnlyReads,
+  rewrittenRuleLines,
 } from './ai-patch-policies.ts';
+import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
 
@@ -65,7 +68,7 @@ it('refuses an AI patch that deletes payment_method_types from a SetupIntent', (
   ]);
 });
 
-it('refuses an AI rename of payment_method_types, which only the reviewed card rule may make', () => {
+it('refuses an AI rename of payment_method_types when the contract documents no replacement', () => {
   const after = replaced(
     SETUP_INTENT,
     "payment_method_types: ['card'],",
@@ -113,6 +116,52 @@ it("does not charge the rules' own card rename to the AI", () => {
   expect(
     droppedRequestPaths(...versions('app/api/create-setup-intent/route.ts', rules, after), STRIPE),
   ).toEqual([]);
+});
+
+// inventashif/hackerai convex/extraUsageActions.ts, where the agent deleted the parameter.
+const PURCHASE_SESSION = `${CLIENT}export async function createPurchaseSession(stripeCustomerId: string, amount: number) {
+  const session = await stripe.checkout.sessions.create({
+    customer: stripeCustomerId,
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: { currency: "usd", unit_amount: amount, product_data: { name: "Extra usage" } },
+        quantity: 1,
+      },
+    ],
+  });
+  return session.url;
+}
+`;
+
+it('refuses a removed parameter moved to its documented replacement', () => {
+  // Bizgojo/drivetimetales (SetupIntent) and inventashif/hackerai (Checkout Session). The owner
+  // keeps the move to the deterministic rules (docs/STRIPE-PAYMENT-METHOD-TYPES.md), so an AI
+  // move stops for review even with the same value.
+  for (const [path, before, key] of [
+    ['app/api/create-setup-intent/route.ts', SETUP_INTENT, "payment_method_types: ['card'],"],
+    ['convex/extraUsageActions.ts', PURCHASE_SESSION, 'payment_method_types: ["card"],'],
+  ] as const) {
+    const moved = replaced(before, key, `allowed_${key}`);
+    expect(
+      droppedRequestPaths(...versions(path, before, moved), STRIPE).map((entry) => entry.path),
+    ).toEqual(['payment_method_types']);
+  }
+  const coupon = `${CLIENT}export async function createCode(couponId: string, code: string) {
+  return stripe.promotionCodes.create({ coupon: couponId, code });
+}
+`;
+  const promotion = replaced(
+    coupon,
+    'coupon: couponId',
+    "promotion: { type: 'coupon', coupon: couponId }",
+  );
+  expect(
+    droppedRequestPaths(...versions('lib/promotions.ts', coupon, promotion), STRIPE).map(
+      (entry) => entry.path,
+    ),
+  ).toEqual(['coupon']);
 });
 
 const SESSION_CONFIG = `${CLIENT}export async function createPayment(customerId: string, priceId: string, paymentMethods: string[]) {
@@ -953,4 +1002,104 @@ it("refuses a repair that rewrites the rules' version-tolerant helper to the new
       property: 'shipping_details',
     })),
   );
+});
+
+it('refuses AI edits on test paths', () => {
+  // kondax-com/Bocker and Sanjdcool/ApanStack-Newsletter: the agents rewrote their tests' Stripe
+  // fixtures to the new shape only, so the checks stopped exercising old-version payloads.
+  const tests = [
+    'services/webhook/stripe/subscriptionSync.test.ts',
+    'tests/integration/stripe-webhook.test.ts',
+  ];
+  expect(
+    editedTestFiles(
+      new Set([
+        ...tests,
+        'services/webhook/stripe/subscriptionSync.ts',
+        'app/api/webhooks/stripe/route.ts',
+      ]),
+    ),
+  ).toEqual(tests);
+});
+
+it('refuses an AI edit to a line the rules wrote, but not a replacement that repeats it', () => {
+  // Bizgojo/drivetimetales: on the rules' code, the agent's deletion removes the card rule's line.
+  const path = 'app/api/create-setup-intent/route.ts';
+  const original = repository(path, SETUP_INTENT);
+  const rules = replaced(SETUP_INTENT, 'payment_method_types:', 'allowed_payment_method_types:');
+  const deleted = replaced(rules, "    allowed_payment_method_types: ['card'],\n", '');
+  expect(rewrittenRuleLines(original, ...versions(path, rules, deleted))).toEqual([
+    { file: path, line: 7 },
+  ]);
+  // One replacement of the whole function that repeats the rule's line unchanged.
+  const whole = replaced(
+    rules,
+    'return setupIntent.client_secret;',
+    'return setupIntent.client_secret ?? null;',
+  );
+  expect(rewrittenRuleLines(original, ...versions(path, rules, whole))).toEqual([]);
+});
+
+it("refuses a repair that rewrites the rules' shipping helper calls", () => {
+  // Mangu-Commerce/madcaptees: narrowing one helper call is correct, but it rewrites the rule's
+  // lines, so the fix belongs in the rule (docs/overnight/P2.md).
+  const path = 'api/stripe/webhook.ts';
+  const helper = '(getCheckoutShippingDetails(session))';
+  const original = HELPER_READS.replace(
+    /^import \{ getCheckoutShippingDetails \}.*\n/m,
+    '',
+  ).replaceAll(helper, 'session.shipping_details');
+  const repaired = applySourceEdits(HELPER_READS, [
+    insertEdit(`    const shipping = getCheckoutShippingDetails(session);
+    await supabase.from('orders').insert({
+      stripe_session_id: session.id,
+      email,
+      shipping_address: shipping?.address
+        ? {
+            name: shipping.name ?? '',
+            line1: shipping.address.line1 ?? '',
+            city: shipping.address.city ?? '',
+            country: shipping.address.country ?? 'US',
+          }
+        : null,
+    });`),
+  ]);
+  expect(
+    rewrittenRuleLines(repository(path, original), ...versions(path, HELPER_READS, repaired)).map(
+      (entry) => entry.line,
+    ),
+  ).toEqual(
+    HELPER_READS.split('\n').flatMap((text, index) => (text.includes(helper) ? [index + 1] : [])),
+  );
+});
+
+it('passes a legitimate AI patch: a helper read on top of the rules', () => {
+  // The rules bumped apiVersion in both files; the AI routed VANTAGE's period reads through the
+  // generated helper and left hackerai's checkout as the rules wrote it.
+  const basil = (content: string) => replaced(content, "'2026-09-30.endive'", "'2025-03-31.basil'");
+  const files = (entries: Record<string, string>): Repository => ({
+    ...repository('', ''),
+    files: Object.entries(entries).map(([path, content]) => ({ path, content })),
+  });
+  const checkout = 'convex/extraUsageActions.ts';
+  const webhook = 'src/app/api/stripe/webhook/route.ts';
+  const original = files({
+    [checkout]: basil(PURCHASE_SESSION),
+    [webhook]: basil(SUBSCRIPTION_WEBHOOK),
+  });
+  const rules = files({ [checkout]: PURCHASE_SESSION, [webhook]: SUBSCRIPTION_WEBHOOK });
+  const after = files({
+    [checkout]: PURCHASE_SESSION,
+    [webhook]: SUBSCRIPTION_WEBHOOK.replaceAll(
+      '(subscription as any).current_period_end',
+      'getSubscriptionPeriodEnd(subscription)',
+    ),
+  });
+  const edited = new Set([checkout, webhook]);
+  expect(changedEventTypes(rules, after, edited)).toEqual([]);
+  expect(addedItemChoices(rules, after, edited)).toEqual([]);
+  expect(droppedRequestPaths(rules, after, edited, STRIPE)).toEqual([]);
+  expect(addedTypeEscapes(rules, after, edited)).toEqual([]);
+  expect(editedTestFiles(edited)).toEqual([]);
+  expect(rewrittenRuleLines(original, rules, after, edited)).toEqual([]);
 });

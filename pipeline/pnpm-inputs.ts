@@ -47,6 +47,7 @@ const CONFIGURATION_KEYS = new Set([
   'excludeLinksFromLockfile',
   'minimumReleaseAge',
   'minimumReleaseAgeExclude',
+  'patchedDependencies',
 ]);
 const IMPORTER_SECTIONS = new Set(['dependencies', 'devDependencies', 'optionalDependencies']);
 const LOCK_KEYS = new Set([
@@ -54,15 +55,17 @@ const LOCK_KEYS = new Set([
   'settings',
   'catalogs',
   'overrides',
+  'patchedDependencies',
   'importers',
   'packages',
   'snapshots',
 ]);
 
-function configuration(value: Record<string, unknown>) {
-  if (Object.keys(value).some((key) => !CONFIGURATION_KEYS.has(key)))
+function configuration(value: Record<string, unknown>, source: string) {
+  const unsupported = Object.keys(value).filter((key) => !CONFIGURATION_KEYS.has(key));
+  if (unsupported.length)
     throw new PipelineInputError(
-      'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically.',
+      `Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and ${source} sets ${unsupported.map((key) => `"${key}"`).join(', ')}.`,
     );
   if (
     value.overrides !== undefined &&
@@ -99,6 +102,20 @@ function configuration(value: Record<string, unknown>) {
   )
     throw new PipelineInputError(
       'pnpm minimumReleaseAge must be a whole number of minutes and minimumReleaseAgeExclude a list of package patterns.',
+    );
+  if (
+    value.patchedDependencies !== undefined &&
+    (!isObject(value.patchedDependencies) ||
+      Object.values(value.patchedDependencies).some(
+        (path) =>
+          typeof path !== 'string' ||
+          path.startsWith('/') ||
+          /[\\\u0000-\u001f\u007f]/.test(path) ||
+          path.split('/').some((part) => !part || part === '.' || part === '..'),
+      ))
+  )
+    throw new PipelineInputError(
+      'pnpm patchedDependencies must map packages to committed patch files inside the repository.',
     );
   if (value.pmOnFail !== undefined && value.pmOnFail !== 'ignore' && value.pmOnFail !== 'error')
     throw new PipelineInputError('Unsupported pnpm package-manager policy.');
@@ -178,14 +195,59 @@ export function validatePnpmInputs(
         ? `pnpm-lock.yaml is lockfile v6 (pnpm 8), but packageManager pins pnpm ${pin[1]}, which would migrate it. Run pnpm install with pnpm ${pin[1]} and commit the regenerated lockfile, or pin pnpm 8.`
         : `packageManager pins pnpm ${pin[1]}, which cannot install this lockfile. Pin pnpm 9–12, or remove the pin.`,
     );
-  const catalogs = configuration(workspace);
+  const catalogs = configuration(workspace, 'pnpm-workspace.yaml');
   if (manifest.pnpm !== undefined) {
     if (!isObject(manifest.pnpm))
       throw new PipelineInputError('pnpm manifest settings must be an object.');
-    configuration(manifest.pnpm);
+    configuration(manifest.pnpm, 'the "pnpm" field of package.json');
   }
   if (manifest.workspaces !== undefined)
     throw new PipelineInputError('pnpm workspaces must be declared only in pnpm-workspace.yaml.');
+  // Patches are new to this preparation, so only inputs with patches meet the checks below; every
+  // other input keeps main's checks. pnpm's frozen install applies what pnpm-lock.yaml recorded: each
+  // patch file's SHA-256 and the overrides pnpm resolved with (package.json resolutions, the "pnpm"
+  // field's overrides and the workspace's overrides, merged as pnpm merges them).
+  const pnpmField = isObject(manifest.pnpm) ? manifest.pnpm : {};
+  const patchSources = [workspace, pnpmField].filter(
+    (source) => source.patchedDependencies !== undefined,
+  );
+  if (patchSources.length > 1)
+    throw new PipelineInputError(
+      'pnpm patchedDependencies is set in both pnpm-workspace.yaml and package.json; keep it in one place.',
+    );
+  const patches = (patchSources[0]?.patchedDependencies ?? {}) as Record<string, unknown>;
+  const recordedPatches = isObject(lock.patchedDependencies) ? lock.patchedDependencies : {};
+  const flat = (value: unknown) =>
+    JSON.stringify(
+      Object.entries(isObject(value) ? value : {}).sort(([a], [b]) => (a < b ? -1 : 1)),
+    );
+  if (
+    (Object.keys(patches).length || Object.keys(recordedPatches).length) &&
+    flat({
+      ...(isObject(manifest.resolutions) ? manifest.resolutions : {}),
+      ...(isObject(pnpmField.overrides) ? pnpmField.overrides : {}),
+      ...(isObject(workspace.overrides) ? workspace.overrides : {}),
+    }) !== flat(lock.overrides)
+  )
+    throw new PipelineInputError(
+      'pnpm overrides differ from the overrides pnpm-lock.yaml records. Run pnpm install and commit the updated pnpm-lock.yaml.',
+    );
+  const patchHashes: Record<string, string> = {};
+  for (const name of new Set([...Object.keys(patches), ...Object.keys(recordedPatches)])) {
+    const recorded = recordedPatches[name];
+    if (
+      v6 ||
+      !isObject(recorded) ||
+      typeof recorded.path !== 'string' ||
+      recorded.path !== patches[name] ||
+      typeof recorded.hash !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(recorded.hash)
+    )
+      throw new PipelineInputError(
+        `pnpm patches must be committed files whose SHA-256 a v9 pnpm-lock.yaml records at the same path; ${name} differs. Run pnpm install with pnpm 10 or later and commit the updated pnpm-lock.yaml.`,
+      );
+    patchHashes[recorded.path] = recorded.hash;
+  }
   const directories = npmWorkspaceDirectories(
     { workspaces: workspace.packages ?? [] },
     [...workspaceContents.keys()].map((path) => `${path}/package.json`),
@@ -358,6 +420,7 @@ export function validatePnpmInputs(
     packageHash: digest(packageContent),
     lockHash: digest(lockContent),
     packages: Object.keys(packages).length,
+    ...(Object.keys(patchHashes).length ? { patchHashes } : {}),
     ...(workspaceContent !== undefined ? { workspaceConfigHash: digest(workspaceContent) } : {}),
     ...(directories.length
       ? {
@@ -384,7 +447,7 @@ function registryGraph(document: Record<string, unknown>) {
   if (document.settings !== undefined) {
     if (!isObject(document.settings))
       throw new PipelineInputError('pnpm lockfile settings must be an object.');
-    configuration(document.settings);
+    configuration(document.settings, 'the settings of pnpm-lock.yaml');
   }
   if (
     ![9, '9.0', '6.0'].includes(document.lockfileVersion as string | number) ||

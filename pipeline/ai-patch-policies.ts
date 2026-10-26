@@ -1,7 +1,9 @@
+import { diffLines } from 'diff';
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
 import { applySourceEdits } from './patches.ts';
 import type { ProviderAdapter } from './providers.ts';
+import { TEST_PATH } from './source-paths.ts';
 import {
   CHECKOUT_SHIPPING_HELPER,
   COUPON_ID_HELPER,
@@ -405,11 +407,18 @@ function requestPaths(
   return paths;
 }
 
+const inside = (inner: RequestPath, outer: RequestPath) =>
+  inner.call === outer.call &&
+  inner.path.length > outer.path.length &&
+  inner.path.startsWith(outer.path) &&
+  '=.['.includes(inner.path[outer.path.length]);
+
 // Request parameters, arguments and literal values a traced SDK call sends in the rules' code and
 // no longer sends in the AI's code, counted per file and method so moved or reordered calls still
 // match, and keys the AI's code newly unsets, such as one overriding a spread with `undefined`. A
 // dropped path inside another dropped path, such as the value of a dropped key, is left out of
-// the result.
+// the result. A removed parameter moved to its documented replacement still counts: the owner
+// keeps that move to the deterministic rules (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
 export function droppedRequestPaths(
   before: Repository,
   after: Repository,
@@ -433,15 +442,47 @@ export function droppedRequestPaths(
   return dropped.filter(
     (entry) =>
       !dropped.some(
-        (outer) =>
-          outer !== entry &&
-          outer.file === entry.file &&
-          outer.call === entry.call &&
-          entry.path.length > outer.path.length &&
-          entry.path.startsWith(outer.path) &&
-          '=.['.includes(entry.path[outer.path.length]),
+        (outer) => outer !== entry && outer.file === entry.file && inside(entry, outer),
       ),
   );
+}
+
+// Files the AI changed on the repository's test paths (source-paths.ts): the checks that judge a
+// migration stay as the repository wrote them.
+export const editedTestFiles = (files: Set<string>) =>
+  [...files].filter((path) => TEST_PATH.test(path));
+
+// 0-based lines of the middle text that a diff from `from` to `to` writes (`added`, lines of
+// `to`) or deletes and replaces (`removed`, lines of `from`).
+function diffedLines(from: string, to: string, kind: 'added' | 'removed') {
+  const lines = new Set<number>();
+  let line = 0;
+  for (const part of diffLines(from, to)) {
+    if (kind === 'added' ? part.removed : part.added) continue;
+    if (part[kind]) for (let index = 0; index < part.count; index++) lines.add(line + index);
+    line += part.count;
+  }
+  return lines;
+}
+
+// Lines the deterministic rules wrote that the AI's code changes or deletes again, as 1-based
+// lines of the rules' code. The AI builds on a rule's edit and never redoes it: the edit is
+// reviewed with its rule. A line the AI's replacement repeats unchanged is not counted.
+export function rewrittenRuleLines(
+  original: Repository,
+  rules: Repository,
+  after: Repository,
+  files: Set<string>,
+) {
+  return [...files].flatMap((path) => {
+    const ruled = contentOf(rules, path);
+    const base = contentOf(original, path) ?? '';
+    if (ruled === undefined || ruled === base) return [];
+    const written = diffedLines(base, ruled, 'added');
+    return [...diffedLines(ruled, contentOf(after, path)!, 'removed')]
+      .filter((line) => written.has(line))
+      .map((line) => ({ file: path, line: line + 1 }));
+  });
 }
 
 // Type-only escapes: `any` types, `as unknown as` double assertions, `as never` and comments that

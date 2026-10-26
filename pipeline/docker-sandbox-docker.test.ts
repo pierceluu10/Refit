@@ -64,7 +64,11 @@ async function hostile(files: Record<string, string | Buffer>) {
 async function check(
   files: Record<string, string | Buffer>,
   command: string[],
-  options: { prepareDependencies?: boolean; signal?: AbortSignal } = {},
+  options: {
+    prepareDependencies?: boolean;
+    signal?: AbortSignal;
+    checkTimeoutSeconds?: number;
+  } = {},
 ) {
   const fixture = await hostile(files);
   const started = Date.now();
@@ -259,14 +263,16 @@ gated(
 );
 
 gated(
-  'ends a check that ignores SIGTERM at the timeout and removes its container',
+  'ends a check that ignores SIGTERM at the configured time limit and removes its container',
   async () => {
-    const result = await check({}, ['sh', '-c', 'trap "" TERM INT; while :; do :; done']);
+    const result = await check({}, ['sh', '-c', 'trap "" TERM INT; while :; do :; done'], {
+      checkTimeoutSeconds: 30,
+    });
     expect(result).toMatchObject({
       status: 'error',
-      error: 'Check exceeded 120 seconds; the container was stopped.',
+      error: 'Check exceeded 30 seconds; the container was stopped.',
     });
-    expect(result.seconds).toBeLessThan(170);
+    expect(result.seconds).toBeLessThan(80);
     expect(await sandboxContainers('while :; do :; done')).toEqual([]);
   },
   240_000,
@@ -295,7 +301,10 @@ gated(
     const names = ['expired', 'live', 'unlabelled'].map(
       (kind) => `refit-test-${kind}-${randomUUID()}`,
     );
-    const labels = [`${Date.now() - 1000}`, `${Date.now() + 600_000}`, undefined];
+    // It expires only after the setup check: every sandbox start in another gated file sweeps too,
+    // and a label already in the past let one remove the container before that check.
+    const expiry = Date.now() + 30_000;
+    const labels = [`${expiry}`, `${Date.now() + 600_000}`, undefined];
     try {
       for (const [index, name] of names.entries())
         await execute('docker', [
@@ -314,6 +323,7 @@ gated(
       const id = async (name: string) =>
         (await execute('docker', ['inspect', '--format', '{{.Id}}', name])).stdout.trim();
       expect(await id(names[0])).toMatch(/^[a-f0-9]{64}$/);
+      await new Promise((resolve) => setTimeout(resolve, Math.max(0, expiry + 1000 - Date.now())));
       // A sandbox start in another gated file may remove it first, so only its absence counts.
       await removeExpiredSandboxContainers();
       await expect(id(names[0])).rejects.toThrow(/no such object/i);

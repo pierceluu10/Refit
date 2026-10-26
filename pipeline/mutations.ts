@@ -4,6 +4,8 @@ export interface BindingReferences {
   rootBinding: (node: ts.Node) => ts.Symbol | undefined;
   aliases: Iterable<readonly [ts.Symbol, ts.Symbol]>;
   localArgument?: (node: ts.CallExpression | ts.NewExpression, argument: ts.Expression) => boolean;
+  // Holders only ever assigned SDK clients or nothing: rebinding one keeps every response's origin.
+  held?: Set<ts.Symbol>;
 }
 
 const MUTATING_METHODS = new Set([
@@ -176,7 +178,7 @@ export function unsafeBindings(
         // Rebinding a variable changes only that variable, not the object it was read from.
         if (ts.isIdentifier(node.left)) {
           const value = binding(node.left);
-          if (value) rebound.add(value);
+          if (value && !references?.held?.has(value)) rebound.add(value);
         } else targets(node.left, false);
       }
       if (ts.isDeleteExpression(node)) taint(node.expression);
@@ -247,7 +249,9 @@ export function unsafeBindings(
       node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
       node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
     ) {
-      targets(node.left, false);
+      // A held holder's own write only replaces one SDK client with another.
+      if (!(ts.isIdentifier(node.left) && references?.held?.has(binding(node.left)!)))
+        targets(node.left, false);
       // Assigning a reference into another object or binding allows later mutation through it.
       targets(node.right);
     }

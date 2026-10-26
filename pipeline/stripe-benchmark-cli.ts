@@ -14,7 +14,10 @@ import {
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
+import { selectCheck, ungradedEvidence } from './check-selection.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
+import { PASSING_REACH } from './operation-reach.ts';
+import { sdkPackageDirectory } from './preparation-packages.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
@@ -25,36 +28,33 @@ import {
   stripeOperations,
   summaryTable,
   workflowExitReason,
-  workflowScanStop,
+  workflowScan,
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
+import { validationProfile } from './docker-sandbox.ts';
 import { AiPolicyStop } from './ai-patches.ts';
+import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 import { githubAppConfiguration } from './github-app.ts';
-import { publicationConfiguration, publishDraft } from './publication.ts';
+import {
+  publicationConfiguration,
+  publicationWaiver,
+  publishDraft,
+  publishUnresolved,
+} from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
+import { typeErrorKeys } from './type-errors.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--publish <github-org> [--publish-unresolved]]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
-// Default `npm init` script; it is not a check.
-const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
-// `file(line,col): error TSxxxx: message`, keyed without the position so moved lines still match.
-const TYPE_ERROR = /^(.+?)\(\d+,\d+\): error (TS\d+): (.*)$/;
-
-function typeErrors(output: unknown) {
-  return new Set(
-    String(output ?? '')
-      .split('\n')
-      .map((line) => TYPE_ERROR.exec(line.trim()))
-      .filter((match): match is RegExpExecArray => Boolean(match))
-      .map((match) => `${match[1]} ${match[2]} ${match[3]}`),
-  );
-}
+const reportedTypeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
+  typeErrorKeys({ stdout: check?.stdout ?? '', stderr: check?.stderr ?? '' });
 
 interface Selected {
   repo: string;
@@ -72,6 +72,12 @@ const { values } = parseArgs({
     output: { type: 'string' },
     env: { type: 'string' },
     ai: { type: 'boolean' },
+    // Writes behaviour tests during validation with one model request per repository; it needs
+    // --env with OPENAI_API_KEY and OPENAI_MODEL and never turns on AI patches.
+    'behaviour-tests': { type: 'boolean' },
+    // Builds each behaviour-test request without sending it, and records per repository whether
+    // the real run would send it, why not, and its estimated tokens and cost. No key needed.
+    'behaviour-tests-dry-run': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -79,6 +85,7 @@ const { values } = parseArgs({
     split: { type: 'string' },
     publish: { type: 'string' },
     'publish-unresolved': { type: 'boolean' },
+    'publish-validated-only': { type: 'boolean' },
     // <dir>/<owner__repo> is the `types` directory of the stripe package that repository uses.
     'stripe-package': { type: 'string' },
     // What-if runs: every repository opts in to keep listed payment methods.
@@ -86,12 +93,29 @@ const { values } = parseArgs({
     // Continue an interrupted run in the same --output; see docs/BENCHMARK-HARNESS.md.
     resume: { type: 'boolean' },
     'allow-dirty': { type: 'boolean' },
+    // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
+    'validation-workspace': { type: 'string' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 if (values.publish && !values.validate)
   throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
 if (values.env) process.loadEnvFile(values.env);
+if (values['validation-workspace']) {
+  validationProfile(values['validation-workspace']);
+  process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
+}
+if (values['behaviour-tests'] && (!values.env || !values.validate))
+  throw new PipelineInputError(
+    '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
+  );
+// Fails before any repository runs when the key or model is missing.
+if (values['behaviour-tests']) assessmentConfiguration(true, process.env);
+if (values['behaviour-tests-dry-run'] && (!values.validate || values['behaviour-tests']))
+  throw new PipelineInputError(
+    '--behaviour-tests-dry-run needs --validate and replaces --behaviour-tests.',
+  );
+const writer = values['behaviour-tests'] || values['behaviour-tests-dry-run'];
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
@@ -149,7 +173,9 @@ const { rows: previous } = await openRunDirectory(
     environment: [
       'REFIT_VALIDATION_WORKSPACE',
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
-      ...(values.ai ? ['OPENAI_MODEL'] : []),
+      // Rows may then carry baseline results an earlier run recorded (workflow.baselineReused).
+      'REFIT_BASELINE_CHECK_CACHE_DIRECTORY',
+      ...(values.ai || writer ? ['OPENAI_MODEL'] : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty,
@@ -159,11 +185,12 @@ const { rows: previous } = await openRunDirectory(
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
-// Saves [Needs review] artifacts for waivable stops (removed request parameters) instead of stopping.
-const leaveRequestParameters = Boolean(values['publish-unresolved']) && !ai;
+// Owner decision 1: the workflow's stops become [Needs review] drafts, as `refit run` does, unless
+// --publish-validated-only.
+const leaveReviewedFindings = publishUnresolved(values);
 // The stop the workflow applies before running any repository code, as `refit run` decides it.
 const scanStop = (scan: Awaited<ReturnType<typeof runPipeline>>) =>
-  scanReviewReason(scan, Boolean(ai), leaveRequestParameters) ??
+  scanReviewReason(scan, Boolean(ai), leaveReviewedFindings) ??
   proposalReviewReason(scan, Boolean(ai));
 
 async function benchmark(entry: Selected, index: number) {
@@ -287,7 +314,11 @@ async function benchmark(entry: Selected, index: number) {
             method: impact.httpMethod,
             path: impact.path,
             usages: impact.usages.map((usage) => `${usage.file}:${usage.line}`),
-            changes: impact.changes.map(({ id, text }) => ({ id, text })),
+            changes: impact.changes.map(({ id, text, reachReason }) => ({
+              id,
+              text,
+              ...(reachReason ? { reachReason } : {}),
+            })),
           })),
         }
       : {}),
@@ -308,7 +339,17 @@ async function benchmark(entry: Selected, index: number) {
               operation: change.operation,
               path: change.path,
               text: change.text,
+              ...(change.reachReason ? { reachReason: change.reachReason } : {}),
             })),
+            // Breaking changes the reach gate let through, by reach.
+            passed: Object.fromEntries(
+              [...PASSING_REACH].map((reach) => [
+                String(reach),
+                (report.specificationDiff.changes as Record<string, unknown>[]).filter(
+                  (change) => change.reach === reach && Number(change.level) >= 2,
+                ).length,
+              ]),
+            ),
           };
         })()
       : {}),
@@ -338,7 +379,7 @@ async function benchmark(entry: Selected, index: number) {
       ...inputs,
       fullDiff: true,
       proposePatch: true,
-      leaveRequestParameters,
+      leaveReviewedFindings,
     });
     result.customerMode = { ...summarize(scan), stop: scanStop(scan) ?? null };
   } catch (error) {
@@ -349,8 +390,10 @@ async function benchmark(entry: Selected, index: number) {
     log('no mapped Stripe methods');
     return;
   }
+  let fullReport: Awaited<ReturnType<typeof runPipeline>>;
   try {
-    result.fullAdapter = summarize(await runPipeline({ ...inputs, providerConfig: adapterPath }));
+    fullReport = await runPipeline({ ...inputs, providerConfig: adapterPath });
+    result.fullAdapter = summarize(fullReport);
   } catch (error) {
     result.fullAdapter = { error: message(error) };
     log('full-adapter scan failed');
@@ -370,7 +413,7 @@ async function benchmark(entry: Selected, index: number) {
         providerConfig: adapterPath,
         fullDiff: true,
         proposePatch: true,
-        leaveRequestParameters,
+        leaveReviewedFindings,
       });
       result.productionMode = { ...summarize(scan), stop: scanStop(scan) ?? null };
     } catch (error) {
@@ -388,27 +431,37 @@ async function benchmark(entry: Selected, index: number) {
     log('not affected');
     return;
   }
+  // Stripe code in one nested package with its own lockfile is prepared and checked there, with
+  // that package's own checks, as validation does (pipeline/preparation-packages.ts).
+  const packageDirectory = sdkPackageDirectory(fullReport, (path) =>
+    existsSync(join(directory, path)),
+  );
+  if (packageDirectory) result.packageDirectory = packageDirectory;
+  const checkRoot = join(directory, packageDirectory ?? '');
   const manifest = JSON.parse(
-    await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
+    await readFile(join(checkRoot, 'package.json'), 'utf8').catch(() => '{}'),
   );
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
-  const testScript: unknown = manifest.scripts?.test;
-  const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
-  const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
-  const pnpm = existsSync(join(directory, 'pnpm-lock.yaml'));
-  const yarn = existsSync(join(directory, 'yarn.lock'));
   const checkable =
-    (existsSync(join(directory, 'package-lock.json')) || pnpm || yarn) && Boolean(declared.stripe);
-  result.validatable = checkable && hasTests;
-  result.checks = !checkable
-    ? 'none'
-    : hasTests
-      ? 'tests'
-      : typescript
-        ? 'typecheck'
-        : 'generated-only';
+    // A bun.lock is installed through its npm translation (bun-lock.ts).
+    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
+      existsSync(join(checkRoot, lockfile)),
+    ) && Boolean(declared.stripe);
+  // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,
+  // the patch is still proposed and graded D.
+  const selection = await selectCheck(repository);
+  result.checkSelection = {
+    kind: selection.kind,
+    ...(selection.typeCheck ? { typeCheck: selection.typeCheck } : {}),
+    reason: selection.reason,
+    stripeFiles: selection.stripeFiles.length,
+    testedStripeFiles: selection.testedStripeFiles.length,
+    typeCheckedStripeFiles: selection.typeCheckedStripeFiles.length,
+  };
+  result.validatable = checkable && Boolean(selection.command);
+  result.checks = !checkable ? 'none' : (selection.kind ?? 'generated-only');
   if (values.validate && checkable) {
     const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
     const generatedChecks =
@@ -419,14 +472,9 @@ async function benchmark(entry: Selected, index: number) {
             afterFixtures: fixtures(latest),
           }
         : undefined;
-    // Without tests, TypeScript repositories typecheck; compareTypeErrors fails the patched check
-    // only on errors the patch introduced, which then go to AI repair.
-    const command = hasTests
-      ? [pnpm ? 'pnpm' : yarn ? 'yarn' : 'npm', 'test']
-      : typescript
-        ? ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.']
-        : // Refit refuses empty command arguments, so the no-op evaluates `0`.
-          ['node', '-e', '0'];
+    // compareTypeErrors fails a patched type check only on errors the patch introduced, which then
+    // go to AI repair.
+    const command = selection.command;
     const config = join(work, 'run.json');
     // A customer's worker runs the full contract diff. When it stops before validation, the
     // workflow runs without it (benchmark mode) to measure what the rules alone would do; when it
@@ -434,11 +482,11 @@ async function benchmark(entry: Selected, index: number) {
     const productionPasses = !production.error && !production.stop;
     await writeFile(
       config,
-      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(productionPasses ? { fullDiff: true } : {}), ...(result.checks === 'typecheck' ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
+      `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(productionPasses ? { fullDiff: true } : {}), ...(selection.compareTypeErrors ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
     );
     const bundle = join(work, 'run');
     // Scan-stage stops run no repository code, so `refit run` starts only for repositories past them.
-    const stop = await workflowScanStop(
+    const scan = await workflowScan(
       {
         repository: directory,
         before,
@@ -448,11 +496,14 @@ async function benchmark(entry: Selected, index: number) {
         ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
       },
       Boolean(ai),
-      leaveRequestParameters,
+      leaveReviewedFindings,
     );
+    const stop = scan.stop;
+    // A repository with no check keeps its patch, graded D, for a [Needs review] draft.
+    const noCheck = !stop && !command;
     lap('workflowScan');
     let exit: string | undefined;
-    if (!stop) {
+    if (!stop && command) {
       const validationStarted = Date.now();
       try {
         await execute(
@@ -472,8 +523,12 @@ async function benchmark(entry: Selected, index: number) {
                   '1',
                 ]
               : []),
-            // Saves [Needs review] artifacts for waivable stops so they can be published below.
-            ...(values['publish-unresolved'] ? ['--publish-unresolved'] : []),
+            ...(values['behaviour-tests']
+              ? ['--write-behaviour-tests']
+              : values['behaviour-tests-dry-run']
+                ? ['--write-behaviour-tests-dry-run']
+                : []),
+            ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
           ],
@@ -486,18 +541,34 @@ async function benchmark(entry: Selected, index: number) {
       result.validationSeconds = Math.round((Date.now() - validationStarted) / 1000);
       lap('workflow');
     }
+    // The full patch, which the row truncates, stays in the run's artifact like a workflow's scan.
+    if (noCheck && scan.patch) {
+      await mkdir(bundle, { recursive: true });
+      await writeFile(join(bundle, 'scan.json'), json({ patch: scan.patch }));
+    }
     const outcome = stop
       ? { status: 'needs-review', stage: 'scan', reason: stop }
-      : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
+      : noCheck
+        ? scan.patch
+          ? {
+              status: 'needs-review',
+              stage: 'checks',
+              reason: `No check can run, so the patch is kept as grade D. ${selection.reason}`,
+            }
+          : { status: 'error', stage: 'scan', error: { message: scan.error } }
+        : JSON.parse(await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'));
     const report = stop
       ? {}
-      : JSON.parse(await readFile(join(bundle, 'report.json'), 'utf8').catch(() => '{}'));
+      : noCheck
+        ? { patch: scan.patch, validation: { grade: ungradedEvidence(selection.reason) } }
+        : JSON.parse((await readEvidence(bundle, 'report.json')) ?? '{}');
     const generated = report.validation?.generated;
     result.workflow = {
       status: outcome.status ?? 'missing-manifest',
       stage: outcome.stage,
       reason: outcome.reason,
       error: outcome.status ? outcome.error?.message : exit,
+      waivedGates: outcome.waivedGates,
       checks: result.checks,
       patch: report.patch?.status,
       generator: report.patch?.generator,
@@ -505,15 +576,29 @@ async function benchmark(entry: Selected, index: number) {
       unresolvedFindings: report.patch?.unresolvedFindings,
       sdkUpgrade: report.patch?.sdkUpgrade,
       validation: report.validation?.status,
+      packageDirectory: report.validation?.packageDirectory,
       baseline: report.validation?.baseline?.status,
+      ...(report.validation?.baselineReused ? { baselineReused: true } : {}),
       patched: report.validation?.patched?.status,
-      ...(result.checks === 'typecheck' && report.validation?.patched
+      grade: report.validation?.grade,
+      behaviourTestWriter: report.validation?.behaviourTestWriter,
+      stripeOnly: report.validation?.stripeOnly,
+      advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
+      typeCheckUnavailable: report.validation?.typeCheckUnavailable,
+      baselineStop: report.validation?.baselineStop?.reason,
+      checkErrors: {
+        baseline: report.validation?.baseline?.error,
+        patched: report.validation?.patched?.error,
+      },
+      checkFailures: report.validation?.checkFailures,
+      timings: report.validation?.timings,
+      ...(report.validation?.compareTypeErrors && report.validation?.patched
         ? {
             typeErrors: {
-              baseline: typeErrors(report.validation.baseline?.stdout).size,
-              patched: typeErrors(report.validation.patched.stdout).size,
-              introduced: [...typeErrors(report.validation.patched.stdout)].filter(
-                (error) => !typeErrors(report.validation.baseline?.stdout).has(error),
+              baseline: reportedTypeErrorKeys(report.validation.baseline).size,
+              patched: reportedTypeErrorKeys(report.validation.patched).size,
+              introduced: [...reportedTypeErrorKeys(report.validation.patched)].filter(
+                (error) => !reportedTypeErrorKeys(report.validation.baseline).has(error),
               ),
             },
           }
@@ -521,15 +606,52 @@ async function benchmark(entry: Selected, index: number) {
       ...(generated
         ? {
             generated: {
+              status: generated.status,
+              reason: generated.reason,
               baseline: generated.baseline?.status,
               patched: generated.patched?.status,
               entryPoints: generated.entryPoints?.length ?? 0,
-              uncoveredFindings: generated.uncoveredFindings?.length ?? 0,
+              ran: generated.ran,
+              uncoveredFindings: generated.uncoveredFindings ?? 0,
+              // Per-function errors, so a run's results say why functions could not run.
+              notRunnable: generated.notRunnable,
+              unavailableEntries: generated.unavailableEntries,
+              regressions: generated.regressions,
+            },
+          }
+        : {}),
+      ...(report.validation?.behaviour
+        ? {
+            behaviour: {
+              status: report.validation.behaviour.status,
+              grade: report.validation.behaviour.grade,
+              missing: report.validation.behaviour.missing,
+              regressions: report.validation.behaviour.regressions,
+              tests: report.validation.behaviour.tests,
             },
           }
         : {}),
       repairAttempts: report.validation?.repair?.requested ?? 0,
-      aiCostUsd: report.patch?.budget?.costUsd,
+      // Why repair stopped early, such as an AI policy stop; a first-request stop is `error`.
+      ...(report.validation?.repair?.error ? { repairError: report.validation.repair.error } : {}),
+      // Every AI request of the run, refused and repair requests included.
+      aiCostUsd: report.validation?.aiCostUsd ?? report.patch?.budget?.costUsd,
+      ...(report.validation?.coverageAi
+        ? {
+            coverageAi: {
+              outcome: report.validation.coverageAi.outcome,
+              costUsd: report.validation.coverageAi.costUsd,
+              targets: report.validation.coverageAi.targets,
+              resolved: report.validation.coverageAi.resolved,
+              error: report.validation.coverageAi.error,
+              response: report.validation.coverageAi.response,
+              repair: report.validation.coverageAi.repair?.stopReason,
+              // The proposal its checks refused, which the result leaves out.
+              diff: report.validation.coverageAi.attempts?.at(-1)?.diff?.slice(0, 8000),
+              check: report.validation.coverageAi.attempts?.at(-1)?.check?.status,
+            },
+          }
+        : {}),
       diff: report.patch?.diff?.slice(0, 8000),
       pullRequest: existsSync(join(bundle, 'pull-request.md')),
     };
@@ -549,11 +671,11 @@ async function benchmark(entry: Selected, index: number) {
     log(
       `workflow ${String(workflow.status)}, production ${String((result.production as { status: string }).status)}`,
     );
-    // publishDraft decides which untested reports --publish-unresolved may publish.
+    // publicationWaiver decides which reports owner decision 1 publishes unvalidated.
     if (
       values.publish &&
-      (report.validation?.status === 'passed' ||
-        (values['publish-unresolved'] && report.validation?.status === 'untested'))
+      report.validation &&
+      (report.validation.status === 'passed' || publicationWaiver(report, leaveReviewedFindings))
     )
       try {
         const fork = await forkAtCommit(
@@ -569,7 +691,7 @@ async function benchmark(entry: Selected, index: number) {
             undefined,
             githubAppConfiguration(process.env),
           ),
-          ...(values['publish-unresolved'] ? { allowUnresolved: true } : {}),
+          ...(leaveReviewedFindings ? { allowUnresolved: true } : {}),
         });
         result.publication = published;
         log(`published ${String((published as { url?: string }).url ?? published.status)}`);
@@ -619,6 +741,36 @@ async function benchmark(entry: Selected, index: number) {
     log(`AI ${String((result.ai as { outcome: string }).outcome)}`);
   }
 }
+// A row the writer never reached says why, so a dry run accounts for every repository.
+function writerSkip(row: Record<string, unknown>) {
+  const workflow = row.workflow as Record<string, unknown> | undefined;
+  if (workflow?.behaviourTestWriter) return;
+  const confirmed = (row.fullAdapter as { confirmed?: number } | undefined)?.confirmed;
+  const reason = row.infrastructure
+    ? 'The repository could not be cloned.'
+    : row.read !== 'ok'
+      ? 'Refit could not read the repository.'
+      : row.scanCrash
+        ? 'The scanner crashed.'
+        : !row.mappedMethods
+          ? 'No Stripe method is mapped.'
+          : !confirmed
+            ? 'No confirmed finding.'
+            : workflow?.stage === 'scan'
+              ? `The workflow stops at the scan: ${String(workflow.reason)}`
+              : workflow
+                ? `Validation ended before behaviour tests: ${String(workflow.error ?? workflow.reason ?? workflow.status)}`
+                : row.checks === 'none'
+                  ? 'There is no root lockfile that declares stripe, so validation does not run.'
+                  : 'There is no test script or type check, so validation does not run.';
+  const record = behaviourTestSkip(
+    values['behaviour-tests-dry-run'] ? { model: DRY_RUN_MODEL, dryRun: true } : undefined,
+    reason,
+  );
+  if (workflow) workflow.behaviourTestWriter = record;
+  else row.behaviourTestWriter = record;
+}
+
 // Repositories are independent; each validation container may use up to 3 GiB, so keep this
 // within the Docker host's memory (2 on an 8 GiB host).
 const concurrency = Math.max(1, Number(values.concurrency ?? 1));
@@ -642,6 +794,7 @@ await Promise.all(
       // Timed here so early returns (not affected, unreadable) are measured too.
       const started = Date.now();
       await benchmark(entry, index);
+      if (writer) writerSkip(results[index]);
       results[index].seconds = Math.round((Date.now() - started) / 1000);
       Object.assign(results[index], classifyRow('stripe-results', results[index]));
       await writeFile(join(output, 'results.json'), json(results));

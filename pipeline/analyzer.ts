@@ -17,6 +17,7 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import {
+  paymentMethodRule,
   removedParameterProperty,
   requestPropertyEdit,
   untracedRemovedParameters,
@@ -27,33 +28,26 @@ import {
   invoicePreviewEdits,
   type InvoicePreviewMove,
 } from './stripe-invoice-preview.ts';
-import {
-  CARD_PAYMENT_METHOD_RULE,
-  LISTED_PAYMENT_METHODS_RULE,
-  type RequestParameterRemoval,
-} from './request-removals.ts';
+import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
   PERIOD_HELPERS,
+  HELPER_GLOBALS,
+  HELPER_NAMES,
   subscriptionPeriodHelperEdit,
   subscriptionPeriodHelperModule,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
   HELPER_RULES,
-  INVOICE_SUBSCRIPTION_HELPER,
   INVOICE_SUBSCRIPTION_HELPER_RULE,
   invoiceSubscriptionHelperEdit,
-  INVOICE_PRICE_ID_HELPER,
   INVOICE_PRICE_ID_HELPER_RULE,
   invoicePriceIdHelperEdit,
-  COUPON_ID_HELPER,
   COUPON_ID_HELPER_RULE,
   couponIdHelperEdit,
-  PRODUCT_FEATURES_HELPER,
   PRODUCT_FEATURES_HELPER_RULE,
   productFeaturesHelperEdit,
-  CHECKOUT_SHIPPING_HELPER,
   CHECKOUT_SHIPPING_HELPER_RULE,
   checkoutShippingHelperEdit,
   type PeriodRareCase,
@@ -167,6 +161,35 @@ function numericArrayIndex(expression: ts.Expression) {
   return Number.isSafeInteger(index) && index >= 0;
 }
 
+const EQUALITY_TOKENS = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+
+// The value a node compares with string literals: `value === 'a'` or `['a', 'b'].includes(value)`.
+function comparedWithLiterals(node: ts.Node) {
+  if (ts.isBinaryExpression(node) && EQUALITY_TOKENS.has(node.operatorToken.kind)) {
+    if (ts.isStringLiteralLike(node.right)) return node.left;
+    if (ts.isStringLiteralLike(node.left)) return node.right;
+  }
+  if (
+    ts.isCallExpression(node) &&
+    node.arguments.length === 1 &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    node.expression.name.text === 'includes' &&
+    ts.isArrayLiteralExpression(node.expression.expression) &&
+    node.expression.expression.elements.length &&
+    node.expression.expression.elements.every(ts.isStringLiteralLike)
+  )
+    return node.arguments[0];
+  return undefined;
+}
+
+// Comments TypeScript, JSX and Flow read only above a file's first statement.
+const FILE_PRAGMA = /^\/\/\/\s*<|@ts-(?:no)?check\b|@jsx|@flow\b/;
+
 // Node runs a script whose shebang follows a byte order mark, and tsc strips the mark when it
 // reads a file, but the parser accepts a shebang only at offset 0. A comment of the same length
 // keeps every offset that edits use.
@@ -264,9 +287,22 @@ export function analyzeRepository(
   // jsconfig is unverified, so a caller can report those calls for review instead of missing
   // them. Analyses that can lead to edits keep the default, which treats them as unknown imports.
   // `invoicePreview`: the contract-checked move of Stripe's removed upcoming invoice call.
-  options: { traceUnverifiedPackageImports?: boolean; invoicePreview?: InvoicePreviewMove } = {},
+  // `typeCheckedPeriodReads`: where validation's patched type check rejected a `current_period_*`
+  // read on Subscription (file and offset of the property name); those reads take the period helper.
+  // `modelFixClients`: trace only the client shapes the model-fix edits were decided on (AGENTS.md),
+  // leaving lazy Proxy clients with a local or bound methods, a Proxy over a filled holder and a
+  // holder used as the client to stop for review.
+  options: {
+    traceUnverifiedPackageImports?: boolean;
+    invoicePreview?: InvoicePreviewMove;
+    typeCheckedPeriodReads?: { file: string; position: number }[];
+    modelFixClients?: boolean;
+  } = {},
 ) {
   const { sources, resolution, program, checker } = analysisProgram(repository);
+  const typeCheckedPeriodReads = new Set(
+    (options.typeCheckedPeriodReads ?? []).map((read) => `${read.file}\0${read.position}`),
+  );
   const findings: Finding[] = [];
   const imports: Location[] = [];
   const calls: (Location & { method: string })[] = [];
@@ -284,6 +320,8 @@ export function analyzeRepository(
   const clients = new Set<ts.Symbol>();
   const responses = new Map<ts.Symbol, string>();
   const arrayItems = new Map<ts.Symbol, string>();
+  // List responses (`await stripe.subscriptions.list()`) and the object schema of their items.
+  const listItems = new Map<ts.Symbol, string>();
   const origins = new Map<ts.Symbol, ts.CallExpression>();
   const wrappedResponses = new Map<ts.Symbol, ts.Symbol>();
   const edits: SourceEdit[] = [];
@@ -325,7 +363,7 @@ export function analyzeRepository(
   const canonical = modules.canonical;
   const symbol = (node: ts.Node) =>
     modules.member(node) ?? canonical(checker.getSymbolAtLocation(node));
-  const literals = sourceLiterals({ nodes, symbol });
+  const literals = sourceLiterals({ nodes, symbol, file: (node) => location(node).file });
   const stripeTypes =
     provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
@@ -414,6 +452,37 @@ export function analyzeRepository(
         (operation) => operation.resource === call.resource && operation.method === call.method,
       );
   }
+  // A call to a list method (docs.stripe.com/api/pagination): its result is a list object whose
+  // `data` holds `schema` objects, not one of them.
+  function listCall(node: ts.Node) {
+    const operation = responseCall(node);
+    return operation?.list ? operation : undefined;
+  }
+  // The object schema of the `data` items of a list response: a binding, or the awaited call.
+  function listItemsForExpression(expression: ts.Expression): string | undefined {
+    if (ts.isIdentifier(expression)) {
+      const binding = symbol(expression);
+      return binding ? listItems.get(binding) : undefined;
+    }
+    if (ts.isAwaitExpression(expression)) return listCall(expression.expression)?.schema;
+    if (
+      ts.isParenthesizedExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isTypeAssertionExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isSatisfiesExpression(expression)
+    )
+      return listItemsForExpression(expression.expression);
+    return undefined;
+  }
+  // `list(…).autoPagingEach(fn)` and `list(…).autoPagingToArray(…)`: stripe-node's helpers that
+  // walk every page of the list call they are chained on.
+  function autoPaging(node: ts.CallExpression, method: string) {
+    const access = node.expression;
+    return ts.isPropertyAccessExpression(access) && access.name.text === method
+      ? listCall(access.expression)
+      : undefined;
+  }
   let webhooks: ReturnType<typeof stripeWebhookPayloads> | undefined;
   function arrayItemForExpression(expression: ts.Expression): string | undefined {
     if (ts.isIdentifier(expression)) {
@@ -439,6 +508,10 @@ export function analyzeRepository(
     )
       return arrayItemForExpression(expression.left);
     if (ts.isPropertyAccessExpression(expression)) {
+      if (expression.name.text === 'data') {
+        const items = listItemsForExpression(expression.expression);
+        if (items) return items;
+      }
       const parent = schemaForExpression(expression.expression);
       if (parent) return referencedArrayItemSchema(schemaDefinitions, parent, expression.name.text);
       const list = expression.expression;
@@ -453,23 +526,37 @@ export function analyzeRepository(
         ? arrayItemForExpression(expression.expression)
         : undefined;
     }
+    if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
+      const paged = autoPaging(expression.expression, 'autoPagingToArray');
+      if (paged) return paged.schema;
+    }
     if (
       ts.isParenthesizedExpression(expression) ||
       ts.isAsExpression(expression) ||
       ts.isTypeAssertionExpression(expression) ||
       ts.isNonNullExpression(expression) ||
-      ts.isSatisfiesExpression(expression)
+      ts.isSatisfiesExpression(expression) ||
+      awaitedField(expression)
     )
       return arrayItemForExpression(expression.expression);
     return undefined;
   }
+  // `await session.line_items.data`: a field of a response is a plain value, so awaiting it
+  // returns the value itself.
+  function awaitedField(expression: ts.Expression): expression is ts.AwaitExpression {
+    return (
+      ts.isAwaitExpression(expression) &&
+      (ts.isPropertyAccessExpression(expression.expression) ||
+        ts.isElementAccessExpression(expression.expression))
+    );
+  }
   function arrayIteration(node: ts.CallExpression) {
     const method = node.expression;
+    // `items?.map(…)` runs the callback on the same elements whenever it runs at all.
+    const paged = autoPaging(node, 'autoPagingEach');
     if (
-      node.questionDotToken ||
       !ts.isPropertyAccessExpression(method) ||
-      method.questionDotToken ||
-      !ARRAY_ITERATION_METHODS.has(method.name.text) ||
+      (!paged && !ARRAY_ITERATION_METHODS.has(method.name.text)) ||
       node.arguments.length !== 1
     )
       return undefined;
@@ -484,7 +571,7 @@ export function analyzeRepository(
       parameter.questionToken
     )
       return undefined;
-    const schema = arrayItemForExpression(method.expression);
+    const schema = paged?.schema ?? arrayItemForExpression(method.expression);
     return schema
       ? { callback, parameter: parameter.name, source: method.expression, schema }
       : undefined;
@@ -522,9 +609,10 @@ export function analyzeRepository(
       return (
         schemaForExpression(expression.expression) ?? stripeTypes?.expressionSchema(expression)
       );
+    if (awaitedField(expression)) return schemaForExpression(expression.expression);
     if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
       const operation = responseCall(expression.expression);
-      return operation
+      return operation && !operation.list
         ? (resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema)
         : stripeTypes?.expressionSchema(expression);
     }
@@ -565,10 +653,18 @@ export function analyzeRepository(
       if (sdk.creation(node.expression)) clients.add(binding);
   }
   classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
-  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation });
+  const base = options.modelFixClients;
+  factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation, base });
   for (const declaration of declarations) {
-    const binding = clientBinding(proxyClient(declaration.initializer) ?? declaration.initializer);
-    if (binding && clients.has(binding)) add(clients, declaration.name);
+    const forwarded = proxyClient(declaration.initializer, base);
+    const binding = clientBinding(forwarded ?? declaration.initializer);
+    // A Proxy reads its holder on every access, so a holder that only ever holds the client
+    // (filled in the trap or by a factory) forwards to that client.
+    if (
+      binding &&
+      (clients.has(binding) || (!base && forwarded && factoryBindings.holders.has(binding)))
+    )
+      add(clients, declaration.name);
   }
   const helperBindings = helperClients({
     nodes,
@@ -582,6 +678,7 @@ export function analyzeRepository(
     rootBinding: classBindings.rootBinding,
     aliases: [...classBindings.aliases, ...helperBindings.aliases],
     localArgument: helperBindings.localArgument,
+    held: factoryBindings.held,
   };
   webhooks =
     provider.packageName === 'stripe'
@@ -659,6 +756,12 @@ export function analyzeRepository(
       responses.set(target, schema);
       responseSchemasChanged = true;
     };
+    const assignListItems = (name: ts.Identifier, schema: string) => {
+      const target = symbol(name);
+      if (!target || listItems.get(target) === schema) return;
+      listItems.set(target, schema);
+      responseSchemasChanged = true;
+    };
     const assignArrayItems = (name: ts.Identifier, schema: string | undefined) => {
       const target = symbol(name);
       if (!target || !schema || arrayItems.get(target) === schema) return;
@@ -678,10 +781,12 @@ export function analyzeRepository(
       const origin = wrapper && wrappers.has(wrapper) ? wrappers.get(wrapper)! : awaited;
       const operation = origin ? responseCall(origin) : undefined;
       if (operation && ts.isAwaitExpression(value)) {
-        assignSchema(
-          node.name,
-          resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema,
-        );
+        if (operation.list) assignListItems(node.name, operation.schema);
+        else
+          assignSchema(
+            node.name,
+            resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema,
+          );
         origins.set(symbol(node.name)!, origin!);
         if (wrapper && wrappers.has(wrapper)) wrappedResponses.set(symbol(node.name)!, wrapper);
       }
@@ -697,6 +802,20 @@ export function analyzeRepository(
         !node.initializer
       )
         continue;
+      // `const { data } = await stripe.subscriptions.list(…)`: the page's objects.
+      const listed = listItemsForExpression(node.initializer);
+      if (listed)
+        for (const element of node.name.elements) {
+          const property = element.propertyName ?? element.name;
+          if (
+            ts.isIdentifier(element.name) &&
+            !element.initializer &&
+            !element.dotDotDotToken &&
+            (ts.isIdentifier(property) || ts.isStringLiteral(property)) &&
+            property.text === 'data'
+          )
+            assignArrayItems(element.name, listed);
+        }
       const parentSchema = schemaForExpression(node.initializer);
       if (!parentSchema) continue;
       for (const element of node.name.elements) {
@@ -746,7 +865,9 @@ export function analyzeRepository(
         continue;
       const declaration = node.initializer.declarations[0];
       if (!ts.isIdentifier(declaration.name)) continue;
-      assignSchema(declaration.name, arrayItemForExpression(node.expression));
+      // `for await (const item of stripe.subscriptions.list(…))` auto-paginates the list.
+      const paged = node.awaitModifier ? listCall(node.expression) : undefined;
+      assignSchema(declaration.name, paged?.schema ?? arrayItemForExpression(node.expression));
     }
     for (const node of nodes) {
       if (!ts.isCallExpression(node)) continue;
@@ -945,8 +1066,9 @@ export function analyzeRepository(
     if (!call) continue;
     // Literal `expand` entries that walk through a removed field (stripe-expand-paths.ts) are
     // findings no rule edits, so a patch keeps them unresolved and never publishes as validated.
+    // A list's expand paths start with `data.`; they are not checked against the item schema yet.
     const expanded = provider.packageName === STRIPE.packageName ? responseCall(node) : undefined;
-    if (expanded)
+    if (expanded && !expanded.list)
       for (const hit of removedExpandPaths(node, expanded.schema, changes, schemaDefinitions))
         findings.push({
           ...location(hit.node),
@@ -1001,26 +1123,12 @@ export function analyzeRepository(
       if (!property) continue;
       const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
       // Only the exact literal `['card']` has a reviewed replacement, and, where the repository
-      // opted in, a literal list of `card` plus other distinct methods (never `card_present`).
-      // run.ts keeps the edit only with the API version bump (and, for TypeScript, the SDK
-      // upgrade) in the same patch.
-      const methods =
-        ts.isPropertyAssignment(property) &&
-        ts.isArrayLiteralExpression(property.initializer) &&
-        property.initializer.elements.every(ts.isStringLiteralLike)
-          ? property.initializer.elements.map((element) => (element as ts.StringLiteralLike).text)
-          : undefined;
-      const rule =
-        methods?.length === 1 && methods[0] === 'card'
-          ? CARD_PAYMENT_METHOD_RULE
-          : removal.keepListed &&
-              methods &&
-              methods.length > 1 &&
-              methods.includes('card') &&
-              !methods.includes('card_present') &&
-              new Set(methods).size === methods.length
-            ? LISTED_PAYMENT_METHODS_RULE
-            : undefined;
+      // opted in, a literal list of `card` plus other distinct methods, or any other value
+      // expression that names no in-person method (request-migration.ts). run.ts keeps the edit
+      // only with the API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
+      const rule = removal.cardReplacement
+        ? paymentMethodRule(property, { keepListed: removal.keepListed, checker })
+        : undefined;
       // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
       // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
       const moved =
@@ -1039,13 +1147,15 @@ export function analyzeRepository(
           changeId: removal.id,
           rule: moved.rule,
         });
-      if (confirmed && removal.cardReplacement && rule && ts.isPropertyAssignment(property)) {
+      if (confirmed && removal.cardReplacement && rule) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
         edits.push({
           file: location(property).file,
           start: property.name.getStart(),
           end: property.name.getEnd(),
-          replacement: `${quote}${removal.cardReplacement}${quote}`,
+          replacement: ts.isShorthandPropertyAssignment(property)
+            ? `${removal.cardReplacement}: ${property.name.text}`
+            : `${quote}${removal.cardReplacement}${quote}`,
           changeId: removal.id,
           rule,
         });
@@ -1099,7 +1209,7 @@ export function analyzeRepository(
   }
   // A removed parameter set outside every traced SDK body stops for review, unless it is an exact
   // `['card']` in a local body only confirmed card-rule calls receive (request-migration.ts).
-  for (const { property, removal, rename } of untracedRemovedParameters(
+  for (const { property, removal, rule } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
     (node) => {
@@ -1113,16 +1223,20 @@ export function analyzeRepository(
       );
     },
     (node) => location(node).file,
+    checker,
   )) {
-    if (rename && ts.isPropertyAssignment(property)) {
+    const rename = Boolean(rule);
+    if (rule && (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))) {
       const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
       edits.push({
         file: location(property).file,
         start: property.name.getStart(),
         end: property.name.getEnd(),
-        replacement: `${quote}${removal.cardReplacement}${quote}`,
+        replacement: ts.isShorthandPropertyAssignment(property)
+          ? `${removal.cardReplacement}: ${property.name.text}`
+          : `${quote}${removal.cardReplacement}${quote}`,
         changeId: removal.id,
-        rule: CARD_PAYMENT_METHOD_RULE,
+        rule,
       });
     }
     findings.push({
@@ -1132,7 +1246,7 @@ export function analyzeRepository(
       confidence: rename ? 'confirmed' : 'review',
       requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
       reason: rename
-        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved card rule covers.'
+        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved payment method rule covers.'
         : 'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
     });
   }
@@ -1208,6 +1322,19 @@ export function analyzeRepository(
       return false;
     edits.push(edit);
     return true;
+  }
+  // Reads sharing a hoisted helper local plan the same declaration; it is added once.
+  function addPlanned(planned: SourceEdit[]) {
+    return planned.every(
+      (edit) =>
+        edits.some(
+          (other) =>
+            other.file === edit.file &&
+            other.start === edit.start &&
+            other.end === edit.end &&
+            other.replacement === edit.replacement,
+        ) || addEdit(edit),
+    );
   }
   const periodPlans = new Map<
     ts.Node,
@@ -1315,14 +1442,19 @@ export function analyzeRepository(
     node: ts.Node,
     receiver: ts.Expression,
     change: Removal,
+    typeChecked = false,
   ): SourceEdit['rule'] | undefined {
     const provenance = sourceEvidence(receiver)?.kind;
-    // Every subscription-period read (SDK response, webhook payload or Stripe.*-typed value) goes
-    // through the generated helper, which reads either API version.
+    // Every subscription-period read (SDK response, webhook payload, Stripe.*-typed value, or a read
+    // the upgraded types reject on Subscription) goes through the generated helper, which reads
+    // either API version.
     if (
       provider.packageName === STRIPE.packageName &&
       change.schema === 'subscription' &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
+      (webhooks?.origin(receiver) ||
+        provenance === 'declared-type' ||
+        provenance === 'sdk' ||
+        typeChecked)
     ) {
       const plan = periodPlan(node);
       const edit = subscriptionPeriodHelperEdit(node, location(node).file, change.id, plan.text);
@@ -1344,18 +1476,7 @@ export function analyzeRepository(
         (!expandsField('subscription') && (provenance === 'declared-type' || provenance === 'sdk')))
     ) {
       const planned = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
-      // Reads sharing a hoisted local plan the same declaration; it is added once.
-      const added = planned?.every(
-        (edit) =>
-          edits.some(
-            (other) =>
-              other.file === edit.file &&
-              other.start === edit.start &&
-              other.end === edit.end &&
-              other.replacement === edit.replacement,
-          ) || addEdit(edit),
-      );
-      if (planned && added) return planned[0].rule;
+      if (planned && addPlanned(planned)) return planned[0].rule;
     }
     // `line.price.id` on invoice line items and invoice items: the ID moved under `pricing`.
     if (
@@ -1400,8 +1521,8 @@ export function analyzeRepository(
       ) &&
       (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
     ) {
-      const edit = checkoutShippingHelperEdit(node, location(node).file, change.id);
-      if (edit && addEdit(edit)) return edit.rule;
+      const planned = checkoutShippingHelperEdit(node, location(node).file, change.id);
+      if (planned && addPlanned(planned)) return planned[0].rule;
     }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
@@ -1567,6 +1688,17 @@ export function analyzeRepository(
         ? { kind: 'declared-type' }
         : undefined;
     }
+    // The list call a `for await` loop, `autoPagingEach` or `autoPagingToArray` pages through.
+    if (ts.isCallExpression(expression)) {
+      const call = listCall(expression) ? expression : undefined;
+      const paged =
+        ts.isPropertyAccessExpression(expression.expression) &&
+        (autoPaging(expression, 'autoPagingEach') || autoPaging(expression, 'autoPagingToArray'))
+          ? expression.expression.expression
+          : undefined;
+      if (call) return { kind: 'sdk', call };
+      if (paged && ts.isCallExpression(paged)) return { kind: 'sdk', call: paged };
+    }
     if (ts.isAwaitExpression(expression)) {
       if (ts.isCallExpression(expression.expression)) {
         const call = expression.expression;
@@ -1668,13 +1800,22 @@ export function analyzeRepository(
     const sourceClient =
       provenance && 'call' in provenance ? sdkCall(provenance.call)?.client : undefined;
     const classClient = sourceClient && classBindings!.client(sourceClient);
+    const checkedRead =
+      ts.isPropertyAccessExpression(node) &&
+      typeCheckedPeriodReads.has(`${location(node).file}\0${node.name.getStart()}`);
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
-      if (!tracked && !providerDetected) continue;
+      if (!tracked && !providerDetected && !checkedRead) continue;
       // Unresolved Stripe receivers are flagged only where files work with Stripe; if none are
       // identifiable, every same-named read stays flagged.
-      if (!tracked && stripeTypes && stripeFiles.size && !stripeFiles.has(node.getSourceFile()))
+      if (
+        !tracked &&
+        !checkedRead &&
+        stripeTypes &&
+        stripeFiles.size &&
+        !stripeFiles.has(node.getSourceFile())
+      )
         continue;
       const directCall = (expression: ts.Expression): ts.CallExpression | undefined => {
         if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression))
@@ -1705,7 +1846,16 @@ export function analyzeRepository(
         (!webhook || webhook.schema !== undefined) &&
         (provenance?.kind !== 'unmapped-sdk' || declaredType),
       );
-      const migration = confirmed ? propose(node, receiver, change) : undefined;
+      // The type checker resolved the receiver to Subscription, and the helper returns the field the
+      // object holds at runtime, so neither tracing nor mutation evidence is needed for this read.
+      const typeChecked =
+        !confirmed &&
+        checkedRead &&
+        change.schema === 'subscription' &&
+        Object.hasOwn(PERIOD_HELPERS, change.property);
+      const migration =
+        confirmed || typeChecked ? propose(node, receiver, change, typeChecked) : undefined;
+      const checkedMigration = typeChecked && migration !== undefined;
       if (property === undefined && !tracked) continue;
       const file = location(node).file;
       const moveReview =
@@ -1720,10 +1870,11 @@ export function analyzeRepository(
         ...location(node),
         changeId: change.id,
         expression: property === undefined ? '[computed property]' : `.${property}`,
-        confidence: confirmed ? 'confirmed' : 'review',
+        confidence: confirmed || checkedMigration ? 'confirmed' : 'review',
         ...(sourceClient ? helperEvidence(sourceClient, mutated) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
-        ...(tracked || provenance || iterationCallback(receiver)
+        ...(checkedMigration ? { typeChecked: true as const } : {}),
+        ...(tracked || provenance || checkedMigration || iterationCallback(receiver)
           ? {}
           : { untraced: true as const }),
         ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE && periodPlans.get(node)
@@ -1760,17 +1911,19 @@ export function analyzeRepository(
             }
           : {}),
         reason:
-          (declaredType && confirmed
-            ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
-            : declaredType
-              ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
-              : confirmed && webhook
-                ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
-                : confirmed
-                  ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
-                  : uncertainMutation
-                    ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                    : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
+          (checkedMigration
+            ? `Removed subscription.${change.property} read that the upgraded stripe-node types reject on Subscription. Refit's tracer did not reach its receiver, so the version-tolerant period helper reads it.`
+            : declaredType && confirmed
+              ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
+              : declaredType
+                ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
+                : confirmed && webhook
+                  ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
+                  : confirmed
+                    ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
+                    : uncertainMutation
+                      ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
+                      : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
           (moveReview ? ` ${moveReview}` : ''),
       });
     }
@@ -1795,16 +1948,19 @@ export function analyzeRepository(
       }
     }
   }
-  // `switch (subscription.status)` or `const unhandled: never = subscription.status`, directly or
-  // through one const alias; new enum values on these fields can reach unhandled code.
-  const enumChecks: (Location & { schema: string; property: string })[] = [];
+  // `switch (subscription.status)`, `const unhandled: never = subscription.status`, or a compare
+  // with string literals (`subscription.status === 'active'`, `['active'].includes(...)`), directly
+  // or through one const alias; new enum values on these fields can reach unhandled code (owner
+  // decision 6, 2026-10-24).
+  const enumChecks: (Location & { schema: string; property: string; compare?: true })[] = [];
   const apiVersionLiterals: { file: string; start: number; end: number; value: string }[] = [];
   for (const node of nodes) {
+    const compared = comparedWithLiterals(node);
     let checked = ts.isSwitchStatement(node)
       ? node.expression
       : ts.isVariableDeclaration(node) && node.type?.kind === ts.SyntaxKind.NeverKeyword
         ? node.initializer
-        : undefined;
+        : compared;
     if (checked && ts.isIdentifier(checked)) {
       const declaration = symbol(checked)?.valueDeclaration;
       checked = declarations.find((entry) => entry === declaration)?.initializer;
@@ -1818,7 +1974,13 @@ export function analyzeRepository(
       checked = checked.expression;
     if (!checked || !ts.isPropertyAccessExpression(checked)) continue;
     const schema = schemaForExpression(checked.expression);
-    if (schema) enumChecks.push({ ...location(node), schema, property: checked.name.text });
+    if (schema)
+      enumChecks.push({
+        ...location(node),
+        schema,
+        property: checked.name.text,
+        ...(compared && { compare: true as const }),
+      });
   }
   function dropPeriodHelper(file: string) {
     for (let index = edits.length - 1; index >= 0; index--)
@@ -1880,14 +2042,6 @@ export function analyzeRepository(
   const kind = (['ts', 'esm', 'cjs'] as const)
     .map((candidate) => ({ candidate, count: kinds.filter((entry) => entry === candidate).length }))
     .sort((a, b) => b.count - a.count)[0]?.candidate;
-  const helperNames = [
-    ...Object.values(PERIOD_HELPERS),
-    INVOICE_SUBSCRIPTION_HELPER,
-    INVOICE_PRICE_ID_HELPER,
-    CHECKOUT_SHIPPING_HELPER,
-    COUPON_ID_HELPER,
-    PRODUCT_FEATURES_HELPER,
-  ] as string[];
   // Node16/NodeNext resolution requires explicit extensions on relative imports.
   const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
     /"module(?:Resolution)?"\s*:\s*"node(?:16|next)"/i.test(file.content),
@@ -1899,7 +2053,7 @@ export function analyzeRepository(
         (node) =>
           node.getSourceFile() === source &&
           ts.isIdentifier(node) &&
-          helperNames.includes(node.text) &&
+          HELPER_NAMES.includes(node.text) &&
           !edits.some(
             (edit) =>
               edit.file === locations.get(source.fileName) &&
@@ -1924,35 +2078,8 @@ export function analyzeRepository(
         PRODUCT_FEATURES_HELPER_RULE,
       ] as const
     ).find((rule) => edits.some((edit) => edit.rule === rule))!;
-    const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
-    const shared = directories[0].filter((segment, index) =>
-      directories.every((directory) => directory[index] === segment),
-    );
-    const extension =
-      kind === 'ts'
-        ? 'ts'
-        : helperFiles.every((file) => file.endsWith(kind === 'esm' ? '.mjs' : '.cjs'))
-          ? kind === 'esm'
-            ? 'mjs'
-            : 'cjs'
-          : 'js';
-    // No hyphen: Convex rejects one in a module in its functions folder, where this may land.
-    const base = [...shared.filter((segment) => segment !== '.'), 'stripeSubscriptionPeriod'].join(
-      '/',
-    );
-    const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
-    const stem = taken.has(base) ? `${base}Refit` : base;
-    edits.push({
-      file: `${stem}.${extension}`,
-      start: 0,
-      end: 0,
-      replacement: subscriptionPeriodHelperModule(kind),
-      changeId: 'stripe-subscription-period-helper',
-      rule: moduleRule,
-    });
-    for (const file of helperFiles) {
-      const source = helperSources.find((entry) => locations.get(entry.fileName) === file)!;
-      const used = helperNames.filter((name) =>
+    const usedIn = (file: string) =>
+      HELPER_NAMES.filter((name) =>
         edits.some(
           (edit) =>
             edit.file === file &&
@@ -1960,25 +2087,12 @@ export function analyzeRepository(
             edit.replacement.includes(`${name}(`),
         ),
       );
-      const relativeImports = source.statements
-        .filter(ts.isImportDeclaration)
-        .map((statement) => (statement.moduleSpecifier as ts.StringLiteral).text)
-        .filter((specifier) => specifier.startsWith('.'));
-      const suffix =
-        kind === 'ts'
-          ? relativeImports.some((specifier) => specifier.endsWith('.js')) ||
-            (!relativeImports.length && nodeModuleResolution)
-            ? '.js'
-            : ''
-          : extension === 'js' && kind === 'cjs'
-            ? ''
-            : `.${extension}`;
-      let specifier = posix.relative(posix.dirname(file), stem) + suffix;
-      if (!specifier.startsWith('.')) specifier = `./${specifier}`;
-      const declaration =
-        kind === 'cjs'
-          ? `const { ${used.join(', ')} } = require('${specifier}');`
-          : `import { ${used.join(', ')} } from '${specifier}';`;
+    const sourceOf = (file: string) =>
+      helperSources.find((entry) => locations.get(entry.fileName) === file)!;
+    // Lines go after the file's directives and imports (and requires in CommonJS), in its own
+    // line endings.
+    const insert = (file: string, text: string, separator: string) => {
+      const source = sourceOf(file);
       const prologue = source.statements.filter((_statement, index) =>
         source.statements
           .slice(0, index + 1)
@@ -1994,15 +2108,120 @@ export function analyzeRepository(
                 )),
           ),
       );
-      const anchor = prologue.at(-1)?.getEnd() ?? 0;
+      // Without a prologue, after a byte order mark, a shebang (a comment after a mark, see
+      // parseableText) and the leading file pragmas and comments set apart by a blank line. A
+      // comment directly above the first statement, such as @ts-expect-error, stays on it.
+      const head = /^\uFEFF?(?:#!.*|(?<=^\uFEFF)\/\/.*)?/.exec(source.text)![0].length;
+      const header = (ts.getLeadingCommentRanges(source.text, head) ?? []).filter(
+        ({ pos, end }) =>
+          FILE_PRAGMA.test(source.text.slice(pos, end)) ||
+          /^[^\S\r\n]*\r?\n[^\S\r\n]*\r?\n/.test(source.text.slice(end)),
+      );
+      const anchor = prologue.at(-1)?.getEnd() ?? header.at(-1)?.end ?? head;
+      const newline = source.text.includes('\r\n') ? '\r\n' : '\n';
+      const lines = text.replaceAll('\n', newline);
+      const atLineEnd = /[^\uFEFF]$/.test(source.text.slice(0, anchor));
       edits.push({
         file,
         start: anchor,
         end: anchor,
-        replacement: anchor ? `\n${declaration}` : `${declaration}\n`,
+        replacement: atLineEnd
+          ? `${separator.replaceAll('\n', newline)}${lines}`
+          : `${lines}${separator.replaceAll('\n', newline)}`,
         changeId: 'stripe-subscription-period-helper',
         rule: moduleRule,
       });
+    };
+    // One calling file gets the helpers it uses written into it, so the patch adds no module and
+    // no import, and a test that loads that file alone with a fixed set of imports still runs. The
+    // helpers' private names, and the globals they read, must be free in that file; otherwise the
+    // module keeps them apart.
+    const [single] = helperFiles;
+    const inline =
+      helperFiles.length === 1
+        ? subscriptionPeriodHelperModule(kind, usedIn(single), true)
+        : undefined;
+    const declared = inline
+      ? ts
+          .createSourceFile('helpers.ts', inline, ts.ScriptTarget.Latest)
+          .statements.flatMap((statement) =>
+            (ts.isFunctionDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) &&
+            statement.name
+              ? [statement.name.text]
+              : [],
+          )
+      : [];
+    const free = (source: ts.SourceFile) =>
+      !nodes.some(
+        (node) =>
+          node.getSourceFile() === source && ts.isIdentifier(node) && declared.includes(node.text),
+      ) &&
+      !checker
+        .getSymbolsInScope(
+          source,
+          ts.SymbolFlags.Value | ts.SymbolFlags.Type | ts.SymbolFlags.Alias,
+        )
+        .some(
+          (entry) =>
+            HELPER_GLOBALS.includes(entry.name) &&
+            entry.declarations?.some((declaration) => declaration.getSourceFile() === source),
+        );
+    if (inline && free(sourceOf(single))) insert(single, inline.replace(/\n$/, ''), '\n\n');
+    else {
+      const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
+      const shared = directories[0].filter((segment, index) =>
+        directories.every((directory) => directory[index] === segment),
+      );
+      const extension =
+        kind === 'ts'
+          ? 'ts'
+          : helperFiles.every((file) => file.endsWith(kind === 'esm' ? '.mjs' : '.cjs'))
+            ? kind === 'esm'
+              ? 'mjs'
+              : 'cjs'
+            : 'js';
+      // No hyphen: Convex rejects one in a module in its functions folder, where this may land.
+      const base = [
+        ...shared.filter((segment) => segment !== '.'),
+        'stripeSubscriptionPeriod',
+      ].join('/');
+      const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
+      const stem = taken.has(base) ? `${base}Refit` : base;
+      edits.push({
+        file: `${stem}.${extension}`,
+        start: 0,
+        end: 0,
+        replacement: subscriptionPeriodHelperModule(kind, [
+          ...new Set(helperFiles.flatMap(usedIn)),
+        ]),
+        changeId: 'stripe-subscription-period-helper',
+        rule: moduleRule,
+      });
+      for (const file of helperFiles) {
+        const relativeImports = sourceOf(file)
+          .statements.filter(ts.isImportDeclaration)
+          .map((statement) => (statement.moduleSpecifier as ts.StringLiteral).text)
+          .filter((specifier) => specifier.startsWith('.'));
+        const suffix =
+          kind === 'ts'
+            ? relativeImports.some((specifier) => specifier.endsWith('.js')) ||
+              (!relativeImports.length && nodeModuleResolution)
+              ? '.js'
+              : ''
+            : extension === 'js' && kind === 'cjs'
+              ? ''
+              : `.${extension}`;
+        let specifier = posix.relative(posix.dirname(file), stem) + suffix;
+        if (!specifier.startsWith('.')) specifier = `./${specifier}`;
+        const used = usedIn(file).join(', ');
+        insert(
+          file,
+          kind === 'cjs'
+            ? `const { ${used} } = require('${specifier}');`
+            : `import { ${used} } from '${specifier}';`,
+          '\n',
+        );
+      }
     }
   }
   return {

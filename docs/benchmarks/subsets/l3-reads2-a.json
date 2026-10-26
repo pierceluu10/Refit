@@ -1,0 +1,81 @@
+{
+  "frozenAt": "2026-10-25",
+  "purpose": "Push 279, L3 untraced reads 2: the repositories whose root cause is 'checks passed, findings unresolved' and whose unresolved findings change with request-body proofs and list-element tracing.",
+  "criteria": "Repositories of the 49 Push-279 rows with root cause 'checks passed, findings unresolved' (none in heldout-30) whose unresolvedFindings in a source-only benchmark-mode scan (generated adapter, proposePatch, no validation) differ between bench/l3-reads2-base (furqan/untraced-price-reads merged with main 41df85e) and feat/l3-untraced-reads-2, in push-279-affected.json order, split into chunks of at most 10 (a: the first 6, b: the next 6). Entries unchanged from push-279-affected.json.",
+  "specs": [
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "dalemoncayo/express-stripe",
+      "stars": 90,
+      "commit": "a18c6d391ba6815627435ef87003b1ff4a226938",
+      "before": "2024-04-10",
+      "beforeSource": "SDK version",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "mdalmamunit427/yoga-master-server",
+      "stars": 16,
+      "commit": "f3b4a6d91fc51c64f76f459a360a617473d485ad",
+      "before": "2022-11-15",
+      "beforeSource": "SDK version",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "abressiddique/AbresStore-Admin",
+      "stars": 5,
+      "commit": "33469c76ef2c00692765450e8b421f7a679474ea",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "unused-candidate"
+    },
+    {
+      "repo": "Shivamrai15/Spotify-Clone",
+      "stars": 26,
+      "commit": "afb71d76a542d761966d743fff4230f2bdc0595d",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.3.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Amansingh0807/GenForm",
+      "stars": 17,
+      "commit": "ef9d70fa47982bd4d3f371d2760c531e561e41a5",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.5.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Anuradha-Herath/Pinnacle",
+      "stars": 4,
+      "commit": "0d0ae991c29090e5442872399b8a14834bfdd364",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.7.0",
+      "packageManager": "npm"
+    }
+  ]
+}

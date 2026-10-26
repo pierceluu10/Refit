@@ -1,0 +1,2603 @@
+[
+ {
+  "repo": "odota/core",
+  "group": "lockfile-integrity",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/push.yml"
+   ],
+   "stripeRange": "^12.18.0",
+   "stripeImporters": [
+    "svc/store/stripe.ts",
+    "svc/apiadmin.ts",
+    "svc/api/keyManagement.ts"
+   ],
+   "recordsWithoutIntegrity": 119,
+   "stripeLocked": true
+  },
+  "classification": "correct-refusal",
+  "why": "119 of 356 lock records (106 production, e.g. @protobufjs/*, async, adm-zip) have only a version: no resolved URL, no integrity. stripe itself is fully locked. Backfilling sha512 from the registry for the pinned name@version would not change versions, but it moves the trust root from the committed lock to the registry, which is an owner decision."
+ },
+ {
+  "repo": "horizon-ui/shadcn-nextjs-boilerplate",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^15.8.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "different-ai/embedbase",
+  "group": "stripe-outside-root-package",
+  "facts": {
+   "nestedLockfiles": [
+    "dashboard/package-lock.json",
+    "docs/package-lock.json",
+    "sdk/embedbase-js/package-lock.json",
+    "sync/package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci_core.yml",
+    ".github/workflows/ci_js.yml",
+    ".github/workflows/ci_py.yml",
+    ".github/workflows/greetings.yml",
+    ".github/workflows/index.yaml",
+    ".github/workflows/release_core.yml",
+    ".github/workflows/release_hosted.yml",
+    ".github/workflows/release_js.yml"
+   ],
+   "rootPackageJson": false,
+   "stripePackage": "dashboard/package.json",
+   "rootLockCovers": false,
+   "change": "a configured project subdirectory (package.json + lockfile) as the preparation root"
+  },
+  "classification": "buildable",
+  "why": "No root package.json. stripe ^11.13.0 is declared in dashboard/package.json with its own dashboard/package-lock.json; there is no root lockfile."
+ },
+ {
+  "repo": "benlamiro/ShipGenAI",
+  "group": "stripe-outside-root-package",
+  "facts": {
+   "nestedLockfiles": [
+    "ai_agents/ai-knowledge-base/package-lock.json",
+    "ai_agents/ai-travel-studio/package-lock.json",
+    "ai_agents/my-podcast/package-lock.json",
+    "beauty_fashion/ai-hair-style-simulator/package-lock.json",
+    "beauty_fashion/ai-professional-makeup-generator/package-lock.json",
+    "beauty_fashion/ai-tattoo-try-on/package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/auto-sync.yml"
+   ],
+   "rootPackageJson": false,
+   "stripePackage": "39 subdirectory package.json files",
+   "rootLockCovers": false,
+   "change": "configured project subdirectory"
+  },
+  "classification": "buildable",
+  "why": "No root package.json: 39 independent apps each declare stripe ^22.x with their own package-lock.json (e.g. ai_agents/ai-knowledge-base). It would need one subdirectory integration per app."
+ },
+ {
+  "repo": "nizzyabi/nizzy-starter",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^14.25.0",
+   "lockfileVersion": 3,
+   "packageRecords": 959,
+   "heavyPackages": [
+    "@prisma/client",
+    "@prisma/engines",
+    "@swc/core",
+    "esbuild",
+    "next",
+    "prisma",
+    "typescript",
+    "@mui/*",
+    "@esbuild/* (23)",
+    "@next/* (1)",
+    "@swc/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 24,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1224,
+    "files": 52970,
+    "tarEstimateMiB": 1263,
+    "tarEstimateAfterLibcPruneMiB": 978,
+    "top": [
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      150
+     ],
+     [
+      "node_modules/react-email/node_modules/@next/swc-linux-x64-musl",
+      138
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      125
+     ],
+     [
+      "node_modules/react-email/node_modules/@next/swc-linux-x64-gnu",
+      115
+     ],
+     [
+      "node_modules/react-email/node_modules/next",
+      82
+     ],
+     [
+      "node_modules/next",
+      82
+     ],
+     [
+      "node_modules/react-icons",
+      81
+     ],
+     [
+      "node_modules/@swc/core-linux-x64-musl",
+      54
+     ]
+    ]
+   },
+   "change": "libc prune (borderline) or 4g profile"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); react-email nests a second next with its own swc pair. The libc prune leaves an estimate of ~980-1000 MiB, too close to call; the 4g profile certainly fits."
+ },
+ {
+  "repo": "starmanv4/react-typescript-docker",
+  "group": "stripe-outside-root-package",
+  "facts": {
+   "nestedLockfiles": [
+    "auth/package-lock.json",
+    "client/package-lock.json",
+    "common/package-lock.json",
+    "expiration/package-lock.json",
+    "nats-test/package-lock.json",
+    "orders/package-lock.json"
+   ],
+   "gitlinks": [
+    "metrics-server"
+   ],
+   "rootPackageJson": false,
+   "stripePackage": "payments/package.json",
+   "rootLockCovers": false,
+   "change": "configured project subdirectory + gitlink-as-empty"
+  },
+  "classification": "buildable",
+  "why": "No root package.json. stripe ^11.17.0 in payments/package.json with payments/package-lock.json. Also has gitlink metrics-server with no .gitmodules (would also need the gitlink change)."
+ },
+ {
+  "repo": "LucasKlemke/StudMed",
+  "group": "non-registry-source",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "stripeRange": "^18.0.0",
+   "stripeImporters": [
+    "lib/stripe.ts",
+    "app/(auth)/api/webhook/stripe/route.ts",
+    "app/(chat)/account/_actions/cancel-subscription-action.ts"
+   ],
+   "specifier": "ai-chatbot: \"link:\" (self)",
+   "importedByStripeCode": false,
+   "change": "accept pnpm link: targets that resolve inside the repository (treat as workspace links)"
+  },
+  "classification": "buildable",
+  "why": "package.json declares \"ai-chatbot\": \"link:\" and the package itself is named ai-chatbot: an empty link, i.e. a self-reference to the repository root, fetching no bytes. No Stripe file imports it (lib/stripe.ts, the webhook route and cancel-subscription action import only stripe/next). pnpm-lock importer otherwise matches package.json."
+ },
+ {
+  "repo": "piyush805/miro-clone",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^16.7.0",
+   "mismatch": "stripe ^16.7.0 missing from lock",
+   "ci": "none",
+   "deploy": "none"
+  },
+  "classification": "correct-refusal",
+  "why": "stripe itself is absent from package-lock.json (package.json changed 2024-08-15, lock last changed 2024-08-12). Installing would pick a stripe version Refit is meant to migrate from; protects against testing an unlocked SDK version."
+ },
+ {
+  "repo": "blefnk/all-in-one-nextjs-template",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lockb"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/NOVU.txt",
+    ".github/workflows/RELIVERSE.txt",
+    ".github/workflows/STARGAZERS.txt",
+    ".github/workflows/VALIDATE.txt"
+   ],
+   "packageManagerField": "pnpm@9.12.1+sha512.e5a7e52a4183a02d5931057f7a0dbff9d5e9ce3161e33fa68ae392125b79282a8a8a470a51dfc8a0ed86221442eb2fb57019b0990ed24fab519bf0e1bc5ccfc4",
+   "stripeRange": "^17.2.1"
+  },
+  "classification": "out-of-scope",
+  "why": "Only Bun's binary bun.lockb is committed; Refit cannot read or verify it without the Bun toolchain. package.json says packageManager pnpm but no pnpm-lock.yaml exists."
+ },
+ {
+  "repo": "minhthuong031103/RealEstateBrokerageMarket",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^13.9.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "zjx-artcc/website",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/docker-build-push.yml",
+    ".github/workflows/docker-build.yml"
+   ],
+   "stripeRange": "^19.3.1",
+   "lockfileVersion": "9.0",
+   "packageRecords": 1523,
+   "heavyPackages": [
+    "@prisma/client",
+    "@prisma/engines",
+    "lightningcss",
+    "lightningcss-*",
+    "next",
+    "prisma",
+    "sharp",
+    "typescript",
+    "@mui/*",
+    "@opentelemetry/*",
+    "@sentry/*",
+    "@img/* (3)",
+    "@napi-rs/* (1)",
+    "@next/* (1)",
+    "@rollup/* (3)",
+    "@tailwindcss/* (2)",
+    "@unrs/* (2)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 52,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 932,
+    "files": 159888,
+    "tarEstimateMiB": 1049,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@15.5.19",
+      136
+     ],
+     [
+      "next@15.5.19",
+      133
+     ],
+     [
+      "@mapcomponents/react-maplibre@1.8.20",
+      57
+     ],
+     [
+      "maplibre-gl@5.24.0",
+      42
+     ],
+     [
+      "jspdf@4.2.1",
+      29
+     ],
+     [
+      "effect@3.17.7",
+      25
+     ],
+     [
+      "typescript@5.9.3",
+      23
+     ],
+     [
+      "@sentry/cli-linux-x64@2.58.6",
+      20
+     ]
+    ]
+   },
+   "change": "4g profile"
+  },
+  "classification": "buildable",
+  "why": "pnpm already filters libc; the tree is genuinely ~1-1.4 GiB (get2cracked and clack carry two Next copies via react-email@2 and @vercel/analytics/novel peers; niore carries googleapis ~200 MiB). Fits only the existing 4g profile."
+ },
+ {
+  "repo": "joschan21/contentport",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lockb",
+    "bun.lock"
+   ],
+   "nestedLockfiles": [
+    "jobs/transcription/package-lock.json"
+   ],
+   "packageManagerField": "bun@1.2.19",
+   "stripeRange": "^18.2.1",
+   "change": "support Bun text lockfiles (bun install --frozen-lockfile --ignore-scripts against registry.npmjs.org)"
+  },
+  "classification": "buildable",
+  "why": "No npm/pnpm/yarn lockfile, but a Bun text lockfile (bun.lock v1) with sha512 integrity for registry packages, including stripe. Bun is the manager."
+ },
+ {
+  "repo": "vignesh-gupta/digibee-marketplace",
+  "group": "workspace-out-of-space",
+  "facts": {
+   "rootLockfiles": [
+    "yarn.lock"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/main.yml"
+   ],
+   "stripeRange": "^17.5.0",
+   "lockfileVersion": "1",
+   "packageRecords": 1470,
+   "heavyPackages": [
+    "@swc/core",
+    "monaco-editor",
+    "next",
+    "payload",
+    "sharp",
+    "typescript",
+    "@aws-sdk/*",
+    "@payloadcms/*",
+    "@next/* (1)",
+    "@swc/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 10,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 703,
+    "files": 69685,
+    "tarEstimateMiB": 754,
+    "yarnCacheAllPlatformsMiB": 1961,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@14.2.21",
+      150
+     ],
+     [
+      "next@14.2.21",
+      82
+     ],
+     [
+      "monaco-editor@0.38.0",
+      82
+     ],
+     [
+      "@swc/core-linux-x64-musl@1.6.1",
+      59
+     ],
+     [
+      "typescript@5.4.5",
+      31
+     ],
+     [
+      "aws-crt@1.24.2",
+      25
+     ],
+     [
+      "lucide-react@0.441.0",
+      23
+     ],
+     [
+      "date-fns@4.1.0",
+      22
+     ]
+    ]
+   },
+   "change": "Yarn 1 cache outside the archived workspace or a 4 GiB Yarn-1-only preparation workspace"
+  },
+  "classification": "buildable",
+  "why": "Installed tree (~500-750 MiB) fits the 1 GiB archive; Yarn 1 keeps an unpacked cache of every package for every platform (1.4-2.0 GiB estimated) in the same 2 GiB tmpfs. Matches the open owner decision in docs/PREPARATION-FAILURES.md."
+ },
+ {
+  "repo": "kaorii-ako/Shiori-v1",
+  "group": "submodule",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "nestedLockfiles": [
+    "mcp/package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/setup-repo.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "gitlinks": [
+    "~/.claude/skills/gstack"
+   ],
+   "workspaces": [
+    "client",
+    "server"
+   ],
+   "stripeRange": "^17.7.0",
+   "stripeImporters": [
+    "server/routes/stripe.js",
+    "api/webhook.js",
+    "api/create-checkout-session.js"
+   ],
+   "submodule": "~/.claude/skills/gstack",
+   "gitmodules": null,
+   "change": "treat a gitlink with no .gitmodules entry as the empty directory a clone produces"
+  },
+  "classification": "buildable",
+  "why": "The gitlink ~/.claude/skills/gstack has no .gitmodules at all (no URL), so every clone, CI run and deploy already sees an empty directory. Nothing in tsconfig, package.json scripts or Stripe-importing files references it. A literal \"~/.claude/skills/gstack\" directory committed by accident; npm workspaces (client, server), root lock in sync."
+ },
+ {
+  "repo": "alanagoyal/branded",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci.yml"
+   ],
+   "stripeRange": "^15.1.0",
+   "lockfileVersion": 3,
+   "packageRecords": 771,
+   "heavyPackages": [
+    "esbuild",
+    "next",
+    "sharp",
+    "typescript",
+    "@vercel/*",
+    "@esbuild/* (26)",
+    "@img/* (4)",
+    "@napi-rs/* (1)",
+    "@next/* (1)",
+    "@unrs/* (2)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 45,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1086,
+    "files": 32267,
+    "tarEstimateMiB": 1109,
+    "tarEstimateAfterLibcPruneMiB": 795,
+    "top": [
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      137
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      136
+     ],
+     [
+      "node_modules/next",
+      133
+     ],
+     [
+      "node_modules/@supabase/cli-linux-x64",
+      130
+     ],
+     [
+      "node_modules/@supabase/cli-linux-x64-musl",
+      124
+     ],
+     [
+      "node_modules/react-icons",
+      84
+     ],
+     [
+      "node_modules/braintrust",
+      33
+     ],
+     [
+      "node_modules/@braintrust/bt-linux-x64",
+      28
+     ]
+    ]
+   },
+   "change": "prune glibc-only optional binaries after npm ci on the musl image"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); dropping installed optional packages whose package.json libc excludes musl (they cannot load on Alpine) brings the estimated tar under 1 GiB. Otherwise the existing REFIT_VALIDATION_WORKSPACE=4g profile."
+ },
+ {
+  "repo": "Drago-03/Neural-Nexus",
+  "group": "workspace-out-of-space",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/greetings.yml",
+    ".github/workflows/label.yml",
+    ".github/workflows/stale.yml",
+    ".github/workflows/summary.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^14.25.0",
+   "lockfileVersion": 3,
+   "packageRecords": 2030,
+   "heavyPackages": [
+    "firebase",
+    "next",
+    "sharp",
+    "typescript",
+    "@google-cloud/*",
+    "@vercel/*",
+    "@img/* (2)",
+    "@napi-rs/* (1)",
+    "@next/* (1)",
+    "@unrs/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 20,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1461,
+    "files": 192161,
+    "tarEstimateMiB": 1602,
+    "tarEstimateAfterLibcPruneMiB": 1458,
+    "top": [
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      150
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      125
+     ],
+     [
+      "node_modules/next",
+      82
+     ],
+     [
+      "node_modules/react-icons",
+      82
+     ],
+     [
+      "node_modules/@firebase/firestore",
+      26
+     ],
+     [
+      "node_modules/lottie-web",
+      24
+     ],
+     [
+      "node_modules/firebase",
+      24
+     ],
+     [
+      "node_modules/typescript",
+      22
+     ]
+    ]
+   },
+   "change": "4g profile"
+  },
+  "classification": "buildable",
+  "why": "node_modules alone is ~1.4-1.6 GiB estimated (above the 1 GiB archive even after a libc prune), plus the npm cache in the same tmpfs. Fits only the existing 4g profile."
+ },
+ {
+  "repo": "duggal1/flux-io",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json",
+    "bun.lockb"
+   ],
+   "stripeRange": "^16.7.0",
+   "mismatch": "eslint ^8.0.0 vs locked 9.13.0",
+   "ci": "none",
+   "deploy": "none",
+   "otherLockfile": "bun.lockb newer (2024-10-22T11:11 vs 10:26)"
+  },
+  "classification": "correct-refusal",
+  "why": "eslint ^8.0.0 in package.json, lock pins eslint 9.13.0. bun.lockb was committed 45 min after package-lock.json, together with the package.json change: Bun is the real manager and the npm lock is stale. Protects against installing a tree the manifest rejects."
+ },
+ {
+  "repo": "Strata-Labs/BitScript",
+  "group": "workspace-out-of-space",
+  "facts": {
+   "rootLockfiles": [
+    "yarn.lock"
+   ],
+   "stripeRange": "^14.1.0",
+   "lockfileVersion": "1",
+   "packageRecords": 922,
+   "heavyPackages": [
+    "@prisma/client",
+    "@prisma/engines",
+    "esbuild",
+    "monaco-editor",
+    "next",
+    "prisma",
+    "sharp",
+    "typescript",
+    "@aws-sdk/*",
+    "@esbuild/* (26)",
+    "@img/* (2)",
+    "@next/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 28,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 603,
+    "files": 44925,
+    "tarEstimateMiB": 636,
+    "yarnCacheAllPlatformsMiB": 1879,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@13.4.4",
+      122
+     ],
+     [
+      "monaco-editor@0.44.0",
+      84
+     ],
+     [
+      "react-icons@4.11.0",
+      76
+     ],
+     [
+      "next@13.4.4",
+      49
+     ],
+     [
+      "typescript@5.3.3",
+      31
+     ],
+     [
+      "typescript@5.9.3",
+      23
+     ],
+     [
+      "@img/sharp-libvips-linuxmusl-x64@1.0.1",
+      16
+     ],
+     [
+      "prisma@5.5.2",
+      13
+     ]
+    ]
+   },
+   "change": "Yarn 1 cache outside the archived workspace or a 4 GiB Yarn-1-only preparation workspace"
+  },
+  "classification": "buildable",
+  "why": "Installed tree (~500-750 MiB) fits the 1 GiB archive; Yarn 1 keeps an unpacked cache of every package for every platform (1.4-2.0 GiB estimated) in the same 2 GiB tmpfs. Matches the open owner decision in docs/PREPARATION-FAILURES.md."
+ },
+ {
+  "repo": "michaelshimeles/goshenpay-backend",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lockb"
+   ],
+   "stripeRange": "^17.2.0"
+  },
+  "classification": "out-of-scope",
+  "why": "Only Bun's binary bun.lockb is committed; Refit cannot read or verify it without the Bun toolchain."
+ },
+ {
+  "repo": "nirholas/memescope-monday",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lockb"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^17.7.0"
+  },
+  "classification": "out-of-scope",
+  "why": "Only Bun's binary bun.lockb is committed; Refit cannot read or verify it without the Bun toolchain."
+ },
+ {
+  "repo": "SergeySharipov/ai-companion-saas",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^18.0.0",
+   "mismatch": "next 15.3.6 vs 15.3.0",
+   "ci": "none",
+   "deploy": "none"
+  },
+  "classification": "correct-refusal",
+  "why": "next pinned 15.3.6 in package.json (a patch bump edited by hand), lock still installs 15.3.0. Installing the lock would validate against a Next version the owner moved off."
+ },
+ {
+  "repo": "CiphersLab/SaaSPilot",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^13.7.0",
+   "lockfileVersion": 3,
+   "packageRecords": 2058,
+   "heavyPackages": [
+    "@prisma/client",
+    "@prisma/engines",
+    "canvas",
+    "next",
+    "prisma",
+    "react-native",
+    "three",
+    "typescript",
+    "@react-native/*",
+    "@next/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 6,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1268,
+    "files": 86865,
+    "tarEstimateMiB": 1332,
+    "tarEstimateAfterLibcPruneMiB": 1213,
+    "top": [
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      143
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      119
+     ],
+     [
+      "node_modules/@blocknote/react/node_modules/react-icons",
+      82
+     ],
+     [
+      "node_modules/@blocknote/mantine/node_modules/react-icons",
+      82
+     ],
+     [
+      "node_modules/next",
+      82
+     ],
+     [
+      "node_modules/react-icons",
+      76
+     ],
+     [
+      "node_modules/react-native",
+      70
+     ],
+     [
+      "node_modules/jsc-android",
+      31
+     ]
+    ]
+   },
+   "change": "4g profile"
+  },
+  "classification": "buildable",
+  "why": "Next + react-native + canvas + three, react-icons installed 3x; ~1.2 GiB even after a libc prune. Fits only the existing 4g profile."
+ },
+ {
+  "repo": "habibjutt/nextjs_boilerplate",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^17.5.0",
+   "lockfileVersion": 3,
+   "packageRecords": 856,
+   "heavyPackages": [
+    "@playwright/test",
+    "@prisma/client",
+    "@prisma/engines",
+    "esbuild",
+    "lightningcss",
+    "lightningcss-*",
+    "next",
+    "playwright",
+    "playwright-core",
+    "prisma",
+    "sharp",
+    "typescript",
+    "@opentelemetry/*",
+    "@esbuild/* (26)",
+    "@img/* (3)",
+    "@napi-rs/* (1)",
+    "@next/* (1)",
+    "@tailwindcss/* (2)",
+    "@unrs/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 50,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1033,
+    "files": 89703,
+    "tarEstimateMiB": 1099,
+    "tarEstimateAfterLibcPruneMiB": 956,
+    "top": [
+     [
+      "node_modules/next",
+      135
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      112
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      112
+     ],
+     [
+      "node_modules/@prisma/client",
+      74
+     ],
+     [
+      "node_modules/@tabler/icons-react",
+      44
+     ],
+     [
+      "node_modules/prisma",
+      38
+     ],
+     [
+      "node_modules/lucide-react",
+      35
+     ],
+     [
+      "node_modules/posthog-js",
+      32
+     ]
+    ]
+   },
+   "change": "prune glibc-only optional binaries after npm ci on the musl image"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); dropping installed optional packages whose package.json libc excludes musl (they cannot load on Alpine) brings the estimated tar under 1 GiB. Otherwise the existing REFIT_VALIDATION_WORKSPACE=4g profile."
+ },
+ {
+  "repo": "guillermolg00/nextjs-stripe-store",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lock"
+   ],
+   "stripeRange": "^16.0.0",
+   "change": "support Bun text lockfiles (bun install --frozen-lockfile --ignore-scripts against registry.npmjs.org)"
+  },
+  "classification": "buildable",
+  "why": "No npm/pnpm/yarn lockfile, but a Bun text lockfile (bun.lock v1) with sha512 integrity for registry packages, including stripe. Bun is the manager."
+ },
+ {
+  "repo": "Harries/startfast-free",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^17.0.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "MikPoik/next13-ai-companion",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "17.3.1"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "thangtran3112/next-marketplace",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "nestedLockfiles": [
+    "cdk-fargate/package-lock.json"
+   ],
+   "stripeRange": "14.4.0",
+   "lockfileVersion": 3,
+   "packageRecords": 1554,
+   "heavyPackages": [
+    "@swc/core",
+    "monaco-editor",
+    "next",
+    "payload",
+    "sharp",
+    "typescript",
+    "@aws-sdk/*",
+    "@google-cloud/*",
+    "@payloadcms/*",
+    "@img/* (4)",
+    "@next/* (1)",
+    "@swc/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 20,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 988,
+    "files": 58238,
+    "tarEstimateMiB": 1031,
+    "tarEstimateAfterLibcPruneMiB": 809,
+    "top": [
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      150
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      125
+     ],
+     [
+      "node_modules/next",
+      82
+     ],
+     [
+      "node_modules/monaco-editor",
+      82
+     ],
+     [
+      "node_modules/@swc/core-linux-x64-musl",
+      61
+     ],
+     [
+      "node_modules/payload/node_modules/@swc/core-linux-x64-musl",
+      59
+     ],
+     [
+      "node_modules/@swc/core-linux-x64-gnu",
+      49
+     ],
+     [
+      "node_modules/payload/node_modules/@swc/core-linux-x64-gnu",
+      48
+     ]
+    ]
+   },
+   "change": "prune glibc-only optional binaries after npm ci on the musl image"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); dropping installed optional packages whose package.json libc excludes musl (they cannot load on Alpine) brings the estimated tar under 1 GiB. Otherwise the existing REFIT_VALIDATION_WORKSPACE=4g profile."
+ },
+ {
+  "repo": "szymontex/donata",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^17.5.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "miazme/digitalhippo",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^14.21.0",
+   "lockfileVersion": 3,
+   "packageRecords": 1546,
+   "heavyPackages": [
+    "@swc/core",
+    "esbuild",
+    "monaco-editor",
+    "next",
+    "payload",
+    "sharp",
+    "typescript",
+    "@aws-sdk/*",
+    "@payloadcms/*",
+    "@esbuild/* (23)",
+    "@next/* (1)",
+    "@swc/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 24,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1276,
+    "files": 64629,
+    "tarEstimateMiB": 1323,
+    "tarEstimateAfterLibcPruneMiB": 1004,
+    "top": [
+     [
+      "node_modules/react-email/node_modules/@next/swc-linux-x64-musl",
+      138
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      138
+     ],
+     [
+      "node_modules/react-email/node_modules/@next/swc-linux-x64-gnu",
+      115
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      115
+     ],
+     [
+      "node_modules/next",
+      82
+     ],
+     [
+      "node_modules/react-email/node_modules/next",
+      82
+     ],
+     [
+      "node_modules/monaco-editor",
+      82
+     ],
+     [
+      "node_modules/react-email/node_modules/@swc/core-linux-x64-musl",
+      54
+     ]
+    ]
+   },
+   "change": "libc prune (borderline) or 4g profile"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); react-email nests a second next with its own swc pair. The libc prune leaves an estimate of ~980-1000 MiB, too close to call; the 4g profile certainly fits."
+ },
+ {
+  "repo": "PedroPini/ScaleNext",
+  "group": "non-registry-source",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^16.9.0",
+   "stripeImporters": [
+    "src/libs/stripe.ts",
+    "src/app/api/stripe/webhook.ts",
+    "src/app/api/webhook/stripe/route.ts",
+    "src/app/api/stripe/verify-payment/route.ts",
+    "src/app/api/stripe/checkout-session/route.ts"
+   ],
+   "specifier": "github:ai/react (git+ssh, no integrity)",
+   "importedByStripeCode": false
+  },
+  "classification": "correct-refusal",
+  "why": "@nanostores/react: \"github:ai/react\", locked as git+ssh://git@github.com/ai/react.git#7eb2d9a with no integrity. Unverifiable bytes over SSH to GitHub. Stripe files (src/libs/stripe.ts, api routes) do not import it, but the repo typecheck would."
+ },
+ {
+  "repo": "Rohit19060/stripe_hono",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lockb"
+   ],
+   "stripeRange": "^18.4.0"
+  },
+  "classification": "out-of-scope",
+  "why": "Only Bun's binary bun.lockb is committed; Refit cannot read or verify it without the Bun toolchain."
+ },
+ {
+  "repo": "Traviseric/arxmint",
+  "group": "source-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "nestedLockfiles": [
+    "packages/js/package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "workspaces": [
+    "packages/*"
+   ],
+   "stripeRange": "^17.0.0",
+   "nextBlocker": "lockfile-integrity"
+  },
+  "classification": "correct-refusal",
+  "why": "59.4 MiB, 52.7 MiB of PNGs (24.9 MiB in .overnight/, 8 MiB in tmp/). Clearing the size stop would only reach the next one: ~350 package-lock records have no resolved/integrity (lockfile-integrity)."
+ },
+ {
+  "repo": "devczero/saas-pdf-analysis-dev",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^18.2.0",
+   "mismatch": "transitive peer: fdir -> picomatch",
+   "deploy": "vercel.json installCommand \"npm install\" (silently rewrites the lock on deploy)",
+   "change": "extend the legacy-peer-deps retry to an EUSAGE whose only invalid edges are peers"
+  },
+  "classification": "buildable",
+  "why": "Root package.json matches the lock exactly; npm ci fails on a peer edge: fdir 6.4.3 peer picomatch \"^3 || ^4\" vs hoisted picomatch 2.3.1, so npm re-resolves (wants 4.0.7 and 2.3.2). The lock was written ignoring peers. npm ci --legacy-peer-deps would install exactly the locked tree, but Refit retries only on ERESOLVE, not EUSAGE. This is the \"peer dependencies missing from the lockfile\" item already awaiting an owner decision."
+ },
+ {
+  "repo": "drewsephski/get2cracked",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "deployConfig": [
+    "netlify.toml"
+   ],
+   "stripeRange": "^15.12.0",
+   "lockfileVersion": "9.0",
+   "packageRecords": 2478,
+   "heavyPackages": [
+    "@prisma/client",
+    "@prisma/engines",
+    "@swc/core",
+    "esbuild",
+    "next",
+    "prisma",
+    "sharp",
+    "typescript",
+    "@aws-sdk/*",
+    "@opentelemetry/*",
+    "@vercel/*",
+    "@esbuild/* (26)",
+    "@img/* (2)",
+    "@napi-rs/* (1)",
+    "@next/* (1)",
+    "@swc/* (1)",
+    "@unrs/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 56,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1349,
+    "files": 125834,
+    "tarEstimateMiB": 1442,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@14.2.5",
+      150
+     ],
+     [
+      "@next/swc-linux-x64-musl@14.1.4",
+      138
+     ],
+     [
+      "next@14.1.4",
+      82
+     ],
+     [
+      "react-icons@5.5.0",
+      82
+     ],
+     [
+      "next@14.2.5",
+      82
+     ],
+     [
+      "mermaid@11.12.0",
+      63
+     ],
+     [
+      "@swc/core-linux-x64-musl@1.3.101",
+      54
+     ],
+     [
+      "typescript@5.1.6",
+      38
+     ]
+    ]
+   },
+   "change": "4g profile"
+  },
+  "classification": "buildable",
+  "why": "pnpm already filters libc; the tree is genuinely ~1-1.4 GiB (get2cracked and clack carry two Next copies via react-email@2 and @vercel/analytics/novel peers; niore carries googleapis ~200 MiB). Fits only the existing 4g profile."
+ },
+ {
+  "repo": "shaoxuan0916/life-slice",
+  "group": "workspace-out-of-space",
+  "facts": {
+   "rootLockfiles": [
+    "yarn.lock"
+   ],
+   "stripeRange": "^17.3.1",
+   "lockfileVersion": "1",
+   "packageRecords": 549,
+   "heavyPackages": [
+    "next",
+    "typescript",
+    "@next/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 5,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 457,
+    "files": 55132,
+    "tarEstimateMiB": 497,
+    "yarnCacheAllPlatformsMiB": 1364,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@14.2.14",
+      150
+     ],
+     [
+      "next@14.2.14",
+      82
+     ],
+     [
+      "@tabler/icons-react@3.29.0",
+      45
+     ],
+     [
+      "lucide-react@0.447.0",
+      23
+     ],
+     [
+      "typescript@5.7.3",
+      22
+     ],
+     [
+      "date-fns@4.1.0",
+      22
+     ],
+     [
+      "@tabler/icons@3.29.0",
+      9
+     ],
+     [
+      "@react-email/components@0.0.28",
+      8
+     ]
+    ]
+   },
+   "change": "Yarn 1 cache outside the archived workspace or a 4 GiB Yarn-1-only preparation workspace"
+  },
+  "classification": "buildable",
+  "why": "Installed tree (~500-750 MiB) fits the 1 GiB archive; Yarn 1 keeps an unpacked cache of every package for every platform (1.4-2.0 GiB estimated) in the same 2 GiB tmpfs. Matches the open owner decision in docs/PREPARATION-FAILURES.md."
+ },
+ {
+  "repo": "Suhaib3100/online-compiler",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml",
+    "bun.lockb"
+   ],
+   "stripeRange": "^15.12.0",
+   "mismatch": "prisma ^5.20.0 vs ^5.17.0 (5.17.0)",
+   "ci": "none",
+   "deploy": "none",
+   "otherLockfile": "bun.lockb (same commit)"
+  },
+  "classification": "correct-refusal",
+  "why": "prisma ^5.20.0 in package.json vs specifier ^5.17.0 locked at 5.17.0 (does not satisfy). bun.lockb was committed in the same initial commit, so which manager is real is ambiguous."
+ },
+ {
+  "repo": "DataRohit/Quill-Document-Chat",
+  "group": "workspace-out-of-space",
+  "facts": {
+   "rootLockfiles": [
+    "yarn.lock"
+   ],
+   "stripeRange": "^15.8.0",
+   "lockfileVersion": "1",
+   "packageRecords": 878,
+   "heavyPackages": [
+    "@prisma/client",
+    "@prisma/engines",
+    "canvas",
+    "langchain",
+    "next",
+    "pdfjs-dist",
+    "prisma",
+    "typescript",
+    "@langchain/*",
+    "@next/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 5,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 570,
+    "files": 49945,
+    "tarEstimateMiB": 607,
+    "yarnCacheAllPlatformsMiB": 1477,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@14.2.3",
+      150
+     ],
+     [
+      "next@14.2.3",
+      82
+     ],
+     [
+      "pdf-parse@1.1.1",
+      32
+     ],
+     [
+      "pdfjs-dist@3.11.174",
+      31
+     ],
+     [
+      "typescript@5.4.5",
+      31
+     ],
+     [
+      "lucide-react@0.379.0",
+      22
+     ],
+     [
+      "date-fns@3.6.0",
+      21
+     ],
+     [
+      "effect@3.2.5",
+      16
+     ]
+    ]
+   },
+   "change": "Yarn 1 cache outside the archived workspace or a 4 GiB Yarn-1-only preparation workspace"
+  },
+  "classification": "buildable",
+  "why": "Installed tree (~500-750 MiB) fits the 1 GiB archive; Yarn 1 keeps an unpacked cache of every package for every platform (1.4-2.0 GiB estimated) in the same 2 GiB tmpfs. Matches the open owner decision in docs/PREPARATION-FAILURES.md."
+ },
+ {
+  "repo": "devczero/vid-analyzer-saas",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^17.7.0",
+   "mismatch": "youtube-transcript only in lock",
+   "ci": "none",
+   "deploy": "vercel.json without installCommand (Vercel default npm install would rewrite the lock)"
+  },
+  "classification": "correct-refusal",
+  "why": "youtube-transcript ^1.2.1 is still in the lock but was removed from package.json; npm ci refuses this too. Pruning the lock would mean regenerating it."
+ },
+ {
+  "repo": "mageshyt/Nextjs-saas-starter",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lockb"
+   ],
+   "stripeRange": "^17.5.0"
+  },
+  "classification": "out-of-scope",
+  "why": "Only Bun's binary bun.lockb is committed; Refit cannot read or verify it without the Bun toolchain."
+ },
+ {
+  "repo": "suzushi-tw/celestialpdf",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^13.9.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "VishalRaut2106/HackMate_AI",
+  "group": "conflicting-lockfiles",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json",
+    "pnpm-lock.yaml"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/pr-check.yml"
+   ],
+   "stripeRange": "^17.7.0",
+   "lockfiles": {
+    "package-lock.json": "2026-02-01, in sync",
+    "pnpm-lock.yaml": "2026-02-01, empty stub"
+   },
+   "ciManager": "npm ci",
+   "change": "ignore a pnpm-lock.yaml that has no importers or packages"
+  },
+  "classification": "buildable",
+  "why": "pnpm-lock.yaml is an empty stub (lockfileVersion 9.0 with settings only, no importers or packages). package-lock.json v3 matches package.json exactly and the only CI workflow (pr-check.yml) runs npm ci with cache npm."
+ },
+ {
+  "repo": "Yosef-Ali/compasstio-ai",
+  "group": "conflicting-lockfiles",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json",
+    "yarn.lock"
+   ],
+   "stripeRange": "^14.21.0",
+   "lockfiles": {
+    "package-lock.json": "stale",
+    "yarn.lock": "matches manifest"
+   },
+   "ciManager": "none"
+  },
+  "classification": "correct-refusal",
+  "why": "Both lockfiles were last changed in the same commit (2025-03-30). package-lock.json is stale (@blocknote/core and react ^0.8.0 vs ^0.26.0 in package.json); yarn.lock (v1) has an entry for every declared range. No packageManager field, no CI. Choosing yarn because it happens to match is inference, not a declared manager."
+ },
+ {
+  "repo": "Addisu87/digital-marketplace",
+  "group": "workspace-out-of-space",
+  "facts": {
+   "rootLockfiles": [
+    "yarn.lock"
+   ],
+   "stripeRange": "^14.22.0",
+   "lockfileVersion": "1",
+   "packageRecords": 1302,
+   "heavyPackages": [
+    "@swc/core",
+    "monaco-editor",
+    "next",
+    "payload",
+    "sharp",
+    "typescript",
+    "@aws-sdk/*",
+    "@payloadcms/*",
+    "@vercel/*",
+    "@next/* (1)",
+    "@swc/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 10,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 647,
+    "files": 59211,
+    "tarEstimateMiB": 691,
+    "yarnCacheAllPlatformsMiB": 1883,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@14.2.3",
+      150
+     ],
+     [
+      "next@14.2.3",
+      82
+     ],
+     [
+      "monaco-editor@0.38.0",
+      82
+     ],
+     [
+      "@swc/core-linux-x64-musl@1.3.107",
+      53
+     ],
+     [
+      "typescript@5.4.5",
+      31
+     ],
+     [
+      "lucide-react@0.356.0",
+      22
+     ],
+     [
+      "date-fns@3.6.0",
+      21
+     ],
+     [
+      "prettier@2.8.8",
+      11
+     ]
+    ]
+   },
+   "change": "Yarn 1 cache outside the archived workspace or a 4 GiB Yarn-1-only preparation workspace"
+  },
+  "classification": "buildable",
+  "why": "Installed tree (~500-750 MiB) fits the 1 GiB archive; Yarn 1 keeps an unpacked cache of every package for every platform (1.4-2.0 GiB estimated) in the same 2 GiB tmpfs. Matches the open owner decision in docs/PREPARATION-FAILURES.md."
+ },
+ {
+  "repo": "Alex-Unnippillil/share-house-portal",
+  "group": "conflicting-lockfiles",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json",
+    "pnpm-lock.yaml"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/css-size.yml",
+    ".github/workflows/lighthouse-ci.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "packageManagerField": "pnpm@10.18.3",
+   "stripeRange": "16.6.0",
+   "lockfiles": {
+    "pnpm-lock.yaml": "2026-02-22, in sync",
+    "package-lock.json": "2025-12-21, stale"
+   },
+   "ciManager": "pnpm install --frozen-lockfile",
+   "change": "when packageManager names one manager and CI agrees, use its lockfile and ignore the other"
+  },
+  "classification": "buildable",
+  "why": "packageManager \"pnpm@10.18.3\", pnpm-workspace.yaml, and every CI workflow uses pnpm/action-setup + pnpm install --frozen-lockfile. pnpm-lock.yaml (2026-02-22) matches all 81 root specifiers; package-lock.json (2025-12-21) is stale (missing pg, jsdom, @playwright/test...)."
+ },
+ {
+  "repo": "bichsonnhat/cognito",
+  "group": "submodule",
+  "facts": {
+   "rootLockfiles": [
+    "yarn.lock"
+   ],
+   "gitlinks": [
+    "server/facefusion"
+   ],
+   "stripeRange": "^18.0.0",
+   "yarnRangesMissing": [],
+   "stripeImporters": [
+    "lib/stripe.ts",
+    "app/api/webhook/route.ts"
+   ],
+   "submodule": "server/facefusion",
+   "gitmodules": null,
+   "change": "treat a gitlink with no .gitmodules entry as the empty directory a clone produces"
+  },
+  "classification": "buildable",
+  "why": "The gitlink server/facefusion has no .gitmodules at all (no URL), so every clone, CI run and deploy already sees an empty directory. Nothing in tsconfig, package.json scripts or Stripe-importing files references it. A nested clone of the Python facefusion tool; tsconfig include **/*.ts would be empty there."
+ },
+ {
+  "repo": "eka0789/evofuture",
+  "group": "submodule",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/codeql.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "gitlinks": [
+    "mobile"
+   ],
+   "stripeRange": "^20.4.0",
+   "stripeImporters": [
+    "lib/stripe.ts",
+    "app/api/webhooks/stripe/route.ts"
+   ],
+   "submodule": "mobile",
+   "gitmodules": null,
+   "nextBlocker": "lockfile-out-of-sync"
+  },
+  "classification": "correct-refusal",
+  "why": "The gitlink \"mobile\" has no .gitmodules (safe to treat as empty), but package-lock.json is also out of sync (socket.io and socket.io-client locked, not declared), so preparation would stop at lockfile-out-of-sync next."
+ },
+ {
+  "repo": "Eziox-Development/eziox-web",
+  "group": "source-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json",
+    "bun.lock"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^20.3.1",
+   "nextBlocker": "conflicting/stale lockfiles (Bun)"
+  },
+  "classification": "out-of-scope",
+  "why": "61.8 MiB, 37.9 MiB of TTF fonts and 9 MiB of GIFs under public/. Behind the size stop: bun.lock (2026-02-22) is the live lockfile; package-lock.json (2026-02-10) is stale (stripe ^20.3.1 vs ^20.2.0 and ~40 more), so preparation needs Bun."
+ },
+ {
+  "repo": "tejashVaishnav/Fast-saas-next.js-boilerplate",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^16.1.0",
+   "lockfileVersion": 3,
+   "packageRecords": 931,
+   "heavyPackages": [
+    "@prisma/client",
+    "@prisma/engines",
+    "@swc/core",
+    "esbuild",
+    "next",
+    "prisma",
+    "typescript",
+    "@esbuild/* (23)",
+    "@next/* (1)",
+    "@swc/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 24,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1056,
+    "files": 43560,
+    "tarEstimateMiB": 1088,
+    "tarEstimateAfterLibcPruneMiB": 803,
+    "top": [
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      150
+     ],
+     [
+      "node_modules/react-email/node_modules/@next/swc-linux-x64-musl",
+      138
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      125
+     ],
+     [
+      "node_modules/react-email/node_modules/@next/swc-linux-x64-gnu",
+      115
+     ],
+     [
+      "node_modules/react-email/node_modules/next",
+      82
+     ],
+     [
+      "node_modules/next",
+      82
+     ],
+     [
+      "node_modules/@swc/core-linux-x64-musl",
+      54
+     ],
+     [
+      "node_modules/@swc/core-linux-x64-gnu",
+      45
+     ]
+    ]
+   },
+   "change": "prune glibc-only optional binaries after npm ci on the musl image"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); dropping installed optional packages whose package.json libc excludes musl (they cannot load on Alpine) brings the estimated tar under 1 GiB. Otherwise the existing REFIT_VALIDATION_WORKSPACE=4g profile."
+ },
+ {
+  "repo": "pretzelai/lumen",
+  "group": "stripe-outside-root-package",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lock"
+   ],
+   "nestedLockfiles": [
+    "packages/better-auth/package-lock.json",
+    "packages/cli/package-lock.json",
+    "packages/react/package-lock.json",
+    "packages/server/package-lock.json"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "workspaces": [
+    "api",
+    "ui",
+    "common"
+   ],
+   "stripePackage": "ui/package.json",
+   "rootLockCovers": "bun.lock only"
+  },
+  "classification": "out-of-scope",
+  "why": "Root package.json has workspaces [api, ui, common] and only bun.lock at the root; stripe ^17.7.0 is declared in ui/package.json and resolved through the Bun workspace. No npm/pnpm/yarn lock covers it."
+ },
+ {
+  "repo": "nishantharkut/Uproot.AI",
+  "group": "non-registry-source",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^19.2.0",
+   "stripeImporters": [
+    "src/lib/stripe.js"
+   ],
+   "specifier": "file-saver@codeload.github.com tarball via jspdf@1.5.3",
+   "importedByStripeCode": false
+  },
+  "classification": "correct-refusal",
+  "why": "Transitive: jspdf@1.5.3 depends on file-saver from https://codeload.github.com/eligrey/FileSaver.js/tar.gz/e865e37 with no registry integrity (codeload archives are generated on demand). Only src/lib/stripe.js imports stripe and it imports nothing else. Customer fix: upgrade jspdf."
+ },
+ {
+  "repo": "r0ld3x/DocTalk",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^14.22.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "removisionscodefindersplatform-art/RemoVisions-Code-Finders-Platform",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^14.0.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "RescuePC/Donation-Link",
+  "group": "submodule",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "gitlinks": [
+    "Donation-Link-Clean"
+   ],
+   "stripeRange": "^17.4.0",
+   "stripeImporters": [
+    "server.js"
+   ],
+   "submodule": "Donation-Link-Clean",
+   "gitmodules": null,
+   "change": "treat a gitlink with no .gitmodules entry as the empty directory a clone produces"
+  },
+  "classification": "buildable",
+  "why": "The gitlink Donation-Link-Clean has no .gitmodules at all (no URL), so every clone, CI run and deploy already sees an empty directory. Nothing in tsconfig, package.json scripts or Stripe-importing files references it. Two-file Express app; lock in sync."
+ },
+ {
+  "repo": "rishabhsingroha/MusicListeningPlatform",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lockb"
+   ],
+   "nestedLockfiles": [
+    "spotify-clone/package-lock.json"
+   ],
+   "stripeRange": "^17.5.0"
+  },
+  "classification": "out-of-scope",
+  "why": "Only Bun's binary bun.lockb is committed; Refit cannot read or verify it without the Bun toolchain. Nested lockfiles do not declare stripe."
+ },
+ {
+  "repo": "Seann-Michael/Local-GMB-Booster",
+  "group": "lockfile-integrity",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "nestedLockfiles": [
+    "mobile/package-lock.json"
+   ],
+   "stripeRange": "^12.10.0",
+   "stripeImporters": [
+    "server/lib/stripe.ts",
+    "server/routes/billing.ts"
+   ],
+   "recordsWithoutIntegrity": 368,
+   "stripeLocked": false
+  },
+  "classification": "correct-refusal",
+  "why": "368 of 772 records lack resolved and integrity, including stripe and express themselves (server/lib/stripe.ts, server/routes/billing.ts). Refit would install an unverified Stripe SDK."
+ },
+ {
+  "repo": "shagunmistry/FlowCraft",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^14.23.0",
+   "lockfileVersion": "9.0",
+   "packageRecords": 1225,
+   "heavyPackages": [
+    "esbuild",
+    "lightningcss",
+    "lightningcss-*",
+    "next",
+    "puppeteer",
+    "puppeteer-core",
+    "sharp",
+    "typescript",
+    "@vercel/*",
+    "@esbuild/* (26)",
+    "@img/* (3)",
+    "@napi-rs/* (1)",
+    "@next/* (1)",
+    "@unrs/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 50,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 923,
+    "files": 69640,
+    "tarEstimateMiB": 974,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@15.5.15",
+      136
+     ],
+     [
+      "next@15.5.15",
+      133
+     ],
+     [
+      "mermaid@11.14.0",
+      72
+     ],
+     [
+      "@mermaid-js/mermaid-zenuml@0.2.2",
+      43
+     ],
+     [
+      "typescript@5.1.6",
+      38
+     ],
+     [
+      "jspdf@4.2.1",
+      29
+     ],
+     [
+      "lucide-react@0.469.0",
+      27
+     ],
+     [
+      "lottie-web@5.13.0",
+      24
+     ]
+    ]
+   },
+   "change": "4g profile"
+  },
+  "classification": "buildable",
+  "why": "pnpm already filters libc; the tree is genuinely ~1-1.4 GiB (get2cracked and clack carry two Next copies via react-email@2 and @vercel/analytics/novel peers; niore carries googleapis ~200 MiB). Fits only the existing 4g profile."
+ },
+ {
+  "repo": "Shefaul-22/AgriFlow",
+  "group": "source-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^22.1.1",
+   "change": "raise the source archive limit to ~100 MiB or leave binary media out of the archive"
+  },
+  "classification": "buildable",
+  "why": "73.3 MiB total, 72.6 MiB of it JPEGs (the same 10.4 MiB flower.jpg three times, fertilizer.jpg seven times in public/uploads). Lock in sync."
+ },
+ {
+  "repo": "TN0123/Schematic",
+  "group": "non-registry-source",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^19.1.0",
+   "stripeImporters": [
+    "src/app/api/stripe/webhook/route.ts",
+    "src/app/api/stripe/create-portal/route.ts",
+    "src/app/api/stripe/create-checkout/route.ts",
+    "src/app/api/stripe/sync-subscription/route.ts",
+    "src/lib/subscription.ts"
+   ],
+   "specifier": "@electron/node-gyp git+ssh (transitive, electron tooling)",
+   "importedByStripeCode": false
+  },
+  "classification": "correct-refusal",
+  "why": "node_modules/@electron/node-gyp resolved from git+ssh://git@github.com/electron/node-gyp.git#06b29aa (integrity present, but fetching needs SSH to GitHub and git-packed tarballs are not byte-stable). Electron build tooling only; Stripe routes import next/server, next-auth, stripe."
+ },
+ {
+  "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+  "group": "no-lockfile",
+  "facts": {
+   "ciWorkflows": [
+    ".github/workflows/ci.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^14.12.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "yassine-ahmed/MyBusinessWebsite",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^17.2.1",
+   "lockfileVersion": 3,
+   "packageRecords": 607,
+   "heavyPackages": [
+    "esbuild",
+    "next",
+    "typescript",
+    "@esbuild/* (24)",
+    "@next/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 20,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1046,
+    "files": 36032,
+    "tarEstimateMiB": 1073,
+    "tarEstimateAfterLibcPruneMiB": 822,
+    "top": [
+     [
+      "node_modules/react-email/node_modules/@next/swc-linux-x64-musl",
+      150
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      150
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      125
+     ],
+     [
+      "node_modules/react-email/node_modules/@next/swc-linux-x64-gnu",
+      125
+     ],
+     [
+      "node_modules/react-email",
+      124
+     ],
+     [
+      "node_modules/next",
+      82
+     ],
+     [
+      "node_modules/react-email/node_modules/next",
+      82
+     ],
+     [
+      "node_modules/lucide-react",
+      23
+     ]
+    ]
+   },
+   "change": "prune glibc-only optional binaries after npm ci on the musl image"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); dropping installed optional packages whose package.json libc excludes musl (they cannot load on Alpine) brings the estimated tar under 1 GiB. Otherwise the existing REFIT_VALIDATION_WORKSPACE=4g profile."
+ },
+ {
+  "repo": "yuens1002/artisan-roast",
+  "group": "non-registry-source",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/build-safe-main.yml",
+    ".github/workflows/copilot-review.yml",
+    ".github/workflows/e2e-nightly.yml",
+    ".github/workflows/install-matrix.yml",
+    ".github/workflows/install-test.yml",
+    ".github/workflows/plans-capture-nightly.yml",
+    ".github/workflows/qa-nightly.yml",
+    ".github/workflows/spec-drift.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^20.3.1",
+   "stripeImporters": [
+    "lib/services/stripe.ts",
+    "lib/payments/stripe/stripe-helpers.ts",
+    "app/api/admin/settings/stripe/route.ts",
+    "lib/payments/stripe/parse.ts",
+    "lib/payments/stripe/types.ts",
+    "lib/payments/stripe/adapter.ts"
+   ],
+   "specifier": "github:yuens1002/artisan-roast-sdk#v0.6.2",
+   "importedByStripeCode": false
+  },
+  "classification": "correct-refusal",
+  "why": "artisan-roast-sdk: \"github:yuens1002/artisan-roast-sdk#v0.6.2\", locked as git+ssh ...#754c91e without integrity. The SDK repo is public, but a tag/commit fetched over git has no lockfile integrity to verify. Stripe files (lib/payments/stripe/*, webhook handlers) import only next/server, stripe, zod."
+ },
+ {
+  "repo": "aabhiyann/talkifydocs",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/deploy.yml",
+    ".github/workflows/lighthouse.yml"
+   ],
+   "stripeRange": "^14.12.0",
+   "lockfileVersion": 3,
+   "packageRecords": 1279,
+   "heavyPackages": [
+    "@playwright/test",
+    "@prisma/client",
+    "@prisma/engines",
+    "next",
+    "pdfjs-dist",
+    "playwright",
+    "playwright-core",
+    "prisma",
+    "sharp",
+    "typescript",
+    "@langchain/*",
+    "@opentelemetry/*",
+    "@sentry/*",
+    "@vercel/*",
+    "@img/* (3)",
+    "@napi-rs/* (3)",
+    "@next/* (1)",
+    "@rollup/* (3)",
+    "@unrs/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 40,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1061,
+    "files": 80237,
+    "tarEstimateMiB": 1120,
+    "tarEstimateAfterLibcPruneMiB": 928,
+    "top": [
+     [
+      "node_modules/next",
+      147
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      124
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      124
+     ],
+     [
+      "node_modules/pdfjs-dist",
+      35
+     ],
+     [
+      "node_modules/@napi-rs/canvas-linux-x64-gnu",
+      31
+     ],
+     [
+      "node_modules/@napi-rs/canvas-linux-x64-musl",
+      29
+     ],
+     [
+      "node_modules/pdf-parse",
+      27
+     ],
+     [
+      "node_modules/typescript",
+      23
+     ]
+    ]
+   },
+   "change": "prune glibc-only optional binaries after npm ci on the musl image"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); dropping installed optional packages whose package.json libc excludes musl (they cannot load on Alpine) brings the estimated tar under 1 GiB. Otherwise the existing REFIT_VALIDATION_WORKSPACE=4g profile."
+ },
+ {
+  "repo": "adamhitzger/financehb",
+  "group": "workspace-out-of-space",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^16.12.0",
+   "lockfileVersion": 3,
+   "packageRecords": 2185,
+   "heavyPackages": [
+    "esbuild",
+    "lightningcss",
+    "lightningcss-*",
+    "next",
+    "sharp",
+    "typescript",
+    "@aws-sdk/*",
+    "@opentelemetry/*",
+    "@sentry/*",
+    "@vercel/*",
+    "@esbuild/* (26)",
+    "@img/* (3)",
+    "@napi-rs/* (1)",
+    "@next/* (1)",
+    "@rollup/* (2)",
+    "@tailwindcss/* (2)",
+    "@unrs/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 71,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1352,
+    "files": 108685,
+    "tarEstimateMiB": 1432,
+    "tarEstimateAfterLibcPruneMiB": 1268,
+    "top": [
+     [
+      "node_modules/next",
+      133
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      131
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      131
+     ],
+     [
+      "node_modules/@vercel/node/node_modules/typescript",
+      64
+     ],
+     [
+      "node_modules/mapbox-gl",
+      55
+     ],
+     [
+      "node_modules/@tabler/icons-react",
+      44
+     ],
+     [
+      "node_modules/sanity",
+      36
+     ],
+     [
+      "node_modules/hls.js",
+      24
+     ]
+    ]
+   },
+   "change": "4g profile"
+  },
+  "classification": "buildable",
+  "why": "node_modules alone is ~1.4-1.6 GiB estimated (above the 1 GiB archive even after a libc prune), plus the npm cache in the same tmpfs. Fits only the existing 4g profile."
+ },
+ {
+  "repo": "aionarae/amazon-beta",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^16.6.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "Amarnath0077/industrialstore-main",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^22.1.1",
+   "mismatch": "@vercel/node ^5.0.0 missing from lock",
+   "ci": "none",
+   "deploy": "vercel.json (rewrites only; Vercel default npm install)"
+  },
+  "classification": "correct-refusal",
+  "why": "@vercel/node ^5.0.0 declared but absent from the lock (no version to install without resolving). Not used by the Stripe code path, but required for the repo's own tsc --noEmit check."
+ },
+ {
+  "repo": "App-4-Dat-LLC/LandLORDER-rp",
+  "group": "unsupported-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "nestedLockfiles": [
+    "landlorder-web/package-lock.json",
+    "landlorder/package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/webpack.yml"
+   ],
+   "stripeRange": "^14.15.0",
+   "subprojectWithLock": "landlorder/package-lock.json"
+  },
+  "classification": "correct-refusal",
+  "why": "Root package-lock.json is a 95-byte stub named \"desktop-tutorial\" with \"packages\": {} while root package.json declares stripe ^14.15.0 (root stripe-service.js uses it). CI runs npm install, never npm ci. landlorder/ has a real v3 lock (265 records, stripe 14.25.0) that a subdirectory root could prepare."
+ },
+ {
+  "repo": "Ardione321/prep-ai",
+  "group": "no-lockfile",
+  "facts": {
+   "rootLockfiles": [
+    "bun.lock"
+   ],
+   "stripeRange": "^17.7.0",
+   "change": "support Bun text lockfiles (bun install --frozen-lockfile --ignore-scripts against registry.npmjs.org)"
+  },
+  "classification": "buildable",
+  "why": "No npm/pnpm/yarn lockfile, but a Bun text lockfile (bun.lock v1) with sha512 integrity for registry packages, including stripe. Bun is the manager."
+ },
+ {
+  "repo": "brehanderson-cloud/launchpadpoint-website",
+  "group": "no-lockfile",
+  "facts": {
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^15.0.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "Chivo1530/CHIVITO-AI-DEV",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^18.3.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "inventashif/hackerai",
+  "group": "unsupported-pnpm-settings",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "nestedLockfiles": [
+    "packages/local/pnpm-lock.yaml"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/desktop-build.yml",
+    ".github/workflows/desktop-promote.yml",
+    ".github/workflows/docker-sandbox.yml",
+    ".github/workflows/test.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "packageManagerField": "pnpm@10.33.2",
+   "stripeRange": "22.4.0",
+   "stripeImporters": [
+    "app/api/stripe.ts",
+    "lib/billing/fraud-refund.ts",
+    "app/api/team/seats/route.ts",
+    "convex/supportFraudActions.ts",
+    "app/api/fraud/webhook/route.ts",
+    "scripts/attach-failing-card.ts"
+   ],
+   "change": "allow pnpm patchedDependencies when each patch file is committed and its hash matches the lockfile"
+  },
+  "classification": "buildable",
+  "why": "package.json pnpm.patchedDependencies applies three committed patches (ai@6.0.200, @workos-inc/authkit-nextjs@4.2.0, brace-expansion@5.0.9) whose SHA-256 hashes are recorded in pnpm-lock.yaml; plus pnpm.overrides (recorded in the lock) and minimumReleaseAgeExclude. None of the patched packages is imported by the Stripe files (app/api/stripe.ts etc. import stripe, @workos-inc/node, next/server). Importer matches package.json."
+ },
+ {
+  "repo": "CRONANANI/EzanaFinance3",
+  "group": "source-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "nestedLockfiles": [
+    "app-legacy/package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/claude-review.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/eyes-worker.yml",
+    ".github/workflows/lighthouse-worker.yml",
+    ".github/workflows/security-audit.yml"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^20.4.1",
+   "change": "raise the limit to ~100 MiB or leave binary media out"
+  },
+  "classification": "buildable",
+  "why": "53.6 MiB total: 21.7 MiB PNG, plus app-legacy/ (8.4 MiB) duplicating assets. Lock in sync."
+ },
+ {
+  "repo": "Evolvededen/niore-platform",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/deploy.yml"
+   ],
+   "stripeRange": "^22.0.2",
+   "lockfileVersion": "9.0",
+   "packageRecords": 1124,
+   "heavyPackages": [
+    "googleapis",
+    "lightningcss",
+    "lightningcss-*",
+    "next",
+    "sharp",
+    "typescript",
+    "@opentelemetry/*",
+    "@sentry/*",
+    "@vercel/*",
+    "@img/* (3)",
+    "@napi-rs/* (1)",
+    "@next/* (1)",
+    "@rollup/* (3)",
+    "@unrs/* (2)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 49,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1006,
+    "files": 63146,
+    "tarEstimateMiB": 1052,
+    "top": [
+     [
+      "googleapis@173.0.0",
+      198
+     ],
+     [
+      "next@16.2.10",
+      148
+     ],
+     [
+      "@next/swc-linux-x64-musl@16.2.10",
+      124
+     ],
+     [
+      "mermaid@11.15.0",
+      73
+     ],
+     [
+      "lucide-react@0.542.0",
+      34
+     ],
+     [
+      "typescript@5.9.3",
+      23
+     ],
+     [
+      "@rolldown/binding-linux-x64-musl@1.0.3",
+      21
+     ],
+     [
+      "@sentry/cli-linux-x64@2.58.6",
+      20
+     ]
+    ]
+   },
+   "change": "4g profile"
+  },
+  "classification": "buildable",
+  "why": "pnpm already filters libc; the tree is genuinely ~1-1.4 GiB (get2cracked and clack carry two Next copies via react-email@2 and @vercel/analytics/novel peers; niore carries googleapis ~200 MiB). Fits only the existing 4g profile."
+ },
+ {
+  "repo": "RISHIE2006/Signl",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "ciWorkflows": [
+    ".github/workflows/ci-cd.yml"
+   ],
+   "deployConfig": [
+    "netlify.toml"
+   ],
+   "stripeRange": "^22.2.2",
+   "lockfileVersion": 3,
+   "packageRecords": 644,
+   "heavyPackages": [
+    "lightningcss",
+    "lightningcss-*",
+    "monaco-editor",
+    "next",
+    "pdfjs-dist",
+    "sharp",
+    "three",
+    "typescript",
+    "@img/* (3)",
+    "@napi-rs/* (3)",
+    "@next/* (1)",
+    "@tailwindcss/* (2)",
+    "@unrs/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 38,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 996,
+    "files": 44905,
+    "tarEstimateMiB": 1029,
+    "tarEstimateAfterLibcPruneMiB": 855,
+    "top": [
+     [
+      "node_modules/next",
+      135
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-gnu",
+      112
+     ],
+     [
+      "node_modules/@next/swc-linux-x64-musl",
+      112
+     ],
+     [
+      "node_modules/monaco-editor",
+      69
+     ],
+     [
+      "node_modules/lucide-react",
+      35
+     ],
+     [
+      "node_modules/three",
+      35
+     ],
+     [
+      "node_modules/pdfjs-dist",
+      35
+     ],
+     [
+      "node_modules/@napi-rs/canvas-linux-x64-gnu",
+      30
+     ]
+    ]
+   },
+   "change": "prune glibc-only optional binaries after npm ci on the musl image"
+  },
+  "classification": "buildable",
+  "why": "Lockfile records no \"libc\" fields, so npm ci on node:22-alpine installs both glibc and musl copies of @next/swc (and @swc/core etc.); dropping installed optional packages whose package.json libc excludes musl (they cannot load on Alpine) brings the estimated tar under 1 GiB. Otherwise the existing REFIT_VALIDATION_WORKSPACE=4g profile."
+ },
+ {
+  "repo": "Miguel07Alm/text2question",
+  "group": "non-registry-source",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "stripeRange": "^18.1.0",
+   "stripeImporters": [
+    "src/lib/stripe.ts",
+    "src/app/api/stripe/webhook/route.ts"
+   ],
+   "specifier": "react@latest: link:ai/react@latest (target missing)",
+   "importedByStripeCode": false
+  },
+  "classification": "correct-refusal",
+  "why": "\"react@latest\": \"link:ai/react@latest\" points at a directory that does not exist (a mistyped pnpm add). Nothing can import a package named react@latest; the customer should delete the line. Stripe files import next/headers, next/server, stripe."
+ },
+ {
+  "repo": "ArhanAnsari/InspireGem",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json"
+   ],
+   "stripeRange": "^16.10.0",
+   "mismatch": "next 15.0.3 vs 15.0.1",
+   "ci": "none",
+   "deploy": "none"
+  },
+  "classification": "correct-refusal",
+  "why": "next 15.0.3 in package.json vs 15.0.1 locked; react root range ^18.3.1 vs lock root ^18.2.0 (installed 18.3.1 satisfies). A hand-edited pin the lock never followed."
+ },
+ {
+  "repo": "deifos/picturemeai_nextjs",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "19.2.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ },
+ {
+  "repo": "LDAWoo/webprodigies-plura",
+  "group": "lockfile-out-of-sync",
+  "facts": {
+   "rootLockfiles": [
+    "package-lock.json",
+    "bun.lockb"
+   ],
+   "stripeRange": "^14.12.0",
+   "mismatch": "stripe ^14.12.0, @stripe/react-stripe-js ^2.8.0 and 7 more missing",
+   "ci": "none",
+   "deploy": "none",
+   "otherLockfile": "bun.lockb newer"
+  },
+  "classification": "correct-refusal",
+  "why": "Nine dependencies including stripe, @stripe/stripe-js and @stripe/react-stripe-js are missing from package-lock.json (last changed 2024-08-13). bun.lockb (2024-08-23, same commit as package.json) contains them, so Bun is the real manager; its binary lockfile is unsupported."
+ },
+ {
+  "repo": "phukon/clack",
+  "group": "dependency-archive-limit",
+  "facts": {
+   "rootLockfiles": [
+    "pnpm-lock.yaml"
+   ],
+   "nestedLockfiles": [
+    "_playground/_docsApi/package-lock.json",
+    "_playground/notionIntegration/package-lock.json",
+    "clack-cloudfare-worker/package-lock.json"
+   ],
+   "deployConfig": [
+    "vercel.json"
+   ],
+   "stripeRange": "^14.20.0",
+   "lockfileVersion": "6.0",
+   "packageRecords": 1860,
+   "heavyPackages": [
+    "@prisma/client",
+    "@prisma/engines",
+    "@swc/core",
+    "esbuild",
+    "next",
+    "prisma",
+    "puppeteer-core",
+    "sharp",
+    "typescript",
+    "@vercel/*",
+    "@esbuild/* (23)",
+    "@next/* (1)",
+    "@swc/* (1)"
+   ],
+   "nonLinuxPlatformBinaryPackages": 24,
+   "sizeEstimateFromRegistryMetadata": {
+    "unpackedMiB": 1158,
+    "files": 75126,
+    "tarEstimateMiB": 1213,
+    "top": [
+     [
+      "@next/swc-linux-x64-musl@14.1.0",
+      138
+     ],
+     [
+      "@next/swc-linux-x64-musl@13.4.20-canary.15",
+      131
+     ],
+     [
+      "next@14.1.0",
+      82
+     ],
+     [
+      "react-icons@5.0.1",
+      78
+     ],
+     [
+      "typescript@4.9.5",
+      64
+     ],
+     [
+      "@swc/core-linux-x64-musl@1.4.8",
+      59
+     ],
+     [
+      "@swc/core-linux-x64-musl@1.3.101",
+      54
+     ],
+     [
+      "next@13.4.20-canary.15",
+      51
+     ]
+    ]
+   },
+   "change": "4g profile"
+  },
+  "classification": "buildable",
+  "why": "pnpm already filters libc; the tree is genuinely ~1-1.4 GiB (get2cracked and clack carry two Next copies via react-email@2 and @vercel/analytics/novel peers; niore carries googleapis ~200 MiB). Fits only the existing 4g profile."
+ },
+ {
+  "repo": "Sasu8823/Hairdresser_matching_service-backend",
+  "group": "no-lockfile",
+  "facts": {
+   "stripeRange": "^11.0.0"
+  },
+  "classification": "correct-refusal",
+  "why": "No lockfile anywhere in the tree; installing would resolve every range today, so Refit would test versions nobody committed (including the stripe SDK)."
+ }
+]

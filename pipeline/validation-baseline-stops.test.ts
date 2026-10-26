@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
+import { checkFailure, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
+import { TESTS_FAILED, TYPE_CHECK, TYPE_CHECK_STARTED } from './check-selection.ts';
 import { validateSourcePatch } from './validation.ts';
+
+const TYPE_CHECK_COMMAND = ['npx', '--no-install', 'tsc', '--noEmit'];
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -78,4 +82,121 @@ it('records no stop when the baseline fails in the code itself', async () => {
   const result = await failingChecks('FAIL src/payments.test.ts\n  expected 2 to be 3\n');
   expect(result.status).toBe('baseline-failed');
   expect(result).not.toHaveProperty('baselineStop');
+});
+
+it('names the failing baseline check and its first failure when no setup stop matches', async () => {
+  const result = await failingChecks('FAIL src/payments.test.ts\n  expected 2 to be 3\n');
+  expect(result).toMatchObject({
+    checkFailures: [
+      {
+        side: 'baseline',
+        command: 'npm test',
+        status: 'failed',
+        firstFailure: 'FAIL src/payments.test.ts',
+        reported: { passed: 0, failed: 1 },
+      },
+    ],
+  });
+  expect('checkFailures' in result && checkFailureText(result)).toBe(
+    ' The baseline check npm test fails on the original code, before any change; the first failure: FAIL src/payments.test.ts. It reported 0 passing and 1 failing.',
+  );
+});
+
+it('reports how far a suite got before the time limit stopped it', () => {
+  // beindigital-products/wedillybird's baseline in run 40077373087: `vitest run` passed 95 test
+  // files, then stopped at 120 seconds (excerpt, colours as the sandbox printed them).
+  const stdout = [
+    '> wedillybird@0.1.0 test /workspace',
+    '> vitest run',
+    '',
+    ' \u001b[32m✓\u001b[39m tests/integration/affiliate-attribution.test.ts \u001b[2m(\u001b[22m\u001b[2m28 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 522\u001b[2mms\u001b[22m\u001b[39m',
+    ' \u001b[32m✓\u001b[39m tests/unit/api/cron-entitlement-audit.test.ts \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 58\u001b[2mms\u001b[22m\u001b[39m',
+  ].join('\n');
+  const failure = checkFailure('baseline', ['pnpm', 'test'], {
+    status: 'error',
+    exitCode: null,
+    stdout,
+    stderr:
+      "Another connection wants to delete database 'wedillybird-checkin-queue'. Closing db now to resume the delete request.\n",
+    error: 'Check exceeded 120 seconds; the container was stopped.',
+  });
+  expect(failure).toEqual({
+    side: 'baseline',
+    command: 'pnpm test',
+    status: 'error',
+    error: 'Check exceeded 120 seconds; the container was stopped.',
+    reported: { passed: 2, failed: 0 },
+  });
+  expect(checkFailureText({ checkFailures: [failure!] })).toBe(
+    ' The baseline check pnpm test did not finish (Check exceeded 120 seconds; the container was stopped). Before it stopped, it reported 2 passing and 0 failing.',
+  );
+  expect(
+    checkFailure('patched', TYPE_CHECK_COMMAND, {
+      status: 'passed',
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    }),
+  ).toBeUndefined();
+});
+
+it('names the part of a tests-then-type-check chain that failed, with its own first failure', () => {
+  const command = [
+    'sh',
+    '-c',
+    `npm test || echo '${TESTS_FAILED}'; echo '${TYPE_CHECK_STARTED}'; ${TYPE_CHECK.join(' ')}`,
+    'refit-check',
+  ];
+  const check = (stdout: string) =>
+    ({ status: 'failed', exitCode: 1, stdout, stderr: '' }) as const;
+  // The type check after failing tests prints a baseline error; the tests' failure is named.
+  expect(
+    checkFailure(
+      'baseline',
+      command,
+      check(
+        `FAIL src/payments.test.ts\n${TESTS_FAILED}\n${TYPE_CHECK_STARTED}\nsrc/a.ts(3,7): error TS2322: x\n`,
+      ),
+    ),
+  ).toEqual({
+    side: 'baseline',
+    command: 'npm test',
+    part: 'tests',
+    status: 'failed',
+    firstFailure: 'FAIL src/payments.test.ts',
+    reported: { passed: 0, failed: 1 },
+  });
+  // A passing suite may log errors; the type check's failure is the first line after its start.
+  expect(
+    checkFailure(
+      'baseline',
+      command,
+      check(
+        `✓ src/payments.test.ts\nTypeError: logged by a passing test\n${TYPE_CHECK_STARTED}\nnpm error could not determine executable to run\n`,
+      ),
+    ),
+  ).toEqual({
+    side: 'baseline',
+    command: TYPE_CHECK.join(' '),
+    part: 'type check',
+    status: 'failed',
+    firstFailure: 'npm error could not determine executable to run',
+  });
+  const introduced =
+    "src/billing.ts(4,9): error TS2339: Property 'plan' does not exist on type 'Subscription'.";
+  expect(
+    checkFailure(
+      'patched',
+      command,
+      check(
+        `${INTRODUCED_TYPE_ERRORS}${introduced}\n\n✓ src/payments.test.ts\n${TYPE_CHECK_STARTED}\n${introduced}\n`,
+      ),
+    ),
+  ).toEqual({
+    side: 'patched',
+    command: TYPE_CHECK.join(' '),
+    part: 'type check',
+    status: 'failed',
+    firstFailure: introduced,
+  });
 });

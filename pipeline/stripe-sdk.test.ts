@@ -7,6 +7,7 @@ import { afterEach, expect, it } from 'vitest';
 import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { verifyArtifacts } from './verification.ts';
+import { readEvidence } from './state-files.ts';
 
 const execute = promisify(execFile);
 const fixture = resolve('pipeline/fixtures/stripe-sdk');
@@ -239,7 +240,7 @@ ${commonjs ? 'exports.chargeHistory = chargeHistory;' : ''}`;
       output: join(root, 'run'),
     });
     expect(result.manifest.status).toBe('validated');
-    const report = JSON.parse(await readFile(join(result.directory, 'report.json'), 'utf8'));
+    const report = JSON.parse((await readEvidence(result.directory, 'report.json'))!);
     expect(report.apiVersion.source.status).toBe('verified');
     expect(report.patch).toMatchObject({ generator: 'deterministic', unresolvedFindings: 0 });
     expect(report.validation).toMatchObject({

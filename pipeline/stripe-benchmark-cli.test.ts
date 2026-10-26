@@ -202,3 +202,91 @@ it('records the run, classifies clone failures, orders rows and resumes the same
     stderr: expect.stringContaining('list differ from the run it started'),
   });
 });
+
+it('needs --validate and an --env with a key and model for --behaviour-tests, before any repository runs', async () => {
+  const root = await benchmarkRoot();
+  const env = join(root, 'ai.env');
+  await writeFile(env, 'OPENAI_MODEL=gpt-6.1-sol\n');
+  const message =
+    '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.';
+  await expect(
+    run(root, join(root, 'out-a'), '--behaviour-tests', '--validate'),
+  ).rejects.toMatchObject({
+    stderr: expect.stringContaining(message),
+  });
+  await expect(
+    run(root, join(root, 'out-b'), '--behaviour-tests', '--env', env),
+  ).rejects.toMatchObject({
+    stderr: expect.stringContaining(message),
+  });
+  await expect(
+    run(root, join(root, 'out-c'), '--behaviour-tests', '--env', env, '--validate'),
+  ).rejects.toMatchObject({
+    stderr: expect.stringContaining('AI operations require OPENAI_API_KEY and OPENAI_MODEL.'),
+  });
+});
+
+it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
+  'records --behaviour-tests and its model without turning on AI patches',
+  async () => {
+    const root = await benchmarkRoot();
+    const env = join(root, 'ai.env');
+    // Never sent: no repository here reaches validation, and AI patches stay off.
+    await writeFile(env, 'OPENAI_API_KEY=unused-test-key\nOPENAI_MODEL=gpt-6.1-sol\n');
+    const output = join(root, 'out');
+    const { stderr } = await run(root, output, '--behaviour-tests', '--env', env, '--validate');
+    expect(stderr).toContain('acme/history: affected (1 usages), AI not requested');
+    const harness = await read(join(output, 'harness.json'));
+    expect(harness.options).toMatchObject({
+      'behaviour-tests': true,
+      validate: true,
+      environment: { OPENAI_MODEL: 'gpt-6.1-sol' },
+    });
+    expect(JSON.stringify(harness)).not.toContain('unused-test-key');
+    const [history] = await read(join(output, 'results.json'));
+    expect(history.ai).toBeUndefined();
+  },
+);
+
+it('needs --validate for --behaviour-tests-dry-run and refuses it beside --behaviour-tests', async () => {
+  const root = await benchmarkRoot();
+  const message = '--behaviour-tests-dry-run needs --validate and replaces --behaviour-tests.';
+  await expect(run(root, join(root, 'out-a'), '--behaviour-tests-dry-run')).rejects.toMatchObject({
+    stderr: expect.stringContaining(message),
+  });
+  const env = join(root, 'ai.env');
+  await writeFile(env, 'OPENAI_API_KEY=unused-test-key\nOPENAI_MODEL=gpt-6.1-sol\n');
+  await expect(
+    run(
+      root,
+      join(root, 'out-b'),
+      '--behaviour-tests',
+      '--behaviour-tests-dry-run',
+      '--env',
+      env,
+      '--validate',
+    ),
+  ).rejects.toMatchObject({ stderr: expect.stringContaining(message) });
+});
+
+it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
+  'accounts for every repository in a behaviour-test dry run, with no key',
+  async () => {
+    const root = await benchmarkRoot();
+    const output = join(root, 'out');
+    await run(root, output, '--behaviour-tests-dry-run', '--validate');
+    const rows = await read(join(output, 'results.json'));
+    expect(rows.map((row: Record<string, unknown>) => row.behaviourTestWriter)).toEqual([
+      {
+        status: 'dry-run',
+        wouldRun: false,
+        reason: 'There is no root lockfile that declares stripe, so validation does not run.',
+      },
+      { status: 'dry-run', wouldRun: false, reason: 'The repository could not be cloned.' },
+      { status: 'dry-run', wouldRun: false, reason: 'No Stripe method is mapped.' },
+    ]);
+    expect((await read(join(output, 'harness.json'))).options).toMatchObject({
+      'behaviour-tests-dry-run': true,
+    });
+  },
+);

@@ -1,4 +1,6 @@
 import ts from 'typescript-compiler';
+import { sourceRequests } from './source-requests.ts';
+import { sourceRows } from './source-rows.ts';
 
 // Read-only array methods: they return an element, a copy or a value, and never change the array.
 const ELEMENT_METHODS = new Set(['find', 'findLast', 'at']);
@@ -44,8 +46,10 @@ const ELEMENT_CALLBACKS = new Set([
 export function sourceLiterals(options: {
   nodes: ts.Node[];
   symbol: (node: ts.Node) => ts.Symbol | undefined;
+  // The repository path of a node's file.
+  file: (node: ts.Node) => string;
 }) {
-  const { nodes, symbol } = options;
+  const { nodes, symbol, file } = options;
   const unwrap = (node: ts.Expression): ts.Expression =>
     ts.isParenthesizedExpression(node) ||
     ts.isAsExpression(node) ||
@@ -114,7 +118,8 @@ export function sourceLiterals(options: {
           if (
             (ELEMENT_METHODS.has(outer.name.text) || COPY_METHODS.has(outer.name.text)) &&
             !accessed(call) &&
-            !returned(call)
+            !returned(call) &&
+            !(ELEMENT_METHODS.has(outer.name.text) && bound(call))
           )
             return false;
           const callback = call.arguments[0] && unwrap(call.arguments[0]);
@@ -148,6 +153,46 @@ export function sourceLiterals(options: {
       (references.get(binding) ?? []).every(
         (reference) => reference === name || accessed(reference),
       ),
+    );
+  }
+  // `const plan = isSubscribed ? PLANS.find(…) : null`: an element held by a constant that is only
+  // read through its properties or spread into a copy, like `...PLANS[0]`.
+  function bound(value: ts.Expression) {
+    let current = value;
+    for (;;) {
+      const parent = current.parent;
+      if (
+        ts.isParenthesizedExpression(parent) ||
+        ts.isNonNullExpression(parent) ||
+        ts.isAsExpression(parent) ||
+        (ts.isConditionalExpression(parent) && parent.condition !== current) ||
+        (ts.isBinaryExpression(parent) &&
+          [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+            parent.operatorToken.kind,
+          ))
+      )
+        current = parent;
+      else break;
+    }
+    const declaration = current.parent;
+    if (
+      !ts.isVariableDeclaration(declaration) ||
+      declaration.initializer !== current ||
+      !ts.isIdentifier(declaration.name) ||
+      !ts.isVariableDeclarationList(declaration.parent) ||
+      !(declaration.parent.flags & ts.NodeFlags.Const) ||
+      shorthand.has(declaration.name.text)
+    )
+      return false;
+    const binding = symbol(declaration.name);
+    return Boolean(
+      binding &&
+      (references.get(binding) ?? []).every((reference) => {
+        if (reference === declaration.name || accessed(reference)) return true;
+        let read: ts.Node = reference;
+        while (ts.isParenthesizedExpression(read.parent)) read = read.parent;
+        return ts.isSpreadAssignment(read.parent) || ts.isSpreadElement(read.parent);
+      }),
     );
   }
   // The value is returned: directly, as a conditional's branch or in a returned object literal.
@@ -409,5 +454,12 @@ export function sourceLiterals(options: {
     }
     return undefined;
   }
-  return { literalObject };
+  const rows = sourceRows({ symbol, nodes, references, shorthand });
+  const requests = sourceRequests({ symbol, nodes, references, file });
+  // Rows a database client returns are not Stripe objects either (`pipeline/source-rows.ts`), nor
+  // is what a request handler's sender posted (`pipeline/source-requests.ts`).
+  return {
+    literalObject: (expression: ts.Expression) =>
+      literalObject(expression) || rows.row(expression) || requests.value(expression),
+  };
 }

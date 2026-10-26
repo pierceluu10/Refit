@@ -167,6 +167,7 @@
     }
   ],
   "operationChanges": [],
+  "operationImpacts": [],
   "patch": {
     "generator": "deterministic",
     "summary": "Move removed Stripe field reads to their documented new locations, replace payment_method_types: ['card'] with allowed_payment_method_types, and update the pinned Stripe API version.",

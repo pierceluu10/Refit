@@ -8,6 +8,9 @@ DOCKER_READY_SECONDS=60
 # which never contain quotes or backslashes.
 log() { printf '{"time":"%s","level":"%s","message":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" >&2; }
 mkdir -p /data/docker /data/state /data/ai-budget
+# Temporary checkouts and archives live on the volume, not the 8 GB root disk; none outlives a boot.
+rm -rf /data/tmp
+mkdir -p /data/tmp
 dockerd --data-root=/data/docker >/var/log/dockerd.log 2>&1 &
 i=0
 until docker info >/dev/null 2>&1; do

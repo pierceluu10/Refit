@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname, isAbsolute, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { AiOptions } from './ai-budget.ts';
+import type { DeadlineRegistry } from './deadline-registry.ts';
 import { FlyMachinesError, type FlyMachine, type FlyMachines } from './fly-machines.ts';
 import type { GitHubAppConfiguration } from './github-app.ts';
 import { WebhookInputError } from './github-webhooks.ts';
@@ -13,6 +14,7 @@ import type { HostedReceipt, HostedTarget } from './hosted-store.ts';
 import { authorized, requestBody, respond } from './local-service.ts';
 import { readBoundedResponse } from './network.ts';
 import { RepositoryApprovalError } from './repository-enrollment.ts';
+import { INVENTORY_LIMITS, type InventoryResult } from './inventory.ts';
 import { pollServiceTarget, summarizePoll } from './service-worker.ts';
 import { isObject } from './specifications.ts';
 import { hasErrorCode } from './state-files.ts';
@@ -52,6 +54,9 @@ const JOB_PROCESS_HEAP_MB = 1536;
 // The worker's own secrets; a job never needs them.
 const WORKER_SECRETS = ['REFIT_WEBHOOK_SECRET', 'REFIT_SERVICE_TOKEN', 'FLY_API_TOKEN'];
 const JOB_PROCESS_GRACE_SECONDS = 30;
+// Between an inventory's own time cap and its SIGTERM, and again before SIGKILL: both fit in the
+// inventory lease's margin.
+const INVENTORY_PROCESS_GRACE_SECONDS = 10;
 
 export class JobChannelError extends WebhookInputError {
   override name = 'JobChannelError';
@@ -69,12 +74,29 @@ export interface JobProcessInputs {
   retry: boolean;
   repairAttempts: number;
   publishDraft: boolean;
+  publishUnresolved: boolean;
+  supersedeDrafts: boolean;
   aiPatch: boolean;
   aiTotalUsd?: number;
 }
 
-// The process asks for its job once it listens for it, reports progress, then one outcome.
-type JobProcessMessage = { ready: true } | { progress: string } | { outcome: HostedOutcome };
+// What the worker sends a forked inventory process: refreshInventory's options except the App
+// credentials, which the process reads from its environment. JSON carries no Date, so `now` is in
+// epoch milliseconds.
+export interface InventoryProcessInputs {
+  directory: string;
+  installationId: number;
+  repository: string;
+  registry: DeadlineRegistry;
+  previous: { revision: string | null; registry: string | null } | null;
+  now: number;
+}
+
+// An error is recorded as `Name: message`, as an in-process inventory's is.
+export type InventoryProcessOutcome = { result: InventoryResult } | { error: string };
+
+// A forked process asks for its inputs once it listens for them, reports progress, then one outcome.
+type ProcessMessage<Outcome> = { ready: true } | { progress: string } | { outcome: Outcome };
 
 export interface HostedOutcome {
   status: 'finished' | 'failed';
@@ -157,6 +179,8 @@ export async function runHostedTarget(options: {
   aiPatch?: AiOptions;
   repairAttempts: number;
   publishDraft?: boolean;
+  publishUnresolved?: boolean;
+  supersedeDrafts?: boolean;
   notify?: SlackSend;
   onProgress?: (message: string) => void;
 }): Promise<HostedOutcome> {
@@ -178,6 +202,8 @@ export async function runHostedTarget(options: {
       aiPatch: options.aiPatch,
       repairAttempts: options.repairAttempts,
       publishDraft: options.publishDraft,
+      publishUnresolved: options.publishUnresolved,
+      supersedeDrafts: options.supersedeDrafts,
       notify: options.notify,
       inspectReadiness: true,
       contracts: hostedContracts(options.directory),
@@ -205,39 +231,40 @@ export async function runHostedTarget(options: {
   }
 }
 
-// Runs one job in a forked `refit hosted job` process. A scan can hold the CPU for minutes; in its
-// own process it never blocks the worker's health check, webhooks or lease renewals. A stop sends
-// SIGTERM, then SIGKILL once the grace period passes.
-export async function runJobProcess(options: {
-  inputs: JobProcessInputs;
+// Forks `refit hosted <command>`, hands it `inputs` once it listens and returns the one outcome it
+// reports. A stop sends SIGTERM, then SIGKILL once the grace period passes. Throws the stop's reason,
+// or a JobProcessError when the process exits without an outcome.
+async function runProcess<Outcome>(options: {
+  command: 'job' | 'inventory';
+  inputs: object;
   signal: AbortSignal;
   onProgress?: (message: string) => void;
-  // The script forked with `hosted job`, by default the CLI.
   entry?: string | URL;
   graceSeconds?: number;
-}): Promise<HostedOutcome> {
+}): Promise<Outcome> {
   const env = { ...process.env };
   for (const name of WORKER_SECRETS) delete env[name];
-  const child = fork(options.entry ?? JOB_PROCESS_ENTRY, ['hosted', 'job'], {
+  const child = fork(options.entry ?? JOB_PROCESS_ENTRY, ['hosted', options.command], {
     env,
     execArgv: [`--max-old-space-size=${JOB_PROCESS_HEAP_MB}`],
     stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
   });
+  const label = `${options.command === 'job' ? 'Job' : 'Inventory'} process ${child.pid}`;
   // Unlike 'exit', 'close' comes after the last message.
   const closed = once(child, 'close');
-  let outcome: HostedOutcome | undefined;
-  child.on('message', (message: JobProcessMessage) => {
+  let outcome: { value: Outcome } | undefined;
+  child.on('message', (message: ProcessMessage<Outcome>) => {
     if ('ready' in message) child.send(options.inputs);
     else if ('progress' in message) options.onProgress?.(message.progress);
-    // After a stop the worker's reason is the receipt, as for an in-process job.
-    else if (!options.signal.aborted) outcome = message.outcome;
+    // After a stop the worker's reason is the outcome, as in process.
+    else if (!options.signal.aborted) outcome = { value: message.outcome };
   });
   const grace = options.graceSeconds ?? JOB_PROCESS_GRACE_SECONDS;
   let kill: NodeJS.Timeout | undefined;
   const stop = () => {
     child.kill('SIGTERM');
     kill = setTimeout(() => {
-      options.onProgress?.(`Job process ${child.pid} did not stop within ${grace} s; killing it.`);
+      options.onProgress?.(`${label} did not stop within ${grace} s; killing it.`);
       child.kill('SIGKILL');
     }, grace * MILLISECONDS_PER_SECOND);
   };
@@ -245,16 +272,13 @@ export async function runJobProcess(options: {
   else options.signal.addEventListener('abort', stop, { once: true });
   try {
     const [code, signal] = (await closed) as [number | null, NodeJS.Signals | null];
-    if (outcome) return outcome;
+    if (outcome) return outcome.value;
     const { reason } = options.signal;
-    return failedOutcome(
-      options.signal.aborted && reason instanceof Error
-        ? reason
-        : new JobProcessError(
-            `Job process ${child.pid} exited with ${signal ?? `code ${code}`} before reporting an outcome.`,
-          ),
-      options.signal.aborted,
-    );
+    throw options.signal.aborted && reason instanceof Error
+      ? reason
+      : new JobProcessError(
+          `${label} exited with ${signal ?? `code ${code}`} before reporting an outcome.`,
+        );
   } finally {
     clearTimeout(kill);
     options.signal.removeEventListener('abort', stop);
@@ -263,39 +287,100 @@ export async function runJobProcess(options: {
   }
 }
 
-// The forked process's side of runJobProcess: it takes one job over IPC, runs it with `run` and
-// reports back. SIGTERM stops the job. The process exits when the channel closes: after its report,
-// or when the worker is gone and nothing could store the outcome.
-export async function runForkedJob(
+// Runs one job in a forked `refit hosted job` process. A scan can hold the CPU for minutes; in its
+// own process it never blocks the worker's health check, webhooks or lease renewals.
+export async function runJobProcess(options: {
+  inputs: JobProcessInputs;
+  signal: AbortSignal;
+  onProgress?: (message: string) => void;
+  // The script forked with `hosted job`, by default the CLI.
+  entry?: string | URL;
+  graceSeconds?: number;
+}): Promise<HostedOutcome> {
+  try {
+    return await runProcess<HostedOutcome>({ command: 'job', ...options });
+  } catch (error) {
+    if (!(error instanceof Error)) throw error;
+    return failedOutcome(error, options.signal.aborted);
+  }
+}
+
+// Runs one inventory in a forked `refit hosted inventory` process, for the same reason as a job: its
+// TypeScript analysis can hold the CPU for minutes, where its own time cap never fires. The worker
+// stops the process `graceSeconds` after the cap and kills it as long again later, so a stuck
+// inventory ends with an error well within its lease. Throws only when `signal` stops it.
+export async function runInventoryProcess(options: {
+  inputs: InventoryProcessInputs;
+  signal: AbortSignal;
+  onProgress?: (message: string) => void;
+  // The script forked with `hosted inventory`, by default the CLI.
+  entry?: string | URL;
+  seconds?: number;
+  graceSeconds?: number;
+}): Promise<InventoryProcessOutcome> {
+  const seconds = options.seconds ?? INVENTORY_LIMITS.seconds;
+  const grace = options.graceSeconds ?? INVENTORY_PROCESS_GRACE_SECONDS;
+  const cap = new AbortController();
+  const timer = setTimeout(
+    () =>
+      cap.abort(
+        new JobProcessError(
+          `Inventory took longer than ${seconds} seconds and did not stop by itself; its process was stopped.`,
+        ),
+      ),
+    (seconds + grace) * MILLISECONDS_PER_SECOND,
+  );
+  try {
+    return await runProcess<InventoryProcessOutcome>({
+      command: 'inventory',
+      inputs: options.inputs,
+      signal: AbortSignal.any([options.signal, cap.signal]),
+      onProgress: options.onProgress,
+      entry: options.entry,
+      graceSeconds: grace,
+    });
+  } catch (error) {
+    if (!(error instanceof Error) || options.signal.aborted) throw error;
+    return { error: `${error.name}: ${error.message}` };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// The forked process's side of runProcess: it takes its inputs over IPC, runs `run` and reports
+// back, turning an error into an outcome with `failed`. SIGTERM stops it. The process exits when the
+// channel closes: after its report, or when the worker is gone and nothing could store the outcome.
+export async function runForkedProcess<Inputs, Outcome>(
   run: (
-    inputs: JobProcessInputs,
+    inputs: Inputs,
     signal: AbortSignal,
     onProgress: (message: string) => void,
-  ) => Promise<HostedOutcome>,
+  ) => Promise<Outcome>,
+  failed: (error: Error, aborted: boolean) => Outcome,
 ) {
   if (!process.send || !process.disconnect)
     throw new JobProcessError(
-      'refit hosted job has no IPC channel; serve --job-processes forks it.',
+      'refit hosted job and inventory have no IPC channel; serve --job-processes forks them.',
     );
   const channel = process.send.bind(process);
   const disconnect = process.disconnect.bind(process);
-  const send = (message: JobProcessMessage) =>
+  const send = (message: ProcessMessage<Outcome>) =>
     new Promise<void>((resolve, reject) =>
       channel(message, undefined, undefined, (error) => (error ? reject(error) : resolve())),
     );
   const controller = new AbortController();
-  // Fly may signal the whole process group; when a job stops is the worker's decision.
+  // Fly may signal the whole process group; when a process stops is the worker's decision.
   process.on('SIGINT', () => undefined);
   process.once('SIGTERM', () => controller.abort());
   process.once('disconnect', () => process.exit());
-  const received = once(process, 'message') as Promise<[JobProcessInputs]>;
+  const received = once(process, 'message') as Promise<[Inputs]>;
   await send({ ready: true });
   const [inputs] = await received;
-  // A configuration error fails the job with its own message, not as an early exit.
+  // A configuration error fails the work with its own message, not as an early exit.
   const outcome = await run(inputs, controller.signal, (progress) => void send({ progress })).catch(
     (error: unknown) => {
       if (!(error instanceof Error)) throw error;
-      return failedOutcome(error, controller.signal.aborted);
+      return failed(error, controller.signal.aborted);
     },
   );
   await send({ outcome });

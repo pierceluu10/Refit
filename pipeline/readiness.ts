@@ -1,16 +1,24 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
+import { declaresVersion } from './api-version.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { resolveDockerImage } from './docker-sandbox.ts';
 import { readPreparationInputs } from './dependency-inputs.ts';
+import { committedFiles, packageSnapshot, sdkPackageDirectory } from './preparation-packages.ts';
 import { preparationStop } from './preparation-stops.ts';
 import type { BreakingOperationImpact } from './provider-operations.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { runPipeline } from './run.ts';
 import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
-import { migrationReviewReason } from './migration-review.ts';
+import {
+  DECLARED_TYPE_REVIEW_REASON,
+  migrationReviewReason,
+  REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+  targetReached,
+} from './migration-review.ts';
 import { hasErrorCode } from './state-files.ts';
-import { PipelineInputError } from './types.ts';
+import type { ProviderAdapter } from './providers.ts';
+import { PipelineInputError, type Finding } from './types.ts';
 import {
   parseWorkflowConfiguration,
   readWorkflowConfiguration,
@@ -20,6 +28,7 @@ import { contractCommand } from './contract-commands.ts';
 import { DEFAULT_CONTRACTS_DIRECTORY, readStripeContract } from './enrollment-contracts.ts';
 import {
   generatedVersionCheck,
+  listed,
   proposalContent,
   proposalSummary,
   proposeStripeConfiguration,
@@ -68,6 +77,47 @@ export interface ReadinessReport {
     unmappedExamples: { file: string; line: number; method: string }[];
   } | null;
   scope: string[];
+}
+
+// What a blocked check does to a hosted run under owner decision 1 (2026-10-24, pierceluu10/Refit#300).
+// `setup` still stops before scanning: there is no workflow, contract, checkout or sandbox to run.
+// The workflow finds a `workflow` check's cause itself and records it as a review reason or an
+// untested patch. Only doctor sees a `review` check, so it joins the draft's review reasons.
+const BLOCKED_CHECKS = new Map<string, 'setup' | 'workflow' | 'review'>([
+  ['configuration', 'setup'],
+  ['contracts', 'setup'],
+  ['repository', 'setup'],
+  ['analysis', 'setup'],
+  ['docker', 'setup'],
+  ['source-baseline', 'setup'],
+  ['source-provenance', 'workflow'],
+  ['webhook-migration', 'workflow'],
+  ['api-version', 'workflow'],
+  ['migration-coverage', 'workflow'],
+  ['dependencies', 'workflow'],
+  ['source-resolution', 'review'],
+  ['sdk-coverage', 'review'],
+]);
+
+export class UnclassifiedCheckError extends Error {}
+
+// The blocked checks of a report by what they do under owner decision 1. A repository whose
+// generated configuration doctor could not check has no workflow to run, so all of its are setup.
+export function sortBlockedChecks(report: ReadinessReport) {
+  const sorted = {
+    setup: [] as ReadinessCheck[],
+    workflow: [] as ReadinessCheck[],
+    review: [] as ReadinessCheck[],
+  };
+  for (const check of report.checks.filter((entry) => entry.status === 'blocked')) {
+    const kind = report.missing ? 'setup' : BLOCKED_CHECKS.get(check.id);
+    if (!kind)
+      throw new UnclassifiedCheckError(
+        `refit doctor check ${check.id} can block, but owner decision 1 does not say whether it stops a run.`,
+      );
+    sorted[kind].push(check);
+  }
+  return sorted;
 }
 
 // Names the file or program a check could not use, when the error says which.
@@ -139,6 +189,111 @@ function migrationCoverageDetail(
   }.`;
 }
 
+const read = (finding: Finding) => `${finding.expression} at ${finding.file}:${finding.line}`;
+const at = (finding: Finding) => `${finding.file}:${finding.line}`;
+const targetVersion = (after: string | null) =>
+  after ? `API version ${after}` : 'the target API version';
+type ReviewedEvidence = { adapter?: ProviderAdapter; findings: Finding[] };
+
+// The findings that raise `reason` on their own, so a stop names only the code it is about.
+const raising = (evidence: ReviewedEvidence, reason: string) =>
+  evidence.findings.filter(
+    (finding) =>
+      migrationReviewReason({ adapter: evidence.adapter, findings: [finding] }, true) === reason,
+  );
+
+// What a source-provenance stop is about, and its fix. Every sentence must hold for every
+// repository that reaches the branch, so a branch says only what all its causes share.
+function provenanceStop(
+  evidence: ReviewedEvidence & { skippedFiles: string[] },
+  reason: string,
+  after: string | null,
+) {
+  if (evidence.skippedFiles.length) {
+    // Each entry is `path: first syntax diagnostic`.
+    const files = evidence.skippedFiles.map((entry) => {
+      const split = entry.indexOf(': ');
+      return `${entry.slice(0, split)} (${entry
+        .slice(split + 2)
+        .split('\n')[0]
+        .replace(/\.$/, '')})`;
+    });
+    const one = files.length === 1;
+    return {
+      detail: `Refit could not parse ${listed(files)}, so it did not scan ${one ? 'that file' : 'those files'}.`,
+      action:
+        'Fix any syntax error there, then run refit doctor again. Refit parses only TypeScript and JavaScript, so a file in another syntax, such as Flow, keeps this stop.',
+    };
+  }
+  if (reason === REMOVED_REQUEST_PARAMETER_REVIEW_REASON) {
+    const findings = evidence.findings.filter((finding) => finding.requestParameter);
+    const set = [
+      ...new Set(
+        findings.map((finding) => `${finding.requestParameter!.parameter} at ${at(finding)}`),
+      ),
+    ];
+    const one = set.length === 1;
+    return {
+      detail: `Code sets ${one ? 'a request parameter' : 'request parameters'} that ${targetVersion(after)} removes, and Refit leaves ${one ? 'it' : 'them'} in place: ${listed(set)}.`,
+      action: `Remove or replace ${one ? 'it' : 'each one'} yourself.${
+        findings.some((finding) => finding.requestParameter!.parameter === 'payment_method_types')
+          ? ' docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.'
+          : ''
+      }`,
+    };
+  }
+  if (reason === DECLARED_TYPE_REVIEW_REASON) {
+    const reads = [
+      ...new Set(
+        evidence.findings
+          .filter((finding) => finding.declaredType && finding.confidence !== 'confirmed')
+          .map(read),
+      ),
+    ];
+    const one = reads.length === 1;
+    return {
+      detail: `Refit could not confirm ${one ? 'a read' : `${reads.length} reads`} of ${one ? 'a field' : 'fields'} that ${targetVersion(after)} removes, on ${one ? 'a value' : 'values'} the code declares with a Stripe type: ${listed(reads)}.`,
+      action: `Check ${one ? 'it, and change it yourself if it reads' : 'each one, and change the ones that read'} a Stripe object. Refit's rules migrate such a read only when Refit can confirm it, and it cannot when the value may change before the read or come from an optional call, when the property name is computed, or when Refit cannot tell which Stripe object the value is.`,
+    };
+  }
+  return {
+    detail: reason,
+    action: `Review the code at ${listed([...new Set(raising(evidence, reason).map(at))])} yourself: Refit does not migrate it automatically.`,
+  };
+}
+
+// What a webhook-migration stop is about, and its fix: each read that stops, with its own events.
+function webhookStop(evidence: ReviewedEvidence, reason: string, after: string | null) {
+  const stopped = raising(evidence, reason);
+  const events = new Map<string, Set<string>>();
+  // One read can break more than one change.
+  for (const finding of stopped)
+    events.set(
+      read(finding),
+      new Set([...(events.get(read(finding)) ?? []), ...finding.webhook!.eventTypes]),
+    );
+  const reads = [...events].map(([place, types]) =>
+    types.size ? `${place} (${listed([...types])})` : place,
+  );
+  const one = reads.length === 1;
+  const unconfirmed = stopped.some((finding) => finding.confidence !== 'confirmed');
+  const uncovered = stopped.some((finding) => finding.confidence === 'confirmed');
+  return {
+    detail: `Webhook code reads ${one ? 'a field' : 'fields'} that ${targetVersion(after)} removes: ${listed(reads)}. ${
+      unconfirmed && uncovered
+        ? 'Refit cannot confirm what some of these reads receive, and no Refit rule migrates the others.'
+        : unconfirmed
+          ? `Refit cannot confirm what ${one ? 'this read receives' : 'these reads receive'}, so its rules do not migrate ${one ? 'it' : 'them'}.`
+          : `No Refit rule migrates ${one ? 'it' : 'them'}.`
+    }`,
+    action: `${
+      unconfirmed
+        ? "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. "
+        : ''
+    }${uncovered ? 'Change the reads no rule migrates yourself. ' : ''}A read you change must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).`,
+  };
+}
+
 // Each method Refit does not map, at its first call, so the person knows which calls to check.
 function unmappedCallsDetail(
   packageName: string,
@@ -158,15 +313,20 @@ function unmappedCallsDetail(
   return `Refit traced ${calls} ${packageName} API call${calls === 1 ? '' : 's'}, and it maps none of their methods to an operation in the contracts: ${named.join(', ')}${more ? ` and ${more} more` : ''}.`;
 }
 
-async function committedRepositoryCheck(repository: string) {
+// With `submodules` (owner decision 1) a submodule is checked around, not refused.
+async function committedRepositoryCheck(repository: string, submodules?: boolean) {
   const snapshot = await inspectCheck(
     'repository',
     'Committed repository',
     'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
-    () => readCommittedRepository(repository),
+    () => readCommittedRepository(repository, { submodules }),
   );
   if (snapshot.value)
-    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.`;
+    snapshot.check.detail = `Clean committed root at ${snapshot.value.revision.slice(0, 12)}.${
+      snapshot.value.submodules.length
+        ? ` Refit checks it without the submodule${snapshot.value.submodules.length === 1 ? '' : 's'} ${snapshot.value.submodules.join(', ')}, and each draft says so.`
+        : ''
+    }`;
   else if (SUBMODULE.test(snapshot.check.detail))
     snapshot.check.action =
       "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.";
@@ -176,8 +336,8 @@ async function committedRepositoryCheck(repository: string) {
 // What doctor checks in a repository that commits no .refit.json: the configuration enrollment
 // generates for it, read from the saved contracts, or why there is none. A repository without
 // Stripe keeps the guidance to add an agent.
-async function generatedWorkflow(directory: string, contracts: string) {
-  const { proposal, stops } = await proposeStripeConfiguration(directory);
+async function generatedWorkflow(directory: string, contracts: string, allowUntested?: boolean) {
+  const { proposal, stops } = await proposeStripeConfiguration(directory, { allowUntested });
   if (!proposal) {
     const stripe = !stops.some((stop) => NOT_STRIPE.has(stop.id));
     return {
@@ -235,6 +395,12 @@ export async function inspectRepositoryReadiness(options: {
   config?: string;
   integration?: string;
   contracts?: string;
+  // Versions the service already watches this target from, such as a merged Refit draft's target.
+  // Code that declares one passes the API-version check, as it passes the approval check.
+  acceptedApiVersions?: string[];
+  // Owner decision 1: check the generated configuration whose checks cannot run (no lockfile or no
+  // checks) instead of reporting why none is generated.
+  allowUntested?: boolean;
 }): Promise<ReadinessReport> {
   const configurationPath = options.config
     ? resolve(options.config)
@@ -271,12 +437,16 @@ export async function inspectRepositoryReadiness(options: {
       ? await generatedWorkflow(
           dirname(configurationPath),
           options.contracts ?? DEFAULT_CONTRACTS_DIRECTORY,
+          options.allowUntested,
         )
       : undefined;
   if (generated && !generated.workflow) {
     report.missing = true;
     // Every blocker at once, so a repository that also has, say, a submodule hears it now.
-    const snapshot = await committedRepositoryCheck(dirname(configurationPath));
+    const snapshot = await committedRepositoryCheck(
+      dirname(configurationPath),
+      options.allowUntested,
+    );
     if (snapshot.check.status === 'blocked') report.checks.push(snapshot.check);
     report.checks.push(...generated.checks);
     return report;
@@ -341,7 +511,7 @@ export async function inspectRepositoryReadiness(options: {
   }
   report.repository = resolve(repository);
   const [snapshot, scan, image] = await Promise.all([
-    committedRepositoryCheck(repository),
+    committedRepositoryCheck(repository, options.allowUntested),
     inspectCheck(
       'analysis',
       'Contracts and adapter',
@@ -405,20 +575,14 @@ export async function inspectRepositoryReadiness(options: {
         id: 'source-provenance',
         title: 'Migration source evidence',
         status: 'blocked',
-        detail: originReview,
-        action: evidence.findings.some((finding) => finding.requestParameter)
-          ? 'Run refit run --human to see where each removed parameter is still sent, and change those calls yourself: Refit replaces only the owner-approved Stripe payment_method_types lists in docs/STRIPE-PAYMENT-METHOD-TYPES.md, including the keep-listed opt-in.'
-          : 'Repair skipped sources and establish SDK or incoming-event provenance before activation.',
+        ...provenanceStop(evidence, originReview, evidence.apiVersion.after),
       });
     if (webhookReview)
       report.checks.push({
         id: 'webhook-migration',
         title: 'Webhook payload migration',
         status: 'blocked',
-        detail:
-          'Affected snapshot webhook payload reads need separate incoming API-version and migration-policy review.',
-        action:
-          'Confirm endpoint/event versions and the intended subscription-item policy before activation.',
+        ...webhookStop(evidence, webhookReview, evidence.apiVersion.after),
       });
     else if (evidence.findings.some((finding) => finding.webhook?.migration))
       report.checks.push({
@@ -458,21 +622,27 @@ export async function inspectRepositoryReadiness(options: {
         action:
           unreadable && !warnings.length
             ? unreadable.action
-            : 'Resolve the repository tsconfig/jsconfig aliases and local extends inputs, then inspect the affected client usage before activation.',
+            : 'If a tsconfig or jsconfig is invalid, fix it. Otherwise nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.',
       });
     }
     scan.check.detail = `${evidence.repository.scannedFiles} source files inspected; adapter contracts resolved. ${workflow.latestStripe ? 'Latest Stripe source was not fetched; only the baseline was inspected.' : 'Both supplied contracts were inspected.'}`;
+    const watched =
+      evidence.apiVersion.applicability === 'matches-before'
+        ? undefined
+        : options.acceptedApiVersions?.find((version) =>
+            declaresVersion(evidence.apiVersion.source, version),
+          );
+    const versionPassed = evidence.apiVersion.applicability === 'matches-before' || watched;
     report.checks.push({
       id: 'api-version',
       title: 'Application API version',
-      status: evidence.apiVersion.applicability === 'matches-before' ? 'passed' : 'blocked',
-      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}`,
-      action:
-        evidence.apiVersion.applicability === 'matches-before'
-          ? null
-          : evidence.apiVersion.application === null && evidence.apiVersion.before
-            ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
-            : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
+      status: versionPassed ? 'passed' : 'blocked',
+      detail: `${evidence.apiVersion.reason} ${report.generated ? generatedVersionCheck(evidence.apiVersion.source) : `${evidence.apiVersion.source.reason} Policy: ${evidence.apiVersion.policy}.`}${watched ? ` The code declares ${watched}, which this service already watches, so this check passes; the next poll decides whether the code reached that target.` : ''}`,
+      action: versionPassed
+        ? null
+        : evidence.apiVersion.application === null && evidence.apiVersion.before
+          ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
+          : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
     });
     if (workflow.latestStripe && !evidence.provenance.before)
       report.checks.push({
@@ -491,7 +661,8 @@ export async function inspectRepositoryReadiness(options: {
       evidence.requestChanges,
       evidence.expandedFields,
     );
-    if (unsupportedChanges.length || evidence.operationImpacts.length)
+    // A merged draft leaves the fields it migrated unread; the watcher then advances its baseline.
+    if (!targetReached(evidence) && (unsupportedChanges.length || evidence.operationImpacts.length))
       report.checks.push({
         id: 'migration-coverage',
         title: 'Supported migration coverage',
@@ -570,15 +741,24 @@ export async function inspectRepositoryReadiness(options: {
       });
   }
   if (workflow.prepareDependencies && snapshot.value) {
+    // The inputs validation prepares: a nested SDK package's own, when the scan puts the code there.
+    const packageDirectory =
+      scan.value && sdkPackageDirectory(scan.value, committedFiles(snapshot.value.entries));
     const dependencies = await inspectCheck(
       'dependencies',
       'Dependency preparation inputs',
       'Commit matching root manifests and a supported public-registry lockfile, or use a custom dependency image.',
-      () => readPreparationInputs(snapshot.value!),
+      async () =>
+        readPreparationInputs(
+          packageDirectory
+            ? await packageSnapshot(snapshot.value!, packageDirectory)
+            : snapshot.value!,
+          snapshot.value!.entries,
+        ),
     );
     if (dependencies.value) {
       const workspaces = Object.keys(dependencies.value.inputs.workspaceHashes ?? {}).length;
-      dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records${workspaces ? ` and ${workspaces} committed workspace manifests` : ''} passed preparation input checks. Installation and engine compatibility were not tested.`;
+      dependencies.check.detail = `${dependencies.value.inputs.packages} locked package records${workspaces ? ` and ${workspaces} committed workspace manifests` : ''}${packageDirectory ? ` in ${packageDirectory}` : ''} passed preparation input checks. Installation and engine compatibility were not tested.`;
     } else if (dependencies.check.status === 'blocked') {
       dependencies.check.action =
         preparationStop(dependencies.check.detail)?.action ?? dependencies.check.action;

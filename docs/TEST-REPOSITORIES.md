@@ -13,7 +13,7 @@ refit run --env .env --config examples/billing-demo.refit.json \
 
 The existing `.env` needs `OPENAI_API_KEY` and `OPENAI_MODEL` (`gpt-5.4-mini` is the model used for the verified demo). `--ai-patch` makes billable OpenAI requests and sends the affected source plus bounded imported-module context. A repair can additionally send the failed diff and check output. The model cannot run commands or change your original repository. All check commands are supplied by you and run in offline Docker.
 
-Success returns `validated` and exit 0. Inspect `migration.patch`, `report.json` and `pull-request.md` inside the output directory. Review the recorded baseline/patched checks and all candidate attempts. An unchanged source repository is expected: the tested patch exists only in a disposable copy and the evidence bundle.
+Success returns `validated` and exit 0. Inspect `migration.patch`, `report.json.gz` (gzip-compressed; `gunzip -c`) and `pull-request.md` inside the output directory. Review the recorded baseline/patched checks and all candidate attempts. An unchanged source repository is expected: the tested patch exists only in a disposable copy and the evidence bundle.
 
 ## Also open a draft PR
 
@@ -32,7 +32,7 @@ This opens the PR as the token owner. To use Refit Agent's logo and bot account,
 
 Copy the JSON run configuration to a new file and change its repository, before/after specifications, Docker image and check commands. See [configuration syntax](CLI.md). Configuration paths are relative to that file; explicit CLI paths are relative to your working directory. Do not place evidence output inside the target repository.
 
-The repository must be a clean, committed Git root without submodules. Tracked symbolic links are accepted when every one resolves inside the repository, following links in its target; an absolute or escaping link refuses validation. For publication, that committed HEAD must match the selected remote base branch, and the token/App must have access to the named GitHub repository. Commit and push your application setup before starting a run; do not apply the migration first.
+The repository must be a clean, committed Git root without submodules that `.gitmodules` declares; a gitlink it does not declare has no URL, so it is the empty directory every clone has, and validation reads it the same way. Tracked symbolic links are accepted when every one resolves inside the repository, following links in its target; an absolute or escaping link refuses validation. For publication, that committed HEAD must match the selected remote base branch, and the token/App must have access to the named GitHub repository. Commit and push your application setup before starting a run; do not apply the migration first.
 
 The local image must already contain the application's actual test dependencies and tools. Refit does not infer installation commands or enable network access in validation. Choose meaningful baseline and patched checks; include typechecking, regression tests and migration-specific edge cases. `command` is an argument array, not a shell string. Use an explicit `sh -c` array only when your prepared checks require shell composition, as in the billing example.
 

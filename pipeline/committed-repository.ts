@@ -12,6 +12,7 @@ const MAX_SYMBOLIC_LINKS = 256;
 const MAX_LINK_HOPS = 40;
 const REGULAR_ENTRY = /^(100644|100755) blob /;
 const LINK_ENTRY = /^120000 blob ([0-9a-f]+)\t(.+)$/;
+const SUBMODULE_ENTRY = /^160000 commit [0-9a-f]+\t(.+)$/;
 
 // Resolves a committed link through the tree, including links in its target, and reports whether
 // every step stays inside the repository. A dangling target inside the repository is accepted.
@@ -62,7 +63,41 @@ export async function readCommittedFile(
   return content;
 }
 
-export async function readCommittedRepository(path: string) {
+// The submodule paths a committed .gitmodules declares, read by Git's own config parser.
+async function declaredSubmodules(
+  git: (argumentsList: string[]) => Promise<{ stdout: string }>,
+  revision: string,
+  entries: string[],
+) {
+  if (!entries.some((entry) => REGULAR_ENTRY.test(entry) && entry.endsWith('\t.gitmodules')))
+    return new Set<string>();
+  try {
+    const { stdout } = await git([
+      'config',
+      '-z',
+      `--blob=${revision}:.gitmodules`,
+      '--get-regexp',
+      '^submodule\\..*\\.path$',
+    ]);
+    return new Set(
+      stdout
+        .split('\0')
+        .filter(Boolean)
+        .map((entry) => entry.slice(entry.indexOf('\n') + 1)),
+    );
+  } catch (error) {
+    // Exit 1: no submodule declares a path.
+    if ((error as { code?: unknown }).code === 1) return new Set<string>();
+    throw error;
+  }
+}
+
+// With `submodules` (owner decision 1) a submodule is left out instead of refused: Refit checks
+// the committed root without it, and `submodules` names each one so the draft can say so.
+export async function readCommittedRepository(
+  path: string,
+  options: { submodules?: boolean } = {},
+) {
   const directory = await realpath(path);
   const git = (argumentsList: string[]) =>
     execute('git', ['-c', 'core.fsmonitor=false', '-C', directory, ...argumentsList], {
@@ -82,11 +117,24 @@ export async function readCommittedRepository(path: string) {
     throw new PipelineInputError(
       `Validation requires a clean committed repository, including untracked files; not committed: ${changed.slice(0, 5).join(', ')}${changed.length > 5 ? `, and ${changed.length - 5} more` : ''}.`,
     );
-  const entries = (await git(['ls-tree', '-rz', revision])).stdout.split('\0').filter(Boolean);
+  const tree = (await git(['ls-tree', '-rz', revision])).stdout.split('\0').filter(Boolean);
+  const submodules = options.submodules
+    ? tree.flatMap((entry) => SUBMODULE_ENTRY.exec(entry)?.[1] ?? [])
+    : [];
+  const entries = tree.filter((entry) => !submodules.length || !SUBMODULE_ENTRY.test(entry));
   const linkEntries = entries
     .map((entry) => LINK_ENTRY.exec(entry))
     .filter((match): match is RegExpExecArray => Boolean(match));
-  const submodule = entries.find((entry) => !REGULAR_ENTRY.test(entry) && !LINK_ENTRY.test(entry));
+  // A gitlink .gitmodules does not declare has no URL, so every clone, CI run and deploy sees an
+  // empty directory there; git archive writes the same empty directory for validation.
+  const declared = entries.some((entry) => SUBMODULE_ENTRY.test(entry))
+    ? await declaredSubmodules(git, revision, entries)
+    : new Set<string>();
+  const submodule = entries.find((entry) => {
+    const gitlink = SUBMODULE_ENTRY.exec(entry);
+    if (gitlink) return declared.has(gitlink[1]);
+    return !REGULAR_ENTRY.test(entry) && !LINK_ENTRY.test(entry);
+  });
   if (submodule)
     throw new PipelineInputError(
       `Validation does not accept submodules; ${submodule.slice(submodule.indexOf('\t') + 1)} is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.`,
@@ -103,5 +151,5 @@ export async function readCommittedRepository(path: string) {
     throw new PipelineInputError(
       `Validation accepts tracked symbolic links only when they resolve inside the repository; ${escaping} does not.`,
     );
-  return { directory, revision, entries, git };
+  return { directory, revision, entries, git, submodules };
 }

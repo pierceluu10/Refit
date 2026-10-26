@@ -15,8 +15,8 @@ export interface RequestParameterRemoval {
   argumentIndex: number;
   // An owner-approved replacement for exactly `['card']` (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
   cardReplacement?: string;
-  // The repository opted in (`stripePaymentMethodTypes: "keep-listed"`) to keep a literal list of
-  // `card` plus other methods under the replacement too.
+  // Keep a literal list of `card` plus other methods under the replacement too, and move any other
+  // value expression (the default since 2026-10-24; `stripePaymentMethodTypes: "keep-listed"`).
   keepListed?: boolean;
   // A reviewed move to the parameter's documented replacement (stripe-request-moves.ts).
   move?: RequestMove;
@@ -38,10 +38,13 @@ export const REMOVED_PARAMETER_NOTES: Record<string, string> = {
 
 export const CARD_PAYMENT_METHOD_RULE = 'stripe-card-allowed-payment-method-types';
 export const LISTED_PAYMENT_METHODS_RULE = 'stripe-listed-allowed-payment-method-types';
-// Both renames ride with the endive pin and, for TypeScript, the stripe-node upgrade.
+// A computed list, a spread or a list without `card`, moved with its expression unchanged.
+export const MOVED_PAYMENT_METHODS_RULE = 'stripe-moved-allowed-payment-method-types';
+// Every rename rides with the endive pin and, for TypeScript, the stripe-node upgrade.
 export const PAYMENT_METHOD_RENAME_RULES = new Set<string>([
   CARD_PAYMENT_METHOD_RULE,
   LISTED_PAYMENT_METHODS_RULE,
+  MOVED_PAYMENT_METHODS_RULE,
 ]);
 const CARD_REPLACEMENT = 'allowed_payment_method_types';
 const CARD_OPERATIONS = new Set(['PostCheckoutSessions', 'PostPaymentIntents', 'PostSetupIntents']);
@@ -69,7 +72,7 @@ export function local(value: unknown, document: Record<string, unknown>) {
 
 // The schema of the single request body media type, or undefined when the body is absent, has
 // several media types or is not a plain object schema.
-function bodySchema(operation: Record<string, unknown>, document: Record<string, unknown>) {
+export function bodySchema(operation: Record<string, unknown>, document: Record<string, unknown>) {
   const body = local(operation.requestBody, document);
   const content = body && isObject(body.content) ? Object.values(body.content) : [];
   if (content.length !== 1 || !isObject(content[0])) return undefined;
@@ -126,7 +129,9 @@ export function removedRequestParameters(
           current.has(CARD_REPLACEMENT)
             ? {
                 cardReplacement: CARD_REPLACEMENT,
-                ...(options.keepListedPaymentMethods ? { keepListed: true } : {}),
+                // Owner decision (Pierce, 2026-10-24, Push 279 decision 2): keep-listed is the
+                // default; only an explicit `false` keeps the card-only rule.
+                ...(options.keepListedPaymentMethods !== false ? { keepListed: true } : {}),
               }
             : {}),
           ...(move ? { move } : {}),

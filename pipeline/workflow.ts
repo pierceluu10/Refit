@@ -1,6 +1,13 @@
 import type { GeneratedChecks } from './generated-checks.ts';
-import { migrationReviewReason, withoutRequestParameters } from './migration-review.ts';
+import {
+  migrationReviewReason,
+  REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+  removedParameterSites,
+  reviewBlocksAi,
+  targetReached,
+} from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
+import type { BehaviourTestWriter } from './behaviour-test-writer.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -8,18 +15,21 @@ import { basename, join } from 'node:path';
 import { createArtifactDirectory } from './artifacts.ts';
 import { readProviderAdapter } from './providers.ts';
 import {
+  AI_PATCH_STOP,
+  closeResolvedDraft,
   findExistingMigration,
   publishDraft,
   type publicationConfiguration,
   publicationWaiver,
 } from './publication.ts';
-import { createReviewArtifacts } from './review.ts';
+import { createReviewArtifacts, NEEDS_REVIEW_PREFIX } from './review.ts';
 import { runPipeline } from './run.ts';
 import { type SlackSend, workflowNotice } from './slack.ts';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
-import { digest, readSpecification } from './specifications.ts';
+import { digest, isObject, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
+import { checkFailureText } from './check-failures.ts';
 import { validateMigration } from './validation.ts';
 import {
   validateCheckCommand,
@@ -27,28 +37,89 @@ import {
   validateWorkflowSources,
 } from './validation-options.ts';
 import { gitEnvironment } from './git-environment.ts';
+import { COMPRESSED_SUFFIX, compressEvidence } from './state-files.ts';
 import { countBreakingOperationUsages } from './provider-operations.ts';
-import type { ApiVersionPolicy } from './api-version.ts';
+import { apiVersionSourceBlocked, type ApiVersionPolicy } from './api-version.ts';
+import type { ReadinessCheck } from './readiness.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
+// Both hold the full contract diff, which dominates their size; see COMPRESSED_SUFFIX.
+const COMPRESSED_EVIDENCE = new Set(['scan.json', 'report.json']);
+const NO_USAGE_REASON =
+  'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
+const NO_PATCH_NOTE =
+  'Refit opens a [Needs review] draft wherever it used to stop, but this run has no code change to publish.';
+
+const REGRESSION_NOTE =
+  "Refit's patch failed the repository checks, so it is kept with this run's artifacts as evidence and not published.";
 
 type Stage = 'inputs' | 'scan' | 'validation' | 'publication';
 type Status =
-  'needs-review' | 'validation-failed' | 'validated' | 'draft-created' | 'existing-pr' | 'error';
+  | 'needs-review'
+  | 'validation-failed'
+  | 'validated'
+  | 'draft-created'
+  | 'draft-updated'
+  | 'draft-closed'
+  | 'existing-pr'
+  | 'up-to-date'
+  | 'error';
+
+// How a found or published draft ends the run. A draft a person closed or merged is final for its
+// target version, and one they edited is theirs.
+function publicationOutcome(
+  draft: {
+    status: 'created' | 'updated' | 'existing' | 'closed' | 'merged';
+    url: string;
+    leftUnchanged?: string;
+    validation?: 'not-rerun';
+  },
+  report: Pick<Awaited<ReturnType<typeof runPipeline>>, 'apiVersion'>,
+): [Status, string] {
+  const target = report.apiVersion.after ?? 'this target contract';
+  const rerun =
+    draft.validation === 'not-rerun' ? ' AI generation and validation were not rerun.' : '';
+  if (draft.status === 'created') return ['draft-created', draft.url];
+  if (draft.status === 'updated') return ['draft-updated', draft.url];
+  if (draft.status === 'merged')
+    return [
+      'draft-closed',
+      `${draft.url} was merged. Refit does not open another draft for ${target}.${rerun}`,
+    ];
+  if (draft.status === 'closed')
+    return [
+      'draft-closed',
+      `${draft.url} was closed without merging. Refit does not reopen or replace it for ${target}; reopen it to have Refit update it.${rerun}`,
+    ];
+  if (draft.leftUnchanged) return ['existing-pr', `${draft.url}: ${draft.leftUnchanged}${rerun}`];
+  return ['existing-pr', `${draft.url} already covers these changes.${rerun}`];
+}
 
 // The workflow's stops that need only its scan, checked in this order before dependency
 // preparation or validation. The Stripe benchmark applies them before it starts `refit run`.
+// With `leaveReviewedFindings` (owner decision 1) the draft carries a stop's reasons instead, so
+// it holds only when no patch can, or when a source-verified policy refuses the code's API-version
+// declarations, which validation and publication refuse too. Conflicting pins all move.
 export function scanReviewReason(
   scan: Awaited<ReturnType<typeof runPipeline>>,
   aiPatch: boolean,
-  leaveRequestParameters: boolean,
+  leaveReviewedFindings: boolean,
 ) {
-  const reviewReason = migrationReviewReason(
-    leaveRequestParameters ? withoutRequestParameters(scan) : scan,
-    true,
-    true,
-    aiPatch,
-  );
+  const reason = scanStop(scan, aiPatch);
+  if (!reason || !leaveReviewedFindings) return reason;
+  if (apiVersionSourceBlocked(scan.apiVersion, true)) return scan.apiVersion.reason;
+  const aiWrites =
+    aiPatch &&
+    !reviewBlocksAi(scan) &&
+    scan.findings.some((finding) => finding.confidence === 'confirmed');
+  if (scan.patch.status !== 'proposed' && !aiWrites) return `${reason} ${NO_PATCH_NOTE}`;
+}
+
+function scanStop(scan: Awaited<ReturnType<typeof runPipeline>>, aiPatch: boolean) {
+  const reviewReason = migrationReviewReason(scan, true, true, aiPatch);
+  // The constant stays comparable for publication; the stop a person reads names the calls.
+  if (reviewReason === REMOVED_REQUEST_PARAMETER_REVIEW_REASON)
+    return `${reviewReason} ${removedParameterSites(scan.findings)}`;
   if (reviewReason) return reviewReason;
   if (scan.apiVersion.applicability !== 'matches-before') return scan.apiVersion.reason;
   const operationUsageCount = countBreakingOperationUsages(scan.operationImpacts);
@@ -64,8 +135,18 @@ export function scanReviewReason(
   );
   if (unmapped.length)
     return `${unmapped.length} breaking contract changes are outside the supported migration rules. Review the recorded contract report before proposing a patch.`;
-  if (!scan.findings.some((finding) => finding.confidence === 'confirmed'))
-    return 'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
+  if (!scan.findings.some((finding) => finding.confidence === 'confirmed')) return NO_USAGE_REASON;
+}
+
+// The rules' patch moved a pin or upgraded stripe-node.
+function movesApiVersion(report: Awaited<ReturnType<typeof validateMigration>>) {
+  const { patch } = report;
+  return (
+    patch.generator === 'deterministic' &&
+    (('ruleEdits' in patch &&
+      patch.ruleEdits?.some((edit) => edit.rule === 'stripe-api-version')) ||
+      ('sdkUpgrade' in patch && isObject(patch.sdkUpgrade) && 'from' in patch.sdkUpgrade))
+  );
 }
 
 // Checked after the existing-PR lookup, which only publication runs.
@@ -87,6 +168,7 @@ export async function runWorkflow(options: {
   image: string;
   command: string[];
   baselineCommand?: string[];
+  checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   generatedChecks?: GeneratedChecks;
   compareTypeErrors?: boolean;
@@ -98,13 +180,17 @@ export async function runWorkflow(options: {
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
+  behaviourTestWriter?: BehaviourTestWriter;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
-  // --publish-unresolved without a publication target: continue past waivable stops and record
-  // the waiver in the local review artifacts, so the saved report can be published later.
+  // Owner decision 1 without a publication target: continue past the stops owner decision 1
+  // turns into review reasons and record them in the local review artifacts, so the saved report
+  // can be published later.
   allowUnresolved?: boolean;
-  // Slack notices for a new validated draft PR and for [URGENT] outcomes; `repository` names the
+  // refit doctor's review findings, which join the draft's review reasons under owner decision 1.
+  doctor?: readonly ReadinessCheck[];
+  // Slack notices for a new draft PR and for [URGENT] outcomes; `repository` names the
   // repository in the message when no publication target does.
   notify?: { send: SlackSend; repository?: string };
   onProgress?: (message: string) => void;
@@ -121,16 +207,17 @@ export async function runWorkflow(options: {
       }
     : undefined;
   const allowUnresolved = Boolean(options.allowUnresolved || publication?.allowUnresolved);
-  // Removed request parameters are left only by deterministic rules; AI never sees them.
-  const leaveRequestParameters = allowUnresolved && !options.aiPatch;
   const directory = await createArtifactDirectory(options.repository, options.output);
   const files: { path: string; sha256: string; bytes: number }[] = [];
   let stage: Stage = 'inputs';
-  const save = async (path: string, content: string) => {
+  const save = async (name: string, text: string) => {
+    const compressed = COMPRESSED_EVIDENCE.has(name);
+    const path = compressed ? `${name}${COMPRESSED_SUFFIX}` : name;
+    const content = compressed ? await compressEvidence(text) : text;
     await writeFile(join(directory, path), content, { flag: 'wx', mode: 0o600 });
     files.push({ path, sha256: digest(content), bytes: Buffer.byteLength(content) });
   };
-  // Gates --publish-unresolved waived for this run, recorded in the manifest.
+  // The review reasons' gates the [Needs review] draft carries, recorded in the manifest.
   const waivedGates: string[] = [];
   const finish = async (
     status: Status,
@@ -167,6 +254,7 @@ export async function runWorkflow(options: {
         stage,
         reason,
         validation,
+        needsReview,
         error,
       });
     if (notice) await options.notify!.send(notice);
@@ -174,6 +262,7 @@ export async function runWorkflow(options: {
   };
   let runId: string | null = null;
   let validation: string | undefined;
+  let needsReview = false;
   try {
     options.signal?.throwIfAborted();
     if (options.integration) options.onProgress?.(`Selected integration: ${options.integration}.`);
@@ -217,31 +306,79 @@ export async function runWorkflow(options: {
     };
     stage = 'scan';
     options.onProgress?.('Scanning repository for affected API usage...');
-    const scan = await runPipeline({ ...inputs, proposePatch: true, leaveRequestParameters });
+    const scan = await runPipeline({
+      ...inputs,
+      proposePatch: true,
+      leaveReviewedFindings: allowUnresolved,
+    });
     runId = scan.runId;
     await save('scan.json', `${JSON.stringify(scan, null, 2)}\n`);
-    const reviewReason = scanReviewReason(scan, Boolean(options.aiPatch), leaveRequestParameters);
-    if (reviewReason) return await finish('needs-review', reviewReason, runId);
-    if (publication?.app) {
-      options.signal?.throwIfAborted();
-      options.onProgress?.('Checking for an existing Refit Agent migration...');
+    // The commit a clean checkout is at, which publication checks against GitHub.
+    const checkoutRevision = async () => {
       const execute = promisify(execFile);
       const git = (argumentsList: string[]) =>
         execute('git', ['-c', 'core.fsmonitor=false', '-C', options.repository, ...argumentsList], {
           timeout: PREFLIGHT_GIT_TIMEOUT_MS,
           env: gitEnvironment(),
         });
-      if (!(await git(['status', '--porcelain', '--untracked-files=all'])).stdout) {
-        const revision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
-        const existing = await findExistingMigration(scan, revision, publication);
+      if ((await git(['status', '--porcelain', '--untracked-files=all'])).stdout) return undefined;
+      return (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
+    };
+    // The customer migrated the code themselves: Refit's open draft for this target no longer applies.
+    const closeResolved = async (why: string) => {
+      if (!publication?.app) return undefined;
+      const revision = await checkoutRevision();
+      if (!revision) return undefined;
+      stage = 'publication';
+      options.onProgress?.('Checking whether a Refit Agent draft no longer applies...');
+      const closed = await closeResolvedDraft(
+        scan,
+        revision,
+        publication,
+        `Refit is closing this draft. On \`${publication.base}\` at ${revision.slice(0, 12)}, ${why}, so this migration no longer applies. If you reopen it, Refit leaves it open.`,
+      );
+      if (closed) await save('publication.json', `${JSON.stringify(closed, null, 2)}\n`);
+      else stage = 'scan';
+      return closed;
+    };
+    const target = scan.apiVersion.after ?? 'the target contract';
+    if (targetReached(scan)) {
+      const closed = await closeResolved(
+        `the code already sends ${target} and uses none of what it breaks`,
+      );
+      return await finish(
+        'up-to-date',
+        `The code already sends ${target} and uses none of what it breaks.${closed ? ` Refit closed its draft ${closed.url}.` : ''}`,
+        runId,
+      );
+    }
+    const reviewReason = scanReviewReason(scan, Boolean(options.aiPatch), allowUnresolved);
+    // Untraced reads keep the draft open: it lists them for review.
+    if (reviewReason?.startsWith(NO_USAGE_REASON) && !scan.findings.length) {
+      const closed = await closeResolved('Refit no longer finds the usages this draft migrated');
+      if (closed)
+        return await finish(
+          'draft-closed',
+          `Refit no longer finds the usages ${closed.url} migrated, so it closed that draft.`,
+          runId,
+        );
+    }
+    if (reviewReason) return await finish('needs-review', reviewReason, runId);
+    if (publication?.app) {
+      options.signal?.throwIfAborted();
+      options.onProgress?.('Checking for an existing Refit Agent migration...');
+      const revision = await checkoutRevision();
+      if (revision) {
+        const existing = await findExistingMigration(
+          scan,
+          revision,
+          publication,
+          options.assessment ? false : options.aiPatch ? 'ai' : 'release',
+        );
         if (existing) {
           stage = 'publication';
           await save('publication.json', `${JSON.stringify(existing, null, 2)}\n`);
-          return await finish(
-            'existing-pr',
-            `${existing.url} already covers these changes. AI generation and validation were not rerun.`,
-            runId,
-          );
+          return await finish(...publicationOutcome(existing, scan), runId);
         }
       }
     }
@@ -250,39 +387,75 @@ export async function runWorkflow(options: {
     stage = 'validation';
     options.signal?.throwIfAborted();
     options.onProgress?.('Validating the committed repository snapshot...');
-    const report = await validateMigration({
-      ...inputs,
-      image: options.image,
-      command: options.command,
-      baselineCommand: options.baselineCommand,
-      prepareDependencies: options.prepareDependencies,
-      generatedChecks: options.generatedChecks,
-      compareTypeErrors: options.compareTypeErrors,
-      assessment: options.assessment,
-      aiPatch: options.aiPatch,
-      documentationSnapshots: options.documentationSnapshots,
-      repairAttempts: options.repairAttempts,
-      leaveRequestParameters,
-      recordDependencyFailures: allowUnresolved,
-      onProgress: options.onProgress,
-      signal: options.signal,
-    });
+    const validate = (keepApiVersion: boolean) =>
+      validateMigration({
+        ...inputs,
+        keepApiVersion,
+        image: options.image,
+        command: options.command,
+        baselineCommand: options.baselineCommand,
+        checkTimeoutSeconds: options.checkTimeoutSeconds,
+        prepareDependencies: options.prepareDependencies,
+        generatedChecks: options.generatedChecks,
+        compareTypeErrors: options.compareTypeErrors,
+        assessment: options.assessment,
+        aiPatch: options.aiPatch,
+        // shortcut: the retry without the API-version move writes no behaviour tests, so it never
+        // pays for a second identical request; reuse the first run's tests if that retry needs grade A.
+        behaviourTestWriter: keepApiVersion ? undefined : options.behaviourTestWriter,
+        documentationSnapshots: options.documentationSnapshots,
+        repairAttempts: options.repairAttempts,
+        leaveReviewedFindings: allowUnresolved,
+        recordUntested: allowUnresolved,
+        onProgress: options.onProgress,
+        signal: options.signal,
+      });
+    let report = await validate(false);
+    // Owner decision 1: a rules' patch that moved the API version and then failed the checks is
+    // retried without the move, keeping the edits that work under either version.
+    if (allowUnresolved && report.validation.status === 'regression' && movesApiVersion(report)) {
+      options.onProgress?.(
+        'The patch failed the checks. Validating it without the API-version move...',
+      );
+      // Without the move there may be nothing to patch; the regression then stands.
+      const kept = await validate(true).catch((error: unknown) => {
+        if (error instanceof PipelineInputError) return undefined;
+        throw error;
+      });
+      if (kept?.validation.status === 'passed' && kept.publicationFiles.length) report = kept;
+    }
     runId = report.runId;
     validation = report.validation.status;
-    const waiver = publicationWaiver(report, allowUnresolved);
-    if (waiver) waivedGates.push(waiver.gate);
-    const review = createReviewArtifacts(report, 'local', options.integration, waiver);
+    const reviews = publicationWaiver(report, allowUnresolved, options.doctor);
+    waivedGates.push(...new Set(reviews?.map((entry) => entry.gate)));
+    const review = createReviewArtifacts(report, 'local', options.integration, reviews);
+    needsReview = review.manifest.title.startsWith(NEEDS_REVIEW_PREFIX);
     for (const [path, content] of Object.entries(review.files)) await save(path, content);
-    if (report.validation.status !== 'passed' && waiver?.gate !== 'dependency-preparation')
+    // Where the scan alone would have stopped, the run ends as that stop's draft did before
+    // owner decision 1, with the failed patch kept as evidence and never published.
+    const stop =
+      allowUnresolved && report.validation.status === 'regression'
+        ? scanReviewReason(scan, Boolean(options.aiPatch), false)
+        : undefined;
+    if (stop) return await finish('needs-review', `${stop} ${REGRESSION_NOTE}`, runId);
+    if (report.validation.status !== 'passed' && !reviews)
       return await finish(
         'validation-failed',
-        `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}`,
+        `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}${checkFailureText(report.validation)}`,
         runId,
       );
-    if (waiver && !publication)
+    if (!reviews && report.patch.generator === 'openai')
+      return await finish('needs-review', AI_PATCH_STOP, runId);
+    if (reviews && !report.publicationFiles.length)
       return await finish(
         'needs-review',
-        `Review artifacts are ready as a [Needs review] draft with the ${waiver.gate} gate waived; publication was not requested.`,
+        `Validation returned ${report.validation.status}. ${NO_PATCH_NOTE}`,
+        runId,
+      );
+    if (reviews?.length && !publication)
+      return await finish(
+        'needs-review',
+        `Review artifacts are ready as a [Needs review] draft for ${waivedGates.join(', ')}; publication was not requested.`,
         runId,
       );
     if (report.patch.unresolvedFindings !== 0 && !publication?.allowUnresolved)
@@ -300,17 +473,13 @@ export async function runWorkflow(options: {
     stage = 'publication';
     options.signal?.throwIfAborted();
     options.onProgress?.(
-      waiver?.gate === 'dependency-preparation'
-        ? 'Checks did not run. Publishing an untested [Needs review] GitHub draft PR...'
-        : 'Checks passed. Publishing a GitHub draft PR...',
+      report.validation.status === 'passed'
+        ? 'Checks passed. Publishing a GitHub draft PR...'
+        : 'Checks did not run. Publishing an untested [Needs review] GitHub draft PR...',
     );
-    const published = await publishDraft(report, publication);
+    const published = await publishDraft(report, publication, options.doctor);
     await save('publication.json', `${JSON.stringify(published, null, 2)}\n`);
-    return await finish(
-      published.status === 'created' ? 'draft-created' : 'existing-pr',
-      published.url,
-      runId,
-    );
+    return await finish(...publicationOutcome(published, report), runId);
   } catch (error) {
     if (!(error instanceof Error)) throw error;
     return await finish(

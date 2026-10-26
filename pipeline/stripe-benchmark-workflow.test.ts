@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
+import { REMOVED_REQUEST_PARAMETER_REVIEW_REASON } from './migration-review.ts';
+import { runPipeline } from './run.ts';
 import { workflowExitReason, workflowScanStop } from './stripe-benchmark.ts';
 import { validateMigration } from './validation.ts';
 import { runWorkflow } from './workflow.ts';
@@ -50,7 +52,13 @@ function contract(version: string, fields: string[]) {
 }
 
 // A benchmark-shaped repository, contract pair and adapter, as the harness writes them.
-async function benchmarkInputs(parameters: string, sameContract = false) {
+async function benchmarkInputs(
+  parameters: string,
+  sameContract = false,
+  pin = '2026-08-26.dahlia',
+  // A second Checkout Session call's parameters.
+  second?: string,
+) {
   const root = await mkdtemp(join(tmpdir(), 'refit-benchmark-workflow-'));
   directories.push(root);
   const repository = join(root, 'repository');
@@ -62,9 +70,9 @@ async function benchmarkInputs(parameters: string, sameContract = false) {
   await writeFile(
     join(repository, 'checkout.js'),
     `import Stripe from 'stripe';
-const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '${pin}' });
 export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscription'${parameters ? `, ${parameters}` : ''} });
-`,
+${second ? `export const linked = () => stripe.checkout.sessions.create({ mode: 'payment', ${second} });\n` : ''}`,
   );
   const before = join(root, 'before.json');
   const after = join(root, 'after.json');
@@ -104,7 +112,13 @@ export const checkout = () => stripe.checkout.sessions.create({ mode: 'subscript
 }
 
 it.each([
-  ['a removed parameter with card and link', "payment_method_types: ['card', 'link']", {}, 'scan'],
+  [
+    'a removed parameter with card and link',
+    "payment_method_types: ['card', 'link']",
+    {},
+    'validation',
+  ],
+  ['an in-person removed parameter', "payment_method_types: ['card_present']", {}, 'scan'],
   ['the reviewed card-only rename', "payment_method_types: ['card']", {}, 'validation'],
   [
     'a listed opt-in for card and link',
@@ -112,13 +126,33 @@ it.each([
     { keepListed: true },
     'validation',
   ],
+  // Owner decision 1: the pin moves beside a parameter left for review, and pins that differ from
+  // the configured version all move to the target, so these runs reach validation.
   [
     '--publish-unresolved on a removed parameter',
-    "payment_method_types: ['card', 'link']",
+    "payment_method_types: ['card_present']",
     { leave: true },
-    'scan',
+    'validation',
   ],
-  ['AI on a removed parameter', "payment_method_types: ['card', 'link']", { ai: true }, 'scan'],
+  [
+    '--publish-unresolved on a card-only rename beside a removed parameter',
+    "payment_method_types: ['card']",
+    { leave: true, second: "payment_method_types: ['card_present']" },
+    'validation',
+  ],
+  [
+    '--publish-unresolved with AI on a removed parameter',
+    "payment_method_types: ['card_present']",
+    { leave: true, ai: true },
+    'validation',
+  ],
+  [
+    '--publish-unresolved on an application pin the code contradicts',
+    "payment_method_types: ['card']",
+    { leave: true, apiVersion: '2026-07-30.basil' },
+    'validation',
+  ],
+  ['AI on a removed parameter', "payment_method_types: ['card_present']", { ai: true }, 'scan'],
   ['an application pin the code contradicts', '', { apiVersion: '2026-07-30.basil' }, 'scan'],
   ['an unchanged contract', "payment_method_types: ['card']", { sameContract: true }, 'scan'],
 ] as const)(
@@ -126,15 +160,20 @@ it.each([
   async (label, parameters, variant: Record<string, unknown>, stage) => {
     const fetcher = vi.fn(() => Promise.reject(new Error('No network in this test.')));
     vi.stubGlobal('fetch', fetcher);
-    const { root, ...inputs } = await benchmarkInputs(parameters, Boolean(variant.sameContract));
+    const { root, ...inputs } = await benchmarkInputs(
+      parameters,
+      Boolean(variant.sameContract),
+      undefined,
+      variant.second as string | undefined,
+    );
     const ai = Boolean(variant.ai);
-    const leaveRequestParameters = Boolean(variant.leave) && !ai;
+    const leave = Boolean(variant.leave);
     const scanInputs = {
       ...inputs,
       apiVersion: (variant.apiVersion as string | undefined) ?? inputs.apiVersion,
       ...(variant.keepListed ? { keepListedPaymentMethods: true } : {}),
     };
-    const stop = await workflowScanStop(scanInputs, ai, leaveRequestParameters);
+    const stop = await workflowScanStop(scanInputs, ai, leave);
     const { manifest } = await runWorkflow({
       ...scanInputs,
       output: join(root, 'run'),
@@ -159,6 +198,49 @@ it.each([
     expect(fetcher).not.toHaveBeenCalled();
   },
 );
+
+it("writes the rules' patch around a call it leaves for review, without editing it (owner decision 1)", async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => Promise.reject(new Error('No network in this test.'))),
+  );
+  const inputs = await benchmarkInputs(
+    "payment_method_types: ['card']",
+    false,
+    undefined,
+    "payment_method_types: ['card_present']",
+  );
+  expect((await runPipeline({ ...inputs, proposePatch: true })).patch).toMatchObject({
+    status: 'not-generated',
+    reason: REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+  });
+  const scan = await runPipeline({ ...inputs, proposePatch: true, leaveReviewedFindings: true });
+  if (!('diff' in scan.patch)) throw new Error(`Expected a patch: ${JSON.stringify(scan.patch)}`);
+  expect(scan.patch).toMatchObject({
+    status: 'proposed',
+    unresolvedFindings: 1,
+    unresolvedSites: [{ file: 'checkout.js', line: 4 }],
+  });
+  expect(scan.patch.diff).toContain("allowed_payment_method_types: ['card'] }");
+  // The patch renders whole files; the reviewed call's line comes out as it went in.
+  expect(scan.patch.diff).toContain(
+    "\n+export const linked = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card_present'] });\n",
+  );
+  expect(scan.warnings).toContain(REMOVED_REQUEST_PARAMETER_REVIEW_REASON);
+});
+
+it('leaves code already on the target to refit run, which reports it up to date', async () => {
+  const { root, ...inputs } = await benchmarkInputs('', false, '2026-09-30.endive');
+  expect(await workflowScanStop(inputs, false, false)).toBeUndefined();
+  const { manifest } = await runWorkflow({
+    ...inputs,
+    output: join(root, 'run'),
+    image: 'node:22-alpine',
+    command: ['npm', 'test'],
+  });
+  expect(manifest).toMatchObject({ status: 'up-to-date', stage: 'scan' });
+  expect(validateMigration).not.toHaveBeenCalled();
+});
 
 it('leaves a scan that fails to refit run', async () => {
   const { root, ...inputs } = await benchmarkInputs("payment_method_types: ['card']");

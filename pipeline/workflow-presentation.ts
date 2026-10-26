@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { isObject, parseObject } from './specifications.ts';
+import { COMPRESSED_SUFFIX, readEvidence } from './state-files.ts';
 import type { runWorkflow } from './workflow.ts';
 import { affectedFields } from './report-fields.ts';
 
@@ -11,7 +10,10 @@ const TITLES: Record<Result['manifest']['status'], string> = {
   'validation-failed': 'Migration validation failed',
   validated: 'Migration validated',
   'draft-created': 'Draft PR ready',
+  'draft-updated': 'Draft PR updated',
+  'draft-closed': 'Draft PR closed',
   'existing-pr': 'Existing PR found',
+  'up-to-date': 'Up to date',
   error: 'Refit could not complete this run',
 };
 const MAX_SUMMARY_ITEMS = 3;
@@ -317,7 +319,7 @@ function renderReportRows(report: Record<string, unknown> | undefined, existingP
       isObject(validation.generated.patched)
     )
       rows.push(
-        `Generated   stripe-mock: original ${validation.generated.baseline.status}; proposed ${validation.generated.patched.status}; ${Array.isArray(validation.generated.entryPoints) ? validation.generated.entryPoints.length : 0} functions (${Array.isArray(validation.generated.notRunnable) ? validation.generated.notRunnable.length : 0} not runnable alone), ${String(validation.generated.uncoveredFindings)} usages uncovered`,
+        `Generated   stripe-mock${typeof validation.generated.status === 'string' ? ` ${validation.generated.status}` : ''}: original ${validation.generated.baseline.status}; proposed ${validation.generated.patched.status}; ${Array.isArray(validation.generated.entryPoints) ? validation.generated.entryPoints.length : 0} functions (${Array.isArray(validation.generated.notRunnable) ? validation.generated.notRunnable.length : 0} not runnable alone), ${String(validation.generated.uncoveredFindings)} usages uncovered${typeof validation.generated.reason === 'string' ? `. ${terminalText(validation.generated.reason)}` : ''}`,
       );
     if (Array.isArray(validation.attempts) && isObject(validation.repair))
       rows.push(
@@ -340,10 +342,14 @@ export function renderScanResult(value: unknown) {
 }
 
 export async function renderWorkflowResult(result: Result) {
-  const readArtifact = async (name: string) =>
-    result.manifest.files.some((file) => file.path === name)
-      ? parseObject(await readFile(join(result.directory, name), 'utf8'), name)
+  const readArtifact = async (name: string) => {
+    const text = result.manifest.files.some(
+      (file) => file.path === name || file.path === `${name}${COMPRESSED_SUFFIX}`,
+    )
+      ? await readEvidence(result.directory, name)
       : undefined;
+    return text === undefined ? undefined : parseObject(text, name);
+  };
   const report = (await readArtifact('report.json')) ?? (await readArtifact('scan.json'));
   const publication = await readArtifact('publication.json');
   const rows = renderReportRows(report, result.manifest.status === 'existing-pr');

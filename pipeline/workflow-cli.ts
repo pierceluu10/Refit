@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { assessmentConfiguration } from './assessment.ts';
-import { publicationConfiguration } from './publication.ts';
+import { publicationConfiguration, publishUnresolved } from './publication.ts';
 import { PipelineInputError } from './types.ts';
 import { runWorkflow } from './workflow.ts';
 import { parseCheckCommand } from './validation-options.ts';
@@ -14,11 +14,12 @@ import { renderWorkflowResult } from './workflow-presentation.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
 import { hasErrorCode } from './state-files.ts';
 import { cliErrorMessage } from './cli-errors.ts';
+import { DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 
 const RUN_DIRECTORY_PREFIX = 'refit-run-';
 
 const USAGE =
-  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-unresolved] [--shopify-sdk-upgrade] [--publish-draft --github owner/repository --base main [--github-app]]';
+  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--write-behaviour-tests (sends the original Stripe modules to OpenAI) | --write-behaviour-tests-dry-run] [--publish-unresolved | --publish-validated-only] [--shopify-sdk-upgrade] [--publish-draft --github owner/repository --base main [--github-app] [--supersede-drafts]]';
 
 try {
   const { values } = parseArgs({
@@ -43,11 +44,15 @@ try {
       'api-version-policy': { type: 'string' },
       assess: { type: 'boolean' },
       'ai-patch': { type: 'boolean' },
+      'write-behaviour-tests': { type: 'boolean' },
+      'write-behaviour-tests-dry-run': { type: 'boolean' },
       'documentation-snapshot': { type: 'string', multiple: true },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
       'github-app': { type: 'boolean' },
       'publish-unresolved': { type: 'boolean' },
+      'publish-validated-only': { type: 'boolean' },
+      'supersede-drafts': { type: 'boolean' },
       'shopify-sdk-upgrade': { type: 'boolean' },
       github: { type: 'string' },
       base: { type: 'string' },
@@ -56,7 +61,7 @@ try {
   });
   if (values.help)
     console.log(
-      `${USAGE}\nFrom a repository root, run refit doctor, then refit run to use .refit.json. --repository selects another root. Evidence defaults to a new private directory in the operating system's temporary directory; use --output to retain it elsewhere.\nUse --human for a readable summary or --json for machine output. Terminals default to human output; redirected output defaults to JSON.\n--prepare-dependencies installs locked public npm/pnpm packages with scripts disabled before offline checks. Optional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences. AI and publication stay explicit opt-ins.`,
+      `${USAGE}\nFrom a repository root, run refit doctor, then refit run to use .refit.json. --repository selects another root. Evidence defaults to a new private directory in the operating system's temporary directory; use --output to retain it elsewhere.\nUse --human for a readable summary or --json for machine output. Terminals default to human output; redirected output defaults to JSON.\n--prepare-dependencies installs locked public npm/pnpm packages with scripts disabled before offline checks. Optional --baseline-command '<JSON array>' overrides only the baseline check. Both commands are recorded; review their contract differences. AI and publication stay explicit opt-ins. Refit turns its stops into [Needs review] drafts by default (docs/CLI.md); --publish-validated-only publishes validated drafts only. --supersede-drafts closes Refit's older open drafts for the same provider and integration, with a comment linking the new one; it needs --github-app.`,
     );
   else {
     if (values.json && values.human)
@@ -95,10 +100,19 @@ try {
       values.command === undefined ? configuration?.command : parseCheckCommand(values.command);
     if (!repository || !before || !image || !command)
       throw new PipelineInputError(`Missing run inputs.\n${USAGE}`);
-    if (!values['publish-draft'] && (values.github || values.base || values['github-app']))
-      throw new PipelineInputError('--github, --base and --github-app require --publish-draft.');
+    if (
+      !values['publish-draft'] &&
+      (values.github || values.base || values['github-app'] || values['supersede-drafts'])
+    )
+      throw new PipelineInputError(
+        '--github, --base, --github-app and --supersede-drafts require --publish-draft.',
+      );
+    // A token cannot tell Refit's drafts from a person's, so it never closes one.
+    if (values['supersede-drafts'] && !values['github-app'])
+      throw new PipelineInputError('--supersede-drafts requires --github-app.');
     const specificationOverride =
       values.after !== undefined || values['latest-stripe'] !== undefined;
+    const allowUnresolved = publishUnresolved(values);
     const slack = slackNotifier(process.env);
     const result = await runWorkflow({
       repository,
@@ -118,6 +132,7 @@ try {
         values['baseline-command'] !== undefined
           ? parseCheckCommand(values['baseline-command'], '--baseline-command')
           : configuration?.baselineCommand,
+      checkTimeoutSeconds: configuration?.checkTimeoutSeconds,
       providerConfig: values['provider-config'] ?? configuration?.providerConfig,
       apiVersion: values['api-version'] ?? configuration?.apiVersion,
       apiVersionPolicy: validateApiVersionPolicy(
@@ -126,6 +141,9 @@ try {
       fullDiff: values['full-diff'] ?? configuration?.fullDiff,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
+      behaviourTestWriter: values['write-behaviour-tests-dry-run']
+        ? { model: process.env.OPENAI_MODEL?.trim() || DRY_RUN_MODEL, dryRun: true }
+        : assessmentConfiguration(values['write-behaviour-tests'], process.env),
       documentationSnapshots: values['documentation-snapshot'],
       repairAttempts: Number(values['repair-attempts'] ?? 0),
       publication: values['publish-draft']
@@ -136,11 +154,12 @@ try {
               process.env.GITHUB_TOKEN,
               values['github-app'] ? githubAppConfiguration(process.env) : undefined,
             ),
-            ...(values['publish-unresolved'] ? { allowUnresolved: true } : {}),
+            ...(allowUnresolved ? { allowUnresolved: true } : {}),
+            ...(values['supersede-drafts'] ? { supersedeDrafts: true } : {}),
           }
         : undefined,
       // Alone, it saves [Needs review] artifacts that a later publication can use.
-      ...(values['publish-unresolved'] ? { allowUnresolved: true } : {}),
+      ...(allowUnresolved ? { allowUnresolved: true } : {}),
       ...(slack ? { notify: { send: slack } } : {}),
       onProgress: values.quiet ? undefined : (message) => console.error(`[refit] ${message}`),
     });
