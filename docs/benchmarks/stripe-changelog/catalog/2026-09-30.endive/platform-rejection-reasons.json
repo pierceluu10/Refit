@@ -1,0 +1,12 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Distinguishes platform-initiated account rejections from Stripe rejections",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/platform-rejection-reasons",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "Account requirements.disabled_reason returns rejected.platform_* for platform rejections"
+  ],
+  "handling": "none",
+  "reason": "disabled_reason is a string in the contracts, so the new values are not a contract change."
+}

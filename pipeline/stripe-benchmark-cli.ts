@@ -32,6 +32,7 @@ import {
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { validationProfile } from './docker-sandbox.ts';
+import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
 import { AiPolicyStop } from './ai-patches.ts';
 import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 import { githubAppConfiguration } from './github-app.ts';
@@ -45,10 +46,11 @@ import { PipelineInputError, type Repository } from './types.ts';
 import { typeErrorKeys } from './type-errors.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 import { readEvidence } from './state-files.ts';
+import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -72,6 +74,8 @@ const { values } = parseArgs({
     output: { type: 'string' },
     env: { type: 'string' },
     ai: { type: 'boolean' },
+    // Defaults with --ai to what the hosted worker runs (HOSTED_REPAIR_ATTEMPTS).
+    'repair-attempts': { type: 'string' },
     // Writes behaviour tests during validation with one model request per repository; it needs
     // --env with OPENAI_API_KEY and OPENAI_MODEL and never turns on AI patches.
     'behaviour-tests': { type: 'boolean' },
@@ -100,6 +104,11 @@ const { values } = parseArgs({
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
 if (values.publish && !values.validate)
   throw new PipelineInputError('--publish needs --validate: only validated runs are published.');
+if (values.ai) values['repair-attempts'] ??= String(HOSTED_REPAIR_ATTEMPTS);
+const repairAttempts = validateRepairAttempts(
+  Number(values['repair-attempts'] ?? 0),
+  Boolean(values.ai),
+);
 if (values.env) process.loadEnvFile(values.env);
 if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
@@ -444,14 +453,17 @@ async function benchmark(entry: Selected, index: number) {
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
-  const checkable =
-    // A bun.lock is installed through its npm translation (bun-lock.ts).
-    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
-      existsSync(join(checkRoot, lockfile)),
-    ) && Boolean(declared.stripe);
+  // A bun.lock is installed through its npm translation (bun-lock.ts).
+  const locked = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
+    existsSync(join(checkRoot, lockfile)),
+  );
+  const checkable = locked && Boolean(declared.stripe);
+  // Owner decision 1: a project that commits no lockfile runs the workflow as a customer's generated
+  // configuration does; preparation refuses, and the patch is kept untested, graded D.
+  const unlocked = !locked && Boolean(declared.stripe);
   // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,
   // the patch is still proposed and graded D.
-  const selection = await selectCheck(repository);
+  const selection = await selectCheck(repository, packageDirectory);
   result.checkSelection = {
     kind: selection.kind,
     ...(selection.typeCheck ? { typeCheck: selection.typeCheck } : {}),
@@ -462,7 +474,7 @@ async function benchmark(entry: Selected, index: number) {
   };
   result.validatable = checkable && Boolean(selection.command);
   result.checks = !checkable ? 'none' : (selection.kind ?? 'generated-only');
-  if (values.validate && checkable) {
+  if (values.validate && (checkable || unlocked)) {
     const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
     const generatedChecks =
       existsSync(fixtures(entry.before)) && existsSync(fixtures(latest))
@@ -474,7 +486,7 @@ async function benchmark(entry: Selected, index: number) {
         : undefined;
     // compareTypeErrors fails a patched type check only on errors the patch introduced, which then
     // go to AI repair.
-    const command = selection.command;
+    const command = checkable ? selection.command : (selection.command ?? NO_OP_CHECK.split(' '));
     const config = join(work, 'run.json');
     // A customer's worker runs the full contract diff. When it stops before validation, the
     // workflow runs without it (benchmark mode) to measure what the rules alone would do; when it
@@ -520,7 +532,7 @@ async function benchmark(entry: Selected, index: number) {
                   '--ai-patch',
                   ...notes.flatMap((path) => ['--documentation-snapshot', path]),
                   '--repair-attempts',
-                  '1',
+                  String(repairAttempts),
                 ]
               : []),
             ...(values['behaviour-tests']
@@ -585,6 +597,14 @@ async function benchmark(entry: Selected, index: number) {
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
+      ...(report.validation?.dependencyFailure
+        ? {
+            dependencyFailure: {
+              reason: report.validation.dependencyFailure.reason,
+              message: String(report.validation.dependencyFailure.message ?? '').slice(0, 500),
+            },
+          }
+        : {}),
       baselineStop: report.validation?.baselineStop?.reason,
       checkErrors: {
         baseline: report.validation?.baseline?.error,

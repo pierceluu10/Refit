@@ -1,0 +1,13 @@
+{
+  "version": "2026-03-25.dahlia",
+  "title": "Updates the Issuing Token card reference ID for Visa to be optional",
+  "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/visa-card-reference-id-optional",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "Issuing.Token.network_data.visa.card_reference_id became nullable"
+  ],
+  "handling": "stop",
+  "reason": "Only with fullDiff: oasdiff reports response-property-became-nullable outside any unexpanded object, which stays blocking (AGENTS.md), and findBreakingOperationImpacts lists every traced issuing.tokens call as an operation impact. Without fullDiff Refit reports nothing.",
+  "fullDiffOnly": true
+}

@@ -1,0 +1,12 @@
+{
+  "version": "2026-03-25.dahlia",
+  "title": "Updates the elements.update() method to return a Promise",
+  "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/elements-update-returns-promise",
+  "checkedAt": "2026-10-24",
+  "category": "stripejs",
+  "changed": [
+    "elements.update() returns Promise<void>"
+  ],
+  "handling": "none",
+  "reason": "Stripe.js change. Refit traces stripe-node SDK calls against the stripe/openapi contracts and does not analyze @stripe/stripe-js or @stripe/react-stripe-js code."
+}

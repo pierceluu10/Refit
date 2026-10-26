@@ -1,0 +1,41 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Invoicing resources now specify how they were generated",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "Invoice.subscription removed (moved to parent.subscription_details.subscription)",
+    "Invoice.quote, subscription_details, subscription_proration_date removed",
+    "InvoiceItem.subscription, subscription_item removed",
+    "InvoiceLineItem.invoice_item, proration, proration_details, subscription_item, type removed",
+    "InvoiceLineItem.subscription removed"
+  ],
+  "handling": "none",
+  "reason": "The recorded stripe/openapi contracts (2025-03-31.basil to 2026-09-30.endive) still declare line_item.subscription, so findRemovedProperties reports no removal.",
+  "parts": [
+    {
+      "changed": [
+        "Invoice.subscription removed (moved to parent.subscription_details.subscription)"
+      ],
+      "handling": "rule",
+      "how": "invoiceSubscriptionHelperEdit (stripe-subscription-periods.ts) rewrites traced reads to the generated getInvoiceSubscription helper, which reads either version; SDK reads keep the expand check (analyzer.ts propose), webhook reads do not."
+    },
+    {
+      "changed": [
+        "Invoice.quote, subscription_details, subscription_proration_date removed",
+        "InvoiceItem.subscription, subscription_item removed",
+        "InvoiceLineItem.invoice_item, proration, proration_details, subscription_item, type removed"
+      ],
+      "handling": "ai",
+      "how": "findRemovedProperties (specifications.ts) reports the removed field and analyzeRepository (analyzer.ts) reports each traced read as a confirmed finding; STRIPE_MOVE_REVIEW (stripe-field-moves.ts) appends the named Stripe reason where it has one. No rule edits the read, so a deterministic patch leaves it unresolved and the AI patch path (run.ts aiFindings, ai-patches.ts proposeAiPatch) receives it."
+    },
+    {
+      "changed": [
+        "InvoiceLineItem.subscription removed"
+      ],
+      "handling": "none",
+      "reason": "The recorded stripe/openapi contracts (2025-03-31.basil to 2026-09-30.endive) still declare line_item.subscription, so findRemovedProperties reports no removal."
+    }
+  ]
+}

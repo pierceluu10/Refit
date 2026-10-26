@@ -17,8 +17,9 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-// A docker stand-in whose every check prints `output` and exits 1, as a failing baseline does.
-async function failingChecks(output: string) {
+// A committed repository and a docker stand-in that runs `check` (a script body with `args`) for
+// every check.
+async function validated(check: string, options: { command: string[]; compareTypeErrors?: true }) {
   const root = await mkdtemp(join(tmpdir(), 'refit-baseline-stops-'));
   roots.push(root);
   const repository = join(root, 'repository');
@@ -49,8 +50,7 @@ async function failingChecks(output: string) {
 const args = process.argv.slice(2);
 if (args[0] === 'image') { console.log(args[3] === '{{.Id}}' ? 'sha256:${'a'.repeat(64)}' : JSON.stringify(['NODE_VERSION=22.23.3'])); process.exit(0); }
 if (args[0] === 'rm' || args[0] === 'ps') process.exit(0);
-process.stdout.write(${JSON.stringify(output)});
-process.exit(1);
+${check}
 `,
   );
   await chmod(join(binary, 'docker'), 0o755);
@@ -60,9 +60,34 @@ process.exit(1);
     propose: async () =>
       'diff --git a/index.js b/index.js\n--- a/index.js\n+++ b/index.js\n@@ -1 +1 @@\n-module.exports = 1;\n+module.exports = 2;\n',
     image: 'node:22-alpine',
-    command: ['npm', 'test'],
+    ...options,
   });
 }
+
+// Every check prints `output` and exits 1, as a failing baseline does.
+const failingChecks = (output: string) =>
+  validated(`process.stdout.write(${JSON.stringify(output)});\nprocess.exit(1);`, {
+    command: ['npm', 'test'],
+  });
+
+const CHAIN = [
+  'sh',
+  '-c',
+  `npm test || echo '${TESTS_FAILED}'; echo '${TYPE_CHECK_STARTED}'; ${TYPE_CHECK.join(' ')}`,
+  'refit-check',
+];
+type Side = { tests: string; stderr?: string; typeCheck: string; exitCode: number };
+// A tests-then-type-check chain whose tests print `tests` and fail, then whose type check prints
+// `typeCheck` and exits with `exitCode`, on the original code and on the patch (mounted from
+// candidate/).
+const chainChecks = (baseline: Side, patched: Side) =>
+  validated(
+    `const side = args.some((arg) => arg.includes('/candidate,dst=/input')) ? ${JSON.stringify(patched)} : ${JSON.stringify(baseline)};
+process.stdout.write(side.tests + ${JSON.stringify(`${TESTS_FAILED}\n${TYPE_CHECK_STARTED}\n`)} + side.typeCheck);
+process.stderr.write(side.stderr ?? '');
+process.exit(side.exitCode);`,
+    { command: CHAIN, compareTypeErrors: true },
+  );
 
 it('records the named stop for a baseline that fails for a setup reason', async () => {
   // JensenMPillay/pdfai's baseline (docs/PREPARATION-FAILURES.md).
@@ -76,6 +101,71 @@ it('records the named stop for a baseline that fails for a setup reason', async 
       action: expect.stringContaining('In .refit.json, set "command" and "baselineCommand"'),
     },
   });
+});
+
+// What the tests of a chain printed in refit-bench run 40236299492.
+const NO_JEST_TESTS =
+  '> jest\n\nNo tests found, exiting with code 1\nRun with `--passWithNoTests` to exit with code 0\n';
+
+it('runs only the type check of a chain whose test script finds no test files', async () => {
+  // JensenMPillay/pdfai at 76eee198ded23bf4fafba0e2d431cf01d2f60290: `jest` has no test file to
+  // run, and tsc passes on both sides.
+  const pdfai = await chainChecks(
+    { tests: NO_JEST_TESTS, typeCheck: '', exitCode: 0 },
+    { tests: NO_JEST_TESTS, typeCheck: '', exitCode: 0 },
+  );
+  expect(pdfai).toMatchObject({
+    status: 'passed',
+    baseline: { status: 'passed' },
+    patched: { status: 'passed' },
+  });
+  expect(pdfai).not.toHaveProperty('baselineStop');
+  // The runner's own result stays in the evidence.
+  expect('baseline' in pdfai && pdfai.baseline.stdout).toContain(
+    'No tests found, exiting with code 1',
+  );
+  // JiantaoFu/insightly at e752d3c311780e3e11ec9738b16a4f6a549cb321: `mocha` finds no ./test, and
+  // the type errors the original code already has are its baseline.
+  const before = "server/index.js(12,7): error TS2339: Property 'x' does not exist on type '{}'.\n";
+  const mocha = {
+    tests: '\n> insightly@0.0.0 test\n> mocha\n\n',
+    stderr: '\u001b[31mError: No test files found: "test"\u001b[39m\n',
+    typeCheck: before,
+    exitCode: 2,
+  };
+  expect((await chainChecks(mocha, mocha)).status).toBe('passed');
+  // Panda2Chan/ai-asmr at cbaf6a28512730839a9a0d72a852416e97f0f0dc: the patch introduces a type
+  // error, so it is a regression.
+  const introduced = `src/lib/stripe.ts(6,3): error TS2322: Type '"2026-09-30.endive"' is not assignable to type '"2023-10-16"'.`;
+  const asmr = await chainChecks(
+    { tests: NO_JEST_TESTS, typeCheck: '', exitCode: 0 },
+    { tests: NO_JEST_TESTS, typeCheck: `${introduced}\n`, exitCode: 2 },
+  );
+  expect(asmr).toMatchObject({
+    status: 'regression',
+    checkFailures: [{ side: 'patched', part: 'type check', firstFailure: introduced }],
+  });
+});
+
+it('keeps tests that fail any other way as failing', async () => {
+  const failing = 'FAIL src/payments.test.ts\n  expected 2 to be 3\n';
+  expect(
+    (
+      await chainChecks(
+        { tests: failing, typeCheck: '', exitCode: 0 },
+        { tests: failing, typeCheck: '', exitCode: 0 },
+      )
+    ).status,
+  ).toBe('baseline-failed');
+  // Tests that fail on the patch for another reason fail it, even where the original found none.
+  expect(
+    (
+      await chainChecks(
+        { tests: NO_JEST_TESTS, typeCheck: '', exitCode: 0 },
+        { tests: "Error: Cannot find module 'next/jest'\n", typeCheck: '', exitCode: 0 },
+      )
+    ).status,
+  ).toBe('regression');
 });
 
 it('records no stop when the baseline fails in the code itself', async () => {

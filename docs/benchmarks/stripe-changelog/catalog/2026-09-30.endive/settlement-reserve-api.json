@@ -1,0 +1,12 @@
+{
+  "version": "2026-09-30.endive",
+  "title": "Adds destination property and new enum values to Reserve Plans, Holds and Releases",
+  "source": "https://docs.stripe.com/changelog/endive/2026-09-30/settlement-reserve-api",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "destination added to Reserve Plans, Holds and Releases; manual_release and other added to Reserve.Plan type and status"
+  ],
+  "handling": "none",
+  "reason": "The recorded spec3.json contracts have no Reserve Plan, Hold or Release objects, so Refit has no signal for it."
+}

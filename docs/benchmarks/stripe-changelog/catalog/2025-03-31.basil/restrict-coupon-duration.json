@@ -1,0 +1,12 @@
+{
+  "version": "2025-03-31.basil",
+  "title": "Removes support for discount coupons that don’t have a specified end time",
+  "source": "https://docs.stripe.com/changelog/basil/2025-03-31/restrict-coupon-duration",
+  "checkedAt": "2026-10-24",
+  "category": "api",
+  "changed": [
+    "amount_off coupons with duration forever can no longer be created or applied (the page says 2026-01-28.clover reversed this)"
+  ],
+  "handling": "none",
+  "reason": "Behaviour change with no difference in the recorded stripe/openapi contracts, so Refit has no signal for it."
+}
