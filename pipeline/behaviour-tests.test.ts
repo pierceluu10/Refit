@@ -833,8 +833,12 @@ it('reaches a Checkout Session behind Clerk and Prisma through stubs both sides 
     CHAT_NEST_RUN,
   );
   expect(kept).toMatchObject({ status: 'regression', grade: null });
-  expect(kept.regressions.map((regression) => regression.id)).toEqual([
-    'refit-behaviour/checkout.test.mjs > sends a signed-in user without a subscription to a card-only Checkout Session',
+  expect(kept.regressions).toEqual([
+    {
+      id: 'refit-behaviour/checkout.test.mjs > sends a signed-in user without a subscription to a card-only Checkout Session',
+      // The route turns stripe-mock's 400 into its own 500.
+      error: expect.stringContaining('500 !== 200'),
+    },
   ]);
 
   // Stubs never stand in for coverage: with no one signed in the test passes on both sides, but the

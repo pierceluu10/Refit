@@ -2,6 +2,8 @@ import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
+import { behaviourGrade } from './behaviour-tests.ts';
+import { CHAT_NEST_STUBS } from './fixtures/behaviour-stubs.ts';
 import { unresolvedSites } from './migration-review.ts';
 import { publicationWaiver } from './publication.ts';
 import { code, createReviewArtifacts, writeReviewBundle } from './review.ts';
@@ -534,6 +536,29 @@ it('holds a draft with advisory JavaScript type errors for review and lists each
   expect(artifacts.manifest.title).toMatch(/^\[Needs review\] /);
   expect(artifacts.files['pull-request.md']).toContain(
     "**Advisory type errors.** Refit's generated type check reports a type error this patch introduces in JavaScript your build never type-checks; they did not fail validation. Check each one: `api/billing.js:31` TS2322 ",
+  );
+});
+
+it('names every stubbed module in a grade-A draft built on behaviour-test stubs (Anassarwar14/Chat-Nest-AI at 38dd23e)', async () => {
+  const value = await report();
+  value.validation.status = 'passed';
+  value.patch.validation = 'passed';
+  value.validation.patched = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
+  const lines = { 'app/api/stripe/route.ts': [38], 'lib/stripe.ts': [4] };
+  value.validation.grade = {
+    letter: 'A',
+    level: 'behaviour-tests',
+    reason: behaviourGrade({
+      status: 'passed',
+      grade: 'A',
+      missing: [],
+      tests: [{ path: 'refit-behaviour/checkout.test.mjs' }],
+      coverage: { changedLines: { original: lines, patched: lines } },
+      stubs: CHAT_NEST_STUBS,
+    }).reason,
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    "- Evidence Grade: **A, Behaviour tests cover every changed line.** Behaviour tests (refit-behaviour/checkout.test.mjs) passed on the original code against the before-version stripe-mock and on the patched code against the after-version stripe-mock, and ran every changed Stripe line on both sides (2 original, 2 patched). The same stubs stood in for @clerk/nextjs/server (refit-behaviour/stubs/clerk-server.mjs), lib/prismaDB.ts (refit-behaviour/stubs/prisma-db.mjs) on both sides; the Stripe code, its requests and stripe-mock's responses were not stubbed.",
   );
 });
 

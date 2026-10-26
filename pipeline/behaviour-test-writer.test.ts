@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
@@ -10,6 +10,8 @@ import {
   behaviourTestSkip,
   INSTRUCTIONS,
   parseBehaviourTests,
+  STUB_INSTRUCTIONS,
+  stripeCodeFiles,
   writeBehaviourTests,
   type BehaviourTestFile,
 } from './behaviour-test-writer.ts';
@@ -18,6 +20,7 @@ import {
   compareBehaviourRuns,
   writeBehaviourHarness,
 } from './behaviour-tests.ts';
+import { CHAT_NEST, CHAT_NEST_STUBS, CHAT_NEST_TEST } from './fixtures/behaviour-stubs.ts';
 import { typescriptDirectory } from './generated-checks.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
 import { readRepository } from './repository.ts';
@@ -1077,3 +1080,335 @@ it("SIMULATED stripe-mock: the generated test gives grade A to the card rule's p
   const unchanged = await harness(files, findings, DOCSFLOW_CLIENT);
   expect(unchanged).toMatchObject({ status: 'regression' });
 }, 120_000);
+
+// --behaviour-test-stubs (off by default). Anassarwar14/Chat-Nest-AI at 38dd23e (dev-30), one of the
+// 12 repositories whose request in refit-bench run 40276445481 returned no tests: its checkout sits
+// behind Clerk and a Prisma client (pipeline/fixtures/behaviour-stubs.ts).
+async function chatNest() {
+  const root = await mkdtemp(join(tmpdir(), 'refit-behaviour-stubs-'));
+  roots.push(root);
+  const directory = join(root, 'repository');
+  for (const [path, content] of Object.entries({
+    ...CHAT_NEST,
+    'package.json': JSON.stringify({ dependencies: { stripe: '17.5.0' } }),
+  })) {
+    await mkdir(dirname(join(directory, path)), { recursive: true });
+    await writeFile(join(directory, path), content);
+  }
+  const before = join(root, 'before.json');
+  const after = join(root, 'after.json');
+  const providerConfig = join(root, 'provider.json');
+  await writeFile(
+    before,
+    JSON.stringify(
+      checkoutContract('2024-12-18.acacia', [...CHECKOUT_FIELDS, 'payment_method_types']),
+    ),
+  );
+  await writeFile(
+    after,
+    JSON.stringify(
+      checkoutContract('2026-09-30.endive', [...CHECKOUT_FIELDS, 'allowed_payment_method_types']),
+    ),
+  );
+  await writeFile(
+    providerConfig,
+    JSON.stringify({
+      ...ADAPTER,
+      id: 'stripe-checkout',
+      operations: [
+        {
+          resource: 'checkout.sessions',
+          method: 'create',
+          schema: 'checkout.session',
+          operationId: 'PostCheckoutSessions',
+        },
+      ],
+    }),
+  );
+  // As validation's preflight scan runs, before any patch exists.
+  const report = await runPipeline({
+    repository: directory,
+    before,
+    after,
+    providerConfig,
+    apiVersion: '2024-12-18.acacia',
+    proposePatch: false,
+  });
+  const specifications = {
+    before: await readSpecification(before),
+    after: await readSpecification(after),
+  };
+  return {
+    root,
+    report,
+    scanned: [...report.imports, ...report.sdkCalls, ...report.calls],
+    inputs: {
+      repository: await readRepository(directory),
+      findings: report.findings,
+      changes: report.changes,
+      removals: removedRequestParameters(
+        report.adapter,
+        specifications.before.document,
+        specifications.after.document,
+      ),
+      ...specifications,
+    },
+  };
+}
+
+const STUBBED_ANSWER = {
+  summary: 'Stubs sign a user in and find no subscription, so GET creates a Checkout Session.',
+  files: [{ ...CHAT_NEST_TEST, findingIds: ['f1'] }],
+  stubs: CHAT_NEST_STUBS,
+  uncertainties: [],
+};
+
+it('keeps the default request byte-identical: no stub rules, schema or evidence without --behaviour-test-stubs', async () => {
+  // SHA-256 of the instructions, the schema and a whole request as main fad75f55 builds them.
+  expect(digest(INSTRUCTIONS)).toBe(
+    'ed4d4e972604ca4be1c19d98a3cf03e0649b3132244046f3df37960bf4b5a06a',
+  );
+  const request = behaviourTestRequest({
+    repository: {
+      root: '/r',
+      files: [{ path: 'a.ts', content: "import Stripe from 'stripe';\n" }],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    findings: [
+      {
+        file: 'a.ts',
+        line: 1,
+        column: 1,
+        confidence: 'confirmed',
+        expression: 'x',
+        changeId: 'c',
+      } as Finding,
+    ],
+    changes: [],
+    removals: [],
+    before: { document: { info: { version: 'b' } }, schemas: {} },
+    after: { document: { info: { version: 'a' } }, schemas: {} },
+  });
+  expect(digest(JSON.stringify(request.schema))).toBe(
+    'a487e4ede2dbfb40793fd5bbf7cfeb12f75396da7224aaf939a9ebe7becbed2e',
+  );
+  expect(digest(JSON.stringify(request))).toBe(
+    '9df8f0c02b2a4274ce913a9dc4ce44d30b51b5f6f2cb3fe8650306a90da6d753',
+  );
+  const sample = await chatNest();
+  const { record } = await writeBehaviourTests({
+    ...sample.inputs,
+    scanned: sample.scanned,
+    ai: { model: 'gpt-6.1-sol', dryRun: true },
+  });
+  expect(record).not.toHaveProperty('stubs');
+  expect(record.promptHash).toBe(
+    digest(
+      JSON.stringify({
+        instructions: INSTRUCTIONS,
+        evidence: behaviourTestRequest(sample.inputs).evidence,
+      }),
+    ),
+  );
+  // An answer with stubs does not match the default schema.
+  expect(
+    parseBehaviourTests(JSON.stringify(STUBBED_ANSWER), {
+      repository: sample.inputs.repository,
+      findingIds: ['f1'],
+    }).refusals,
+  ).toEqual(['The answer does not match the behaviour-test schema.']);
+});
+
+it('adds the stub rules, the stubs schema and the files no stub may replace only with --behaviour-test-stubs (Anassarwar14/Chat-Nest-AI at 38dd23e)', async () => {
+  const sample = await chatNest();
+  expect(sample.report.findings).toEqual([
+    expect.objectContaining({ file: 'app/api/stripe/route.ts', line: 38 }),
+  ]);
+  const neverStub = stripeCodeFiles(
+    sample.inputs.repository,
+    sample.inputs.findings,
+    sample.scanned,
+  );
+  // Files that import stripe, and the route the scan traced the call in, which does not.
+  expect([...neverStub].sort()).toEqual([
+    'app/api/stripe/route.ts',
+    'app/api/webhook/route.ts',
+    'lib/stripe.ts',
+  ]);
+  const plain = behaviourTestRequest(sample.inputs);
+  const stubbed = behaviourTestRequest({ ...sample.inputs, stubs: neverStub });
+  expect(stubbed.instructions).toBe(`${INSTRUCTIONS}\n\n${STUB_INSTRUCTIONS}`);
+  expect(STUB_INSTRUCTIONS).toContain('Never stub stripe');
+  expect(STUB_INSTRUCTIONS).toContain('the SAME stub files run on both runs');
+  expect(stubbed.schema.required).toEqual(['summary', 'files', 'stubs', 'uncertainties']);
+  expect(stubbed.schema.properties.files).toEqual(plain.schema.properties.files);
+  // The reachable files a stub may not replace: the route and the client, not Prisma or utils.
+  const { stubs, ...evidence } = stubbed.evidence as typeof stubbed.evidence & {
+    stubs: { neverStub: string[] };
+  };
+  expect(stubs).toEqual({ neverStub: ['app/api/stripe/route.ts', 'lib/stripe.ts'] });
+  expect(evidence).toEqual(plain.evidence);
+});
+
+const stubAnswer = (
+  stub: Partial<(typeof CHAT_NEST_STUBS)[number]>,
+  extra: Record<string, unknown> = {},
+) => ({
+  ...STUBBED_ANSWER,
+  stubs: [CHAT_NEST_STUBS[0], { ...CHAT_NEST_STUBS[1], ...stub }],
+  ...extra,
+});
+
+it('accepts stubs that hold to every rule, and refuses every file and stub when one breaks a rule (Anassarwar14/Chat-Nest-AI at 38dd23e)', async () => {
+  const sample = await chatNest();
+  const neverStub = stripeCodeFiles(
+    sample.inputs.repository,
+    sample.inputs.findings,
+    sample.scanned,
+  );
+  const parse = (answer: unknown) =>
+    parseBehaviourTests(JSON.stringify(answer), {
+      repository: sample.inputs.repository,
+      findingIds: ['f1'],
+      stubs: neverStub,
+    });
+  const accepted = parse(
+    stubAnswer({
+      content: `import { absoluteURL } from '../../lib/utils.ts';\nimport { mock } from 'node:test';\nexport const url = absoluteURL('/x');\nexport const findUnique = mock.fn(async () => null);\nexport default { userSubscription: { findUnique } };\n`,
+    }),
+  );
+  expect(accepted.refusals).toEqual([]);
+  expect(accepted.stubs.map((stub) => stub.module)).toEqual([
+    '@clerk/nextjs/server',
+    'lib/prismaDB.ts',
+  ]);
+  expect(parse(STUBBED_ANSWER)).toMatchObject({
+    refusals: [],
+    files: [expect.objectContaining({ path: CHAT_NEST_TEST.path })],
+    stubs: CHAT_NEST_STUBS,
+  });
+  const refused = (answer: unknown) => {
+    const parsed = parse(answer);
+    expect(parsed).toMatchObject({ files: [], stubs: [] });
+    return parsed.refusals.join('\n');
+  };
+  for (const [module, rule] of [
+    ['stripe', 'stripe-and-http'],
+    ['stripe/esm/stripe.esm.node.js', 'stripe-and-http'],
+    ['node:https', 'stripe-and-http'],
+    ['undici', 'stripe-and-http'],
+    ['lib/stripe.ts', 'stripe-code'],
+    ['app/api/webhook/route.ts', 'stripe-code'],
+    ['app/api/stripe/route.ts', 'stripe-code'],
+    ['@/lib/prismaDB', 'module'],
+    ['./lib/prismaDB', 'module'],
+  ])
+    expect(refused(stubAnswer({ module }))).toContain(
+      `Stub "refit-behaviour/stubs/prisma-db.mjs" for ${JSON.stringify(module)} breaks stub rule ${rule}: `,
+    );
+  for (const [content, problem] of [
+    [
+      "import axios from 'axios';\nexport default axios;\n",
+      "1 imports 'axios', which breaks stub rule imports",
+    ],
+    [
+      "import Stripe from 'stripe';\nexport default Stripe;\n",
+      "1 imports 'stripe', which breaks stub rule imports",
+    ],
+    [
+      "import { stripe } from '../../lib/stripe.ts';\nexport default stripe;\n",
+      "1 imports '../../lib/stripe.ts', which breaks stub rule imports",
+    ],
+    [
+      "import https from 'node:https';\nexport default https;\n",
+      "1 imports 'node:https', which breaks stub rule imports",
+    ],
+    [
+      'globalThis.prisma = {};\nexport default {};\n',
+      '1 uses globalThis, which breaks stub rule isolation',
+    ],
+    ['export const get = (url) => fetch(url);\n', '1 uses fetch, which breaks stub rule isolation'],
+    [
+      "export const https = process.getBuiltinModule('node:https');\n",
+      '1 uses getBuiltinModule, which breaks stub rule isolation',
+    ],
+    [
+      'export const log = __refitStripe;\n',
+      '1 uses __refitStripe, which breaks stub rule isolation',
+    ],
+    [
+      "import { writeFileSync } from 'node:fs';\nwriteFileSync('/etc/hosts', '');\n",
+      '2 writeFileSync writes outside a temporary directory',
+    ],
+  ])
+    expect(refused(stubAnswer({ content }))).toContain(
+      `refit-behaviour/stubs/prisma-db.mjs:${problem}`,
+    );
+  expect(refused(stubAnswer({ path: 'refit-behaviour/prisma-db.mjs' }))).toContain(
+    'is not a refit-behaviour/stubs/<name>.mjs path',
+  );
+  expect(refused(stubAnswer({ module: '@clerk/nextjs/server' }))).toContain(
+    'repeats the path or module of another stub',
+  );
+  // A test may import only the stubs the answer defines.
+  expect(refused({ ...STUBBED_ANSWER, stubs: [CHAT_NEST_STUBS[1]] })).toContain(
+    "imports './stubs/clerk-server.mjs', which is not a repository file",
+  );
+  const { stubs: _stubs, ...withoutStubs } = STUBBED_ANSWER;
+  expect(refused(withoutStubs)).toBe('The answer does not match the behaviour-test schema.');
+});
+
+it('sends the stub rules, records the stubs it accepted and hands them to the harness (Anassarwar14/Chat-Nest-AI at 38dd23e)', async () => {
+  const sample = await chatNest();
+  const fetcher = respond(STUBBED_ANSWER);
+  const { record, files, stubs } = await writeBehaviourTests({
+    ...sample.inputs,
+    scanned: sample.scanned,
+    ai: { ...ai(sample.root), stubs: true },
+  });
+  const sent = fetcher.mock.calls.find(([url]) => !url.endsWith('/input_tokens'))!;
+  const body = JSON.parse(String(sent[1]!.body));
+  expect(body.instructions).toBe(`${INSTRUCTIONS}\n\n${STUB_INSTRUCTIONS}`);
+  expect(body.text.format.schema.required).toContain('stubs');
+  expect(JSON.parse(body.input[0].content).stubs).toEqual({
+    neverStub: ['app/api/stripe/route.ts', 'lib/stripe.ts'],
+  });
+  expect(record).toMatchObject({
+    status: 'generated',
+    refusals: [],
+    stubs: CHAT_NEST_STUBS.map((stub) => ({
+      module: stub.module,
+      path: stub.path,
+      sha256: digest(stub.content),
+      bytes: Buffer.byteLength(stub.content),
+    })),
+  });
+  expect(files.map((file) => file.path)).toEqual([CHAT_NEST_TEST.path]);
+  expect(stubs).toEqual(CHAT_NEST_STUBS);
+  // A dry run builds the same request, records that stubs were allowed and prices the longer prompt.
+  const dry = await writeBehaviourTests({
+    ...sample.inputs,
+    scanned: sample.scanned,
+    ai: { model: 'gpt-6.1-sol', dryRun: true, stubs: true },
+  });
+  const plain = await writeBehaviourTests({
+    ...sample.inputs,
+    scanned: sample.scanned,
+    ai: { model: 'gpt-6.1-sol', dryRun: true },
+  });
+  expect(dry.record).toMatchObject({ status: 'dry-run', wouldRun: true, stubs: [] });
+  expect(dry.record.promptHash).toBe(record.promptHash);
+  expect(dry.record.estimate!.inputTokens).toBeGreaterThan(plain.record.estimate!.inputTokens);
+});
+
+it('needs a writer for --behaviour-test-stubs on refit run, before anything runs', async () => {
+  await expect(
+    execute(process.execPath, [resolve('bin/refit.mjs'), 'run', '--behaviour-test-stubs']),
+  ).rejects.toMatchObject({
+    stderr: expect.stringContaining(
+      '--behaviour-test-stubs needs --write-behaviour-tests or --write-behaviour-tests-dry-run.',
+    ),
+  });
+});

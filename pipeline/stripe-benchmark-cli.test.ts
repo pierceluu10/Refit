@@ -292,6 +292,36 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
   },
 );
 
+it('needs --behaviour-tests or --behaviour-tests-dry-run for --behaviour-test-stubs, before any repository runs', async () => {
+  const root = await benchmarkRoot();
+  await expect(
+    run(root, join(root, 'out'), '--behaviour-test-stubs', '--validate'),
+  ).rejects.toMatchObject({
+    stderr: expect.stringContaining(
+      '--behaviour-test-stubs needs --behaviour-tests or --behaviour-tests-dry-run.',
+    ),
+  });
+});
+
+it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
+  'records --behaviour-test-stubs on the run and on every row',
+  async () => {
+    const root = await benchmarkRoot();
+    const output = join(root, 'out');
+    await run(root, output, '--behaviour-tests-dry-run', '--behaviour-test-stubs', '--validate');
+    const rows = await read(join(output, 'results.json'));
+    expect(rows.map((row: Record<string, unknown>) => row.behaviourTestStubs)).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    expect((await read(join(output, 'harness.json'))).options).toMatchObject({
+      'behaviour-tests-dry-run': true,
+      'behaviour-test-stubs': true,
+    });
+  },
+);
+
 it('repairs as often as the hosted worker by default and checks --repair-attempts before any repository runs', async () => {
   const flags = (await readFile('fly.toml', 'utf8')).match(/REFIT_HOSTED_FLAGS = "([^"]*)"/)?.[1];
   expect(flags).toContain('--ai-patch');

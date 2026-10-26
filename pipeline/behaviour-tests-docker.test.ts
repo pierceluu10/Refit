@@ -6,6 +6,13 @@ import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import type { BehaviourTest } from './behaviour-tests.ts';
+import {
+  CHAT_NEST,
+  CHAT_NEST_STUBS,
+  CHAT_NEST_TEST,
+  chatNestClient,
+  chatNestPatch,
+} from './fixtures/behaviour-stubs.ts';
 import { readRepository } from './repository.ts';
 import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 import { runBehaviourTests } from './validation.ts';
@@ -350,6 +357,52 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
         error: expect.stringContaining('Invalid time value'),
       },
     ]);
+
+    // --behaviour-test-stubs: Anassarwar14/Chat-Nest-AI at 38dd23e's checkout route behind Clerk and
+    // Prisma (pipeline/fixtures/behaviour-stubs.ts), on the real stripe-node and stripe-mock. Only
+    // stripe is installed here, so next/server is stubbed too; the stubs are copied into both sides.
+    const stubs = [
+      ...CHAT_NEST_STUBS,
+      {
+        module: 'next/server',
+        path: 'refit-behaviour/stubs/next-server.mjs',
+        content: 'export class NextResponse extends Response {}\n',
+      },
+    ];
+    const chatPackage = JSON.stringify({ type: 'module', dependencies: { stripe: STRIPE_NODE } });
+    const chatOriginal = await app('chat-original', {
+      ...CHAT_NEST,
+      'package.json': chatPackage,
+      'lib/stripe.ts': chatNestClient(VERSIONS.before.version),
+    });
+    const chatRun = async (name: string, files: Record<string, string>) => {
+      const patched = await app(name, { ...files, 'package.json': chatPackage });
+      return runBehaviourTests({
+        tests: [CHAT_NEST_TEST],
+        stubs,
+        settings,
+        image: IMAGE!,
+        root,
+        original: { ...chatOriginal, contract: contracts.before, dependencies },
+        patched: { ...patched, contract: contracts.after, dependencies },
+        findings: [{ file: 'app/api/stripe/route.ts' }],
+      });
+    };
+    const stubbed = await chatRun('chat-correct', chatNestPatch(VERSIONS.after.version));
+    expect(stubbed.missing).toEqual([]);
+    expect(stubbed).toMatchObject({ status: 'passed', grade: 'A', regressions: [] });
+    expect(stubbed.stubs?.map((stub) => stub.module)).toEqual([
+      '@clerk/nextjs/server',
+      'lib/prismaDB.ts',
+      'next/server',
+    ]);
+    const stubbedKept = await chatRun(
+      'chat-kept',
+      chatNestPatch(VERSIONS.after.version, 'payment_method_types'),
+    );
+    expect(stubbedKept).toMatchObject({ status: 'regression', grade: null });
+    // The route turns Stripe's 400 into its own 500, which the test's first assertion catches.
+    expect(stubbedKept.regressions[0].error).toContain('500 !== 200');
   },
   900_000,
 );

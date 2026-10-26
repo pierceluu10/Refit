@@ -110,10 +110,7 @@ export function validateBehaviourStubs(
     if (rule) throw new PipelineInputError(stubRuleBroken(rule, subject));
     if (files.has(stub.module)) {
       const original = content('original', stub.module)!;
-      if (
-        findings.some((finding) => finding.file === stub.module) ||
-        STRIPE_IMPORT.test(original)
-      )
+      if (findings.some((finding) => finding.file === stub.module) || STRIPE_IMPORT.test(original))
         throw new PipelineInputError(stubRuleBroken('stripe-code', subject));
       if (content('patched', stub.module) !== original)
         throw new PipelineInputError(stubRuleBroken('both-sides', subject));
