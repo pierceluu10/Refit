@@ -297,10 +297,8 @@ const OUT_OF_SYNC =
 // Several lockfiles and no pin backed by CI: when exactly one prepares on its own and every other
 // one is refused as out of sync with package.json, no install of this commit can use the others
 // (their own frozen installs reject them), so Refit installs that one and records why. Anything else
-// (several in sync, a refusal for another reason) keeps refusing.
-// shortcut: check selection still names pnpm or Yarn when pnpm-lock.yaml or yarn.lock is committed,
-// so choosing package-lock.json beside one would run its test script with a manager not installed;
-// no measured repository chooses npm here (docs/overnight/L2-prep-3.json), revisit when one does.
+// (several in sync, a refusal for another reason, or the one in sync not being the lockfile of the
+// manager check selection runs the checks with) keeps refusing.
 async function syncedLockfile(
   snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
   repositoryEntries: string[],
@@ -328,6 +326,11 @@ async function syncedLockfile(
     (result) => result.refusal !== undefined && OUT_OF_SYNC.test(result.refusal),
   );
   if (prepared.length !== 1 || outOfSync.length !== committed.length - 1) return undefined;
+  // Check selection picks pnpm, then Yarn, then npm by the lockfiles in the checkout
+  // (check-selection.ts packageManager), so another choice would run the checks with a manager
+  // that did not install the dependencies.
+  if (prepared[0].lockfile !== (committed.includes(PNPM_LOCKFILE) ? PNPM_LOCKFILE : YARN_LOCKFILE))
+    return undefined;
   const { lockfile, prepared: chosen } = prepared[0];
   return {
     ...chosen!,

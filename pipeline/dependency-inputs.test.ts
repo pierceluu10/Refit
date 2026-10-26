@@ -206,6 +206,27 @@ it('keeps refusing several lockfiles unless exactly one is in sync and the other
       }),
     ),
   ).rejects.toThrow(conflict('pnpm-lock.yaml'));
+  // Only one is in sync, but check selection would run the checks with pnpm, which the lockfile in
+  // sync does not install with.
+  const stalePnpmLock = pnpmLock().replace('"specifier":"10.17.0"', '"specifier":"10.16.0"');
+  await expect(
+    readPreparationInputs(
+      await commit({
+        'package.json': manifest('10.17.0'),
+        'package-lock.json': npmLockAt('10.17.0', '10.17.0'),
+        'pnpm-lock.yaml': stalePnpmLock,
+      }),
+    ),
+  ).rejects.toThrow(conflict('pnpm-lock.yaml'));
+  await expect(
+    readPreparationInputs(
+      await commit({
+        'package.json': manifest('10.17.0'),
+        'pnpm-lock.yaml': stalePnpmLock,
+        'yarn.lock': yarnLock('10.17.0'),
+      }),
+    ),
+  ).rejects.toThrow('keep only the lockfile of the package manager you use.');
 });
 
 it('gives pnpm each committed patch file whose SHA-256 pnpm-lock.yaml records', async () => {
