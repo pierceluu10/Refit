@@ -6,7 +6,7 @@ import { analyzeRepository } from './analyzer.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { REMOVED_PARAMETER_NOTES, removedRequestParameters } from './request-removals.ts';
 import { runPipeline } from './run.ts';
-import { PROMOTION_CODE_PROMOTION_RULE } from './stripe-request-moves.ts';
+const PROMOTION_CODE_PROMOTION_RULE = 'stripe-promotion-code-promotion';
 import type { Repository } from './types.ts';
 
 const directories: string[] = [];

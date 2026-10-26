@@ -22,7 +22,7 @@ import {
   requestPropertyEdit,
   untracedRemovedParameters,
 } from './request-migration.ts';
-import { requestMoveEdit } from './stripe-request-moves.ts';
+import { requestMoveEdit } from './request-move-families.ts';
 import {
   INVOICE_PREVIEW_RULE,
   invoicePreviewEdits,
@@ -32,26 +32,16 @@ import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
   subscriptionPeriodEdit,
-  PERIOD_HELPERS,
   HELPER_GLOBALS,
   HELPER_NAMES,
-  subscriptionPeriodHelperEdit,
   subscriptionPeriodHelperModule,
   SUBSCRIPTION_PERIOD_HELPER_RULE,
   SUBSCRIPTION_PERIOD_RULE,
   HELPER_RULES,
-  INVOICE_SUBSCRIPTION_HELPER_RULE,
-  invoiceSubscriptionHelperEdit,
-  INVOICE_PRICE_ID_HELPER_RULE,
-  invoicePriceIdHelperEdit,
-  COUPON_ID_HELPER_RULE,
-  couponIdHelperEdit,
-  PRODUCT_FEATURES_HELPER_RULE,
-  productFeaturesHelperEdit,
-  CHECKOUT_SHIPPING_HELPER_RULE,
-  checkoutShippingHelperEdit,
   type PeriodRareCase,
 } from './stripe-subscription-periods.ts';
+import { movedIdEdit, movedValueEdit, periodHelperEdit } from './field-move-families.ts';
+import { STRIPE_PACK } from './rule-pack.ts';
 import { STRIPE_MOVE_REVIEW } from './stripe-field-moves.ts';
 import { removedExpandPaths, removedExpandReason } from './stripe-expand-paths.ts';
 import {
@@ -1445,84 +1435,57 @@ export function analyzeRepository(
     typeChecked = false,
   ): SourceEdit['rule'] | undefined {
     const provenance = sourceEvidence(receiver)?.kind;
-    // Every subscription-period read (SDK response, webhook payload, Stripe.*-typed value, or a read
-    // the upgraded types reject on Subscription) goes through the generated helper, which reads
-    // either API version.
-    if (
-      provider.packageName === STRIPE.packageName &&
-      change.schema === 'subscription' &&
-      (webhooks?.origin(receiver) ||
-        provenance === 'declared-type' ||
-        provenance === 'sdk' ||
-        typeChecked)
-    ) {
-      const plan = periodPlan(node);
-      const edit = subscriptionPeriodHelperEdit(node, location(node).file, change.id, plan.text);
-      if (edit && addEdit(edit)) {
-        periodPlans.set(node, plan);
-        return edit.rule;
+    // Removed Stripe reads with a documented new location go through a generated helper that reads
+    // either API version (data/packs/stripe.json). Period reads also take a read the upgraded types
+    // reject on Subscription. A field the code expands is held back where the entry says the expand
+    // path moved too; webhook payloads are never expanded ("Objects sent in events are always in
+    // their minimal form", https://docs.stripe.com/expand, read 2026-10-24), so an expand elsewhere
+    // does not hold back a webhook read. An adapter's own move for the field wins.
+    for (const move of provider.packageName === STRIPE.packageName ? STRIPE_PACK.fieldMoves : []) {
+      if (!move.schemas.includes(change.schema)) continue;
+      const file = location(node).file;
+      if (move.family === 'period-helper') {
+        if (
+          !webhooks?.origin(receiver) &&
+          provenance !== 'declared-type' &&
+          provenance !== 'sdk' &&
+          !typeChecked
+        )
+          continue;
+        const plan = periodPlan(node);
+        const edit = periodHelperEdit(node, move, file, change.id, plan.text);
+        if (edit && addEdit(edit)) {
+          periodPlans.set(node, plan);
+          return edit.rule;
+        }
+        continue;
       }
-    }
-    // Same for invoice.subscription, unless the code expands it (the expand path moved too) or the
-    // adapter configures its own move. Webhook payloads are never expanded ("Objects sent in events
-    // are always in their minimal form", https://docs.stripe.com/expand, read 2026-10-24), so an
-    // expand elsewhere does not hold back a webhook read.
-    if (
-      provider.packageName === STRIPE.packageName &&
-      change.schema === 'invoice' &&
-      change.property === 'subscription' &&
-      !propertyMoves.some((move) => move.schema === 'invoice' && move.removed === 'subscription') &&
-      (webhooks?.origin(receiver) ||
-        (!expandsField('subscription') && (provenance === 'declared-type' || provenance === 'sdk')))
-    ) {
-      const planned = invoiceSubscriptionHelperEdit(node, location(node).file, change.id);
-      if (planned && addPlanned(planned)) return planned[0].rule;
-    }
-    // `line.price.id` on invoice line items and invoice items: the ID moved under `pricing`.
-    if (
-      provider.packageName === STRIPE.packageName &&
-      (change.schema === 'line_item' || change.schema === 'invoiceitem') &&
-      change.property === 'price' &&
-      !propertyMoves.some((move) => move.schema === change.schema && move.removed === 'price') &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
-    ) {
-      const edit = invoicePriceIdHelperEdit(node, location(node).file, change.id);
-      if (edit && addEdit(edit)) return edit.rule;
-    }
-    // `promotionCode.coupon.id` and `discount.coupon.id`: the coupon moved under `promotion`/`source`.
-    if (
-      provider.packageName === STRIPE.packageName &&
-      (change.schema === 'promotion_code' || change.schema === 'discount') &&
-      change.property === 'coupon' &&
-      !propertyMoves.some((move) => move.schema === change.schema && move.removed === 'coupon') &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
-    ) {
-      const edit = couponIdHelperEdit(node, location(node).file, change.id);
-      if (edit && addEdit(edit)) return edit.rule;
-    }
-    // Product `features` was renamed `marketing_features`, the same list.
-    if (
-      provider.packageName === STRIPE.packageName &&
-      change.schema === 'product' &&
-      change.property === 'features' &&
-      !propertyMoves.some((move) => move.schema === 'product' && move.removed === 'features') &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
-    ) {
-      const edit = productFeaturesHelperEdit(node, location(node).file, change.id);
-      if (edit && addEdit(edit)) return edit.rule;
-    }
-    // Checkout Session shipping details moved under `collected_information`.
-    if (
-      provider.packageName === STRIPE.packageName &&
-      change.schema === 'checkout.session' &&
-      change.property === 'shipping_details' &&
-      !propertyMoves.some(
-        (move) => move.schema === 'checkout.session' && move.removed === 'shipping_details',
-      ) &&
-      (webhooks?.origin(receiver) || provenance === 'declared-type' || provenance === 'sdk')
-    ) {
-      const planned = checkoutShippingHelperEdit(node, location(node).file, change.id);
-      if (planned && addPlanned(planned)) return planned[0].rule;
+      if (
+        change.property !== move.property ||
+        propertyMoves.some(
+          (candidate) => candidate.schema === change.schema && candidate.removed === move.property,
+        ) ||
+        !(
+          webhooks?.origin(receiver) ||
+          ((move.family !== 'moved-value' ||
+            !move.unlessExpanded ||
+            !expandsField(move.property)) &&
+            (provenance === 'declared-type' || provenance === 'sdk'))
+        )
+      )
+        continue;
+      if (move.family === 'moved-id') {
+        const edit = movedIdEdit(node, move, file, change.id);
+        if (edit && addEdit(edit)) return edit.rule;
+        continue;
+      }
+      const planned = movedValueEdit(node, move, file, change.id);
+      // Reads sharing a hoisted local plan the same declaration; it is added once.
+      if (
+        planned &&
+        (move.typeofGuard || move.narrowTested ? addPlanned(planned) : addEdit(planned[0]))
+      )
+        return planned[0].rule;
     }
     if (webhooks?.origin(receiver)) return;
     // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
@@ -1851,8 +1814,12 @@ export function analyzeRepository(
       const typeChecked =
         !confirmed &&
         checkedRead &&
-        change.schema === 'subscription' &&
-        Object.hasOwn(PERIOD_HELPERS, change.property);
+        STRIPE_PACK.fieldMoves.some(
+          (move) =>
+            move.family === 'period-helper' &&
+            move.schemas.includes(change.schema) &&
+            Object.hasOwn(move.helpers, change.property),
+        );
       const migration =
         confirmed || typeChecked ? propose(node, receiver, change, typeChecked) : undefined;
       const checkedMigration = typeChecked && migration !== undefined;
@@ -1895,12 +1862,7 @@ export function analyzeRepository(
         ...(webhook
           ? {
               webhook: {
-                ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE ||
-                migration === INVOICE_SUBSCRIPTION_HELPER_RULE ||
-                migration === INVOICE_PRICE_ID_HELPER_RULE ||
-                migration === CHECKOUT_SHIPPING_HELPER_RULE ||
-                migration === COUPON_ID_HELPER_RULE ||
-                migration === PRODUCT_FEATURES_HELPER_RULE
+                ...(migration && HELPER_RULES.has(migration)
                   ? { migration: { rule: migration } }
                   : {}),
                 schema: webhook.schema,
@@ -2068,16 +2030,9 @@ export function analyzeRepository(
     .filter((file) => edits.some((edit) => edit.file === file && HELPER_RULES.has(edit.rule!)));
   if (kind && helperFiles.length) {
     // The module and its imports carry the rule of the reads they serve.
-    const moduleRule = (
-      [
-        SUBSCRIPTION_PERIOD_HELPER_RULE,
-        INVOICE_SUBSCRIPTION_HELPER_RULE,
-        INVOICE_PRICE_ID_HELPER_RULE,
-        CHECKOUT_SHIPPING_HELPER_RULE,
-        COUPON_ID_HELPER_RULE,
-        PRODUCT_FEATURES_HELPER_RULE,
-      ] as const
-    ).find((rule) => edits.some((edit) => edit.rule === rule))!;
+    const moduleRule = STRIPE_PACK.fieldMoves
+      .map((move) => move.rule)
+      .find((rule) => edits.some((edit) => edit.rule === rule))!;
     const usedIn = (file: string) =>
       HELPER_NAMES.filter((name) =>
         edits.some(

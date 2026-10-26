@@ -50,13 +50,13 @@ export interface Finding extends Location {
           beforeApiVersion: string;
           afterApiVersion: string;
         }
-      | { rule: 'stripe-subscription-periods-helper' }
-      | { rule: 'stripe-invoice-subscription-helper' }
-      | { rule: 'stripe-invoice-price-id-helper' }
-      | { rule: 'stripe-checkout-shipping-details-helper' }
-      | { rule: 'stripe-coupon-id-helper' }
-      | { rule: 'stripe-product-features-helper' }
-      | { rule: 'ai-version-tolerant' };
+      // A rule pack's field move (pipeline/rule-pack.ts), or an AI patch that reads either version.
+      | {
+          rule: string;
+          priceId?: undefined;
+          beforeApiVersion?: undefined;
+          afterApiVersion?: undefined;
+        };
   };
 }
 
@@ -66,23 +66,8 @@ export interface SourceEdit {
   end: number;
   replacement: string;
   changeId: string;
-  rule?:
-    | 'stripe-subscription-periods-price-id'
-    | 'stripe-subscription-periods-helper'
-    | 'stripe-invoice-subscription-helper'
-    | 'stripe-invoice-price-id-helper'
-    | 'stripe-checkout-shipping-details-helper'
-    | 'stripe-coupon-id-helper'
-    | 'stripe-product-features-helper'
-    | 'stripe-card-allowed-payment-method-types'
-    | 'stripe-listed-allowed-payment-method-types'
-    | 'stripe-moved-allowed-payment-method-types'
-    | 'stripe-promotion-code-promotion'
-    | 'stripe-product-marketing-features'
-    | 'stripe-invoice-create-preview'
-    | 'stripe-lowercase-currency-code'
-    | 'stripe-api-version'
-    | 'model-retirement';
+  // A rule-pack rule (data/packs) or a built-in rule such as `stripe-api-version`.
+  rule?: string;
 }
 
 export interface Repository {
