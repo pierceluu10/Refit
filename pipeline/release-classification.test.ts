@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readDocumentationSnapshots } from './documentation-sources.ts';
@@ -45,26 +45,15 @@ function respond(content: string) {
   return fetcher;
 }
 
-// The model's output for the subscription period page, as recorded.
-const PERIODS_OUTPUT = JSON.stringify({
-  category: 'api',
-  changes: [
-    {
-      index: 0,
-      handling: 'rule',
-      family: 'period-helper',
-      identifiers: ['subscription.current_period_start', 'subscription.current_period_end'],
-      rationale: 'The page moves both fields onto subscription items.',
-    },
-    {
-      index: 1,
-      handling: 'ai',
-      family: 'read-review',
-      identifiers: [],
-      rationale: 'previous_attributes now reports item periods.',
-    },
-  ],
-});
+// Every prompt and model output of refit-bench run 40283655210 (gpt-6.1-sol), and its score.
+const AUDIT = JSON.parse(
+  readFileSync('docs/benchmarks/2026-10-26-release-classification-audit.json', 'utf8'),
+) as { pages: Array<PageClassification & { release: string }> };
+const RESULTS = JSON.parse(
+  readFileSync('docs/benchmarks/2026-10-26-release-classification-results.json', 'utf8'),
+);
+const recorded = (slug: string) => AUDIT.pages.find((page) => page.slug === slug)!;
+const PERIODS_OUTPUT = recorded(PERIODS).content!;
 
 describe('changelog pages', () => {
   it('keeps the REST, Node.js and Stripe.js tabs and drops the other server SDKs', () => {
@@ -105,7 +94,7 @@ describe('classifyPage', () => {
       OPTIONS,
     );
     expect(result.error).toBeNull();
-    expect(result.prediction?.changes.map((change) => change.handling)).toEqual(['rule', 'ai']);
+    expect(result.prediction?.changes.map((change) => change.handling)).toEqual(['rule', 'none']);
     expect(result).toMatchObject({ responseId: 'resp_recorded', content: PERIODS_OUTPUT });
     const sent = JSON.parse(fetcher.mock.calls[0][1].body);
     const input = sent.input[0].content as string;
@@ -243,5 +232,55 @@ describe('scoring', () => {
       predicted: null,
       error: 'not classified',
     });
+  });
+});
+
+describe('the recorded run', () => {
+  it('sent exactly the evidence the saved pages and catalog statements give today', () => {
+    for (const page of AUDIT.pages) {
+      const [entry] = readCatalog(join(CHANGELOG, 'catalog', page.release)).filter(
+        (item) => item.slug === page.slug,
+      );
+      const saved = readFileSync(
+        join(CHANGELOG, 'pages', page.release, `${page.slug}.json`),
+        'utf8',
+      );
+      expect(page.evidence).toEqual(
+        pageEvidence(page.release, {
+          slug: page.slug,
+          snapshot: JSON.parse(saved),
+          changes: entry.changed,
+        }),
+      );
+    }
+  });
+
+  it('reproduces the committed score from the recorded model outputs', () => {
+    const rows = [];
+    const entries = [];
+    for (const release of RESULTS.releases as string[]) {
+      const pages = AUDIT.pages
+        .filter((page) => page.release === release)
+        .map((page) => {
+          const changes = (page.evidence as { changes: unknown[] }).changes.length;
+          // A recorded error means the run kept no prediction; the rest are parsed again.
+          return {
+            ...page,
+            prediction: page.error === null ? parsePrediction(page.content!, changes) : null,
+          };
+        });
+      const scored = scoreRelease(release, readCatalog(join(CHANGELOG, 'catalog', release)), pages);
+      expect(summarize(scored.entries, scored.rows)).toEqual(RESULTS.byRelease[release]);
+      rows.push(...scored.rows);
+      entries.push(...scored.entries);
+    }
+    expect(summarize(entries, rows)).toEqual(RESULTS.summary);
+    expect(rows).toEqual(RESULTS.rows);
+  });
+
+  it('refuses the recorded output that lists more identifiers than allowed', () => {
+    const page = recorded('rejected-accounts-v2-capabilities');
+    expect(page.error).toBe('Release classification change 0 does not match the expected schema.');
+    expect(() => parsePrediction(page.content!, 1)).toThrow('does not match the expected schema');
   });
 });
