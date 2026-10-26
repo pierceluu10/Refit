@@ -56,16 +56,44 @@ export function preparationGroup(message) {
   return PREPARATION_GROUPS.find(([, pattern]) => pattern.test(message))?.[0] ?? 'other';
 }
 
+// The summaries pipeline/dependency-preparation.ts gives an untested patch's failed preparation,
+// for rows from runs that recorded only the grade reason.
+const DEPENDENCY_SUMMARIES = [
+  ['no-lockfile', 'the repository has no committed lockfile'],
+  ['lockfile-out-of-sync', 'the committed lockfile is out of sync with package.json'],
+  ['lockfile-integrity', 'lockfile entries have no registry integrity hash'],
+  [
+    'peer-dependency-conflict',
+    "npm rejects the committed lockfile's conflicting peer dependencies",
+  ],
+  [
+    'dependency-archive-limit',
+    "the installed dependencies exceed Refit's validation sandbox limit",
+  ],
+];
+const UNPREPARED = 'Dependencies could not be prepared, so no check ran: ';
+
+function untestedPreparation(workflow) {
+  if (workflow.validation !== 'untested') return undefined;
+  if (workflow.dependencyFailure) return preparationGroup(workflow.dependencyFailure.message ?? '');
+  const reason = workflow.grade?.reason ?? '';
+  if (!reason.startsWith(UNPREPARED)) return undefined;
+  const summary = reason.slice(UNPREPARED.length);
+  return DEPENDENCY_SUMMARIES.find(([, text]) => summary.startsWith(text))?.[0] ?? 'other';
+}
+
 // The first stage an affected row did not pass, with the detail behind it.
 export function funnelStage(row) {
   const workflow = row.workflow;
   const missingMock = MISSING_STRIPE_MOCK.test(row.infrastructure?.message ?? '');
   if (row.outcomeClass === 'infrastructure' && !missingMock)
     return { stage: 'other-infrastructure', detail: row.infrastructure?.kind };
-  if (row.checks === 'none')
+  // Owner decision 1: a project without a lockfile still runs the workflow and keeps its patch.
+  if (row.checks === 'none' && workflow?.stage !== 'scan')
     return {
       stage: 'preparation-refused',
       detail: row.packageManager === 'none' ? 'no-lockfile' : 'stripe-outside-root-package',
+      patch: Boolean(workflow?.diff),
     };
   // A repository no check can run in (`generated-only`; older runs checked it with `node -e 0`).
   const noCheck = row.checks === 'generated-only';
@@ -84,6 +112,9 @@ export function funnelStage(row) {
     const message = workflow.error ?? workflow.reason ?? '';
     return { stage: 'preparation-refused', detail: preparationGroup(message), message };
   }
+  // Owner decision 1: failed preparation keeps the patch untested, graded D.
+  const unprepared = untestedPreparation(workflow);
+  if (unprepared) return { stage: 'preparation-refused', detail: unprepared, patch: true };
   if (missingMock) return { stage: 'generated-check-infrastructure', detail: row.checks };
   if (workflow.validation === 'baseline-failed')
     return { stage: 'baseline-failed', detail: workflow.baselineStop };
@@ -123,6 +154,9 @@ export function funnel(rows) {
     affected: affected.length,
     stages: count((row) => row.stage),
     preparation: count((row) => (row.stage === 'preparation-refused' ? row.detail : undefined)),
+    preparationPatch: count((row) =>
+      row.stage === 'preparation-refused' ? (row.patch ? 'D, patch kept' : 'no patch') : undefined,
+    ),
     grades: count((row) => (row.stage === 'validated' ? row.detail : undefined)),
     // Grade D without a check: the patch is kept for a [Needs review] draft, or none was proposed.
     noCheck: count((row) =>
@@ -145,6 +179,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`${result.affected} affected of ${result.rows} rows\n`);
     console.log(`${table('Stage', result.stages)}\n`);
     console.log(`${table('Preparation refused', result.preparation)}\n`);
+    console.log(`${table('Preparation refused, patch', result.preparationPatch)}\n`);
     console.log(`${table('Validated, by evidence grade', result.grades)}\n`);
     console.log(table('No runnable check', result.noCheck));
   }
