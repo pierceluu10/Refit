@@ -128,6 +128,42 @@ it('groups preparation refusals by the message Refit raises', () => {
       'npm dependency preparation failed: `npm ci` can only install packages when your package.json and package-lock.json are in sync.',
     ),
   ).toBe('lockfile-out-of-sync');
+  // Messages from untested drafts of run 40236299492 (main 179c6bc).
+  expect(
+    preparationGroup(
+      'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown.',
+    ),
+  ).toBe('no-lockfile');
+  expect(
+    preparationGroup(
+      'pnpm overrides differ from the overrides pnpm-lock.yaml records. Run pnpm install and commit the updated pnpm-lock.yaml.',
+    ),
+  ).toBe('lockfile-out-of-sync');
+  expect(
+    preparationGroup(
+      'pnpm dependency preparation failed (1). ERR_PNPM_LOCKFILE_CONFIG_MISMATCH Cannot proceed with the frozen installation.',
+    ),
+  ).toBe('lockfile-out-of-sync');
+  expect(
+    preparationGroup(
+      'Automatic preparation reads a bun.lock only when every package is a public registry package with integrity, laid out for a single root project.',
+    ),
+  ).toBe('non-registry-source');
+  expect(
+    preparationGroup(
+      'Unsupported pnpm lockfile settings, patches or graph metadata require a custom image.',
+    ),
+  ).toBe('unsupported-pnpm-settings');
+  expect(
+    preparationGroup(
+      'Workspace bins, nested workspace declarations and workspace pnpm settings require a custom validation image.',
+    ),
+  ).toBe('unsupported-workspace-layout');
+  expect(
+    preparationGroup(
+      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages: [...] } require a custom image.',
+    ),
+  ).toBe('unsupported-workspace-layout');
   expect(preparationGroup('something new')).toBe('other');
 });
 

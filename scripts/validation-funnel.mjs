@@ -16,13 +16,14 @@ export const PREPARATION_GROUPS = [
   ['workspace-out-of-space', /dependency preparation ran out of space in its \w+ workspace/],
   ['source-archive-limit', /^Committed source exceeds the \d+ MiB validation archive limit/],
   ['submodule', /^Validation does not accept submodules/],
+  ['no-lockfile', /^The repository commits package\.json without a lockfile/],
   [
     'lockfile-out-of-sync',
-    /differ from the committed package-lock\.json|importer specifiers differ from committed manifests|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE/,
+    /differ from the committed package-lock\.json|importer specifiers differ from committed manifests|overrides differ from the overrides pnpm-lock\.yaml records|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|ERR_PNPM_LOCKFILE_CONFIG_MISMATCH/,
   ],
   [
     'non-registry-source',
-    /supports public npm registry dependencies only|must use public registry|Package tarballs must use public registry|codeload\.github\.com|\bgit\+|github:/,
+    /supports public npm registry dependencies only|must use public registry|Package tarballs must use public registry|reads a bun\.lock only when every package is a public registry package|codeload\.github\.com|\bgit\+|github:/,
   ],
   [
     'lockfile-integrity',
@@ -33,7 +34,11 @@ export const PREPARATION_GROUPS = [
     'tracked-node-modules-or-hooks',
     /^Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks/,
   ],
-  ['unsupported-pnpm-settings', /^Unsupported pnpm settings/],
+  ['unsupported-pnpm-settings', /^Unsupported pnpm (?:lockfile )?settings/],
+  [
+    'unsupported-workspace-layout',
+    /^Workspace bins, nested workspace declarations|^npm workspaces require at most \d+ positive relative/,
+  ],
   ['unsupported-lockfile', /requires a root npm lockfile version 2 or 3/],
   ['peer-dependency-conflict', /\bERESOLVE\b/],
   ['install-timeout', /^Dependency preparation exceeded \d+ seconds/],
