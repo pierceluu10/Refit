@@ -35,7 +35,7 @@ Build toward a reliable agent for many API providers, with separate integrations
 - Goals for each programming language: [Language goals](docs/LANGUAGE-GOALS.md).
 - See CLI commands and requirements: [CLI guide](docs/CLI.md).
 - Deploy or operate the hosted worker (Fly.io + Supabase): [Hosted onboarding](docs/HOSTED-ONBOARDING.md#deploy-on-flyio).
-- Run benchmarks on GitHub Actions or EC2 instead of a laptop: [GitHub benchmarks](docs/GITHUB-BENCHMARKS.md) and [AWS benchmarks](docs/AWS-BENCHMARKS.md).
+- Run benchmarks on GitHub Actions, not a laptop: [GitHub benchmarks](docs/GITHUB-BENCHMARKS.md). [AWS benchmarks](docs/AWS-BENCHMARKS.md) are not the default route.
 
 The guides explain onboarding a repository into Refit. This file explains how coding agents should contribute to Refit itself.
 
@@ -54,8 +54,9 @@ The single-tenant hosted worker (`refit hosted serve`) runs as Fly app `refit-ho
 Several agents build and benchmark at once. To keep out of each other's way:
 
 - One branch and one `git worktree` per task (`git worktree add -b feat/<name> ../Refit-<name> origin/main`). Never edit another agent's worktree or switch its branch. Run `npm ci` in a new worktree before tests.
-- Stripe benchmarks run on GitHub Actions in `refit-dev/refit-bench` ([GitHub benchmarks](docs/GITHUB-BENCHMARKS.md)): dispatch `benchmark.yml` with a full pushed commit SHA, one repository per shard, and record the GitHub run id with the outcome. Its logs and artifacts are public, so never pass a key in an input; `-f ai=true -f ai_budget=<USD>` uses the owner's capped `OPENAI_API_KEY` secret and spends the OpenAI budget, so do it only when the task authorizes AI.
-- Benchmarks with AI, or Shopify benchmarks, run on AWS with `node scripts/aws-benchmark.mjs` (profile `refit`, region `us-east-2`; the owner signs in with `aws login`, agents never handle credentials). Use a unique `--run <benchmark>-<date>-<agent>` id, pin `--commit`, keep `--hours` as low as the run needs, and always `collect` or `stop` the run when done. `launch` counts every agent's running shards against the account's vCPU quota and refuses to exceed it; wait rather than raising quotas or limits yourself.
+- Every benchmark runs on GitHub Actions in `refit-dev/refit-bench` ([GitHub benchmarks](docs/GITHUB-BENCHMARKS.md)), not AWS (owner decision, 2026-10-26): Stripe with `benchmark.yml`, Shopify with `shopify.yml`. Dispatch with a full pushed commit SHA and record the GitHub run id with the outcome. Its logs and artifacts are public, so never pass a key in an input; `-f ai=true -f ai_budget=<USD>` uses the owner's capped `OPENAI_API_KEY` secret and spends the OpenAI budget, so do it only when the task authorizes AI.
+- Benchmarks simulate production, the hosted Fly worker, as fairly as they can; the remaining differences are listed in [How this matches production](docs/GITHUB-BENCHMARKS.md#how-this-matches-production). When a production setting that changes outcomes moves (`fly.toml`, `Dockerfile`), move the benchmark with it or record the difference there.
+- Only when the owner asks for an AWS run: use `node scripts/aws-benchmark.mjs` (profile `refit`, region `us-east-2`; the owner signs in with `aws login`, agents never handle credentials). Use a unique `--run <benchmark>-<date>-<agent>` id, pin `--commit`, keep `--hours` as low as the run needs, and always `collect` or `stop` the run when done. `launch` counts every agent's running shards against the account's vCPU quota and refuses to exceed it; wait rather than raising quotas or limits yourself.
 - The AWS project has a monthly spend limit (see Billing) and is on the free plan (on-demand only). Ask before a run that needs more than the free on-demand quota (16 vCPUs, two `c7i.2xlarge`) or more than three hours, and before any `--ai` run, which also spends the OpenAI budget.
 - Record benchmark outcomes in `docs/BENCHMARKS.md` with the run id, commit and command, as for local runs.
 
