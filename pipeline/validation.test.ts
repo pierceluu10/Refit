@@ -136,11 +136,19 @@ it.skipIf(!IMAGE).each(['preserve', 'conflict', 'dynamic'] as const)(
       'intent.charges.data',
       '(await stripe.charges.list({ payment_intent: intent.id })).data',
     );
+    // The pin on line 2 is a rule's edit, which the AI guard refuses to change (#305), so the
+    // conflicting or dynamic version arrives on a second client at the finding site instead.
     const replacement =
       versionChange === 'conflict'
-        ? migrated.replace("apiVersion: '2022-11-15'", "apiVersion: '2023-10-16'")
+        ? migrated.replace(
+            'await stripe.charges',
+            "await new Stripe('test', { apiVersion: '2023-10-16' }).charges",
+          )
         : versionChange === 'dynamic'
-          ? migrated.replace("apiVersion: '2022-11-15'", 'apiVersion: process.env.RUNTIME_VERSION')
+          ? migrated.replace(
+              'await stripe.charges',
+              "await new Stripe('test', { apiVersion: process.env.RUNTIME_VERSION }).charges",
+            )
           : migrated;
     vi.stubGlobal(
       'fetch',
