@@ -6,15 +6,21 @@ import { MAX_INPUT_BYTES } from './openai.ts';
 import {
   classifyPage,
   pageEvidence,
+  instructions,
   pageText,
   parsePrediction,
   type PageClassification,
 } from './release-classification.ts';
 import {
+  assignChanges,
   catalogFamily,
+  contentWords,
   readCatalog,
   scoreRelease,
   summarize,
+  type ExtraChange,
+  type ScoredEntry,
+  type ScoredRow,
 } from './release-classification-score.ts';
 
 const CHANGELOG = resolve('docs/benchmarks/stripe-changelog');
@@ -45,13 +51,14 @@ function respond(content: string) {
   return fetcher;
 }
 
-// Every prompt and model output of refit-bench run 40283655210 (gpt-6.1-sol), and its score.
-const AUDIT = JSON.parse(
-  readFileSync('docs/benchmarks/2026-10-26-release-classification-audit.json', 'utf8'),
-) as { pages: Array<PageClassification & { release: string }> };
-const RESULTS = JSON.parse(
-  readFileSync('docs/benchmarks/2026-10-26-release-classification-results.json', 'utf8'),
-);
+// Every prompt and model output of the recorded refit-bench runs (gpt-6.1-sol), and their scores.
+const RUNS = [
+  { name: '2026-10-26-release-classification', run: '40283655210', statements: 'catalog' },
+  { name: '2026-10-26-release-classification-pages', run: '40285557374', statements: 'none' },
+] as const;
+const read = (path: string) => JSON.parse(readFileSync(`docs/benchmarks/${path}`, 'utf8'));
+type Audit = { instructions: string; pages: Array<PageClassification & { release: string }> };
+const AUDIT = read(`${RUNS[0].name}-audit.json`) as Audit;
 const recorded = (slug: string) => AUDIT.pages.find((page) => page.slug === slug)!;
 const PERIODS_OUTPUT = recorded(PERIODS).content!;
 
@@ -133,6 +140,32 @@ describe('classifyPage', () => {
     expect(result).toMatchObject({ prediction: null, content: null, costUsd: 0 });
     expect(result.error).toContain('HTTP 403');
   });
+
+  it('sends only the page when the model lists the statements', async () => {
+    const listed = JSON.stringify({
+      category: 'api',
+      changes: [
+        {
+          statement: 'Subscription.current_period_end removed',
+          handling: 'ai',
+          family: 'read-review',
+          identifiers: ['subscription.current_period_end'],
+          rationale: 'The page removes it.',
+        },
+      ],
+    });
+    const fetcher = respond(listed);
+    const result = await classifyPage(
+      BASIL,
+      { slug: PERIODS, snapshot: await snapshot(BASIL, PERIODS), changes: null },
+      OPTIONS,
+    );
+    expect(result.prediction?.changes[0].statement).toBe('Subscription.current_period_end removed');
+    const sent = JSON.parse(fetcher.mock.calls[0][1].body);
+    expect(Object.keys(JSON.parse(sent.input[0].content))).toEqual(['release', 'page']);
+    expect(sent.instructions).toBe(instructions('none'));
+    expect(sent.text.format.schema.properties.changes.items.required).toContain('statement');
+  });
 });
 
 describe('parsePrediction', () => {
@@ -153,6 +186,19 @@ describe('parsePrediction', () => {
     expect(() => parsePrediction(JSON.stringify(value), 1)).toThrow(
       'does not match the expected schema',
     );
+  });
+
+  it('requires a statement for every change the model lists', () => {
+    const { index: _, ...listed } = change;
+    expect(() =>
+      parsePrediction(JSON.stringify({ category: 'api', changes: [listed] }), null),
+    ).toThrow('change 0 does not match the expected schema');
+    expect(
+      parsePrediction(
+        JSON.stringify({ category: 'api', changes: [{ ...listed, statement: 'x removed' }] }),
+        null,
+      ).changes[0].statement,
+    ).toBe('x removed');
   });
 });
 
@@ -204,14 +250,16 @@ describe('scoring', () => {
       classified('vault-forward-api-returns-402', ['none']),
       classified('naver-pay-payment-method', ['rule']),
     ];
-    const { entries, rows } = scoreRelease(BASIL, catalog, results);
-    const summary = summarize(entries, rows);
+    const { entries, rows, extras } = scoreRelease(BASIL, catalog, results);
+    const summary = summarize(entries, rows, extras);
     expect(summary).toMatchObject({
       pages: catalog.length,
       pagesClassified: 3,
       changes: rows.length,
       changesClassified: 4,
       handlingCorrect: 2,
+      modelStatements: 4,
+      extraStatements: 0,
       dangerous: 2,
       ruleNotInCatalog: 1,
       familyImplied: rows.filter((row) => row.catalog.family !== 'none').length,
@@ -233,11 +281,94 @@ describe('scoring', () => {
       error: 'not classified',
     });
   });
+
+  it('reads names out of camelCase, snake_case and dotted statements', () => {
+    expect([
+      ...contentWords('Checkout.Session.shipping_details removed; use retrieveUpcoming'),
+    ]).toEqual([
+      'checkout',
+      'session',
+      'shipping_details',
+      'shipping',
+      'details',
+      'retrieve',
+      'upcoming',
+    ]);
+  });
+
+  it('matches listed changes to the catalog statement sharing the most names', () => {
+    const statements = [
+      'Invoice.subscription removed (moved to parent.subscription_details.subscription)',
+      'InvoiceItem.subscription and subscription_item removed',
+    ];
+    const change = (statement: string, identifiers: string[] = []) => ({
+      statement,
+      handling: 'none' as const,
+      family: 'none' as const,
+      identifiers,
+      rationale: 'Recorded.',
+    });
+    expect(
+      assignChanges(statements, [
+        change('The subscription field on invoices moves to parent', ['invoice.parent']),
+        change('subscription_item is removed from invoice items', [
+          'invoiceitem.subscription_item',
+        ]),
+        change('Payouts settle faster'),
+      ]).map(({ index }) => index),
+    ).toEqual([0, 1, null]);
+  });
+
+  it('counts a listed change matching nothing as extra, and as dangerous when it edits code', () => {
+    const catalog = readCatalog(join(CHANGELOG, 'catalog', BASIL));
+    const listed = (statement: string, handling: 'rule' | 'none') => ({
+      statement,
+      handling,
+      family: 'none' as const,
+      identifiers: [],
+      rationale: 'Recorded.',
+    });
+    const { entries, rows, extras } = scoreRelease(BASIL, catalog, [
+      {
+        slug: PERIODS,
+        prediction: {
+          category: 'api',
+          changes: [
+            listed('Subscription current_period_start and current_period_end removed', 'rule'),
+            listed('current_period_end reads move to items', 'none'),
+            listed('Payouts settle faster', 'rule'),
+          ],
+        },
+        error: null,
+        evidence: null,
+        content: null,
+        model: null,
+        responseId: null,
+        costUsd: 0,
+      },
+    ]);
+    const [periods, previous] = rows.filter((row) => row.slug === PERIODS);
+    expect(periods).toMatchObject({ handling: 'mixed', handlingCorrect: false, dangerous: false });
+    expect(periods.predicted).toHaveLength(2);
+    expect(previous).toMatchObject({ predicted: [], handling: null, handlingCorrect: false });
+    expect(extras).toMatchObject([{ statement: 'Payouts settle faster', automatic: true }]);
+    expect(summarize(entries, rows, extras)).toMatchObject({
+      modelStatements: 3,
+      extraStatements: 1,
+      extraAutomatic: 1,
+      dangerous: 1,
+      ruleNotInCatalog: 1,
+    });
+  });
 });
 
-describe('the recorded run', () => {
-  it('sent exactly the evidence the saved pages and catalog statements give today', () => {
-    for (const page of AUDIT.pages) {
+describe.each(RUNS)('recorded run $run ($statements statements)', ({ name, statements }) => {
+  const audit = read(`${name}-audit.json`) as Audit;
+  const results = read(`${name}-results.json`);
+
+  it('used the current instructions and sent exactly the evidence the saved pages give today', () => {
+    expect(audit.instructions).toBe(instructions(statements));
+    for (const page of audit.pages) {
       const [entry] = readCatalog(join(CHANGELOG, 'catalog', page.release)).filter(
         (item) => item.slug === page.slug,
       );
@@ -249,38 +380,44 @@ describe('the recorded run', () => {
         pageEvidence(page.release, {
           slug: page.slug,
           snapshot: JSON.parse(saved),
-          changes: entry.changed,
+          changes: statements === 'catalog' ? entry.changed : null,
         }),
       );
     }
   });
 
   it('reproduces the committed score from the recorded model outputs', () => {
-    const rows = [];
-    const entries = [];
-    for (const release of RESULTS.releases as string[]) {
-      const pages = AUDIT.pages
+    const rows: ScoredRow[] = [];
+    const entries: ScoredEntry[] = [];
+    const extras: ExtraChange[] = [];
+    for (const release of results.releases as string[]) {
+      const pages = audit.pages
         .filter((page) => page.release === release)
         .map((page) => {
-          const changes = (page.evidence as { changes: unknown[] }).changes.length;
+          const sent = (page.evidence as { changes?: unknown[] }).changes;
           // A recorded error means the run kept no prediction; the rest are parsed again.
           return {
             ...page,
-            prediction: page.error === null ? parsePrediction(page.content!, changes) : null,
+            prediction:
+              page.error === null ? parsePrediction(page.content!, sent?.length ?? null) : null,
           };
         });
       const scored = scoreRelease(release, readCatalog(join(CHANGELOG, 'catalog', release)), pages);
-      expect(summarize(scored.entries, scored.rows)).toEqual(RESULTS.byRelease[release]);
+      expect(summarize(scored.entries, scored.rows, scored.extras)).toEqual(
+        results.byRelease[release],
+      );
       rows.push(...scored.rows);
       entries.push(...scored.entries);
+      extras.push(...scored.extras);
     }
-    expect(summarize(entries, rows)).toEqual(RESULTS.summary);
-    expect(rows).toEqual(RESULTS.rows);
+    expect(summarize(entries, rows, extras)).toEqual(results.summary);
+    expect(rows).toEqual(results.rows);
+    expect(extras).toEqual(results.extras);
   });
+});
 
-  it('refuses the recorded output that lists more identifiers than allowed', () => {
-    const page = recorded('rejected-accounts-v2-capabilities');
-    expect(page.error).toBe('Release classification change 0 does not match the expected schema.');
-    expect(() => parsePrediction(page.content!, 1)).toThrow('does not match the expected schema');
-  });
+it('refuses the recorded output that lists more identifiers than allowed', () => {
+  const page = recorded('rejected-accounts-v2-capabilities');
+  expect(page.error).toBe('Release classification change 0 does not match the expected schema.');
+  expect(() => parsePrediction(page.content!, 1)).toThrow('does not match the expected schema');
 });

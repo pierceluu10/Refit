@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI release classification scored against the Stripe catalog",
-  "description": "Written by `refit classify-release` (pipeline/release-classification-cli.ts): the model's category for each changelog page and its handling, pack family and identifiers for each change statement, scored against docs/benchmarks/stripe-changelog/catalog. Prompts and raw model outputs are in the matching *-audit.json. See docs/RELEASE-CLASSIFICATION.md.",
+  "description": "Written by `refit classify-release` (pipeline/release-classification-cli.ts): the model's category for each changelog page and its handling, pack family and identifiers for each change statement (the catalog's statements, or with `statements: none` its own, matched to the catalog's by shared content words), scored against docs/benchmarks/stripe-changelog/catalog. Prompts and raw model outputs are in the matching *-audit.json. See docs/RELEASE-CLASSIFICATION.md.",
   "type": "object",
   "required": [
     "formatVersion",
@@ -12,23 +12,62 @@
     "budgetUsd",
     "costUsd",
     "releases",
+    "statements",
     "summary",
     "byRelease",
     "entries",
-    "rows"
+    "rows",
+    "extras"
   ],
   "additionalProperties": false,
   "properties": {
-    "formatVersion": { "const": 1 },
-    "commit": { "$ref": "common.schema.json#/$defs/commit" },
-    "startedAt": { "$ref": "common.schema.json#/$defs/time" },
-    "configuredModel": { "type": "string", "minLength": 1 },
-    "reportedModels": { "type": "array", "items": { "type": "string" } },
-    "budgetUsd": { "type": "number", "minimum": 0 },
-    "costUsd": { "type": "number", "minimum": 0 },
-    "releases": { "type": "array", "minItems": 1, "items": { "type": "string" } },
-    "summary": { "$ref": "#/$defs/summary" },
-    "byRelease": { "type": "object", "additionalProperties": { "$ref": "#/$defs/summary" } },
+    "formatVersion": {
+      "const": 1
+    },
+    "commit": {
+      "$ref": "common.schema.json#/$defs/commit"
+    },
+    "startedAt": {
+      "$ref": "common.schema.json#/$defs/time"
+    },
+    "configuredModel": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reportedModels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "budgetUsd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "costUsd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "releases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "statements": {
+      "description": "catalog: the catalog's statements were sent. none: the page only; the model listed its own.",
+      "enum": ["catalog", "none"]
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "byRelease": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/summary"
+      }
+    },
     "entries": {
       "description": "One per changelog page; a page's handling is its weakest change's.",
       "type": "array",
@@ -37,32 +76,48 @@
         "required": ["release", "slug", "catalog", "predicted", "error"],
         "additionalProperties": false,
         "properties": {
-          "release": { "type": "string" },
-          "slug": { "type": "string" },
+          "release": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
           "catalog": {
             "type": "object",
             "required": ["category", "handling"],
             "additionalProperties": false,
             "properties": {
-              "category": { "$ref": "#/$defs/category" },
-              "handling": { "$ref": "#/$defs/handling" }
+              "category": {
+                "$ref": "#/$defs/category"
+              },
+              "handling": {
+                "$ref": "#/$defs/handling"
+              }
             }
           },
           "predicted": {
             "anyOf": [
-              { "type": "null" },
+              {
+                "type": "null"
+              },
               {
                 "type": "object",
                 "required": ["category", "handling"],
                 "additionalProperties": false,
                 "properties": {
-                  "category": { "$ref": "#/$defs/category" },
-                  "handling": { "$ref": "#/$defs/handling" }
+                  "category": {
+                    "$ref": "#/$defs/category"
+                  },
+                  "handling": {
+                    "$ref": "#/$defs/handling"
+                  }
                 }
               }
             ]
           },
-          "error": { "type": ["string", "null"] }
+          "error": {
+            "type": ["string", "null"]
+          }
         }
       }
     },
@@ -78,46 +133,147 @@
           "statement",
           "catalog",
           "predicted",
+          "handling",
           "handlingCorrect",
           "familyCorrect",
           "dangerous"
         ],
         "additionalProperties": false,
         "properties": {
-          "release": { "type": "string" },
-          "slug": { "type": "string" },
-          "index": { "$ref": "common.schema.json#/$defs/count" },
-          "statement": { "type": "string" },
+          "release": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "index": {
+            "$ref": "common.schema.json#/$defs/count"
+          },
+          "statement": {
+            "type": "string"
+          },
           "catalog": {
             "type": "object",
             "required": ["handling", "family", "fullDiffOnly"],
             "additionalProperties": false,
             "properties": {
-              "handling": { "$ref": "#/$defs/handling" },
-              "family": { "$ref": "#/$defs/family" },
-              "fullDiffOnly": { "type": "boolean" }
+              "handling": {
+                "$ref": "#/$defs/handling"
+              },
+              "family": {
+                "$ref": "#/$defs/family"
+              },
+              "fullDiffOnly": {
+                "type": "boolean"
+              }
             }
           },
           "predicted": {
-            "anyOf": [
-              { "type": "null" },
-              {
-                "type": "object",
-                "required": ["handling", "family", "identifiers", "rationale"],
-                "additionalProperties": false,
-                "properties": {
-                  "handling": { "$ref": "#/$defs/handling" },
-                  "family": { "$ref": "#/$defs/family" },
-                  "identifiers": { "type": "array", "items": { "type": "string" } },
-                  "rationale": { "type": "string" }
+            "description": "The model's changes assigned to this statement: exactly one when the catalog's statements were sent.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["handling", "family", "identifiers", "rationale", "similarity"],
+              "additionalProperties": false,
+              "properties": {
+                "statement": {
+                  "description": "The model's own statement, with `statements: none`.",
+                  "type": "string"
+                },
+                "handling": {
+                  "$ref": "#/$defs/handling"
+                },
+                "family": {
+                  "$ref": "#/$defs/family"
+                },
+                "identifiers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "rationale": {
+                  "type": "string"
+                },
+                "similarity": {
+                  "description": "Dice coefficient of content words with the catalog statement; null when the statement was sent.",
+                  "type": ["number", "null"]
                 }
+              }
+            }
+          },
+          "handling": {
+            "description": "The assigned changes' handling, mixed when they disagree, null when none was assigned.",
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/handling"
+              },
+              {
+                "const": "mixed"
               }
             ]
           },
-          "handlingCorrect": { "type": "boolean" },
-          "familyCorrect": { "type": "boolean" },
+          "handlingCorrect": {
+            "description": "At least one change was assigned, and every one has the catalog's handling.",
+            "type": "boolean"
+          },
+          "familyCorrect": {
+            "type": "boolean"
+          },
           "dangerous": {
-            "description": "Predicted rule or ai where the catalog says stop or none.",
+            "description": "An assigned change has rule or ai where the catalog says stop or none.",
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "extras": {
+      "description": "Changes the model listed that share no content word with any catalog statement on the page.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "release",
+          "slug",
+          "statement",
+          "handling",
+          "family",
+          "identifiers",
+          "rationale",
+          "automatic"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "release": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "statement": {
+            "description": "The model's own statement, with `statements: none`.",
+            "type": "string"
+          },
+          "handling": {
+            "$ref": "#/$defs/handling"
+          },
+          "family": {
+            "$ref": "#/$defs/family"
+          },
+          "identifiers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "automatic": {
+            "description": "rule or ai, counted as dangerous.",
             "type": "boolean"
           }
         }
@@ -125,8 +281,12 @@
     }
   },
   "$defs": {
-    "category": { "enum": ["api", "stripejs"] },
-    "handling": { "enum": ["none", "stop", "ai", "generic", "rule"] },
+    "category": {
+      "enum": ["api", "stripejs"]
+    },
+    "handling": {
+      "enum": ["none", "stop", "ai", "generic", "rule"]
+    },
     "family": {
       "enum": [
         "moved-value",
@@ -152,28 +312,67 @@
         "familyImplied",
         "familyImpliedCorrect",
         "familySpurious",
+        "modelStatements",
+        "extraStatements",
         "dangerous",
+        "extraAutomatic",
         "ruleNotInCatalog"
       ],
       "additionalProperties": false,
       "properties": {
-        "pages": { "$ref": "common.schema.json#/$defs/count" },
-        "pagesClassified": { "$ref": "common.schema.json#/$defs/count" },
-        "pageCategoryCorrect": { "$ref": "common.schema.json#/$defs/count" },
-        "pageHandlingCorrect": { "$ref": "common.schema.json#/$defs/count" },
-        "changes": { "$ref": "common.schema.json#/$defs/count" },
-        "changesClassified": { "$ref": "common.schema.json#/$defs/count" },
-        "handlingCorrect": { "$ref": "common.schema.json#/$defs/count" },
-        "handlingConfusion": {
-          "description": "Catalog handling, then predicted handling (or unclassified), to change count.",
-          "type": "object",
-          "additionalProperties": { "$ref": "common.schema.json#/$defs/counts" }
+        "pages": {
+          "$ref": "common.schema.json#/$defs/count"
         },
-        "familyImplied": { "$ref": "common.schema.json#/$defs/count" },
-        "familyImpliedCorrect": { "$ref": "common.schema.json#/$defs/count" },
-        "familySpurious": { "$ref": "common.schema.json#/$defs/count" },
-        "dangerous": { "$ref": "common.schema.json#/$defs/count" },
-        "ruleNotInCatalog": { "$ref": "common.schema.json#/$defs/count" }
+        "pagesClassified": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "pageCategoryCorrect": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "pageHandlingCorrect": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "changes": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "changesClassified": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "handlingCorrect": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "handlingConfusion": {
+          "description": "Catalog handling, then the row's handling (mixed, or unclassified when none was assigned), to statement count.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "common.schema.json#/$defs/counts"
+          }
+        },
+        "familyImplied": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "familyImpliedCorrect": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "familySpurious": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "modelStatements": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "extraStatements": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "dangerous": {
+          "description": "Statements with a dangerous assigned change, plus extra changes with rule or ai.",
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "extraAutomatic": {
+          "$ref": "common.schema.json#/$defs/count"
+        },
+        "ruleNotInCatalog": {
+          "$ref": "common.schema.json#/$defs/count"
+        }
       }
     }
   }

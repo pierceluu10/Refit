@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   HANDLINGS,
   type Category,
+  type ChangePrediction,
   type Family,
   type Handling,
   type PageClassification,
@@ -24,6 +25,17 @@ const RULE_FAMILIES: ReadonlyArray<[RegExp, Family]> = [
   [/^invoicePreviewMove\b/, 'none'],
 ];
 const UNCLASSIFIED = 'unclassified';
+// Statements assigned to one catalog statement that disagree on handling.
+const MIXED = 'mixed';
+// Words that say how something changed rather than what, so they do not tie two statements.
+const STOPWORDS = new Set(
+  (
+    'a an and are as at be by can for from in is it its no not now of on or that the this to ' +
+    'when which with will instead longer only new use uses added removed changed change changes ' +
+    'replaced renamed moved field fields parameter parameters property properties value values ' +
+    'request response reads read api'
+  ).split(' '),
+);
 
 interface CatalogPart {
   changed: string[];
@@ -68,6 +80,38 @@ const weakest = (handlings: Handling[]) =>
     HANDLINGS.indexOf(handling) < HANDLINGS.indexOf(low) ? handling : low,
   );
 
+// The words of a statement that name things: lowercased, camelCase and snake_case split (keeping
+// the whole snake_case name too), stopwords and single characters dropped.
+export function contentWords(text: string) {
+  return new Set(
+    text
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .toLowerCase()
+      .split(/[^a-z0-9_]+/)
+      .flatMap((word) => (word.includes('_') ? [word, ...word.split('_')] : [word]))
+      .filter((word) => word.length > 1 && !STOPWORDS.has(word)),
+  );
+}
+
+// Dice coefficient of two sets of content words.
+export function similarity(left: Set<string>, right: Set<string>) {
+  const shared = [...left].filter((word) => right.has(word)).length;
+  return left.size + right.size ? (2 * shared) / (left.size + right.size) : 0;
+}
+
+// Assigns each listed change to the catalog statement on the same page it shares the most
+// content words with (the first on a tie), its statement and identifiers counting. A change
+// that shares none is extra. Several changes may share one catalog statement.
+export function assignChanges(statements: string[], changes: ChangePrediction[]) {
+  const catalogWords = statements.map(contentWords);
+  return changes.map((change) => {
+    const words = contentWords([change.statement ?? '', ...change.identifiers].join(' '));
+    const scores = catalogWords.map((catalog) => similarity(words, catalog));
+    const best = Math.max(...scores);
+    return { change, index: best > 0 ? scores.indexOf(best) : null, similarity: best };
+  });
+}
+
 export function scoreRelease(
   release: string,
   catalog: CatalogEntry[],
@@ -90,57 +134,90 @@ export function scoreRelease(
       error: result ? result.error : 'not classified',
     };
   });
-  const rows = catalog.flatMap((entry) => {
-    const prediction = bySlug.get(entry.slug)?.prediction ?? null;
-    return entry.changed.map((statement, index) => {
-      const part = entry.parts.find((candidate) => candidate.changed.includes(statement))!;
-      const expected = {
-        handling: part.handling,
-        family: catalogFamily(part),
-        fullDiffOnly: part.fullDiffOnly === true,
-      };
-      const predicted = prediction?.changes[index] ?? null;
-      return {
-        release,
-        slug: entry.slug,
-        index,
-        statement,
-        catalog: expected,
-        predicted,
-        handlingCorrect: predicted?.handling === expected.handling,
-        familyCorrect: predicted?.family === expected.family,
-        dangerous:
-          predicted !== null &&
-          AUTOMATIC.includes(predicted.handling) &&
-          NO_EDIT.includes(expected.handling),
-      };
-    });
-  });
-  return { entries, rows };
+  const extras = [];
+  const rows = [];
+  for (const entry of catalog) {
+    const changes = bySlug.get(entry.slug)?.prediction?.changes ?? [];
+    // Statements the catalog gave are answered by index; listed ones are matched by words.
+    const assigned: Array<{
+      change: ChangePrediction;
+      index: number | null;
+      similarity: number | null;
+    }> = changes.some((change) => change.statement !== undefined)
+      ? assignChanges(entry.changed, changes)
+      : changes.map((change, index) => ({ change, index, similarity: null }));
+    for (const { change, index } of assigned)
+      if (index === null)
+        extras.push({
+          release,
+          slug: entry.slug,
+          ...change,
+          automatic: AUTOMATIC.includes(change.handling),
+        });
+    rows.push(
+      ...entry.changed.map((statement, index) => {
+        const part = entry.parts.find((candidate) => candidate.changed.includes(statement))!;
+        const expected = {
+          handling: part.handling,
+          family: catalogFamily(part),
+          fullDiffOnly: part.fullDiffOnly === true,
+        };
+        const predicted = assigned
+          .filter((assignment) => assignment.index === index)
+          .map(({ change, similarity }) => ({ ...change, similarity }));
+        const handlings = new Set(predicted.map((change) => change.handling));
+        return {
+          release,
+          slug: entry.slug,
+          index,
+          statement,
+          catalog: expected,
+          predicted,
+          handling: predicted.length
+            ? handlings.size === 1
+              ? predicted[0].handling
+              : MIXED
+            : null,
+          handlingCorrect:
+            predicted.length > 0 &&
+            predicted.every((change) => change.handling === expected.handling),
+          familyCorrect:
+            predicted.length > 0 && predicted.every((change) => change.family === expected.family),
+          dangerous: predicted.some(
+            (change) => AUTOMATIC.includes(change.handling) && NO_EDIT.includes(expected.handling),
+          ),
+        };
+      }),
+    );
+  }
+  return { entries, rows, extras };
 }
 
 export type ScoredEntry = ReturnType<typeof scoreRelease>['entries'][number];
 export type ScoredRow = ReturnType<typeof scoreRelease>['rows'][number];
+export type ExtraChange = ReturnType<typeof scoreRelease>['extras'][number];
 
-export function summarize(entries: ScoredEntry[], rows: ScoredRow[]) {
+export function summarize(entries: ScoredEntry[], rows: ScoredRow[], extras: ExtraChange[]) {
   const count = <T>(items: T[], test: (item: T) => boolean) => items.filter(test).length;
   const confusion = Object.fromEntries(
     HANDLINGS.map((expected) => [
       expected,
       Object.fromEntries(
-        [...HANDLINGS, UNCLASSIFIED].map((predicted) => [
+        [...HANDLINGS, MIXED, UNCLASSIFIED].map((predicted) => [
           predicted,
           count(
             rows,
             (row) =>
-              row.catalog.handling === expected &&
-              (row.predicted?.handling ?? UNCLASSIFIED) === predicted,
+              row.catalog.handling === expected && (row.handling ?? UNCLASSIFIED) === predicted,
           ),
         ]),
       ),
     ]),
   );
   const implied = rows.filter((row) => row.catalog.family !== 'none');
+  const predictions = rows.flatMap((row) =>
+    row.predicted.map((change) => ({ change, catalog: row.catalog })),
+  );
   return {
     pages: entries.length,
     pagesClassified: count(entries, (entry) => entry.predicted !== null),
@@ -153,7 +230,7 @@ export function summarize(entries: ScoredEntry[], rows: ScoredRow[]) {
       (entry) => entry.predicted?.handling === entry.catalog.handling,
     ),
     changes: rows.length,
-    changesClassified: count(rows, (row) => row.predicted !== null),
+    changesClassified: count(rows, (row) => row.predicted.length > 0),
     handlingCorrect: count(rows, (row) => row.handlingCorrect),
     handlingConfusion: confusion,
     familyImplied: implied.length,
@@ -161,12 +238,18 @@ export function summarize(entries: ScoredEntry[], rows: ScoredRow[]) {
     familySpurious: count(
       rows,
       (row) =>
-        row.catalog.family === 'none' && row.predicted !== null && row.predicted.family !== 'none',
+        row.catalog.family === 'none' && row.predicted.some((change) => change.family !== 'none'),
     ),
-    dangerous: count(rows, (row) => row.dangerous),
-    ruleNotInCatalog: count(
-      rows,
-      (row) => row.predicted?.handling === 'rule' && row.catalog.handling !== 'rule',
-    ),
+    modelStatements: predictions.length + extras.length,
+    extraStatements: extras.length,
+    // Catalog statements given a code edit where the catalog stops or has no signal, plus extra
+    // statements given a code edit.
+    dangerous: count(rows, (row) => row.dangerous) + count(extras, (extra) => extra.automatic),
+    extraAutomatic: count(extras, (extra) => extra.automatic),
+    ruleNotInCatalog:
+      count(
+        predictions,
+        ({ change, catalog }) => change.handling === 'rule' && catalog.handling !== 'rule',
+      ) + count(extras, (extra) => extra.handling === 'rule'),
   };
 }
