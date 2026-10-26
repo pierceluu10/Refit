@@ -52,7 +52,10 @@ const execute = promisify(execFile);
 const USAGE =
   'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
-const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
+// Above validation's own limits at their defaults: two preparations (300 s each), a baseline and a
+// patched check (600 s each), and the retry without the API-version move (another preparation and
+// check), so a repository's limits decide its outcome, not the benchmark's.
+const VALIDATION_TIMEOUT_MS = 45 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
 const reportedTypeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
