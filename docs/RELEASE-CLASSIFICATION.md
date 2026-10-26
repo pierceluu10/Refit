@@ -55,7 +55,7 @@ Handling confusion (rows: catalog, columns: model):
 - **`none` predictions can be triaged by a person with a sample check.** 46 of 49 were right; the 3 misses each hid a real read or value the code may use.
 - **Category can be taken as given:** 78 of 78.
 
-So AI classification can draft a release's catalog and rule-pack candidates, but a person reviews each change before anything is automated. A second run (other releases, another model, or the OpenAPI diff added to the input) is needed before relaxing that.
+So AI classification can draft a release's catalog and rule-pack candidates, but a person reviews each change before anything is automated. [Release PRs](RELEASE-PRS.md) apply this to each new Stripe release: every `rule` and `ai` prediction is listed for a person's decision. A second run (other releases, another model, or the OpenAPI diff added to the input) is needed before relaxing that.
 
 ## Limits
 
