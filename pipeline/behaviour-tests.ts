@@ -497,7 +497,12 @@ export function compareBehaviourRuns(options: {
     ...(broken ? { reason: broken } : {}),
     grade: status === 'passed' && !missing.length ? ('A' as const) : null,
     missing,
-    tests: options.tests.map((test) => ({ path: test.path, sha256: digest(test.content) })),
+    // The source stays with the result, so a reviewer can read the tests behind a grade.
+    tests: options.tests.map((test) => ({
+      path: test.path,
+      sha256: digest(test.content),
+      content: test.content,
+    })),
     coverage,
     regressions,
     sides: Object.fromEntries(

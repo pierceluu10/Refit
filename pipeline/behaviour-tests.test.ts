@@ -567,7 +567,13 @@ it('gives grade A when both sides pass and every changed Stripe line ran on both
       true,
     ],
   ]);
-  expect(result.tests.map((test) => test.path)).toEqual(TESTS.map((test) => test.path));
+  expect(result.tests).toEqual(
+    TESTS.map((test) => ({
+      path: test.path,
+      sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      content: test.content,
+    })),
+  );
 }, 60_000);
 
 it('catches a patch that keeps payment_method_types and one that reads a moved field only at its new location (simulated stripe-mock)', async () => {
