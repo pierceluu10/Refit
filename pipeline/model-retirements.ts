@@ -200,7 +200,7 @@ function rejectsSampling(provider: string, model: string) {
   const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
   return major > 4 || (major === 4 && minor >= 7);
 }
-const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
+export const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
 const MAX_CHAIN = 8;
 
 export interface ModelReplacement {

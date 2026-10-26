@@ -10,20 +10,9 @@ import {
   MOVED_PAYMENT_METHODS_RULE,
   PAYMENT_METHOD_RENAME_RULES,
 } from './request-removals.ts';
-import {
-  INVOICE_PRICE_ID_HELPER_RULE,
-  CHECKOUT_SHIPPING_HELPER_RULE,
-  COUPON_ID_HELPER_RULE,
-  INVOICE_SUBSCRIPTION_HELPER_RULE,
-  PRODUCT_FEATURES_HELPER_RULE,
-  SUBSCRIPTION_PERIOD_HELPER_RULE,
-  SUBSCRIPTION_PERIOD_RULE,
-} from './stripe-subscription-periods.ts';
-import {
-  REQUEST_MOVE_RULES,
-  REQUEST_MOVE_SOURCES,
-  REQUEST_MOVE_WARNINGS,
-} from './stripe-request-moves.ts';
+import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
+import { REQUEST_MOVE_RULES, requestMoveFor } from './request-move-families.ts';
+import { STRIPE_PACK } from './rule-pack.ts';
 import {
   INVOICE_PREVIEW_RULE,
   INVOICE_PREVIEW_SOURCE,
@@ -31,20 +20,9 @@ import {
 } from './stripe-invoice-preview.ts';
 import { CURRENCY_CODE_RULE, CURRENCY_CODE_SOURCE } from './operation-reach.ts';
 
-const FIELD_MOVE_SOURCES: Partial<Record<NonNullable<SourceEdit['rule']>, string>> = {
-  [SUBSCRIPTION_PERIOD_HELPER_RULE]:
-    'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end',
-  [INVOICE_SUBSCRIPTION_HELPER_RULE]:
-    'https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects',
-  [INVOICE_PRICE_ID_HELPER_RULE]:
-    'https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations',
-  [CHECKOUT_SHIPPING_HELPER_RULE]:
-    'https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details',
-  [COUPON_ID_HELPER_RULE]:
-    'https://docs.stripe.com/changelog/clover/2025-09-30/add-discount-source-property',
-  [PRODUCT_FEATURES_HELPER_RULE]:
-    'https://docs.stripe.com/changelog/2024-04-10/renames-features-attribute-product-object',
-};
+const FIELD_MOVE_SOURCES: Record<string, string> = Object.fromEntries(
+  STRIPE_PACK.fieldMoves.map((move) => [move.rule, move.source]),
+);
 
 const CURRENCY_CODE_WARNING = `Uppercase currency codes written in Stripe requests are lowercased: the target contract gives these fields the \`currency\` format, and ${CURRENCY_CODE_SOURCE} asks for lowercase three-letter ISO codes in every payment request. Only literals written in the request change; other uses of the same currency in the code are unchanged.`;
 
@@ -58,7 +36,7 @@ function ruleSources(edits: SourceEdit[]) {
   for (const edit of edits) {
     const url =
       FIELD_MOVE_SOURCES[edit.rule!] ??
-      REQUEST_MOVE_SOURCES[edit.rule!] ??
+      requestMoveFor(edit.rule!)?.source ??
       (edit.rule === INVOICE_PREVIEW_RULE
         ? INVOICE_PREVIEW_SOURCE
         : PAYMENT_METHOD_RENAME_RULES.has(edit.rule!)
@@ -341,42 +319,15 @@ export function proposePatch(
       diff: renderPatch(repository, edits),
       validation: 'not-run',
       warnings: [
-        ...(fieldMoves.some((edit) => edit.rule === SUBSCRIPTION_PERIOD_HELPER_RULE)
-          ? [
-              'Subscription periods are read through a generated helper: the old subscription-level field when present (old-version events), otherwise the period every item shares, otherwise the item the application already selects or the configured price policy. Webhook endpoints are not changed.',
-            ]
-          : []),
-        ...(fieldMoves.some((edit) => edit.rule === INVOICE_SUBSCRIPTION_HELPER_RULE)
-          ? [
-              'Invoice subscriptions are read through a generated helper: the old invoice.subscription field when present (old-version events), otherwise invoice.parent.subscription_details.subscription. Webhook endpoints are not changed.',
-            ]
-          : []),
-        ...(fieldMoves.some((edit) => edit.rule === INVOICE_PRICE_ID_HELPER_RULE)
-          ? [
-              'Invoice line item and invoice item price IDs are read through a generated helper: the old price.id when present (old-version events), otherwise pricing.price_details.price when pricing.type is price_details. A missing price reads as undefined. Webhook endpoints are not changed.',
-            ]
-          : []),
-        ...(fieldMoves.some((edit) => edit.rule === CHECKOUT_SHIPPING_HELPER_RULE)
-          ? [
-              'Checkout Session shipping details are read through a generated helper: the old shipping_details field when present (old-version events), otherwise collected_information.shipping_details. The new object holds only address and name; reads of carrier, phone or tracking_number are left for review. Webhook endpoints are not changed.',
-            ]
-          : []),
-        ...(fieldMoves.some((edit) => edit.rule === PRODUCT_FEATURES_HELPER_RULE)
-          ? [
-              'Product features are read through a generated helper: the old features list when present (old-version events), otherwise marketing_features, the same list under its new name. Webhook endpoints are not changed.',
-            ]
-          : []),
-        ...(fieldMoves.some((edit) => edit.rule === COUPON_ID_HELPER_RULE)
-          ? [
-              'Coupon IDs of promotion codes and discounts are read through a generated helper: the old coupon.id when present (old-version events), otherwise promotion.coupon or source.coupon when its type is coupon, an ID unless expanded. A missing coupon reads as undefined. Webhook endpoints are not changed.',
-            ]
-          : []),
+        ...STRIPE_PACK.fieldMoves
+          .filter((move) => fieldMoves.some((edit) => edit.rule === move.rule))
+          .map((move) => move.warning),
         ...(fieldMoves.some((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE)
           ? [CARD_PAYMENT_METHOD_WARNING]
           : []),
         ...listedWarnings,
         ...movedWarnings,
-        ...requestMoves.map((rule) => REQUEST_MOVE_WARNINGS[rule]),
+        ...requestMoves.map((rule) => requestMoveFor(rule)!.warning),
         ...(preview ? [INVOICE_PREVIEW_WARNING] : []),
         ...(currency ? [CURRENCY_CODE_WARNING] : []),
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
