@@ -1,6 +1,6 @@
 {
-  "source": "stripe/openapi v2526 openapi/spec3.sdk.json (2026-09-30.endive)",
-  "generated": "2026-09-30",
+  "source": "stripe/openapi v2591 openapi/spec3.sdk.json (2026-09-30.endive)",
+  "generated": "2026-10-24",
   "operationVersions": [
     "2022-08-01",
     "2022-11-15",
