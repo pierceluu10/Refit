@@ -19,11 +19,8 @@ import {
 } from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
 import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
-import {
-  PRODUCT_MARKETING_FEATURES_RULE,
-  PROMOTION_CODE_PROMOTION_RULE,
-  REQUEST_MOVE_RULES,
-} from './stripe-request-moves.ts';
+import { REQUEST_MOVE_RULES } from './request-move-families.ts';
+import { STRIPE_PACK } from './rule-pack.ts';
 import { propertyExists, withoutRenamedSchemaRemovals } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -66,12 +63,6 @@ import { digest, findRemovedProperties, isObject, readSpecification } from './sp
 import { stripeAdapterFor } from './stripe-operations.ts';
 import { addTypeEvidence, stripePackageDirectory } from './stripe-type-evidence.ts';
 import {
-  SUBSCRIPTION_PERIOD_HELPER_RULE,
-  INVOICE_SUBSCRIPTION_HELPER_RULE,
-  INVOICE_PRICE_ID_HELPER_RULE,
-  CHECKOUT_SHIPPING_HELPER_RULE,
-  COUPON_ID_HELPER_RULE,
-  PRODUCT_FEATURES_HELPER_RULE,
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
@@ -211,36 +202,14 @@ async function runOpenApiPipeline(options: {
       : undefined;
   if (stripePackage) addTypeEvidence(repository, changes, analysis.findings, stripePackage);
   // Field moves apply only when the target contract has the documented new location.
-  const itemPeriods =
-    propertyExists(after.schemas, ['subscription', 'items']) &&
-    propertyExists(after.schemas, ['subscription_item', 'current_period_start']) &&
-    propertyExists(after.schemas, ['subscription_item', 'current_period_end']);
-  const movedTo = {
-    [SUBSCRIPTION_PERIOD_HELPER_RULE]: itemPeriods,
-    [INVOICE_SUBSCRIPTION_HELPER_RULE]: propertyExists(after.schemas, [
-      'invoice',
-      'parent',
-      'subscription_details',
-      'subscription',
+  // The mined read helpers read either API version (owner decision, 2026-10-24, overnight
+  // sign-off; docs/overnight/F4.md). The request moves and createPreview are set below.
+  const movedTo: Record<string, boolean> = Object.fromEntries(
+    STRIPE_PACK.fieldMoves.map((move) => [
+      move.rule,
+      move.targets.every((path) => propertyExists(after.schemas, path)),
     ]),
-    [INVOICE_PRICE_ID_HELPER_RULE]: ['line_item', 'invoiceitem'].every((schema) =>
-      propertyExists(after.schemas, [schema, 'pricing', 'price_details', 'price']),
-    ),
-    [CHECKOUT_SHIPPING_HELPER_RULE]: propertyExists(after.schemas, [
-      'checkout.session',
-      'collected_information',
-      'shipping_details',
-    ]),
-    // The mined read helpers read either API version (owner decision, 2026-10-24, overnight
-    // sign-off; docs/overnight/F4.md). The request moves and createPreview are set below.
-    [COUPON_ID_HELPER_RULE]:
-      propertyExists(after.schemas, ['promotion_code', 'promotion', 'coupon']) &&
-      propertyExists(after.schemas, ['discount', 'source', 'coupon']),
-    [PRODUCT_FEATURES_HELPER_RULE]: propertyExists(after.schemas, [
-      'product',
-      'marketing_features',
-    ]),
-  } as Record<string, boolean>;
+  );
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   // Owner decision 1: every traced pin older than the target moves to it, including one that sends
   // another version than the application's; the draft lists each pin with the version it sent.
@@ -354,8 +323,7 @@ async function runOpenApiPipeline(options: {
     !configuredMigrationProposal;
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[MOVED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  movedTo[PROMOTION_CODE_PROMOTION_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  movedTo[PRODUCT_MARKETING_FEATURES_RULE] = movedTo[PROMOTION_CODE_PROMOTION_RULE];
+  for (const rule of REQUEST_MOVE_RULES) movedTo[rule] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[INVOICE_PREVIEW_RULE] =
     bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
   // The period helper reads either API version, so it does not depend on the version pin.

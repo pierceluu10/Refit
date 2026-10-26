@@ -1,4 +1,5 @@
 import ts from 'typescript-compiler';
+import { SHOPIFY_PACK } from './rule-pack.ts';
 import type { Location, Repository, SourceEdit } from './types.ts';
 
 export const SHOPIFY_SDK_RULE = 'shopify-sdk-upgrade';
@@ -25,22 +26,10 @@ const FUTURE_FLAGS: Record<string, string[]> = {
 };
 const BILLING_CHANGE =
   'Billing changed in @shopify/shopify-api 12.0.0: the lineItemBilling future flags and the billing config they changed were removed (a5be0d0), and billing.check returns an object (docs/migrating-to-v12.md).';
-// Uses the majors changed, from the shopify-app-js changelogs and docs/migrating-to-v12.md read on
-// 2026-10-22. Each stops for review.
-const CHANGED_APIS = new Map([
-  [
-    'RELEASE_CANDIDATE_API_VERSION',
-    'RELEASE_CANDIDATE_API_VERSION was removed in @shopify/shopify-api 12.0.0 (48d3631); choose a dated ApiVersion member.',
-  ],
-  [
-    'getJwt',
-    'getJwt became asynchronous in @shopify/shopify-api 12.0.0 (dc41d09); its callers must await it.',
-  ],
-  [
-    'setCrypto',
-    '@shopify/shopify-api 12.0.0 (dc41d09) uses globalThis.crypto and says to remove setCrypto calls.',
-  ],
-]);
+// Uses the majors changed (data/packs/shopify.json symbolReviews). Each stops for review.
+const CHANGED_APIS = new Map(
+  Object.entries(SHOPIFY_PACK.symbolReviews).map(([symbol, review]) => [symbol, review.reason]),
+);
 const API_VERSION_REQUIRED =
   'apiVersion is required from @shopify/shopify-api 12.0.0 (48d3631), and this shopifyApp or shopifyApi config sets none Refit can see; choose a dated ApiVersion member.';
 const REMOVED_FLAGS = new Map([

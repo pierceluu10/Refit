@@ -33,6 +33,7 @@ const commands = new Map([
   ['shopify-rest', 'shopify-rest-cli.ts'],
   ['report', 'report-cli.ts'],
   ['api-hosts', 'api-hosts-cli.ts'],
+  ['classify-release', 'release-classification-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -73,6 +74,7 @@ Usage: refit <command> [options]
   shopify-rest     List Shopify REST Admin calls to endpoints a later API version removes (review only)
   report           Report a repository's provider integrations, deadlines and AI model calls
   api-hosts        List the external HTTP API hosts a repository calls (review only)
+  classify-release Classify a Stripe release's breaking changes with AI and score the catalog
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.

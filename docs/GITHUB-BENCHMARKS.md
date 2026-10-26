@@ -9,6 +9,8 @@ node scripts/stripe-benchmark-setup.mjs --root <root> --list docs/benchmarks/<li
 REFIT_DOCKER_IMAGE=node:22-alpine npm run benchmark:stripe -- --root <root> --output <out>/run --validate
 ```
 
+The same repository runs `stripe-release.yml`, which prepares a PR for each new `stripe/openapi` release: see [Stripe release PRs](RELEASE-PRS.md).
+
 ## Run it
 
 ```sh

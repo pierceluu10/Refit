@@ -2,6 +2,7 @@
 // Usage: node scripts/stripe-sdk-metadata.mjs <spec3.sdk.json> <stripe/openapi release tag> [<older spec3.sdk.json> ...]
 // Classes and events come from the first (newest) spec. Operations are every stripe-node service
 // method any given spec declares, so applications pinned to an older API version keep their methods.
+// SOURCE_DATE_EPOCH (seconds) fixes `generated`, so a rerun on the same specs is byte-identical.
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const [path, release, ...older] = process.argv.slice(2);
@@ -48,7 +49,12 @@ writeFileSync(
   `${JSON.stringify(
     {
       source: `stripe/openapi ${release} openapi/spec3.sdk.json (${spec.info.version})`,
-      generated: new Date().toISOString().slice(0, 10),
+      generated: (process.env.SOURCE_DATE_EPOCH
+        ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000)
+        : new Date()
+      )
+        .toISOString()
+        .slice(0, 10),
       operationVersions: [...new Set(versions)].sort(),
       classes: sorted(classes),
       events: sorted(events),
