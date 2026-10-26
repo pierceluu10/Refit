@@ -8,5 +8,5 @@
     "canceled_by_retention_policy added to Subscription.cancellation_details.reason, replacing cancellation_requested for test subscriptions the retention policy cancels"
   ],
   "handling": "none",
-  "reason": "subscription.cancellation_details is a nullable `anyOf` reference in the recorded contracts, and the analyzer resolves nested schemas only through direct `$ref`s (analyzer.ts referencedPropertySchema), so reads and switches below it are not traced: nothing is reported, with or without fullDiff. Equality checks against an old value (`x.field === <old value>`) are not enumChecks, so a renamed or replaced value goes unreported in every mode."
+  "reason": "subscription.cancellation_details is a nullable `anyOf` reference in the recorded contracts, and the analyzer resolves nested schemas only through direct `$ref`s (analyzer.ts referencedPropertySchema), so reads, switches and literal compares below it are not traced: nothing is reported, with or without fullDiff."
 }

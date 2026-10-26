@@ -1207,11 +1207,12 @@ const FIXTURES: Record<string, Fixture[]> = {
       ),
       expect: { enumValues: ['expired'] },
     },
-    nothing(
-      fn(
+    {
+      code: fn(
         "const authorization = await stripe.issuing.authorizations.retrieve(id);\n  return authorization.status === 'reversed';",
       ),
-    ),
+      expect: { enumValues: ['expired'] },
+    },
   ],
   '2025-03-31.basil/vault-forward-api-returns-402': [
     nothing(fn("return stripe.forwarding.requests.create({ url: 'https://example.com' });")),
@@ -1435,11 +1436,12 @@ const FIXTURES: Record<string, Fixture[]> = {
       ),
       expect: { enumValues: ['elements', 'embedded_page', 'hosted_page'] },
     },
-    nothing(
-      fn(
+    {
+      code: fn(
         "const session = await stripe.checkout.sessions.retrieve(id);\n  return session.ui_mode === 'hosted' ? session.url : undefined;",
       ),
-    ),
+      expect: { enumValues: ['elements', 'embedded_page', 'hosted_page'] },
+    },
   ],
   '2026-03-25.dahlia/capabilities-api-risk-requirements': [
     nothing(fn('const account = await stripe.accounts.retrieve(id);\n  return account.id;')),
