@@ -1,5 +1,6 @@
 import { isObject, parseObject, digest } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
+import { satisfiesNpmRange } from './validation-runtime.ts';
 import { posix } from 'node:path';
 
 export const MAX_PACKAGE_BYTES = 512 * 1024;
@@ -197,34 +198,54 @@ export function validateNpmLock(
   );
   if (new Set([...workspaces.values()].map((value) => value.name)).size !== workspaces.size)
     throw new PipelineInputError('npm workspace names must be unique.');
-  function matchingDeclarations(value: Record<string, unknown>, record: unknown, file: string) {
+  // The version npm resolves for an importer's dependency: the nearest node_modules entry upward.
+  function lockedVersion(importer: string, name: string) {
+    let search = importer;
+    for (;;) {
+      const path = posix.join(search, 'node_modules', name);
+      const entry = (lock.packages as Record<string, unknown>)[path];
+      if (entry !== undefined)
+        return isObject(entry) && !entry.link && (entry.name ?? name) === name
+          ? entry.version
+          : undefined;
+      if (!search) return undefined;
+      const parent = posix.dirname(search);
+      search = parent === '.' ? '' : parent;
+    }
+  }
+  // npm ci keeps every locked version that satisfies its declared range and prunes what no manifest
+  // declares any more (npm 10.9: lib/utils/validate-lockfile.js, arborist dep-valid.js), so only a
+  // declaration the lockfile cannot satisfy is drift; the committed lockfile installs unchanged.
+  function matchingDeclarations(
+    value: Record<string, unknown>,
+    record: unknown,
+    file: string,
+    importer: string,
+  ) {
     if (!isObject(record))
       throw new PipelineInputError(
         'Each npm workspace must have a committed lockfile package record.',
       );
     for (const section of DEPENDENCY_SECTIONS) {
-      const normalize = (value: unknown) =>
-        JSON.stringify(
-          Object.entries(isObject(value) ? value : {}).sort(([left], [right]) =>
-            left.localeCompare(right),
-          ),
-        );
-      if (normalize(value[section]) !== normalize(record[section])) {
-        const declared = isObject(value[section]) ? value[section] : {};
-        const recorded = isObject(record[section]) ? record[section] : {};
-        const name = [...new Set([...Object.keys(declared), ...Object.keys(recorded)])].find(
-          (name) => declared[name] !== recorded[name],
-        );
+      const declared = isObject(value[section]) ? value[section] : {};
+      const recorded = isObject(record[section]) ? record[section] : {};
+      // A declaration equal to its record is in sync, as before.
+      const drifted = (name: string) => {
+        if (declared[name] === recorded[name]) return false;
+        const version = lockedVersion(importer, name);
+        return !(typeof version === 'string' && satisfiesNpmRange(version, String(declared[name])));
+      };
+      const name = Object.keys(declared).find(drifted);
+      if (name !== undefined)
         throw new PipelineInputError(
-          `${file} ${section} differ from the committed package-lock.json${name ? `: ${name} is ${quotedSource(declared[name]) ?? 'missing'} in ${file} but ${quotedSource(recorded[name]) ?? 'missing'} in the lockfile` : ''}. Run npm install and commit the updated package-lock.json.`,
+          `${file} ${section} differ from the committed package-lock.json: ${name} is ${quotedSource(declared[name])} in ${file} but ${quotedSource(recorded[name]) ?? 'missing'} in the lockfile. Run npm install and commit the updated package-lock.json.`,
         );
-      }
     }
   }
-  matchingDeclarations(manifest, lock.packages[''], 'package.json');
+  matchingDeclarations(manifest, lock.packages[''], 'package.json', '');
   for (const [directory, value] of workspaces) {
     const record = lock.packages[directory];
-    matchingDeclarations(value, record, `${directory}/package.json`);
+    matchingDeclarations(value, record, `${directory}/package.json`, directory);
     if (
       !isObject(record) ||
       record.link ||

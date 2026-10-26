@@ -135,6 +135,20 @@ it('allows root and workspace-specific public dependency versions while rejectin
   expect(() => validate(sample)).toThrow(/Every npm package/);
 });
 
+it('reads a workspace declaration against the nearest locked version, its own before the hoisted one', () => {
+  const sample = scenario();
+  sample.workspaces.set(
+    'packages/billing',
+    JSON.stringify({ ...workspace, dependencies: { stripe: '^10.17.0' } }),
+  );
+  // The hoisted stripe 10.17.0 satisfies ^10.17.0, so npm ci installs the lockfile unchanged.
+  expect(validate(sample).packages).toBe(3);
+  sample.lock.packages['packages/billing/node_modules/stripe'] = { ...record, version: '9.0.0' };
+  expect(() => validate(sample)).toThrow(
+    'stripe is "^10.17.0" in packages/billing/package.json but "10.17.0" in the lockfile',
+  );
+});
+
 it.each([
   { ...workspace, bin: { tool: 'tool.js' } },
   { ...workspace, workspaces: ['nested/*'] },

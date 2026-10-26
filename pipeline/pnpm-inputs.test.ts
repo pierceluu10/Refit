@@ -126,6 +126,28 @@ it('installs an unpinned lockfile v9 root with the final pnpm 9 release, never a
   // An environment document that records another manager still has to match the pin.
   expect(() => validate(sample, manager())).toThrow('exact declared package manager');
 });
+it('installs an unpinned lockfile that records patches with the final pnpm 10 release', () => {
+  // kondax-com/Bocker at 084bfee pins no manager and patches next@15.3.6 from its package.json
+  // "pnpm" field; pnpm-lock.yaml records the patch's SHA-256 (5d1eaeaa…), which only pnpm 10 and
+  // later compute, so pnpm 9 failed with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH (refit-bench 40236299492).
+  const hash = '5d1eaeaade83b9f8434b72552364011f4e3add66a74547257d98cffe14734d09';
+  const bocker = scenario();
+  delete bocker.manifest.packageManager;
+  bocker.manifest.pnpm = { patchedDependencies: { 'stripe@10.17.0': 'patches/stripe.patch' } };
+  bocker.lock.patchedDependencies = { 'stripe@10.17.0': { hash, path: 'patches/stripe.patch' } };
+  expect(validate(bocker)).toMatchObject({ managerVersion: DEFAULT_PNPM_10_VERSION });
+  // inventashif/hackerai at c48bdee, the same layout with its pnpm@10.33.2 pin removed.
+  const hackerai = structuredClone(bocker);
+  hackerai.manifest.pnpm.overrides = { axios: '1.18.0' };
+  hackerai.lock.overrides = { axios: '1.18.0' };
+  expect(validate(hackerai)).toMatchObject({ managerVersion: DEFAULT_PNPM_10_VERSION });
+  // A pin still decides, and a lockfile without patches keeps pnpm 9.
+  hackerai.manifest.packageManager = 'pnpm@10.33.2';
+  expect(validate(hackerai)).toMatchObject({ managerVersion: '10.33.2' });
+  delete bocker.manifest.pnpm;
+  delete bocker.lock.patchedDependencies;
+  expect(validate(bocker)).toMatchObject({ managerVersion: DEFAULT_PNPM_VERSION });
+});
 it('checks manager environment versions, all package integrities and explicit Corepack checksums', () => {
   const sample = scenario(),
     environment = manager();

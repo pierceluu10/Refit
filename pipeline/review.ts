@@ -685,6 +685,8 @@ export function createReviewArtifacts(
   const fromBunLock = [validation.environment, validation.patchedEnvironment].some(
     (environment) => typeof environment?.bunLockHash === 'string',
   );
+  const lockfileChoice = validation.environment?.lockfileChoice as
+    { lockfile: string; outOfSync: Record<string, string> } | undefined;
   const prunedGlibcPackages = Math.max(
     0,
     ...[validation.environment, validation.patchedEnvironment].map((environment) => {
@@ -1293,6 +1295,11 @@ export function createReviewArtifacts(
         ...(fromBunLock
           ? [
               '- Dependency Installation: Refit translated the committed `bun.lock` into an npm lockfile with the same packages, versions, paths and integrity hashes, and installed it with `npm ci`; Bun itself did not run.',
+            ]
+          : []),
+        ...(lockfileChoice
+          ? [
+              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...Object.keys(lockfileChoice.outOfSync)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, the only one in sync with \`package.json\`, and did not read ${Object.keys(lockfileChoice.outOfSync).length === 1 ? 'the other' : 'the others'}: ${Object.values(lockfileChoice.outOfSync).map(plainText).join(' ')} Delete the lockfile your package manager does not use.`,
             ]
           : []),
         ...(prunedGlibcPackages

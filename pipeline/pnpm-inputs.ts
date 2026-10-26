@@ -174,9 +174,11 @@ export function validatePnpmInputs(
   const settingsOnly =
     workspaceContent !== undefined &&
     !(Array.isArray(workspace.packages) && workspace.packages.length);
+  // Patches are accepted below only with the SHA-256 hashes pnpm 10 writes; pnpm 9 hashes patch
+  // files as base32, so its frozen install would report a patchedDependencies mismatch.
   const fallback = v6
     ? DEFAULT_PNPM_8_VERSION
-    : settingsOnly
+    : settingsOnly || isObject(lock.patchedDependencies)
       ? DEFAULT_PNPM_10_VERSION
       : DEFAULT_PNPM_VERSION;
   const pin =

@@ -44,6 +44,15 @@ export interface PreparationIdentity {
   bunLockHash?: string;
   // Committed pnpm patch files by path, with the SHA-256 pnpm-lock.yaml records for each.
   patchHashes?: Record<string, string>;
+  // Of several committed lockfiles, the one in sync with package.json that Refit installed, and how
+  // each other one disagrees with it (syncedLockfile).
+  lockfileChoice?: { lockfile: string; outOfSync: Record<string, string> };
+}
+
+interface PreparationInputs {
+  files: Map<string, string>;
+  workspaceContents: Map<string, string>;
+  inputs: PreparationIdentity;
 }
 
 export async function readPreparationInputs(
@@ -51,15 +60,17 @@ export async function readPreparationInputs(
   // Node resolves modules up the directory tree, so a nested package's preparation refuses a
   // tracked node_modules anywhere in its repository, as the root's does.
   repositoryEntries = snapshot.entries,
-) {
+): Promise<PreparationInputs> {
   const paths = snapshot.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1));
   const committed = ['package-lock.json', PNPM_LOCKFILE, YARN_LOCKFILE].filter((file) =>
     paths.includes(file),
   );
-  const chosen =
-    committed.length > 1 && paths.includes('package.json')
-      ? await installedLockfile(snapshot, paths, committed)
-      : undefined;
+  const several = committed.length > 1 && paths.includes('package.json');
+  const chosen = several ? await installedLockfile(snapshot, paths, committed) : undefined;
+  if (several && !chosen) {
+    const synced = await syncedLockfile(snapshot, repositoryEntries, committed);
+    if (synced) return synced;
+  }
   const lockfiles = chosen ? [chosen] : committed;
   const pnpm = lockfiles.includes(PNPM_LOCKFILE);
   const yarn = lockfiles.includes(YARN_LOCKFILE);
@@ -277,6 +288,63 @@ async function installedLockfile(
         for (const [name, pattern] of PROJECT_INSTALLS)
           if (pattern.test(command)) installers.add(name);
   return installers.size === 1 && installers.has(manager) ? MANAGER_LOCKFILES[manager] : undefined;
+}
+
+// Refit's own refusals of a lockfile that disagrees with the package.json files it covers.
+const OUT_OF_SYNC =
+  /differ from the committed package-lock\.json|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm importer (?:specifiers|declarations) differ from committed manifests|^pnpm lockfile importers must exactly match|^pnpm overrides differ from the overrides pnpm-lock\.yaml records/;
+
+// Several lockfiles and no pin backed by CI: when exactly one prepares on its own and every other
+// one is refused as out of sync with package.json, no install of this commit can use the others
+// (their own frozen installs reject them), so Refit installs that one and records why. Anything else
+// (several in sync, a refusal for another reason) keeps refusing.
+// shortcut: check selection still names pnpm or Yarn when pnpm-lock.yaml or yarn.lock is committed,
+// so choosing package-lock.json beside one would run its test script with a manager not installed;
+// no measured repository chooses npm here (docs/overnight/L2-prep-3.json), revisit when one does.
+async function syncedLockfile(
+  snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  repositoryEntries: string[],
+  committed: string[],
+): Promise<PreparationInputs | undefined> {
+  const results = await Promise.all(
+    committed.map(async (lockfile) => {
+      const entries = snapshot.entries.filter((entry) => {
+        const path = entry.slice(entry.indexOf('\t') + 1);
+        return path === lockfile || !committed.includes(path);
+      });
+      try {
+        return {
+          lockfile,
+          prepared: await readPreparationInputs({ ...snapshot, entries }, repositoryEntries),
+        };
+      } catch (error) {
+        if (!(error instanceof PipelineInputError)) throw error;
+        return { lockfile, refusal: error.message };
+      }
+    }),
+  );
+  const prepared = results.filter((result) => result.prepared);
+  const outOfSync = results.filter(
+    (result) => result.refusal !== undefined && OUT_OF_SYNC.test(result.refusal),
+  );
+  if (prepared.length !== 1 || outOfSync.length !== committed.length - 1) return undefined;
+  const { lockfile, prepared: chosen } = prepared[0];
+  return {
+    ...chosen!,
+    inputs: {
+      ...chosen!.inputs,
+      lockfileChoice: {
+        lockfile,
+        // The first sentence says how the lockfile disagrees; its "Run … install" advice does not apply.
+        outOfSync: Object.fromEntries(
+          outOfSync.map((result) => [
+            result.lockfile,
+            result.refusal!.split(/(?<=\.) (?=[A-Z])/)[0],
+          ]),
+        ),
+      },
+    },
+  };
 }
 
 // The committed .npmrc stays out of the install, so it cannot change the registry or credentials.
