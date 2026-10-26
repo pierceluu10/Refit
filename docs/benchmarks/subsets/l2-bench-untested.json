@@ -1,0 +1,203 @@
+{
+  "frozenAt": "2026-10-26",
+  "purpose": "Laptop 2 check of owner decision 1 in the benchmark: six projects that commit no lockfile (no workflow in run 40236299492), an untested draft whose lockfile lacks integrity (odota/core) and a validated control (MuhammadTanveerAbbas/Clario-ai). Built from push-279-affected.json; no held-out repository.",
+  "criteria": "Entries of subsets/f5-tuned-sets.json whose row in refit-bench run 40117208880 (main fc4dc00 + #287 reporting, default flags, no AI) has fullAdapter.status \"affected\". Entries unchanged, in list order.",
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "odota/core",
+      "stars": 1635,
+      "commit": "b877fd1c169c84e4dfc2651a3f2fcdd68b5fef08",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "horizon-ui/shadcn-nextjs-boilerplate",
+      "stars": 649,
+      "commit": "efe90c62391f2d3247a5a5f0712adcad0515aba7",
+      "before": "2024-04-10",
+      "beforeSource": "SDK version",
+      "packageManager": "none"
+    },
+    {
+      "repo": "MuhammadTanveerAbbas/Clario-ai",
+      "stars": 14,
+      "commit": "1cb1754244fcec19b23e8ce809606a20a24920a9",
+      "before": "2026-02-25.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "Harries/startfast-free",
+      "stars": 9,
+      "commit": "567f2bfa4a3596fd6058e05dd53bf70fc3164733",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.0.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "r0ld3x/DocTalk",
+      "stars": 2,
+      "commit": "d99c694b461cf76b2cc537950c70abdc9e0e2db5",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.22.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "rishabhsingroha/MusicListeningPlatform",
+      "stars": 2,
+      "commit": "0726851cc55569983b1e14db7b64468395012191",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.5.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+      "stars": 2,
+      "commit": "96a68ad7967b112a75956d37a51b3bef30c717c7",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.12.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "aionarae/amazon-beta",
+      "stars": 1,
+      "commit": "4ff5cfe25f3e5770c767329220d462dc2a5e93c5",
+      "before": "2024-06-20",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^16.6.0",
+      "packageManager": "none"
+    }
+  ]
+}
