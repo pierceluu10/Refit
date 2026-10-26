@@ -45,6 +45,7 @@ import { PipelineInputError, type Repository } from './types.ts';
 import { typeErrorKeys } from './type-errors.ts';
 import { proposalReviewReason, scanReviewReason } from './workflow.ts';
 import { readEvidence } from './state-files.ts';
+import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
@@ -444,11 +445,14 @@ async function benchmark(entry: Selected, index: number) {
   const declared = { ...manifest.dependencies, ...manifest.devDependencies };
   // Root npm, pnpm or Yarn projects with stripe can be prepared for checks; others are
   // proposal-only. Refit's own preparation refuses layouts it does not support, and that is recorded.
-  const checkable =
-    // A bun.lock is installed through its npm translation (bun-lock.ts).
-    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
-      existsSync(join(checkRoot, lockfile)),
-    ) && Boolean(declared.stripe);
+  // A bun.lock is installed through its npm translation (bun-lock.ts).
+  const locked = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
+    existsSync(join(checkRoot, lockfile)),
+  );
+  const checkable = locked && Boolean(declared.stripe);
+  // Owner decision 1: a project that commits no lockfile runs the workflow as a customer's generated
+  // configuration does; preparation refuses, and the patch is kept untested, graded D.
+  const unlocked = !locked && Boolean(declared.stripe);
   // The check a customer's generated configuration runs (pipeline/check-selection.ts). Without one,
   // the patch is still proposed and graded D.
   const selection = await selectCheck(repository);
@@ -462,7 +466,7 @@ async function benchmark(entry: Selected, index: number) {
   };
   result.validatable = checkable && Boolean(selection.command);
   result.checks = !checkable ? 'none' : (selection.kind ?? 'generated-only');
-  if (values.validate && checkable) {
+  if (values.validate && (checkable || unlocked)) {
     const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
     const generatedChecks =
       existsSync(fixtures(entry.before)) && existsSync(fixtures(latest))
@@ -474,7 +478,7 @@ async function benchmark(entry: Selected, index: number) {
         : undefined;
     // compareTypeErrors fails a patched type check only on errors the patch introduced, which then
     // go to AI repair.
-    const command = selection.command;
+    const command = checkable ? selection.command : (selection.command ?? NO_OP_CHECK.split(' '));
     const config = join(work, 'run.json');
     // A customer's worker runs the full contract diff. When it stops before validation, the
     // workflow runs without it (benchmark mode) to measure what the rules alone would do; when it
@@ -585,6 +589,14 @@ async function benchmark(entry: Selected, index: number) {
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
+      ...(report.validation?.dependencyFailure
+        ? {
+            dependencyFailure: {
+              reason: report.validation.dependencyFailure.reason,
+              message: String(report.validation.dependencyFailure.message ?? '').slice(0, 500),
+            },
+          }
+        : {}),
       baselineStop: report.validation?.baselineStop?.reason,
       checkErrors: {
         baseline: report.validation?.baseline?.error,
