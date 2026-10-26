@@ -75,6 +75,8 @@ What the remaining code is:
 
 The honest reading: the edit families pay off when a provider's breaking changes are field and parameter moves inside one contract format. Shopify's changes are found by validating documents against the target schema, so it has no moved-field entries to write, and its single edit (the pin) is mostly provider logic. Adding Shopify to the pack format moved 1.2% of its code to data; a second provider costs roughly 3,500 lines of runtime code when its contract format and SDK differ, and the families do not change that.
 
+Which provider to give a pack next, by how many of its recorded changes these families and the shared mechanisms already cover, is in [Provider family fit](PROVIDER-FAMILY-FIT.md).
+
 ## Adding an entry
 
 1. Read the provider's changelog page and both contracts; record the page as `source`.
