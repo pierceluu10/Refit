@@ -264,6 +264,10 @@
       "format": "enrollment-results",
       "predates": []
     },
+    "2026-10-26-release-classification-pages-results.json": {
+      "format": "release-classification-results",
+      "predates": []
+    },
     "2026-10-26-release-classification-results.json": {
       "format": "release-classification-results",
       "predates": []

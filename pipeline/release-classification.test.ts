@@ -54,6 +54,7 @@ function respond(content: string) {
 // Every prompt and model output of the recorded refit-bench runs (gpt-6.1-sol), and their scores.
 const RUNS = [
   { name: '2026-10-26-release-classification', run: '40283655210', statements: 'catalog' },
+  { name: '2026-10-26-release-classification-pages', run: '40285557374', statements: 'none' },
 ] as const;
 const read = (path: string) => JSON.parse(readFileSync(`docs/benchmarks/${path}`, 'utf8'));
 type Audit = { instructions: string; pages: Array<PageClassification & { release: string }> };
