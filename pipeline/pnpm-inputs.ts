@@ -270,6 +270,7 @@ export function validatePnpmInputs(
     throw new PipelineInputError('Selected pnpm workspaces differ from their committed patterns.');
   const manifests = new Map<string, Record<string, unknown>>([['.', manifest]]);
   const names = new Map<string, string>();
+  const binDirectories = new Set<string>();
   for (const directory of directories) {
     const content = workspaceContents.get(directory)!;
     if (Buffer.byteLength(content) > MAX_PACKAGE_BYTES)
@@ -282,8 +283,8 @@ export function validatePnpmInputs(
       names.has(value.name)
     )
       throw new PipelineInputError('pnpm workspace package names must be explicit and unique.');
+    if (value.bin !== undefined) binDirectories.add(directory);
     if (
-      value.bin !== undefined ||
       value.workspaces !== undefined ||
       value.pnpm !== undefined ||
       (value.packageManager !== undefined && value.packageManager !== manifest.packageManager)
@@ -427,6 +428,12 @@ export function validatePnpmInputs(
       }
     }
   }
+  // pnpm links a package's bin only into the node_modules/.bin of the projects that depend on it,
+  // so a workspace no importer links to adds no bin link pointing at its unbuilt files.
+  if (Object.values(workspaceLinks).some((target) => binDirectories.has(target)))
+    throw new PipelineInputError(
+      'Workspace bins, nested workspace declarations and workspace pnpm settings require a custom validation image.',
+    );
   return {
     manager: 'pnpm' as const,
     managerVersion: pin[1],
