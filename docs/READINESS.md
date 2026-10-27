@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 27 checkpoint: type oracle on the target stripe-node (unreleased, after 0.39.0)
+
+When the final patch upgrades stripe-node with prepared dependencies of its own and the check compares type errors, validation type-checks the original code once more with the target stripe-node installed (`runTypeOracle` in `pipeline/validation.ts`, recorded as `validation.typeOracle`). Errors on a traced call's property, on the operation's own stripe-node request type, or TS2339/TS2551 on the Stripe type of a changed response object move that change from `unknown` to `reached`; zero errors never moves a change toward `unused`, `compatible` or `handled`. `typeOraclePasses` is the type condition of the AI patch gate. On refit-bench it changed no outcome: 80 of l2-push-249 and 10 of heldout-30 validate with and without AI, before and after ([benchmarks](BENCHMARKS.md#type-oracle-october-27)). Tests: `pipeline/stripe-type-oracle.test.ts`.
+
 ## October 26 checkpoint: AI classification of Stripe release changes (unreleased, after 0.39.0)
 
 `refit classify-release` sends each saved changelog page of a Stripe release to OpenAI through the shared client and spending ledger and scores the strict-JSON answer (category, handling, rule-pack family, identifiers) against the hand catalog, never sending its handling. With `--statements none` the model lists the changes itself, as it must for an uncatalogued release, and they are matched to the catalog's statements by shared content words; `--statements catalog` sends the catalog's statements as an upper bound. It is review only: nothing it predicts edits code or feeds a pack. Pages only (refit-bench run 40285557374, `gpt-6.1-sol`, $0.70), 70 of 125 catalog statements got the catalog's handling (95 with statements given), and by hand review the same 8 statements got a rule or AI edit where the catalog stops or has no signal in both modes, so every `rule` and `ai` prediction needs human review ([Release classification](RELEASE-CLASSIFICATION.md)). Tests: `pipeline/release-classification.test.ts`, which replays both runs' recorded outputs to their committed scores.
@@ -14,6 +18,7 @@ Preparation now builds the refusals O2 classified as buildable and #289 left:
 - **Peer-only npm drift.** An `npm ci` that reports the lockfile out of sync is retried once with `--legacy-peer-deps`, as `ERESOLVE` is (an extension of the 2026-10-20 decision, announced on the board); anything beyond peers still stops.
 
 On `subsets/l2-prep-remaining.json` (before 40159661032, after 40164744067):
+
 - guillermolg00/nextjs-stripe-store and Ardione321/prep-ai now prepare from `bun.lock` and pass their type checks, with findings left.
 - Alex-Unnippillil/share-house-portal prepares with pnpm, as its CI installs, and passes its tests.
 - devczero/saas-pdf-analysis-dev validates.
