@@ -91,7 +91,7 @@ export function npmWorkspaceDirectories(manifest: Record<string, unknown>, paths
   const first = Array.isArray(patterns)
     ? patterns.findIndex((pattern) => String(pattern).startsWith('!'))
     : -1;
-  const negations = first < 0 ? [] : (patterns as unknown[]).slice(first);
+  const negations = first < 0 ? [] : (patterns as string[]).slice(first);
   if (
     !Array.isArray(patterns) ||
     patterns.length > MAX_WORKSPACES ||
