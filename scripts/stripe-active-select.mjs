@@ -87,6 +87,53 @@ export async function readExclusions(paths) {
   return { repos, lists, specs };
 }
 
+export const pause = (ms) => new Promise((done) => setTimeout(done, ms));
+
+// GitHub REST and GraphQL requests with the token; secondary rate limits are retried.
+export function githubClient(token) {
+  return async function github(path, init = {}) {
+    for (let attempt = 0; ; attempt++) {
+      let response;
+      try {
+        response = await fetch(`https://api.github.com${path}`, {
+          ...init,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            ...init.headers,
+          },
+        });
+      } catch (error) {
+        // A dropped connection (ETIMEDOUT, ECONNRESET) is retried like a rate limit.
+        if (attempt >= 6) throw error;
+        console.error(`GitHub request failed (${error.cause?.code ?? error.message}); retrying`);
+        await pause(10_000);
+        continue;
+      }
+      if (response.ok) return response.json();
+      // Secondary rate limits answer 403 or 429; wait and retry a few times.
+      if ([403, 429, 502].includes(response.status) && attempt < 6) {
+        const retry = Number(response.headers.get('retry-after')) || 60;
+        console.error(`GitHub ${response.status}; retrying in ${retry}s`);
+        await pause(retry * 1000);
+        continue;
+      }
+      throw new Error(`GitHub ${path} returned ${response.status}: ${await response.text()}`);
+    }
+  };
+}
+
+// A phase's result cached as <work>/<name>, so an interrupted selection resumes.
+export function cachedIn(work) {
+  return async function cached(name, compute) {
+    const path = join(work, name);
+    if (existsSync(path)) return JSON.parse(await readFile(path, 'utf8'));
+    const value = await compute();
+    await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
+    return value;
+  };
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -111,37 +158,8 @@ async function main() {
   await mkdir(join(work, 'repos'), { recursive: true });
 
   const token = process.env.GITHUB_TOKEN || (await execute('gh', ['auth', 'token'])).stdout.trim();
-  const pause = (ms) => new Promise((done) => setTimeout(done, ms));
-
-  async function github(path, init = {}) {
-    for (let attempt = 0; ; attempt++) {
-      const response = await fetch(`https://api.github.com${path}`, {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          ...init.headers,
-        },
-      });
-      if (response.ok) return response.json();
-      // Secondary rate limits answer 403 or 429; wait and retry a few times.
-      if ([403, 429, 502].includes(response.status) && attempt < 6) {
-        const retry = Number(response.headers.get('retry-after')) || 60;
-        console.error(`GitHub ${response.status}; retrying in ${retry}s`);
-        await pause(retry * 1000);
-        continue;
-      }
-      throw new Error(`GitHub ${path} returned ${response.status}: ${await response.text()}`);
-    }
-  }
-
-  async function cached(name, compute) {
-    const path = join(work, name);
-    if (existsSync(path)) return JSON.parse(await readFile(path, 'utf8'));
-    const value = await compute();
-    await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
-    return value;
-  }
+  const github = githubClient(token);
+  const cached = cachedIn(work);
 
   // 1. Code search: up to 1,000 results per query, 10 requests a minute.
   const queries = searchQueries();

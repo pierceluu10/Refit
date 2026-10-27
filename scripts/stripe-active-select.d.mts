@@ -11,3 +11,6 @@ export function readExclusions(paths: string[]): Promise<{
   lists: Array<{ list: string; repositories: number }>;
   specs: Map<string, string>;
 }>;
+export function pause(ms: number): Promise<void>;
+export function githubClient(token: string): (path: string, init?: RequestInit) => Promise<any>;
+export function cachedIn(work: string): <T>(name: string, compute: () => Promise<T>) => Promise<T>;
