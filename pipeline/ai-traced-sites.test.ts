@@ -1,5 +1,7 @@
-import { expect, it } from 'vitest';
-import { droppedRequestPaths, untracedEdits } from './ai-patch-policies.ts';
+import { describe, expect, it } from 'vitest';
+import { CONTRACT_CHANGE } from './ai-patches.ts';
+import { aiValidationGate } from './validation.ts';
+import { droppedRequestPaths, untouchedCalls, untracedEdits } from './ai-patch-policies.ts';
 import { STRIPE } from './providers.ts';
 import type { Repository } from './types.ts';
 
@@ -135,4 +137,88 @@ it('leaves a dropped request parameter inside a traced call to the dropped-param
       STRIPE,
     ).map((entry) => entry.path),
   ).toContain('argument 2.expand');
+});
+
+it('names the traced calls an AI patch leaves as they were', () => {
+  const site = { file: ROUTE, line: 5 };
+  const untouched = (after: string) =>
+    untouchedCalls(repository({ [ROUTE]: RULES }), repository({ [ROUTE]: after }), STRIPE, [site]);
+  expect(untouched(RULES)).toEqual([site]);
+  // An edit outside the call does not handle what changed at it.
+  expect(untouched(edit("console.log('loaded', id);", "console.log('done', id);"))).toEqual([site]);
+  expect(untouched(edit("expand: ['items'],", "expand: ['items.data'],"))).toEqual([]);
+  expect(untouched(edit("expand: ['items'],\n", "expand: ['items'],\n    limit: 1,\n"))).toEqual(
+    [],
+  );
+  // A site on no traced call is never handled.
+  expect(
+    untouchedCalls(repository({ [ROUTE]: RULES }), repository({ [ROUTE]: RULES }), STRIPE, [
+      { file: ROUTE, line: 9 },
+    ]),
+  ).toEqual([{ file: ROUTE, line: 9 }]);
+});
+
+describe('aiValidationGate', () => {
+  const rules = repository({ [ROUTE]: RULES });
+  // The fix adds a request parameter inside the reached call.
+  const fixed = repository({
+    [ROUTE]: edit("expand: ['items'],\n", "expand: ['items'],\n    limit: 1,\n"),
+  });
+  const call = {
+    file: ROUTE,
+    line: 5,
+    changeId: CONTRACT_CHANGE,
+    expression: 'GET /v1/subscriptions/{subscription_exposed_id}',
+    confidence: 'confirmed' as const,
+  };
+  const change = {
+    operation: 'GET',
+    path: '/v1/subscriptions/{subscription_exposed_id}',
+    text: 'added the required request property `limit`',
+  };
+  const gate = (overrides: Partial<Parameters<typeof aiValidationGate>[0]> = {}) => {
+    const failures = aiValidationGate({
+      rules,
+      patched: fixed,
+      provider: STRIPE,
+      targets: [call],
+      unmapped: [change],
+      typeChecked: true,
+      testsPassed: true,
+      ...overrides,
+    });
+    console.log(failures);
+    return failures;
+  };
+
+  it('passes an edit of the reached call when every check holds', () => {
+    expect(gate()).toEqual([]);
+  });
+
+  it('fails without the type oracle or passing tests', () => {
+    expect(gate({ typeChecked: false })).toEqual([expect.stringContaining('type oracle')]);
+    expect(gate({ testsPassed: false })).toEqual([expect.stringContaining('own tests')]);
+  });
+
+  it('fails when the reached call is left as it was, or no traced call reaches the change', () => {
+    expect(gate({ patched: rules })).toEqual([expect.stringContaining('left the traced call')]);
+    expect(gate({ targets: [] })).toEqual([expect.stringContaining('left the traced call')]);
+  });
+
+  it('fails an edit outside traced sites and a dropped request parameter', () => {
+    const outside = repository({ [ROUTE]: fixed.files[0].content.replace("'loaded'", "'done'") });
+    expect(gate({ patched: outside })).toEqual([expect.stringContaining(`${ROUTE}:9`)]);
+    const dropped = repository({ [ROUTE]: edit("    expand: ['items'],\n", '') });
+    expect(gate({ patched: dropped })).toEqual([expect.stringContaining('no longer sends')]);
+  });
+
+  it('fails an edit of a test file', () => {
+    const test = 'app/api/billing/route.test.ts';
+    expect(
+      gate({
+        rules: repository({ [ROUTE]: RULES, [test]: RULES }),
+        patched: repository({ [ROUTE]: fixed.files[0].content, [test]: fixed.files[0].content }),
+      }),
+    ).toEqual([expect.stringContaining(test)]);
+  });
 });

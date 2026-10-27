@@ -465,23 +465,63 @@ export function untracedEdits(
         .filter((read) => read.file === path && read.confidence === 'confirmed' && !read.untraced)
         .map((read) => [read.line, read.line] as const),
     ];
-    const outside: { file: string; line: number }[] = [];
-    let line = 1;
-    let previous: { added?: boolean; removed?: boolean } | undefined;
-    for (const part of diffLines(from, to)) {
-      if (part.removed) {
-        for (let index = 0; index < part.count; index++)
-          if (!sites.some(([start, end]) => line + index >= start && line + index <= end))
-            outside.push({ file: path, line: line + index });
-        line += part.count;
-      } else if (part.added) {
-        // An insertion that replaces nothing goes between lines `line - 1` and `line`.
-        if (!previous?.removed && !calls.some(([start, end]) => line - 1 >= start && line <= end))
-          outside.push({ file: path, line });
-      } else line += part.count;
-      previous = part;
-    }
-    return outside;
+    const edited = editedLines(from, to);
+    return [
+      ...[...edited.changed].filter(
+        (line) => !sites.some(([start, end]) => line >= start && line <= end),
+      ),
+      // An insertion that replaces nothing goes between lines `line - 1` and `line`.
+      ...[...edited.inserted].filter(
+        (line) => !calls.some(([start, end]) => line - 1 >= start && line <= end),
+      ),
+    ]
+      .sort((first, second) => first - second)
+      .map((line) => ({ file: path, line }));
+  });
+}
+
+// 1-based lines of `from` that a diff to `to` changes or deletes, and the lines before which it
+// inserts lines that replace nothing.
+function editedLines(from: string, to: string) {
+  const changed = new Set<number>();
+  const inserted = new Set<number>();
+  let line = 1;
+  let replacing = false;
+  for (const part of diffLines(from, to)) {
+    if (part.removed) {
+      for (let index = 0; index < part.count; index++) changed.add(line + index);
+      line += part.count;
+    } else if (part.added) {
+      if (!replacing) inserted.add(line);
+    } else line += part.count;
+    replacing = Boolean(part.removed);
+  }
+  return { changed, inserted };
+}
+
+// The sites, at lines of `before`, whose traced SDK call the AI's code leaves exactly as it was:
+// no line from the call's first to its last changes and none is inserted between them. A site on no traced call counts as untouched.
+export function untouchedCalls<Site extends { file: string; line: number }>(
+  before: Repository,
+  after: Repository,
+  provider: ProviderAdapter,
+  sites: readonly Site[],
+) {
+  const sdkCalls = analyzeRepository(before, [], provider).sdkCalls;
+  return sites.filter((site) => {
+    const from = contentOf(before, site.file);
+    const to = contentOf(after, site.file);
+    if (from === undefined || to === undefined) return true;
+    const call = callLines(from, site.file, sdkCalls).find(
+      ([start, end]) => site.line >= start && site.line <= end,
+    );
+    if (!call) return true;
+    const [start, end] = call;
+    const edited = editedLines(from, to);
+    return (
+      ![...edited.changed].some((line) => line >= start && line <= end) &&
+      ![...edited.inserted].some((line) => line - 1 >= start && line <= end)
+    );
   });
 }
 

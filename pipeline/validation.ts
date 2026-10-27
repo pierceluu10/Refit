@@ -15,7 +15,9 @@ import {
   validateApiVersion,
   type ApiVersionPolicy,
 } from './api-version.ts';
-import { digest, readSpecification } from './specifications.ts';
+import { digest, isObject, readSpecification } from './specifications.ts';
+import type { ProviderAdapter } from './providers.ts';
+import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { TEST_PATH } from './source-paths.ts';
 import { readRepository } from './repository.ts';
@@ -26,6 +28,7 @@ import {
 } from './validation-options.ts';
 import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
+import { droppedRequestPaths, untouchedCalls, untracedEdits } from './ai-patch-policies.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
@@ -49,7 +52,12 @@ import {
   type GeneratedChecks,
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
-import { type OracleComparison, type TypeOracle, typeOracleReach } from './stripe-type-evidence.ts';
+import {
+  type OracleComparison,
+  type TypeOracle,
+  typeOraclePasses,
+  typeOracleReach,
+} from './stripe-type-evidence.ts';
 import {
   behaviourCommand,
   changedStripeLines,
@@ -78,6 +86,7 @@ import {
   advisoryTypeError,
   checkKinds,
   gradeEvidence,
+  runsTests,
   TESTS_FAILED,
   testsFoundNone,
   TYPE_CHECK_STARTED,
@@ -144,9 +153,99 @@ interface CoverageAttempt {
   repair?: { requested: number; stopReason: string; error: string | null };
   // Sites the rules' patch left that the kept proposal's rescan no longer finds.
   resolved?: ReturnType<typeof unresolvedSites>;
+  // Owner decision D2 for a kept proposal: why it is not published as validated (none: it is).
+  gate?: { passed: boolean; failures: string[] };
 }
 // Contract changes named per traced call in a coverage target; the run report has the rest.
 const MAX_TARGET_CHANGES = 3;
+// Lines a D2 gate failure names; the run report has the rest.
+const MAX_GATE_SITES = 5;
+
+const siteList = (sites: readonly { file: string; line: number }[]) =>
+  `${sites
+    .slice(0, MAX_GATE_SITES)
+    .map((site) => (site.line ? `${site.file}:${site.line}` : site.file))
+    .join(
+      ', ',
+    )}${sites.length > MAX_GATE_SITES ? ` and ${sites.length - MAX_GATE_SITES} more` : ''}`;
+
+// Owner decision D2 (Pierce, 2026-10-27): a kept coverage AI patch publishes as a validated draft
+// only when the target stripe-node is installed and the patched code type-checks against it with
+// no new errors (`typeChecked`, the type oracle), the repository's own tests ran and passed on it
+// offline (`testsPassed`), it edits only the Stripe sites Refit traced in the rules' code, sends
+// every request parameter the rules' code sent, and changes the traced call of every reached
+// breaking contract change no rule migrates. Returns why it does not; an empty list means it does.
+export function aiValidationGate(options: {
+  rules: Repository;
+  patched: Repository;
+  provider: ProviderAdapter;
+  // What the model was asked to resolve, at lines of the rules' code (coverageTargets).
+  targets: readonly Pick<
+    Finding,
+    'file' | 'line' | 'changeId' | 'expression' | 'confidence' | 'untraced'
+  >[];
+  // Breaking contract changes no rule migrates (unmappedBreakingChanges).
+  unmapped: readonly unknown[];
+  typeChecked: boolean;
+  testsPassed: boolean;
+}) {
+  const files = new Set(
+    [...options.rules.files, ...options.patched.files]
+      .map((file) => file.path)
+      .filter(
+        (path) =>
+          options.rules.files.find((file) => file.path === path)?.content !==
+          options.patched.files.find((file) => file.path === path)?.content,
+      ),
+  );
+  const outside = untracedEdits(
+    options.rules,
+    options.patched,
+    files,
+    options.provider,
+    options.targets.filter((target) => target.changeId !== CONTRACT_CHANGE),
+  );
+  const dropped = droppedRequestPaths(options.rules, options.patched, files, options.provider);
+  const calls = options.targets.filter((target) => target.changeId === CONTRACT_CHANGE);
+  const untouched = untouchedCalls(options.rules, options.patched, options.provider, calls);
+  const unhandled = options.unmapped.filter(isObject).filter((entry) => {
+    const operation = `${String(entry.operation).toUpperCase()} ${String(entry.path)}`;
+    const sites = calls.filter((call) => call.expression === operation);
+    return !sites.length || sites.some((site) => untouched.includes(site));
+  });
+  return [
+    ...(options.typeChecked
+      ? []
+      : [
+          'The type oracle did not show that the patched code type-checks against the target stripe-node, installed in the workspace, with no new errors.',
+        ]),
+    ...(options.testsPassed
+      ? []
+      : ["The repository's own tests did not run and pass on the patch offline."]),
+    ...(outside.length
+      ? [`The AI changed code outside the Stripe sites Refit traced: ${siteList(outside)}.`]
+      : []),
+    ...(dropped.length
+      ? [
+          `The AI no longer sends ${dropped
+            .slice(0, MAX_GATE_SITES)
+            .map((entry) => `${entry.call} ${entry.path} (${entry.file}:${entry.line})`)
+            .join(', ')}.`,
+        ]
+      : []),
+    ...(unhandled.length
+      ? [
+          `The AI left the traced call unchanged for ${unhandled
+            .slice(0, MAX_GATE_SITES)
+            .map(
+              (entry) =>
+                `${String(entry.operation).toUpperCase()} ${String(entry.path)} ${String(entry.text)}`,
+            )
+            .join('; ')}.`,
+        ]
+      : []),
+  ];
+}
 
 // What an AI proposal, or the error that refused one, reports its requests cost.
 function costOf(value: unknown) {
@@ -2367,6 +2466,34 @@ export async function validateMigration(options: {
       }),
     );
     options.signal?.throwIfAborted();
+    if (rules && coverage?.outcome === 'kept' && candidateSources) {
+      const failures = aiValidationGate({
+        rules: rules.candidateSources,
+        patched: candidateSources,
+        provider: report.adapter,
+        targets,
+        unmapped: unmappedBreakingChanges(
+          report.specificationDiff,
+          report.changes,
+          report.findings,
+          report.operationChanges,
+          report.requestChanges,
+          report.expandedFields,
+        ),
+        typeChecked: typeOraclePasses(typeOracle),
+        testsPassed:
+          validationStatus === 'passed' &&
+          !noTests &&
+          (await runsTests(candidateSources, options.command, packageDirectory)),
+      });
+      coverage.gate = { passed: !failures.length, failures };
+      // Under D2 the AI changed every reached call no rule migrates, so they no longer count.
+      if (!failures.length)
+        proposal = {
+          ...proposal,
+          unresolvedFindings: proposal.unresolvedFindings - operationUsages,
+        };
+    }
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)

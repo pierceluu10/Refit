@@ -475,6 +475,16 @@ export function checkKinds(command: readonly string[], scripts: Record<string, u
   return kinds;
 }
 
+// Whether a check command runs the repository's own tests, read from the package it runs in.
+export async function runsTests(
+  repository: Repository,
+  command: readonly string[],
+  packageDirectory?: string,
+) {
+  const { scripts } = await manifestScripts(checkDirectory(repository, packageDirectory).root);
+  return checkKinds(command, scripts).has('tests');
+}
+
 // The test files a check command names, when it runs only some.
 function listedTests(command: readonly string[]) {
   return command
