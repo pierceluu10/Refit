@@ -22,6 +22,7 @@ Build toward a reliable agent for many API providers, with separate integrations
 - Run `npm test` after JavaScript or TypeScript changes, and run the relevant typecheck, formatting, and build checks for the touched code. Report what actually passed.
 - Use conventional commit messages when committing requested project changes. Do not add co-author trailers.
 - Update the relevant user-facing guide and readiness checkpoint when a feature changes supported behavior. Keep the root README short; put detailed setup and limitations in `docs/`.
+- Who decides: Refit has three cofounders, Pierce, Furqan and Otabek, and any one of them can take an owner decision. Wherever this file or a doc asks for "the owner", an "owner decision" or "owner sign-off", it means any cofounder. Record each decision with the cofounder's name and the date, as the existing bullets do. A recorded decision stands until a cofounder records a new one. Account access is different: "the owner" of the Fly organization, the Supabase project, the AWS login or an API key is whoever holds that account.
 
 ## Onboarding references
 
