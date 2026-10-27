@@ -91,7 +91,17 @@ const before = {
         properties: { amount_discount: { type: 'integer' } },
       },
       product: { type: 'object', properties: { id: { type: 'string' } } },
-      subscription: { type: 'object', properties: { status: { type: 'string' } } },
+      subscription: {
+        type: 'object',
+        properties: {
+          status: { type: 'string' },
+          items: {
+            type: 'object',
+            properties: { data: { type: 'array', items: ref('subscription_item') } },
+          },
+        },
+      },
+      subscription_item: { type: 'object', properties: { price: { type: 'string' } } },
       error: { type: 'object', properties: { error: ref('api_errors') } },
       api_errors: {
         type: 'object',
@@ -462,6 +472,13 @@ it('names the Stripe object that owns a changed response property', () => {
       'the response property `line_items/data/items/description` became nullable for the status `200`',
     ),
   ).toEqual({ schema: 'item', property: 'description' });
+  // A subscription's own `items` property is a list object, not an array's items.
+  expect(
+    owner(
+      'removed the required property `items/data/items/price` from the response with the `200` status',
+      '/v1/subscriptions/{subscription_exposed_id}',
+    ),
+  ).toEqual({ schema: 'subscription_item', property: 'price' });
   expect(
     owner(
       "the `custom_text/submit/anyOf[subschema #1: PaymentPagesCheckoutSessionCustomTextPosition]/message` response property's maxLength was increased from `500` to `1200` for the response status `200`",
