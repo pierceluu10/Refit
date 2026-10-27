@@ -5,6 +5,7 @@ import { openHostedStore } from './hosted-store.ts';
 import { DEFAULT_TENANCY_LIMITS, TENANCY_REFUSALS } from './hosted-tenancy.ts';
 import { openInventoryStore } from './inventory-store.ts';
 import type { Inventory } from './inventory.ts';
+import { openWatchTargetStore } from './watch-target-store.ts';
 
 const DATABASE = process.env.REFIT_POSTGRES_URL;
 const cleanups: (() => Promise<unknown>)[] = [];
@@ -144,3 +145,63 @@ it.skipIf(!DATABASE)('keeps the last complete inventory when a later scan stops'
     inventoryRevision: 'a'.repeat(40),
   });
 });
+
+it.skipIf(!DATABASE)(
+  'registers watch targets for watched vendors, lists their repositories and records changed captures',
+  async () => {
+    const pool = await database();
+    const store = await openHostedStore(pool, tenancy(['example']));
+    const inventories = openInventoryStore(pool, LIMITS);
+    const targets = openWatchTargetStore(pool);
+    await install(store, 1, 'example', ['example/one']);
+    await inventories.requestMissing();
+    const watched = {
+      status: 'watched',
+      specification: 'https://example.com/openapi.json',
+      documentation: [{ label: 'Changelog', url: 'https://example.com/changelog' }],
+    };
+    const inventory = {
+      formatVersion: 2,
+      providers: [
+        { id: 'resend', status: 'no-agent', watch: watched },
+        { id: 'mixpanel', status: 'no-agent', watch: { status: 'unwatched', reason: 'none' } },
+      ],
+    } as unknown as Inventory;
+    const claimed = await inventories.claim('worker-a', 60);
+    await inventories.finish(claimed!, 'worker-a', {
+      result: { outcome: 'complete', base: 'main', revision: 'a'.repeat(40), inventory },
+      registry: 'registry',
+      durationMs: 1,
+    });
+    expect(await targets.register(inventory)).toEqual(['resend']);
+    // Registering again only refreshes the sources.
+    expect(await targets.register(inventory)).toEqual(['resend']);
+    const [target] = await targets.read();
+    console.log(target);
+    expect(target).toMatchObject({
+      provider: 'resend',
+      sources: { specification: watched.specification, documentation: watched.documentation },
+      repositories: ['example/one'],
+      checkedAt: null,
+      captures: null,
+    });
+
+    const due = await targets.claimDue(60);
+    expect(due).toMatchObject({ provider: 'resend', captures: null });
+    // Claimed targets are not due again within the interval.
+    expect(await targets.claimDue(60)).toBeNull();
+    await targets.record('resend', [{ kind: 'specification', url: 'u', hash: 'one' }], false);
+    await targets.record(
+      'resend',
+      [
+        { kind: 'specification', url: 'u', hash: 'two' },
+        { kind: 'documentation', url: 'd', error: 'Documentation download failed with HTTP 404.' },
+      ],
+      true,
+    );
+    const [recorded] = await targets.read();
+    expect(recorded.captures).toHaveLength(2);
+    expect(recorded.changedAt).toBeInstanceOf(Date);
+    expect(recorded.error).toBe('One or more sources could not be captured.');
+  },
+);

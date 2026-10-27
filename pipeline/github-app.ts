@@ -37,7 +37,7 @@ export function githubAppConfiguration(environment: NodeJS.ProcessEnv): GitHubAp
 }
 
 // A short-lived JWT that authenticates as the App itself, not as one of its installations.
-async function appJwt(configuration: GitHubAppConfiguration) {
+export async function appJwt(configuration: GitHubAppConfiguration) {
   if (!('privateKeyFile' in configuration))
     throw new PipelineInputError(
       'A job machine holds only a read-only installation token; this step needs the GitHub App private key.',

@@ -118,6 +118,7 @@ try {
         hostnames: detection.hostnames,
         ...(detection.apiVersions ? { apiVersions: detection.apiVersions } : {}),
         requests: detection.requests,
+        references: detection.references,
       })),
       added: result?.added ?? [],
       nextSteps: result?.nextSteps ?? [],
@@ -135,6 +136,10 @@ try {
           ...entry.hostnames.map(
             (item) => `${item.hostname} at ${item.file}:${item.line}${placeText(item)}`,
           ),
+          ...entry.references.map(
+            (item) =>
+              `${item.kind === 'env' ? 'environment variable ' : ''}${item.name} at ${item.file}:${item.line}`,
+          ),
           ...(entry.apiVersions ?? []).map(
             (item) =>
               `API version ${item.version} (${item.form}${item.use === 'test' ? ', test' : ''}) at ${item.file}:${item.line}`,
@@ -145,7 +150,7 @@ try {
           : entry.agent === 'available'
             ? `agent available: refit agents --add ${entry.id}`
             : entry.agent === 'report-only'
-              ? 'report only: detected outside npm'
+              ? 'report only: detected outside npm manifests and JS/TS source'
               : 'no agent yet';
         lines.push(`${entry.name.padEnd(16)}${status}`, ...evidence.map((item) => `  ${item}`));
       }
