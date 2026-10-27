@@ -4,7 +4,13 @@ import ts from 'typescript-compiler';
 import { requestProperty, responsePropertyOwner } from './operation-reach.ts';
 import type { BreakingOperationImpact } from './provider-operations.ts';
 import { TEST_PATH } from './source-paths.ts';
-import { labelReads, SOURCE, stripeTypesEntry } from './stripe-ground-truth.ts';
+import {
+  asserted,
+  compilerOptions,
+  labelReads,
+  SOURCE,
+  stripeTypesEntry,
+} from './stripe-ground-truth.ts';
 import type { Finding, Removal, Repository } from './types.ts';
 
 // Removed-field reads whose receiver TypeScript's checker resolves to a Stripe object, using the
@@ -15,6 +21,7 @@ import type { Finding, Removal, Repository } from './types.ts';
 // The checker builds a full program per tsconfig project; larger repositories are left to the
 // analyzer's own evidence.
 const MAX_TYPED_FILES = 2_000;
+const TYPESCRIPT = /\.[cm]?tsx?$/;
 
 const metadata = JSON.parse(
   readFileSync(new URL('./stripe-sdk-metadata.json', import.meta.url), 'utf8'),
@@ -130,6 +137,75 @@ export interface TypeOracle {
 // original code and SDK did not have. The other D2 conditions (tests, traced sites) are separate.
 export function typeOraclePasses(oracle: TypeOracle | undefined) {
   return oracle?.patched.status === 'compared' && oracle.patched.introduced.length === 0;
+}
+
+// Owner decision D2b (2026-10-27): of `reads` (removed-field reads at the line and column where the
+// property access starts), the ones TypeScript's checker, run on the repository's own files, shows
+// read an object the repository itself declares, never a Stripe type. A read counts only in a
+// TypeScript file, with no type assertion on its receiver, when the property resolves to
+// declarations in the repository's own non-declaration files and every part of the receiver's type,
+// its base types included, is declared there too. `any`, `unknown`, an unresolved import (the
+// checker's error type), a type parameter, a primitive and anything declared under node_modules or
+// in a `.d.ts` file never count: a Stripe type, reached directly, through an alias or as a base, is
+// declared in the stripe package or not resolved at all.
+export function localReceiverReads<
+  Read extends { file: string; line: number; column: number; expression: string },
+>(repository: Repository, reads: readonly Read[]) {
+  const typed = reads.filter((read) => TYPESCRIPT.test(read.file) && !read.file.endsWith('.d.ts'));
+  const files = repository.files
+    .map((file) => file.path)
+    .filter((path) => SOURCE.test(path) && !TEST_PATH.test(path));
+  if (!typed.length || files.length > MAX_TYPED_FILES) return [];
+  const root = resolve(repository.root);
+  const program = ts.createProgram(
+    files.map((path) => resolve(root, path)),
+    compilerOptions(root),
+  );
+  const checker = program.getTypeChecker();
+  const own = (declaration: ts.Node) => {
+    const path = declaration.getSourceFile().fileName;
+    return (
+      !path.endsWith('.d.ts') &&
+      !path.split(/[\\/]/).includes('node_modules') &&
+      path.startsWith(root)
+    );
+  };
+  const seen = new Set<ts.Type>();
+  const local = (type: ts.Type): boolean => {
+    if (seen.has(type)) return true;
+    seen.add(type);
+    if (type.isUnion() || type.isIntersection()) return type.types.every(local);
+    if (!(type.flags & ts.TypeFlags.Object)) return false;
+    const declarations = (type.aliasSymbol ?? type.getSymbol())?.getDeclarations() ?? [];
+    if (!declarations.length || !declarations.every(own)) return false;
+    const target = (type as ts.TypeReference).target ?? type;
+    return (target.isClassOrInterface() ? (checker.getBaseTypes(target) ?? []) : []).every(local);
+  };
+  return typed.filter((read) => {
+    const source = program.getSourceFile(resolve(root, read.file));
+    if (!source) return false;
+    const start = source.getLineStarts()[read.line - 1] + read.column - 1;
+    const property = read.expression.replace(/^\./, '');
+    let access: ts.PropertyAccessExpression | undefined;
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isPropertyAccessExpression(node) &&
+        node.getStart(source) === start &&
+        node.name.text === property
+      )
+        access = node;
+      else if (!access && node.pos <= start && start < node.end) ts.forEachChild(node, visit);
+    };
+    visit(source);
+    if (!access || asserted(access.expression, checker)) return false;
+    const declarations = checker.getSymbolAtLocation(access.name)?.getDeclarations() ?? [];
+    seen.clear();
+    return (
+      declarations.length > 0 &&
+      declarations.every(own) &&
+      local(checker.getNonNullableType(checker.getTypeAtLocation(access.expression)))
+    );
+  });
 }
 
 // `Property 'x' does not exist on type 'Stripe.Subscription'` (TS2339), or with a suggestion (TS2551).

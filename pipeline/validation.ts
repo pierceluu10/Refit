@@ -169,12 +169,29 @@ const siteList = (sites: readonly { file: string; line: number }[]) =>
       ', ',
     )}${sites.length > MAX_GATE_SITES ? ` and ${sites.length - MAX_GATE_SITES} more` : ''}`;
 
+// Contract changes a type check sees once the target stripe-node is installed (owner decision D2a):
+// a removed field, a changed type, a removed enum value. A field that became required, optional or
+// nullable, a new default and every other change are behavioural and need the repository's tests.
+const TYPE_VISIBLE_CHANGES = new Set([
+  'request-property-removed',
+  'response-required-property-removed',
+  'response-optional-property-removed',
+  'request-property-type-changed',
+  'response-property-type-changed',
+  'request-property-enum-value-removed',
+  'response-property-enum-value-removed',
+]);
+const TYPESCRIPT_SOURCE = /\.[cm]?tsx?$/;
+
 // Owner decision D2 (Pierce, 2026-10-27): a kept coverage AI patch publishes as a validated draft
 // only when the target stripe-node is installed and the patched code type-checks against it with
 // no new errors (`typeChecked`, the type oracle), the repository's own tests ran and passed on it
 // offline (`testsPassed`), it edits only the Stripe sites Refit traced in the rules' code, sends
 // every request parameter the rules' code sent, and changes the traced call of every reached
-// breaking contract change no rule migrates. Returns why it does not; an empty list means it does.
+// breaking contract change no rule migrates. D2a lets the passing type check stand in for tests
+// (`typeCheckOnly`) when every such change is type-visible, every file the AI changed is TypeScript
+// the type check covers (`typeCheckedFiles`) and the checks passed. `failures` says why it does
+// not publish validated; none means it does.
 export function aiValidationGate(options: {
   rules: Repository;
   patched: Repository;
@@ -188,6 +205,8 @@ export function aiValidationGate(options: {
   unmapped: readonly unknown[];
   typeChecked: boolean;
   testsPassed: boolean;
+  checksPassed: boolean;
+  typeCheckedFiles: ReadonlySet<string>;
 }) {
   const files = new Set(
     [...options.rules.files, ...options.patched.files]
@@ -208,20 +227,45 @@ export function aiValidationGate(options: {
   const dropped = droppedRequestPaths(options.rules, options.patched, files, options.provider);
   const calls = options.targets.filter((target) => target.changeId === CONTRACT_CHANGE);
   const untouched = untouchedCalls(options.rules, options.patched, options.provider, calls);
-  const unhandled = options.unmapped.filter(isObject).filter((entry) => {
+  const unmapped = options.unmapped.filter(isObject);
+  const unhandled = unmapped.filter((entry) => {
     const operation = `${String(entry.operation).toUpperCase()} ${String(entry.path)}`;
     const sites = calls.filter((call) => call.expression === operation);
     return !sites.length || sites.some((site) => untouched.includes(site));
   });
-  return [
+  const behavioural = unmapped.filter((entry) => !TYPE_VISIBLE_CHANGES.has(String(entry.id)));
+  const untyped = [...files].filter(
+    (path) =>
+      !TYPESCRIPT_SOURCE.test(path) || path.endsWith('.d.ts') || !options.typeCheckedFiles.has(path),
+  );
+  const typeCheckOnly =
+    !options.testsPassed &&
+    options.typeChecked &&
+    options.checksPassed &&
+    !behavioural.length &&
+    !untyped.length;
+  const failures = [
     ...(options.typeChecked
       ? []
       : [
           'The type oracle did not show that the patched code type-checks against the target stripe-node, installed in the workspace, with no new errors.',
         ]),
-    ...(options.testsPassed
+    ...(options.testsPassed || typeCheckOnly
       ? []
-      : ["The repository's own tests did not run and pass on the patch offline."]),
+      : [
+          `The repository's own tests did not run and pass on the patch offline, and the type check cannot stand in for them: ${
+            !options.checksPassed
+              ? 'the checks did not pass'
+              : behavioural.length
+                ? `${behavioural
+                    .slice(0, MAX_GATE_SITES)
+                    .map((entry) => String(entry.id))
+                    .join(', ')} ${behavioural.length === 1 ? 'is' : 'are'} not type-visible`
+                : untyped.length
+                  ? `the type check does not cover ${siteList(untyped.map((file) => ({ file, line: 0 })))}`
+                  : 'the type oracle did not pass'
+          }.`,
+        ]),
     ...(outside.length
       ? [`The AI changed code outside the Stripe sites Refit traced: ${siteList(outside)}.`]
       : []),
@@ -245,6 +289,7 @@ export function aiValidationGate(options: {
         ]
       : []),
   ];
+  return { failures, typeCheckOnly: !failures.length && typeCheckOnly };
 }
 
 // What an AI proposal, or the error that refused one, reports its requests cost.
