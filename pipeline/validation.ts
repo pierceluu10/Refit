@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
+import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import {
   apiVersionSourceBlocked,
@@ -49,6 +50,7 @@ import {
   type GeneratedChecks,
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
+import { type OracleComparison, type TypeOracle, typeOracleReach } from './stripe-type-evidence.ts';
 import {
   behaviourCommand,
   changedStripeLines,
@@ -75,6 +77,7 @@ import { selectValidationRuntime } from './validation-runtime.ts';
 import { checkFailures, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
 import {
   advisoryTypeError,
+  checkKinds,
   gradeEvidence,
   TESTS_FAILED,
   testsFoundNone,
@@ -319,6 +322,108 @@ export function compareTypeCheck(
         stdout: `${INTRODUCED_TYPE_ERRORS}${introduced.map(formatTypeError).join('\n')}\n\n${check.stdout}`,
       }
     : { ...check, status: 'passed' };
+}
+
+// A type check finished when it exited cleanly or reported type errors.
+const typeCheckFinished = (run: CheckResult) =>
+  !['error', 'not-run'].includes(run.status) && (run.exitCode === 0 || typeErrors(run).length > 0);
+
+// The type oracle (stripe-type-evidence.ts TypeOracle): only where the final patch installs a
+// stripe-node upgrade of its own and the check compares type errors. The original code is checked
+// once more, with only the patch's package files applied and its prepared dependencies.
+export async function runTypeOracle(options: {
+  compareTypeErrors?: boolean;
+  command: string[];
+  upgrade?: { from?: string; to?: string };
+  // The final patch's package.json and lockfile sections.
+  packages: string;
+  // The final patch's prepared dependencies, when it installed its own.
+  dependencies?: string;
+  baseline: CheckResult;
+  patched: CheckResult;
+  typeCheckUnavailable?: string;
+  report: Pick<
+    Awaited<ReturnType<typeof runPipeline>>,
+    'specificationDiff' | 'operationImpacts' | 'adapter'
+  >;
+  before: Record<string, unknown>;
+  files: { path: string; content: string }[];
+  // Original paths, with the nested package Refit checks in as their prefix.
+  packageDirectory?: string;
+  check: (diff: string, command: string[], dependencies: string) => Promise<CheckResult>;
+}): Promise<TypeOracle | undefined> {
+  const to = options.upgrade?.to;
+  if (!options.compareTypeErrors || !to || !options.packages || !options.dependencies)
+    return undefined;
+  const sdk = { from: options.upgrade?.from ?? null, to };
+  const kinds = checkKinds(options.command, {});
+  const command =
+    typeCheckCommand(options.command) ??
+    (kinds.size === 1 && kinds.has('typecheck') ? options.command : undefined);
+  const prefix = options.packageDirectory ? `${options.packageDirectory}/` : '';
+  const compare = (run: CheckResult | undefined, side: string): OracleComparison => {
+    if (options.typeCheckUnavailable)
+      return {
+        status: 'unavailable',
+        reason: `the type check is unavailable: ${options.typeCheckUnavailable}`,
+      };
+    if (!run) return { status: 'unavailable', reason: 'the check has no type check of its own' };
+    if (!typeCheckFinished(options.baseline))
+      return {
+        status: 'unavailable',
+        reason: 'the type check did not finish on the original code',
+      };
+    if (!typeCheckFinished(run))
+      return {
+        status: 'unavailable',
+        reason: `the type check did not finish on ${side}${run.error ? `: ${run.error}` : ''}`,
+      };
+    const seen = new Set<string>();
+    return {
+      status: 'compared',
+      introduced: introducedTypeErrors(options.baseline, run)
+        .filter((error) => {
+          const position = `${error.key} ${error.line} ${error.column}`;
+          return !seen.has(position) && Boolean(seen.add(position));
+        })
+        .map(({ key, ...error }) => ({ ...error, file: `${prefix}${error.file}` })),
+    };
+  };
+  const unpatched = compare(
+    command && typeCheckFinished(options.baseline) && !options.typeCheckUnavailable
+      ? // The oracle is evidence only: a sandbox that cannot apply or run it leaves it unavailable.
+        await options
+          .check(options.packages, command, options.dependencies)
+          .catch((error: unknown) => ({
+            ...NOT_RUN,
+            status: 'error' as const,
+            error: error instanceof Error ? error.message : String(error),
+          }))
+      : command
+        ? NOT_RUN
+        : undefined,
+    'the original code with the target stripe-node',
+  );
+  const reached =
+    unpatched.status === 'compared'
+      ? typeOracleReach(
+          options.report.specificationDiff.changes as Record<string, unknown>[],
+          unpatched.introduced,
+          {
+            files: options.files,
+            impacts: options.report.operationImpacts,
+            mappings: validateProviderOperationMappings(options.report.adapter, options.before),
+            before: options.before,
+            sdk: to,
+          },
+        )
+      : [];
+  return {
+    sdk,
+    unpatched,
+    patched: compare(options.patched, 'the patched code'),
+    reached,
+  };
 }
 
 async function command(binary: string, args: string[], cwd?: string) {
@@ -2146,10 +2251,6 @@ export async function validateMigration(options: {
       generated,
       behaviour,
     );
-    // A type check finished when it exited cleanly or reported type errors.
-    const typeChecked = (run: CheckResult) =>
-      !['error', 'not-run'].includes(run.status) &&
-      (run.exitCode === 0 || typeErrors(run).length > 0);
     const introducedByPatch = brokenTestsTypeCheck
       ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck).filter(
           (error) => !advisory?.(error.file),
@@ -2208,7 +2309,9 @@ export async function validateMigration(options: {
                   (failure) => failure.side === 'baseline',
                 ),
               }).trim(),
-              typeCheck: !(typeChecked(baselineRun) && typeChecked(brokenTestsTypeCheck))
+              typeCheck: !(
+                typeCheckFinished(baselineRun) && typeCheckFinished(brokenTestsTypeCheck)
+              )
                 ? { passed: false, detail: 'the type check did not finish on both sides' }
                 : introducedByPatch.length
                   ? {
@@ -2232,6 +2335,42 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
+    const typeOracle = await runTypeOracle({
+      compareTypeErrors: options.compareTypeErrors,
+      command: options.command,
+      upgrade:
+        'sdkUpgrade' in proposal
+          ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
+          : undefined,
+      packages: packageDiff(proposal.diff, packageDirectory),
+      // The final patch's own install; without one the target SDK is not what the checks ran on.
+      dependencies:
+        !dependencyFailure && candidateDependencies !== dependencies
+          ? candidateDependencies
+          : undefined,
+      baseline: baselineRun,
+      patched: brokenTestsTypeCheck ?? patched,
+      typeCheckUnavailable,
+      report,
+      before: beforeSpecification.document as Record<string, unknown>,
+      files: originalSources.files,
+      packageDirectory,
+      check: (diff, command, dependencies) =>
+        timed('typeOracle', async () => {
+          const directory = await sandboxInput(root, 'oracle-');
+          await applyPatch(archive, directory, `${directory}.patch`, diff);
+          options.onProgress?.('Type-checking the original code with the target stripe-node...');
+          return containerCheck({
+            directory,
+            image,
+            command,
+            dependencies,
+            signal: options.signal,
+            ...sandbox,
+          });
+        }),
+    });
+    options.signal?.throwIfAborted();
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)
@@ -2272,6 +2411,7 @@ export async function validateMigration(options: {
         ? { advisoryTypeErrors: advisoryErrors.map(({ key, ...error }) => error) }
         : {}),
       ...(typeCheckUnavailable ? { typeCheckUnavailable } : {}),
+      ...(typeOracle ? { typeOracle } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
       ...(brokenTestsTypeCheck
         ? { brokenTestsTypeCheck: { command: brokenTestsCommand, patched: brokenTestsTypeCheck } }
