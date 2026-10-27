@@ -206,8 +206,12 @@ function changedSchemas(change: Json, before: Json, after: Json): [Json, Json][]
       const parameters = [
         ...(Array.isArray(found.operation.parameters) ? found.operation.parameters : []),
         ...(Array.isArray(found.item.parameters) ? found.item.parameters : []),
-      ].filter((entry) => isObject(entry) && entry.in === parameter[1] && entry.name === parameter[2]);
-      return parameters.length && isObject(parameters[0]) ? resolve(parameters[0].schema, document) : undefined;
+      ].filter(
+        (entry) => isObject(entry) && entry.in === parameter[1] && entry.name === parameter[2],
+      );
+      return parameters.length && isObject(parameters[0])
+        ? resolve(parameters[0].schema, document)
+        : undefined;
     };
     const [left, right] = [find(old, before), find(current, after)];
     return left && right ? [[left, right]] : undefined;
