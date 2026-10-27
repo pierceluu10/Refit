@@ -6,7 +6,7 @@ import { declaredApiVersions } from './declared-api-versions.ts';
 import { guardedHistoryEdit } from './history-migration.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
-import { sourceLiterals } from './source-literals.ts';
+import { COPY_METHODS, ELEMENT_METHODS, sourceLiterals } from './source-literals.ts';
 import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
 import { factoryClients, proxyClient } from './factory-clients.ts';
@@ -354,6 +354,121 @@ export function analyzeRepository(
   const symbol = (node: ts.Node) =>
     modules.member(node) ?? canonical(checker.getSymbolAtLocation(node));
   const literals = sourceLiterals({ nodes, symbol, file: (node) => location(node).file });
+  // Local helpers: function declarations and functions bound to a const, outside generators.
+  const localFunctions = nodes.flatMap((node) => {
+    const fn =
+      ts.isFunctionDeclaration(node) && node.name && node.body
+        ? { name: node.name, fn: node as ts.FunctionLikeDeclaration, statement: node as ts.Node }
+        : ts.isVariableDeclaration(node) &&
+            ts.isIdentifier(node.name) &&
+            node.initializer &&
+            (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer)) &&
+            ts.isVariableDeclarationList(node.parent) &&
+            node.parent.flags & ts.NodeFlags.Const
+          ? { name: node.name, fn: node.initializer, statement: node.parent.parent }
+          : undefined;
+    const binding = fn && symbol(fn.name);
+    return fn && binding && !fn.fn.asteriskToken ? [{ ...fn, binding }] : [];
+  });
+  const references = new Map<ts.Symbol, ts.Identifier[]>();
+  for (const node of nodes)
+    if (ts.isIdentifier(node)) {
+      const binding = symbol(node);
+      if (binding) references.set(binding, [...(references.get(binding) ?? []), node]);
+    }
+  const nullish = (expression: ts.Expression) =>
+    expression.kind === ts.SyntaxKind.NullKeyword ||
+    (ts.isIdentifier(expression) && expression.text === 'undefined') ||
+    ts.isVoidExpression(expression);
+  // What a helper's `return`s give its caller (an async helper's returned call is awaited).
+  function returnedValues(fn: ts.FunctionLikeDeclaration) {
+    if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) return [fn.body];
+    const values: ts.Expression[] = [];
+    const visit = (node: ts.Node) => {
+      if (ts.isFunctionLike(node)) return;
+      if (ts.isReturnStatement(node) && node.expression) values.push(node.expression);
+      ts.forEachChild(node, visit);
+    };
+    if (fn.body) ts.forEachChild(fn.body, visit);
+    return values;
+  }
+  const isAsync = (fn: ts.FunctionLikeDeclaration) =>
+    Boolean(ts.getCombinedModifierFlags(fn) & ts.ModifierFlags.Async);
+  // Helpers whose every non-nullish return is one traced object schema.
+  const helperReturns = new Map<ts.Symbol, string>();
+  // Parameters of private helpers that every call hands the same traced object schema.
+  const helperParameters = new Set<ts.Symbol>();
+  function returnedSchema(fn: ts.FunctionLikeDeclaration) {
+    const schemas = new Set<string | undefined>();
+    for (const value of returnedValues(fn)) {
+      if (nullish(value)) continue;
+      const operation = isAsync(fn) && ts.isCallExpression(value) ? responseCall(value) : undefined;
+      schemas.add(
+        operation
+          ? operation.list
+            ? undefined
+            : (resolvableComponentSchema(schemaDefinitions, operation.schema) ?? operation.schema)
+          : schemaForExpression(value),
+      );
+    }
+    const [schema] = schemas;
+    return schemas.size === 1 ? schema : undefined;
+  }
+  // The schema each call of a private helper passes at a parameter, or undefined when a call
+  // passes something else or the helper escapes (exported, stored, passed on).
+  function parameterSchema(
+    entry: (typeof localFunctions)[number],
+    parameter: ts.ParameterDeclaration,
+  ) {
+    const index = entry.fn.parameters.indexOf(parameter);
+    if (
+      !ts.isIdentifier(parameter.name) ||
+      parameter.dotDotDotToken ||
+      parameter.initializer ||
+      ts.getCombinedModifierFlags(entry.statement as ts.Declaration) & ts.ModifierFlags.Export
+    )
+      return undefined;
+    const binding = symbol(parameter.name);
+    // A parameter the helper reassigns no longer holds what the caller passed.
+    if (
+      !binding ||
+      (references.get(binding) ?? []).some(
+        (reference) =>
+          (ts.isBinaryExpression(reference.parent) &&
+            reference.parent.left === reference &&
+            reference.parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+            reference.parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ||
+          ts.isPrefixUnaryExpression(reference.parent) ||
+          ts.isPostfixUnaryExpression(reference.parent),
+      )
+    )
+      return undefined;
+    const schemas = new Set<string | undefined>();
+    for (const reference of references.get(entry.binding) ?? []) {
+      if (reference === entry.name) continue;
+      const parent = reference.parent;
+      if (ts.isCallExpression(parent) && parent.expression === reference) {
+        const argument = parent.arguments[index];
+        if (
+          !argument ||
+          parent.arguments.slice(0, index + 1).some(ts.isSpreadElement) ||
+          webhooks?.origin(argument)
+        )
+          return undefined;
+        schemas.add(schemaForExpression(argument));
+      } else if (
+        ts.isCallExpression(parent) &&
+        parent.arguments[0] === reference &&
+        index === 0 &&
+        ts.isPropertyAccessExpression(parent.expression) &&
+        ARRAY_ITERATION_METHODS.has(parent.expression.name.text)
+      )
+        schemas.add(arrayItemForExpression(parent.expression.expression));
+      else return undefined;
+    }
+    const [schema] = schemas;
+    return schemas.size === 1 ? schema : undefined;
+  }
   const stripeTypes =
     provider.packageName === STRIPE.packageName
       ? new StripeTypes(nodes, symbol, schemaDefinitions, provider.packageName)
@@ -520,6 +635,13 @@ export function analyzeRepository(
       const paged = autoPaging(expression.expression, 'autoPagingToArray');
       if (paged) return paged.schema;
     }
+    // `invoices.data.filter(…)`, `.slice(…)`: a copy holds the same objects.
+    if (
+      ts.isCallExpression(expression) &&
+      ts.isPropertyAccessExpression(expression.expression) &&
+      COPY_METHODS.has(expression.expression.name.text)
+    )
+      return arrayItemForExpression(expression.expression.expression);
     if (
       ts.isParenthesizedExpression(expression) ||
       ts.isAsExpression(expression) ||
@@ -600,6 +722,23 @@ export function analyzeRepository(
         schemaForExpression(expression.expression) ?? stripeTypes?.expressionSchema(expression)
       );
     if (awaitedField(expression)) return schemaForExpression(expression.expression);
+    // `await getCustomer(id)`: a local helper that returns one traced object schema.
+    const helper = ts.isAwaitExpression(expression) ? expression.expression : expression;
+    if (ts.isCallExpression(helper) && ts.isIdentifier(helper.expression)) {
+      const binding = symbol(helper.expression);
+      const entry = binding && localFunctions.find((candidate) => candidate.binding === binding);
+      if (entry && helperReturns.has(binding) && (helper !== expression || !isAsync(entry.fn)))
+        return helperReturns.get(binding);
+    }
+    // `plans.data.find(…)`, `.at(0)`: one of the array's objects, or undefined.
+    if (
+      ts.isCallExpression(expression) &&
+      ts.isPropertyAccessExpression(expression.expression) &&
+      ELEMENT_METHODS.has(expression.expression.name.text)
+    ) {
+      const item = arrayItemForExpression(expression.expression.expression);
+      if (item) return item;
+    }
     if (ts.isAwaitExpression(expression) && ts.isCallExpression(expression.expression)) {
       const operation = responseCall(expression.expression);
       return operation && !operation.list
@@ -736,6 +875,36 @@ export function analyzeRepository(
       continue;
     wrappers.set(symbol(node.name)!, value);
   }
+  // A value that came through a local helper: Refit does not follow what the helper does to it, so
+  // reads keep review confidence.
+  function fromHelper(expression: ts.Expression, seen = new Set<ts.Symbol>()): boolean {
+    while (
+      ts.isPropertyAccessExpression(expression) ||
+      ts.isElementAccessExpression(expression) ||
+      ts.isParenthesizedExpression(expression) ||
+      ts.isAsExpression(expression) ||
+      ts.isNonNullExpression(expression) ||
+      ts.isAwaitExpression(expression)
+    )
+      expression = expression.expression;
+    if (ts.isCallExpression(expression)) {
+      const callee = expression.expression;
+      if (ts.isIdentifier(callee) && helperReturns.has(symbol(callee)!)) return true;
+      return ts.isPropertyAccessExpression(callee) && fromHelper(callee.expression, seen);
+    }
+    if (!ts.isIdentifier(expression)) return false;
+    const binding = symbol(expression);
+    if (!binding || seen.has(binding)) return false;
+    if (helperParameters.has(binding)) return true;
+    seen.add(binding);
+    const declaration = binding.valueDeclaration;
+    return Boolean(
+      declaration &&
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer &&
+      fromHelper(declaration.initializer, seen),
+    );
+  }
   // Resolve only immutable, lexical bindings; a same-named parameter is a different symbol.
   let responseSchemasChanged = true;
   while (responseSchemasChanged) {
@@ -758,6 +927,19 @@ export function analyzeRepository(
       arrayItems.set(target, schema);
       responseSchemasChanged = true;
     };
+    for (const entry of localFunctions) {
+      const schema = returnedSchema(entry.fn);
+      if (schema && helperReturns.get(entry.binding) !== schema) {
+        helperReturns.set(entry.binding, schema);
+        responseSchemasChanged = true;
+      }
+      for (const parameter of entry.fn.parameters) {
+        const passed = parameterSchema(entry, parameter);
+        if (!passed || !ts.isIdentifier(parameter.name)) continue;
+        helperParameters.add(symbol(parameter.name)!);
+        assignSchema(parameter.name, passed);
+      }
+    }
     for (const node of declarations) {
       const value = node.initializer;
       const awaited =
@@ -1741,6 +1923,28 @@ export function analyzeRepository(
         arrayItemForExpression(node.expression.expression) !== undefined,
     );
   }
+  // A traced object's property the contract declares as a map of strings, such as `metadata`.
+  function mapField(expression: ts.Expression) {
+    while (ts.isNonNullExpression(expression) || ts.isParenthesizedExpression(expression))
+      expression = expression.expression;
+    if (!ts.isPropertyAccessExpression(expression)) return false;
+    const parent = schemaForExpression(expression.expression);
+    const definition = parent
+      ? componentDefinition(schemaDefinitions, parent)?.definition
+      : undefined;
+    const field =
+      definition && isObject(definition.properties)
+        ? definition.properties[expression.name.text]
+        : undefined;
+    return (
+      isObject(field) &&
+      field.type === 'object' &&
+      !field.properties &&
+      !field.anyOf &&
+      isObject(field.additionalProperties) &&
+      field.additionalProperties.type === 'string'
+    );
+  }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     if (
       property !== undefined &&
@@ -1757,6 +1961,16 @@ export function analyzeRepository(
     const provenance = sourceEvidence(receiver);
     // An object the application writes as a literal (`PLANS.find(…).price`) is not a Stripe object.
     if (!tracked && !provenance && !webhook && literals.literalObject(receiver)) return;
+    // `appointment.amount = paid` sets a field on an object Refit does not trace; it reads nothing.
+    if (
+      !tracked &&
+      ts.isBinaryExpression(node.parent) &&
+      node.parent.left === node &&
+      node.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    )
+      return;
+    // `session.metadata.amount`: a value of a free-form map on a traced object, not an object field.
+    if (!tracked && mapField(receiver)) return;
     const declaredType =
       provenance?.kind === 'declared-type' ||
       (provenance?.kind === 'unmapped-sdk' && Boolean(stripeTypes?.expressionSchema(receiver)));
@@ -1798,6 +2012,7 @@ export function analyzeRepository(
       const immediateSdk = immediateCall ? sdkCall(immediateCall) : undefined;
       const responseSymbol = responseBinding(receiver);
       const uncertainMutation =
+        fromHelper(receiver) ||
         (responseSymbol !== undefined && mutated.has(responseSymbol)) ||
         (immediateSdk &&
           (immediateSdk.optional || mutated.has(clientBinding(immediateSdk.client)!)));

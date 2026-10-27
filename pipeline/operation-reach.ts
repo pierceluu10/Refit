@@ -561,8 +561,10 @@ export function responsePropertyOwner(
       node = resolve(members[Number(subschema[1]) - 1]);
       continue;
     }
-    if (segment === 'items') {
-      node = node.type === 'array' ? resolve(node.items) : undefined;
+    // oasdiff writes an array's items as `items`, which is also a property name (a subscription's
+    // `items` list object).
+    if (segment === 'items' && node.type === 'array') {
+      node = resolve(node.items);
       continue;
     }
     // A nullable or expandable field (`anyOf: [string, $ref]`) whose path names no member reads
