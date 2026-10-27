@@ -7,6 +7,7 @@ import {
 } from './pnpm-inputs.ts';
 import { parsePnpmLock } from './pnpm-lock.ts';
 import { resolveLockedDependency } from './lockfiles.ts';
+import { preparationStop } from './preparation-stops.ts';
 
 const INTEGRITY = `sha512-${Buffer.alloc(64).toString('base64')}`;
 type ObjectData = Record<string, any>;
@@ -476,4 +477,18 @@ it('accepts committed patches and overrides only as pnpm-lock.yaml records them'
     mutate(sample);
     expect(() => validate(sample), message).toThrow(message);
   }
+});
+it('names a pnpm 7 lockfile version instead of calling it an unsupported setting', () => {
+  const sample = scenario();
+  sample.lock = { lockfileVersion: 5.4, specifiers: {}, dependencies: {}, packages: {} };
+  let message = '';
+  try {
+    validate(sample);
+  } catch (error) {
+    message = (error as Error).message;
+  }
+  expect(message).toMatch(
+    /lockfile versions 6 and 9 \(pnpm 8 or later\); this one is version 5\.4/,
+  );
+  expect(preparationStop(message)?.reason).toBe('unsupported-lockfile');
 });
