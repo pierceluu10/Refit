@@ -597,6 +597,28 @@ async function benchmark(entry: Selected, index: number) {
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
+      ...(report.validation?.typeOracle
+        ? {
+            typeOracle: {
+              ...report.validation.typeOracle,
+              ...Object.fromEntries(
+                (['unpatched', 'patched'] as const).map((side) => {
+                  const comparison = report.validation!.typeOracle![side];
+                  return [
+                    side,
+                    comparison.status === 'compared'
+                      ? {
+                          status: comparison.status,
+                          count: comparison.introduced.length,
+                          introduced: comparison.introduced.slice(0, MAX_RECORDED_CHANGES),
+                        }
+                      : comparison,
+                  ];
+                }),
+              ),
+            },
+          }
+        : {}),
       ...(report.validation?.dependencyFailure
         ? {
             dependencyFailure: {

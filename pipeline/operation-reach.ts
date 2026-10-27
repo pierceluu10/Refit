@@ -597,7 +597,7 @@ export interface ReachContext {
   edited: (file: string, offset: number) => boolean;
 }
 
-const requestProperty = (text: string) =>
+export const requestProperty = (text: string) =>
   REQUEST_PROPERTY.map((pattern) => text.match(pattern)?.[1]).find(Boolean);
 
 const changeMapping = (change: Record<string, unknown>, mappings: ProviderOperationMapping[]) =>
