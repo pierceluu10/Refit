@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { requestProperty, responsePropertyOwner } from './operation-reach.ts';
-import type { BreakingOperationImpact } from './provider-operations.ts';
+import type { BreakingOperationImpact, ProviderOperationMapping } from './provider-operations.ts';
 import { TEST_PATH } from './source-paths.ts';
 import {
   asserted,
@@ -208,31 +208,51 @@ export function localReceiverReads<
   });
 }
 
-// `Property 'x' does not exist on type 'Stripe.Subscription'` (TS2339), or with a suggestion (TS2551).
-const MISSING_PROPERTY = /^Property '([^']+)' does not exist on type '(?:Stripe\.)?([\w.]+)'/;
+// `Property 'x' does not exist on type 'Stripe.Subscription'` (TS2339), or with a suggestion (TS2551),
+// also on an awaited SDK response, `Response<Subscription>`.
+const MISSING_PROPERTY =
+  /^Property '([^']+)' does not exist on type '(?:Stripe\.)?(?:Response<(?:Stripe\.)?([\w.]+)>|([\w.]+))'/;
+
+// stripe-node's request type for a resource method: `checkout.sessions` `create` is
+// `SessionCreateParams`, printed bare or qualified (`Stripe.Checkout.SessionCreateParams`).
+function paramsType(mapping: ProviderOperationMapping) {
+  const resource = mapping.resource.split('.').at(-1) ?? '';
+  const singular = resource.endsWith('ies')
+    ? `${resource.slice(0, -3)}y`
+    : resource.replace(/s$/, '');
+  const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+  return `${capital(singular)}${capital(mapping.method)}Params`;
+}
 
 const offsetOf = (source: ts.SourceFile, error: OracleTypeError) =>
   (source.getLineStarts()[error.line - 1] ?? NaN) + error.column - 1;
 
-// A request change is reached where the target SDK's types reject the property it names inside a
-// traced call of its operation: at a property of that name, or anywhere in the call when the
-// message quotes the name.
+// A request change is reached where the target SDK's types reject the property it names: inside a
+// traced call of its operation, at a property of that name or anywhere in the call when the message
+// quotes the name; or, in a call Refit did not trace, where the message quotes the name on the
+// operation's own stripe-node request type, which only the SDK's typing of that call gives it.
 function requestError(
   change: Record<string, unknown>,
   errors: OracleTypeError[],
   impacts: BreakingOperationImpact[],
+  mappings: ProviderOperationMapping[],
   files: { path: string; content: string }[],
 ) {
   const name = requestProperty(String(change.text))?.split('/').at(-1);
-  const impact = impacts.find(
-    (entry) =>
-      entry.path === change.path && entry.httpMethod === String(change.operation).toUpperCase(),
-  );
-  if (!name || !impact) return undefined;
+  const sameOperation = (entry: { path: string; httpMethod: string }) =>
+    entry.path === change.path && entry.httpMethod === String(change.operation).toUpperCase();
+  const impact = impacts.find(sameOperation);
+  const mapping = mappings.find(sameOperation);
+  if (!name) return undefined;
+  const typed = mapping
+    ? new RegExp(`'${name}' does not exist in type '(?:[\\w.]+\\.)?${paramsType(mapping)}'`)
+    : undefined;
   return errors.find((error) => {
+    if (TEST_PATH.test(error.file)) return false;
+    if (typed?.test(error.message)) return true;
     const content = files.find((file) => file.path === error.file)?.content;
-    const calls = impact.usages.filter((usage) => usage.file === error.file);
-    if (content === undefined || !calls.length || TEST_PATH.test(error.file)) return false;
+    const calls = impact?.usages.filter((usage) => usage.file === error.file) ?? [];
+    if (content === undefined || !calls.length) return false;
     const source = ts.createSourceFile(error.file, content, ts.ScriptTarget.Latest, true);
     const offset = offsetOf(source, error);
     const wanted = new Set(calls.map((call) => `${call.line}:${call.column}`));
@@ -271,8 +291,9 @@ function responseError(
     const match = MISSING_PROPERTY.exec(error.message);
     if (!['TS2339', 'TS2551'].includes(error.code) || !match || TEST_PATH.test(error.file))
       return false;
+    const type = match[2] ?? match[3];
     const schemas = [...classSchemas]
-      .filter(([name]) => name === match[2] || name.endsWith(`.${match[2]}`))
+      .filter(([name]) => name === type || name.endsWith(`.${type}`))
       .map(([, schema]) => schema);
     return match[1] === owner.property && schemas.includes(owner.schema);
   });
@@ -287,6 +308,7 @@ export function typeOracleReach(
   context: {
     files: { path: string; content: string }[];
     impacts: BreakingOperationImpact[];
+    mappings: ProviderOperationMapping[];
     before: Record<string, unknown>;
     sdk: string;
   },
@@ -297,7 +319,7 @@ export function typeOracleReach(
     const id = String(change.id);
     if (change.reach !== 'unknown') continue;
     const error = id.startsWith('request-')
-      ? requestError(change, errors, context.impacts, context.files)
+      ? requestError(change, errors, context.impacts, context.mappings, context.files)
       : id.startsWith('response-')
         ? responseError(change, errors, context.before)
         : undefined;

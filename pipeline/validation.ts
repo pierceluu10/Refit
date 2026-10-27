@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
+import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import {
   apiVersionSourceBlocked,
@@ -492,7 +493,10 @@ export async function runTypeOracle(options: {
   baseline: CheckResult;
   patched: CheckResult;
   typeCheckUnavailable?: string;
-  report: Pick<Awaited<ReturnType<typeof runPipeline>>, 'specificationDiff' | 'operationImpacts'>;
+  report: Pick<
+    Awaited<ReturnType<typeof runPipeline>>,
+    'specificationDiff' | 'operationImpacts' | 'adapter'
+  >;
   before: Record<string, unknown>;
   files: { path: string; content: string }[];
   // Original paths, with the nested package Refit checks in as their prefix.
@@ -559,6 +563,7 @@ export async function runTypeOracle(options: {
           {
             files: options.files,
             impacts: options.report.operationImpacts,
+            mappings: validateProviderOperationMappings(options.report.adapter, options.before),
             before: options.before,
             sdk: to,
           },
@@ -2481,28 +2486,28 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
-    const typeOracle = await timed('typeOracle', () =>
-      runTypeOracle({
-        compareTypeErrors: options.compareTypeErrors,
-        command: options.command,
-        upgrade:
-          'sdkUpgrade' in proposal
-            ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
-            : undefined,
-        packages: packageDiff(proposal.diff, packageDirectory),
-        // The final patch's own install; without one the target SDK is not what the checks ran on.
-        dependencies:
-          !dependencyFailure && candidateDependencies !== dependencies
-            ? candidateDependencies
-            : undefined,
-        baseline: baselineRun,
-        patched: brokenTestsTypeCheck ?? patched,
-        typeCheckUnavailable,
-        report,
-        before: beforeSpecification.document as Record<string, unknown>,
-        files: originalSources.files,
-        packageDirectory,
-        check: async (diff, command, dependencies) => {
+    const typeOracle = await runTypeOracle({
+      compareTypeErrors: options.compareTypeErrors,
+      command: options.command,
+      upgrade:
+        'sdkUpgrade' in proposal
+          ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
+          : undefined,
+      packages: packageDiff(proposal.diff, packageDirectory),
+      // The final patch's own install; without one the target SDK is not what the checks ran on.
+      dependencies:
+        !dependencyFailure && candidateDependencies !== dependencies
+          ? candidateDependencies
+          : undefined,
+      baseline: baselineRun,
+      patched: brokenTestsTypeCheck ?? patched,
+      typeCheckUnavailable,
+      report,
+      before: beforeSpecification.document as Record<string, unknown>,
+      files: originalSources.files,
+      packageDirectory,
+      check: (diff, command, dependencies) =>
+        timed('typeOracle', async () => {
           const directory = await sandboxInput(root, 'oracle-');
           await applyPatch(archive, directory, `${directory}.patch`, diff);
           options.onProgress?.('Type-checking the original code with the target stripe-node...');
@@ -2514,9 +2519,8 @@ export async function validateMigration(options: {
             signal: options.signal,
             ...sandbox,
           });
-        },
-      }),
-    );
+        }),
+    });
     options.signal?.throwIfAborted();
     if (rules && coverage?.outcome === 'kept' && candidateSources) {
       const { failures, typeCheckOnly } = aiValidationGate({
