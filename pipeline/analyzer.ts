@@ -934,6 +934,8 @@ export function analyzeRepository(
         responseSchemasChanged = true;
       }
       for (const parameter of entry.fn.parameters) {
+        // A declared Stripe type (`invoice: Stripe.Invoice`) already traces the parameter.
+        if (parameter.type && stripeTypes?.typeSchema(parameter.type)) continue;
         const passed = parameterSchema(entry, parameter);
         if (!passed || !ts.isIdentifier(parameter.name)) continue;
         helperParameters.add(symbol(parameter.name)!);

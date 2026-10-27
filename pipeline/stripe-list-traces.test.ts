@@ -298,3 +298,14 @@ it('counts neither a write to an untraced object nor a metadata value as a read'
     ),
   ).toEqual([]);
 });
+
+it('keeps confirming a read through a helper parameter typed as the Stripe object', () => {
+  const result = analyze(`function end(subscription: Stripe.Subscription) {
+  return subscription.current_period_end
+}
+export async function GET(id: string) {
+  return end(await stripe.subscriptions.retrieve(id))
+}
+`);
+  expect(traced(result)).toEqual([['.current_period_end', 'confirmed', false]]);
+});
