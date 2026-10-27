@@ -37,7 +37,7 @@ export const PREPARATION_GROUPS = [
   ['unsupported-pnpm-settings', /^Unsupported pnpm (?:lockfile )?settings/],
   [
     'unsupported-workspace-layout',
-    /^Workspace bins, nested workspace declarations|^npm workspaces require at most \d+ positive relative/,
+    /^Workspace bins, nested workspace declarations|^npm workspaces require at most \d+ (?:positive )?relative/,
   ],
   ['unsupported-lockfile', /requires a root npm lockfile version 2 or 3/],
   ['peer-dependency-conflict', /\bERESOLVE\b/],

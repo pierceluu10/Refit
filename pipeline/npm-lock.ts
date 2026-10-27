@@ -26,22 +26,29 @@ export const DEPENDENCY_SECTIONS = [
 const NON_REGISTRY_SOURCE =
   /^(?:file:|link:|workspace:|git(?:\+|:)|https?:|ssh:|github:|gitlab:|bitbucket:|\/|\.\.?\/)|^[^@\s]+\/[^@\s]+$/;
 const INTEGRITY =
-  /^(?:sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2})(?:\s+sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2})*$/;
+  /^(?:sha(?:1|256|384|512)-[A-Za-z0-9+/]+={0,2})(?:\s+sha(?:1|256|384|512)-[A-Za-z0-9+/]+={0,2})*$/;
 const INTEGRITY_LENGTHS = new Map([
+  ['sha1', 20],
   ['sha256', 32],
   ['sha384', 48],
   ['sha512', 64],
 ]);
 
+// npm, pnpm and Yarn 1 check a tarball against only the strongest algorithm its integrity lists
+// (ssri's pickAlgorithm), so a sha1 hash beside a SHA-256-or-stronger one is never what is checked.
 export function hasStrongIntegrity(value: unknown): value is string {
   if (typeof value !== 'string' || !INTEGRITY.test(value)) return false;
-  return value.split(/\s+/).every((entry) => {
-    const [algorithm, encoded] = entry.split('-', 2);
-    const bytes = Buffer.from(encoded, 'base64');
-    return (
-      bytes.byteLength === INTEGRITY_LENGTHS.get(algorithm) && bytes.toString('base64') === encoded
-    );
-  });
+  const entries = value.split(/\s+/).map((entry) => entry.split('-', 2));
+  return (
+    entries.some(([algorithm]) => algorithm !== 'sha1') &&
+    entries.every(([algorithm, encoded]) => {
+      const bytes = Buffer.from(encoded, 'base64');
+      return (
+        bytes.byteLength === INTEGRITY_LENGTHS.get(algorithm) &&
+        bytes.toString('base64') === encoded
+      );
+    })
+  );
 }
 
 export function isRegistrySource(source: unknown): source is string {
@@ -78,31 +85,40 @@ export function npmWorkspaceDirectories(manifest: Record<string, unknown>, paths
     isObject(declared) && Object.keys(declared).join() === 'packages'
       ? declared.packages
       : declared;
+  // npm (@npmcli/map-workspaces) and pnpm (pnpm-workspace.yaml) exclude what a `!pattern` matches.
+  // npm lets a later positive pattern re-include it and pnpm does not, so negations are read only
+  // after every positive pattern, where both select the same directories.
+  const first = Array.isArray(patterns)
+    ? patterns.findIndex((pattern) => String(pattern).startsWith('!'))
+    : -1;
+  const negations = first < 0 ? [] : (patterns as unknown[]).slice(first);
   if (
     !Array.isArray(patterns) ||
     patterns.length > MAX_WORKSPACES ||
+    negations.some((pattern) => !/^![^!]/.test(String(pattern))) ||
     patterns.some(
       (pattern) =>
         typeof pattern !== 'string' ||
         !pattern ||
-        pattern.startsWith('!') ||
-        pattern.startsWith('/') ||
+        pattern.replace(/^!/, '').startsWith('/') ||
         /[\\\u0000-\u001f\u007f]/.test(pattern) ||
-        pattern.split('/').includes('..'),
+        pattern.replace(/^!/, '').split('/').includes('..'),
     )
   )
     throw new PipelineInputError(
-      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages } require a custom image.',
+      'npm workspaces require at most 64 relative path/glob patterns, with any negations after every positive one. Escaping paths and object declarations other than { packages } require a custom image.',
     );
+  const glob = (directory: string, pattern: string) =>
+    posix.matchesGlob(directory, pattern.replace(/^(\.\/)+/, '').replace(/\/+$/, ''));
+  const positive = patterns.slice(0, patterns.length - negations.length);
   const directories = paths
     .filter((path) => path.endsWith('/package.json'))
     .map(posix.dirname)
     .filter(
       (directory) =>
         !directory.split('/').includes('node_modules') &&
-        patterns.some((pattern) =>
-          posix.matchesGlob(directory, pattern.replace(/^(\.\/)+/, '').replace(/\/+$/, '')),
-        ),
+        positive.some((pattern) => glob(directory, pattern)) &&
+        !negations.some((pattern) => glob(directory, pattern.slice(1))),
     )
     .sort();
   if (directories.length > MAX_WORKSPACES)
@@ -267,6 +283,15 @@ export function validateNpmLock(
     );
     if (!path) continue;
     if (workspaces.has(path)) continue;
+    // A record outside every node_modules directory describes a project directory, which npm never
+    // fetches (Arborist's diff.js does not diff fsChildren); an extraneous one with no source is a
+    // leftover npm ci leaves alone.
+    if (
+      !path.split('/').includes('node_modules') &&
+      record.extraneous === true &&
+      !['link', 'resolved', 'integrity'].some((key) => key in record)
+    )
+      continue;
     const dependencyPath =
       (path.startsWith('node_modules/') ||
         directories.some((directory) => path.startsWith(`${directory}/node_modules/`))) &&

@@ -48,6 +48,8 @@ const CONFIGURATION_KEYS = new Set([
   'minimumReleaseAge',
   'minimumReleaseAgeExclude',
   'patchedDependencies',
+  'shellEmulator',
+  'trustPolicy',
 ]);
 const IMPORTER_SECTIONS = new Set(['dependencies', 'devDependencies', 'optionalDependencies']);
 const LOCK_KEYS = new Set([
@@ -102,6 +104,16 @@ function configuration(value: Record<string, unknown>, source: string) {
   )
     throw new PipelineInputError(
       'pnpm minimumReleaseAge must be a whole number of minutes and minimumReleaseAgeExclude a list of package patterns.',
+    );
+  // pnpm 10 reads trustPolicy only while it picks a version to resolve (npm-resolver), where
+  // no-downgrade can only refuse one, and shellEmulator only chooses the shell scripts run in.
+  if (
+    (value.trustPolicy !== undefined &&
+      !['off', 'no-downgrade'].includes(value.trustPolicy as string)) ||
+    (value.shellEmulator !== undefined && typeof value.shellEmulator !== 'boolean')
+  )
+    throw new PipelineInputError(
+      'pnpm trustPolicy must be "off" or "no-downgrade" and shellEmulator a boolean.',
     );
   if (
     value.patchedDependencies !== undefined &&
