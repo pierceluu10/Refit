@@ -177,7 +177,7 @@ describe('aiValidationGate', () => {
     text: 'added the required request property `limit`',
   };
   const gate = (overrides: Partial<Parameters<typeof aiValidationGate>[0]> = {}) => {
-    const failures = aiValidationGate({
+    const { failures } = aiValidationGate({
       rules,
       patched: fixed,
       provider: STRIPE,
@@ -185,9 +185,10 @@ describe('aiValidationGate', () => {
       unmapped: [change],
       typeChecked: true,
       testsPassed: true,
+      checksPassed: true,
+      typeCheckedFiles: new Set([ROUTE]),
       ...overrides,
     });
-    console.log(failures);
     return failures;
   };
 
@@ -198,6 +199,37 @@ describe('aiValidationGate', () => {
   it('fails without the type oracle or passing tests', () => {
     expect(gate({ typeChecked: false })).toEqual([expect.stringContaining('type oracle')]);
     expect(gate({ testsPassed: false })).toEqual([expect.stringContaining('own tests')]);
+  });
+
+  // Owner decision D2a: a passing type check stands in for missing tests on type-visible changes.
+  it('lets the type check stand in for tests only for type-visible changes it covers', () => {
+    const removed = { ...change, id: 'request-property-removed' };
+    const base = {
+      rules,
+      patched: fixed,
+      provider: STRIPE,
+      targets: [call],
+      unmapped: [removed],
+      typeChecked: true,
+      testsPassed: false,
+      checksPassed: true,
+      typeCheckedFiles: new Set([ROUTE]),
+    };
+    expect(aiValidationGate(base)).toEqual({ failures: [], typeCheckOnly: true });
+    expect(aiValidationGate({ ...base, testsPassed: true }).typeCheckOnly).toBe(false);
+    expect(
+      aiValidationGate({
+        ...base,
+        unmapped: [{ ...change, id: 'response-property-became-nullable' }],
+      }).failures,
+    ).toEqual([expect.stringContaining('is not type-visible')]);
+    expect(aiValidationGate({ ...base, typeCheckedFiles: new Set() }).failures).toEqual([
+      expect.stringContaining(`does not cover ${ROUTE}`),
+    ]);
+    expect(aiValidationGate({ ...base, checksPassed: false }).failures).toEqual([
+      expect.stringContaining('the checks did not pass'),
+    ]);
+    expect(aiValidationGate({ ...base, typeChecked: false }).typeCheckOnly).toBe(false);
   });
 
   it('fails when the reached call is left as it was, or no traced call reaches the change', () => {

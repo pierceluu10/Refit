@@ -55,6 +55,7 @@ import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.t
 import {
   type OracleComparison,
   type TypeOracle,
+  localReceiverReads,
   typeOraclePasses,
   typeOracleReach,
 } from './stripe-type-evidence.ts';
@@ -91,6 +92,7 @@ import {
   testsFoundNone,
   TYPE_CHECK_STARTED,
   typeCheckCommand,
+  typeCheckCoverage,
   unavailableTypeCheck,
   ungradedEvidence,
 } from './check-selection.ts';
@@ -154,7 +156,10 @@ interface CoverageAttempt {
   // Sites the rules' patch left that the kept proposal's rescan no longer finds.
   resolved?: ReturnType<typeof unresolvedSites>;
   // Owner decision D2 for a kept proposal: why it is not published as validated (none: it is).
-  gate?: { passed: boolean; failures: string[] };
+  gate?: { passed: boolean; failures: string[]; typeCheckOnly?: boolean };
+  // Owner decision D2b: untraced reads the AI left unchanged that the type checker shows read the
+  // repository's own objects, never a Stripe type; they no longer count as unresolved.
+  localReads?: ReturnType<typeof unresolvedSites>;
 }
 // Contract changes named per traced call in a coverage target; the run report has the rest.
 const MAX_TARGET_CHANGES = 3;
@@ -236,7 +241,9 @@ export function aiValidationGate(options: {
   const behavioural = unmapped.filter((entry) => !TYPE_VISIBLE_CHANGES.has(String(entry.id)));
   const untyped = [...files].filter(
     (path) =>
-      !TYPESCRIPT_SOURCE.test(path) || path.endsWith('.d.ts') || !options.typeCheckedFiles.has(path),
+      !TYPESCRIPT_SOURCE.test(path) ||
+      path.endsWith('.d.ts') ||
+      !options.typeCheckedFiles.has(path),
   );
   const typeCheckOnly =
     !options.testsPassed &&
@@ -2512,7 +2519,7 @@ export async function validateMigration(options: {
     );
     options.signal?.throwIfAborted();
     if (rules && coverage?.outcome === 'kept' && candidateSources) {
-      const failures = aiValidationGate({
+      const { failures, typeCheckOnly } = aiValidationGate({
         rules: rules.candidateSources,
         patched: candidateSources,
         provider: report.adapter,
@@ -2530,14 +2537,51 @@ export async function validateMigration(options: {
           validationStatus === 'passed' &&
           !noTests &&
           (await runsTests(candidateSources, options.command, packageDirectory)),
+        checksPassed: validationStatus === 'passed',
+        typeCheckedFiles: typeCheckCoverage(candidateSources, options.command, packageDirectory),
       });
-      coverage.gate = { passed: !failures.length, failures };
+      coverage.gate = {
+        passed: !failures.length,
+        failures,
+        ...(typeCheckOnly ? { typeCheckOnly } : {}),
+      };
       // Under D2 the AI changed every reached call no rule migrates, so they no longer count.
       if (!failures.length)
         proposal = {
           ...proposal,
           unresolvedFindings: proposal.unresolvedFindings - operationUsages,
         };
+    }
+    // Owner decision D2b (2026-10-27): where the AI left an untraced read unchanged (it proposed
+    // nothing more, or its kept patch passed the D2 gate), the read stops counting only when the
+    // type oracle passed and TypeScript's checker shows its receiver is the repository's own type.
+    // shortcut: a Stripe object assigned to a repository type with the field optional is not seen;
+    // upgrade by following assignments into the receiver if a review finds one.
+    if (
+      rules &&
+      coverage &&
+      candidateSources &&
+      (coverage.outcome === 'no-proposal' || coverage.gate?.passed) &&
+      typeOraclePasses(typeOracle) &&
+      'unresolvedSites' in proposal &&
+      proposal.unresolvedSites
+    ) {
+      const reads = analyzeRepository(
+        { ...originalSources, files: candidateSources.files },
+        report.changes,
+        report.adapter,
+        beforeSpecification.schemas,
+      ).findings.filter((finding) => finding.untraced && !TEST_PATH.test(finding.file));
+      const local = localReceiverReads(candidateSources, reads);
+      const left = resolvedSites(proposal.unresolvedSites, unresolvedSites(local));
+      if (local.length && left.length === proposal.unresolvedSites.length - local.length) {
+        coverage.localReads = unresolvedSites(local);
+        proposal = {
+          ...proposal,
+          unresolvedFindings: proposal.unresolvedFindings - local.length,
+          unresolvedSites: left,
+        };
+      }
     }
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
