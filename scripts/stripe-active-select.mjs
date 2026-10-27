@@ -110,10 +110,23 @@ export function githubClient(token) {
         await pause(10_000);
         continue;
       }
-      if (response.ok) return response.json();
+      if (response.ok) {
+        // A gateway sometimes answers 200 with a truncated body; that is retried too.
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch (error) {
+          if (attempt >= 6) throw error;
+          console.error('GitHub returned an unreadable body; retrying');
+          await pause(10_000);
+          continue;
+        }
+      }
       // Secondary rate limits answer 403 or 429; wait and retry a few times.
-      if ([403, 429, 502].includes(response.status) && attempt < 6) {
-        const retry = Number(response.headers.get('retry-after')) || 60;
+      // A gateway timeout is retried sooner and fewer times: the caller may need a smaller query.
+      const gateway = [502, 504].includes(response.status);
+      if (([403, 429].includes(response.status) && attempt < 6) || (gateway && attempt < 2)) {
+        const retry = Number(response.headers.get('retry-after')) || (gateway ? 10 : 60);
         console.error(`GitHub ${response.status}; retrying in ${retry}s`);
         await pause(retry * 1000);
         continue;

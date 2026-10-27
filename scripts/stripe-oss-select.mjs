@@ -7,6 +7,7 @@
 // result in --work, so an interrupted selection resumes; the frozen file is the record, because
 // GitHub's search index moves.
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
@@ -34,6 +35,8 @@ const CODE_SEARCH_PAUSE_MS = 6500;
 // Multi-repository code search queries must stay under GitHub's 256-character query limit.
 const QUERY_LIMIT = 256;
 const LIGHT_BATCH = 100;
+const ROOT_BATCH = 25;
+const GRAPHQL_CONCURRENCY = 4;
 const FULL_BATCH = 20;
 const CLONE_CONCURRENCY = 4;
 const TARGET = '2026-09-30.endive';
@@ -323,32 +326,52 @@ async function main() {
         return `r${index}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) { ${fields} }`;
       })
       .join('\n');
-    const result = await github('/graphql', {
-      method: 'POST',
-      body: JSON.stringify({ query: `query { ${aliases} }` }),
-    });
+    let result;
+    try {
+      result = await github('/graphql', {
+        method: 'POST',
+        body: JSON.stringify({ query: `query { ${aliases} }` }),
+      });
+    } catch (error) {
+      // A query GitHub cannot answer in time is split in half until it can.
+      if (batch.length === 1 || !/returned 50[24]/.test(error.message)) throw error;
+      const middle = Math.ceil(batch.length / 2);
+      return [
+        ...(await graphql(batch.slice(0, middle), fields)),
+        ...(await graphql(batch.slice(middle), fields)),
+      ];
+    }
     return batch.map((repo, index) => [repo, result.data?.[`r${index}`] ?? null]);
   }
+  // Progress is saved after every batch, so a crash resumes where it stopped.
   async function readAll(repos, size, fields, label) {
-    const records = {};
-    for (let start = 0; start < repos.length; start += size) {
-      for (const [repo, record] of await graphql(repos.slice(start, start + size), fields))
-        records[repo] = record;
-      console.error(`${label} ${Math.min(start + size, repos.length)}/${repos.length}`);
-    }
+    const partial = join(work, `${label}.partial.json`);
+    const records = existsSync(partial) ? JSON.parse(await readFile(partial, 'utf8')) : {};
+    const starts = [];
+    for (let start = 0; start < repos.length; start += size)
+      if (!repos.slice(start, start + size).every((repo) => repo in records)) starts.push(start);
+    await Promise.all(
+      Array.from({ length: GRAPHQL_CONCURRENCY }, async () => {
+        for (let start = starts.shift(); start !== undefined; start = starts.shift()) {
+          for (const [repo, record] of await graphql(repos.slice(start, start + size), fields))
+            records[repo] = record;
+          await writeFile(partial, JSON.stringify(records));
+          console.error(`${label} ${Object.keys(records).length}/${repos.length}`);
+        }
+      }),
+    );
     return records;
   }
 
-  // 2. Light metadata for every candidate, with the root manifest and monorepo markers.
+  // 2. Light metadata for every candidate; the root manifest and monorepo markers only for those
+  // that pass it, in smaller batches, because blob text makes a query slow enough to time out.
   const light = await cached('light.json', () =>
     readAll(
       candidates,
       LIGHT_BATCH,
       `nameWithOwner name description isArchived isFork isTemplate diskUsage stargazerCount pushedAt
         owner { __typename login }
-        repositoryTopics(first: 20) { nodes { topic { name } } }
-        manifest: object(expression: "HEAD:package.json") { ... on Blob { text } }
-        ${MONOREPO_FILES.map((file, index) => `mono${index}: object(expression: "HEAD:${file}") { oid }`).join('\n')}`,
+        repositoryTopics(first: 20) { nodes { topic { name } } }`,
       'light',
     ),
   );
@@ -366,6 +389,17 @@ async function main() {
     if (reason) exclude(reason);
     return !reason;
   });
+
+  const roots = await cached('roots.json', () =>
+    readAll(
+      passed,
+      ROOT_BATCH,
+      `manifest: object(expression: "HEAD:package.json") { ... on Blob { text } }
+        ${MONOREPO_FILES.map((file, index) => `mono${index}: object(expression: "HEAD:${file}") { oid }`).join('\n')}`,
+      'roots',
+    ),
+  );
+  for (const repo of passed) Object.assign(light[repo], roots[repo]);
 
   // 3. Where stripe is declared: the root manifest, else a workspace manifest code search finds.
   const manifests = await cached('manifests.json', async () => {
