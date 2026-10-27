@@ -27,6 +27,9 @@ export function helperClients(options: {
   const flows = new Map<ts.Symbol, Flow>();
   const invocations = new Map<Helper, ts.CallExpression[]>();
   const unsafe = new Set<ts.Symbol>();
+  // Unsafe flows whose argument may reach code Refit does not see: a rebindable helper, one that
+  // reads `arguments` or `eval`, a rest parameter or a call that spreads or optionally chains.
+  const opaque = new Set<ts.Symbol>();
   const aliases: [ts.Symbol, ts.Symbol][] = [];
   const creations = new Map<ts.Node, ts.Symbol>();
   function unwrap(expression: ts.Expression): ts.Expression {
@@ -122,12 +125,14 @@ export function helperClients(options: {
     const parameters = [...flows.values()].filter((flow) => flow.helper === helper);
     if (!parameters.length) continue;
     const declaration = functionBinding.valueDeclaration;
-    let uncertain = Boolean(
+    const rebindable = Boolean(
       declaration &&
       ts.isVariableDeclaration(declaration) &&
       (!ts.isVariableDeclarationList(declaration.parent) ||
         !(declaration.parent.flags & ts.NodeFlags.Const)),
     );
+    let uncertain = rebindable;
+    let hidden = rebindable;
     const module = checker.getSymbolAtLocation(helper.getSourceFile());
     if (module)
       for (let entry of checker.getExportsOfModule(module)) {
@@ -149,7 +154,7 @@ export function helperClients(options: {
     }
     const inspect = (node: ts.Node) => {
       if (ts.isIdentifier(node) && (node.text === 'arguments' || node.text === 'eval'))
-        uncertain = true;
+        uncertain = hidden = true;
       ts.forEachChild(node, inspect);
     };
     if (helper.body) inspect(helper.body);
@@ -170,6 +175,14 @@ export function helperClients(options: {
         )
       )
         unsafe.add(flow.binding);
+      if (
+        hidden ||
+        flow.parameter.dotDotDotToken ||
+        (invocations.get(helper) ?? []).some(
+          (call) => call.questionDotToken || call.arguments.some(ts.isSpreadElement),
+        )
+      )
+        opaque.add(flow.binding);
       for (const origin of flow.sources.values()) {
         if (origin.binding) aliases.push([flow.binding, origin.binding]);
         if (origin.creation) creations.set(origin.creation, flow.binding);
@@ -191,9 +204,18 @@ export function helperClients(options: {
     const next = clientBinding(value);
     return next ? root(next, new Set([...seen, binding])) : binding;
   }
+  function flowParameter(node: ts.CallExpression | ts.NewExpression, argument: ts.Expression) {
+    if (!ts.isCallExpression(node) || !ts.isIdentifier(node.expression)) return;
+    const helper = helpers.get(symbol(node.expression)!);
+    const parameter = helper?.parameters[node.arguments.indexOf(argument)];
+    const binding =
+      parameter && ts.isIdentifier(parameter.name) ? symbol(parameter.name) : undefined;
+    return binding && flows.has(binding) ? binding : undefined;
+  }
   return {
     flows,
     unsafe,
+    opaque,
     aliases,
     creations,
     client(expression: ts.Expression) {
@@ -210,13 +232,14 @@ export function helperClients(options: {
       );
     },
     localArgument(node: ts.CallExpression | ts.NewExpression, argument: ts.Expression) {
-      if (!ts.isCallExpression(node) || !ts.isIdentifier(node.expression)) return false;
-      const helper = helpers.get(symbol(node.expression)!);
-      const index = node.arguments.indexOf(argument);
-      const parameter = helper?.parameters[index];
-      const binding =
-        parameter && ts.isIdentifier(parameter.name) ? symbol(parameter.name) : undefined;
-      return Boolean(binding && flows.has(binding) && !unsafe.has(binding));
+      const binding = flowParameter(node, argument);
+      return Boolean(binding && !unsafe.has(binding));
+    },
+    // A client passed to a helper whose parameter Refit traces stays in code Refit sees, even
+    // where other callers or exports make the helper's responses unsafe to migrate.
+    visibleArgument(node: ts.CallExpression | ts.NewExpression, argument: ts.Expression) {
+      const binding = flowParameter(node, argument);
+      return Boolean(binding && !opaque.has(binding));
     },
   };
 }
