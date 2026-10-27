@@ -2335,28 +2335,28 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
-    const typeOracle = await timed('typeOracle', () =>
-      runTypeOracle({
-        compareTypeErrors: options.compareTypeErrors,
-        command: options.command,
-        upgrade:
-          'sdkUpgrade' in proposal
-            ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
-            : undefined,
-        packages: packageDiff(proposal.diff, packageDirectory),
-        // The final patch's own install; without one the target SDK is not what the checks ran on.
-        dependencies:
-          !dependencyFailure && candidateDependencies !== dependencies
-            ? candidateDependencies
-            : undefined,
-        baseline: baselineRun,
-        patched: brokenTestsTypeCheck ?? patched,
-        typeCheckUnavailable,
-        report,
-        before: beforeSpecification.document as Record<string, unknown>,
-        files: originalSources.files,
-        packageDirectory,
-        check: async (diff, command, dependencies) => {
+    const typeOracle = await runTypeOracle({
+      compareTypeErrors: options.compareTypeErrors,
+      command: options.command,
+      upgrade:
+        'sdkUpgrade' in proposal
+          ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
+          : undefined,
+      packages: packageDiff(proposal.diff, packageDirectory),
+      // The final patch's own install; without one the target SDK is not what the checks ran on.
+      dependencies:
+        !dependencyFailure && candidateDependencies !== dependencies
+          ? candidateDependencies
+          : undefined,
+      baseline: baselineRun,
+      patched: brokenTestsTypeCheck ?? patched,
+      typeCheckUnavailable,
+      report,
+      before: beforeSpecification.document as Record<string, unknown>,
+      files: originalSources.files,
+      packageDirectory,
+      check: (diff, command, dependencies) =>
+        timed('typeOracle', async () => {
           const directory = await sandboxInput(root, 'oracle-');
           await applyPatch(archive, directory, `${directory}.patch`, diff);
           options.onProgress?.('Type-checking the original code with the target stripe-node...');
@@ -2368,9 +2368,8 @@ export async function validateMigration(options: {
             signal: options.signal,
             ...sandbox,
           });
-        },
-      }),
-    );
+        }),
+    });
     options.signal?.throwIfAborted();
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
