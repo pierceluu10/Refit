@@ -18,6 +18,9 @@ import {
 } from './workspace-attribution.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 import { contractCommand } from './contract-commands.ts';
+import type { DocumentationSource } from './documentation-sources.ts';
+import { readVendorCatalog, type VendorSources } from './vendor-catalog.ts';
+import { hostnameIn, scanVendorReferences, type VendorReference } from './vendor-references.ts';
 
 const PLACEHOLDER_TEST = /no test specified/;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
@@ -34,6 +37,11 @@ export interface ProviderAgent {
   hostnames: string[];
   adapter: { builtIn: string } | { file: string } | null;
   guide: string | null;
+  // From data/vendor-catalog.json: environment variable names specific to the vendor, its published
+  // OpenAPI document and its changelog pages, which make it a watch target.
+  envVars?: string[];
+  specification?: string;
+  documentation?: DocumentationSource[];
 }
 
 // The retired legacy (track 1) Azure SDK packages, generated from Microsoft's release data by
@@ -43,7 +51,7 @@ const AZURE_LEGACY_PACKAGES: string[] = JSON.parse(
 ).packages.map((item: { name: string }) => item.name);
 
 // Source: npm package names and documented API base URLs on each provider's docs, 2026-10-15.
-export const AGENT_CATALOG: ProviderAgent[] = [
+const PROVIDER_AGENTS: ProviderAgent[] = [
   {
     id: 'stripe',
     name: 'Stripe',
@@ -684,6 +692,44 @@ export const AGENT_CATALOG: ProviderAgent[] = [
   },
 ];
 
+export const VENDOR_CATALOG = readVendorCatalog(PROVIDER_AGENTS.map((agent) => agent.id));
+
+function withSources(agent: ProviderAgent, sources: VendorSources = {}): ProviderAgent {
+  const ecosystems = { ...agent.ecosystems };
+  for (const [ecosystem, names] of Object.entries(sources.ecosystems ?? {}) as [
+    Ecosystem,
+    string[],
+  ][])
+    ecosystems[ecosystem] = [...new Set([...(ecosystems[ecosystem] ?? []), ...names])];
+  return {
+    ...agent,
+    ...(Object.keys(ecosystems).length ? { ecosystems } : {}),
+    ...(sources.envVars ? { envVars: sources.envVars.flatMap((group) => group.names) } : {}),
+    ...(sources.specification ? { specification: sources.specification.url } : {}),
+    ...(sources.documentation
+      ? { documentation: sources.documentation.map(({ label, url }) => ({ label, url })) }
+      : {}),
+  };
+}
+
+// Reviewed providers first, then the vendors data/vendor-catalog.json adds with no agent.
+export const AGENT_CATALOG: ProviderAgent[] = [
+  ...PROVIDER_AGENTS.map((agent) => withSources(agent, VENDOR_CATALOG.sources[agent.id])),
+  ...VENDOR_CATALOG.vendors.map(({ id, name, packages, hostnames, ...sources }) =>
+    withSources(
+      {
+        id,
+        name,
+        packages,
+        hostnames: hostnames.flatMap((group) => group.names),
+        adapter: null,
+        guide: null,
+      },
+      sources,
+    ),
+  ),
+];
+
 const MAX_HOSTNAME_EVIDENCE = 5;
 
 export interface AgentDetection {
@@ -706,14 +752,15 @@ export interface AgentDetection {
   // undici, node:http(s), superagent), from pipeline/api-hosts.ts: tests, docs, assets and
   // allowlists are left out, which `hostnames` does not do.
   requests: { host: string; file: string; line: number; client: string }[];
+  // Vendor environment variable names in any source or configuration file, and vendor hostnames
+  // outside JavaScript and TypeScript. Report only: they never make an agent addable.
+  references: VendorReference[];
 }
 
-// A hostname in a line, not as the start of a longer name: `.supabase.co` is in
-// `https://abc.supabase.co/rest` but not in `api.supabase.com`.
-function hostnameIn(line: string, hostname: string) {
-  for (let at = line.indexOf(hostname); at >= 0; at = line.indexOf(hostname, at + 1))
-    if (!/[A-Za-z0-9-]/.test(line[at + hostname.length] ?? '')) return true;
-  return false;
+// Whether the vendor scan stopped at its file limits, which leaves later files unread.
+export interface ProviderDetections {
+  detections: AgentDetection[];
+  vendorScan: { files: number; truncated: boolean };
 }
 
 function hostnameEvidence(repository: Repository, agent: ProviderAgent) {
@@ -749,9 +796,13 @@ export function ecosystemPackages(
 }
 
 // Reads each catalog provider's manifest declarations and lock evidence in every supported
-// ecosystem, plus raw API hostnames in JS/TS source, without running repository code or
-// contacting any provider.
+// ecosystem, raw API hostnames in source and configuration files and vendor environment variable
+// names, without running repository code or contacting any provider.
 export async function detectProviders(directory: string): Promise<AgentDetection[]> {
+  return (await scanProviders(directory)).detections;
+}
+
+export async function scanProviders(directory: string): Promise<ProviderDetections> {
   const detections: AgentDetection[] = [];
   const inventory = await readPackageManifests(directory);
   const layout = await readWorkspaceLayout(directory);
@@ -765,6 +816,10 @@ export async function detectProviders(directory: string): Promise<AgentDetection
   const { detectApiHosts } = await import('./api-hosts.ts');
   // It throws only where readRepository above already would, or on a malformed shipped host list.
   const apiHosts = await detectApiHosts(directory, { repository });
+  const vendorScan = await scanVendorReferences(
+    directory,
+    AGENT_CATALOG.map(({ id, hostnames, envVars }) => ({ id, hostnames, envVars: envVars ?? [] })),
+  );
   for (const agent of AGENT_CATALOG) {
     const packages: AgentDetection['packages'] = [];
     for (const name of agent.packages) {
@@ -786,16 +841,57 @@ export async function detectProviders(directory: string): Promise<AgentDetection
       .flatMap((host) =>
         host.calls.map(({ file, line, client }) => ({ host: host.host, file, line, client })),
       );
-    if (packages.length || hostnames.length || apiVersions.length || requests.length)
+    const references = vendorScan.references.get(agent.id) ?? [];
+    if (
+      packages.length ||
+      hostnames.length ||
+      apiVersions.length ||
+      requests.length ||
+      references.length
+    )
       detections.push({
         agent,
         packages: packages.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
         hostnames: hostnames.map((item) => ({ ...item, ...placeFinding(layout, item.file) })),
         requests,
+        references,
         ...(apiVersions.length ? { apiVersions } : {}),
       });
   }
-  return detections;
+  return {
+    detections,
+    vendorScan: { files: vendorScan.files, truncated: vendorScan.truncated },
+  };
+}
+
+// One label per detected vendor: an integration in .refit.json covers it, Refit ships an agent
+// that can be added, Refit has an agent but the evidence is report only (other ecosystems,
+// environment names, hostnames outside JS/TS), or Refit has no agent for it yet.
+export type VendorStatus = 'configured' | 'agent-available' | 'report-only' | 'no-agent';
+
+export function vendorStatus(detection: AgentDetection, configured: boolean): VendorStatus {
+  if (configured) return 'configured';
+  if (addable(detection)) return 'agent-available';
+  return detection.agent.adapter ? 'report-only' : 'no-agent';
+}
+
+// A vendor is watched when its catalog entry names an OpenAPI document or changelog pages; the
+// watch reads only those public pages and never touches a repository.
+export type VendorWatch =
+  | { status: 'watched'; specification: string | null; documentation: DocumentationSource[] }
+  | { status: 'unwatched'; reason: string };
+
+export function vendorWatch(agent: ProviderAgent): VendorWatch {
+  if (!agent.specification && !agent.documentation?.length)
+    return {
+      status: 'unwatched',
+      reason: 'The vendor catalog has no OpenAPI document or changelog page for this vendor.',
+    };
+  return {
+    status: 'watched',
+    specification: agent.specification ?? null,
+    documentation: agent.documentation ?? [],
+  };
 }
 
 // Non-npm manifests are report only (owner decision, 2026-10-22): an agent is addable only with

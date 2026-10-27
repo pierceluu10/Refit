@@ -1,0 +1,195 @@
+{
+  "formatVersion": 1,
+  "seed": 20261027,
+  "draws": [
+    {
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+      "count": 7
+    },
+    {
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+      "count": 3
+    },
+    {
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json",
+      "count": 5
+    },
+    {
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "count": 2
+    },
+    {
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json",
+      "ecosystem": "pypi",
+      "count": 3
+    },
+    {
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json",
+      "ecosystem": "go",
+      "count": 3
+    },
+    {
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json",
+      "ecosystem": "rubygems",
+      "count": 3
+    }
+  ],
+  "repositories": [
+    {
+      "host": "github.com",
+      "repository": "mcaupybugs/minimal-n8n",
+      "commit": "c929651d2affcf57aff2fca65c939898a734e710",
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "LinkIt-Company/Linkit-Backend",
+      "commit": "0965fa11de7a55bdee1ba4ecb7d8a5776ac16b23",
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "MattB543/asheville-event-feed",
+      "commit": "0995ef90104dfc395a0189fb74c848e021a70c7c",
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "Aimagine-life/Betsy",
+      "commit": "3bc47e747ec3091806b7c5146eede7b1baaf671d",
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "ayuer/OptionFinder",
+      "commit": "e8de7be50c5d96b03d1fae2c7c12c0cb8ae4989d",
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "v-fidelusaleksander/prompt-action",
+      "commit": "eff79e3f37008031cf5b554c2895862045abf495",
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "hridaya423/conductor-tasks",
+      "commit": "97055b3e4f7d42ce314cb4e3a5d57ba84c16ad43",
+      "list": "docs/benchmarks/2026-10-21-openai-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "ranxi2001/OfferPilot",
+      "commit": "dbd9875ebb60310e8cc8eb1b4f7de3f6e343c13b",
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "seongsu-kang/tycono",
+      "commit": "778924da3a402c6f84afb028ca24f806eadd0a86",
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "backenly/backenly",
+      "commit": "b49c50144ce8bda82241b716af067fa826dbeada",
+      "list": "docs/benchmarks/2026-10-21-anthropic-app-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "odota/core",
+      "commit": "b877fd1c169c84e4dfc2651a3f2fcdd68b5fef08",
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "Miguel07Alm/text2question",
+      "commit": "ce789503da89a1a7cc488c96e0717727b5abb4ec",
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "PranjalTheCoder/Sommaire",
+      "commit": "1a9b17b47b4116e5c50f8777d5b1aec757c544ca",
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "ArhanAnsari/InspireGem",
+      "commit": "a6bf456cd830a5f5d7267d69407c5c0a5fcc8336",
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "buildFast10x/Nextjs-Boilerplate",
+      "commit": "da131cf337edcd859440124235447761e96bcc5d",
+      "list": "docs/benchmarks/2026-10-14-stripe-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "IliasHad/shopify-app-template-remix-cloudflare-workers",
+      "commit": "23397cc062b5cf5e3175184f0b1b3212b30095ea",
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "Yespo-CDP/yespo-shopify",
+      "commit": "3eefb11a5e85e6a32079a70329da95dc74d73c1e",
+      "list": "docs/benchmarks/2026-10-16-shopify-repos.json"
+    },
+    {
+      "host": "gitlab.com",
+      "repository": "0reo/claude-with",
+      "commit": "77fb87bbebbe2f97c4c1c2975531e20cf03bfce8",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    },
+    {
+      "host": "gitlab.com",
+      "repository": "vipulgupta2048/sendgrid-python",
+      "commit": "1627df741b06b5659890c77ccf6168b7281f5a1d",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    },
+    {
+      "host": "gitlab.com",
+      "repository": "kordspace/sendgrid-sms",
+      "commit": "6bb6a7a08daa5856c0bad74290ab6a6cdfc1b1f6",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "004Ongoro/gitaid",
+      "commit": "23a48f0f10dbe79a30a004577c9040bbe86605c2",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "Builder-Lawyers/builder-backend",
+      "commit": "8a5c66bcc6b9bb4bf82442559364247fd02a2d5c",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "0xdeafcafe/bloefish",
+      "commit": "69d59ad264eaef8c7aab2e51aad07a01d8dd54f0",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "Stefanija-Trpkovska/octo-stripe-gateway",
+      "commit": "37aef667449f27003a251aea8a171fa8c44eba81",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "vicentereig/dspy.rb",
+      "commit": "b18a402143091a6b435972d460b8c4c8feca0b2d",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    },
+    {
+      "host": "github.com",
+      "repository": "mjacobus/mj",
+      "commit": "6e75f4f740466b577f67cc479f876490305c98e7",
+      "list": "docs/benchmarks/2026-10-22-package-inventory-repos.json"
+    }
+  ]
+}

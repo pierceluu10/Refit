@@ -1,0 +1,1210 @@
+{
+  "formatVersion": 1,
+  "vendors": {
+    "stripe": {
+      "envVars": [
+        {
+          "names": ["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "STRIPE_WEBHOOK_SECRET"],
+          "source": "https://raw.githubusercontent.com/stripe-samples/accept-a-payment/main/.env.example",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Stripe changelog",
+          "url": "https://docs.stripe.com/changelog.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "openai": {
+      "envVars": [
+        {
+          "names": ["OPENAI_API_KEY"],
+          "source": "https://registry.npmjs.org/openai",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "OpenAI API changelog",
+          "url": "https://developers.openai.com/api/docs/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "anthropic": {
+      "envVars": [
+        {
+          "names": ["ANTHROPIC_API_KEY"],
+          "source": "https://unpkg.com/@anthropic-ai/sdk@1.3.0/client.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "documentation": [
+        {
+          "label": "Claude API release notes",
+          "url": "https://platform.claude.com/docs/en/release-notes/overview.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "gemini": {
+      "envVars": [
+        {
+          "names": ["GEMINI_API_KEY"],
+          "source": "https://unpkg.com/@google/genai@2.31.0/dist/node/index.cjs",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "documentation": [
+        {
+          "label": "Gemini API changelog",
+          "url": "https://ai.google.dev/gemini-api/docs/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "shopify": {
+      "envVars": [
+        {
+          "names": ["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET"],
+          "source": "https://unpkg.com/@shopify/shopify-app-remix@6.0.2/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "documentation": [
+        {
+          "label": "Shopify developer changelog",
+          "url": "https://shopify.dev/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "meta-graph": {
+      "documentation": [
+        {
+          "label": "Graph API changelog",
+          "url": "https://developers.facebook.com/docs/graph-api/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "github": {
+      "specification": {
+        "url": "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "GitHub REST API breaking changes",
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["PyGithub"],
+        "go": ["github.com/google/go-github"],
+        "rubygems": ["octokit"]
+      }
+    },
+    "twilio": {
+      "envVars": [
+        {
+          "names": ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
+          "source": "https://unpkg.com/twilio@6.2.0/lib/base/BaseTwilio.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_api_v2010.json",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Twilio changelog",
+          "url": "https://www.twilio.com/en-us/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "sendgrid": {
+      "envVars": [
+        {
+          "names": ["SENDGRID_API_KEY"],
+          "source": "https://unpkg.com/@sendgrid/mail@8.1.6/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/twilio/sendgrid-oai/main/spec/json/tsg_mail_v3.json",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "resend": {
+      "envVars": [
+        {
+          "names": ["RESEND_API_KEY"],
+          "source": "https://unpkg.com/resend@6.34.1/dist/index.cjs",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/resend/resend-openapi/main/resend.yaml",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Resend changelog",
+          "url": "https://resend.com/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "postmark": {
+      "documentation": [
+        {
+          "label": "Postmark updates",
+          "url": "https://postmarkapp.com/updates",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["postmarker"],
+        "rubygems": ["postmark"]
+      }
+    },
+    "mailgun": {
+      "envVars": [
+        {
+          "names": ["MAILGUN_API_KEY"],
+          "source": "https://unpkg.com/mailgun.js@14.1.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "go": ["github.com/mailgun/mailgun-go"],
+        "rubygems": ["mailgun-ruby"]
+      }
+    },
+    "paypal": {
+      "specification": {
+        "url": "https://raw.githubusercontent.com/paypal/paypal-rest-api-specifications/main/openapi/checkout_orders_v2.json",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "slack": {
+      "envVars": [
+        {
+          "names": ["SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET"],
+          "source": "https://unpkg.com/@slack/bolt@5.1.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "documentation": [
+        {
+          "label": "Slack platform changelog",
+          "url": "https://docs.slack.dev/changelog/",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["slack-sdk", "slack-bolt"],
+        "go": ["github.com/slack-go/slack"],
+        "rubygems": ["slack-ruby-client"]
+      }
+    },
+    "cloudflare": {
+      "envVars": [
+        {
+          "names": ["CLOUDFLARE_API_TOKEN"],
+          "source": "https://unpkg.com/cloudflare@7.3.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/cloudflare/api-schemas/main/openapi.json",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Cloudflare API deprecations",
+          "url": "https://developers.cloudflare.com/fundamentals/api/reference/deprecations/",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["cloudflare"],
+        "go": ["github.com/cloudflare/cloudflare-go"]
+      }
+    },
+    "auth0": {
+      "envVars": [
+        {
+          "names": ["AUTH0_SECRET", "AUTH0_DOMAIN", "AUTH0_CLIENT_ID", "AUTH0_CLIENT_SECRET"],
+          "source": "https://unpkg.com/@auth0/nextjs-auth0@4.33.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "clerk": {
+      "envVars": [
+        {
+          "names": ["CLERK_SECRET_KEY"],
+          "source": "https://unpkg.com/@clerk/backend@3.26.3/dist/index.js",
+          "checkedAt": "2026-10-27"
+        },
+        {
+          "names": ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"],
+          "source": "https://unpkg.com/@clerk/nextjs@7.9.21/dist/types/types.d.ts",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/clerk/openapi-specs/main/bapi/2025-04-10.yml",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Clerk changelog",
+          "url": "https://clerk.com/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "firebase": {
+      "ecosystems": {
+        "pypi": ["firebase-admin"],
+        "go": ["firebase.google.com/go"]
+      }
+    },
+    "supabase": {
+      "envVars": [
+        {
+          "names": ["NEXT_PUBLIC_SUPABASE_URL"],
+          "source": "https://raw.githubusercontent.com/supabase/supabase/master/examples/auth/nextjs/.env.example",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://api.supabase.com/api/v1-json",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Supabase changelog",
+          "url": "https://supabase.com/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["supabase"],
+        "go": ["github.com/supabase-community/supabase-go"]
+      }
+    },
+    "plaid": {
+      "envVars": [
+        {
+          "names": ["PLAID_CLIENT_ID", "PLAID_SECRET"],
+          "source": "https://raw.githubusercontent.com/plaid/quickstart/master/.env.example",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/plaid/plaid-openapi/master/2020-09-14.yml",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Plaid changelog",
+          "url": "https://plaid.com/docs/changelog/",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["plaid-python"],
+        "go": ["github.com/plaid/plaid-go"],
+        "rubygems": ["plaid"]
+      }
+    },
+    "square": {
+      "specification": {
+        "url": "https://raw.githubusercontent.com/square/connect-api-specification/master/api.json",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Square API changelog",
+          "url": "https://developer.squareup.com/docs/changelog/connect",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["squareup"],
+        "rubygems": ["square.rb"]
+      }
+    },
+    "adyen": {
+      "specification": {
+        "url": "https://raw.githubusercontent.com/Adyen/adyen-openapi/main/json/CheckoutService-v71.json",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "lob": {
+      "specification": {
+        "url": "https://raw.githubusercontent.com/lob/lob-openapi/main/dist/lob-api-bundled.yml",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "google-maps": {
+      "documentation": [
+        {
+          "label": "Places API release notes",
+          "url": "https://developers.google.com/maps/documentation/places/web-service/release-notes",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["googlemaps"],
+        "go": ["googlemaps.github.io/maps"]
+      }
+    },
+    "algolia": {
+      "specification": {
+        "url": "https://raw.githubusercontent.com/algolia/api-clients-automation/main/specs/bundled/search.yml",
+        "checkedAt": "2026-10-27"
+      },
+      "ecosystems": {
+        "pypi": ["algoliasearch"],
+        "go": ["github.com/algolia/algoliasearch-client-go"],
+        "rubygems": ["algolia"]
+      }
+    },
+    "hubspot": {
+      "documentation": [
+        {
+          "label": "HubSpot developer changelog",
+          "url": "https://developers.hubspot.com/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["hubspot-api-client"]
+      }
+    },
+    "intercom": {
+      "specification": {
+        "url": "https://raw.githubusercontent.com/intercom/Intercom-OpenAPI/main/descriptions/2.11/api.intercom.io.yaml",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "notion": {
+      "envVars": [
+        {
+          "names": ["NOTION_TOKEN"],
+          "source": "https://unpkg.com/@notionhq/client@5.28.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "documentation": [
+        {
+          "label": "Notion API changelog",
+          "url": "https://developers.notion.com/page/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["notion-client"]
+      }
+    },
+    "airtable": {
+      "envVars": [
+        {
+          "names": ["AIRTABLE_API_KEY"],
+          "source": "https://unpkg.com/airtable@0.12.2/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["pyairtable"]
+      }
+    },
+    "sentry": {
+      "envVars": [
+        {
+          "names": ["SENTRY_DSN"],
+          "source": "https://unpkg.com/@sentry/node@11.9.0/build/cjs/sdk/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/getsentry/sentry-api-schema/main/openapi-derefed.json",
+        "checkedAt": "2026-10-27"
+      },
+      "ecosystems": {
+        "pypi": ["sentry-sdk"],
+        "go": ["github.com/getsentry/sentry-go"],
+        "rubygems": ["sentry-ruby"]
+      }
+    },
+    "discord": {
+      "envVars": [
+        {
+          "names": ["DISCORD_TOKEN"],
+          "source": "https://unpkg.com/discord.js@14.27.0/src/client/Client.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/discord/discord-api-spec/main/specs/openapi.json",
+        "checkedAt": "2026-10-27"
+      },
+      "ecosystems": {
+        "pypi": ["discord.py"],
+        "go": ["github.com/bwmarrin/discordgo"],
+        "rubygems": ["discordrb"]
+      }
+    },
+    "aws": {
+      "envVars": [
+        {
+          "names": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"],
+          "source": "https://unpkg.com/aws-sdk@2.1693.0/lib/credentials/environment_credentials.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "ecosystems": {
+        "pypi": ["boto3", "botocore"],
+        "go": ["github.com/aws/aws-sdk-go", "github.com/aws/aws-sdk-go-v2"],
+        "rubygems": ["aws-sdk", "aws-sdk-core", "aws-sdk-s3"]
+      }
+    },
+    "mistral": {
+      "name": "Mistral AI",
+      "packages": ["@mistralai/mistralai"],
+      "ecosystems": {
+        "pypi": ["mistralai"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.mistral.ai"],
+          "source": "https://unpkg.com/@mistralai/mistralai@3.3.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["MISTRAL_API_KEY"],
+          "source": "https://unpkg.com/@mistralai/mistralai@3.3.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/mistralai/platform-docs-public/main/openapi.yaml",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "cohere": {
+      "name": "Cohere",
+      "packages": ["cohere-ai"],
+      "ecosystems": {
+        "pypi": ["cohere"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.cohere.com"],
+          "source": "https://unpkg.com/cohere-ai@8.3.0/environments.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["CO_API_KEY"],
+          "source": "https://unpkg.com/cohere-ai@8.3.0/auth/BearerAuthProvider.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/cohere-ai/cohere-developer-experience/main/cohere-openapi.yaml",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "groq": {
+      "name": "Groq",
+      "packages": ["groq-sdk", "@ai-sdk/groq"],
+      "ecosystems": {
+        "pypi": ["groq"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.groq.com"],
+          "source": "https://unpkg.com/groq-sdk@1.6.0/client.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["GROQ_API_KEY"],
+          "source": "https://unpkg.com/@ai-sdk/groq@4.0.71/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "documentation": [
+        {
+          "label": "GroqCloud changelog",
+          "url": "https://console.groq.com/docs/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "replicate": {
+      "name": "Replicate",
+      "packages": ["replicate"],
+      "ecosystems": {
+        "pypi": ["replicate"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.replicate.com"],
+          "source": "https://unpkg.com/replicate@1.4.0/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["REPLICATE_API_TOKEN"],
+          "source": "https://unpkg.com/replicate@1.4.0/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://api.replicate.com/openapi.json",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Replicate changelog",
+          "url": "https://replicate.com/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "openrouter": {
+      "name": "OpenRouter",
+      "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+      "hostnames": [
+        {
+          "names": ["openrouter.ai/api"],
+          "source": "https://unpkg.com/@openrouter/ai-sdk-provider@3.1.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["OPENROUTER_API_KEY"],
+          "source": "https://unpkg.com/@openrouter/ai-sdk-provider@3.1.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://openrouter.ai/openapi.json",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "deepseek": {
+      "name": "DeepSeek",
+      "packages": ["@ai-sdk/deepseek"],
+      "hostnames": [
+        {
+          "names": ["api.deepseek.com"],
+          "source": "https://unpkg.com/@ai-sdk/deepseek@3.0.74/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["DEEPSEEK_API_KEY"],
+          "source": "https://unpkg.com/@ai-sdk/deepseek@3.0.74/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "documentation": [
+        {
+          "label": "DeepSeek API news",
+          "url": "https://api-docs.deepseek.com/updates",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "xai": {
+      "name": "xAI",
+      "packages": ["@ai-sdk/xai"],
+      "hostnames": [
+        {
+          "names": ["api.x.ai"],
+          "source": "https://unpkg.com/@ai-sdk/xai@5.0.31/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["XAI_API_KEY"],
+          "source": "https://unpkg.com/@ai-sdk/xai@5.0.31/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "perplexity": {
+      "name": "Perplexity",
+      "packages": ["@ai-sdk/perplexity", "@perplexity-ai/perplexity_ai"],
+      "hostnames": [
+        {
+          "names": ["api.perplexity.ai"],
+          "source": "https://unpkg.com/@ai-sdk/perplexity@5.0.21/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["PERPLEXITY_API_KEY"],
+          "source": "https://unpkg.com/@ai-sdk/perplexity@5.0.21/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "elevenlabs": {
+      "name": "ElevenLabs",
+      "packages": ["@elevenlabs/elevenlabs-js", "elevenlabs"],
+      "ecosystems": {
+        "pypi": ["elevenlabs"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.elevenlabs.io"],
+          "source": "https://unpkg.com/@elevenlabs/elevenlabs-js@2.74.0/reference.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["ELEVENLABS_API_KEY"],
+          "source": "https://unpkg.com/@elevenlabs/elevenlabs-js@2.74.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://api.elevenlabs.io/openapi.json",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "deepgram": {
+      "name": "Deepgram",
+      "packages": ["@deepgram/sdk"],
+      "ecosystems": {
+        "pypi": ["deepgram-sdk"],
+        "go": ["github.com/deepgram/deepgram-go-sdk"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.deepgram.com"],
+          "source": "https://unpkg.com/@deepgram/sdk@5.16.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["DEEPGRAM_API_KEY"],
+          "source": "https://unpkg.com/@deepgram/sdk@5.16.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "assemblyai": {
+      "name": "AssemblyAI",
+      "packages": ["assemblyai"],
+      "ecosystems": {
+        "pypi": ["assemblyai"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.assemblyai.com"],
+          "source": "https://unpkg.com/assemblyai@4.42.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["ASSEMBLYAI_API_KEY"],
+          "source": "https://unpkg.com/assemblyai@4.42.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "huggingface": {
+      "name": "Hugging Face",
+      "packages": ["@huggingface/inference", "@huggingface/hub"],
+      "ecosystems": {
+        "pypi": ["huggingface-hub"]
+      },
+      "hostnames": [
+        {
+          "names": ["router.huggingface.co"],
+          "source": "https://unpkg.com/@huggingface/inference@4.13.32/src/types.ts",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["HF_TOKEN"],
+          "source": "https://unpkg.com/@huggingface/inference@4.13.32/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "pinecone": {
+      "name": "Pinecone",
+      "packages": ["@pinecone-database/pinecone"],
+      "ecosystems": {
+        "pypi": ["pinecone", "pinecone-client"],
+        "go": ["github.com/pinecone-io/go-pinecone"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.pinecone.io"],
+          "source": "https://unpkg.com/@pinecone-database/pinecone@9.1.0/dist/admin/tokenProvider.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["PINECONE_API_KEY"],
+          "source": "https://unpkg.com/@pinecone-database/pinecone@9.1.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "upstash": {
+      "name": "Upstash",
+      "packages": ["@upstash/redis", "@upstash/ratelimit", "@upstash/qstash", "@upstash/vector"],
+      "ecosystems": {
+        "pypi": ["upstash-redis"]
+      },
+      "hostnames": [
+        {
+          "names": ["qstash.upstash.io"],
+          "source": "https://unpkg.com/@upstash/qstash@2.12.1/h3.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+          "source": "https://unpkg.com/@upstash/redis@1.40.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "neon": {
+      "name": "Neon",
+      "packages": ["@neondatabase/serverless"],
+      "hostnames": [
+        {
+          "names": ["console.neon.tech"],
+          "source": "https://neon.com/api_spec/release/v2.json",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "specification": {
+        "url": "https://neon.com/api_spec/release/v2.json",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "vercel": {
+      "name": "Vercel",
+      "packages": [
+        "@vercel/analytics",
+        "@vercel/blob",
+        "@vercel/kv",
+        "@vercel/postgres",
+        "@vercel/speed-insights",
+        "@vercel/edge-config"
+      ],
+      "hostnames": [
+        {
+          "names": ["api.vercel.com"],
+          "source": "https://unpkg.com/vercel@65.4.0/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["BLOB_READ_WRITE_TOKEN"],
+          "source": "https://unpkg.com/@vercel/blob@2.8.2/dist/client.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://openapi.vercel.sh/",
+        "checkedAt": "2026-10-27"
+      },
+      "documentation": [
+        {
+          "label": "Vercel changelog",
+          "url": "https://vercel.com/changelog",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "posthog": {
+      "name": "PostHog",
+      "packages": ["posthog-js", "posthog-node"],
+      "ecosystems": {
+        "pypi": ["posthog"],
+        "go": ["github.com/posthog/posthog-go"],
+        "rubygems": ["posthog-ruby"]
+      },
+      "hostnames": [
+        {
+          "names": ["us.i.posthog.com", "app.posthog.com"],
+          "source": "https://unpkg.com/posthog-node@5.57.2/src/client.ts",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27"
+    },
+    "mixpanel": {
+      "name": "Mixpanel",
+      "packages": ["mixpanel", "mixpanel-browser"],
+      "ecosystems": {
+        "pypi": ["mixpanel"],
+        "rubygems": ["mixpanel-ruby"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.mixpanel.com"],
+          "source": "https://unpkg.com/mixpanel@0.24.0/lib/flags/types.d.ts",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27"
+    },
+    "amplitude": {
+      "name": "Amplitude",
+      "packages": ["@amplitude/analytics-browser", "@amplitude/analytics-node"],
+      "ecosystems": {
+        "pypi": ["amplitude-analytics"]
+      },
+      "hostnames": [
+        {
+          "names": ["api2.amplitude.com"],
+          "source": "https://unpkg.com/@amplitude/analytics-core@2.61.0/lib/cjs/config.d.ts",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27"
+    },
+    "langfuse": {
+      "name": "Langfuse",
+      "packages": ["langfuse", "@langfuse/client", "@langfuse/tracing"],
+      "ecosystems": {
+        "pypi": ["langfuse"]
+      },
+      "hostnames": [
+        {
+          "names": ["cloud.langfuse.com"],
+          "source": "https://unpkg.com/langfuse@3.39.2/lib/index.mjs",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["LANGFUSE_SECRET_KEY", "LANGFUSE_PUBLIC_KEY"],
+          "source": "https://pypi.org/pypi/langfuse/json",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "langsmith": {
+      "name": "LangSmith",
+      "packages": ["langsmith"],
+      "ecosystems": {
+        "pypi": ["langsmith"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.smith.langchain.com"],
+          "source": "https://unpkg.com/langsmith@0.11.1/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["LANGSMITH_API_KEY"],
+          "source": "https://unpkg.com/langsmith@0.11.1/README.md",
+          "checkedAt": "2026-10-27"
+        },
+        {
+          "names": ["LANGCHAIN_API_KEY"],
+          "source": "https://unpkg.com/langsmith@0.11.1/lib/run_trees.js",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "linear": {
+      "name": "Linear",
+      "packages": ["@linear/sdk"],
+      "hostnames": [
+        {
+          "names": ["api.linear.app"],
+          "source": "https://unpkg.com/@linear/sdk@99.0.0/dist/index.mjs",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27"
+    },
+    "vonage": {
+      "name": "Vonage",
+      "packages": ["@vonage/server-sdk"],
+      "ecosystems": {
+        "pypi": ["vonage"],
+        "rubygems": ["vonage"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.nexmo.com", "rest.nexmo.com"],
+          "source": "https://unpkg.com/@vonage/server-client@1.23.1/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27"
+    },
+    "pusher": {
+      "name": "Pusher",
+      "packages": ["pusher", "pusher-js"],
+      "ecosystems": {
+        "pypi": ["pusher"],
+        "rubygems": ["pusher"],
+        "go": ["github.com/pusher/pusher-http-go"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.pusherapp.com"],
+          "source": "https://unpkg.com/pusher@5.3.4/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27"
+    },
+    "ably": {
+      "name": "Ably",
+      "packages": ["ably"],
+      "ecosystems": {
+        "pypi": ["ably"],
+        "rubygems": ["ably"],
+        "go": ["github.com/ably/ably-go"]
+      },
+      "hostnames": [
+        {
+          "names": ["rest.ably.io"],
+          "source": "https://unpkg.com/ably@2.30.0/build/ably.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["ABLY_API_KEY"],
+          "source": "https://unpkg.com/ably@2.30.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "mux": {
+      "name": "Mux",
+      "packages": ["@mux/mux-node"],
+      "ecosystems": {
+        "pypi": ["mux_python"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.mux.com"],
+          "source": "https://unpkg.com/@mux/mux-node@15.5.0/client.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["MUX_TOKEN_ID", "MUX_TOKEN_SECRET"],
+          "source": "https://unpkg.com/@mux/mux-node@15.5.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "datadog": {
+      "name": "Datadog",
+      "packages": ["@datadog/datadog-api-client", "@datadog/browser-rum", "@datadog/browser-logs"],
+      "ecosystems": {
+        "pypi": ["datadog-api-client", "datadog"],
+        "go": ["github.com/DataDog/datadog-api-client-go"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.datadoghq.com"],
+          "source": "https://raw.githubusercontent.com/DataDog/datadog-api-client-typescript/master/.generator/schemas/v2/openapi.yaml",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["DD_API_KEY", "DD_APP_KEY"],
+          "source": "https://unpkg.com/@datadog/datadog-api-client@1.64.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "specification": {
+        "url": "https://raw.githubusercontent.com/DataDog/datadog-api-client-typescript/master/.generator/schemas/v2/openapi.yaml",
+        "checkedAt": "2026-10-27"
+      }
+    },
+    "new-relic": {
+      "name": "New Relic",
+      "packages": ["newrelic", "@newrelic/browser-agent"],
+      "ecosystems": {
+        "pypi": ["newrelic"],
+        "rubygems": ["newrelic_rpm"],
+        "go": ["github.com/newrelic/go-agent"]
+      },
+      "hostnames": [
+        {
+          "names": ["collector.newrelic.com"],
+          "source": "https://unpkg.com/newrelic@14.9.0/lib/config/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["NEW_RELIC_LICENSE_KEY"],
+          "source": "https://unpkg.com/newrelic@14.9.0/lib/agent.js",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "exa": {
+      "name": "Exa",
+      "packages": ["exa-js"],
+      "ecosystems": {
+        "pypi": ["exa-py"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.exa.ai"],
+          "source": "https://unpkg.com/exa-js@2.26.0/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["EXA_API_KEY"],
+          "source": "https://unpkg.com/exa-js@2.26.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "tavily": {
+      "name": "Tavily",
+      "packages": ["@tavily/core"],
+      "ecosystems": {
+        "pypi": ["tavily-python"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.tavily.com"],
+          "source": "https://unpkg.com/@tavily/core@0.7.14/dist/index.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["TAVILY_API_KEY"],
+          "source": "https://unpkg.com/@tavily/core@0.7.14/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "firecrawl": {
+      "name": "Firecrawl",
+      "packages": ["@mendable/firecrawl-js"],
+      "ecosystems": {
+        "pypi": ["firecrawl-py"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.firecrawl.dev"],
+          "source": "https://unpkg.com/@mendable/firecrawl-js@4.51.0/.env.example",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["FIRECRAWL_API_KEY"],
+          "source": "https://unpkg.com/@mendable/firecrawl-js@4.51.0/README.md",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    },
+    "voyage": {
+      "name": "Voyage AI",
+      "packages": ["voyageai"],
+      "ecosystems": {
+        "pypi": ["voyageai"]
+      },
+      "hostnames": [
+        {
+          "names": ["api.voyageai.com"],
+          "source": "https://unpkg.com/voyageai@0.4.0/dist/cjs/environments.js",
+          "checkedAt": "2026-10-27"
+        }
+      ],
+      "checkedAt": "2026-10-27",
+      "envVars": [
+        {
+          "names": ["VOYAGE_API_KEY"],
+          "source": "https://unpkg.com/voyageai@0.4.0/dist/cjs/auth/BearerAuthProvider.js",
+          "checkedAt": "2026-10-27"
+        }
+      ]
+    }
+  }
+}
