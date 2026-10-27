@@ -89,6 +89,7 @@ const parsed = (...lines: string[]) =>
 const context = (change: { id: string; text: string; level: number }) => ({
   files: FILES,
   impacts: impacts(change),
+  mappings: [],
   before: BEFORE,
   sdk: '23.0.0',
 });
@@ -201,6 +202,7 @@ const oracleInput = (overrides: Partial<Parameters<typeof runTypeOracle>[0]> = {
       report: {
         specificationDiff: { engine: 'oasdiff', changes: [change] },
         operationImpacts: impacts(change),
+        adapter: { operations: [] },
       } as unknown as Parameters<typeof runTypeOracle>[0]['report'],
       before: BEFORE,
       files: FILES,
@@ -325,4 +327,55 @@ it('records why the oracle could not compare, and is absent without a target SDK
   });
   expect(unavailable.input.check).not.toHaveBeenCalled();
   expect(typeOraclePasses(oracle)).toBe(false);
+});
+
+const SESSION_MAPPING = {
+  resource: 'checkout.sessions',
+  method: 'create',
+  schema: 'checkout.session',
+  operationId: 'PostCheckoutSessions',
+  path: '/v1/checkout/sessions',
+  httpMethod: 'POST',
+};
+
+it('moves an unknown request change where an untraced call sends the property on the operation request type', () => {
+  // `this.stripe.checkout.sessions.create` in a class Refit does not trace (line 12, no usage).
+  const untraced =
+    "lib/billing.ts(12,7): error TS2561: Object literal may only specify known properties, but 'payment_method_types' does not exist in type 'SessionCreateParams'. Did you mean to write 'payment_method_data'?";
+  const change = requestChange();
+  const shared = { ...context(change), impacts: [], mappings: [SESSION_MAPPING] };
+  expect(typeOracleReach([change], parsed(untraced), shared)).toMatchObject([
+    { changeId: 'request-property-removed', file: 'lib/billing.ts', line: 12, code: 'TS2561' },
+  ]);
+  expect(change.reach).toBe('reached');
+  // A qualified type name is the same request type.
+  const qualified = requestChange();
+  expect(
+    typeOracleReach(
+      [qualified],
+      parsed(untraced.replace("'SessionCreateParams'", "'Stripe.Checkout.SessionCreateParams'")),
+      shared,
+    ),
+  ).toHaveLength(1);
+  // Another operation's request type, or a test file, says nothing about this operation.
+  for (const error of [
+    untraced.replace('SessionCreateParams', 'PaymentLinkCreateParams'),
+    untraced.replace('lib/billing.ts', 'lib/billing.test.ts'),
+  ]) {
+    const other = requestChange();
+    expect(typeOracleReach([other], parsed(error), shared)).toEqual([]);
+    expect(other.reach).toBe('unknown');
+  }
+});
+
+it('reads the Stripe type of an awaited SDK response in a missing-property error', () => {
+  const change = responseChange();
+  expect(
+    typeOracleReach(
+      [change],
+      parsed(PERIOD_ERROR.replace("type 'Subscription'", "type 'Response<Subscription>'")),
+      context(change),
+    ),
+  ).toHaveLength(1);
+  expect(change.reach).toBe('reached');
 });

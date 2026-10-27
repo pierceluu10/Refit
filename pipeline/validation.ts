@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
+import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import {
   apiVersionSourceBlocked,
@@ -341,7 +342,10 @@ export async function runTypeOracle(options: {
   baseline: CheckResult;
   patched: CheckResult;
   typeCheckUnavailable?: string;
-  report: Pick<Awaited<ReturnType<typeof runPipeline>>, 'specificationDiff' | 'operationImpacts'>;
+  report: Pick<
+    Awaited<ReturnType<typeof runPipeline>>,
+    'specificationDiff' | 'operationImpacts' | 'adapter'
+  >;
   before: Record<string, unknown>;
   files: { path: string; content: string }[];
   // Original paths, with the nested package Refit checks in as their prefix.
@@ -408,6 +412,7 @@ export async function runTypeOracle(options: {
           {
             files: options.files,
             impacts: options.report.operationImpacts,
+            mappings: validateProviderOperationMappings(options.report.adapter, options.before),
             before: options.before,
             sdk: to,
           },
