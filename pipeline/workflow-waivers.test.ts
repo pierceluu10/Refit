@@ -252,3 +252,24 @@ it('marks a passing AI patch for review and adds refit doctor findings to its re
   expect(plain.manifest).not.toHaveProperty('waivedGates');
   expect(publishDraft).not.toHaveBeenCalled();
 });
+
+it('ends a passing run whose draft is [Needs review] as needs-review, not validated', async () => {
+  const passing = await untested('passed');
+  delete (passing.validation as { dependencyFailure?: unknown }).dependencyFailure;
+  const ran = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
+  passing.validation.baseline = ran;
+  passing.validation.patched = ran;
+  vi.mocked(validateMigration).mockResolvedValue(passing);
+  expect((await runWorkflow({ ...inputs, output: await output() })).manifest.status).toBe(
+    'validated',
+  );
+
+  // A kept untyped request property (`trial_from_plan`) makes the draft [Needs review].
+  passing.validation.repair = { keptProperties: ['trial_from_plan'] } as never;
+  const kept = await runWorkflow({ ...inputs, output: await output() });
+  expect(kept.manifest).toMatchObject({
+    status: 'needs-review',
+    reason:
+      'Baseline and patched checks passed, but the draft is [Needs review]; publication was not requested.',
+  });
+});

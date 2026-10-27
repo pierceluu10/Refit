@@ -464,6 +464,14 @@ export async function runWorkflow(options: {
         'Checks passed but detected findings remain unresolved. Publication was not attempted.',
         runId,
       );
+    // The draft's own title says [Needs review] (kept untyped properties, a grade-D check, advisory
+    // type errors): the run is not a validated fix even though every gate passed.
+    if (!publication && needsReview)
+      return await finish(
+        'needs-review',
+        'Baseline and patched checks passed, but the draft is [Needs review]; publication was not requested.',
+        runId,
+      );
     if (!publication)
       return await finish(
         'validated',
