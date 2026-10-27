@@ -62,75 +62,431 @@ interface CallBody {
   body: ts.Expression | undefined | 'unknown';
 }
 
-// The initializer of a `const` the request names, when its declaration and this use are the only
-// mentions of the name in the enclosing function or file, so nothing can change it in between.
-function constantValue(identifier: ts.Identifier) {
-  let scope: ts.Node = identifier;
-  while (scope.parent && !ts.isFunctionLike(scope) && !ts.isSourceFile(scope)) scope = scope.parent;
-  let declaration: ts.VariableDeclaration | undefined;
-  let mentions = 0;
-  const visit = (node: ts.Node) => {
-    if (ts.isIdentifier(node) && node.text === identifier.text) mentions += 1;
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.name.text === identifier.text &&
-      ts.isVariableDeclarationList(node.parent) &&
-      node.parent.flags & ts.NodeFlags.Const
-    )
-      declaration = node;
-    ts.forEachChild(node, visit);
-  };
-  visit(scope);
-  return mentions === 2 ? declaration?.initializer : undefined;
-}
+// Reading a request stops after this many steps through names, calls and spreads.
+const MAX_TRACE_DEPTH = 24;
+// Calls that only read the object they are given.
+const READ_ONLY_CALLS =
+  /^(?:console\.\w+|JSON\.stringify|Object\.(?:keys|values|entries)|String|Number|Boolean)$/;
+const COMPARISONS = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+  ts.SyntaxKind.LessThanToken,
+  ts.SyntaxKind.LessThanEqualsToken,
+  ts.SyntaxKind.GreaterThanToken,
+  ts.SyntaxKind.GreaterThanEqualsToken,
+  ts.SyntaxKind.InstanceOfKeyword,
+  ts.SyntaxKind.InKeyword,
+]);
+const LOGICAL = new Set([
+  ts.SyntaxKind.AmpersandAmpersandToken,
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.QuestionQuestionToken,
+]);
 
-// Values a request sends at `path` (oasdiff's `a/items/b`), `unknown` when the body is not a
-// literal Refit can read, or [] when it does not send it.
-function sentValues(
-  body: ts.Expression | undefined | 'unknown',
-  path: string[],
-): ts.Expression[] | 'unknown' {
-  if (body === 'unknown') return 'unknown';
-  if (!body) return [];
-  let node = body;
+const unwrap = (node: ts.Expression) => {
   while (
     ts.isParenthesizedExpression(node) ||
     ts.isAsExpression(node) ||
-    ts.isSatisfiesExpression(node)
+    ts.isSatisfiesExpression(node) ||
+    ts.isNonNullExpression(node) ||
+    ts.isTypeAssertionExpression(node) ||
+    ts.isAwaitExpression(node)
   )
     node = node.expression;
+  return node;
+};
+
+// The names a scope declares itself: its parameters, its statements' variables, functions and
+// classes, and a source file's imports.
+function declaredIn(scope: ts.Node, name: string): ts.Node | undefined {
+  if (ts.isFunctionLike(scope))
+    for (const parameter of scope.parameters) if (bindsName(parameter.name, name)) return parameter;
+  const statements =
+    ts.isSourceFile(scope) || ts.isBlock(scope) || ts.isModuleBlock(scope)
+      ? scope.statements
+      : ts.isCaseClause(scope) || ts.isDefaultClause(scope)
+        ? scope.statements
+        : [];
+  for (const statement of statements) {
+    if (ts.isVariableStatement(statement))
+      for (const declaration of statement.declarationList.declarations)
+        if (bindsName(declaration.name, name)) return declaration;
+    if (
+      (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
+      statement.name?.text === name
+    )
+      return statement;
+    if (ts.isImportDeclaration(statement) && statement.importClause) {
+      const clause = statement.importClause;
+      if (clause.name?.text === name) return clause;
+      const bindings = clause.namedBindings;
+      if (bindings && ts.isNamespaceImport(bindings) && bindings.name.text === name)
+        return bindings;
+      if (bindings && ts.isNamedImports(bindings))
+        for (const element of bindings.elements) if (element.name.text === name) return element;
+    }
+  }
+  if (
+    (ts.isForStatement(scope) || ts.isForOfStatement(scope) || ts.isForInStatement(scope)) &&
+    scope.initializer &&
+    ts.isVariableDeclarationList(scope.initializer)
+  )
+    for (const declaration of scope.initializer.declarations)
+      if (bindsName(declaration.name, name)) return declaration;
+  if (
+    ts.isCatchClause(scope) &&
+    scope.variableDeclaration &&
+    bindsName(scope.variableDeclaration.name, name)
+  )
+    return scope.variableDeclaration;
+  return undefined;
+}
+
+function bindsName(binding: ts.BindingName, name: string): boolean {
+  if (ts.isIdentifier(binding)) return binding.text === name;
+  return binding.elements.some(
+    (element) => !ts.isOmittedExpression(element) && bindsName(element.name, name),
+  );
+}
+
+// The nearest declaration of the name a use refers to, and the scope that holds it.
+function declarationOf(identifier: ts.Identifier) {
+  for (let scope: ts.Node | undefined = identifier.parent; scope; scope = scope.parent) {
+    const declaration = declaredIn(scope, identifier.text);
+    if (declaration) return { declaration, scope };
+  }
+  return undefined;
+}
+
+// Whether an identifier names a variable here, rather than a property, key or label.
+function isReference(node: ts.Identifier) {
+  const parent = node.parent;
+  return !(
+    (ts.isPropertyAccessExpression(parent) && parent.name === node) ||
+    (ts.isPropertyAssignment(parent) && parent.name === node) ||
+    (ts.isBindingElement(parent) && parent.propertyName === node) ||
+    ((ts.isMethodDeclaration(parent) ||
+      ts.isPropertyDeclaration(parent) ||
+      ts.isPropertySignature(parent) ||
+      ts.isMethodSignature(parent) ||
+      ts.isGetAccessor(parent) ||
+      ts.isSetAccessor(parent) ||
+      ts.isEnumMember(parent)) &&
+      parent.name === node) ||
+    (ts.isQualifiedName(parent) && parent.right === node) ||
+    ((ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent)) &&
+      parent.propertyName === node) ||
+    ts.isLabeledStatement(parent) ||
+    ts.isBreakOrContinueStatement(parent) ||
+    ts.isJsxAttribute(parent) ||
+    ts.isTypeReferenceNode(parent) ||
+    ts.isTypeQueryNode(parent)
+  );
+}
+
+// Whether a read's value is only inspected: compared, tested, logged or converted.
+function onlyInspected(node: ts.Node): boolean {
+  const parent = node.parent;
+  if (ts.isBinaryExpression(parent)) {
+    if (COMPARISONS.has(parent.operatorToken.kind)) return true;
+    return LOGICAL.has(parent.operatorToken.kind) && onlyInspected(parent);
+  }
+  if (ts.isPrefixUnaryExpression(parent))
+    return (
+      parent.operator !== ts.SyntaxKind.PlusPlusToken &&
+      parent.operator !== ts.SyntaxKind.MinusMinusToken
+    );
+  if (
+    ts.isTypeOfExpression(parent) ||
+    ts.isTemplateSpan(parent) ||
+    ts.isExpressionStatement(parent)
+  )
+    return true;
+  if (
+    (ts.isIfStatement(parent) || ts.isWhileStatement(parent) || ts.isDoStatement(parent)) &&
+    parent.expression === node
+  )
+    return true;
+  if (ts.isConditionalExpression(parent)) return parent.condition === node;
+  if (ts.isCallExpression(parent) && parent.expression !== node)
+    return READ_ONLY_CALLS.test(parent.expression.getText());
+  // A copy into another object cannot change this one.
+  return ts.isSpreadAssignment(parent);
+}
+
+interface Binding {
+  // What the name is declared or reassigned to hold.
+  values: ts.Expression[];
+  // `name.a.b = value` and `name.a.push(value)`, as the path written to and the value.
+  assignments: { path: string[]; value: ts.Expression }[];
+  pushes: { path: string[]; value: ts.Expression }[];
+}
+
+const pathSegment = (node: ts.PropertyAccessExpression | ts.ElementAccessExpression) =>
+  ts.isPropertyAccessExpression(node)
+    ? node.name.text
+    : ts.isNumericLiteral(node.argumentExpression)
+      ? 'items'
+      : ts.isStringLiteralLike(node.argumentExpression)
+        ? node.argumentExpression.text
+        : undefined;
+
+// Everything a variable the request names can hold where it is sent: its initializer, values
+// assigned to it, and properties assigned or items pushed through it. `undefined` when another
+// mention could change it out of sight: passed to a call, returned, aliased or written through a
+// computed key.
+function binding(identifier: ts.Identifier): Binding | undefined {
+  const found = declarationOf(identifier);
+  if (
+    !found ||
+    !ts.isVariableDeclaration(found.declaration) ||
+    !ts.isIdentifier(found.declaration.name)
+  )
+    return undefined;
+  const declaration = found.declaration;
+  const statement = declaration.parent.parent;
+  // Another module may change an exported variable.
+  if (
+    ts.isForOfStatement(statement) ||
+    ts.isForInStatement(statement) ||
+    (ts.isVariableStatement(statement) &&
+      statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
+  )
+    return undefined;
+  const result: Binding = {
+    values: declaration.initializer ? [declaration.initializer] : [],
+    assignments: [],
+    pushes: [],
+  };
+  let escapes = false;
+  const visit = (node: ts.Node) => {
+    if (escapes) return;
+    if (
+      ts.isIdentifier(node) &&
+      node.text === identifier.text &&
+      node !== declaration.name &&
+      node !== identifier &&
+      isReference(node)
+    ) {
+      // A nested declaration of the same name would make this mention another variable.
+      if (declarationOf(node)?.declaration !== declaration) {
+        escapes = true;
+        return;
+      }
+      const path: string[] = [];
+      let top: ts.Expression = node;
+      while (
+        (ts.isPropertyAccessExpression(top.parent) || ts.isElementAccessExpression(top.parent)) &&
+        top.parent.expression === top
+      ) {
+        const segment = pathSegment(top.parent);
+        if (segment === undefined) {
+          // A computed key: only a read is safe.
+          top = top.parent;
+          path.push('\0');
+          continue;
+        }
+        path.push(segment);
+        top = top.parent;
+      }
+      const parent = top.parent;
+      const computed = path.includes('\0');
+      if (
+        ts.isBinaryExpression(parent) &&
+        parent.left === top &&
+        parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+      ) {
+        if (computed) escapes = true;
+        else if (path.length) result.assignments.push({ path, value: parent.right });
+        else if (declaration.parent.flags & ts.NodeFlags.Const) escapes = true;
+        else result.values.push(parent.right);
+      } else if (
+        ts.isCallExpression(parent) &&
+        parent.expression === top &&
+        !computed &&
+        (path.at(-1) === 'push' || path.at(-1) === 'unshift')
+      ) {
+        for (const argument of parent.arguments) {
+          if (ts.isSpreadElement(argument)) escapes = true;
+          else result.pushes.push({ path: path.slice(0, -1), value: argument });
+        }
+      } else if (!onlyInspected(top)) escapes = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(found.scope);
+  return escapes ? undefined : result;
+}
+
+// The expressions a local function returns, or `undefined` when the callee is not one.
+function returnedValues(callee: ts.Expression): ts.Expression[] | undefined {
+  let target: ts.Node | undefined = unwrap(callee);
+  if (ts.isIdentifier(target)) {
+    const found = declarationOf(target);
+    const declaration = found?.declaration;
+    if (declaration && ts.isFunctionDeclaration(declaration)) target = declaration;
+    else if (
+      declaration &&
+      ts.isVariableDeclaration(declaration) &&
+      declaration.parent.flags & ts.NodeFlags.Const &&
+      declaration.initializer
+    )
+      target = unwrap(declaration.initializer);
+    else return undefined;
+  }
+  if (!(
+    ts.isFunctionDeclaration(target) ||
+    ts.isArrowFunction(target) ||
+    ts.isFunctionExpression(target)
+  ))
+    return undefined;
+  if (!target.body) return undefined;
+  if (!ts.isBlock(target.body)) return [target.body];
+  const values: ts.Expression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isFunctionLike(node)) return;
+    if (ts.isReturnStatement(node) && node.expression) values.push(node.expression);
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(target.body, visit);
+  return values;
+}
+
+function union(nodes: ts.Expression[], path: string[], depth: number): ts.Expression[] | 'unknown' {
+  const values: ts.Expression[] = [];
+  for (const node of nodes) {
+    const found = sentValues(node, path, depth + 1);
+    if (found === 'unknown') return 'unknown';
+    values.push(...found);
+  }
+  return values;
+}
+
+// A value with no properties: spreading it adds nothing and it sends no nested property.
+const isEmpty = (node: ts.Expression) =>
+  node.kind === ts.SyntaxKind.NullKeyword ||
+  node.kind === ts.SyntaxKind.FalseKeyword ||
+  (ts.isIdentifier(node) && node.text === 'undefined');
+
+// Values a request may send at `path` (oasdiff's `a/items/b`), following variables, local
+// functions, spreads, `.map` callbacks and both sides of conditions; `unknown` where Refit cannot
+// read it, or [] when it does not send it. Where several values are possible all are returned.
+function sentValues(
+  body: ts.Expression | undefined | 'unknown',
+  path: string[],
+  depth = 0,
+): ts.Expression[] | 'unknown' {
+  if (body === 'unknown' || depth > MAX_TRACE_DEPTH) return 'unknown';
+  if (!body) return [];
+  const node = unwrap(body);
   const [segment, ...rest] = path;
   if (!segment) return [node];
+  if (isEmpty(node)) return [];
+  if (ts.isConditionalExpression(node)) return union([node.whenTrue, node.whenFalse], path, depth);
+  if (ts.isBinaryExpression(node) && LOGICAL.has(node.operatorToken.kind))
+    // A falsy left side of `&&` has no properties.
+    return node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+      ? union([node.right], path, depth)
+      : union([node.left, node.right], path, depth);
   if (ts.isIdentifier(node)) {
-    const value = constantValue(node);
-    return value ? sentValues(value, path) : 'unknown';
-  }
-  if (segment === 'items') {
-    if (!ts.isArrayLiteralExpression(node)) return 'unknown';
-    const values: ts.Expression[] = [];
-    for (const element of node.elements) {
-      if (ts.isSpreadElement(element)) return 'unknown';
-      const found = sentValues(element, rest);
+    const bound = binding(node);
+    if (!bound) return 'unknown';
+    const values = union(bound.values, path, depth);
+    if (values === 'unknown') return 'unknown';
+    const startsWith = (prefix: string[]) => prefix.every((part, index) => path[index] === part);
+    for (const { path: written, value } of bound.assignments) {
+      if (written.length > path.length || !startsWith(written)) continue;
+      const found = sentValues(value, path.slice(written.length), depth + 1);
+      if (found === 'unknown') return 'unknown';
+      values.push(...found);
+    }
+    for (const { path: list, value } of bound.pushes) {
+      if (list.length >= path.length || !startsWith(list) || path[list.length] !== 'items')
+        continue;
+      const found = sentValues(value, path.slice(list.length + 1), depth + 1);
       if (found === 'unknown') return 'unknown';
       values.push(...found);
     }
     return values;
   }
-  if (!ts.isObjectLiteralExpression(node)) return 'unknown';
-  let value: ts.Expression | undefined;
-  for (const property of node.properties) {
-    if (!(ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)))
-      return 'unknown';
-    const name =
-      ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)
-        ? property.name.text
-        : undefined;
-    if (name === undefined) return 'unknown';
-    if (name === segment)
-      value = ts.isPropertyAssignment(property) ? property.initializer : property.name;
+  if (ts.isCallExpression(node)) {
+    // `list.map(item => ({ … }))` sends what the callback returns, once per item.
+    const callee = node.expression;
+    if (
+      segment === 'items' &&
+      ts.isPropertyAccessExpression(callee) &&
+      callee.name.text === 'map' &&
+      node.arguments[0]
+    ) {
+      const returned = returnedValues(node.arguments[0]);
+      return returned ? union(returned, rest, depth) : 'unknown';
+    }
+    const returned = returnedValues(callee);
+    return returned ? union(returned, path, depth) : 'unknown';
   }
-  return value ? sentValues(value, rest) : [];
+  if (ts.isArrayLiteralExpression(node)) {
+    if (segment !== 'items') return 'unknown';
+    const values: ts.Expression[] = [];
+    for (const element of node.elements) {
+      const found = ts.isSpreadElement(element)
+        ? sentValues(element.expression, path, depth + 1)
+        : sentValues(element, rest, depth + 1);
+      if (found === 'unknown') return 'unknown';
+      values.push(...found);
+    }
+    return values;
+  }
+  // An object's own `items` property is a property like any other (subscriptions' `items`).
+  if (!ts.isObjectLiteralExpression(node)) return 'unknown';
+  const values: ts.Expression[] = [];
+  for (const property of node.properties) {
+    let found: ts.Expression[] | 'unknown' = [];
+    if (ts.isSpreadAssignment(property)) found = sentValues(property.expression, path, depth + 1);
+    else {
+      const name =
+        property.name && (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name))
+          ? property.name.text
+          : property.name &&
+              ts.isComputedPropertyName(property.name) &&
+              ts.isStringLiteralLike(property.name.expression)
+            ? property.name.expression.text
+            : undefined;
+      if (name === undefined) return 'unknown';
+      if (name !== segment) continue;
+      if (ts.isPropertyAssignment(property))
+        found = sentValues(property.initializer, rest, depth + 1);
+      else if (ts.isShorthandPropertyAssignment(property))
+        found = sentValues(property.name, rest, depth + 1);
+      else return 'unknown';
+    }
+    if (found === 'unknown') return 'unknown';
+    values.push(...found);
+  }
+  return values;
+}
+
+// The string literals a sent value can be, following variables and both sides of conditions;
+// `unknown` when one may be anything else.
+function literalValues(node: ts.Expression, depth = 0): ts.StringLiteralLike[] | 'unknown' {
+  if (depth > MAX_TRACE_DEPTH) return 'unknown';
+  const value = unwrap(node);
+  if (ts.isStringLiteralLike(value)) return [value];
+  let candidates: ts.Expression[] | undefined;
+  if (ts.isConditionalExpression(value)) candidates = [value.whenTrue, value.whenFalse];
+  else if (ts.isIdentifier(value)) {
+    const bound = binding(value);
+    if (bound && !bound.assignments.length && !bound.pushes.length) candidates = bound.values;
+  }
+  if (!candidates?.length) return 'unknown';
+  const literals: ts.StringLiteralLike[] = [];
+  for (const candidate of candidates) {
+    const found = literalValues(candidate, depth + 1);
+    if (found === 'unknown') return 'unknown';
+    literals.push(...found);
+  }
+  return literals;
 }
 
 function callBodies(repository: Repository, calls: MappedSdkCall[], argumentIndex: number) {
@@ -352,28 +708,29 @@ function requestReach(change: Record<string, unknown>, context: ReachContext): C
     }
     for (const sent of values) {
       if (removedValue !== undefined) {
-        const value = ts.isIdentifier(sent) ? constantValue(sent) : sent;
-        if (!value || !ts.isStringLiteralLike(value)) {
+        const literals = literalValues(sent);
+        if (literals === 'unknown') {
           unknown ??= file;
           continue;
         }
-        if (value.text !== removedValue) continue;
+        if (!literals.some((literal) => literal.text === removedValue)) continue;
       }
       if (currencyFormat) {
-        const value = ts.isIdentifier(sent) ? constantValue(sent) : sent;
-        if (value && ts.isStringLiteralLike(value)) {
-          if (STRIPE_CURRENCY.test(value.text)) {
+        const literals = literalValues(sent);
+        if (literals !== 'unknown') {
+          const invalid = literals.find((literal) => !STRIPE_CURRENCY.test(literal.text));
+          if (!invalid) {
             compatible ??= file;
             continue;
           }
           // The currency rule lowercases a literal written in the request (currencyCodeEdits).
-          if (value === sent && context.edited(file, sent.getStart())) {
+          if (invalid === sent && context.edited(file, sent.getStart())) {
             handled ??= file;
             continue;
           }
           return {
             reach: 'reached',
-            reachReason: `The \`${operation}\` call in ${file} sends \`${property}\` as \`${value.text}\`; the target contract gives it the \`currency\` format, a lowercase three-letter ISO code (https://docs.stripe.com/currencies).`,
+            reachReason: `The \`${operation}\` call in ${file} sends \`${property}\` as \`${invalid.text}\`; the target contract gives it the \`currency\` format, a lowercase three-letter ISO code (https://docs.stripe.com/currencies).`,
           };
         }
       }

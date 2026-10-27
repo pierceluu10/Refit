@@ -244,6 +244,167 @@ it('reads a request body through a local constant used once, and stops when it i
   ).toBe('unknown');
 });
 
+// Addisu87/digital-marketplace trpc/payment-router.ts, shortened: line items pushed one by one.
+it('reads items pushed into a request list, and stops when the list escapes', () => {
+  const marketplace = `export async function POST() {
+  const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+  filteredProducts.forEach((product) => {
+    line_items.push({ price: product.priceId!, quantity: 1 });
+  });
+  line_items.push({ price: 'price_fee', quantity: 1, adjustable_quantity: { enabled: false } });
+  const session = await stripe.checkout.sessions.create({ mode: 'payment', line_items });
+  return session.url;
+}`;
+  const dynamic = checkout('removed the request property `line_items/items/dynamic_tax_rates`');
+  expect(reach(marketplace, [{ ...dynamic }])[0][0]).toBe('unused');
+  expect(
+    reach(
+      marketplace.replace(
+        'quantity: 1 });\n  });',
+        'quantity: 1, dynamic_tax_rates: [rate] });\n  });',
+      ),
+      [{ ...dynamic }],
+    )[0][0],
+  ).toBe('reached');
+  // A helper that is handed the list may add anything to it.
+  expect(
+    reach(marketplace.replace('  const session', '  addTaxes(line_items);\n  const session'), [
+      { ...dynamic },
+    ])[0][0],
+  ).toBe('unknown');
+});
+
+// AlefeSk8/Spotify-Clone-Next.js libs/supabaseAdmin.ts, on Checkout: a typed request object that
+// gains a property under a condition.
+it('reads properties assigned to a request object, and stops on a computed key', () => {
+  const spotify = `export const createOrRetrieve = async ({ email, uuid }: { email: string; uuid: string }) => {
+  const sessionData: { metadata: { supabaseUUID: string }; customer_email?: string } = {
+    metadata: { supabaseUUID: uuid },
+  };
+  if (email) sessionData.customer_email = email;
+  console.log('creating', sessionData);
+  const session = await stripe.checkout.sessions.create(sessionData);
+  return session.id;
+};`;
+  const removed = checkout('removed the request property `payment_method_types`');
+  expect(reach(spotify, [{ ...removed }])[0][0]).toBe('unused');
+  expect(
+    reach(
+      spotify.replace('if (email)', "sessionData.payment_method_types = ['card'];\n  if (email)"),
+      [{ ...removed }],
+    )[0][0],
+  ).toBe('reached');
+  expect(
+    reach(spotify.replace('sessionData.customer_email = email', 'sessionData[field] = email'), [
+      { ...removed },
+    ])[0][0],
+  ).toBe('unknown');
+});
+
+it('stops where a request object may change out of sight', () => {
+  const removed = checkout('removed the request property `payment_method_types`');
+  const go = (lines: string) =>
+    `${lines}\nexport async function go() {\n  return stripe.checkout.sessions.create(params);\n}`;
+  // Exported: another module may assign to it.
+  expect(reach(go("export const params = { mode: 'payment' };"), [{ ...removed }])[0][0]).toBe(
+    'unknown',
+  );
+  // Aliased, returned, or shadowed by a parameter of the same name.
+  for (const lines of [
+    "const params = { mode: 'payment' };\nconst alias = params;",
+    "const params = { mode: 'payment' };\nexport const read = () => params;",
+    "const params = { mode: 'payment' };\nexport const other = (params) => params.mode;",
+  ])
+    expect(reach(go(lines), [{ ...removed }])[0][0]).toBe('unknown');
+  expect(reach(go("const params = { mode: 'payment' };"), [{ ...removed }])[0][0]).toBe('unused');
+});
+
+// Bizgojo/drivetimetales app/api/checkout/route.ts, on Checkout: optional properties spread in.
+it('reads both sides of a conditional spread', () => {
+  const spread = (extra: string) => `export async function POST() {
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    ...(customerName ? { ${extra} } : {}),
+    ...(trial && { subscription_data: { trial_period_days: 7 } }),
+  });
+  return session.url;
+}`;
+  const removed = checkout('removed the request property `payment_method_types`');
+  expect(reach(spread('customer_email: email'), [{ ...removed }])[0][0]).toBe('unused');
+  expect(reach(spread("payment_method_types: ['card']"), [{ ...removed }])[0][0]).toBe('reached');
+  expect(
+    reach(spread('customer_email: email').replace('(trial &&', '(options ??'), [
+      { ...removed },
+    ])[0][0],
+  ).toBe('unknown');
+});
+
+// Amarnath0077/industrialstore-main api/create-checkout-session.js, shortened: line items built by
+// a `.map` callback and a local helper.
+it('reads line items a map callback or a local function returns', () => {
+  const store = `function successUrl(origin) {
+  return origin + '/success';
+}
+export default async function handler(req, res) {
+  const lineItems = req.body.items.map((item) => {
+    const productData = { name: item.name || 'Product' };
+    if (item.img) productData.images = [item.img];
+    return {
+      price_data: { currency: 'usd', product_data: productData, unit_amount: item.price },
+      quantity: Math.max(1, Number(item.quantity) || 1),
+    };
+  });
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    line_items: lineItems,
+    success_url: successUrl(req.headers.origin),
+  });
+  res.json({ url: session.url });
+}`;
+  expect(
+    reach(store, [
+      checkout('removed the request property `line_items/items/dynamic_tax_rates`'),
+      checkout(
+        'the `line_items/items/price_data/currency` request property `format` changed from `none` to `currency`',
+        'request-property-type-changed',
+      ),
+    ]).map(([value]) => value),
+  ).toEqual(['unused', 'compatible']);
+  // A currency the callback reads from its item still blocks.
+  expect(
+    reach(store.replace("currency: 'usd'", 'currency: item.currency'), [
+      checkout(
+        'the `line_items/items/price_data/currency` request property `format` changed from `none` to `currency`',
+        'request-property-type-changed',
+      ),
+    ])[0][0],
+  ).toBe('reached');
+});
+
+// Chivo1530/CHIVITO-AI-DEV lib/stripe.js: Subscription updates have their own `items` property.
+it("reads an object's own items property as a property", () => {
+  const change = {
+    id: 'request-property-type-changed',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/subscriptions/{subscription_exposed_id}',
+    text: 'the `items/items/price_data/currency` request property `format` changed from `none` to `currency`',
+  };
+  const update = (body: string) =>
+    `export const cancel = (id) => stripe.subscriptions.update(id, ${body});`;
+  expect(reach(update('{ cancel_at_period_end: true }'), [{ ...change }])[0][0]).toBe('unused');
+  expect(
+    reach(update("{ items: [{ price_data: { currency: 'usd', product: 'prod_1' } }] }"), [
+      { ...change },
+    ])[0][0],
+  ).toBe('compatible');
+  expect(
+    reach(update("{ items: [{ price_data: { currency: 'USD', product: 'prod_1' } }] }"), [
+      { ...change },
+    ])[0][0],
+  ).toBe('reached');
+});
+
 it('blocks a removed enum value only when the call may send that value', () => {
   const removed = checkout(
     'removed the enum value `hosted` of the request property `ui_mode`',
