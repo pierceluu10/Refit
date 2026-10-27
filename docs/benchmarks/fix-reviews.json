@@ -2216,6 +2216,111 @@
         "upgradeComplete": "no: the pin and stripe-node stay; the draft asks to move the pin to 2026-09-30.endive, upgrade stripe-node and fix what tsc reports.",
         "wouldMerge": "yes, as forward-compatible preparation; tsc passes on both sides with 9 errors already on the original code (none introduced)."
       }
+    },
+    {
+      "repo": "el-noir/Tempify",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40432255476 (before, main d25413d9) and 40448715209 (after, feat/type-aware-reach 0724f1ba), subsets/l2-push-249.json, no AI. Before: production mode stopped on request contract changes whose call Refit could not read; after: the line items come from an items.map callback returning { price_data, quantity }, which sends no dynamic_tax_rates and a lowercase usd, so production mode validates. migration.patch from the shard-1 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types ['card'] becomes allowed_payment_method_types ['card'] in both Checkout calls.",
+        "bothVersions": "yes: only rules whose output works on both versions; webhook helpers, where present, return the old field when the payload has it.",
+        "nothingUnrelated": "yes: two Checkout calls, three client pins and package.json.",
+        "pleaseCheck": "Nothing beyond the draft: no unresolved finding remains.",
+        "upgradeComplete": "yes: every client moves to 2026-09-30.endive and stripe-node to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "abressiddique/AbresStore-Admin",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40432255476 (before, main d25413d9) and 40448715209 (after, feat/type-aware-reach 0724f1ba), subsets/l2-push-249.json, no AI. Before: production mode stopped on request contract changes whose call Refit could not read; after: line_items is a cartItems.map callback returning price_data with currency inr and no dynamic_tax_rates, so production mode validates. migration.patch from the shard-1 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: allowed_payment_method_types ['card'] on Checkout; the webhook reads shipping details through getCheckoutShippingDetails (collected_information on endive).",
+        "bothVersions": "yes: only rules whose output works on both versions; webhook helpers, where present, return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the Checkout call, the webhook shipping reads, the client pin and package.json.",
+        "pleaseCheck": "Nothing beyond the draft: no unresolved finding remains.",
+        "upgradeComplete": "yes: every client moves to 2026-09-30.endive and stripe-node to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "cdinnison/goal-reminder",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40432255476 (before, main d25413d9) and 40448715209 (after, feat/type-aware-reach 0724f1ba), subsets/l2-push-249.json, no AI. Before: production mode stopped on request contract changes whose call Refit could not read; after: sessionParams is a const object with conditional spreads (metadata, discounts) and none of the changed properties; the Twilio route's subscriptions.update sends only cancel_at_period_end (its own items property, not an array), so production mode validates. migration.patch from the shard-4 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: invoice.payment_succeeded reads the subscription id through getInvoiceSubscription (parent.subscription_details on endive).",
+        "bothVersions": "yes: only rules whose output works on both versions; webhook helpers, where present, return the old field when the payload has it.",
+        "nothingUnrelated": "yes: three client pins, one webhook read and package.json.",
+        "pleaseCheck": "Nothing beyond the draft: no unresolved finding remains.",
+        "upgradeComplete": "yes: every client moves to 2026-09-30.endive and stripe-node to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "oMiguelwnl/Borcelle_admin",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40432255476 (before, main d25413d9) and 40448715209 (after, feat/type-aware-reach 0724f1ba), subsets/l2-push-249.json, no AI. Before: production mode stopped on request contract changes whose call Refit could not read; after: line_items is a cartItems.map callback with currency \"USD\", which the currency rule lowercases, and no dynamic_tax_rates, so production mode validates. migration.patch from the shard-5 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: allowed_payment_method_types ['card'], currency \"USD\" → \"usd\" (https://docs.stripe.com/currencies), and shipping details through getCheckoutShippingDetails.",
+        "bothVersions": "yes: only rules whose output works on both versions; webhook helpers, where present, return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the Checkout call, the webhook shipping reads and package.json.",
+        "pleaseCheck": "Nothing beyond the draft: no unresolved finding remains.",
+        "upgradeComplete": "yes: every client moves to 2026-09-30.endive and stripe-node to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "emman-tt/tilios-backend",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40432255476 (before, main d25413d9) and 40448715209 (after, feat/type-aware-reach 0724f1ba), subsets/l2-push-249.json, no AI. Before: production mode stopped on request contract changes whose call Refit could not read; after: line_items is a const built by allDetails.map returning price_data with currency usd and no dynamic_tax_rates, so production mode validates. migration.patch from the shard-6 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: allowed_payment_method_types ['card'] on the Checkout call.",
+        "bothVersions": "yes: only rules whose output works on both versions; webhook helpers, where present, return the old field when the payload has it.",
+        "nothingUnrelated": "yes: one call and package.json.",
+        "pleaseCheck": "Nothing beyond the draft: no unresolved finding remains.",
+        "upgradeComplete": "yes: stripe-node moves to ^23.0.0; the client sets no apiVersion, so the SDK default (endive) applies.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "Chris-26-dev/ecommerce",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40432255476 (before, main d25413d9) and 40448715209 (after, feat/type-aware-reach 0724f1ba), subsets/l2-push-249.json, no AI. Before: production mode stopped on request contract changes whose call Refit could not read; after: line_items is a const built by cartItems.map; the callback's productData gains metadata by assignment, outside the changed paths, and sends currency usd, so production mode validates. migration.patch from the shard-9 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: allowed_payment_method_types ['card'] on the Checkout call.",
+        "bothVersions": "yes: only rules whose output works on both versions; webhook helpers, where present, return the old field when the payload has it.",
+        "nothingUnrelated": "yes: one call, the client pin and package.json.",
+        "pleaseCheck": "Nothing beyond the draft: no unresolved finding remains.",
+        "upgradeComplete": "yes: every client moves to 2026-09-30.endive and stripe-node to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "Mangu-Commerce/madcaptees",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40432255476 (before, main d25413d9) and 40448715209 (after, feat/type-aware-reach 0724f1ba), subsets/l2-push-249.json, no AI. Before: production mode stopped on request contract changes whose call Refit could not read; after: lineItems is an items.map result with one more item pushed under a condition; both send currency usd and no dynamic_tax_rates, so production mode validates. migration.patch from the shard-9 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: both webhooks read shipping details through getCheckoutShippingDetails, written once to a new stripeSubscriptionPeriod.ts at the root (the helper file name is the existing rule's, not a shipping name).",
+        "bothVersions": "yes: only rules whose output works on both versions; webhook helpers, where present, return the old field when the payload has it.",
+        "nothingUnrelated": "yes: four client pins, two webhook read sites, the new helper file and package.json.",
+        "pleaseCheck": "Nothing beyond the draft: no unresolved finding remains.",
+        "upgradeComplete": "yes: every client moves to 2026-09-30.endive and stripe-node to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
     }
   ]
 }
