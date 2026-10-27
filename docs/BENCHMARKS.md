@@ -369,6 +369,22 @@ Production mode stops on a request contract change whenever Refit cannot read wh
 - **heldout-30.** Its one row with an unreadable request now reads it, but still stops on a change the code sends, so no outcome changes.
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## Type oracle (October 27)
+
+`feat/stripe-type-oracle` runs the repository's type check once more on the original code with the target stripe-node installed, and records the errors that upgrade introduces as `validation.typeOracle` ([architecture](ARCHITECTURE.md#type-oracle)). It is evidence only: it can move a contract change from `unknown` to `reached`, and it is the type condition the AI patch gate uses, but it never clears a stop by itself.
+
+| Set (default flags)                      | Before | After: `e8f52e9` |
+| ---------------------------------------- | -----: | ---------------: |
+| l2-push-249: production validated, no AI |     80 |               80 |
+| l2-push-249: production validated, AI    |     80 |               80 |
+| heldout-30: production validated, no AI  |     10 |               10 |
+| heldout-30: production validated, AI     |     10 |               10 |
+
+- **Runs.** Before: l2-push-249 no AI [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), AI [40470122759](https://github.com/refit-dev/refit-bench/actions/runs/40470122759) with its failed shard rerun as [40544895386](https://github.com/refit-dev/refit-bench/actions/runs/40544895386); heldout-30 no AI [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890), AI [40470125581](https://github.com/refit-dev/refit-bench/actions/runs/40470125581). After, at `e8f52e9b`: l2-push-249 no AI [40545715035](https://github.com/refit-dev/refit-bench/actions/runs/40545715035), AI [40545759381](https://github.com/refit-dev/refit-bench/actions/runs/40545759381); heldout-30 no AI [40545721985](https://github.com/refit-dev/refit-bench/actions/runs/40545721985), AI [40545751982](https://github.com/refit-dev/refit-bench/actions/runs/40545751982). AI runs used `-f ai=true` with a $200 budget on l2-push-249 and $30 on heldout-30.
+- **No outcome changed.** `node scripts/stripe-benchmark-compare.mjs` finds every compared field identical on 249 of 249 rows without AI and on 30 of 30 heldout rows in both modes. With AI, kondax-com/Bocker failed its baseline check in the after run, so no patch was checked there; it stops `needs-review` in both runs. No patch was newly published, so there was nothing new to review.
+- **Where the oracle ran.** On l2-push-249 it compared type errors on 146 rows; the other 103 do not upgrade stripe-node with prepared dependencies of their own or have no type check. The patched code had no new type errors on 134 of the 146. It moved 5 changes to `reached` on 4 rows, all of which already stopped for other reasons.
+- **Not measured:** publication and the hosted worker.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).
