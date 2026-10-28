@@ -538,6 +538,23 @@ The deterministic repair asserts the narrower type at the site where a widened S
 - **Reviewed.** Every new or changed patch that validates, or is new, was applied to a clone at its pinned commit and read in full: warranty-watcher, drivetimetales and hackerai `correct`, Sasu8823 `correct-partial` ([fix-reviews.json](benchmarks/fix-reviews.json)).
 - **What still stops.** On l2-push-249 the larger blockers are unchanged: stripe-node upgrades refused by dependency preparation (18 rows) and pin moves that fail the repository's checks (9). Getters that return a module client (puneethkotha/Zapd, geallenboy/ai-saas-template) and unconfirmed clients still stop.
 - **Not measured:** AI patches, publication and the hosted worker.
+## Runtime stand-ins and generated clients (October 28)
+
+Generated stripe-mock checks call exported functions around each finding, and most stopped before their Stripe call on a database, a Supabase table or a session (data: [`2026-10-28-runtime-blockers.json`](benchmarks/2026-10-28-runtime-blockers.json)). `feat/runtime-stand-ins` adds stand-ins in Refit's own harness only (a `@prisma/client` built from the committed schema, answers at the placeholder service URL, NextAuth v4 and Clerk sessions; never Stripe), and generates the Prisma client before every check, by default since the founder's decision of October 28 ([Dependencies](DEPENDENCIES.md#generated-clients)).
+
+| Set (no AI)                                    | Before: main `89f1c0ed` | Stand-ins: `6773b135` | Stand-ins and generated clients: `6773b135 --generate-clients` |
+| ---------------------------------------------- | ----------------------: | --------------------: | -------------------------------------------------------------: |
+| l2-push-249: production validated              |                      84 |                    84 |                                                             84 |
+| l2-push-249: rows whose generated check ran    |                       5 |                    25 |                                                             25 |
+| l2-push-249: rows with `@prisma/client` TS2305 |                      73 |                    73 |                                                              2 |
+| heldout-30: production validated               |                      10 |                    10 |                                                             10 |
+| heldout-30: rows whose generated check ran     |                       1 |                     6 |                                                              6 |
+
+- **Runs.** l2-push-249 (`-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`): before [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), stand-ins [40638303426](https://github.com/refit-dev/refit-bench/actions/runs/40638303426), with `-f flags=--generate-clients` [40638306398](https://github.com/refit-dev/refit-bench/actions/runs/40638306398). heldout-30 (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`): before [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669), stand-ins [40695266609](https://github.com/refit-dev/refit-bench/actions/runs/40695266609), with generated clients [40695271902](https://github.com/refit-dev/refit-bench/actions/runs/40695271902). Compared with `scripts/stripe-benchmark-compare.mjs`. `6be912a2` makes generation the default with no other change, so the flagged runs measure it.
+- **Nothing lost, nothing newly validated.** Outcomes are identical on all 249 and all 30 rows in every run, so no new `migration.patch` needed a review label. Patches are byte-identical except kondax-com/Bocker on l2, whose own timing test (`expected 100.7 to be less than 100`) failed its baseline in both after runs, with and without generation, so its patched checks did not run.
+- **Stand-ins.** 17 of the 25 l2 rows whose generated check passes used a stand-in (`validation.generated.standIns`): Prisma 9, PostgREST 7, Clerk 9 (some rows several); 8 rows reach the PostgREST stand-in and still stop later. No generated check counted a regression. Generated checks never raise the grade above D, so grades are unchanged.
+- **Generated clients.** Type checks lose the missing-client errors in 71 of 73 l2 rows and change their error counts in 10 heldout rows, with no introduced error added; brandbite/brandbite's test baseline passes, and its draft stays `[Needs review]` for its other blockers.
+- **Not measured:** AI patches, publication, behaviour tests and the hosted worker.
 
 ## Before and after the overnight merges (October 22)
 
