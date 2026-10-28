@@ -36,14 +36,23 @@ function registryTarball(source: string | undefined) {
 }
 
 // Yarn 1 declares workspaces as an array or `{ packages }`; nohoist changes the layout.
+// Yarn 1 globs each pattern on its own (Config.resolveWorkspaces), so it has no `!` exclusion.
 export function yarnWorkspacePatterns(manifest: Record<string, unknown>) {
   const workspaces = manifest.workspaces;
-  if (workspaces === undefined || Array.isArray(workspaces)) return workspaces;
-  if (isObject(workspaces) && Object.keys(workspaces).join(',') === 'packages')
-    return workspaces.packages;
-  throw new PipelineInputError(
-    'Yarn workspaces must be a pattern list or { packages }; nohoist requires a custom image.',
-  );
+  const patterns =
+    workspaces === undefined || Array.isArray(workspaces)
+      ? workspaces
+      : isObject(workspaces) && Object.keys(workspaces).join(',') === 'packages'
+        ? workspaces.packages
+        : undefined;
+  if (
+    (workspaces !== undefined && patterns === undefined) ||
+    (Array.isArray(patterns) && patterns.some((pattern) => String(pattern).startsWith('!')))
+  )
+    throw new PipelineInputError(
+      'Yarn workspaces must be a pattern list or { packages } without negations; nohoist requires a custom image.',
+    );
+  return patterns;
 }
 
 export function validateYarnInputs(

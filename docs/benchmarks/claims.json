@@ -17422,6 +17422,111 @@
         }
       ],
       "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "`feat/preparation-failures` accepts what npm and pnpm themselves accept in four lockfile and workspace shapes from the l2-push-249 triage ([preparation failures](PREPARATION-FAILURES.md#preparation-coverage-triage-2026-10-27)): an integrity that lists `sha1` beside a stronger hash, a lockfile record outside every `node_modules` directory, workspace negations after every positive pattern, and a pnpm workspace `bin` no importer links to.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated                   |                      84 |                84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows stopped on dependency preparation |                      53 |                51 |",
+      "values": [
+        {
+          "says": "53",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        },
+        {
+          "says": "51",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before, main at `6c6ff6a9`: l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `b884fe3e` (this branch with `6c6ff6a9` merged): l2-push-249 [40621391261](https://github.com/refit-dev/refit-bench/actions/runs/40621391261), heldout-30 [40621394549](https://github.com/refit-dev/refit-bench/actions/runs/40621394549).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40621425780",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40621428835",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40621391261",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40621394549",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **2 rows now prepare, none validates.** Shobhnik13/SynthAI passes both checks and keeps other stops; tomsoderlund/login-as-a-service's baseline fails. Small-Web-Co/tinypivot and inventashif/hackerai pass the fixed checks and stop on real lockfile drift and a Node 24 engine requirement. No patch newly validates.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        },
+        {
+          "says": "24",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        }
+      ],
+      "ignore": []
     }
   ]
 }

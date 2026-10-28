@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 28 checkpoint: preparation inputs npm and pnpm accept (unreleased, after 0.39.0)
+
+Dependency preparation accepts an integrity listing `sha1` beside a stronger hash and lockfile records outside every `node_modules` directory (`pipeline/npm-lock.ts`), workspace negations after every positive pattern (`pipeline/npm-lock.ts`, `pipeline/pnpm-inputs.ts`, `pipeline/yarn-inputs.ts`), and a pnpm workspace `bin` no importer links to (`pipeline/pnpm-inputs.ts`). On refit-bench without AI, rows stopped on dependency preparation on l2-push-249 fall from 53 to 51; validated stays at 84 and 10 ([benchmarks](BENCHMARKS.md#preparation-inputs-npm-and-pnpm-accept-october-28)). Tests: `pipeline/npm-lock.test.ts`, `pipeline/npm-workspaces.test.ts`, `pipeline/pnpm-inputs.test.ts`.
+
 ## October 27 checkpoint: response reads through copies, helpers and nested owners (unreleased, after 0.39.0)
 
 The analyzer (`pipeline/analyzer.ts`) traces response objects through `at`/`find` and `filter`/`slice` copies, through private helpers' returns and the parameters every call passes the same object (review confidence, unless the parameter's declared type names the Stripe object), and a Subscription's `items` list (`pipeline/operation-reach.ts`). Writes to untraced objects and values of free-form string maps are not reads. On refit-bench without AI, l2-push-249 goes from 84 to 86 validated and heldout-30 stays at 10 ([benchmarks](BENCHMARKS.md#response-reads-through-copies-helpers-and-nested-owners-october-27)). Tests: `pipeline/stripe-list-traces.test.ts`, `pipeline/operation-reach.test.ts`.

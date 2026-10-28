@@ -461,6 +461,20 @@ An `apiVersion` pin was `api-version-untraced` whenever its client could escape 
 - **What still stops.** 16 l2-push-249 rows keep an untraced version, from clients passed to helpers Refit cannot read, class bindings, or ambiguous aliases. Webhook endpoint versions are unchanged by this lane, and failed pin-move errors on `api-version-kept` drafts are still not recorded.
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## Preparation inputs npm and pnpm accept (October 28)
+
+`feat/preparation-failures` accepts what npm and pnpm themselves accept in four lockfile and workspace shapes from the l2-push-249 triage ([preparation failures](PREPARATION-FAILURES.md#preparation-coverage-triage-2026-10-27)): an integrity that lists `sha1` beside a stronger hash, a lockfile record outside every `node_modules` directory, workspace negations after every positive pattern, and a pnpm workspace `bin` no importer links to.
+
+| Set (no AI, default flags)                          | Before: main `6c6ff6a9` | After: `b884fe3e` |
+| --------------------------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated                   |                      84 |                84 |
+| l2-push-249: rows stopped on dependency preparation |                      53 |                51 |
+| heldout-30: production validated                    |                      10 |                10 |
+
+- **Runs.** Before, main at `6c6ff6a9`: l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `b884fe3e` (this branch with `6c6ff6a9` merged): l2-push-249 [40621391261](https://github.com/refit-dev/refit-bench/actions/runs/40621391261), heldout-30 [40621394549](https://github.com/refit-dev/refit-bench/actions/runs/40621394549).
+- **2 rows now prepare, none validates.** Shobhnik13/SynthAI passes both checks and keeps other stops; tomsoderlund/login-as-a-service's baseline fails. Small-Web-Co/tinypivot and inventashif/hackerai pass the fixed checks and stop on real lockfile drift and a Node 24 engine requirement. No patch newly validates.
+- **Not measured:** AI patches, publication and the hosted worker.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).
