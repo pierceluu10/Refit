@@ -4,6 +4,72 @@
   "criteria": "The first 30 entries, in order, of the output of: node_modules/.bin/tsx scripts/stripe-active-select.mjs --work <dir> --output <candidates.json> --frozen-at 2026-10-28 --limit 80, with --exclude for each of the 117 lists under docs/benchmarks/ that has a repos array. 44 candidates were left. Selector criteria: The fresh set's 13 GitHub code searches, each split into 5 file-size ranges, excluding the 2304 repositories of the excluded lists. Kept: not archived, not a fork, under 50 MB; a default-branch commit since 2026-07-30 with at least 2 distinct human commit authors in that window (bots excluded); a .github/workflows directory; stripe declared in the root package.json; exactly one root lockfile (package-lock.json, pnpm-lock.yaml or yarn.lock). The 80 most starred were cloned at their default-branch HEAD by this script, read only for their API version and deleted. The API version is the oldest literal apiVersion pin outside a commented-out line, else the locked stripe-node release; repositories without a pinned spec or already on 2026-09-30.endive are dropped.",
   "specs": [
     {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
       "repo": "mattogodoy/nametag",
       "stars": 1101,
       "commit": "a3a31ab7bcac080ecd0b019e06b1171b9eb0d3fe",
