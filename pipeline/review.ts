@@ -1308,7 +1308,7 @@ export function createReviewArtifacts(
             explanations
               .map(
                 (note) =>
-                  `- ${code(`${note.file}:${note.line}`)} Build error: ${code(note.error.length > MAX_QUOTE ? `${note.error.slice(0, MAX_QUOTE)}...` : note.error)}. Change: ${plainText(note.why)} Source: ${/^https:\/\/\S+$/.test(note.source) ? note.source : '**none: no documentation page backs this edit.**'}`,
+                  `- ${code(`${note.file}:${note.line}`)} Build error: ${code(note.error.length > MAX_QUOTE ? `${note.error.slice(0, MAX_QUOTE)}...` : note.error)} Change: ${plainText(note.why)} Source: ${/^https:\/\/\S+$/.test(note.source) ? note.source : '**none: no documentation page backs this edit.**'}`,
               )
               .join('\n'),
           ]
