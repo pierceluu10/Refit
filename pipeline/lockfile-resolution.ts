@@ -187,14 +187,9 @@ export async function resolveNpmLockfile(options: {
 }
 
 type Snapshot = Awaited<ReturnType<typeof readCommittedRepository>>;
-// Lockfiles of other managers: their projects are not resolved through npm.
-const OTHER_LOCKFILES = [
-  'pnpm-lock.yaml',
-  'yarn.lock',
-  'bun.lock',
-  'bun.lockb',
-  'npm-shrinkwrap.json',
-];
+// Lockfiles of other managers: their projects are not resolved through npm. Binary bun.lockb is
+// absent: preparation cannot read it and already prepares such projects as npm.
+const OTHER_LOCKFILES = ['pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'npm-shrinkwrap.json'];
 
 // The committed snapshot with a resolved package-lock.json in place of the refused or missing one,
 // for a root npm project whose preparation refused for `reason`; undefined when resolution does not
