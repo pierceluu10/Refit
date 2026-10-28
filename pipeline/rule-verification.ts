@@ -19,6 +19,16 @@ export interface RuleEvidence {
 type CheckedRule = (FieldMove | RequestMove) & Pick<RuleProvenance, 'quote' | 'diff' | 'also'>;
 
 const removedRequestText = (parameter: string) => `removed the request property \`${parameter}\``;
+export const removedEnumValueText = (parameter: string, value: string) =>
+  `removed the enum value \`${value}\` of the request property \`${parameter}\``;
+// The oasdiff entry a request move answers.
+const answered = (rule: RequestMove) =>
+  rule.family === 'request-enum-value'
+    ? {
+        id: 'request-property-enum-value-removed',
+        text: removedEnumValueText(rule.parameter, rule.value!),
+      }
+    : { id: 'request-property-removed', text: removedRequestText(rule.parameter) };
 
 function schemas(document: Record<string, unknown>) {
   return isObject(document.components) && isObject(document.components.schemas)
@@ -106,9 +116,10 @@ function requestMoveProblems(
   evidence: RuleEvidence,
 ) {
   const problems: string[] = [];
+  const expected = answered(rule);
   if (
-    entry.id !== 'request-property-removed' ||
-    entry.text !== removedRequestText(rule.parameter) ||
+    entry.id !== expected.id ||
+    entry.text !== expected.text ||
     !rule.operations.includes(String(entry.operationId))
   )
     problems.push('the diff entry does not remove the parameter on an operation the rule moves');
@@ -124,12 +135,12 @@ function requestMoveProblems(
     if (
       !evidence.diff.some(
         (change) =>
-          change.id === 'request-property-removed' &&
+          change.id === expected.id &&
           change.operationId === operationId &&
-          change.text === removedRequestText(rule.parameter),
+          change.text === expected.text,
       )
     )
-      problems.push(`the diff does not remove ${rule.parameter} from ${operationId}`);
+      problems.push(`the diff does not remove ${rule.value ?? rule.parameter} from ${operationId}`);
     const old = before.get(operationId);
     const current = after.get(operationId);
     const oldBody = old && bodySchema(old, evidence.before);

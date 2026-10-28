@@ -88,6 +88,7 @@ const candidate = (overrides: Partial<Candidate>): Candidate => ({
   parameter: '',
   replacement: '',
   discriminator: '',
+  value: '',
   quote: QUOTE,
   warning: 'Reads go through a helper.',
   rationale: 'The page names the new location.',
@@ -223,6 +224,68 @@ describe('rule generation', () => {
     expect(
       complete({ ...wrap, operations: ['POST /v1/coupons'] }, wrapEvidence(['coupon'])),
     ).toEqual({ reason: 'an operation is not in the before contract' });
+  });
+
+  it('checks an enum successor against both contracts and the diff', () => {
+    const checkout = (values: string[]) => ({
+      '/v1/checkout/sessions': {
+        post: {
+          operationId: 'PostCheckoutSessions',
+          requestBody: {
+            content: {
+              'application/x-www-form-urlencoded': {
+                schema: {
+                  type: 'object',
+                  properties: { ui_mode: { type: 'string', enum: values } },
+                },
+              },
+            },
+          },
+          responses: {},
+        },
+      },
+    });
+    const evidence = (after: string[]): RuleEvidence => ({
+      pages: new Map([[SOURCE, page(`# Example\n\n${QUOTE}`)]]),
+      before: document({}, checkout(['custom', 'embedded', 'hosted'])),
+      after: document({}, checkout(after)),
+      diff: [
+        {
+          id: 'request-property-enum-value-removed',
+          text: 'removed the enum value `embedded` of the request property `ui_mode`',
+          operation: 'POST',
+          operationId: 'PostCheckoutSessions',
+          path: '/v1/checkout/sessions',
+        },
+      ],
+    });
+    const successor = candidate({
+      family: 'request-enum-value',
+      operations: ['POST /v1/checkout/sessions'],
+      parameter: 'ui_mode',
+      value: 'embedded',
+      replacement: 'embedded_page',
+    });
+    const outcome = complete(successor, evidence(['elements', 'embedded_page', 'hosted_page']));
+    expect(outcome).toHaveProperty('rule');
+    expect((outcome as { rule: TableRule }).rule).toMatchObject({
+      family: 'request-enum-value',
+      operations: ['PostCheckoutSessions'],
+      value: 'embedded',
+      replacement: 'embedded_page',
+      diff: { id: 'request-property-enum-value-removed' },
+      status: 'review-only',
+    });
+    // A successor the after contract does not accept, or a value the diff does not remove.
+    expect(complete(successor, evidence(['elements', 'hosted_page']))).toEqual({
+      reason: 'the contracts do not agree with the request-enum-value on PostCheckoutSessions',
+    });
+    expect(
+      complete({ ...successor, value: 'hosted' }, evidence(['elements', 'embedded_page'])),
+    ).toEqual({ reason: 'the diff does not remove hosted' });
+    expect(complete({ ...successor, value: '' }, evidence(['embedded_page']))).toEqual({
+      reason: 'a request enum value needs the removed value',
+    });
   });
 
   it('counts field moves split across pages as one reproduction', () => {

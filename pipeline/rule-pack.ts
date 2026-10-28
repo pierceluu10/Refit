@@ -46,16 +46,19 @@ export type FieldMove = FieldMoveBase &
       }
   );
 
-// A removed request parameter whose documented replacement sends the same request.
+// A removed request parameter whose documented replacement sends the same request, or a removed
+// enum value of a request parameter whose documented successor replaces it.
 export interface RequestMove {
   rule: string;
   // `request-rename` sends the value under `replacement`; `request-wrap` sends
-  // `replacement: { type: discriminator, [parameter]: value }`.
-  family: 'request-rename' | 'request-wrap';
+  // `replacement: { type: discriminator, [parameter]: value }`; `request-enum-value` sends the
+  // literal `value` of `parameter` as `replacement`.
+  family: 'request-rename' | 'request-wrap' | 'request-enum-value';
   operations: string[];
   parameter: string;
   replacement: string;
   discriminator?: string;
+  value?: string;
   source: string;
   warning: string;
 }
@@ -105,7 +108,8 @@ export interface RulePack {
 }
 
 export const FIELD_FAMILIES = new Set(['moved-value', 'moved-id', 'period-helper']);
-export const REQUEST_FAMILIES = new Set(['request-rename', 'request-wrap']);
+export const REQUEST_FAMILIES = new Set(['request-rename', 'request-wrap', 'request-enum-value']);
+const ENUM_VALUE = /^[A-Za-z0-9_.-]+$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const SOURCE = /^https:\/\/\S+$/;
 const RELEASE = /^\d+\.\d+\.\d+$/;
@@ -173,9 +177,14 @@ export function checkRequestMove(file: string, entry: unknown, rules: Set<string
     !strings(entry.operations) ||
     typeof entry.parameter !== 'string' ||
     typeof entry.replacement !== 'string' ||
-    !IDENTIFIER.test(entry.replacement)
+    !(entry.family === 'request-enum-value' ? ENUM_VALUE : IDENTIFIER).test(entry.replacement)
   )
     fail(file, `${entry.rule} needs operations, a parameter and a replacement.`);
+  if (
+    entry.family === 'request-enum-value' &&
+    (typeof entry.value !== 'string' || !ENUM_VALUE.test(entry.value))
+  )
+    fail(file, `${entry.rule} needs the removed enum value.`);
   if (entry.family === 'request-wrap' && typeof entry.discriminator !== 'string')
     fail(file, `${entry.rule} needs a discriminator.`);
 }

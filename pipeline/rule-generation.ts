@@ -12,7 +12,7 @@ import {
   type RequestMove,
   type TableRule,
 } from './rule-pack.ts';
-import { verifyRule, type RuleEvidence } from './rule-verification.ts';
+import { removedEnumValueText, verifyRule, type RuleEvidence } from './rule-verification.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { HELPER_TARGETS, PERIOD_HELPERS } from './stripe-subscription-periods.ts';
 import { PipelineInputError } from './types.ts';
@@ -36,6 +36,7 @@ Propose a rule only where the page names an exact one-to-one replacement that ke
 - "period-helper": a period field moved from a parent object onto its child items.
 - "request-rename": a request parameter renamed, with the same value and shape.
 - "request-wrap": a removed request parameter whose value is sent inside a new wrapper object as { type: <discriminator>, <parameter>: value }.
+- "request-enum-value": a removed enum value of a request parameter that the page says a new value replaces; one rule per removed value.
 
 Propose nothing for changes without an exact replacement: removed fields with no equivalent, behaviour changes, new error codes, values that change meaning, lists that replace a single value, Stripe.js, API v2. A missing rule is safe; a wrong rule edits customer code wrongly.
 
@@ -46,6 +47,7 @@ Fields, all required; use "" or [] where a field does not apply to the family:
 - targets: every new location, as a component schema name followed by properties ("invoice.parent.subscription_details.subscription"); for "period-helper" the parent's list property and each item property ("subscription.items", "subscription_item.current_period_end"). Field families only.
 - operations: every affected request as "METHOD /v1/path" ("POST /v1/promotion_codes"). Request families only.
 - parameter, replacement: the removed request parameter and its replacement; discriminator: the wrapper's type value ("request-wrap" only).
+- value: the removed enum value; parameter is the request parameter and replacement the value that replaces it ("request-enum-value" only).
 - quote: one sentence or table row copied character for character from the page that states the change. Copy it exactly, including backticks and punctuation; do not join or shorten text.
 - warning: one or two sentences for a reviewer saying what the edit does.
 - rationale: why the page shows the replacement keeps behaviour.
@@ -71,6 +73,7 @@ const SCHEMA = {
           'parameter',
           'replacement',
           'discriminator',
+          'value',
           'quote',
           'warning',
           'rationale',
@@ -84,6 +87,7 @@ const SCHEMA = {
           parameter: { type: 'string' },
           replacement: { type: 'string' },
           discriminator: { type: 'string' },
+          value: { type: 'string' },
           quote: { type: 'string' },
           warning: { type: 'string' },
           rationale: { type: 'string' },
@@ -102,6 +106,7 @@ export interface Candidate {
   parameter: string;
   replacement: string;
   discriminator: string;
+  value: string;
   quote: string;
   warning: string;
   rationale: string;
@@ -129,6 +134,7 @@ export function parseCandidates(content: string): Candidate[] {
       !text(item.parameter, true) ||
       !text(item.replacement, true) ||
       !text(item.discriminator, true) ||
+      !text(item.value, true) ||
       !text(item.quote) ||
       !text(item.warning) ||
       !text(item.rationale)
@@ -374,20 +380,34 @@ export function completeCandidate(
       return { reason: 'a request move needs a parameter and a replacement' };
     if (candidate.family === 'request-wrap' && !candidate.discriminator)
       return { reason: 'a request wrap needs a discriminator' };
+    const enumValue = candidate.family === 'request-enum-value';
+    if (enumValue && !candidate.value)
+      return { reason: 'a request enum value needs the removed value' };
     diff = evidence.diff.find(
       (change) =>
-        change.id === 'request-property-removed' &&
         change.operationId === ids[0] &&
-        change.text === `removed the request property \`${candidate.parameter}\``,
+        (enumValue
+          ? change.id === 'request-property-enum-value-removed' &&
+            change.text === removedEnumValueText(candidate.parameter, candidate.value)
+          : change.id === 'request-property-removed' &&
+            change.text === `removed the request property \`${candidate.parameter}\``),
     );
-    if (!diff) return { reason: `the diff does not remove ${candidate.parameter}` };
+    if (!diff)
+      return {
+        reason: `the diff does not remove ${enumValue ? candidate.value : candidate.parameter}`,
+      };
     move = {
-      rule: ruleName(context.version, [candidate.parameter, candidate.replacement]),
+      rule: ruleName(context.version, [
+        candidate.parameter,
+        ...(enumValue ? [candidate.value] : []),
+        candidate.replacement,
+      ]),
       family: candidate.family as RequestMove['family'],
       operations: (ids as string[]).sort(),
       parameter: candidate.parameter,
       replacement: candidate.replacement,
       ...(candidate.family === 'request-wrap' ? { discriminator: candidate.discriminator } : {}),
+      ...(enumValue ? { value: candidate.value } : {}),
       ...provenance,
     };
   }
@@ -427,6 +447,7 @@ export function behaviour(move: FieldMove | RequestMove) {
     parameter: move.parameter,
     replacement: move.replacement,
     discriminator: move.discriminator ?? null,
+    value: move.value ?? null,
   });
 }
 

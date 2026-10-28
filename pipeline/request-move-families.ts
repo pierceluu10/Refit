@@ -54,19 +54,33 @@ export function requestMove(
   after: Contract,
 ): string | undefined {
   const move = STRIPE_PACK.requestMoves.find(
-    (entry) => entry.parameter === parameter && entry.operations.includes(operationId),
+    (entry) =>
+      entry.family !== 'request-enum-value' &&
+      entry.parameter === parameter &&
+      entry.operations.includes(operationId),
   );
   return move && requestMoveMatches(move, before, after) ? move.replacement : undefined;
 }
 
 // Whether both contracts agree with a move: a rename needs the same shape under the new name; a
 // wrap needs a required string in the before body, and an after body whose replacement holds that
-// string beside a `type` accepting the discriminator.
+// string beside a `type` accepting the discriminator; an enum value needs a parameter whose before
+// enum has the value and whose after enum has the replacement and not the value.
 export function requestMoveMatches(move: RequestMove, before: Contract, after: Contract) {
   const old = isObject(before.schema.properties)
     ? before.schema.properties[move.parameter]
     : undefined;
   const target = isObject(after.schema.properties) ? after.schema.properties : {};
+  if (move.family === 'request-enum-value') {
+    const [was, now] = [local(old, before.document), local(target[move.parameter], after.document)];
+    return Boolean(
+      Array.isArray(was?.enum) &&
+      Array.isArray(now?.enum) &&
+      was.enum.includes(move.value) &&
+      !now.enum.includes(move.value) &&
+      now.enum.includes(move.replacement),
+    );
+  }
   if (move.family === 'request-rename') {
     const renamed = target[move.replacement];
     return Boolean(
@@ -117,7 +131,10 @@ export function requestMoveEdit(
   if (ts.isShorthandPropertyAssignment(property) && property.objectAssignmentInitializer)
     return { reason: 'Request shorthand initializers require review.' };
   const move = STRIPE_PACK.requestMoves.find(
-    (entry) => entry.replacement === replacement && entry.parameter === parameter,
+    (entry) =>
+      entry.family !== 'request-enum-value' &&
+      entry.replacement === replacement &&
+      entry.parameter === parameter,
   )!;
   if (move.family === 'request-rename') {
     if (names.includes(replacement))
