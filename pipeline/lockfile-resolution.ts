@@ -172,7 +172,8 @@ export async function resolveNpmLockfile(options: {
     if (!isObject(output) || typeof output.lockfile !== 'string' || !isObject(output.late))
       throw new LockfileResolutionError('Lockfile resolution did not produce a lockfile.');
     return {
-      lockfile: output.lockfile,
+      lockfile:
+        options.seed === undefined ? output.lockfile : keepSeedNames(options.seed, output.lockfile),
       before: options.before,
       late: output.late as ResolvedLockfile['late'],
     };
@@ -302,6 +303,27 @@ function reachedWithout(packages: Record<string, unknown>, skip: Set<string>) {
   return seen;
 }
 
+// npm names a lockfile after the directory it resolved in when package.json has no name; keep the
+// names the committed lockfile records, in npm's own layout, so the shipped lockfile renames nothing.
+export function keepSeedNames(seed: string, lockfile: string) {
+  const [old, lock] = [parseJson(seed), parseJson(lockfile)];
+  if (!isObject(old) || !isObject(lock) || !isObject(lock.packages)) return lockfile;
+  const root = isObject(lock.packages['']) ? lock.packages[''] : undefined;
+  const oldRoot = isObject(old.packages) && isObject(old.packages['']) ? old.packages[''] : {};
+  if (lock.name === old.name && (!root || root.name === oldRoot.name)) return lockfile;
+  const named = (entry: Record<string, unknown>, name: unknown) => {
+    const { name: _, ...rest } = entry;
+    return name === undefined ? rest : { name, ...rest };
+  };
+  const kept = {
+    ...named(lock, old.name),
+    packages: root ? { ...lock.packages, '': named(root, oldRoot.name) } : lock.packages,
+  };
+  const indent = /^\{\r?\n([ \t]+)"/.exec(lockfile)?.[1] ?? '  ';
+  const eol = lockfile.includes('\r\n') ? '\r\n' : '\n';
+  return JSON.stringify(kept, null, indent).replace(/\n/g, eol) + eol;
+}
+
 // The lockfile keys that change between two npm lockfiles outside `names` and the packages only
 // they reach; empty when the change stays inside them.
 export function changesOutside(before: string, after: string, names: string[]) {
@@ -312,20 +334,17 @@ export function changesOutside(before: string, after: string, names: string[]) {
   const [old, changed] = [packages(before), packages(after)];
   const skip = new Set(names);
   const shared = new Set([...reachedWithout(old, skip), ...reachedWithout(changed, skip)]);
-  // The root record's own declarations of `names` are the upgrade itself, and npm fills a
-  // missing package.json name from the directory it resolved in.
+  // The root record's own declarations of `names` are the upgrade itself.
   const root = (entry: unknown) =>
     JSON.stringify(
       isObject(entry)
         ? Object.fromEntries(
-            Object.entries(entry)
-              .filter(([key]) => key !== 'name')
-              .map(([key, value]) => [
-                key,
-                isObject(value)
-                  ? Object.fromEntries(Object.entries(value).filter(([name]) => !skip.has(name)))
-                  : value,
-              ]),
+            Object.entries(entry).map(([key, value]) => [
+              key,
+              isObject(value)
+                ? Object.fromEntries(Object.entries(value).filter(([name]) => !skip.has(name)))
+                : value,
+            ]),
           )
         : entry,
     );

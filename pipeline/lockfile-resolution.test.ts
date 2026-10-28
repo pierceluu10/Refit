@@ -8,6 +8,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies } from './dependency-preparation.ts';
 import {
   changesOutside,
+  keepSeedNames,
   lockfileResolutionEnabled,
   resolvedLockfileSnapshot,
   resolveNpmLockfile,
@@ -121,10 +122,15 @@ it('finds no change outside stripe, the raised peer and the packages only they r
   // undici-types moves from 5.26.5 to 6.21.0, reached only through @types/node.
   expect(JSON.parse(after).packages['node_modules/undici-types'].version).toBe('6.21.0');
   expect(changesOutside(before, after, ['stripe', '@types/node'])).toEqual([]);
-  // npm names an unnamed root after the directory it resolved in.
+  // npm names an unnamed root after the directory it resolved in; the committed names are kept.
   const renamed = JSON.parse(after);
-  renamed.packages[''].name = 'workspace';
-  expect(changesOutside(before, JSON.stringify(renamed), ['stripe', '@types/node'])).toEqual([]);
+  const { name: _, ...root } = renamed.packages[''];
+  renamed.name = 'workspace';
+  renamed.packages[''] = root;
+  const renamedText = `${JSON.stringify(renamed, null, 2)}\n`;
+  expect(changesOutside(before, renamedText, ['stripe', '@types/node'])).toEqual(['']);
+  expect(keepSeedNames(before, renamedText)).toBe(after);
+  expect(keepSeedNames(before, after)).toBe(after);
   // Without @types/node as a raised peer, its move and undici-types' are outside.
   expect(changesOutside(before, after, ['stripe'])).toEqual([
     '',
