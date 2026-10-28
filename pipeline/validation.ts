@@ -34,6 +34,13 @@ import {
 import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { droppedRequestPaths, untouchedCalls, untracedEdits } from './ai-patch-policies.ts';
+import {
+  notStripe,
+  type ProbedRead,
+  readReceiverProbe,
+  writeReceiverProbe,
+} from './receiver-probe.ts';
+import { SOURCE } from './stripe-ground-truth.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
@@ -169,7 +176,12 @@ interface CoverageAttempt {
   // Owner decision D2b for contract changes: response changes whose only reach was untraced reads
   // of the repository's own objects, with those reads; they no longer block.
   localReach?: { change: string; reads: ReturnType<typeof unresolvedSites> }[];
+  // What the receiver probe found each untraced read reads (receiver-probe.ts), as evidence.
+  receivers?: ProbedRead[];
 }
+// Receiver probe results kept in the report; the probe's own run has the rest.
+const MAX_PROBED_READS = 200;
+const RECEIVER_PROBE_MOUNT = '/refit/receivers';
 // Contract changes named per traced call in a coverage target; the run report has the rest.
 const MAX_TARGET_CHANGES = 3;
 // Lines a D2 gate failure names; the run report has the rest.
@@ -2564,9 +2576,41 @@ export async function validateMigration(options: {
           unresolvedFindings: proposal.unresolvedFindings - operationUsages,
         };
     }
+    // The receiver probe on the candidate with its own install; undefined where the candidate has
+    // none, Refit checks a nested package, or the probe did not finish.
+    const probeReceivers = async (found: readonly Finding[]) => {
+      if (!candidateSources || dependencyFailure || packageDirectory) return undefined;
+      if (!candidateDependencies || candidateDependencies === dependencies) return undefined;
+      const input = await sandboxInput(root, 'receivers-input-');
+      const command = await writeReceiverProbe(
+        input,
+        RECEIVER_PROBE_MOUNT,
+        candidateSources.files
+          .map((file) => file.path)
+          .filter((path) => SOURCE.test(path) && !TEST_PATH.test(path)),
+        found,
+      );
+      if (!command) return undefined;
+      const directory = await sandboxInput(root, 'receivers-');
+      await applyPatch(archive, directory, `${directory}.patch`, proposal.diff);
+      options.onProgress?.('Checking what object each untraced read reads...');
+      const result = await timed('receiverProbe', () =>
+        containerCheck({
+          directory,
+          image,
+          command,
+          dependencies: candidateDependencies,
+          readOnlyMounts: [...typescriptMount(), { source: input, target: RECEIVER_PROBE_MOUNT }],
+          signal: options.signal,
+          ...sandbox,
+        }),
+      ).catch(() => undefined);
+      return result?.status === 'passed' ? readReceiverProbe(result.stdout) : undefined;
+    };
     // Owner decision D2b (2026-10-27): where the AI left an untraced read unchanged (it proposed
     // nothing more, or its kept patch passed the D2 gate), the read stops counting only when the
-    // type oracle passed and TypeScript's checker shows its receiver is the repository's own type.
+    // type oracle passed and TypeScript's checker shows its receiver is not a Stripe type: in the
+    // sandbox with the candidate's own install (receiver-probe.ts), else the repository's own type.
     // shortcut: a Stripe object assigned to a repository type with the field optional is not seen;
     // upgrade by following assignments into the receiver if a review finds one.
     if (
@@ -2574,28 +2618,39 @@ export async function validateMigration(options: {
       coverage &&
       candidateSources &&
       (coverage.outcome === 'no-proposal' || coverage.gate?.passed) &&
-      typeOraclePasses(typeOracle) &&
-      'unresolvedSites' in proposal &&
-      proposal.unresolvedSites
+      typeOraclePasses(typeOracle)
     ) {
-      const reads = analyzeRepository(
-        { ...originalSources, files: candidateSources.files },
-        report.changes,
-        report.adapter,
-        beforeSpecification.schemas,
-      ).findings.filter((finding) => finding.untraced && !TEST_PATH.test(finding.file));
-      const local = localReceiverReads(candidateSources, reads);
-      const left = resolvedSites(proposal.unresolvedSites, unresolvedSites(local));
-      if (local.length && left.length === proposal.unresolvedSites.length - local.length) {
-        coverage.localReads = unresolvedSites(local);
-        proposal = {
-          ...proposal,
-          unresolvedFindings: proposal.unresolvedFindings - local.length,
-          unresolvedSites: left,
-        };
-      }
-      // The same evidence for a response change whose only reach is untraced reads of its name.
-      const reach = localReach({
+      const sites = 'unresolvedSites' in proposal ? (proposal.unresolvedSites ?? []) : [];
+      const reads = sites.length
+        ? analyzeRepository(
+            { ...originalSources, files: candidateSources.files },
+            report.changes,
+            report.adapter,
+            beforeSpecification.schemas,
+          ).findings.filter((finding) => finding.untraced && !TEST_PATH.test(finding.file))
+        : [];
+      // One probe in the sandbox, with the candidate's own install, for every read checked here;
+      // where it cannot run, the host's check counts only the repository's own declarations.
+      let probed: Promise<ProbedRead[] | undefined> | undefined;
+      const sandboxed = candidateSources;
+      const notStripeReads = async (found: readonly Finding[]) => {
+        probed ??= probeReceivers([...reads, ...found]);
+        const labels = await probed;
+        if (!labels) return localReceiverReads(sandboxed, found);
+        coverage.receivers = labels.slice(0, MAX_PROBED_READS);
+        return found.filter((read) =>
+          labels.some(
+            (label) =>
+              notStripe(label) &&
+              label.file === read.file &&
+              label.line === read.line &&
+              label.column === read.column &&
+              label.expression === read.expression,
+          ),
+        );
+      };
+      // A response change whose only reach is untraced reads of its name.
+      const reach = await localReach({
         changes: report.specificationDiff.changes as Record<string, unknown>[],
         impacts: report.operationImpacts,
         before: beforeSpecification.document as Record<string, unknown>,
@@ -2606,12 +2661,22 @@ export async function validateMigration(options: {
             report.adapter,
             beforeSpecification.schemas,
           ).findings,
-        local: (found) => localReceiverReads(candidateSources, found),
+        local: notStripeReads,
       });
+      const local = reads.length ? await notStripeReads(reads) : [];
+      const left = resolvedSites(sites, unresolvedSites(local));
+      if (local.length && left.length === sites.length - local.length) {
+        coverage.localReads = unresolvedSites(local);
+        proposal = {
+          ...proposal,
+          unresolvedFindings: proposal.unresolvedFindings - local.length,
+          unresolvedSites: left,
+        };
+      }
       if (reach.cleared.length) {
-        coverage.localReach = reach.cleared.map(({ change, reads }) => ({
+        coverage.localReach = reach.cleared.map(({ change, reads: cleared }) => ({
           change: `${String(change.operation).toUpperCase()} ${String(change.path)} ${String(change.text)}`,
-          reads: unresolvedSites(reads),
+          reads: unresolvedSites(cleared),
         }));
         // Calls traced only to cleared changes stop counting as unresolved, unless the D2 gate
         // already took every traced call off (above).

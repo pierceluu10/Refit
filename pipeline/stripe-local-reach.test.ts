@@ -56,9 +56,9 @@ const read = (line: number, extra: Partial<Finding> = {}): Finding => ({
   ...extra,
 });
 
-function run(reads: Finding[], local: (found: Finding[]) => Finding[]) {
+async function run(reads: Finding[], local: (found: Finding[]) => Finding[]) {
   const changes = [change()];
-  const result = localReach({
+  const result = await localReach({
     changes,
     impacts: [impact(changes[0].text)],
     before,
@@ -71,8 +71,8 @@ function run(reads: Finding[], local: (found: Finding[]) => Finding[]) {
   return { ...result, change: changes[0] };
 }
 
-it('clears a change whose every read is of the repository’s own object', () => {
-  const { cleared, impacts, change: updated } = run([read(4), read(9)], (found) => found);
+it('clears a change whose every read is of the repository’s own object', async () => {
+  const { cleared, impacts, change: updated } = await run([read(4), read(9)], (found) => found);
   expect(cleared).toHaveLength(1);
   expect(impacts).toEqual([]);
   expect(updated.reach).toBe('unused');
@@ -80,32 +80,33 @@ it('clears a change whose every read is of the repository’s own object', () =>
   expect(updated.reachReason).toContain('app/cart.ts:4, app/cart.ts:9');
 });
 
-it('keeps a change when one read is not shown to be the repository’s own', () => {
+it('keeps a change when one read is not shown to be the repository’s own', async () => {
   const {
     cleared,
     impacts,
     change: updated,
-  } = run([read(4), read(9)], (found) => found.filter((entry) => entry.line === 4));
+  } = await run([read(4), read(9)], (found) => found.filter((entry) => entry.line === 4));
   expect(cleared).toEqual([]);
   expect(impacts).toHaveLength(1);
   expect(updated.reach).toBe('unknown');
 });
 
-it('keeps a change with a traced or confirmed read, and one with no read at all', () => {
+it('keeps a change with a traced or confirmed read, and one with no read at all', async () => {
   const traced = { untraced: undefined, confidence: 'review' as const };
-  expect(run([read(4), read(9, traced)], (found) => found).cleared).toEqual([]);
+  expect((await run([read(4), read(9, traced)], (found) => found)).cleared).toEqual([]);
   expect(
-    run([read(4, { confidence: 'confirmed', untraced: undefined })], (found) => found).cleared,
+    (await run([read(4, { confidence: 'confirmed', untraced: undefined })], (found) => found))
+      .cleared,
   ).toEqual([]);
-  expect(run([], (found) => found).cleared).toEqual([]);
+  expect((await run([], (found) => found)).cleared).toEqual([]);
 });
 
-it('ignores reads in test files and leaves changes that are not unknown', () => {
+it('ignores reads in test files and leaves changes that are not unknown', async () => {
   expect(
-    run([read(4), read(2, { file: 'app/cart.test.ts' })], (found) => found).cleared,
+    (await run([read(4), read(2, { file: 'app/cart.test.ts' })], (found) => found)).cleared,
   ).toHaveLength(1);
   const reached = { ...change(), reach: 'reached' };
-  const result = localReach({
+  const result = await localReach({
     changes: [reached],
     impacts: [impact(reached.text)],
     before,
