@@ -102,7 +102,18 @@ Measured on 2026-10-27 with `node scripts/vendor-detection-benchmark.mjs` over 2
 
 ### Demo on GitHub Actions
 
-DEMO_PLACEHOLDER
+**Blocked: no installation delivery to replay.** `install-demo.yml` on refit-bench (refit-dev/refit-bench#8) replays a real installation delivery of the Refit GitHub App into `refit hosted serve` with PostgreSQL. On 2026-10-28 the App's delivery log was empty: the App has a webhook URL and 1 installation, but GitHub keeps App deliveries for only a few days and that installation is older, so the log held 0 deliveries (runs [40619123875](https://github.com/refit-dev/refit-bench/actions/runs/40619123875), [40619308303](https://github.com/refit-dev/refit-bench/actions/runs/40619308303) and [40619499838](https://github.com/refit-dev/refit-bench/actions/runs/40619499838) all stop at the fetch step). The existing installation and the App's settings were not touched to make one.
+
+To run it later:
+
+1. Make a new install event: install the App on an account, or add a repository to an installation (an `installation.created` or `installation_repositories.added` delivery). The live worker receives that delivery too; an account outside its `REFIT_HOSTED_ACCOUNTS` is recorded as not allowed and nothing is cloned.
+2. Within a few days, dispatch once with a full Refit commit SHA (`owner` and `delivery` are optional filters):
+
+   ```sh
+   gh workflow run install-demo.yml -R refit-dev/refit-bench -f commit=<full 40-character Refit SHA>
+   ```
+
+The job reads the delivery with the App JWT (secrets `REFIT_APP_ID` and `REFIT_APP_PRIVATE_KEY`, written to files and never printed), re-signs it with a webhook secret it generates, starts `refit hosted serve` with `REFIT_HOSTED_ACCOUNTS` set to the delivery's account and `REFIT_HOSTED_WATCH=1`, replays the delivery, waits for every inventory and watch capture, and writes the per-repository vendor table, labels and watch targets to the job summary and `demo.json`. Private repositories are counted, never named, because refit-bench's logs and artifacts are public.
 
 ## Sample: 28 frozen list entries, 25 repositories
 
