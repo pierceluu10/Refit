@@ -93,8 +93,8 @@ function registry() {
   );
 }
 
-it('is off unless REFIT_LOCKFILE_RESOLUTION is on, and rejects other values', () => {
-  expect(lockfileResolutionEnabled('')).toBe(false);
+it('is on unless REFIT_LOCKFILE_RESOLUTION is off, and rejects other values', () => {
+  expect(lockfileResolutionEnabled('')).toBe(true);
   expect(lockfileResolutionEnabled('off')).toBe(false);
   expect(lockfileResolutionEnabled('on')).toBe(true);
   expect(() => lockfileResolutionEnabled('yes')).toThrow(/must be on or off/);
@@ -121,6 +121,10 @@ it('finds no change outside stripe, the raised peer and the packages only they r
   // undici-types moves from 5.26.5 to 6.21.0, reached only through @types/node.
   expect(JSON.parse(after).packages['node_modules/undici-types'].version).toBe('6.21.0');
   expect(changesOutside(before, after, ['stripe', '@types/node'])).toEqual([]);
+  // npm names an unnamed root after the directory it resolved in.
+  const renamed = JSON.parse(after);
+  renamed.packages[''].name = 'workspace';
+  expect(changesOutside(before, JSON.stringify(renamed), ['stripe', '@types/node'])).toEqual([]);
   // Without @types/node as a raised peer, its move and undici-types' are outside.
   expect(changesOutside(before, after, ['stripe'])).toEqual([
     '',
@@ -261,7 +265,7 @@ it('resolves only root npm projects with registry dependencies, as configured', 
   const options = { image: 'node:22-alpine' };
   const snapshot = async (files: Record<string, string>) =>
     readCommittedRepository(await directory(files, true));
-  delete process.env.REFIT_LOCKFILE_RESOLUTION;
+  process.env.REFIT_LOCKFILE_RESOLUTION = 'off';
   expect(
     await resolvedLockfileSnapshot(
       await snapshot({ 'package.json': manifest }),

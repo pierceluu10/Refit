@@ -44,7 +44,7 @@ export class LockfileResolutionError extends PipelineInputError {
 // Off by default until the benchmark evidence is recorded; `on` enables resolution and the
 // types-only peer bump that uses it.
 export function lockfileResolutionEnabled(value = process.env.REFIT_LOCKFILE_RESOLUTION) {
-  const mode = value?.trim() || 'off';
+  const mode = value?.trim() || 'on';
   if (mode !== 'on' && mode !== 'off')
     throw new PipelineInputError('REFIT_LOCKFILE_RESOLUTION must be on or off.');
   return mode === 'on';
@@ -312,17 +312,20 @@ export function changesOutside(before: string, after: string, names: string[]) {
   const [old, changed] = [packages(before), packages(after)];
   const skip = new Set(names);
   const shared = new Set([...reachedWithout(old, skip), ...reachedWithout(changed, skip)]);
-  // The root record's own declarations of `names` are the upgrade itself.
+  // The root record's own declarations of `names` are the upgrade itself, and npm fills a
+  // missing package.json name from the directory it resolved in.
   const root = (entry: unknown) =>
     JSON.stringify(
       isObject(entry)
         ? Object.fromEntries(
-            Object.entries(entry).map(([key, value]) => [
-              key,
-              isObject(value)
-                ? Object.fromEntries(Object.entries(value).filter(([name]) => !skip.has(name)))
-                : value,
-            ]),
+            Object.entries(entry)
+              .filter(([key]) => key !== 'name')
+              .map(([key, value]) => [
+                key,
+                isObject(value)
+                  ? Object.fromEntries(Object.entries(value).filter(([name]) => !skip.has(name)))
+                  : value,
+              ]),
           )
         : entry,
     );

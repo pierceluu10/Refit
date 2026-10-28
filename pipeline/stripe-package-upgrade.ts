@@ -464,7 +464,12 @@ async function resolvedPeerUpgrade(
   const outside = changesOutside(lockText, resolved.lockfile, ['stripe', ...raised]);
   if (outside.length)
     return {
-      reason: `Raising ${raised.join(', ')} with stripe ${target} changes ${outside.slice(0, 5).join(', ')}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''} in package-lock.json, outside stripe, the raised peer and the packages only they reach.`,
+      reason: `Raising ${raised.join(', ')} with stripe ${target} changes ${outside
+        .slice(0, 5)
+        .map((key) => key || 'the root record')
+        .join(
+          ', ',
+        )}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''} in package-lock.json, outside stripe, the raised peer and the packages only they reach.`,
     };
   const lock = parseJson(resolved.lockfile);
   const packages = isObject(lock) && isObject(lock.packages) ? lock.packages : {};
