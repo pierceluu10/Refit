@@ -9,6 +9,7 @@ import { DependencyPreparationError, prepareDependencies } from './dependency-pr
 import {
   codeDiff,
   packageDiff,
+  samePatchLine,
   STRIPE_SDK_RELEASES,
   stripePackageUpgrade,
 } from './stripe-package-upgrade.ts';
@@ -1173,4 +1174,13 @@ it.each([
   registry();
   const result = await stripePackageUpgrade(await v6Project(lock), '2026-09-30.endive');
   expect(result).toMatchObject({ reason: expect.any(String) });
+});
+
+it('accepts a newer patch of the target stripe-node release, never another minor', () => {
+  expect(samePatchLine('23.0.0', '23.0.0')).toBe(true);
+  expect(samePatchLine('23.0.1', '23.0.0')).toBe(true);
+  expect(samePatchLine('23.1.0', '23.0.0')).toBe(false);
+  expect(samePatchLine('22.9.9', '23.0.0')).toBe(false);
+  expect(samePatchLine('23.0.1-beta.1', '23.0.0')).toBe(false);
+  expect(samePatchLine(undefined, '23.0.0')).toBe(false);
 });
