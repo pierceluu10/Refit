@@ -324,6 +324,25 @@ CREATE TABLE IF NOT EXISTS refit_worker_pause (
 ALTER TABLE refit_worker_pause ENABLE ROW LEVEL SECURITY;
 `),
   },
+  {
+    version: 12,
+    name: 'Vendor watch targets',
+    // One row per vendor an inventory detected whose catalog entry has an OpenAPI document or
+    // changelog pages. Repositories are read from refit_inventories, so a target never enrolls one.
+    up: (client) =>
+      client.query(`
+CREATE TABLE IF NOT EXISTS refit_watch_targets (
+  provider text PRIMARY KEY,
+  sources jsonb NOT NULL,
+  registered_at timestamptz NOT NULL DEFAULT now(),
+  checked_at timestamptz,
+  captures jsonb,
+  changed_at timestamptz,
+  error text
+);
+ALTER TABLE refit_watch_targets ENABLE ROW LEVEL SECURITY;
+`),
+  },
 ];
 
 // Reads the applied versions without creating anything. `unknown` lists versions a newer worker

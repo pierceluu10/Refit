@@ -40,6 +40,7 @@ import { openInventoryStore } from './inventory-store.ts';
 import { hostedAlerts } from './monitoring.ts';
 import { publishUnresolved } from './publication.ts';
 import { hostedReports } from './report-issues.ts';
+import { hostedWatch } from './vendor-watch.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
 import { PipelineInputError } from './types.ts';
@@ -81,6 +82,7 @@ inventory queues a read-only inventory of a repository installed by an allowed a
 jobs lists the newest ${JOBS_SHOWN} matching jobs. receipt prints one job's stored receipt and, on the machine that holds the evidence volume, its evidence files. targets lists each target's state, last job and last stored receipt. These commands only read PostgreSQL.
 health checks PostgreSQL, the Refit tables, the Docker daemon and every image in REFIT_HOSTED_IMAGES, and exits 1 if any check fails.
 REFIT_HOSTED_ALERTS=1 (off by default) makes serve monitor every approved, inventoried repository: it takes a new inventory after a default-branch push, a registry change or 24 hours (at most once per 10 minutes), and opens or updates one GitHub issue per repository and deadline 90, 30 and 7 days before it and when it passes. REFIT_HOSTED_ALERT_DIGEST=1 adds a weekly digest issue per repository listing every exposed deadline. It needs the App's Issues write permission, and push re-scans need the App's push event.
+REFIT_HOSTED_WATCH=1 (off by default) makes serve capture, once a day, the OpenAPI document and changelog pages of every vendor watch target. Every complete inventory registers a target for each detected vendor whose catalog entry names such sources; registering or capturing one never enrolls or edits a repository. /status lists the targets with the repositories that use each vendor.
 REFIT_HOSTED_REPORTS=1 (off by default) makes serve keep one issue per approved, inventoried repository with its \`refit report\`: integrations, deadlines, AI model calls and the next step. It re-scans like REFIT_HOSTED_ALERTS and rewrites the issue only when the report changes, at most once per change. It needs the App's Issues write permission.
 serve logs one JSON object per line to stderr with secrets redacted. With REFIT_SLACK_WEBHOOK_URL set it posts the same notices as refit serve, plus each failed job at most once per target per hour.
 serve also answers GET /github/setup (the App's Setup URL), /github/uninstalled and /.well-known/security.txt. REFIT_HOSTED_CONTACT, a mailto: or https: URI, is shown for data deletion and served as the security.txt contact.`;
@@ -502,6 +504,7 @@ try {
         tenancy: hostedTenancy(process.env),
         alerts: hostedAlerts(process.env) ?? undefined,
         reports: hostedReports(process.env),
+        watch: hostedWatch(process.env),
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         aiTotalUsd:
           process.env.REFIT_HOSTED_AI_BUDGET_USD === undefined

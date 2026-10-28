@@ -247,13 +247,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "api.deepseek.com",
-      "provider": "DeepSeek",
-      "docs": "https://api-docs.deepseek.com/",
-      "source": "https://api-docs.deepseek.com/",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "api.deps.dev",
       "provider": "deps.dev",
       "docs": "https://docs.deps.dev/api/v3/",
@@ -289,13 +282,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "api.exa.ai",
-      "provider": "Exa",
-      "docs": "https://docs.exa.ai/reference/getting-started",
-      "source": "https://docs.exa.ai/reference/getting-started",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "api.exchangeratesapi.io",
       "provider": "Exchange Rates API",
       "docs": "https://exchangeratesapi.io/documentation/",
@@ -314,13 +300,6 @@
       "provider": "Figma",
       "docs": "https://www.figma.com/developers/api",
       "source": "https://www.figma.com/developers/api",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "api.firecrawl.dev",
-      "provider": "Firecrawl",
-      "docs": "https://docs.firecrawl.dev/api-reference/introduction",
-      "source": "https://docs.firecrawl.dev/api-reference/introduction",
       "checkedAt": "2026-10-22"
     },
     {
@@ -363,13 +342,6 @@
       "provider": "GoCardless",
       "docs": "https://developer.gocardless.com/api-reference",
       "source": "https://developer.gocardless.com/api-reference",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "api.groq.com",
-      "provider": "Groq",
-      "docs": "https://console.groq.com/docs/api-reference",
-      "source": "https://console.groq.com/docs/api-reference",
       "checkedAt": "2026-10-22"
     },
     {
@@ -464,13 +436,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "api.linear.app",
-      "provider": "Linear",
-      "docs": "https://linear.app/developers/graphql",
-      "source": "https://linear.app/developers/graphql",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "api.mailjet.com",
       "provider": "Mailjet",
       "docs": "https://dev.mailjet.com/email/reference/",
@@ -520,20 +485,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "api.mistral.ai",
-      "provider": "Mistral AI",
-      "docs": "https://docs.mistral.ai/api/",
-      "source": "https://docs.mistral.ai/api/",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "api.mixpanel.com",
-      "provider": "Mixpanel",
-      "docs": "https://developer.mixpanel.com/reference/overview",
-      "source": "https://developer.mixpanel.com/reference/overview",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "api.monday.com",
       "provider": "monday.com",
       "docs": "https://developer.monday.com/api-reference/docs",
@@ -545,13 +496,6 @@
       "provider": "Moonshot AI",
       "docs": "https://platform.moonshot.cn/docs",
       "source": "https://platform.moonshot.cn/docs",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "api.mux.com",
-      "provider": "Mux",
-      "docs": "https://docs.mux.com/api-reference",
-      "source": "https://docs.mux.com/api-reference",
       "checkedAt": "2026-10-22"
     },
     {
@@ -639,20 +583,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "api.perplexity.ai",
-      "provider": "Perplexity",
-      "docs": "https://docs.perplexity.ai/api-reference/chat-completions-post",
-      "source": "https://docs.perplexity.ai/api-reference/chat-completions-post",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "api.pinecone.io",
-      "provider": "Pinecone",
-      "docs": "https://docs.pinecone.io/reference/api/introduction",
-      "source": "https://docs.pinecone.io/reference/api/introduction",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "api.pinterest.com",
       "provider": "Pinterest",
       "docs": "https://developers.pinterest.com/docs/api/v5/",
@@ -692,13 +622,6 @@
       "provider": "Razorpay",
       "docs": "https://razorpay.com/docs/api/",
       "source": "https://razorpay.com/docs/api/",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "api.replicate.com",
-      "provider": "Replicate",
-      "docs": "https://replicate.com/docs/reference/http",
-      "source": "https://replicate.com/docs/reference/http",
       "checkedAt": "2026-10-22"
     },
     {
@@ -807,13 +730,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "api.tavily.com",
-      "provider": "Tavily",
-      "docs": "https://docs.tavily.com/documentation/api-reference/introduction",
-      "source": "https://docs.tavily.com/documentation/api-reference/introduction",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "api.telegram.org",
       "provider": "Telegram Bot API",
       "docs": "https://core.telegram.org/bots/api",
@@ -905,13 +821,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "api.vercel.com",
-      "provider": "Vercel",
-      "docs": "https://vercel.com/docs/rest-api",
-      "source": "https://vercel.com/docs/rest-api",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "api.vimeo.com",
       "provider": "Vimeo",
       "docs": "https://developer.vimeo.com/api/reference",
@@ -923,13 +832,6 @@
       "provider": "Vonage",
       "docs": "https://developer.vonage.com/en/api",
       "source": "https://developer.vonage.com/en/api",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "api.voyageai.com",
-      "provider": "Voyage AI",
-      "docs": "https://docs.voyageai.com/reference/embeddings-api",
-      "source": "https://docs.voyageai.com/reference/embeddings-api",
       "checkedAt": "2026-10-22"
     },
     {
@@ -982,13 +884,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "api.x.ai",
-      "provider": "xAI",
-      "docs": "https://docs.x.ai/docs/overview",
-      "source": "https://docs.x.ai/docs/overview",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "api.x.com",
       "provider": "X API",
       "docs": "https://docs.x.com/x-api/introduction",
@@ -1031,13 +926,6 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "app.posthog.com",
-      "provider": "PostHog",
-      "docs": "https://posthog.com/docs/api",
-      "source": "https://posthog.com/docs/api",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "app.scrapingbee.com",
       "provider": "ScrapingBee",
       "docs": "https://www.scrapingbee.com/documentation/",
@@ -1063,13 +951,6 @@
       "provider": "Cat Facts",
       "docs": "https://catfact.ninja/",
       "source": "https://catfact.ninja/",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "cloud.langfuse.com",
-      "provider": "Langfuse",
-      "docs": "https://langfuse.com/docs/api-and-data-platform/features/public-api",
-      "source": "https://langfuse.com/docs/api-and-data-platform/features/public-api",
       "checkedAt": "2026-10-22"
     },
     {
@@ -1409,24 +1290,10 @@
       "checkedAt": "2026-10-22"
     },
     {
-      "host": "rest.ably.io",
-      "provider": "Ably",
-      "docs": "https://ably.com/docs/api/rest-api",
-      "source": "https://ably.com/docs/api/rest-api",
-      "checkedAt": "2026-10-22"
-    },
-    {
       "host": "restcountries.com",
       "provider": "REST Countries",
       "docs": "https://restcountries.com/",
       "source": "https://restcountries.com/",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "router.huggingface.co",
-      "provider": "Hugging Face",
-      "docs": "https://huggingface.co/docs/inference-providers/index",
-      "source": "https://huggingface.co/docs/inference-providers/index",
       "checkedAt": "2026-10-22"
     },
     {
@@ -1455,13 +1322,6 @@
       "provider": "SerpApi",
       "docs": "https://serpapi.com/search-api",
       "source": "https://serpapi.com/search-api",
-      "checkedAt": "2026-10-22"
-    },
-    {
-      "host": "us.i.posthog.com",
-      "provider": "PostHog",
-      "docs": "https://posthog.com/docs/api",
-      "source": "https://posthog.com/docs/api",
       "checkedAt": "2026-10-22"
     },
     {
