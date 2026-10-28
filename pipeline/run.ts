@@ -1,5 +1,5 @@
 import {
-  migrationReviewReason,
+  assessmentReviewReason,
   migrationReviewReasons,
   reviewBlocksAi,
   unresolvedSites,
@@ -604,7 +604,10 @@ async function runOpenApiPipeline(options: {
   );
   // Under decision 1 every reason is recorded and none stops the rules' patch.
   const reviewReason = options.leaveReviewedFindings ? undefined : reviews[0];
-  const advisoryReviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
+  const advisoryReviewReason = assessmentReviewReason({
+    findings: analysis.findings,
+    skippedFiles,
+  });
   if (useAi && !operationImpacts.length && !reviewReason)
     options.onProgress?.('Requesting an AI migration proposal...');
   else if (deterministicRequested && !reviewReason)
