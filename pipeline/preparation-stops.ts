@@ -2,10 +2,11 @@
 // matched on the message Refit or the package manager raises. See docs/PREPARATION-FAILURES.md.
 
 // Where Refit's own preparation refuses, it runs the repository's own install in its build
-// sandbox (repository-environment.ts); a stop's action is what is left when that fails too. No
-// action asks the customer to configure Refit (founder decision, 2026-10-28).
+// sandbox (repository-environment.ts); a stop's action is what is left when that fails too. A
+// stop names what Refit could not do, never a task for the customer (founder decision,
+// 2026-10-28).
 const REFIT_BUILD =
-  "Refit also tried the repository's own install in its build sandbox. The draft is published untested; run your own checks on its branch, which the Refit validation workflow does in your CI once its pull request is merged.";
+  "Refit's own preparation and its build of the repository's own install both failed, so none of Refit's checks ran on this patch.";
 
 export const PREPARATION_STOPS = [
   {
@@ -13,7 +14,7 @@ export const PREPARATION_STOPS = [
     pattern: /^Dependency archive exceeds \d+ MiB|^\w+ dependency preparation ran out of space/,
     summary: "the installed dependencies do not fit Refit's validation sandbox",
     action:
-      "Run your own tests and type check on the draft branch before merging; Refit's sandbox could not hold this dependency tree.",
+      "The installed dependencies do not fit Refit's validation sandbox, so none of its checks ran on this patch.",
   },
   {
     reason: 'non-registry-dependency',
@@ -59,7 +60,8 @@ export const BASELINE_STOPS = [
     reason: 'native-build-required',
     pattern: /Could not locate the bindings file|was compiled against a different Node\.js version/,
     summary: 'a dependency needs a native build its install script would run',
-    action: `Refit's own preparation installs with install scripts disabled, so native addons are not built. ${REFIT_BUILD}`,
+    action:
+      "A native addon was not built, because Refit's own preparation installs with scripts disabled, so the checks could not run on this patch.",
   },
 ] as const;
 

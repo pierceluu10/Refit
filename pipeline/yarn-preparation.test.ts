@@ -688,7 +688,7 @@ if (args[0] === 'run') { process.stderr.write('ENOSPC: no space left on device, 
       cacheDirectory: join(root, 'cache'),
     }),
   ).rejects.toThrow(
-    'yarn dependency preparation ran out of space in its 4g workspace (ENOSPC). Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree. Run your own tests and type check',
+    'yarn dependency preparation ran out of space in its 4g workspace (ENOSPC). Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree. The installed dependencies do not fit',
   );
   // Under a smaller operator profile the message names the default 4 GiB one.
   vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '2g');

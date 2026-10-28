@@ -53,7 +53,9 @@ it('names the dependency that comes from outside the public registry', () => {
   for (const message of [declared, nested, privateRegistry])
     expect(preparationStop(message)).toMatchObject({
       reason: 'non-registry-dependency',
-      action: expect.stringContaining("Refit also tried the repository's own install"),
+      action: expect.stringContaining(
+        "Refit's own preparation and its build of the repository's own install both failed",
+      ),
     });
 });
 

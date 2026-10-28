@@ -314,7 +314,7 @@ it('says Refit cannot confirm a webhook read on an event assigned twice, not tha
     detail:
       'Webhook code reads a field that API version 2025-03-31.basil removes: .current_period_end at webhook.js:8 (customer.subscription.updated). Refit cannot confirm what this read receives, so its rules do not migrate it.',
     action:
-      "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. A read you change must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
+      "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. A changed read must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
   });
   // The same handler with one signed event no longer stops: the helper migrates the read.
   const signed = await stripeRepository({
@@ -355,7 +355,7 @@ it('pairs each stopped webhook read with its own events and cause', async () => 
     detail:
       'Webhook code reads fields that API version 2025-03-31.basil removes: .plan at plans.js:5 (customer.subscription.deleted) and .current_period_end at webhook.js:8 (customer.subscription.updated). Refit cannot confirm what some of these reads receive, and no Refit rule migrates the others.',
     action:
-      "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. Change the reads no rule migrates yourself. A read you change must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
+      "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. Refit leaves the reads no rule migrates unchanged; check them before merging a draft. A changed read must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
   });
 });
 
@@ -379,7 +379,7 @@ it('says a declared-type read stops because Refit cannot confirm it', async () =
     detail:
       'Refit could not confirm a read of a field that API version 2025-03-31.basil removes, on a value the code declares with a Stripe type: .current_period_end at handler.ts:5.',
     action:
-      "Check it, and change it yourself if it reads a Stripe object. Refit's rules migrate such a read only when Refit can confirm it, and it cannot when the value may change before the read or come from an optional call, when the property name is computed, or when Refit cannot tell which Stripe object the value is.",
+      "Refit leaves it unchanged; check whether it reads a Stripe object before merging a draft. Refit's rules migrate such a read only when Refit can confirm it, and it cannot when the value may change before the read or come from an optional call, when the property name is computed, or when Refit cannot tell which Stripe object the value is.",
   });
 });
 
@@ -397,7 +397,7 @@ it('names each file Refit could not parse with its diagnostic, without calling F
     detail:
       'Refit could not parse src/broken.ts (Variable declaration expected) and src/total.js (Type annotations can only be used in TypeScript files), so it did not scan those files.',
     action:
-      'Fix any syntax error there, then run refit doctor again. Refit parses only TypeScript and JavaScript, so a file in another syntax, such as Flow, keeps this stop.',
+      'Refit parses only TypeScript and JavaScript, so it cannot check the Stripe code in a file it cannot parse, such as one in Flow; check that code before merging a draft.',
   });
 });
 
@@ -474,7 +474,8 @@ it('points a traced call the contracts stop at to its place, not to untraced usa
     status: 'blocked',
     detail:
       'Stripe 2025-03-31.basil removed the upcoming invoice API (invoices.retrieveUpcoming) in favour of invoices.createPreview. coupon has no equivalent create_preview parameter; the call needs review.',
-    action: 'Review the code at billing.js:2 yourself: Refit does not migrate it automatically.',
+    action:
+      'Refit does not migrate the code at billing.js:2 automatically; check it before merging a draft.',
   });
 });
 
@@ -510,7 +511,7 @@ it('says to fix an invalid tsconfig, and that nothing else needs to change for a
   );
   await commit(sample.repository);
   const action =
-    'If a tsconfig or jsconfig is invalid, fix it. Otherwise nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.';
+    'Refit stops at clients shared between files until it can verify which file each import loads, which it cannot do under an invalid tsconfig or jsconfig.';
   const ambiguous = await inspectRepositoryReadiness({ repository: sample.repository });
   expect(ambiguous.checks.find((check) => check.id === 'source-resolution')).toMatchObject({
     status: 'blocked',
@@ -590,23 +591,42 @@ it('checks committed npm inputs through the same preparation gate without instal
   );
   await commit(sample.repository);
   vi.stubEnv('REFIT_REPOSITORY_INSTALL', '1');
+  // A lockfile out of sync stays a stop: the repository's own install would install versions it
+  // never committed.
   const rejected = await inspectRepositoryReadiness({ repository: sample.repository });
-  // Refit then runs the repository's own install, so nothing blocks and nothing is asked of the
-  // customer (founder decision, 2026-10-28).
+  expect(rejected.status).toBe('needs-attention');
   expect(rejected.checks.find((check) => check.id === 'dependencies')).toMatchObject({
+    status: 'blocked',
+    detail: expect.stringContaining('differ from the committed package-lock.json'),
+  });
+  // A package from a private registry: Refit runs the repository's own install instead, so
+  // nothing blocks and nothing is asked of the customer (founder decision, 2026-10-28).
+  const record = lock.packages['node_modules/@example/catalog'];
+  await writeFile(
+    join(sample.repository, 'package-lock.json'),
+    JSON.stringify({
+      ...lock,
+      packages: {
+        ...lock.packages,
+        'node_modules/@example/catalog': {
+          ...record,
+          resolved: 'https://npm.pkg.github.com/@example/catalog/-/catalog-1.0.0.tgz',
+        },
+      },
+    }),
+  );
+  await commit(sample.repository);
+  const privateRegistry = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(privateRegistry.checks.find((check) => check.id === 'dependencies')).toMatchObject({
     status: 'review',
     detail: expect.stringMatching(
-      /differ from the committed package-lock\.json[\s\S]*Refit runs the repository's own install instead \(npm ci, from package\.json\)/,
+      /npm\.pkg\.github\.com[\s\S]*Refit runs the repository's own install instead \(npm ci, from package\.json\)/,
     ),
     action: expect.stringMatching(/^Nothing to configure\./),
   });
   vi.stubEnv('REFIT_REPOSITORY_INSTALL', '0');
   const off = await inspectRepositoryReadiness({ repository: sample.repository });
-  expect(off.status).toBe('needs-attention');
-  expect(off.checks.find((check) => check.id === 'dependencies')).toMatchObject({
-    status: 'blocked',
-    detail: expect.stringContaining('differ from the committed package-lock.json'),
-  });
+  expect(off.checks.find((check) => check.id === 'dependencies')?.status).toBe('blocked');
 });
 
 it('leaves latest Stripe discovery untouched and clearly identifies a baseline-only inspection', async () => {
