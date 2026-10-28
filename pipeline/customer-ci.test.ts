@@ -8,6 +8,7 @@ import {
   customerCiOutcome,
   customerCiPullRequest,
   customerCiWorkflow,
+  failureTail,
   proposeCustomerCi,
   type GitHubRequest,
 } from './customer-ci.ts';
@@ -225,4 +226,18 @@ it('records CI evidence on the draft and closes a regression only while Refit ow
     login: 'refit[bot]',
   });
   expect(edited.calls.some((call) => call.method === 'PATCH')).toBe(false);
+});
+
+it("keeps the failing step's output, not the runner's cleanup after it", () => {
+  const log = [
+    '2026-10-28T06:38:24.5100338Z FAIL lib/payments/credentials/__tests__/encryption.test.ts',
+    '2026-10-28T06:38:24.5121653Z Tests:       1417 passed, 1417 total',
+    '2026-10-28T06:38:24.5448302Z ##[error]Process completed with exit code 1.',
+    '2026-10-28T06:38:24.7864236Z Cleaning up orphan processes',
+    '',
+  ].join('\n');
+  expect(failureTail(log)).toBe(
+    'FAIL lib/payments/credentials/__tests__/encryption.test.ts\nTests:       1417 passed, 1417 total\n##[error]Process completed with exit code 1.\n',
+  );
+  expect(failureTail('ok\n')).toBe('ok\n');
 });

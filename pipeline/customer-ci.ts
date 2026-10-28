@@ -342,8 +342,17 @@ export function jobLogReader(token: string, repository: string) {
       },
     );
     if (!response.ok) return '';
-    return (await response.text()).slice(-LOG_CHARACTERS);
+    return failureTail(await response.text());
   };
+}
+
+// The end of the step that failed: GitHub's log goes on with post-job cleanup after the first
+// `##[error]`, which says nothing about why the checks failed. Timestamps are dropped.
+export function failureTail(log: string) {
+  const end = log.indexOf('##[error]');
+  return (end < 0 ? log : log.slice(0, log.indexOf('\n', end) + 1 || undefined))
+    .replace(/^\d{4}-\d\d-\d\dT[\d:.]+Z /gm, '')
+    .slice(-LOG_CHARACTERS);
 }
 
 export function customerCiComment(evidence: Awaited<ReturnType<typeof readCustomerCiEvidence>>) {
