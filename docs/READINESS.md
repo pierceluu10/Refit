@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 27 checkpoint: AI patches on stops under D2, D2a and D2b (unreleased, after 0.39.0)
+
+The coverage AI attempt now publishes as a validated draft only through `aiValidationGate` (`pipeline/validation.ts`): the target stripe-node installed, `typeOraclePasses`, the repository's own tests passing offline or, for type-visible changes only (removed or renamed field, changed type, removed enum value), a passing type check over the files it covered (`typeCheckCoverage` in `pipeline/check-selection.ts`), and a diff limited to traced sites. A type-check-only pass is labelled "validated by type check, no tests" in the draft. An AI "no change needed" answer clears untraced reads only where the type oracle passed and `localReceiverReads` shows the receiver is the application's own object. On refit-bench with AI, l2-push-249 goes from 80 to 84 validated and heldout-30 from 9 to 10, all through D2b with the rules' patch, each reviewed ([benchmarks](BENCHMARKS.md#ai-patches-on-stops-under-d2-d2a-and-d2b-october-27)). Tests: `pipeline/ai-traced-sites.test.ts`, `pipeline/stripe-local-receivers.test.ts`, `pipeline/workflow-waivers.test.ts`.
+
 ## October 27 checkpoint: validated means the draft is not [Needs review] (unreleased, after 0.39.0)
 
 A run without publication whose draft title is `[Needs review]` (kept untyped request properties, a grade-D patch, advisory JavaScript type errors) now ends `needs-review` with "Baseline and patched checks passed, but the draft is [Needs review]", not `validated` (`pipeline/workflow.ts`). On refit-bench heldout-30 goes from 10 to 9 validated with and without AI (KPZ231/what-now-chaos, grade D) and l2-push-249 stays at 80 ([benchmarks](BENCHMARKS.md#validated-means-the-draft-is-not-needs-review-october-27)). Test: `pipeline/workflow-waivers.test.ts`.
