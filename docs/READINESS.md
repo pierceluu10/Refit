@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 27 checkpoint: validated means the draft is not [Needs review] (unreleased, after 0.39.0)
+
+A run without publication whose draft title is `[Needs review]` (kept untyped request properties, a grade-D patch, advisory JavaScript type errors) now ends `needs-review` with "Baseline and patched checks passed, but the draft is [Needs review]", not `validated` (`pipeline/workflow.ts`). On refit-bench heldout-30 goes from 10 to 9 validated with and without AI (KPZ231/what-now-chaos, grade D) and l2-push-249 stays at 80 ([benchmarks](BENCHMARKS.md#validated-means-the-draft-is-not-needs-review-october-27)). Test: `pipeline/workflow-waivers.test.ts`.
+
 ## October 27 checkpoint: type oracle on the target stripe-node (unreleased, after 0.39.0)
 
 When the final patch upgrades stripe-node with prepared dependencies of its own and the check compares type errors, validation type-checks the original code once more with the target stripe-node installed (`runTypeOracle` in `pipeline/validation.ts`, recorded as `validation.typeOracle`). Errors on a traced call's property, on the operation's own stripe-node request type, or TS2339/TS2551 on the Stripe type of a changed response object move that change from `unknown` to `reached`; zero errors never moves a change toward `unused`, `compatible` or `handled`. `typeOraclePasses` is the type condition of the AI patch gate. On refit-bench it changed no outcome: 80 of l2-push-249 and 10 of heldout-30 validate with and without AI, before and after ([benchmarks](BENCHMARKS.md#type-oracle-october-27)). Tests: `pipeline/stripe-type-oracle.test.ts`.

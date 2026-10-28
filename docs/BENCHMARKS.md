@@ -385,6 +385,21 @@ Production mode stops on a request contract change whenever Refit cannot read wh
 - **Where the oracle ran.** On l2-push-249 it compared type errors on 146 rows; the other 103 do not upgrade stripe-node with prepared dependencies of their own or have no type check. The patched code had no new type errors on 134 of the 146. It moved 5 changes to `reached` on 4 rows, all of which already stopped for other reasons.
 - **Not measured:** publication and the hosted worker.
 
+## Validated means the draft is not [Needs review] (October 27)
+
+A run without publication ended `validated` whenever every gate passed, even when its own draft was titled `[Needs review]`: a kept untyped request property such as `trial_from_plan`, a grade-D patch only Refit's generated checks reached, or advisory type errors in JavaScript. `fix/needs-review-outcome` ends those runs `needs-review`, so the benchmark counts only drafts that would publish as validated.
+
+| Set (default flags)                      | Before: main `836df9fa` | After: `63646f2a` |
+| ---------------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated, no AI |                      80 |                80 |
+| l2-push-249: production validated, AI    |                      80 |                80 |
+| heldout-30: production validated, no AI  |                      10 |                 9 |
+| heldout-30: production validated, AI     |                      10 |                 9 |
+
+- **Runs.** Before: the type oracle runs above (main's code, outcome for outcome). After, at `63646f2a`: l2-push-249 no AI [40591181316](https://github.com/refit-dev/refit-bench/actions/runs/40591181316), AI [40591190068](https://github.com/refit-dev/refit-bench/actions/runs/40591190068); heldout-30 no AI [40591185819](https://github.com/refit-dev/refit-bench/actions/runs/40591185819), AI [40591194943](https://github.com/refit-dev/refit-bench/actions/runs/40591194943).
+- **1 row changed.** KPZ231/what-now-chaos is graded D (no test reaches `src/app/api/checkout/route.js`; only the generated stripe-mock check ran it), so its draft was already `[Needs review]`; it now ends `needs-review`. Every other row is identical, except that with AI kondax-com/Bocker's patch failed its checks after it failed its baseline in the before run; it stops `needs-review` in both.
+- **Why it matters for the lanes.** On l2-push-249 the spec-noise filter frees 4 rows whose draft keeps `trial_from_plan` (kpirabaharan/Spotify-Clone, adityayaduvanshi/Full-Stack-Music-Web-App, afdon/music-app, AlefeSk8/Spotify-Clone-Next.js); they now count as `needs-review`, not validated.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).
