@@ -583,6 +583,27 @@ Generated stripe-mock checks call exported functions around each finding, and mo
 - **Stand-ins.** 17 of the 25 l2 rows whose generated check passes used a stand-in (`validation.generated.standIns`): Prisma 9, PostgREST 7, Clerk 9 (some rows several); 8 rows reach the PostgREST stand-in and still stop later. No generated check counted a regression. Generated checks never raise the grade above D, so grades are unchanged.
 - **Generated clients.** Type checks lose the missing-client errors in 71 of 73 l2 rows and change their error counts in 10 heldout rows, with no introduced error added; brandbite/brandbite's test baseline passes, and its draft stays `[Needs review]` for its other blockers.
 - **Not measured:** AI patches, publication, behaviour tests and the hosted worker.
+## Dependency blocker census and the committed-source limit (October 27)
+
+A census of every blocker on every row of main `89f1c0ed`, and the committed-source limit raised to 512 MiB under `4g` and 256 MiB under `2g` (founders' decision, 2026-10-27). The table and how to read it are in [Dependency blockers](DEPENDENCY-BLOCKERS.md); the per-row census is `benchmarks/2026-10-27-blocker-census.json`.
+
+| Set                                | Run                                                                              | Commit          | Validated |
+| ---------------------------------- | -------------------------------------------------------------------------------- | --------------- | --------: |
+| l2-push-249, no AI                 | [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) | main `89f1c0ed` |        84 |
+| l2-push-249, AI ($200 cap)         | [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726) | main `89f1c0ed` |        88 |
+| heldout-30, no AI                  | [40624069371](https://github.com/refit-dev/refit-bench/actions/runs/40624069371) | main `89f1c0ed` |        10 |
+| heldout-30, AI ($30 cap)           | [40624075884](https://github.com/refit-dev/refit-bench/actions/runs/40624075884) | main `89f1c0ed` |        11 |
+| l2-push-249, no AI, after          | [40625964049](https://github.com/refit-dev/refit-bench/actions/runs/40625964049) | `2d6f499c`      |        84 |
+| heldout-30, no AI, after           | [40625971542](https://github.com/refit-dev/refit-bench/actions/runs/40625971542) | `2d6f499c`      |        10 |
+| source-limit-50 (16), `2g`, before | [40625949948](https://github.com/refit-dev/refit-bench/actions/runs/40625949948) | `fffa3ad5`      |         0 |
+| source-limit-50 (16), `2g`, after  | [40625956831](https://github.com/refit-dev/refit-bench/actions/runs/40625956831) | `2d6f499c`      |         1 |
+
+- **Commands.** `gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<full sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249` (and `-f ai=true -f ai_budget=200`); heldout-30 with `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30` (and `-f ai=true -f ai_budget=30`); the subset with `-f list=subsets/source-limit-50.json -f offset=0 -f size=2 -f count=16 -f flags="--validation-workspace 2g"`. The census: `node scripts/validation-funnel.mjs <merged>/results.json --all-blockers --artifacts <download dir> --json`; comparisons with `scripts/stripe-benchmark-compare.mjs`.
+- **Baseline ids.** The l2-push-249 no-AI baseline is [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), an identical run at the same commit: the one this lane dispatched (40624056119) was cancelled with other duplicates to clear the queue.
+- **`4g`: no change.** 0 outcome changes on 249 and 30 rows. Every heldout-30 patch is byte-identical, and 233 of 234 l2-push-249 patches; kondax-com/Bocker's own tests are flaky (a regression in [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), a baseline failure in [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726) at the same commit), and its patch differs only in where the period helper is written. At `4g` the old 256 MiB limit stopped none of the 597 tuned repositories (the largest tree is 155.5 MiB).
+- **`2g`: 8 rows pass the source check.** Before, 8 of the 16 rows over 50 MiB were refused with the 50 MiB message; after, none. Shefaul-22/AgriFlow validates (C). mouhamedanflosse/digitalHome and shivamm-55/HippoSphere (C) and CRONANANI/EzanaFinance3 (D) pass their checks and stay `[Needs review]`. Traviseric/arxmint and Eziox-Development/eziox-web stop at lockfile integrity and lockfile drift, RaulRicco/CashBack's preparation fails, and SimplerDevelopment/SimplerDevelopment writes no manifest, as at `4g`. The four passing patches were read in full: AgriFlow, digitalHome and HippoSphere `correct`, EzanaFinance3 `unsure` (untraced reads in files the patch does not touch), in `benchmarks/fix-reviews.json`.
+- **Not repeated:** the AI runs after the change. The limit is checked before any patch is validated and stops nothing at `4g`, so the AI budget was kept.
+- **Not measured:** host memory while buffering a source tree near 512 MiB on the Fly worker, publication and the night set.
 
 ## Before and after the overnight merges (October 22)
 

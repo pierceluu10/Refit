@@ -151,17 +151,17 @@ it('groups preparation refusals by the message Refit raises', () => {
   ).toBe('non-registry-source');
   expect(
     preparationGroup(
-      'Unsupported pnpm lockfile settings, patches or graph metadata need the repository install.',
+      'Unsupported pnpm lockfile settings, patches or graph metadata require a custom image.',
     ),
   ).toBe('unsupported-pnpm-settings');
   expect(
     preparationGroup(
-      'Workspace bins, nested workspace declarations and workspace pnpm settings need the repository install.',
+      'Workspace bins, nested workspace declarations and workspace pnpm settings require a custom validation image.',
     ),
   ).toBe('unsupported-workspace-layout');
   expect(
     preparationGroup(
-      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages: [...] } need the repository install.',
+      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages: [...] } require a custom image.',
     ),
   ).toBe('unsupported-workspace-layout');
   expect(preparationGroup('something new')).toBe('other');
@@ -217,7 +217,7 @@ it('places untested patches at the preparation refusal that kept them untested',
         dependencyFailure: {
           reason: 'preparation-failed',
           message:
-            'Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks need the repository install. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.',
+            'Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.',
         },
       }),
     },
@@ -287,7 +287,7 @@ it('lists every blocker on a row and counts rows where it is the only one', () =
         repo: 'tmachnacki/podvex',
         checks: 'typecheck',
         workflow: {
-          status: 'validated',
+          status: 'needs-review',
           stage: 'validation',
           validation: 'passed',
           sdkUpgrade: { skipped: 'stripe 23.0.0 is already locked.' },
@@ -300,8 +300,43 @@ it('lists every blocker on a row and counts rows where it is the only one', () =
           grade: { letter: 'C' },
         },
       },
+      {
+        ...affected,
+        repo: 'afdon/music-app',
+        checks: 'typecheck',
+        workflow: {
+          status: 'needs-review',
+          stage: 'validation',
+          validation: 'passed',
+          grade: { letter: 'C' },
+        },
+      },
+      {
+        ...affected,
+        repo: 'KPZ231/what-now-chaos',
+        checks: 'tests',
+        workflow: {
+          status: 'needs-review',
+          stage: 'validation',
+          validation: 'passed',
+          grade: { letter: 'D', reason: 'No test reaches src/app/api/checkout/route.js.' },
+        },
+      },
+      {
+        ...affected,
+        repo: 'CiphersLab/SaaSPilot',
+        checks: 'typecheck',
+        productionMode: { reviewReasons: { [untraced]: 1 } },
+        workflow: {
+          status: 'validated',
+          stage: 'validation',
+          validation: 'passed',
+          grade: { letter: 'C' },
+        },
+      },
     ],
     new Map([
+      ['afdon/music-app', { validation: { repair: { keptProperties: ['trial_from_plan'] } } }],
       [
         'blefnk/all-in-one-nextjs-template',
         {
@@ -332,6 +367,9 @@ it('lists every blocker on a row and counts rows where it is the only one', () =
     ],
     'duggal1/flux-io': ['lockfile-out-of-sync'],
     'tmachnacki/podvex': ['new-type-errors-after-upgrade'],
+    'afdon/music-app': ['kept-untyped-property'],
+    'KPZ231/what-now-chaos': ['checks-miss-changed-code'],
+    'CiphersLab/SaaSPilot': [],
   });
   expect(census.blockers['lockfile-out-of-sync']).toEqual({
     rows: 1,
@@ -339,5 +377,5 @@ it('lists every blocker on a row and counts rows where it is the only one', () =
     repos: ['duggal1/flux-io'],
   });
   expect(census.blockers['no-lockfile']).toMatchObject({ rows: 1, only: 0 });
-  expect(census.unblocked).toBe(0);
+  expect(census.unblocked).toBe(1);
 });

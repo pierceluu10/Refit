@@ -156,9 +156,14 @@ const execute = promisify(execFile);
 const PROCESS_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const MAX_COMMAND_OUTPUT_BYTES = 50 * 1024 * 1024;
-// Committed source is copied into the validation workspace beside the unpacked dependency archive.
-// The 4 GiB workspace holds a 2 GiB archive and 256 MiB of source; smaller profiles keep 50 MiB.
-const sourceArchiveBytes = () => (validationProfile().workspace === '4g' ? 256 : 50) * 1024 * 1024;
+// Committed source is copied into the validation workspace beside the unpacked dependency archive,
+// and buffered once on the host to hash it. Founders' decision (2026-10-27): the 4 GiB workspace
+// holds a 2 GiB archive and 512 MiB of source, leaving 1.5 GiB for build and test output; the 2 GiB
+// one holds a 1 GiB archive and 256 MiB. The largest committed tree on the frozen Stripe lists is
+// 155.5 MiB (docs/DEPENDENCY-BLOCKERS.md). Smaller profiles keep 50 MiB.
+const SOURCE_ARCHIVE_MIB: Record<string, number> = { '4g': 512, '2g': 256 };
+const sourceArchiveBytes = () =>
+  (SOURCE_ARCHIVE_MIB[validationProfile().workspace] ?? 50) * 1024 * 1024;
 const MAX_REPAIR_LOG_CHARACTERS = 16_384;
 
 export interface ValidationAttempt {
