@@ -786,8 +786,8 @@ async function pnpmUpgrade(
   };
 }
 
-// pnpm 8's lockfile v6 for one project: root sections at the top level and `/name@version(peers)`
-// package records that carry their own dependencies and pnpm's `dev` and `optional` flags.
+// pnpm 8's lockfile v6 for one project: root sections at the top level, or under `importers['.']`
+// when a pnpm-workspace.yaml lists only the root, and `/name@version(peers)` package records that carry their own dependencies and pnpm's `dev` and `optional` flags.
 const V6_ROOT_SECTIONS = ['dependencies', 'optionalDependencies', 'devDependencies'] as const;
 
 function v6Key(name: string, version: unknown) {
@@ -799,7 +799,11 @@ function v6Key(name: string, version: unknown) {
 // `dev: false` when only production dependencies reach a package, `dev: true` when only development
 // ones do, neither when both; `optional: true` when every path goes through an optional dependency.
 // Undefined when a dependency names no record.
-function v6Flags(lock: Record<string, unknown>) {
+function v6Flags(lock: Record<string, unknown>, rootPath: string[]) {
+  const root = rootPath.reduce<unknown>(
+    (node, key) => (isObject(node) ? node[key] : undefined),
+    lock,
+  ) as Record<string, unknown>;
   const packages = isObject(lock.packages) ? lock.packages : {};
   const states = new Map<string, Set<string>>();
   const pending: [string, string, boolean][] = [];
@@ -819,7 +823,7 @@ function v6Flags(lock: Record<string, unknown>) {
     pending.push([key, kind, optional]);
   };
   for (const section of V6_ROOT_SECTIONS) {
-    const entries = isObject(lock[section]) ? lock[section] : {};
+    const entries = isObject(root[section]) ? root[section] : {};
     for (const [name, entry] of Object.entries(entries))
       if (isObject(entry))
         reach(
@@ -863,11 +867,17 @@ async function pnpmV6Upgrade(
   document: Document,
   lock: Record<string, unknown>,
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
-  if (lock.importers !== undefined)
+  const importers = lock.importers;
+  if (
+    importers !== undefined &&
+    !(isObject(importers) && Object.keys(importers).join() === '.' && isObject(importers['.']))
+  )
     return { reason: 'Only single-project pnpm lockfile version 6 files are upgraded.' };
+  const rootPath = importers === undefined ? [] : ['importers', '.'];
+  const root = (importers === undefined ? lock : importers['.']) as Record<string, unknown>;
   const packages = isObject(lock.packages) ? lock.packages : {};
   // Refit's model of pnpm's flags must reproduce the recorded ones before it rewrites them.
-  const original = v6Flags(lock);
+  const original = v6Flags(lock, rootPath);
   if (
     !original ||
     Object.entries(packages).some(([key, record]) => {
@@ -883,7 +893,7 @@ async function pnpmV6Upgrade(
     return {
       reason: 'pnpm-lock.yaml (v6) dev and optional flags do not match its dependency graph.',
     };
-  const section = lock[declared.section];
+  const section = root[declared.section];
   const entry = isObject(section) ? section.stripe : undefined;
   if (!isObject(entry) || entry.specifier !== declared.spec || typeof entry.version !== 'string')
     return { reason: 'pnpm-lock.yaml does not lock the declared stripe at the project root.' };
@@ -894,7 +904,7 @@ async function pnpmV6Upgrade(
   const oldKey = `/stripe@${entry.version}`;
   const lockedElsewhere =
     V6_ROOT_SECTIONS.some(
-      (name) => name !== declared.section && isObject(lock[name]) && lock[name].stripe,
+      (name) => name !== declared.section && isObject(root[name]) && root[name].stripe,
     ) ||
     Object.entries(packages).some(
       ([key, record]) =>
@@ -913,9 +923,9 @@ async function pnpmV6Upgrade(
   if (added.length || release.requiredPeers.length)
     return dependencyChanges(target, [...added, ...release.requiredPeers]);
   const rootVersion = (name: string) => {
-    for (const root of V6_ROOT_SECTIONS) {
-      const locked = isObject(lock[root])
-        ? (lock[root] as Record<string, unknown>)[name]
+    for (const rootSection of V6_ROOT_SECTIONS) {
+      const locked = isObject(root[rootSection])
+        ? (root[rootSection] as Record<string, unknown>)[name]
         : undefined;
       if (isObject(locked)) return locked.version ?? null;
     }
@@ -944,10 +954,10 @@ async function pnpmV6Upgrade(
     return { reason: 'pnpm-lock.yaml does not record the locked stripe package.' };
   setFlow(document, ['packages', newKey, 'resolution']);
   setFlow(document, ['packages', newKey, 'engines']);
-  document.setIn([declared.section, 'stripe', 'specifier'], declared.newSpec(target));
-  document.setIn([declared.section, 'stripe', 'version'], qualified);
+  document.setIn([...rootPath, declared.section, 'stripe', 'specifier'], declared.newSpec(target));
+  document.setIn([...rootPath, declared.section, 'stripe', 'version'], qualified);
   // Drop what only the old stripe reached, then rewrite every flag the new graph changes.
-  const flags = v6Flags(document.toJS() as Record<string, unknown>);
+  const flags = v6Flags(document.toJS() as Record<string, unknown>, rootPath);
   if (!flags) return { reason: 'pnpm-lock.yaml (v6) names a package it does not record.' };
   for (const key of Object.keys(packages))
     if (key !== oldKey && !flags.has(key)) document.deleteIn(['packages', key]);

@@ -857,7 +857,7 @@ it('stops an AI patch that changes a line the rules wrote, and keeps one that re
     );
   };
   await expect(propose(client)).rejects.toThrow(
-    "AI patch changes billing.ts:3, which the deterministic rules already changed; a rule's edit changes only with its rule, so it stops for review.",
+    "AI patch changes billing.ts:3, which the deterministic rules already changed, and drops what the rule introduced there; a rule's edit may be adjusted only while its new field, parameter or version stays, so it stops for review.",
   );
   expect(fetch).toHaveBeenCalledTimes(1);
   const proposal = await propose(bumped);

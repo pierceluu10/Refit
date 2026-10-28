@@ -229,12 +229,37 @@ async function runOpenApiPipeline(options: {
     ]),
   );
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
+  const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
+  const patchRequested = Boolean(options.proposePatch || options.aiPatch);
+  // Founder decision (Otabek, 2026-10-28): TypeScript checks a pin against the installed
+  // stripe-node's apiVersion type, so a pin moves only with the upgrade. When the upgrade is
+  // refused, every pin stays and the draft names the blocker (api-version-kept).
+  const pinUpgrade =
+    !options.keepApiVersion &&
+    patchRequested &&
+    typescript &&
+    provider.packageName === STRIPE.packageName &&
+    typeof targetVersion === 'string' &&
+    applicationApiVersion &&
+    targetVersion !== applicationApiVersion
+      ? await stripePackageUpgrade(
+          repository.root,
+          targetVersion,
+          options.lockfileResolution,
+          options.lockfile,
+        )
+      : undefined;
+  const pinBlocked =
+    pinUpgrade && 'reason' in pinUpgrade && !pinUpgrade.reason.endsWith('is already locked.')
+      ? pinUpgrade.reason
+      : undefined;
+  const keepApiVersion = Boolean(options.keepApiVersion || pinBlocked);
   // Owner decision 1: every traced pin older than the target moves to it, including one that sends
   // another version than the application's; the draft lists each pin with the version it sent.
   // Stripe versions start with their date, so string order is release order, and a pin newer than
   // the target is never moved back.
   const movesPin = (value: string) =>
-    !options.keepApiVersion &&
+    !keepApiVersion &&
     (options.leaveReviewedFindings
       ? typeof targetVersion === 'string' && value < targetVersion
       : targetVersion !== applicationApiVersion && value === applicationApiVersion);
@@ -277,7 +302,7 @@ async function runOpenApiPipeline(options: {
   // The upgrade moves at least one client that omits the option: enough for a payment-method
   // rename whose own path holds only such clients (below).
   const sdkDefault =
-    !options.keepApiVersion &&
+    !keepApiVersion &&
     provider.packageName === STRIPE.packageName &&
     Boolean(applicationApiVersion) &&
     typeof targetVersion === 'string' &&
@@ -291,7 +316,6 @@ async function runOpenApiPipeline(options: {
       (entry) => entry.kind === 'constructor' || entry.status === 'inherited',
     );
   const bumpsVersion = versionEdits.length > 0 || sdkPinned;
-  const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
   // A client without the option follows the package's pin, so any such client needs the upgrade.
   const upgradeRequired = typescript || constructors.some((entry) => entry.absent);
   // The reviewed card-only rename is kept only with the target pin in the same patch and, for
@@ -301,7 +325,6 @@ async function runOpenApiPipeline(options: {
   // failed upgrade stops that run.
   // The mined request moves follow the same rule. stripe-node has invoices.createPreview only from
   // 15.6.0, so that rewrite needs the upgrade in JavaScript too.
-  const patchRequested = Boolean(options.proposePatch || options.aiPatch);
   const preview = analyzedEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
   const cardUpgrade =
     patchRequested &&
@@ -314,12 +337,13 @@ async function runOpenApiPipeline(options: {
     (bumpsVersion || sdkDefault) &&
     (upgradeRequired || preview) &&
     typeof targetVersion === 'string'
-      ? await stripePackageUpgrade(
+      ? (pinUpgrade ??
+        (await stripePackageUpgrade(
           repository.root,
           targetVersion,
           options.lockfileResolution,
           options.lockfile,
-        )
+        )))
       : undefined;
   const upgraded = Boolean(cardUpgrade && 'upgrade' in cardUpgrade);
   // Every client that may send the renamed field must reach the target version: a dynamic or
@@ -462,19 +486,21 @@ async function runOpenApiPipeline(options: {
       : undefined);
   const gate = !dropped.length
     ? undefined
-    : options.keepApiVersion
-      ? 'the patch that moved the API version failed the repository checks, so this one leaves every pin unchanged'
-      : configuredMigrationProposal
-        ? 'this patch applies a configured migration, which does not move the API version'
-        : unresolved
-          ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
-          : unmoved
-            ? `the ${unmoved.kind === 'constructor' ? 'client created' : 'request'} at ${unmoved.file}:${unmoved.line} pins ${unmoved.value}, which this patch does not move to ${targetVersion}`
-            : !bumpsVersion && !sdkDefault
-              ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
-              : cardUpgrade && 'reason' in cardUpgrade
-                ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
-                : undefined;
+    : pinBlocked
+      ? `the stripe package cannot be upgraded with the pin, so this patch leaves every pin unchanged: ${pinBlocked.replace(/\.$/, '')}`
+      : options.keepApiVersion
+        ? 'the patch that moved the API version failed the repository checks, so this one leaves every pin unchanged'
+        : configuredMigrationProposal
+          ? 'this patch applies a configured migration, which does not move the API version'
+          : unresolved
+            ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
+            : unmoved
+              ? `the ${unmoved.kind === 'constructor' ? 'client created' : 'request'} at ${unmoved.file}:${unmoved.line} pins ${unmoved.value}, which this patch does not move to ${targetVersion}`
+              : !bumpsVersion && !sdkDefault
+                ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
+                : cardUpgrade && 'reason' in cardUpgrade
+                  ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
+                  : undefined;
   if (gate)
     for (const finding of analysis.findings)
       if (finding.requestParameter && editCovers(repository, renames, finding))
@@ -658,7 +684,8 @@ async function runOpenApiPipeline(options: {
               : {}),
             // AI repairs start again from the original code and must keep these rule edits.
             ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
-            ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
+            ...(keepApiVersion ? { keptApiVersion: true as const } : {}),
+            ...(pinBlocked ? { pinBlocked } : {}),
           }
         : {
             status: 'not-generated' as const,
@@ -679,6 +706,7 @@ async function runOpenApiPipeline(options: {
     (upgradeRequired || ruleEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE)) &&
     typeof targetVersion === 'string'
       ? (cardUpgrade ??
+        pinUpgrade ??
         (await stripePackageUpgrade(
           repository.root,
           targetVersion,
