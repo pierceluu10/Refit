@@ -236,9 +236,9 @@ it('includes imported context but prevents a model from editing read-only module
 
 it('keeps the nearest imported modules that fit a coverage request and says the context is partial', async () => {
   const { repository, report } = await fixture();
-  const CHAIN = 14;
-  // Large enough that the whole chain is over the 64 KiB input limit.
-  const filler = `// ${'x'.repeat(8 * 1024)}\n`;
+  const CHAIN = 26;
+  // Large enough that the whole chain is over the 256 KiB input limit.
+  const filler = `// ${'x'.repeat(12 * 1024)}\n`;
   repository.files[0].content = "import './0.ts';\n" + repository.files[0].content;
   for (let index = 0; index < CHAIN; index++)
     repository.files.push({
@@ -263,9 +263,8 @@ it('keeps the nearest imported modules that fit a coverage request and says the 
   respond([]);
   const proposal = await coverage(findings);
   const context = (proposal.evidence as { contextFiles: { path: string }[] }).contextFiles;
-  console.log(context.map((file) => file.path));
   expect(context.length).toBeGreaterThan(0);
-  expect(context.length).toBeLessThan(12);
+  expect(context.length).toBeLessThan(24);
   expect(context.map((file) => file.path)).toEqual(
     Array.from({ length: context.length }, (_, index) => `${index}.ts`),
   );
@@ -273,7 +272,7 @@ it('keeps the nearest imported modules that fit a coverage request and says the 
   expect(modelEvidence().body.instructions).toContain('evidence.contextPartial');
   // The first patch keeps refusing.
   await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
-    /context exceeds 12/,
+    /context exceeds 24/,
   );
 });
 
@@ -308,7 +307,7 @@ it('attaches one saved vendor page to the model request', async () => {
 
 it('marks a truncated vendor page and stays inside the evidence limit', async () => {
   const { repository, report } = await fixture();
-  const page = await writeSnapshot(`${'charge history '.repeat(8000)}end.`);
+  const page = await writeSnapshot(`${'charge history '.repeat(20000)}end.`);
   respond([]);
   await proposeAiPatch(
     repository,
@@ -878,4 +877,46 @@ it('never lets the model edit package files, which are not editable sources', as
       `AI patch references a file or confirmed finding outside its allowed scope: ${JSON.stringify(file)}.`,
     );
   }
+});
+
+it('asks the stronger step once when the first answer proposes no edit', async () => {
+  const { repository, report, edit } = await fixture();
+  respond([], [edit]);
+  const escalated = { ...OPTIONS, escalation: { model: 'strong-model', reasoningEffort: 'high' } };
+  const proposal = await proposeAiPatch(repository, report.changes, report.findings, escalated);
+  const bodies = vi
+    .mocked(fetch)
+    .mock.calls.map(([, init]) => JSON.parse(String((init as RequestInit).body)));
+  expect(bodies.map((body) => [body.model, body.reasoning?.effort])).toEqual([
+    ['test-model', undefined],
+    ['strong-model', 'high'],
+  ]);
+  expect(proposal).toMatchObject({
+    status: 'proposed',
+    escalation: { model: 'strong-model', reasoningEffort: 'high', edits: 1 },
+  });
+  expect(proposal.diff).toContain(REPLACEMENT);
+});
+
+it('holds an escalated answer to the same checks as the first', async () => {
+  const { repository, report, edit } = await fixture();
+  respond([], [{ ...edit, file: 'elsewhere.ts' }]);
+  const escalated = { ...OPTIONS, escalation: { model: 'strong-model', reasoningEffort: 'high' } };
+  await expect(
+    proposeAiPatch(repository, report.changes, report.findings, escalated),
+  ).rejects.toThrow(/outside its allowed scope/);
+  // The escalated answer gets no corrected request: two requests in all.
+  expect(vi.mocked(fetch).mock.calls).toHaveLength(2);
+});
+
+it('sends one request when no stronger step is configured or the first answer has edits', async () => {
+  const { repository, report, edit } = await fixture();
+  respond([]);
+  const none = await proposeAiPatch(repository, report.changes, report.findings, OPTIONS);
+  expect(none).not.toHaveProperty('escalation');
+  expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
+  respond([edit]);
+  const escalated = { ...OPTIONS, escalation: { model: 'strong-model', reasoningEffort: 'high' } };
+  await proposeAiPatch(repository, report.changes, report.findings, escalated);
+  expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
 });

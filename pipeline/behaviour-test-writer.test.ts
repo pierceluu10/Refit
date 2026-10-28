@@ -499,7 +499,7 @@ it('names a removed request parameter and its contract replacement, from the ori
 
 it('trims imported context to its cap and refuses modules over the input limit without a request', async () => {
   // A generated database types file larger than the context cap, as spotify-clone's types_db.ts grows.
-  const types = `export type Json = string | number | boolean | null;\n${'export interface Row { id: string; created_at: string }\n'.repeat(700)}`;
+  const types = `export type Json = string | number | boolean | null;\n${'export interface Row { id: string; created_at: string }\n'.repeat(3000)}`;
   const sample = await scenario('spotify', {
     'types_db.ts': types,
     'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./*'] } } }),
@@ -512,13 +512,13 @@ it('trims imported context to its cap and refuses modules over the input limit w
   expect(request.context.files).toEqual(['libs/stripe.ts', 'libs/helpers.ts']);
   expect(Buffer.byteLength(JSON.stringify(request.evidence))).toBeLessThanOrEqual(MAX_INPUT_BYTES);
 
-  const huge = `${SPOTIFY['libs/supabaseAdmin.ts']}\n${'// padding\n'.repeat(7000)}`;
+  const huge = `${SPOTIFY['libs/supabaseAdmin.ts']}\n${'// padding\n'.repeat(30000)}`;
   const large = await scenario('spotify', { 'libs/supabaseAdmin.ts': huge });
   const fetcher = respond(CHECKOUT_ANSWER);
   const { record, files } = await writeBehaviourTests({ ...large.inputs, ai: ai(large.root) });
   expect(record).toMatchObject({
     status: 'refused',
-    reason: expect.stringContaining('64 KiB'),
+    reason: expect.stringContaining('256 KiB'),
     promptHash: null,
   });
   expect(files).toEqual([]);
@@ -590,7 +590,7 @@ it('records the model, prompt hash, tokens, cost and file hashes of one request,
 it('builds the same request in a dry run and estimates its tokens and cost without sending it (nicuk/docsflow at 3e6fd71)', async () => {
   const sample = await scenario('docsflow');
   // Built before fetch is stubbed: the pipeline looks up stripe-node releases on npm.
-  const huge = `${SPOTIFY['libs/supabaseAdmin.ts']}\n${'// padding\n'.repeat(7000)}`;
+  const huge = `${SPOTIFY['libs/supabaseAdmin.ts']}\n${'// padding\n'.repeat(30000)}`;
   const large = await scenario('spotify', { 'libs/supabaseAdmin.ts': huge });
   const fetcher = respond(CHECKOUT_ANSWER);
   const { record, files } = await writeBehaviourTests({
@@ -628,7 +628,7 @@ it('builds the same request in a dry run and estimates its tokens and cost witho
   expect(refused.record).toMatchObject({
     status: 'dry-run',
     wouldRun: false,
-    reason: expect.stringContaining('64 KiB'),
+    reason: expect.stringContaining('256 KiB'),
   });
   // The scan may look up stripe-node releases; nothing reaches OpenAI.
   expect(fetcher.mock.calls.filter(([url]) => String(url).includes('api.openai.com'))).toEqual([]);
@@ -1077,3 +1077,22 @@ it("SIMULATED stripe-mock: the generated test gives grade A to the card rule's p
   const unchanged = await harness(files, findings, DOCSFLOW_CLIENT);
   expect(unchanged).toMatchObject({ status: 'regression' });
 }, 120_000);
+
+it('names the lines a patch changes, never the patch, so the tests can reach every one', async () => {
+  const sample = await scenario('spotify');
+  const request = behaviourTestRequest({
+    ...sample.inputs,
+    // libs/stripe.ts has no finding; a changed line there brings the module in for testing.
+    changedLines: { 'libs/stripe.ts': [3], 'libs/supabaseAdmin.ts': [12, 13], 'gone.ts': [1] },
+  });
+  expect(request.evidence.changedLines).toEqual([
+    { file: 'libs/stripe.ts', lines: [3] },
+    { file: 'libs/supabaseAdmin.ts', lines: [12, 13] },
+  ]);
+  expect(request.evidence.files.map((file) => file.path).sort()).toEqual([
+    'libs/stripe.ts',
+    'libs/supabaseAdmin.ts',
+  ]);
+  expect(request.instructions).toContain('evidence.changedLines');
+  expect(behaviourTestRequest(sample.inputs).evidence).not.toHaveProperty('changedLines');
+});

@@ -50,7 +50,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0-4] [--ai-effort low|medium|high|xhigh|max]] [--behaviour-tests | --behaviour-tests-dry-run | --no-behaviour-tests] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Above validation's own limits at their defaults: two preparations (300 s each), a baseline and a
 // patched check (600 s each), and the retry without the API-version move (another preparation and
@@ -85,6 +85,10 @@ const { values } = parseArgs({
     // Builds each behaviour-test request without sending it, and records per repository whether
     // the real run would send it, why not, and its estimated tokens and cost. No key needed.
     'behaviour-tests-dry-run': { type: 'boolean' },
+    // --ai writes behaviour tests with the same model by default; this turns them off.
+    'no-behaviour-tests': { type: 'boolean' },
+    // OPENAI_REASONING_EFFORT for every AI request (low, medium, high, xhigh or max).
+    'ai-effort': { type: 'string' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -113,6 +117,7 @@ const repairAttempts = validateRepairAttempts(
   Boolean(values.ai),
 );
 if (values.env) process.loadEnvFile(values.env);
+if (values['ai-effort']) process.env.OPENAI_REASONING_EFFORT = values['ai-effort'];
 if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
@@ -187,7 +192,14 @@ const { rows: previous } = await openRunDirectory(
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
       // Rows may then carry baseline results an earlier run recorded (workflow.baselineReused).
       'REFIT_BASELINE_CHECK_CACHE_DIRECTORY',
-      ...(values.ai || writer ? ['OPENAI_MODEL'] : []),
+      ...(values.ai || writer
+        ? [
+            'OPENAI_MODEL',
+            'OPENAI_REASONING_EFFORT',
+            'OPENAI_ESCALATION_MODEL',
+            'OPENAI_ESCALATION_EFFORT',
+          ]
+        : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty,
@@ -542,7 +554,9 @@ async function benchmark(entry: Selected, index: number) {
               ? ['--write-behaviour-tests']
               : values['behaviour-tests-dry-run']
                 ? ['--write-behaviour-tests-dry-run']
-                : []),
+                : values['no-behaviour-tests']
+                  ? ['--no-behaviour-tests']
+                  : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',

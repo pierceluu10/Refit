@@ -1,4 +1,4 @@
-import { requestStructuredOutput } from './openai.ts';
+import { REASONING_EFFORTS, requestStructuredOutput, type ReasoningEffort } from './openai.ts';
 import { migrationReviewReason } from './migration-review.ts';
 import { digest, parseObject } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type Repository } from './types.ts';
@@ -79,7 +79,33 @@ export function assessmentConfiguration(
   const model = environment.OPENAI_MODEL?.trim();
   if (!apiKey || !model)
     throw new PipelineInputError('AI operations require OPENAI_API_KEY and OPENAI_MODEL.');
-  return { apiKey, model, budget: aiBudgetConfiguration(environment) };
+  return { apiKey, model, budget: aiBudgetConfiguration(environment), ...aiEffort(environment) };
+}
+
+// OPENAI_REASONING_EFFORT sets every request's effort. A patch request that proposes no edit retries
+// once with OPENAI_ESCALATION_MODEL (default: the same model) at OPENAI_ESCALATION_EFFORT (default:
+// one step above the base effort, medium when unset); OPENAI_ESCALATION_EFFORT=none turns it off.
+export function aiEffort(environment: Record<string, string | undefined>) {
+  const effort = (name: string) => {
+    const value = environment[name]?.trim();
+    if (!value) return undefined;
+    if (name === 'OPENAI_ESCALATION_EFFORT' && value === 'none') return value;
+    if (!(REASONING_EFFORTS as readonly string[]).includes(value))
+      throw new PipelineInputError(`${name} must be one of ${REASONING_EFFORTS.join(', ')}.`);
+    return value;
+  };
+  const reasoningEffort = effort('OPENAI_REASONING_EFFORT');
+  const configured = effort('OPENAI_ESCALATION_EFFORT');
+  const base = REASONING_EFFORTS.indexOf((reasoningEffort ?? 'medium') as ReasoningEffort);
+  const escalationEffort = configured ?? REASONING_EFFORTS[base + 1];
+  const escalationModel =
+    environment.OPENAI_ESCALATION_MODEL?.trim() || environment.OPENAI_MODEL!.trim();
+  return {
+    ...(reasoningEffort ? { reasoningEffort } : {}),
+    ...(escalationEffort && escalationEffort !== 'none'
+      ? { escalation: { model: escalationModel, reasoningEffort: escalationEffort } }
+      : {}),
+  };
 }
 
 function parseAssessment(content: string, evidence: Evidence) {
