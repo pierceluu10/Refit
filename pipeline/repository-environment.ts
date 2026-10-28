@@ -265,6 +265,19 @@ async function proxyReady(proxy: string) {
   throw new Error('The build sandbox proxy did not start.');
 }
 
+// The lines that say why an install failed, first: progress, deprecation and proxy-agent
+// warnings would otherwise fill the bounded message that drafts and benchmarks quote.
+const NOISE =
+  /^(?:REFIT_[A-Z_]+=|Progress: |npm warn |warning |\(node:\d+\) \[UNDICI-EHPA\]|\(Use `node --trace-warnings|added \d+ packages? in |Packages: |\s*$)/;
+const ERROR_LINE = /\b(?:ERR!?|ERR_PNPM_\w+|error|Error|E\d{3}|ENOENT|EACCES|refused|denied)\b/;
+
+export function installFailure(stderr: string) {
+  const lines = stderr.split('\n').filter((line) => !NOISE.test(line));
+  const errors = lines.filter((line) => ERROR_LINE.test(line)).slice(-6);
+  const rest = lines.slice(-12).filter((line) => !errors.includes(line));
+  return [...errors, ...rest].join('\n').slice(0, MAX_LOG_CHARACTERS);
+}
+
 export class RepositoryInstallError extends DependencyPreparationError {
   override name = 'RepositoryInstallError';
   // True when the install needs something only the customer has (a token, a blocked host).
@@ -370,7 +383,7 @@ export async function buildRepositoryEnvironment(options: {
     ];
     const nodeVersion = /^REFIT_NODE_VERSION=(v\d+\.\d+\.\d+)$/m.exec(result.stderr)?.[1];
     if (result.code !== 0 || !result.bytes || !nodeVersion) {
-      const tail = result.stderr.replace(/^REFIT_[A-Z_]+=.*\n?/gm, '').slice(-MAX_LOG_CHARACTERS);
+      const tail = installFailure(result.stderr);
       throw new RepositoryInstallError(
         `The repository's own install (${plan.command.join(' ')}, from ${plan.file}) failed in Refit's build sandbox (${result.code ?? 'killed'})${denied.length ? `; the proxy refused ${denied.join(', ')}, which no committed file names` : ''}. ${tail}`,
         denied.length > 0 || needsCustomerEnvironment(result.stderr),

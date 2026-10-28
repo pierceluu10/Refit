@@ -187,3 +187,23 @@ it('refuses hosts off the allowlist, and allowlisted names that resolve to priva
     await new Promise((resolve) => proxy.once('exit', resolve));
   }
 });
+
+it('puts the lines that say why an install failed before the progress noise', async () => {
+  const { installFailure } = await import('./repository-environment.ts');
+  const stderr = [
+    'REFIT_NODE_VERSION=v22.23.3',
+    '(node:9) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.',
+    '(Use `node --trace-warnings ...` to show where the warning was created)',
+    'added 1 package in 2s',
+    ...Array.from(
+      { length: 40 },
+      (_, index) => `Progress: resolved 497, reused 0, downloaded ${index}`,
+    ),
+    ' ERR_PNPM_INVALID_DEPENDENCY_NAME  Refusing to place a dependency under /workspace/node_modules with the invalid alias "react@latest"',
+    '',
+  ].join('\n');
+  expect(installFailure(stderr).split('\n')[0]).toBe(
+    ' ERR_PNPM_INVALID_DEPENDENCY_NAME  Refusing to place a dependency under /workspace/node_modules with the invalid alias "react@latest"',
+  );
+  expect(installFailure(stderr)).not.toMatch(/UNDICI|Progress:|REFIT_NODE_VERSION/);
+});
