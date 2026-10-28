@@ -92,10 +92,19 @@ export function providerKeys(adapter: SandboxAdapter, environment: NodeJS.Proces
     throw new PipelineInputError(
       `${adapter.name} test mode needs ${adapter.keyVariable}, which is not set.`,
     );
-  // The message never includes the value, not even a prefix of it.
-  if (!keys.every((key) => adapter.testKey.test(key)))
+  // The message says which check failed, never any part of the value.
+  const refused = keys.flatMap((key, index) => {
+    if (adapter.testKey.test(key)) return [];
+    const why = new RegExp(`^(?:${adapter.secret.source})$`).test(key)
+      ? 'is a live or other non-test credential'
+      : /[^A-Za-z0-9_]/.test(key)
+        ? 'holds characters other than letters, digits and underscores (quotes or a NAME= prefix?)'
+        : 'does not have the shape of a test key';
+    return [`value ${index + 1} of ${keys.length} (${key.length} characters) ${why}`];
+  });
+  if (refused.length)
     throw new PipelineInputError(
-      `${adapter.keyVariable} must hold only ${adapter.name} test keys; a live or malformed key is refused.`,
+      `${adapter.keyVariable} must hold only ${adapter.name} test keys; a live or malformed key is refused: ${refused.join('; ')}.`,
     );
   return keys;
 }
