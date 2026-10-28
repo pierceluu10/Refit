@@ -2,7 +2,7 @@ import ts from 'typescript-compiler';
 import { componentReference, isObject } from './specifications.ts';
 import { TEST_PATH } from './source-paths.ts';
 import type { MappedSdkCall, ProviderOperationMapping } from './provider-operations.ts';
-import type { RequestMove } from './rule-pack.ts';
+import { STRIPE_PACK, type RequestMove } from './rule-pack.ts';
 import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
 import { FORMAT_ANNOTATION } from './schema-equivalence.ts';
 
@@ -674,6 +674,65 @@ export function currencyCodeEdits(
   return [...edits.values()];
 }
 
+// stripe-node 22 reads its arguments by position: "Service methods that take optional `params` and
+// `options` used to allow `options` in either order. Now you must pass `undefined` explicitly if
+// you're not passing params" (https://github.com/stripe/stripe-node/wiki/Migration-guide-for-v22,
+// read 2026-10-28). Releases 8 to 21 read a last argument holding only these keys as options and
+// skip an `undefined` params argument, so `retrieve(id, undefined, { stripeAccount })` sends the
+// same request on every release; on 22 the old form sends the keys as request parameters. The keys
+// are the ones every release from 8 to 22 lists in utils.js OPTIONS_KEYS.
+export const REQUEST_OPTIONS_RULE = 'stripe-request-options-last';
+export const REQUEST_OPTIONS_SOURCE =
+  'https://github.com/stripe/stripe-node/wiki/Migration-guide-for-v22';
+export const REQUEST_OPTIONS_SINCE = 22;
+const REQUEST_OPTION_KEYS = new Set([
+  'apiKey',
+  'idempotencyKey',
+  'stripeAccount',
+  'apiVersion',
+  'maxNetworkRetries',
+  'timeout',
+]);
+
+// A traced call whose params argument is its last and an object literal of request options only
+// gets `undefined, ` before it. Spreads, computed keys, other keys and test files are left alone.
+export function requestOptionEdits(
+  context: Pick<ReachContext, 'repository' | 'calls' | 'mappings'>,
+) {
+  const edits = new Map<string, SourceEdit>();
+  for (const mapping of context.mappings) {
+    const calls = context.calls.filter(
+      (call) => call.operationId === mapping.operationId && !TEST_PATH.test(call.file),
+    );
+    const argumentIndex = mapping.path.match(PATH_PARAMETER)?.length ?? 0;
+    for (const { file, body } of callBodies(context.repository, calls, argumentIndex)) {
+      if (
+        !body ||
+        body === 'unknown' ||
+        !ts.isObjectLiteralExpression(body) ||
+        !body.properties.length ||
+        (body.parent as ts.CallExpression).arguments.length !== argumentIndex + 1 ||
+        !body.properties.every(
+          (property) =>
+            (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+            (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) &&
+            REQUEST_OPTION_KEYS.has(property.name.text),
+        )
+      )
+        continue;
+      edits.set(`${file}:${body.getStart()}`, {
+        file,
+        start: body.getStart(),
+        end: body.getStart(),
+        replacement: 'undefined, ',
+        changeId: REQUEST_OPTIONS_RULE,
+        rule: REQUEST_OPTIONS_RULE,
+      });
+    }
+  }
+  return [...edits.values()];
+}
+
 // Rule-table enum successors (the `request-enum-value` family): a removed enum value written as a
 // literal in a traced call's own request becomes the value Stripe documents in its place, such as
 // Checkout's `ui_mode: 'embedded'` becoming `'embedded_page'`. Constants, computed values and test
@@ -783,6 +842,30 @@ function requestReach(
   let compatible: string | undefined;
   for (const { file, body } of callBodies(context.repository, calls, argumentIndex)) {
     if (required) {
+      // A kept request move whose documented replacement is this property, such as the promotion
+      // code `coupon` sent as `promotion` (request-move-families.ts), sends it in this call.
+      const predecessor =
+        path.length === 1 &&
+        body &&
+        body !== 'unknown' &&
+        ts.isObjectLiteralExpression(body) &&
+        body.properties.find(
+          (entry) =>
+            (ts.isPropertyAssignment(entry) || ts.isShorthandPropertyAssignment(entry)) &&
+            ts.isIdentifier(entry.name) &&
+            STRIPE_PACK.requestMoves.some(
+              (move) =>
+                move.family !== 'request-enum-value' &&
+                move.replacement === property &&
+                move.parameter === (entry.name as ts.Identifier).text &&
+                move.operations.includes(mapping!.operationId),
+            ) &&
+            context.edited(file, entry.getStart()),
+        );
+      if (predecessor) {
+        handled ??= file;
+        continue;
+      }
       const parents = path.length > 1 ? sentValues(body, path.slice(0, -1)) : [body];
       if (parents === 'unknown') unknown ??= file;
       else if (parents.length)
