@@ -103,3 +103,30 @@ The referee is provider-neutral: `pipeline/provider-sandbox.ts` holds the harnes
 ## Customers do nothing (founder decision, Otabek, 2026-10-28)
 
 A customer installs Refit and approves PRs, nothing else: no Stripe key, no sandbox, no configuration. Test-mode validation always runs in Refit's own test account, for the benchmark and the product alike. Refit makes up the difference itself: the behaviour-test writer creates stand-ins for account-specific objects the code names (a hard-coded `price_…`, `prod_…` or `cus_…` ID becomes an object Refit creates with the same shape) and sets the payment methods the code asks for on its own account. If the customer's own CI already runs tests against their Stripe sandbox, those results on Refit's PR count as extra evidence. That needs nothing from them either.
+
+## Final measurement: a fresh, unseen 30
+
+Run this once everything is merged: lanes 0, A, B, C and D from `docs/DEPENDENCY-BLOCKERS.md`, lanes 1, 2 and 3 from `docs/HELDOUT-EASY-WINS.md`, and lanes T and H here. The set is built from repositories no one has seen, so no lane could have tuned on it. It answers what Refit does on new code.
+
+The selection rule is fixed now, before anyone sees a repository: `scripts/stripe-active-select.mjs` (the night set's selector, same filters), with the window opening 2026-10-28. Every list under `docs/benchmarks/` is excluded, the night set included. The first 30 repositories in the selector's order that Refit's scan finds affected by the endive change are kept. The list is frozen and committed before any benchmark runs on it.
+
+```text
+You are working on Refit (github.com/pierceluu10/Refit), a TypeScript pipeline that finds code affected by upstream API changes (Stripe first), writes a migration patch, validates it with the repository's own checks in offline Docker, and opens a draft PR. Read AGENTS.md first and follow it. Then read docs/STRIPE-TEST-MODE.md, "Final measurement" (git show origin/docs/heldout-easy-wins:docs/STRIPE-TEST-MODE.md).
+
+Goal: measure Refit, with every lane merged, on 30 Stripe repositories no one has seen, and compare with heldout-30 and l2-push-249.
+
+Start only when origin/main contains every lane named in that section (check each PR is merged). If one is not, say which and stop.
+
+1. Branch bench/fresh-30 from origin/main in its own worktree; npm ci.
+2. Select, without looking at any repository's code first: run scripts/stripe-active-select.mjs with GITHUB_TOKEN from .env, --frozen-at <today>, the activity window opening 2026-10-28 (add a flag for the window start if the script derives it only from --frozen-at; keep the old default), and --exclude every frozen list under docs/benchmarks/ (the night set 2026-10-24-stripe-night-repos.json included). Then run Refit's scan, without patching or validation, over the candidates in the selector's order, and keep the first 30 it finds affected by 2026-09-30.endive. Write docs/benchmarks/subsets/fresh-30.json with frozenAt, purpose, criteria (the exact commands) and the 30 entries, and commit and push it before any benchmark run.
+3. Run on refit-dev/refit-bench (benchmark.yml, full pushed SHA of origin/main plus the subset), with lane T's and lane H's defaults (behaviour tests, Stripe test mode, the recommended model and budget):
+   - fresh-30: -f list=subsets/fresh-30.json -f offset=0 -f size=3 -f count=30, without AI and with -f ai=true -f ai_budget=30.
+   - heldout-30 and l2-push-249 at the same commit, with and without AI, for comparison (ai_budget 30 and 200). AI spend is authorized up to those caps.
+4. Report production-validated, needs-review, regressions and spend for each set. Compare with the census and the 2026-10-27 baselines in docs/BENCHMARKS.md, and list what still blocks each fresh-30 row with scripts/validation-funnel.mjs --all-blockers.
+5. Read every validated fresh-30 migration.patch in full and label it in docs/benchmarks/fix-reviews.json. A wrong fix is reported first, before any score.
+6. Record everything in docs/BENCHMARKS.md (run ids, commits, commands) and docs/READINESS.md. Do not change pipeline code in this lane: a fix found here goes in a new lane and is measured on a new set. Run the format check. Conventional commits, no co-author or AI attribution. Open one PR to main with the list and results. Never merge, never push to main. Never pass a key in a workflow input.
+
+Subagents that help: one to run the selection and scan; one per set to download artifacts and compare; one to review every validated patch.
+
+Don't ask me questions; pick the best option, write down why, and keep going.
+```
