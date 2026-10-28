@@ -2546,6 +2546,21 @@
         "upgradeComplete": "yes: stripe ^15.1.0 to ^23.0.0 in package.json and package-lock.json; the client sets no apiVersion, so the upgrade moves the version.",
         "wouldMerge": "not as validated: the contract-change review comes first; the changed lines are right and tsc passes on both sides."
       }
+    },
+    {
+      "repo": "miljan-code/gpt-writer",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40619927406 (before, main d9217cac) and 40620980613 (after, feat/d2b-contract-reach 023d2527), subsets/l2-push-249.json, AI on. Before: checks passed but the removed line_item.price/invoiceitem.price findings stayed unresolved on one untraced read; after: the sandbox receiver probe labels that read library (the app's zod-typed credit plan), so D2b clears it. The migration.patch is byte-identical in both runs; it was taken from the shard-4 artifact, applied to a clone at the pinned commit bf513362 and read in full as git diff, lockfile entry for stripe only.",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation in app/api/payment/route.ts sends exactly ['card'], which the owner-approved card rule moves to allowed_payment_method_types.",
+        "bothVersions": "not needed: the single client in lib/stripe.ts moves its pin from 2022-11-15 to 2026-09-30.endive in the same patch.",
+        "nothingUnrelated": "yes: one parameter, one version pin, the stripe dependency and its package-lock entry.",
+        "pleaseCheck": "allowed_payment_method_types filters the methods Stripe finds eligible, so cards must stay enabled for the account. The one untraced read cleared under D2b, creditPlan.price in app/api/webhooks/stripe/route.ts:67, reads the app's own plan config (config/credit-plans.ts, typed by zod), not a Stripe object. The webhook still casts event.data.object to Checkout.Session for payment_intent.succeeded and reads only metadata, which the upgrade does not change. The only check is tsc --noEmit (grade C); no test or Stripe request ran, and webhook endpoints keep their Dashboard version.",
+        "upgradeComplete": "yes: stripe-node 11.18.0 to 23.0.0.",
+        "wouldMerge": "yes, after confirming cards stay enabled and running checkout once in test mode."
+      }
     }
   ]
 }
