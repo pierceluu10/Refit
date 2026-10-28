@@ -2546,6 +2546,21 @@
         "upgradeComplete": "yes: stripe ^15.1.0 to ^23.0.0 in package.json and package-lock.json; the client sets no apiVersion, so the upgrade moves the version.",
         "wouldMerge": "not as validated: the contract-change review comes first; the changed lines are right and tsc passes on both sides."
       }
+    },
+    {
+      "repo": "Alex-Unnippillil/share-house-portal",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40626081878 (after, claude/stripe-type-repair-gate d311ec37), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40626090687 produces a byte-identical migration.patch. Before: the stripe-node 16.6.0 to 23.0.0 upgrade introduced TS2322 at app/api/stripe/webhook/route.ts:395 (the widened Subscription.Status returned as the narrower Supabase status union), so the patch kept the 2024-06-20 pin and stripe 16.6.0 (api-version-kept). After: the deterministic type assertion passes the type-only gate and the checks, so the pin and the upgrade stay. migration.patch from the shard-6 artifact read in full, lockfiles skipped",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: `return status` becomes `return (status as \"active\" | \"canceled\" | \"past_due\" | \"unpaid\" | undefined)` inside the `if` that already narrows status to those four literals, so the asserted type is what the guard proves; the subscription period reads go through the generated helpers with items[0] and both invoice.subscription reads through getInvoiceSubscription.",
+        "nothingUnrelated": "yes: the assertion, the generated helpers and their reads, the apiVersion constant in lib/stripe.ts and stripe 16.6.0 to 23.0.0 in package.json, package-lock.json and pnpm-lock.yaml. lib/stripe.ts and package.json show as whole-file hunks but differ only on those lines.",
+        "bothVersions": "yes: the helpers return the old field when the object has it and the new location otherwise; the assertion compiles to the same JavaScript, so nothing changes at runtime.",
+        "upgradeComplete": "yes: the one client pin moves to 2026-09-30.endive and stripe to 23.0.0 in both committed lockfiles.",
+        "pleaseCheck": "The draft stays [Needs review] for one untraced `.type` read in app/api/plaid/exchange-public-token/route.ts:60 (a Plaid object, not Stripe) and for the major stripe-node upgrade.",
+        "wouldMerge": "yes after confirming the Plaid read: tests and tsc pass on both sides in offline Docker (grade B), and the assertion is no wider than the existing guard."
+      }
     }
   ]
 }

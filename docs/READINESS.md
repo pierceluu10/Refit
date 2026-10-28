@@ -1,5 +1,19 @@
 # Refit implementation checkpoints
 
+## October 28 checkpoint: type-only repair of upgrade-introduced type errors (unreleased, after 0.39.0)
+
+Under the founders' decision of 2026-10-27, validation can repair type errors that the stripe-node upgrade introduces into application code. Such a repair must pass `typeOnlyRepairFailures` (`pipeline/ai-patch-policies.ts`):
+
+- Each changed TypeScript file compiles with `transpileModule` under the repository's own compiler options to the same JavaScript as before.
+- The repair edits only statements holding an error the oracle lists as introduced, and adds no statements.
+- It writes no enum, namespace or decorator.
+
+The deterministic repair (`openEnumRepair` in `pipeline/stripe-open-enums.ts`, `type-assertion-repair`) asserts the narrower type where a widened Stripe value is assigned. It does so only when the file can name the target type and the assertion drops no `null` or `undefined`. A repair that passes the gate and the checks may publish validated, and the draft names each assertion.
+
+An AI repair of errors that all come from the upgrade must pass the same gate, and it stays `[Needs review]`.
+
+On refit-bench no outcome changed, with or without AI: l2-push-249 has 84 validated (88 with AI) and heldout-30 has 10 (11 with AI). One patch keeps its pin move and upgrade through a deterministic assertion, reviewed `correct`. Its draft stays `[Needs review]` for an untraced read. No AI repair reached the gate, because the upgrade's remaining errors are removals, arity changes and null widening, which no type assertion may honestly fix ([benchmarks](BENCHMARKS.md#type-only-repair-of-upgrade-introduced-type-errors-october-28)). Tests: `pipeline/ai-patch-policies.test.ts`, `pipeline/stripe-open-enums.test.ts`, `pipeline/review.test.ts`.
+
 ## October 27 checkpoint: install-time vendor detection (unreleased, after 0.39.0)
 
 The hosted inventory now detects every API vendor in the vendor catalog a repository uses: npm, pnpm and yarn manifests and lockfiles, Python, Go, Ruby, PHP, Java and .NET manifests, raw API hostnames in any language and vendor environment variable names (including env templates). `data/vendor-catalog.json` adds 32 vendors without an agent, and env names, OpenAPI documents and changelog pages for the existing agents, each fact with the page it was read from (D5: generic code over sourced data). Each vendor is labelled `configured`, `agent-available`, `report-only` or `no-agent`; vendors with an OpenAPI document or changelog pages become watch targets (`refit_watch_targets`, hosted migration 12), captured once a day with `REFIT_HOSTED_WATCH=1`, and never enroll or edit a repository. Inventory format 2; the stored digest now covers the catalog and format, so a catalog change re-scans. On 26 real repositories with AI-assisted labels: precision 0.939 (0.945 held out), recall 0.846 on catalog vendors (0.800 held out) and 0.575 on all labelled vendors ([details](INVENTORY.md#detection-precision-and-recall)). Tests: `pipeline/vendor-detection.test.ts`, `pipeline/vendor-watch.test.ts`, `pipeline/inventory-store.test.ts` (PostgreSQL). End-to-end demo: blocked. `install-demo.yml` on refit-bench (#8) is ready, but on 2026-10-28 the App's delivery log held 0 installation deliveries (its one installation is older than GitHub's retention window), and the existing installation and App settings were left alone. It runs after a new install event with one `gh workflow run install-demo.yml` ([how](INVENTORY.md#demo-on-github-actions)).
