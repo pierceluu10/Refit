@@ -104,6 +104,7 @@ export interface PackageUpgrade {
 }
 
 type Refusal = { reason: string };
+type Lock = [string, () => Promise<{ upgrade: PackageUpgrade } | Refusal>];
 interface Declaration {
   section: 'dependencies' | 'devDependencies';
   spec: string;
@@ -268,6 +269,8 @@ export async function stripePackageUpgrade(
   apiVersion: string,
   // The networked resolver (lockfile-resolution.ts) a types-only peer bump re-resolves with.
   resolution?: Resolution,
+  // Of several committed lockfiles, the one preparation installs (dependency-inputs.ts).
+  lockfile?: string,
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   const target = STRIPE_SDK_RELEASES[apiVersion];
   if (!target)
@@ -288,24 +291,49 @@ export async function stripePackageUpgrade(
   )
     return manifestUpgrade(target, manifestText, Boolean(resolution));
   const locks = [
-    npmLock &&
-      (() =>
+    npmLock && [
+      'package-lock.json',
+      () =>
         npmUpgrade(
           target,
           manifestText!,
           npmLock,
           resolution && { ...resolution, npmrc: () => read('.npmrc') },
-        )),
-    pnpmLock && (() => pnpmUpgrade(target, manifestText!, pnpmLock)),
-    yarnLock && (() => yarnUpgrade(target, manifestText!, yarnLock)),
-  ].filter((upgrade) => typeof upgrade === 'function');
+        ),
+    ],
+    pnpmLock && ['pnpm-lock.yaml', () => pnpmUpgrade(target, manifestText!, pnpmLock)],
+    yarnLock && ['yarn.lock', () => yarnUpgrade(target, manifestText!, yarnLock)],
+  ].filter((entry): entry is Lock => Array.isArray(entry));
   if (manifestText === undefined || !locks.length)
     return {
       reason:
         'Only root npm, pnpm or Yarn 1 projects with package.json and at least one of package-lock.json, pnpm-lock.yaml or yarn.lock are upgraded.',
     };
-  if (locks.length === 1) return locks[0]();
-  return everyLockfileUpgrade(locks);
+  if (locks.length === 1) return locks[0][1]();
+  const every = await everyLockfileUpgrade(locks.map(([, upgrade]) => upgrade));
+  const chosen = locks.find(([path]) => path === lockfile);
+  if ('upgrade' in every || !chosen) return every;
+  return chosenLockfileUpgrade(
+    chosen[1],
+    locks.flatMap(([path]) => (path === lockfile ? [] : [path])),
+  );
+}
+
+// Founder decision (Otabek, 2026-10-28): when the lockfiles cannot all be upgraded together, the
+// one preparation chose is upgraded alone, and the others stay as committed; the warning names them.
+async function chosenLockfileUpgrade(
+  chosen: Lock[1],
+  others: string[],
+): Promise<{ upgrade: PackageUpgrade } | Refusal> {
+  const result = await chosen();
+  if ('reason' in result) return result;
+  const { upgrade } = result;
+  return {
+    upgrade: {
+      ...upgrade,
+      warning: `${upgrade.warning ?? `Upgrades stripe from ${upgrade.from} to ${upgrade.to} in ${upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`} Refit installed and upgraded ${upgrade.files[1].path} only and left ${others.join(' and ')} as committed, so ${others.length === 1 ? 'it' : 'they'} can still lock the older stripe. Delete the lockfile your package manager does not use.`,
+    },
+  };
 }
 
 // A project that commits several lockfiles installs from whichever its package manager reads, so

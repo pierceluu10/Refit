@@ -1,4 +1,5 @@
 import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
+import { chosenLockfile, type LockfileChoice } from './dependency-inputs.ts';
 import { aiSafetyStop, migrationReviewReason, unresolvedSites } from './migration-review.ts';
 import { diffLines } from 'diff';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
@@ -786,6 +787,7 @@ async function prepareCandidateDependencies(
     packageDirectory?: string;
     // The original repository's commit date: a lockfile resolved for the candidate is cut off there.
     committedAt?: string;
+    lockfileChoice?: LockfileChoice;
   },
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
@@ -818,6 +820,7 @@ async function prepareCandidateDependencies(
     image,
     packageDirectory: options.packageDirectory,
     committedAt: options.committedAt,
+    lockfileChoice: options.lockfileChoice,
     copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
@@ -1316,6 +1319,14 @@ export async function validateMigration(options: {
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
   const committedAt = (await git(['show', '-s', '--format=%cI', revision])).stdout.trim();
+  // Of several committed lockfiles, the one installed for the original commit; the candidate and
+  // the stripe-node upgrade use it too, since a candidate's own one-commit history cannot date it.
+  const lockfileChoice = packageDirectory
+    ? undefined
+    : await chosenLockfile(snapshot).catch((error) => {
+        if (error instanceof PipelineInputError) return undefined;
+        throw error;
+      });
   const runtime = await selectValidationRuntime(snapshot, options.image);
   const image = await resolveDockerImage(runtime.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
@@ -1356,6 +1367,7 @@ export async function validateMigration(options: {
           lockfileResolution: lockfileResolutionEnabled()
             ? { image, before: committedAt }
             : undefined,
+          lockfile: lockfileChoice?.lockfile,
           aiPatch: baselinePassed ? options.aiPatch : undefined,
           assessment: baselinePassed ? options.assessment : undefined,
           onProgress: baselinePassed ? options.onProgress : undefined,
@@ -1372,6 +1384,7 @@ export async function validateMigration(options: {
               ...options,
               packageDirectory,
               committedAt,
+              lockfileChoice,
               signal,
             }),
           )),
@@ -1801,6 +1814,7 @@ export async function validateMigration(options: {
           lockfileResolution: lockfileResolutionEnabled()
             ? { image, before: committedAt }
             : undefined,
+          lockfile: lockfileChoice?.lockfile,
           aiPatch: undefined,
           assessment: undefined,
           onProgress: undefined,

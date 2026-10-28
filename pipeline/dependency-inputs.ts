@@ -44,9 +44,9 @@ export interface PreparationIdentity {
   bunLockHash?: string;
   // Committed pnpm patch files by path, with the SHA-256 pnpm-lock.yaml records for each.
   patchHashes?: Record<string, string>;
-  // Of several committed lockfiles, the one in sync with package.json that Refit installed, and how
-  // each other one disagrees with it (syncedLockfile).
-  lockfileChoice?: { lockfile: string; outOfSync: Record<string, string> };
+  // Of several committed lockfiles, the one Refit installed, by which rule, and what each other one
+  // shows (chosenLockfile).
+  lockfileChoice?: LockfileChoice;
   // A package-lock.json Refit resolved for validation only, in place of the refused or missing one
   // (lockfile-resolution.ts): the refusal, the cutoff, and pins resolved after it.
   resolvedLockfile?: {
@@ -54,6 +54,16 @@ export interface PreparationIdentity {
     before: string;
     late?: Record<string, { spec: string; published: string }>;
   };
+}
+
+// Founder decision (Otabek, 2026-10-28): of several committed root lockfiles Refit installs one,
+// picked by the first rule that applies. `because` finishes "Refit installed <lockfile>, …";
+// `others` says, per lockfile not read, how it disagrees or when it was last committed.
+export interface LockfileChoice {
+  lockfile: string;
+  rule: 'package-manager' | 'ci' | 'in-sync' | 'newest';
+  because: string;
+  others: Record<string, string>;
 }
 
 interface PreparationInputs {
@@ -67,18 +77,26 @@ export async function readPreparationInputs(
   // Node resolves modules up the directory tree, so a nested package's preparation refuses a
   // tracked node_modules anywhere in its repository, as the root's does.
   repositoryEntries = snapshot.entries,
+  // A choice made on the original commit, for a candidate whose own history cannot date it.
+  choice?: LockfileChoice,
 ): Promise<PreparationInputs> {
   const paths = snapshot.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1));
-  const committed = ['package-lock.json', PNPM_LOCKFILE, YARN_LOCKFILE].filter((file) =>
-    paths.includes(file),
-  );
-  const several = committed.length > 1 && paths.includes('package.json');
-  const chosen = several ? await installedLockfile(snapshot, paths, committed) : undefined;
-  if (several && !chosen) {
-    const synced = await syncedLockfile(snapshot, repositoryEntries, committed);
-    if (synced) return synced;
+  const committed = ROOT_LOCKFILES.filter((file) => paths.includes(file));
+  const chosen =
+    committed.length > 1 && paths.includes('package.json')
+      ? choice && committed.includes(choice.lockfile)
+        ? choice
+        : await chosenLockfile(snapshot, repositoryEntries)
+      : undefined;
+  if (chosen) {
+    const entries = snapshot.entries.filter((entry) => {
+      const path = entry.slice(entry.indexOf('\t') + 1);
+      return path === chosen.lockfile || !committed.includes(path);
+    });
+    const prepared = await readPreparationInputs({ ...snapshot, entries }, repositoryEntries);
+    return { ...prepared, inputs: { ...prepared.inputs, lockfileChoice: chosen } };
   }
-  const lockfiles = chosen ? [chosen] : committed;
+  const lockfiles = committed;
   const pnpm = lockfiles.includes(PNPM_LOCKFILE);
   const yarn = lockfiles.includes(YARN_LOCKFILE);
   const lockfile = pnpm ? PNPM_LOCKFILE : yarn ? YARN_LOCKFILE : 'package-lock.json';
@@ -241,6 +259,7 @@ export async function readPreparationInputs(
   };
 }
 
+const ROOT_LOCKFILES = ['package-lock.json', PNPM_LOCKFILE, YARN_LOCKFILE];
 const MANAGER_LOCKFILES: Record<string, string> = {
   npm: 'package-lock.json',
   pnpm: PNPM_LOCKFILE,
@@ -267,25 +286,32 @@ function workflowCommands(text: string) {
   );
 }
 
-// The lockfile of the manager package.json pins, when the repository commits several and its own
-// GitHub workflows install dependencies with that manager and no other: Refit installs as its CI
-// does. Anything else (no pin, no workflow install, another manager's install) keeps refusing.
-async function installedLockfile(
+// Refit's own refusals of a lockfile that disagrees with the package.json files it covers.
+const OUT_OF_SYNC =
+  /differ from the committed package-lock\.json|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm importer (?:specifiers|declarations) differ from committed manifests|^pnpm lockfile importers must exactly match|^pnpm overrides differ from the overrides pnpm-lock\.yaml records/;
+
+// The rules, in order; the first that applies decides, and when none does the repository keeps
+// its conflicting-lockfile stop.
+// 1. package.json's packageManager names npm, pnpm or Yarn and its lockfile is committed, and no
+//    GitHub workflow installs with another manager.
+// 2. Without a pin, the GitHub workflows install with one manager only, and its lockfile is committed.
+// 3. Without a pin or a workflow install, of the lockfiles Refit does not refuse as out of sync
+//    with package.json, the only one, or else the one last committed strictly after the others.
+//    Dates come from the checkout's own history, so a shallow checkout or a tie picks none.
+// The chosen lockfile then has to pass every check on its own; nothing falls back to another.
+export async function chosenLockfile(
   snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
-  paths: string[],
-  committed: string[],
-) {
+  repositoryEntries = snapshot.entries,
+): Promise<LockfileChoice | undefined> {
+  const paths = snapshot.entries.map((entry) => entry.slice(entry.indexOf('\t') + 1));
+  const committed = ROOT_LOCKFILES.filter((file) => paths.includes(file));
+  if (committed.length < 2 || !paths.includes('package.json')) return undefined;
   const manifest = parseObject(
     await readCommittedFile(snapshot, 'package.json', MAX_PACKAGE_BYTES),
     'package.json',
   );
-  const manager =
-    typeof manifest.packageManager === 'string'
-      ? /^(npm|pnpm|yarn)@\d/.exec(manifest.packageManager)?.[1]
-      : undefined;
   const workflows = paths.filter((path) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(path));
-  if (!manager || !committed.includes(MANAGER_LOCKFILES[manager]) || workflows.length > 64)
-    return undefined;
+  if (workflows.length > 64) return undefined;
   const installers = new Set<string>();
   for (const path of workflows)
     for (const command of workflowCommands(
@@ -294,65 +320,93 @@ async function installedLockfile(
       if (!/\s(?:-g|--global)(?:\s|$)/.test(command))
         for (const [name, pattern] of PROJECT_INSTALLS)
           if (pattern.test(command)) installers.add(name);
-  return installers.size === 1 && installers.has(manager) ? MANAGER_LOCKFILES[manager] : undefined;
-}
-
-// Refit's own refusals of a lockfile that disagrees with the package.json files it covers.
-const OUT_OF_SYNC =
-  /differ from the committed package-lock\.json|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm importer (?:specifiers|declarations) differ from committed manifests|^pnpm lockfile importers must exactly match|^pnpm overrides differ from the overrides pnpm-lock\.yaml records/;
-
-// Several lockfiles and no pin backed by CI: when exactly one prepares on its own and every other
-// one is refused as out of sync with package.json, no install of this commit can use the others
-// (their own frozen installs reject them), so Refit installs that one and records why. Anything else
-// (several in sync, a refusal for another reason, or the one in sync not being the lockfile of the
-// manager check selection runs the checks with) keeps refusing.
-async function syncedLockfile(
-  snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
-  repositoryEntries: string[],
-  committed: string[],
-): Promise<PreparationInputs | undefined> {
-  const results = await Promise.all(
+  const notRead = (lockfile: string, note: string) =>
+    Object.fromEntries(committed.filter((file) => file !== lockfile).map((file) => [file, note]));
+  if (manifest.packageManager !== undefined) {
+    const manager =
+      typeof manifest.packageManager === 'string'
+        ? /^(npm|pnpm|yarn)@\d/.exec(manifest.packageManager)?.[1]
+        : undefined;
+    const lockfile = manager && MANAGER_LOCKFILES[manager];
+    if (
+      !lockfile ||
+      !committed.includes(lockfile) ||
+      [...installers].some((name) => name !== manager)
+    )
+      return undefined;
+    return {
+      lockfile,
+      rule: 'package-manager',
+      because: `the lockfile of the manager package.json pins (\`"packageManager": "${manifest.packageManager}"\`)`,
+      others: notRead(lockfile, 'not read'),
+    };
+  }
+  if (installers.size) {
+    const [manager] = installers;
+    const lockfile = MANAGER_LOCKFILES[manager];
+    if (installers.size > 1 || !committed.includes(lockfile)) return undefined;
+    return {
+      lockfile,
+      rule: 'ci',
+      because: `the lockfile of the only manager the repository's GitHub workflows install with (${manager})`,
+      others: notRead(lockfile, 'not read'),
+    };
+  }
+  const refusals = await Promise.all(
     committed.map(async (lockfile) => {
       const entries = snapshot.entries.filter((entry) => {
         const path = entry.slice(entry.indexOf('\t') + 1);
         return path === lockfile || !committed.includes(path);
       });
       try {
-        return {
-          lockfile,
-          prepared: await readPreparationInputs({ ...snapshot, entries }, repositoryEntries),
-        };
+        await readPreparationInputs({ ...snapshot, entries }, repositoryEntries);
+        return undefined;
       } catch (error) {
         if (!(error instanceof PipelineInputError)) throw error;
-        return { lockfile, refusal: error.message };
+        return error.message;
       }
     }),
   );
-  const prepared = results.filter((result) => result.prepared);
-  const outOfSync = results.filter(
-    (result) => result.refusal !== undefined && OUT_OF_SYNC.test(result.refusal),
+  // The first sentence says how the lockfile disagrees; its "Run … install" advice does not apply.
+  const outOfSync = Object.fromEntries(
+    committed.flatMap((lockfile, index) =>
+      refusals[index] !== undefined && OUT_OF_SYNC.test(refusals[index])
+        ? [[lockfile, refusals[index].split(/(?<=\.) (?=[A-Z])/)[0]]]
+        : [],
+    ),
   );
-  if (prepared.length !== 1 || outOfSync.length !== committed.length - 1) return undefined;
-  // Check selection picks pnpm, then Yarn, then npm by the lockfiles in the checkout
-  // (check-selection.ts packageManager), so another choice would run the checks with a manager
-  // that did not install the dependencies.
-  if (prepared[0].lockfile !== (committed.includes(PNPM_LOCKFILE) ? PNPM_LOCKFILE : YARN_LOCKFILE))
+  const matching = committed.filter((lockfile) => !(lockfile in outOfSync));
+  if (matching.length === 1)
+    return {
+      lockfile: matching[0],
+      rule: 'in-sync',
+      because: 'the only one in sync with `package.json`',
+      others: outOfSync,
+    };
+  if (!matching.length) return undefined;
+  if ((await snapshot.git(['rev-parse', '--is-shallow-repository'])).stdout.trim() !== 'false')
     return undefined;
-  const { lockfile, prepared: chosen } = prepared[0];
+  const dates = await Promise.all(
+    matching.map(async (lockfile) =>
+      (
+        await snapshot.git(['log', '-1', '--format=%cI', snapshot.revision, '--', lockfile])
+      ).stdout.trim(),
+    ),
+  );
+  const times = dates.map((date) => Date.parse(date));
+  const newest = times.indexOf(Math.max(...times));
+  if (times.some((time, index) => index !== newest && !(time < times[newest]))) return undefined;
   return {
-    ...chosen!,
-    inputs: {
-      ...chosen!.inputs,
-      lockfileChoice: {
-        lockfile,
-        // The first sentence says how the lockfile disagrees; its "Run … install" advice does not apply.
-        outOfSync: Object.fromEntries(
-          outOfSync.map((result) => [
-            result.lockfile,
-            result.refusal!.split(/(?<=\.) (?=[A-Z])/)[0],
-          ]),
+    lockfile: matching[newest],
+    rule: 'newest',
+    because: `the most recently committed lockfile in sync with \`package.json\` (last changed ${dates[newest]})`,
+    others: {
+      ...outOfSync,
+      ...Object.fromEntries(
+        matching.flatMap((lockfile, index) =>
+          index === newest ? [] : [[lockfile, `${lockfile} was last changed ${dates[index]}.`]],
         ),
-      },
+      ),
     },
   };
 }

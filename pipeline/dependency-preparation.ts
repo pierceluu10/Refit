@@ -30,7 +30,11 @@ import {
   resolveDockerImage,
 } from './docker-sandbox.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
-import { readPreparationInputs, type PreparationIdentity } from './dependency-inputs.ts';
+import {
+  readPreparationInputs,
+  type LockfileChoice,
+  type PreparationIdentity,
+} from './dependency-inputs.ts';
 import {
   NPM_TOOL_INSTALL_COMMAND,
   PNPM_INSTALL_COMMAND,
@@ -579,6 +583,8 @@ export async function prepareDependencies(options: {
   packageDirectory?: string;
   // The cutoff for a resolved lockfile when the repository is a candidate Refit committed itself.
   committedAt?: string;
+  // The original commit's choice of several lockfiles, for a candidate Refit committed itself.
+  lockfileChoice?: LockfileChoice;
   // Copied under the cache lock, so eviction cannot remove the bundle mid-copy.
   copyArchiveTo?: string;
   signal?: AbortSignal;
@@ -662,6 +668,7 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0], refus
               ? await packageSnapshot(snapshot, options.packageDirectory)
               : snapshot,
             snapshot.entries,
+            options.lockfileChoice,
           ).catch((error) =>
             options.packageDirectory
               ? Promise.reject(error)
