@@ -458,13 +458,17 @@ const behaviour = (record: DeliveryRecord) => {
 // The first place two deliveries differ, said so a reviewer can find it. Inside a stand-in call's
 // arguments a key only one side has is skipped: a whole provider object passed to a backend
 // legitimately gains and loses fields between versions; a field the code names stays on both sides.
+// Across sides each mock serves its own version's fixture values, so `acrossMocks` lets two
+// booleans differ (a retrieved subscription's `cancel_at_period_end`).
 export function firstDifference(
   a: unknown,
   b: unknown,
   path = '',
   sides: [string, string] = ['the old-version event', 'the new-version event'],
+  acrossMocks = false,
 ): string | undefined {
   if (JSON.stringify(a) === JSON.stringify(b)) return;
+  if (acrossMocks && typeof a === 'boolean' && typeof b === 'boolean') return;
   if (a && b && typeof a === 'object' && typeof b === 'object') {
     const argument = /^calls\[\d+\]\.args\[/.test(path) && !Array.isArray(a);
     for (const key of [...new Set([...Object.keys(a), ...Object.keys(b)])]) {
@@ -475,6 +479,7 @@ export function firstDifference(
         (b as Record<string, unknown>)[key],
         where,
         sides,
+        acrossMocks,
       );
       if (found) return found;
     }
@@ -574,6 +579,7 @@ export function compareSignedEvents(options: {
         { calls: before.calls },
         '',
         ['the original code', 'the patched code'],
+        true,
       );
       if (crossSide) {
         const error = `${crossSide} (old-version event)`;

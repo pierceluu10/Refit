@@ -579,4 +579,14 @@ it('compares a stand-in call with the original code, and ignores fields a whole 
       },
     ],
   });
+  // Each side's mock serves its own fixture values: a retrieved boolean may differ across sides.
+  const flag = (value: boolean) => [{ cancel: value }];
+  expect(compare([flag(false), flag(false)], [flag(true), flag(true)])).toMatchObject({
+    status: 'passed',
+  });
+  expect(
+    compare([flag(false), flag(false)], [[{ cancel: '<undefined>' }], flag(false)]),
+  ).toMatchObject({
+    status: 'regression',
+  });
 });
