@@ -152,7 +152,7 @@ Why no patch reached the repositories' own checks:
 - `pretzelai/stripe-no-webhooks`: a mutated `Stripe.Invoice` value keeps the declared-type gate on, and the repository's checks use `bun`, which the `node:22-alpine` image lacks.
 
 Every proposed patch was reviewed by hand:
-- **`horizon-ui/shadcn-nextjs-boilerplate` was wrong.** Its client passes `apiVersion: null`, so responses follow the account's default version. The moved reads would return `NaN` until the account is upgraded. Field moves now apply only when the same patch bumps a literal `apiVersion`, and this repository now gets no patch.
+- **`horizon-ui/shadcn-nextjs-boilerplate` was wrong.** Its client passes `apiVersion: null`, so responses follow the account's default version. The moved reads would return `NaN` until the account is upgraded. Field moves now apply only when the same patch bumps a literal `apiVersion`, and this repository now gets no patch. (Corrected 2026-10-28: stripe-node 12 and later send `apiVersion || DEFAULT_API_VERSION`, so `null` sends the release's pinned version, not the account default; Refit now treats it as an unset option.)
 - **The other six are correct at runtime when a subscription's items share one billing period.** All six are TypeScript projects on stripe-node 12–16. Type-checking the patched code against stripe@12.9.0 and stripe@16.12.0 types fails twice: `apiVersion` is typed as the package's own version literal, and `SubscriptionItem` has no `current_period_end`. They need the `stripe` package upgrade before they build (plan open decision 7).
 
 ### Re-run with AI (October 15)

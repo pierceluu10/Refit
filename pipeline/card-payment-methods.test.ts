@@ -303,11 +303,12 @@ it('lets the validation preflight through without a patch request when the pin m
   // A client without the option follows the package's pin; the upgrade is checked with the patch.
   const sdkPinned = await run({ 'checkout.js': checkout("['card']", '{}') }, false);
   expect(sdkPinned.findings[0].requestParameter).toBeUndefined();
-  const accountDefault = await run(
+  // stripe-node sends `apiVersion || DEFAULT_API_VERSION` (11.18.0 to 23.0.0): null sets nothing.
+  const explicitNull = await run(
     { 'checkout.js': checkout("['card']", '{ apiVersion: null }') },
     false,
   );
-  expect(accountDefault.findings[0].requestParameter).toBeDefined();
+  expect(explicitNull.findings[0].requestParameter).toBeUndefined();
 });
 
 // Shaped like an npm v3 lockfile on stripe-node 22 and the registry's stripe 23.0.0 metadata.
@@ -354,23 +355,26 @@ function registry() {
   );
 }
 
-it('moves the card rename with the stripe-node upgrade when no client sets apiVersion', async () => {
-  registry();
-  const report = await run({ ...npmProject, 'checkout.js': checkout("['card']", '{}') });
-  expect(report.patch).toMatchObject({
-    status: 'proposed',
-    generator: 'deterministic',
-    sdkUpgrade: { from: '22.6.2', to: '23.0.0' },
-  });
-  if (!('diff' in report.patch)) throw new Error('Expected a patch');
-  expect(report.patch.diff).toContain('allowed_payment_method_types');
-  expect(report.patch.diff).toContain('"stripe": "^23.0.0"');
-  expect(report.patch.diff).not.toContain('apiVersion');
-  expect(report.findings[0].requestParameter).toBeUndefined();
-});
+it.each(['{}', '{ apiVersion: null }'])(
+  'moves the card rename with the stripe-node upgrade when no client sets apiVersion: %s',
+  async (options) => {
+    registry();
+    const report = await run({ ...npmProject, 'checkout.js': checkout("['card']", options) });
+    expect(report.patch).toMatchObject({
+      status: 'proposed',
+      generator: 'deterministic',
+      sdkUpgrade: { from: '22.6.2', to: '23.0.0' },
+    });
+    if (!('diff' in report.patch)) throw new Error('Expected a patch');
+    expect(report.patch.diff).toContain('allowed_payment_method_types');
+    expect(report.patch.diff).toContain('"stripe": "^23.0.0"');
+    expect(report.patch.diff).not.toContain("apiVersion: '");
+    expect(report.findings[0].requestParameter).toBeUndefined();
+  },
+);
 
 it.each([
-  ['an account-default client', '{ apiVersion: null }', ''],
+  ['an environment-only client', '{ apiVersion: process.env.STRIPE_API_VERSION }', ''],
   ['an old setApiVersion call', '{}', "stripe.setApiVersion('2026-08-26.dahlia');\n"],
 ])('keeps stopping for review with %s', async (_case, options, extra) => {
   registry();
@@ -420,13 +424,13 @@ it('moves a lazy client rename with the upgrade while another request is untrace
   expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
 });
 
-it('keeps an account-default client on the path a stop while another client is pinned', async () => {
+it('keeps an environment-only client on the path a stop while another client is pinned', async () => {
   registry();
   const report = await run({
     ...npmProject,
     'checkout.js': lazyCheckout.replace(
       'new Stripe(process.env.STRIPE_KEY)',
-      'new Stripe(process.env.STRIPE_KEY, { apiVersion: null })',
+      'new Stripe(process.env.STRIPE_KEY, { apiVersion: process.env.STRIPE_API_VERSION })',
     ),
     'update.js': pinnedUpdate,
   });
@@ -434,7 +438,9 @@ it('keeps an account-default client on the path a stop while another client is p
   expect(report.findings).toMatchObject([
     {
       requestParameter: { parameter: 'payment_method_types' },
-      reason: expect.stringContaining('the client created at checkout.js:4 sends'),
+      reason: expect.stringContaining(
+        'the client created at checkout.js:4 reads its API version from the deployment environment variable STRIPE_API_VERSION',
+      ),
     },
   ]);
 });
@@ -695,7 +701,9 @@ it('keeps the stop only on the call whose client sets a version the patch cannot
   expect(report.findings.filter((finding) => finding.requestParameter)).toMatchObject([
     {
       file: 'dynamic.js',
-      reason: expect.stringContaining('the client created at dynamic.js:2 sends'),
+      reason: expect.stringContaining(
+        'the client created at dynamic.js:2 reads its API version from the deployment environment variable STRIPE_VERSION',
+      ),
     },
   ]);
 });
@@ -889,7 +897,9 @@ it('renames an exact card list in a local body that only the Checkout call recei
   expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
 });
 
-// kevinknielsen/superfan-core: `apiVersion: process.env.STRIPE_API_VERSION || '2023-10-16'`.
+// kevinknielsen/superfan-core: `apiVersion: process.env.STRIPE_API_VERSION || '2023-10-16'`. The
+// variable can override the default where the code is deployed, so the card rename does not ride
+// with the moved default.
 it('says which client keeps the card rename from riding with the pin', async () => {
   const report = await run({
     'checkout.js': checkout(
@@ -902,7 +912,7 @@ it('says which client keeps the card rename from riding with the pin', async () 
     {
       requestParameter: { parameter: 'payment_method_types' },
       reason: expect.stringContaining(
-        'The owner-approved rename to allowed_payment_method_types applies to this value, but Refit cannot resolve the API version the client created at checkout.js:2 sends, so it cannot move every client to 2026-09-30.endive.',
+        'The owner-approved rename to allowed_payment_method_types applies to this value, but the client created at checkout.js:2 reads its API version from the deployment environment variable STRIPE_API_VERSION, so Refit cannot confirm it sends 2026-09-30.endive.',
       ),
     },
   ]);

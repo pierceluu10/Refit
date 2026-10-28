@@ -107,6 +107,7 @@ Changes to `package-lock.json` are not shown here; see Files changed.
 ## Reviewer Checklist
 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
+- [ ] Set each webhook endpoint's API version to `2026-09-30.endive` when you deploy. The generated helpers read the old and the new payload, so the handlers work before and after.
 - [ ] Run the code this patch changes, or add a test that does: `npx --no-install tsc --noEmit --pretty false -p .` does not run it.
 
 ## Related Telemetry

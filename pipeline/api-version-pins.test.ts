@@ -335,8 +335,9 @@ function registry() {
   );
 }
 
-// Two shapes of a version Refit cannot trace beside a literal pin (dev set: an environment
-// variable on a route, and a config object). The card-only rename needs every pin moved, so it stays for review.
+// Two shapes of a version Refit cannot trace beside a literal pin: a value a function returns on
+// a route, and a config object that can be reassigned. Environment variables are a draft note
+// instead (version-tracing.test.ts). The card-only rename needs every pin moved, so it stays for review.
 // `renamed`: founders' decision (2026-10-27): the card list on a call whose own client is traced is
 // renamed even though another client's version is not.
 const UNTRACED_SHAPES: {
@@ -349,7 +350,7 @@ const UNTRACED_SHAPES: {
     files: {
       'lib/stripe.ts': client(BEFORE),
       'checkout.ts': checkout('./lib/stripe', "['card']"),
-      'app/api/refund/route.ts': `import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion });\nexport const POST = () => stripe.checkout.sessions.create({ mode: 'payment' });\n`,
+      'app/api/refund/route.ts': `import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: readVersion() as Stripe.LatestApiVersion });\nexport const POST = () => stripe.checkout.sessions.create({ mode: 'payment' });\n`,
     },
     untraced: 'app/api/refund/route.ts:2',
     moved: ['checkout.ts', 'lib/stripe.ts'],
@@ -358,7 +359,7 @@ const UNTRACED_SHAPES: {
   {
     files: {
       'src/stripe.ts': client(BEFORE),
-      'src/config.ts': `export const settings = { version: process.env.STRIPE_VERSION ?? '${BEFORE}' };\n`,
+      'src/config.ts': `export let settings = { version: '${BEFORE}' };\n`,
       'src/connect.ts': `import Stripe from 'stripe';\nimport { settings } from './config';\nconst stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: settings.version as Stripe.LatestApiVersion });\nexport const POST = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });\n`,
     },
     untraced: 'src/connect.ts:3',

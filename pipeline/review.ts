@@ -25,7 +25,7 @@ import {
   PAYMENT_METHOD_TYPES_CHANGELOG,
 } from './patches.ts';
 import { typeErrorKeys } from './type-errors.ts';
-import { HELPER_NAMES } from './stripe-subscription-periods.ts';
+import { HELPER_NAMES, HELPER_RULES } from './stripe-subscription-periods.ts';
 
 // The entry for one gate, when the draft has it.
 function gated<Gate extends ReviewReason['gate']>(
@@ -1150,6 +1150,19 @@ export function createReviewArtifacts(
   const fileTotal = changedFiles(patch.diff).length;
   const stripe = provider === 'Stripe';
   const webhookReads = report.findings.some((finding) => finding.webhook);
+  // Founder decision (2026-10-28): webhook reads the generated helpers migrated work under the old
+  // and the new payload, so the endpoint's version is a deploy step, not a hold.
+  const helperWebhooks =
+    !webhookGate &&
+    report.findings.some((finding) => HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''));
+  // Clients whose version a deployment environment variable sets (founder decision, 2026-10-28):
+  // a note naming the variable, not a hold. A repository default the patch moves is listed too.
+  const environmentPins = (report.apiVersion?.source?.declarations ?? []).filter(
+    (declaration) => declaration.environment,
+  );
+  const environmentVariables = [
+    ...new Set(environmentPins.map((declaration) => code(declaration.environment!))),
+  ];
   // What the run did not establish, in one place, so a reviewer does not infer it from silence.
   const notVerified = [
     ranCode
@@ -1165,6 +1178,11 @@ export function createReviewArtifacts(
     ...(stripe && (pinFiles.length || webhookReads)
       ? [
           'Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.',
+        ]
+      : []),
+    ...(environmentPins.length
+      ? [
+          `The API version comes from ${summaryList(environmentVariables)} where you deploy (${summaryList(environmentPins.map((declaration) => code(`${declaration.file}:${declaration.line}`)))}), which Refit cannot read.${environmentPins.some((declaration) => declaration.value) ? ' This patch moves the default the code falls back to; a value set in the environment still overrides it.' : ''}`,
         ]
       : []),
     ...(shopify
@@ -1221,6 +1239,16 @@ export function createReviewArtifacts(
     ...(webhookGate
       ? [
           `Set the webhook endpoint API version to ${code(webhookGate.targetVersion)} when you deploy, or confirm it already is.`,
+        ]
+      : []),
+    ...(helperWebhooks && !versionBump && report.apiVersion?.after
+      ? [
+          `Set each webhook endpoint's API version to ${code(report.apiVersion.after)} when you deploy. The generated helpers read the old and the new payload, so the handlers work before and after.`,
+        ]
+      : []),
+    ...(environmentPins.length && report.apiVersion?.after
+      ? [
+          `Set ${summaryList(environmentVariables)} to ${code(report.apiVersion.after)} in every environment you deploy to, or confirm ${environmentVariables.length === 1 ? 'it is' : 'they are'} already.`,
         ]
       : []),
     ...(reviews ?? [])
