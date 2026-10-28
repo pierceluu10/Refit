@@ -1,3 +1,5 @@
+import { CUSTOMER_CI_BRANCH } from './customer-ci.ts';
+import { pushedCommit, revertedCommits, type ClosedPullRequest } from './pull-outcomes.ts';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -49,7 +51,15 @@ export type GitHubWebhook =
       base: string;
       head: string;
     }
-  | { kind: 'push'; installation: number; repository: string; head: string }
+  | {
+      kind: 'push';
+      installation: number;
+      repository: string;
+      head: string;
+      // Merge commits this push reverts (pull-outcomes.ts).
+      reverts?: string[];
+    }
+  | ClosedPullRequest
   | {
       kind: 'issue_comment';
       installation: number;
@@ -148,6 +158,7 @@ const COMMIT = /^[a-f0-9]{40}$/;
 
 // Pull request events carry only the installation ID; the service acts on configured repositories.
 function pullRequest(payload: Record<string, unknown>): GitHubWebhook {
+  if (payload.action === 'closed') return closedPullRequest(payload);
   if (typeof payload.action !== 'string' || !PULL_REQUEST_ACTIONS.has(payload.action))
     return { kind: 'ignored' };
   const request = payload.pull_request;
@@ -173,6 +184,45 @@ function pullRequest(payload: Record<string, unknown>): GitHubWebhook {
     number: positiveIdentifier(request.number),
     base: request.base.sha,
     head: request.head.sha,
+  };
+}
+
+// A closed Refit pull request (a refit/** branch other than the workflow one), for the beta
+// outcome metrics. Every other closed pull request is ignored.
+function closedPullRequest(payload: Record<string, unknown>): GitHubWebhook {
+  const request = payload.pull_request;
+  const repository = payload.repository;
+  if (
+    !isObject(request) ||
+    !isObject(request.head) ||
+    typeof request.head.ref !== 'string' ||
+    !request.head.ref.startsWith('refit/') ||
+    request.head.ref === CUSTOMER_CI_BRANCH
+  )
+    return { kind: 'ignored' };
+  if (
+    !isObject(payload.installation) ||
+    !isObject(repository) ||
+    typeof repository.full_name !== 'string' ||
+    !REPOSITORY.test(repository.full_name) ||
+    typeof request.head.sha !== 'string' ||
+    !COMMIT.test(request.head.sha) ||
+    typeof request.merged !== 'boolean' ||
+    typeof request.closed_at !== 'string' ||
+    !Number.isFinite(Date.parse(request.closed_at))
+  )
+    throw new WebhookInputError(422, 'Pull request webhook is incomplete.');
+  const merge = request.merge_commit_sha;
+  return {
+    kind: 'pull_request_closed',
+    installation: positiveIdentifier(payload.installation.id),
+    repository: repository.full_name.toLowerCase(),
+    number: positiveIdentifier(request.number),
+    head: request.head.sha,
+    merged: request.merged,
+    mergeCommit: request.merged && typeof merge === 'string' && COMMIT.test(merge) ? merge : null,
+    pushed: pushedCommit(request.body),
+    closedAt: request.closed_at,
   };
 }
 
@@ -266,11 +316,13 @@ function push(payload: Record<string, unknown>): GitHubWebhook {
     return { kind: 'ignored' };
   if (typeof payload.after !== 'string' || !COMMIT.test(payload.after))
     throw new WebhookInputError(422, 'Push webhook is incomplete.');
+  const reverts = revertedCommits(payload.commits);
   return {
     kind: 'push',
     installation: positiveIdentifier(payload.installation.id),
     repository: repository.full_name.toLowerCase(),
     head: payload.after,
+    ...(reverts.length ? { reverts } : {}),
   };
 }
 

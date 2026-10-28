@@ -69,6 +69,8 @@ import {
 } from './monitoring.ts';
 import { openMonitoringStore } from './monitoring-store.ts';
 import { syncReportIssues } from './report-issues.ts';
+import { syncCustomerCi, syncPullOutcomeReasons } from './hosted-customer.ts';
+import { openPullOutcomeStore } from './pull-outcomes.ts';
 import { openReportStore } from './report-store.ts';
 import {
   authorized,
@@ -163,6 +165,10 @@ export async function runHostedService(options: {
   // Off by default: keeps one report issue per inventoried repository, re-scanned like alerts.
   // Needs the App's Issues write permission.
   reports?: boolean;
+  // Off by default (REFIT_HOSTED_CUSTOMER_CI): opens the Refit validation workflow pull request in
+  // each inventoried repository and records its results on Refit drafts (customer-ci.ts). Needs
+  // the App's Workflows write and Actions read permissions.
+  customerCi?: boolean;
   // Off by default: captures each due vendor watch target's OpenAPI document and changelog pages
   // once a day (REFIT_HOSTED_WATCH). Targets are registered from inventories either way.
   watch?: boolean;
@@ -342,6 +348,8 @@ export async function runHostedService(options: {
   const inventories = openInventoryStore(options.database, options.tenancy.limits);
   const monitoring = openMonitoringStore(options.database);
   const reports = openReportStore(options.database);
+  const outcomes = openPullOutcomeStore(options.database);
+  const proposedCustomerCi = new Set<string>();
   const watchTargets = openWatchTargetStore(options.database);
   const now = () => options.now?.() ?? new Date();
   const approvals = openApprovalStore(options.database);
@@ -790,6 +798,8 @@ export async function runHostedService(options: {
                 installations: await upcomingDeadlines(monitoring, now()),
               },
               reports: { enabled: Boolean(options.reports), issues: await reports.read() },
+              pullRequests: await outcomes.summary(),
+              customerCi: { enabled: Boolean(options.customerCi) },
             }),
           });
           return;
@@ -970,6 +980,21 @@ export async function runHostedService(options: {
             now: now(),
             signal: options.signal,
             onProgress: options.onProgress,
+          });
+        if (!options.signal.aborted)
+          await syncPullOutcomeReasons({
+            app: options.app,
+            outcomes,
+            signal: options.signal,
+            onProgress,
+          });
+        if (options.customerCi && !options.signal.aborted)
+          await syncCustomerCi({
+            app: options.app,
+            inventories,
+            proposed: proposedCustomerCi,
+            signal: options.signal,
+            onProgress,
           });
         outage = OUTAGE_RETRY_MS;
       } catch (error) {
