@@ -15,7 +15,7 @@ refit enroll --repository ~/Repos/refit-billing-demo \
   --github pierceluu10/refit-billing-demo --base main
 ```
 
-This requires the reviewed configuration to exist in that checkout. The command prints the workflow settings, input files, reviewed commit and a full fingerprint. It does not execute the app, contact GitHub, install dependencies or request AI. `--json` produces a review record for automation or archiving. Review the commands, image, version pin, baseline and adapter files before approval. A fingerprint identifies the exact reviewed bytes; it does not establish their safety or migration semantics.
+This requires the reviewed configuration to exist in that checkout. The command prints the workflow settings, input files, reviewed commit and a full fingerprint. It does not execute the app, contact GitHub, install dependencies or request AI. `--json` produces a review record for automation or archiving. Review the commands, image, version pin, baseline and adapter files before approval. When `imageNodeModules` is set, the image supplies the dependencies and the fingerprint covers only its reference: pin it by digest (`name@sha256:…`), so the approval names exact bytes, and see [customer images](DEPENDENCIES.md#customer-images). A fingerprint identifies the exact reviewed bytes; it does not establish their safety or migration semantics.
 
 ## A repository with no `.refit.json`
 

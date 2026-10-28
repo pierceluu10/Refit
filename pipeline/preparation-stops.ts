@@ -2,8 +2,9 @@
 // tells the repository owner the exact change to make, in .refit.json or in the repository, and
 // is matched on the message Refit or the package manager raises. See docs/PREPARATION-FAILURES.md.
 
+// docs/CUSTOMER-ENVIRONMENT.md: Refit links the image's directory into every check itself.
 const CUSTOM_IMAGE =
-  'In .refit.json, remove "prepareDependencies", set "image" to a local image that already has this repository\'s dependencies installed (for example in /opt/app/node_modules), and start "command" and "baselineCommand" with "ln -s /opt/app/node_modules node_modules && ".';
+  'In .refit.json, remove "prepareDependencies", set "image" to a local image that already has this repository\'s dependencies installed from its committed lockfile, and set "imageNodeModules" to their directory in the image (for example "/opt/app/node_modules").';
 
 export const PREPARATION_STOPS = [
   {

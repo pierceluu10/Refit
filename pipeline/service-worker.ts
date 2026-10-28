@@ -232,6 +232,7 @@ export async function pollServiceTarget(options: {
         baselineCommand,
         checkTimeoutSeconds,
         prepareDependencies,
+        imageNodeModules,
         compareTypeErrors,
       } = profile.workflow;
       return {
@@ -244,6 +245,7 @@ export async function pollServiceTarget(options: {
           baselineCommand,
           checkTimeoutSeconds,
           prepareDependencies,
+          imageNodeModules,
           compareTypeErrors,
         },
         // Fetched contracts and documentation can change without a new commit.
