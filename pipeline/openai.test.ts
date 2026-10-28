@@ -71,3 +71,24 @@ it('answers after a rate limit once OpenAI accepts the retried request', async (
   await expect(requestStructuredOutput(REQUEST, OPTIONS)).resolves.toMatchObject({ content: '{}' });
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
+
+it('names an exhausted quota and does not retry it', async () => {
+  const fetcher = vi.fn().mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          error: {
+            message: 'secret detail',
+            type: 'insufficient_quota',
+            code: 'insufficient_quota',
+          },
+        }),
+        { status: 429, headers: { 'retry-after': '0' } },
+      ),
+  );
+  vi.stubGlobal('fetch', fetcher);
+  const error = await requestStructuredOutput(REQUEST, OPTIONS).catch((caught: Error) => caught);
+  expect(String(error)).toContain('HTTP 429 (insufficient_quota). No retry was made.');
+  expect(String(error)).not.toContain('secret detail');
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});

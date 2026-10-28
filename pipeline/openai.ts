@@ -109,10 +109,11 @@ export async function requestStructuredOutput(
       body: JSON.stringify(body),
     });
     if (response.ok) break;
-    await response.body?.cancel();
-    if (response.status !== 429 || attempt === RATE_LIMIT_RETRIES)
+    const type = await errorType(response);
+    // An exhausted quota also answers 429, and waiting does not refill it.
+    if (response.status !== 429 || type === 'insufficient_quota' || attempt === RATE_LIMIT_RETRIES)
       throw new PipelineInputError(
-        `OpenAI response request failed with HTTP ${response.status}${response.status === 429 ? ` after ${attempt} retries` : '. No retry was made'}.`,
+        `OpenAI response request failed with HTTP ${response.status}${type ? ` (${type})` : ''}${response.status === 429 && attempt ? ` after ${attempt} retries` : '. No retry was made'}.`,
       );
     await sleep(retryDelay(response.headers, attempt));
   }
@@ -175,4 +176,18 @@ function retryDelay(headers: Headers, attempt: number) {
       ? seconds * 1000
       : RATE_LIMIT_BACKOFF_MS * 2 ** attempt;
   return Math.min(Math.max(wait, 0), MAX_RETRY_WAIT_MS);
+}
+
+// Only OpenAI's error type, never its message, which may echo request content.
+async function errorType(response: Response) {
+  try {
+    const parsed: unknown = JSON.parse(
+      await readBoundedResponse(response, MAX_RESPONSE_BYTES, 'OpenAI error'),
+    );
+    const error = isObject(parsed) && isObject(parsed.error) ? parsed.error : {};
+    const type = typeof error.code === 'string' ? error.code : error.type;
+    return typeof type === 'string' && /^[a-z_]{1,40}$/.test(type) ? type : null;
+  } catch {
+    return null;
+  }
 }
