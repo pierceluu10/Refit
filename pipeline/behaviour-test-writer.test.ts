@@ -576,7 +576,7 @@ it('records the model, prompt hash, tokens, cost and file hashes of one request,
   expect(files.map((file) => file.content)).toEqual([CHECKOUT_TEST]);
   expect(fetcher.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'))).toHaveLength(1);
 
-  // A refused answer is recorded, not regenerated.
+  // A refused answer is sent back once with the reasons; a second refusal is recorded, both billed.
   const refused = respond({
     ...CHECKOUT_ANSWER,
     files: [{ ...CHECKOUT_ANSWER.files[0], path: 'test/x.test.mjs' }],
@@ -585,9 +585,15 @@ it('records the model, prompt hash, tokens, cost and file hashes of one request,
   expect(second.record).toMatchObject({
     status: 'refused',
     files: [],
-    costUsd: expect.any(Number),
+    retries: [expect.stringContaining('refused: File "test/x.test.mjs" is not a')],
   });
-  expect(refused.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'))).toHaveLength(1);
+  const generations = refused.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'));
+  expect(generations).toHaveLength(2);
+  expect(JSON.parse(String(generations[1][1]!.body)).instructions).toContain(
+    'Refit refused your previous answer',
+  );
+  // 9,000 input and 7,000 output tokens each.
+  expect(second.record.costUsd).toBeCloseTo(2 * (0.018 + 0.07), 6);
 });
 
 it('builds the same request in a dry run and estimates its tokens and cost without sending it (nicuk/docsflow at 3e6fd71)', async () => {

@@ -952,6 +952,8 @@ export async function writeBehaviourTests(options: {
   changedLines?: Record<string, number[]>;
   target?: SandboxTarget;
   previousAttempt?: BehaviourTestFeedback;
+  // Why Refit refused the previous answer; set only on the one corrected request.
+  refusals?: string[];
   ai: BehaviourTestWriter;
 }): Promise<{ record: BehaviourTestRecord; files: BehaviourTestFile[] }> {
   const record: BehaviourTestRecord = {
@@ -1032,7 +1034,10 @@ export async function writeBehaviourTests(options: {
   let spent: number | null = null;
   const retries: string[] = [];
   try {
-    let instructions = request.instructions;
+    const corrected = options.refusals
+      ? `${request.instructions}\nRefit refused your previous answer, and none of its files ran, for these reasons. Return corrected files that keep to every rule above:\n${options.refusals.map((refusal) => `- ${refusal}`).join('\n')}`
+      : request.instructions;
+    let instructions = corrected;
     let limits: OutputLimits = WRITER_LIMITS;
     for (;;)
       try {
@@ -1047,10 +1052,10 @@ export async function writeBehaviourTests(options: {
         } else if (
           error instanceof UnusableAiResponse &&
           error.incomplete === 'max_output_tokens' &&
-          instructions === request.instructions
+          instructions === corrected
         ) {
           retries.push(`cut off at ${limits.maxOutputTokens} output tokens`);
-          instructions = `${request.instructions}\n${SHORTER}`;
+          instructions = `${corrected}\n${SHORTER}`;
         } else throw error;
       }
   } catch (error) {
@@ -1085,6 +1090,26 @@ export async function writeBehaviourTests(options: {
     });
   } catch (error) {
     return { record: { ...record, reason: message(error) }, files: [] };
+  }
+  // A refused answer is sent back once with the reasons, as an AI patch Refit rejects is; the
+  // corrected answer is parsed by the same rules.
+  if (parsed.refusals.length && !options.refusals) {
+    const again = await writeBehaviourTests({ ...options, refusals: parsed.refusals });
+    return {
+      record: {
+        ...again.record,
+        costUsd:
+          record.costUsd === null && again.record.costUsd === null
+            ? null
+            : (record.costUsd ?? 0) + (again.record.costUsd ?? 0),
+        retries: [
+          ...(record.retries ?? []),
+          `refused: ${parsed.refusals.join(' ')}`.slice(0, MAX_TEXT),
+          ...(again.record.retries ?? []),
+        ],
+      },
+      files: again.files,
+    };
   }
   const covered = new Set(parsed.files.flatMap((file) => file.findingIds));
   Object.assign(record, {
