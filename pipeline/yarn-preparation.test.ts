@@ -61,6 +61,7 @@ it('refuses Yarn inputs that need a custom image', async () => {
       { ...manifest, workspaces: { packages: ['packages/*'], nohoist: ['**'] } },
       classic,
     ],
+    ['negated workspaces', { ...manifest, workspaces: ['packages/*', '!packages/old'] }, classic],
     ['undeclared range', { ...manifest, dependencies: { stripe: '^18.0.0' } }, classic],
     ['git source', { ...manifest, dependencies: { stripe: 'github:stripe/stripe-node' } }, classic],
     [
