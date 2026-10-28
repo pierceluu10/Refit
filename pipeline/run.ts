@@ -6,7 +6,7 @@ import {
 } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
-import { annotateReach, currencyCodeEdits } from './operation-reach.ts';
+import { annotateReach, currencyCodeEdits, enumValueEdits } from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
@@ -182,7 +182,7 @@ async function runOpenApiPipeline(options: {
       ? invoicePreviewMove(before.document, after.document)
       : undefined;
   const {
-    edits: analyzedEdits,
+    edits: scannedEdits,
     apiVersionDeclarations: declaredVersions,
     apiVersionLiterals,
     sourceWarnings,
@@ -203,6 +203,17 @@ async function runOpenApiPipeline(options: {
     parameterRemovals,
     { invoicePreview, typeCheckedPeriodReads: options.typeCheckedPeriodReads },
   );
+  // Documented enum successors are request moves: they ride the pin and the stripe-node upgrade.
+  const analyzedEdits = [
+    ...scannedEdits,
+    ...(specificationDiff && provider.packageName === STRIPE.packageName
+      ? enumValueEdits(
+          specificationDiff.changes,
+          { repository, calls: analysis.calls, mappings: operationMappings },
+          STRIPE_PACK.requestMoves,
+        )
+      : []),
+  ];
   const stripePackage =
     provider.packageName === STRIPE.packageName
       ? stripePackageDirectory(repository.root, options.stripePackage)

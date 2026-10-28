@@ -1,0 +1,68 @@
+{
+  "formatVersion": 1,
+  "provider": "stripe",
+  "version": "2026-03-25.dahlia",
+  "previous": "2026-02-25.clover",
+  "rules": [
+    {
+      "rule": "stripe-checkout-ui-mode-hosted",
+      "family": "request-enum-value",
+      "operations": ["PostCheckoutSessions"],
+      "parameter": "ui_mode",
+      "value": "hosted",
+      "replacement": "hosted_page",
+      "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/updates-available-checkout-session-ui-modes",
+      "warning": "Checkout Session creation sends ui_mode 'hosted_page' where it sent 'hosted': Stripe's successor that shows the session as a hosted page customers are redirected to, as before. Sessions created on the new API version also return ui_mode 'hosted_page', so check code and webhook handlers that compare a session's ui_mode with 'hosted'.",
+      "quote": "`hosted_page`: Displays the Checkout Session on a hosted page that customers get redirected to (replaces `hosted`)",
+      "checkedAt": "2026-10-28",
+      "diff": {
+        "id": "request-property-enum-value-removed",
+        "operationId": "PostCheckoutSessions",
+        "text": "removed the enum value `hosted` of the request property `ui_mode`"
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "benchmark": "refit-bench comparison on l2-push-249 against main 89f1c0ed in docs/BENCHMARKS.md (documented-replacement rules, 2026-10-28)."
+    },
+    {
+      "rule": "stripe-checkout-ui-mode-embedded",
+      "family": "request-enum-value",
+      "operations": ["PostCheckoutSessions"],
+      "parameter": "ui_mode",
+      "value": "embedded",
+      "replacement": "embedded_page",
+      "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/updates-available-checkout-session-ui-modes",
+      "warning": "Checkout Session creation sends ui_mode 'embedded_page' where it sent 'embedded': Stripe's successor that shows the session as an embedded page on the site, as before. Sessions created on the new API version also return ui_mode 'embedded_page', so check code and webhook handlers that compare a session's ui_mode with 'embedded'.",
+      "quote": "`embedded_page`: Displays the Checkout Session as an embedded page on your website (replaces `embedded`)",
+      "checkedAt": "2026-10-28",
+      "diff": {
+        "id": "request-property-enum-value-removed",
+        "operationId": "PostCheckoutSessions",
+        "text": "removed the enum value `embedded` of the request property `ui_mode`"
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "benchmark": "refit-bench comparison on l2-push-249 against main 89f1c0ed in docs/BENCHMARKS.md (documented-replacement rules, 2026-10-28)."
+    },
+    {
+      "rule": "stripe-checkout-ui-mode-custom",
+      "family": "request-enum-value",
+      "operations": ["PostCheckoutSessions"],
+      "parameter": "ui_mode",
+      "value": "custom",
+      "replacement": "elements",
+      "source": "https://docs.stripe.com/changelog/dahlia/2026-03-25/updates-available-checkout-session-ui-modes",
+      "warning": "Checkout Session creation sends ui_mode 'elements' where it sent 'custom': Stripe's successor that shows the session as embedded components on the site, as before. Sessions created on the new API version also return ui_mode 'elements', so check code and webhook handlers that compare a session's ui_mode with 'custom'.",
+      "quote": "`elements`: Displays the Checkout Session using embedded components on your website (replaces `custom`)",
+      "checkedAt": "2026-10-28",
+      "diff": {
+        "id": "request-property-enum-value-removed",
+        "operationId": "PostCheckoutSessions",
+        "text": "removed the enum value `custom` of the request property `ui_mode`"
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "benchmark": "refit-bench comparison on l2-push-249 against main 89f1c0ed in docs/BENCHMARKS.md (documented-replacement rules, 2026-10-28)."
+    }
+  ]
+}
