@@ -8,7 +8,7 @@ import {
   vendorNoteKind,
   type CapturedDocumentation,
 } from './documentation-sources.ts';
-import { MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
+import { INPUT_LIMIT, MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { applySourceEdits, editCovers, renderPatch } from './patches.ts';
 import { buildPatchContext, MAX_CONTEXT_FILES } from './patch-context.ts';
@@ -209,7 +209,7 @@ function vendorNoteFields(
   });
   if (evidenceBytes(compose([], omissions)) > MAX_INPUT_BYTES)
     throw new PipelineInputError(
-      'AI evidence exceeds the 64 KiB input limit; the saved vendor note could not be attached.',
+      `AI evidence exceeds the ${INPUT_LIMIT} input limit; the saved vendor note could not be attached.`,
     );
   const attached: AttachedVendorNote[] = [];
   let recorded = omissions;
@@ -243,7 +243,7 @@ function vendorNoteFields(
       continue;
     }
     throw new PipelineInputError(
-      'AI evidence exceeds the 64 KiB input limit; the saved vendor note could not be attached.',
+      `AI evidence exceeds the ${INPUT_LIMIT} input limit; the saved vendor note could not be attached.`,
     );
   }
   return fields(attached, recorded);
@@ -522,7 +522,7 @@ export async function proposeAiPatch(
     };
     return { value: answer, edits, modified };
   };
-  const requestEdits = async (rejectedProposal?: Record<string, unknown>) => {
+  const requestEdits = async (rejectedProposal?: Record<string, unknown>, ai = options) => {
     const { content, ...metadata } = await requestStructuredOutput(
       {
         evidence: rejectedProposal ? { ...noted, rejectedProposal } : noted,
@@ -530,7 +530,7 @@ export async function proposeAiPatch(
         name: 'migration_patch',
         schema: SCHEMA,
       },
-      options,
+      ai,
     );
     try {
       return { metadata, ...checkEdits(content) };
@@ -540,14 +540,30 @@ export async function proposeAiPatch(
     }
   };
   const first = await requestEdits();
-  const answer = first.rejection
+  let answer = first.rejection
     ? await requestEdits({
         reason: first.rejection.message,
         ...(first.rejection.edit ? { edit: first.rejection.edit } : {}),
       })
     : first;
-  const metadata =
+  let metadata =
     answer === first ? answer.metadata : combinedMetadata(first.metadata, answer.metadata);
+  // Per-step model choice: an answer that proposes no edit is asked once more of the stronger step.
+  // Its answer goes through every check below, as the first one would.
+  const escalation =
+    !answer.rejection && !answer.edits.length && options.escalation
+      ? { ...options.escalation, firstModel: metadata.model }
+      : undefined;
+  if (escalation) {
+    const stronger = await requestEdits(undefined, {
+      ...options,
+      model: escalation.model,
+      reasoningEffort: escalation.reasoningEffort,
+      escalation: undefined,
+    });
+    metadata = combinedMetadata(metadata, stronger.metadata);
+    answer = stronger;
+  }
   if (answer.rejection) {
     answer.rejection.proposal = metadata;
     throw answer.rejection;
@@ -672,7 +688,16 @@ export async function proposeAiPatch(
     ...metadata,
     status: merged.length ? 'proposed' : 'unsupported',
     generator: 'openai' as const,
-    ...(answer === first ? {} : { rejectedProposals: [first.rejection!.message] }),
+    ...(first.rejection ? { rejectedProposals: [first.rejection.message] } : {}),
+    ...(escalation
+      ? {
+          escalation: {
+            model: escalation.model,
+            reasoningEffort: escalation.reasoningEffort ?? null,
+            edits: edits.length,
+          },
+        }
+      : {}),
     summary: value.summary,
     uncertainties: value.uncertainties,
     evidence: noted,

@@ -181,7 +181,9 @@ export async function runWorkflow(options: {
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
-  behaviourTestWriter?: BehaviourTestWriter;
+  // With AI patches on and stripe-mock settings (generatedChecks), behaviour tests are written with
+  // the same AI options unless this is false.
+  behaviourTestWriter?: BehaviourTestWriter | false;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -403,7 +405,7 @@ export async function runWorkflow(options: {
         aiPatch: options.aiPatch,
         // shortcut: the retry without the API-version move writes no behaviour tests, so it never
         // pays for a second identical request; reuse the first run's tests if that retry needs grade A.
-        behaviourTestWriter: keepApiVersion ? undefined : options.behaviourTestWriter,
+        behaviourTestWriter: keepApiVersion ? undefined : behaviourTestWriter(options),
         documentationSnapshots: options.documentationSnapshots,
         repairAttempts: options.repairAttempts,
         leaveReviewedFindings: allowUnresolved,
@@ -498,4 +500,18 @@ export async function runWorkflow(options: {
       { name: error.name, message: error.message },
     );
   }
+}
+
+// Heavy AI (founder decision, 2026-10-28): wherever AI patches run and the behaviour tests can run
+// (a stripe-mock image and both versions' fixtures), the same model writes them.
+export function behaviourTestWriter(options: {
+  aiPatch?: AiOptions;
+  generatedChecks?: GeneratedChecks;
+  behaviourTestWriter?: BehaviourTestWriter | false;
+}) {
+  if (options.behaviourTestWriter === false) return undefined;
+  return (
+    options.behaviourTestWriter ??
+    (options.aiPatch && options.generatedChecks ? options.aiPatch : undefined)
+  );
 }

@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
-import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
+import { assessMigration, assessmentConfiguration, buildAssessmentEvidence } from './assessment.ts';
 
 const OPTIONS = { apiKey: 'test-key', model: 'configured-test-model' };
 const INPUTS = {
@@ -187,8 +187,8 @@ it('rejects missing configuration and oversized input before networking', async 
   await expect(assessMigration(input, { ...OPTIONS, apiKey: '' })).rejects.toThrow(
     /OPENAI_API_KEY/,
   );
-  input.findings[0].context.text = 'x'.repeat(64 * 1024);
-  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/64 KiB/);
+  input.findings[0].context.text = 'x'.repeat(256 * 1024);
+  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/256 KiB/);
   expect(fetcher).not.toHaveBeenCalled();
 });
 
@@ -200,4 +200,32 @@ it('does not retry rate limits or expose the API error body', async () => {
   vi.stubGlobal('fetch', fetcher);
   await expect(assessMigration(input, OPTIONS)).rejects.toThrow('HTTP 429. No retry was made.');
   expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it('reads reasoning effort and the escalation step from the environment', () => {
+  const base = { OPENAI_API_KEY: 'key', OPENAI_MODEL: 'gpt-6.1-sol' };
+  expect(assessmentConfiguration(true, base)).toMatchObject({
+    escalation: { model: 'gpt-6.1-sol', reasoningEffort: 'high' },
+  });
+  expect(assessmentConfiguration(true, base)).not.toHaveProperty('reasoningEffort');
+  expect(
+    assessmentConfiguration(true, {
+      ...base,
+      OPENAI_REASONING_EFFORT: 'xhigh',
+      OPENAI_ESCALATION_MODEL: 'gpt-other',
+    }),
+  ).toMatchObject({
+    reasoningEffort: 'xhigh',
+    escalation: { model: 'gpt-other', reasoningEffort: 'max' },
+  });
+  // The strongest effort has no step above it.
+  expect(
+    assessmentConfiguration(true, { ...base, OPENAI_REASONING_EFFORT: 'max' }),
+  ).not.toHaveProperty('escalation');
+  expect(
+    assessmentConfiguration(true, { ...base, OPENAI_ESCALATION_EFFORT: 'none' }),
+  ).not.toHaveProperty('escalation');
+  expect(() =>
+    assessmentConfiguration(true, { ...base, OPENAI_REASONING_EFFORT: 'extreme' }),
+  ).toThrow(/OPENAI_REASONING_EFFORT must be one of low, medium, high, xhigh, max/);
 });

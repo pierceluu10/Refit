@@ -315,8 +315,8 @@ it('repairs as often as the hosted worker by default and checks --repair-attempt
     stderr: expect.stringContaining('Repair attempts require --ai-patch.'),
   });
   await expect(
-    run(root, join(root, 'out-b'), '--ai', '--repair-attempts', '3'),
+    run(root, join(root, 'out-b'), '--ai', '--repair-attempts', '5'),
   ).rejects.toMatchObject({
-    stderr: expect.stringContaining('Repair attempts must be an integer from 0 to 2.'),
+    stderr: expect.stringContaining('Repair attempts must be an integer from 0 to 4.'),
   });
 });

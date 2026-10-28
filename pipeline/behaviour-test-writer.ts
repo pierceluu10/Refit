@@ -4,7 +4,12 @@ import { usageCostUsd, type AiOptions, type AiUsage } from './ai-budget.ts';
 import { syntaxErrors } from './analyzer.ts';
 import { BEHAVIOUR_DIRECTORY } from './behaviour-tests.ts';
 import { listOpenApiOperations } from './openapi-operations.ts';
-import { MAX_INPUT_BYTES, MAX_OUTPUT_TOKENS, requestStructuredOutput } from './openai.ts';
+import {
+  INPUT_LIMIT,
+  MAX_INPUT_BYTES,
+  MAX_OUTPUT_TOKENS,
+  requestStructuredOutput,
+} from './openai.ts';
 import { generatedImportMap } from './generated-checks.ts';
 import { bodySchema, local, type RequestParameterRemoval } from './request-removals.ts';
 import { digest, findAddedProperties, isObject, parseObject } from './specifications.ts';
@@ -20,11 +25,9 @@ const MAX_FINDINGS = 40;
 const MAX_ADDED_PARAMETERS = 20;
 const MAX_DESCRIPTION = 300;
 // Imported modules tell the model what loading the code needs (environment variables, clients,
-// databases). The request must fit openai.ts's 64 KiB input limit, about 18,700 tokens at the 3.5
-// bytes per token JSON-wrapped source measures; 8,000 tokens of context leaves the rest to the
-// instructions, findings and the modules under test, and costs at most $0.016 at gpt-6.1-sol's $2
-// per million input tokens, so the input limit binds before money does.
-const CONTEXT_TOKENS = 8_000;
+// databases). The request must fit openai.ts's input limit (MAX_INPUT_BYTES); 32,000 tokens of
+// context costs at most $0.064 at gpt-6.1-sol's $2 per million input tokens.
+const CONTEXT_TOKENS = 32_000;
 const BYTES_PER_TOKEN = 3.5;
 const CONTEXT_BYTES = Math.floor(CONTEXT_TOKENS * BYTES_PER_TOKEN);
 // The dry run's typical answer, an assumption until a gpt-6.1-sol answer is measured: reasoning plus
@@ -148,6 +151,7 @@ How Refit runs the tests:
 
 What to test:
 - Every finding's line must run in at least one test: Refit measures line coverage on both runs. List the findings each file covers in findingIds.
+- evidence.changedLines, when present, lists per file the lines of the original code a migration changes (locations only; you never see the migration). Every one of them must run in at least one test too: the evidence counts only when the tests ran every changed line.
 - Assert behaviour the original code has, so that it holds on both runs: return values, thrown errors, and the Stripe requests the code sends (method, path and the parameters the code sets). A test that fails on the original code against the before version voids the evidence for the whole repository, so write only tests the original code passes.
 - Stay version neutral: never assert the API version, the Stripe-Version header, where a response field is located, or fixture values; assert types, presence and relationships instead (a period end is a positive integer timestamp, a Date is valid, the returned ID is the requested one).
 - Owner policy, removed request parameters: a migration never deletes a request parameter the after contract removed. When the code sends one, assert that the request still carries its value, under the removed name or under a replacement evidence.contract lists for that operation; never assert that it is absent.
@@ -236,6 +240,8 @@ export function behaviourTestRequest(options: {
   removals: RequestParameterRemoval[];
   before: Specification;
   after: Specification;
+  // Lines of the original code the patch changes, by file: locations only, never the patch.
+  changedLines?: Record<string, number[]>;
 }) {
   const confirmed = options.findings
     .filter((finding) => finding.confidence === 'confirmed')
@@ -243,7 +249,13 @@ export function behaviourTestRequest(options: {
   if (!confirmed.length)
     throw new PipelineInputError('Behaviour tests need at least one confirmed finding.');
   const ids = new Map(confirmed.map((finding, index) => [finding, `f${index + 1}`]));
-  const modules = new Set(confirmed.map((finding) => finding.file));
+  const changedLines = Object.entries(options.changedLines ?? {}).filter(([path]) =>
+    options.repository.files.some((file) => file.path === path),
+  );
+  const modules = new Set([
+    ...confirmed.map((finding) => finding.file),
+    ...changedLines.map(([path]) => path),
+  ]);
   const files = options.repository.files
     .filter((file) => modules.has(file.path))
     .map(({ path, content }) => ({ path, content }));
@@ -285,6 +297,9 @@ export function behaviourTestRequest(options: {
           })(),
       ...(finding.webhook ? { webhook: { eventTypes: finding.webhook.eventTypes } } : {}),
     })),
+    ...(changedLines.length
+      ? { changedLines: changedLines.map(([file, lines]) => ({ file, lines })) }
+      : {}),
     contract: {
       removedResponseFields: cited.map((change) => ({
         schema: change.schema,
@@ -340,7 +355,7 @@ export function behaviourTestRequest(options: {
   const request = { ...evidence, contextFiles, omittedContextFiles: omitted };
   if (bytes(request) > MAX_INPUT_BYTES)
     throw new PipelineInputError(
-      `The modules with confirmed findings and their contract excerpt take ${bytes(request)} bytes, over the 64 KiB AI input limit.`,
+      `The modules with confirmed findings and their contract excerpt take ${bytes(request)} bytes, over the ${INPUT_LIMIT} AI input limit.`,
     );
   return {
     name: 'behaviour_tests',
@@ -635,6 +650,7 @@ export async function writeBehaviourTests(options: {
   removals: RequestParameterRemoval[];
   before: Specification;
   after: Specification;
+  changedLines?: Record<string, number[]>;
   ai: BehaviourTestWriter;
 }): Promise<{ record: BehaviourTestRecord; files: BehaviourTestFile[] }> {
   const record: BehaviourTestRecord = {
