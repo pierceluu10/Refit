@@ -470,12 +470,23 @@ it('names the Stripe object that owns a changed response property', () => {
     owner(
       'the response property `line_items/data/items/description` became nullable for the status `200`',
     ),
-  ).toEqual({ schema: 'item', property: 'description' });
+  ).toEqual({
+    schema: 'item',
+    property: 'description',
+    links: [{ schema: 'checkout.session', property: 'line_items' }],
+  });
   expect(
     owner(
       "the `custom_text/submit/anyOf[subschema #1: PaymentPagesCheckoutSessionCustomTextPosition]/message` response property's maxLength was increased from `500` to `1200` for the response status `200`",
     ),
-  ).toEqual({ schema: 'payment_pages_checkout_session_custom_text_position', property: 'message' });
+  ).toEqual({
+    schema: 'payment_pages_checkout_session_custom_text_position',
+    property: 'message',
+    links: [
+      { schema: 'checkout.session', property: 'custom_text' },
+      { schema: 'payment_pages_checkout_session_custom_text', property: 'submit' },
+    ],
+  });
   // A nullable field whose path names no anyOf member reads its only object member.
   expect(
     owner(
@@ -484,12 +495,18 @@ it('names the Stripe object that owns a changed response property', () => {
   ).toEqual({
     schema: 'payment_pages_checkout_session_total_details',
     property: 'amount_discount',
+    links: [{ schema: 'checkout.session', property: 'total_details' }],
   });
+  // stripe-node unwraps the error body's `error` into the thrown error: only `payment_intent` links.
   expect(
     owner(
       'the response property `error/payment_intent/amount` became optional for the status `default`',
     ),
-  ).toEqual({ schema: 'payment_intent', property: 'amount' });
+  ).toEqual({
+    schema: 'payment_intent',
+    property: 'amount',
+    links: [{ schema: 'api_errors', property: 'payment_intent' }],
+  });
   // `line_items` is an inline list object: nothing names it, so reads cannot be traced against it.
   expect(
     owner('the response property `line_items/data` became optional for the status `200`'),
@@ -508,12 +525,44 @@ it('blocks a response change where code reads the property, traced or by the sam
     text: `the response property \`${path}\` became optional for the status \`default\``,
   });
   expect(reach(AI_COMPANION, [optional('error/payment_intent/amount')])).toEqual([
-    ['unused', 'No code reads `payment_intent.amount`.'],
+    [
+      'unused',
+      'No code reads `api_errors.payment_intent`, the only way to `payment_intent.amount` in this response.',
+    ],
   ]);
+  // A same-named read elsewhere cannot reach the error's PaymentIntent if nothing reads the link.
   const reads = `${AI_COMPANION}\nexport const total = (order) => order.amount;`;
   expect(reach(reads, [optional('error/payment_intent/amount')])[0]).toEqual([
+    'unused',
+    'No code reads `api_errors.payment_intent`, the only way to `payment_intent.amount` in this response.',
+  ]);
+  // A caught error's PaymentIntent is untraced: reading it and an `amount` keeps the change unknown.
+  const caught = `${reads}\nexport const failed = (error) => total(error.raw.payment_intent);`;
+  expect(reach(caught, [optional('error/payment_intent/amount')])[0]).toEqual([
     'unknown',
     'app/api/checkout/route.ts:12 reads `amount` on an object Refit cannot trace.',
+  ]);
+  // Checkout line items are read only through `line_items`: sending them in a request does not.
+  const description = {
+    ...optional('line_items/data/items/description'),
+    text: 'the response property `line_items/data/items/description` became nullable for the status `200`',
+  };
+  const labels = `${AI_COMPANION}\nexport const label = (feature) => feature.description;`;
+  expect(reach(labels, [{ ...description }])).toEqual([
+    [
+      'unused',
+      'No code reads `checkout.session.line_items`, the only way to `item.description` in this response.',
+    ],
+  ]);
+  const listed = `${labels}\nexport const items = (session) => session.line_items.data.map(label);`;
+  expect(reach(listed, [{ ...description }])[0][0]).toBe('unknown');
+  const expanded = `export async function GET() {
+  const session = await stripe.checkout.sessions.create({ mode: 'payment', expand: ['line_items'] });
+  return session.line_items.data[0].description.trim();
+}`;
+  expect(reach(expanded, [{ ...description }])[0]).toEqual([
+    'reached',
+    'app/api/checkout/route.ts:5 reads `item.description`.',
   ]);
   expect(
     reach(AI_COMPANION, [
@@ -537,7 +586,7 @@ it('leaves a response removal Refit already analyzes to that analysis', () => {
     path: '/v1/checkout/sessions',
     text: 'removed the required property `total_details/amount_discount` from the response with the `200` status',
   };
-  const source = `${AI_COMPANION}\nexport const discount = (totals) => totals.amount_discount;`;
+  const source = `${AI_COMPANION}\nexport const discount = (session) => session.total_details.amount_discount;`;
   const covered: Removal = {
     id: 'subscription-period',
     schema: 'payment_pages_checkout_session_total_details',
