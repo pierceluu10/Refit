@@ -77,6 +77,7 @@ async function details(result, directory) {
   return {
     outcome: outcome(result),
     tracedCalls: result?.tracedCalls,
+    tracedCallsBySource: JSON.stringify(result?.tracedCallsBySource),
     confirmedFields: result?.fullAdapter?.confirmedFields?.join(' '),
     stage: workflow.stage,
     reason: workflow.reason,

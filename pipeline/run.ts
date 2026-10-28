@@ -63,6 +63,7 @@ import { PipelineInputError, type SourceEdit } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
 import { addTypeEvidence, stripePackageDirectory } from './stripe-type-evidence.ts';
+import { typedStripeClients } from './type-clients.ts';
 import {
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
@@ -129,6 +130,12 @@ async function runOpenApiPipeline(options: {
   ]);
   const configured = await readProviderAdapter(options.providerConfig);
   const repository = await readRepository(options.repository, configured.packageName);
+  // Stripe calls whose client the checker types as stripe-node's (docs/CLIENT-TRACING.md).
+  const typed =
+    configured.packageName === STRIPE.packageName
+      ? typedStripeClients(repository, options.stripePackage)
+      : undefined;
+  const typedClients = typed?.clients;
   // The built-in Stripe adapter grows to cover every Stripe method the application calls.
   const provider =
     configured === STRIPE
@@ -136,9 +143,9 @@ async function runOpenApiPipeline(options: {
           STRIPE,
           before.document,
           new Set(
-            analyzeRepository(repository, [], STRIPE).sdkCalls.map(
-              (call) => `${call.resource}.${call.method}`,
-            ),
+            analyzeRepository(repository, [], STRIPE, {}, [], [], [], [], {
+              typedClients,
+            }).sdkCalls.map((call) => `${call.resource}.${call.method}`),
           ),
         )
       : configured;
@@ -207,7 +214,7 @@ async function runOpenApiPipeline(options: {
     requestRenames,
     moves,
     parameterRemovals,
-    { invoicePreview, typeCheckedPeriodReads: options.typeCheckedPeriodReads },
+    { invoicePreview, typeCheckedPeriodReads: options.typeCheckedPeriodReads, typedClients },
   );
   // Documented enum successors are request moves: they ride the pin and the stripe-node upgrade.
   const analyzedEdits = [
@@ -499,11 +506,16 @@ async function runOpenApiPipeline(options: {
       calls: analysis.calls,
       mappings: operationMappings,
       untracedCalls: () =>
-        (untraced ??= measureCoverage(repository, 'stripe')
+        (untraced ??= measureCoverage(repository, 'stripe', {
+          typeTracing: true,
+          stripePackage: options.stripePackage,
+        })
           .filter((site) => site.likelySdk && !site.traced)
           .map((site) => site.expression)),
       readFindings: (removals) =>
-        analyzeRepository(repository, removals, provider, before.schemas).findings,
+        analyzeRepository(repository, removals, provider, before.schemas, [], [], [], [], {
+          typedClients,
+        }).findings,
       removals: changes,
       edited: (file, offset) =>
         edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
@@ -595,18 +607,19 @@ async function runOpenApiPipeline(options: {
   const deterministicRequested =
     options.proposePatch ||
     (options.aiPatch && !useAi && (configuredMigrationProposal || ruleEdits.length > 0));
-  const unresolvedFindings = deterministicRequested
+  const patchedRepository = deterministicRequested && {
+    ...repository,
+    files: repository.files.map((file) => ({
+      ...file,
+      content: applySourceEdits(
+        file.content,
+        edits.filter((edit) => edit.file === file.path),
+      ),
+    })),
+  };
+  const unresolvedFindings = patchedRepository
     ? analyzeRepository(
-        {
-          ...repository,
-          files: repository.files.map((file) => ({
-            ...file,
-            content: applySourceEdits(
-              file.content,
-              edits.filter((edit) => edit.file === file.path),
-            ),
-          })),
-        },
+        patchedRepository,
         changes,
         replacementAnalysisAdapter(provider, replacements),
         before.schemas,
@@ -614,7 +627,11 @@ async function runOpenApiPipeline(options: {
         requestRenames,
         moves,
         parameterRemovals,
-        { invoicePreview },
+        {
+          invoicePreview,
+          typedClients:
+            typed && typedStripeClients(patchedRepository, options.stripePackage).clients,
+        },
         // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
       ).findings
     : [];
@@ -881,6 +898,11 @@ async function runOpenApiPipeline(options: {
     ...(requestChanges.length ? { requestChanges } : {}),
     warnings: [
       ...repository.warnings,
+      ...(typed?.skipped === 'too-large'
+        ? [
+            'The repository has too many source files to type-check, so Stripe calls were traced only through the analyzer, not by their client type.',
+          ]
+        : []),
       ...sourceWarnings,
       ...(options.leaveReviewedFindings ? reviews : reviews.slice(0, 1)),
       ...skippedFiles.map(
