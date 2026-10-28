@@ -53,6 +53,10 @@ it('rejects excessive import context instead of silently truncating essential ev
     files[`${index}.ts`] =
       index + 1 < CONTEXT_CHAIN_LENGTH ? `import './${index + 1}.ts';` : 'export {};';
   expect(() => buildPatchContext(repository(files), new Set(['0.ts']))).toThrow(/context exceeds/);
+  // A coverage request keeps the nearest twelve instead.
+  expect(
+    buildPatchContext(repository(files), new Set(['0.ts']), true).map((file) => file.path),
+  ).toEqual(Array.from({ length: 12 }, (_, index) => `${index + 1}.ts`));
 });
 
 it('includes static CommonJS and import-equals dependencies transitively without following dynamic calls', () => {

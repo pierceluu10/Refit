@@ -12,6 +12,7 @@ import {
 import { applySourceEdits } from './patches.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { FORMAT_ANNOTATION } from './schema-equivalence.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
 import { digest } from './specifications.ts';
@@ -43,6 +44,12 @@ const before = {
       post: {
         operationId: 'PostProducts',
         responses: { '200': { content: { 'application/json': { schema: ref('product') } } } },
+      },
+    },
+    '/v1/prices': {
+      get: {
+        operationId: 'GetPrices',
+        responses: { '200': { content: { 'application/json': { schema: ref('price_list') } } } },
       },
     },
     '/v1/subscriptions/{subscription_exposed_id}': {
@@ -91,6 +98,7 @@ const before = {
         properties: { amount_discount: { type: 'integer' } },
       },
       product: { type: 'object', properties: { id: { type: 'string' } } },
+      price_list: { type: 'object', properties: { data: { type: 'array' } } },
       subscription: {
         type: 'object',
         properties: {
@@ -122,6 +130,7 @@ const provider: ProviderAdapter = {
       operationId: 'PostCheckoutSessions',
     },
     { resource: 'products', method: 'create', schema: 'product', operationId: 'PostProducts' },
+    { resource: 'prices', method: 'list', schema: 'price_list', operationId: 'GetPrices' },
     {
       resource: 'subscriptions',
       method: 'update',
@@ -813,6 +822,62 @@ it('leaves a currency constant, a lowercase code and test files unedited', () =>
   const computed = lowercased(GENIUS.replace("'USD'", '`${region}D`'));
   expect(computed.edits).toEqual([]);
   expect(computed.reach[0]).toBe('reached');
+});
+
+// D4: compareOpenApi lists a format-only `currency` change as compatible (schema-equivalence.ts).
+it('keeps a format-only currency change compatible unless a traced call visibly sends a code Stripe rejects', () => {
+  const equivalent = (change: Record<string, unknown> = currencyFormat(LINE_ITEM_CURRENCY)) => ({
+    ...change,
+    equivalence: FORMAT_ANNOTATION,
+    reach: 'compatible',
+    reachReason: 'format',
+  });
+  // A computed code, an unreadable body and an untraced call no longer stop.
+  const computed = `export const go = (currency: string) => stripe.checkout.sessions.create({
+  mode: 'payment',
+  line_items: [{ price_data: { currency, unit_amount: 100 }, quantity: 1 }],
+});`;
+  expect(reach(computed, [equivalent()])).toEqual([['compatible', 'format']]);
+  expect(
+    reach('export const go = (body: any) => stripe.checkout.sessions.create(body);', [
+      equivalent(),
+    ]),
+  ).toEqual([['compatible', 'format']]);
+  expect(reach(computed, [equivalent()], ['stripe.checkout.sessions.create'])).toEqual([
+    ['compatible', 'format'],
+  ]);
+  // An uppercase code Refit can read still stops, and the currency rule still handles a literal
+  // written in the call.
+  const constant = lowercased(
+    GENIUS.replace(
+      '  const stripeSession',
+      "  const CURRENCY = 'USD';\n  const stripeSession",
+    ).replace("currency: 'USD'", 'currency: CURRENCY'),
+    equivalent(),
+  );
+  expect(constant.reach[0]).toBe('reached');
+  expect(constant.reach[1]).toContain('as `USD`');
+  const literal = lowercased(GENIUS, equivalent());
+  expect(literal.edits).toHaveLength(1);
+  expect(literal.reach[0]).toBe('handled');
+  // So does an uppercase literal in a query parameter, which the rule does not edit.
+  const listed = {
+    id: 'request-parameter-type-changed',
+    level: 3,
+    operation: 'GET',
+    path: '/v1/prices',
+    text: 'for the `query` request parameter `currency`, the `format` was changed from `none` to `currency`',
+  };
+  expect(
+    reach("export const list = () => stripe.prices.list({ currency: 'EUR' });", [
+      equivalent(listed),
+    ])[0][0],
+  ).toBe('reached');
+  expect(
+    reach("export const list = () => stripe.prices.list({ currency: 'eur' });", [
+      equivalent(listed),
+    ])[0][0],
+  ).toBe('compatible');
 });
 
 const roots: string[] = [];

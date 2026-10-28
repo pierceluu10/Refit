@@ -16494,6 +16494,691 @@
           "reason": "Part of the list name heldout-30, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated, no AI |     80 |               80 |",
+      "values": [
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated, AI    |     80 |               80 |",
+      "values": [
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, no AI  |     10 |               10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, AI     |     10 |               10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: l2-push-249 no AI [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), AI [40470122759](https://github.com/refit-dev/refit-bench/actions/runs/40470122759) with its failed shard rerun as [40544895386](https://github.com/refit-dev/refit-bench/actions/runs/40544895386); heldout-30 no AI [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890), AI [40470125581](https://github.com/refit-dev/refit-bench/actions/runs/40470125581). After, at `e8f52e9b`: l2-push-249 no AI [40545715035](https://github.com/refit-dev/refit-bench/actions/runs/40545715035), AI [40545759381](https://github.com/refit-dev/refit-bench/actions/runs/40545759381); heldout-30 no AI [40545721985](https://github.com/refit-dev/refit-bench/actions/runs/40545721985), AI [40545751982](https://github.com/refit-dev/refit-bench/actions/runs/40545751982). AI runs used `-f ai=true` with a $200 budget on l2-push-249 and $30 on heldout-30.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40448715209",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40470122759",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40544895386",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40448718890",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40470125581",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40545715035",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40545759381",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40545721985",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40545751982",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "$200",
+          "reason": "The AI budget given to the run, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "$30",
+          "reason": "The AI budget given to the run, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **No outcome changed.** `node scripts/stripe-benchmark-compare.mjs` finds every compared field identical on 249 of 249 rows without AI and on 30 of 30 heldout rows in both modes. With AI, kondax-com/Bocker failed its baseline check in the after run, so no patch was checked there; it stops `needs-review` in both runs. No patch was newly published, so there was nothing new to review.",
+      "values": [
+        {
+          "says": "249",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Where the oracle ran.** On l2-push-249 it compared type errors on 146 rows; the other 103 do not upgrade stripe-node with prepared dependencies of their own or have no type check. The patched code had no new type errors on 134 of the 146. It moved 5 changes to `reached` on 4 rows, all of which already stopped for other reasons.",
+      "values": [
+        {
+          "says": "146",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "103",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "134",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "146",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40470122759, 40544895386, 40448718890, 40470125581, 40545715035, 40545759381, 40545721985 and 40545751982, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, no AI  |                      10 |                 9 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, AI     |                      10 |                 9 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: the type oracle runs above (main's code, outcome for outcome). After, at `63646f2a`: l2-push-249 no AI [40591181316](https://github.com/refit-dev/refit-bench/actions/runs/40591181316), AI [40591190068](https://github.com/refit-dev/refit-bench/actions/runs/40591190068); heldout-30 no AI [40591185819](https://github.com/refit-dev/refit-bench/actions/runs/40591185819), AI [40591194943](https://github.com/refit-dev/refit-bench/actions/runs/40591194943).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40591181316",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40591190068",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40591185819",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40591194943",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **1 row changed.** KPZ231/what-now-chaos is graded D (no test reaches `src/app/api/checkout/route.js`; only the generated stripe-mock check ran it), so its draft was already `[Needs review]`; it now ends `needs-review`. Every other row is identical, except that with AI kondax-com/Bocker's patch failed its checks after it failed its baseline in the before run; it stops `needs-review` in both.",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Why it matters for the lanes.** On l2-push-249 the spec-noise filter frees 4 rows whose draft keeps `trial_from_plan` (kpirabaharan/Spotify-Clone, adityayaduvanshi/Full-Stack-Music-Web-App, afdon/music-app, AlefeSk8/Spotify-Clone-Next.js); they now count as `needs-review`, not validated.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated, AI |           80 |                84 |",
+      "values": [
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, AI  |            9 |                10 |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: l2-push-249 [40470122759](https://github.com/refit-dev/refit-bench/actions/runs/40470122759) with its failed shard rerun as [40544895386](https://github.com/refit-dev/refit-bench/actions/runs/40544895386), heldout-30 [40470125581](https://github.com/refit-dev/refit-bench/actions/runs/40470125581). After, at `93e73d7c`: l2-push-249 [40552354557](https://github.com/refit-dev/refit-bench/actions/runs/40552354557), heldout-30 [40552360621](https://github.com/refit-dev/refit-bench/actions/runs/40552360621). Both sets ran with `-f ai=true`, a $200 budget on l2-push-249 and $30 on heldout-30. Counts apply the needs-review fix above: KPZ231/what-now-chaos (grade D) is not counted in any heldout-30 run. Without AI the lane changes nothing: runs 40545177251 and 40545182208 match main outcome for outcome.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40470122759",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40544895386",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40470125581",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40552354557",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40552360621",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "$200",
+          "reason": "The AI budget given to the run, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "$30",
+          "reason": "The AI budget given to the run, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40545177251",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40545182208",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **5 repositories newly validate, none lost.** CiphersLab/SaaSPilot, palashb01/DocuChat, JensenMPillay/pdfai and abhirupkumar/docwhisperer on l2-push-249, raumildhandhukia/inboxradarai on heldout-30. In each, the AI answered no change needed for untraced `.price` reads that read the application's plan configuration, the type oracle passed, and D2b cleared them; the patch itself is the rules' patch. Each `migration.patch` was applied to a clone and read in full: 4 `correct` and 1 `correct-partial` in [fix-reviews.json](benchmarks/fix-reviews.json). pdfai is partial because its webhook reads `session.subscription` for invoice events through a value cast to `Stripe.Checkout.Session`, which Refit's declared-type trace does not flag.",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** D2b cleared reads on 7 l2-push-249 rows; 3 still stop on contract changes or submodules. No AI patch passed the D2 gate: the one kept AI patch changed code outside the traced sites and the type oracle did not pass for it, so it stays `[Needs review]`. CRONANANI/EzanaFinance3 hit the 20-minute runner limit in the after run (`needs-review` before). AI spend was $1.01 on l2-push-249 (main: $0.66) and $0.13 on heldout-30 (main: $0.03).",
+      "values": [
+        {
+          "says": "7",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "20",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "$1.01",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "$0.66",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "$0.13",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        },
+        {
+          "says": "$0.03",
+          "notCheckable": "From the merged results of refit-bench runs 40470122759, 40544895386, 40470125581, 40552354557, 40552360621, 40545177251 and 40545182208, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated |           80 |                84 |",
+      "values": [
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: contract-change stop |           97 |                86 |",
+      "values": [
+        {
+          "says": "97",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "86",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated  |            9 |                10 |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `3b5cb244`: l2-push-249 [40552957597](https://github.com/refit-dev/refit-bench/actions/runs/40552957597), heldout-30 [40552966689](https://github.com/refit-dev/refit-bench/actions/runs/40552966689). Counts apply the needs-review fix above.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40448715209",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40448718890",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40552957597",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40552966689",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Stops cleared.** On l2-push-249 the contract diffs lose 191 entries: 24 `address` subschema renames and 167 `currency` format annotations. On heldout-30 they lose 17. No patch diff changed.",
+      "values": [
+        {
+          "says": "191",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "24",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "167",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "17",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **5 repositories newly validate, none lost.** siavashsk/spotify-clone, psykat1116/Spotify, Emmah-oo/spotify-clone and Neddie28/Spotify-Clone on l2-push-249, nishchay-veer/tunehub-next on heldout-30: each stopped only on the `address` change that `customers.update` sends from `billing_details`. Each `migration.patch` was applied to a clone and read in full: 5 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json).",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **4 rows freed but not counted.** kpirabaharan/Spotify-Clone, adityayaduvanshi/Full-Stack-Music-Web-App, afdon/music-app and AlefeSk8/Spotify-Clone-Next.js ended `validated` in the run, but their drafts keep `subscription_data.trial_from_plan` and are `[Needs review]`; reviewed again as `unsure`, as on October 24, until a test-mode Checkout Session settles it.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** 86 l2-push-249 rows keep a contract-change stop, most beside another blocker (removed request parameters, kept or untraced API versions, webhook versions). Addisu87/digital-marketplace failed dependency preparation on a registry 502 in the after run (`needs-review` before and after).",
+      "values": [
+        {
+          "says": "86",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "502",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
     }
   ]
 }
