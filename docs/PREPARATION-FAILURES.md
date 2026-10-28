@@ -165,3 +165,17 @@ The 35 untested rows of refit-bench run 40448715209 (l2-push-249 at main `5ba25c
 - **A `packageManager` pin as the other lockfile's refusal (Quill).** Treat "package-lock.json refused because `packageManager` pins pnpm" like an out-of-sync refusal when the pinned manager's lockfile is the one in sync and check selection runs that manager. npm itself would install package-lock.json (Corepack does not manage npm), so this rests on the owner's intent, not on what a manager refuses.
 - **Dangling `link:` declarations (2 rows).** Drop nothing; install with the link left pointing at a missing directory, as pnpm does. Needs a reading of pnpm's behaviour on a missing link target.
 - **pnpm lockfile v5.4 (2 rows).** Install with pnpm 7 and read v5.4's `/name/version` keys; the stripe-node upgrade would still refuse.
+
+### On refit-bench (2026-10-28)
+
+No AI, default flags. Before, main at `6c6ff6a9`: l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `b884fe3e` (this branch with `6c6ff6a9` merged): l2-push-249 [40621391261](https://github.com/refit-dev/refit-bench/actions/runs/40621391261), heldout-30 [40621394549](https://github.com/refit-dev/refit-bench/actions/runs/40621394549). heldout-30 matches main on 30 of 30 rows.
+
+| l2-push-249                            | Before | After |
+| -------------------------------------- | -----: | ----: |
+| production validated                   |     84 |    84 |
+| rows stopped on dependency preparation |     53 |    51 |
+
+- **Now prepare:** Shobhnik13/SynthAI (the extraneous record) runs its baseline and patched checks, both pass, and stays `[Needs review]` for a removed request parameter, a kept API version and contract changes. tomsoderlund/login-as-a-service (`sha1` beside `sha512`) prepares and its baseline check fails.
+- **Get past the fixed check and stop on the next one, correctly:** Small-Web-Co/tinypivot's workspace negation is read, and then the lockfile records `pg` for `packages/server`, whose `package.json` does not declare it (`lockfile-out-of-sync`). inventashif/hackerai's unlinked workspace `bin` is accepted, and then pnpm refuses `isbinaryfile@6.0.0`, which needs Node 24, on `node:22-alpine`.
+- kondax-com/Bocker's baseline tests failed in this run and passed on main with the same dependency archive: a flaky test, `[Needs review]` either way.
+- No patch newly validates, so there is nothing new to review.

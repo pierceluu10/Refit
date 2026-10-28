@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 28 checkpoint: preparation inputs npm and pnpm accept (unreleased, after 0.39.0)
+
+Dependency preparation accepts an integrity listing `sha1` beside a stronger hash and lockfile records outside every `node_modules` directory (`pipeline/npm-lock.ts`), workspace negations after every positive pattern (`pipeline/npm-lock.ts`, `pipeline/pnpm-inputs.ts`, `pipeline/yarn-inputs.ts`), and a pnpm workspace `bin` no importer links to (`pipeline/pnpm-inputs.ts`). On refit-bench without AI, rows stopped on dependency preparation on l2-push-249 fall from 53 to 51; validated stays at 84 and 10 ([benchmarks](BENCHMARKS.md#preparation-inputs-npm-and-pnpm-accept-october-28)). Tests: `pipeline/npm-lock.test.ts`, `pipeline/npm-workspaces.test.ts`, `pipeline/pnpm-inputs.test.ts`.
+
 ## October 27 checkpoint: API versions untraced only where the client escapes (unreleased, after 0.39.0)
 
 `declaredApiVersions` now starts from `versionUnsafe` (`pipeline/analyzer.ts`): only clients passed to opaque helpers, unsafe class bindings, untraced webhook events and aliases in ambiguous files make a pin `api-version-untraced`, and an exported helper's typed client parameter is followed (`pipeline/helper-clients.ts`, `pipeline/source-imports.ts`). On refit-bench without AI, rows with an untraced version on l2-push-249 fall from 19 to 16; validated stays at 80 and 9 ([benchmarks](BENCHMARKS.md#api-versions-untraced-only-where-the-client-escapes-october-27)). Test: `pipeline/declared-api-versions.test.ts`.
