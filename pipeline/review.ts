@@ -688,6 +688,12 @@ export function createReviewArtifacts(
   );
   const lockfileChoice = validation.environment?.lockfileChoice as LockfileChoice | undefined;
   const otherLockfiles = Object.entries(lockfileChoice?.others ?? {});
+  // Lockfiles a patch that upgrades stripe leaves as committed (stripe-package-upgrade.ts).
+  const unchangedLockfiles = /^diff --git "a\/package\.json"/m.test(patch.diff)
+    ? otherLockfiles
+        .map(([file]) => file)
+        .filter((file) => !patch.diff.includes(`diff --git "a/${file}"`))
+    : [];
   type ResolvedLockfile = {
     reason: string;
     before: string;
@@ -1314,7 +1320,7 @@ export function createReviewArtifacts(
           : []),
         ...(lockfileChoice
           ? [
-              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...otherLockfiles.map(([file]) => file)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, ${lockfileChoice.because}, and did not read ${otherLockfiles.length === 1 ? 'the other' : 'the others'}${otherLockfiles.every(([, note]) => note === 'not read') ? '.' : `: ${otherLockfiles.map(([, note]) => plainText(note)).join(' ')}`} Delete the lockfile your package manager does not use.`,
+              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...otherLockfiles.map(([file]) => file)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, ${lockfileChoice.because}, and did not read ${otherLockfiles.length === 1 ? 'the other' : 'the others'}${otherLockfiles.every(([, note]) => note === 'not read') ? '.' : `: ${otherLockfiles.map(([, note]) => plainText(note)).join(' ')}`}${unchangedLockfiles.length ? ` This patch upgrades stripe in ${code(lockfileChoice.lockfile)} only and leaves ${unchangedLockfiles.map(code).join(' and ')} as committed, still locking the older stripe.` : ''} Delete the lockfile your package manager does not use.`,
             ]
           : []),
         ...(resolvedLockfiles.length
