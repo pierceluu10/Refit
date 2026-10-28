@@ -40,6 +40,9 @@ const BUNDLED_STRIPE = join(
 );
 
 type TypedClients = { clients: TypedClient[]; skipped?: 'too-large' | 'no-stripe-types' };
+// Declaration files outside the repository (stripe-node's, TypeScript's lib) never change during a
+// run; parsing stripe-node's alone takes seconds, so programs share them.
+const declarations = new Map<string, ts.SourceFile>();
 // One type check per snapshot and stripe package: a run asks for the same snapshot several times.
 const cache = new WeakMap<Repository['files'], Map<string, TypedClients>>();
 
@@ -96,9 +99,15 @@ function traceClients(repository: Repository, explicitPackage?: string): TypedCl
     const getSourceFile = host.getSourceFile;
     host.getSourceFile = (name, version, ...rest) => {
       const file = contents.get(name);
-      return file
-        ? ts.createSourceFile(name, file.content, version, true)
-        : getSourceFile(name, version, ...rest);
+      if (file) return ts.createSourceFile(name, file.content, version, true);
+      if (!name.endsWith('.d.ts')) return getSourceFile(name, version, ...rest);
+      const key = `${name}\0${JSON.stringify(version)}`;
+      let declaration = declarations.get(key);
+      if (!declaration) {
+        declaration = getSourceFile(name, version, ...rest);
+        if (declaration) declarations.set(key, declaration);
+      }
+      return declaration;
     };
     const program = ts.createProgram(
       entry.ambient ? [...projectFiles, entry.ambient] : projectFiles,
