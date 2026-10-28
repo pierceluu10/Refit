@@ -21,6 +21,8 @@ import {
   publishDraft,
   type publicationConfiguration,
   publicationWaiver,
+  proofLevel,
+  aiPatchProven,
   aiPatchValidated,
 } from './publication.ts';
 import { createReviewArtifacts, NEEDS_REVIEW_PREFIX } from './review.ts';
@@ -550,7 +552,12 @@ export async function runWorkflow(options: {
         `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}${checkFailureText(report.validation)}`,
         runId,
       );
-    if (!reviews && report.patch.generator === 'openai' && !aiPatchValidated(report))
+    if (
+      !reviews &&
+      report.patch.generator === 'openai' &&
+      !aiPatchValidated(report) &&
+      !aiPatchProven(report)
+    )
       return await finish('needs-review', AI_PATCH_STOP, runId);
     if (reviews && !report.publicationFiles.length)
       return await finish(
@@ -589,7 +596,9 @@ export async function runWorkflow(options: {
     if (!publication)
       return await finish(
         'validated',
-        'Baseline and patched checks passed. Review artifacts are ready; publication was not requested.',
+        report.validation.status === 'passed'
+          ? 'Baseline and patched checks passed. Review artifacts are ready; publication was not requested.'
+          : `The tests already failed on the original code and the patch adds no failure to them; evidence grade ${proofLevel(report)} covers its changes. Review artifacts are ready; publication was not requested.`,
         runId,
       );
     stage = 'publication';

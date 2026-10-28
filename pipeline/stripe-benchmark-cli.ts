@@ -545,7 +545,13 @@ async function benchmark(entry: Selected, index: number) {
         : undefined;
     // compareTypeErrors fails a patched type check only on errors the patch introduced, which then
     // go to AI repair.
-    const command = checkable ? selection.command : (selection.command ?? NO_OP_CHECK.split(' '));
+    // With behaviour tests, a repository with no check is validated with the no-op check, as the
+    // configuration enrollment generates for it, so a grade-A behaviour test can prove its patch
+    // (founder decision, 2026-10-28).
+    const command =
+      checkable && !values['behaviour-tests']
+        ? selection.command
+        : (selection.command ?? NO_OP_CHECK.split(' '));
     const config = join(work, 'run.json');
     // A customer's worker runs the full contract diff. When it stops before validation, the
     // workflow runs without it (benchmark mode) to measure what the rules alone would do; when it

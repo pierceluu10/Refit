@@ -18,12 +18,18 @@ import {
   INVOICE_PREVIEW_SOURCE,
   INVOICE_PREVIEW_WARNING,
 } from './stripe-invoice-preview.ts';
-import { CURRENCY_CODE_RULE, CURRENCY_CODE_SOURCE } from './operation-reach.ts';
+import {
+  CURRENCY_CODE_RULE,
+  CURRENCY_CODE_SOURCE,
+  REQUEST_OPTIONS_RULE,
+  REQUEST_OPTIONS_SOURCE,
+} from './operation-reach.ts';
 
 const FIELD_MOVE_SOURCES: Record<string, string> = Object.fromEntries(
   STRIPE_PACK.fieldMoves.map((move) => [move.rule, move.source]),
 );
 
+export const REQUEST_OPTIONS_WARNING = `Request options (such as stripeAccount or idempotencyKey) passed where stripe-node expects request parameters move to the options argument after an explicit \`undefined\`: from stripe-node 22 a method reads params and options by position (${REQUEST_OPTIONS_SOURCE}), so the old form would send them to Stripe as request parameters. Earlier releases read both forms the same way, so the request is unchanged.`;
 const CURRENCY_CODE_WARNING = `Uppercase currency codes written in Stripe requests are lowercased: the target contract gives these fields the \`currency\` format, and ${CURRENCY_CODE_SOURCE} asks for lowercase three-letter ISO codes in every payment request. Only literals written in the request change; other uses of the same currency in the code are unchanged.`;
 
 // Source: Stripe changelog, 2026-09-30.endive, read 2026-10-22.
@@ -43,7 +49,9 @@ function ruleSources(edits: SourceEdit[]) {
           ? PAYMENT_METHOD_TYPES_CHANGELOG
           : edit.rule === CURRENCY_CODE_RULE
             ? CURRENCY_CODE_SOURCE
-            : undefined);
+            : edit.rule === REQUEST_OPTIONS_RULE
+              ? REQUEST_OPTIONS_SOURCE
+              : undefined);
     if (url) pages.set(url, (pages.get(url) ?? new Set()).add(edit.file));
   }
   return [...pages].map(([url, files]) => ({ url, files: [...files] }));
@@ -107,7 +115,8 @@ export function isFieldMove(edit: SourceEdit) {
       PAYMENT_METHOD_RENAME_RULES.has(edit.rule) ||
       REQUEST_MOVE_RULES.has(edit.rule) ||
       edit.rule === INVOICE_PREVIEW_RULE ||
-      edit.rule === CURRENCY_CODE_RULE),
+      edit.rule === CURRENCY_CODE_RULE ||
+      edit.rule === REQUEST_OPTIONS_RULE),
   );
 }
 
@@ -262,6 +271,7 @@ export function proposePatch(
   );
   const preview = fieldMoves.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
   const currency = fieldMoves.some((edit) => edit.rule === CURRENCY_CODE_RULE);
+  const requestOptions = fieldMoves.some((edit) => edit.rule === REQUEST_OPTIONS_RULE);
   // Request-side rules, with the reads and renames that share their patch.
   const requestSummary = [
     preview ? 'replace the removed upcoming invoice call with invoices.createPreview' : '',
@@ -270,6 +280,7 @@ export function proposePatch(
     reads.length ? 'move removed field reads to their documented new locations' : '',
     cardRename ? 'replace payment_method_types with allowed_payment_method_types' : '',
     currency ? 'lowercase uppercase currency codes' : '',
+    requestOptions ? 'pass request options after the params argument' : '',
   ]
     .filter(Boolean)
     .join(', ');
@@ -311,7 +322,7 @@ export function proposePatch(
     return {
       generator: 'deterministic' as const,
       summary:
-        requestMoves.length || preview || currency
+        requestMoves.length || preview || currency || requestOptions
           ? `${requestSummary[0].toUpperCase()}${requestSummary.slice(1)} and update the pinned Stripe API version.`
           : !cardRename
             ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
@@ -337,6 +348,7 @@ export function proposePatch(
         ...requestMoves.map((rule) => requestMoveFor(rule)!.warning),
         ...(preview ? [INVOICE_PREVIEW_WARNING] : []),
         ...(currency ? [CURRENCY_CODE_WARNING] : []),
+        ...(requestOptions ? [REQUEST_OPTIONS_WARNING] : []),
         'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
         'Patch contains source code. Review it for sensitive content before sharing.',
       ],

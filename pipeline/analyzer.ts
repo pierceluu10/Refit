@@ -265,6 +265,11 @@ function buildAnalysisProgram(repository: Repository) {
   return { sources, resolution, program, checker: program.getTypeChecker() };
 }
 
+// A traced read the analyzer could not decide: validation's receiver proofs may clear it like an
+// untraced one (founder decision, 2026-10-28).
+export const UNPROVEN_RECEIVER_REASON =
+  'Receiver or property cannot be proven by the supported local analysis; inspect manually.';
+
 export function analyzeRepository(
   repository: Repository,
   changes: Removal[],
@@ -2168,8 +2173,7 @@ export function analyzeRepository(
                     ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
                     : uncertainMutation
                       ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                      : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
-          (moveReview ? ` ${moveReview}` : ''),
+                      : UNPROVEN_RECEIVER_REASON) + (moveReview ? ` ${moveReview}` : ''),
       });
     }
   }

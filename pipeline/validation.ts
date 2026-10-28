@@ -87,7 +87,7 @@ import {
 import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { baselineCheck } from './validation-baseline-cache.ts';
 import { inspectArtifactFile } from './verification.ts';
-import { analyzeRepository } from './analyzer.ts';
+import { analyzeRepository, UNPROVEN_RECEIVER_REASON } from './analyzer.ts';
 import ts from 'typescript-compiler';
 import {
   extractStripeMock,
@@ -137,7 +137,12 @@ import {
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
-import { checkFailures, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
+import {
+  checkFailures,
+  checkFailureText,
+  INTRODUCED_TYPE_ERRORS,
+  newTestFailures,
+} from './check-failures.ts';
 import {
   advisoryTypeError,
   checkKinds,
@@ -3018,6 +3023,21 @@ export async function validateMigration(options: {
             ),
           )
         : undefined;
+    // Founder decision (2026-10-28): the broken tests run on the patch too, so a patch that adds no
+    // failure to them can be validated by the evidence that reaches its lines.
+    const brokenTestsPatched =
+      brokenTestsTypeCheck && initialCandidate
+        ? await timed('patchedChecks', () =>
+            containerCheck({
+              directory: initialCandidate.directory,
+              image,
+              command: options.command,
+              dependencies: initialCandidate.dependencies,
+              signal: options.signal,
+              ...sandbox,
+            }),
+          )
+        : undefined;
     let generated = await generatedFor();
     if (rules && coverage?.outcome === 'checks-failed') {
       if (checkStatus(baseline, patched, generated) === 'passed') {
@@ -3393,7 +3413,7 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' &&
       (!coverage || coverage.outcome !== 'kept' || coverage.gate?.passed) &&
       'unresolvedSites' in proposal &&
-      proposal.unresolvedSites?.some((site) => site.untraced)
+      proposal.unresolvedSites?.some((site) => site.untraced || site.confidence === 'review')
     ) {
       const findings = analyzeRepository(
         { ...originalSources, files: candidateSources.files },
@@ -3401,21 +3421,24 @@ export async function validateMigration(options: {
         report.adapter,
         beforeSpecification.schemas,
       ).findings.filter((finding) => !TEST_PATH.test(finding.file));
+      // Founder decision (2026-10-28): a traced read the analyzer could not decide is proved the
+      // same way as an untraced one; a reason it named (a webhook, a mutation) keeps it.
+      const unproven = (finding: Finding) =>
+        finding.untraced ||
+        (finding.confidence === 'review' && finding.reason === UNPROVEN_RECEIVER_REASON);
       const sources = candidateSources;
+      const prisma = (await runtimeStandIns(join(sources.root, packageDirectory ?? ''))).prisma;
       const local = await withDependencyTypes(
         root,
         join(sources.root, packageDirectory ?? ''),
         candidateDependencies,
         () =>
-          localReceiverReads(
-            sources,
-            findings.filter((finding) => finding.untraced),
-            {
-              traced: findings.filter((finding) => !finding.untraced),
-              typeChecked: (file) => typeOraclePasses(typeOracle) || Boolean(covered?.has(file)),
-              changes: report.changes,
-            },
-          ),
+          localReceiverReads(sources, findings.filter(unproven), {
+            traced: findings.filter((finding) => !unproven(finding)),
+            typeChecked: (file) => typeOraclePasses(typeOracle) || Boolean(covered?.has(file)),
+            changes: report.changes,
+            prismaModels: prisma ? Object.keys(prisma.models) : [],
+          }),
       );
       const left = resolvedSites(proposal.unresolvedSites, unresolvedSites(local));
       if (local.length && left.length === proposal.unresolvedSites.length - local.length) {
@@ -3476,7 +3499,20 @@ export async function validateMigration(options: {
       ...(typeOracle ? { typeOracle } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
       ...(brokenTestsTypeCheck
-        ? { brokenTestsTypeCheck: { command: brokenTestsCommand, patched: brokenTestsTypeCheck } }
+        ? {
+            brokenTestsTypeCheck: {
+              command: brokenTestsCommand,
+              patched: brokenTestsTypeCheck,
+              ...(brokenTestsPatched
+                ? {
+                    tests: {
+                      status: brokenTestsPatched.status,
+                      newFailures: newTestFailures(baselineRun, brokenTestsPatched) ?? null,
+                    },
+                  }
+                : {}),
+            },
+          }
         : {}),
       ...failures,
       ...(Object.keys(timings).length ? { timings } : {}),

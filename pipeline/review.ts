@@ -332,6 +332,7 @@ const LOCAL_PROOFS: Record<LocalProof, string> = {
   'literal-config': 'an object literal the repository writes',
   'generated-type': "a type generated from the repository's own schema",
   'receiver-type': 'a type that is not the changed object',
+  'prisma-client': "a Prisma model the repository's schema declares",
 };
 
 function failedChecks(validation: Validation) {

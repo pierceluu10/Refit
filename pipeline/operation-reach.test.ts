@@ -8,6 +8,8 @@ import {
   CURRENCY_CODE_RULE,
   currencyCodeEdits,
   enumValueEdits,
+  REQUEST_OPTIONS_RULE,
+  requestOptionEdits,
   responsePropertyOwner,
 } from './operation-reach.ts';
 import { applySourceEdits } from './patches.ts';
@@ -39,6 +41,12 @@ const before = {
           '200': { content: { 'application/json': { schema: ref('checkout.session') } } },
           default: { content: { 'application/json': { schema: ref('error') } } },
         },
+      },
+    },
+    '/v1/promotion_codes': {
+      post: {
+        operationId: 'PostPromotionCodes',
+        responses: { '200': { content: { 'application/json': { schema: ref('product') } } } },
       },
     },
     '/v1/products': {
@@ -137,6 +145,12 @@ const provider: ProviderAdapter = {
       operationId: 'PostCheckoutSessions',
     },
     { resource: 'products', method: 'create', schema: 'product', operationId: 'PostProducts' },
+    {
+      resource: 'promotionCodes',
+      method: 'create',
+      schema: 'product',
+      operationId: 'PostPromotionCodes',
+    },
     { resource: 'prices', method: 'list', schema: 'price_list', operationId: 'GetPrices' },
     {
       resource: 'invoices',
@@ -467,6 +481,31 @@ it('blocks a newly required nested property only for calls that send its parent'
     reach(
       'export const go = (id) => stripe.subscriptions.update(id, { billing_cycle_anchor: { month: 1 } });',
       [{ ...required }],
+    )[0][0],
+  ).toBe('reached');
+});
+
+it('credits a newly required property to the kept request move that sends it', () => {
+  const required = () => ({
+    id: 'new-required-request-property',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/promotion_codes',
+    text: 'added the new required request property `promotion`',
+  });
+  const source =
+    "export const go = (coupon: string) => stripe.promotionCodes.create({ coupon, code: 'SAVE' });";
+  const offset = (CLIENT + source).indexOf('coupon,');
+  const coupon = (_file: string, at: number) => at === offset;
+  expect(reach(source, [required()], [], coupon)[0][0]).toBe('handled');
+  // Without the kept edit, or for a property no move replaces, the call still must send it.
+  expect(reach(source, [required()])[0][0]).toBe('reached');
+  expect(
+    reach(
+      source,
+      [{ ...required(), text: 'added the new required request property `code2`' }],
+      [],
+      coupon,
     )[0][0],
   ).toBe('reached');
 });
@@ -1292,5 +1331,43 @@ describe('a documented enum successor', () => {
       'app/api/checkout/route.test.ts',
     );
     expect(test.edits).toEqual([]);
+  });
+});
+
+describe('request options passed as params (stripe-node 22)', () => {
+  const moved = (source: string, path?: string) => {
+    const context = traced(source, path);
+    const edits = requestOptionEdits(context);
+    return {
+      edits,
+      patched: applySourceEdits(context.repository.files[0].content, edits).slice(CLIENT.length),
+    };
+  };
+
+  it('moves an options-only last argument after an explicit undefined', () => {
+    const { edits, patched } = moved(`export const go = (id: string, account: string) =>
+  stripe.subscriptions.update(id, { stripeAccount: account, idempotencyKey: 'k' });
+export const make = (stripeAccount: string) => stripe.checkout.sessions.create({ stripeAccount });`);
+    expect(edits.map((edit) => edit.rule)).toEqual([REQUEST_OPTIONS_RULE, REQUEST_OPTIONS_RULE]);
+    expect(patched).toBe(`export const go = (id: string, account: string) =>
+  stripe.subscriptions.update(id, undefined, { stripeAccount: account, idempotencyKey: 'k' });
+export const make = (stripeAccount: string) => stripe.checkout.sessions.create(undefined, { stripeAccount });`);
+  });
+
+  it('leaves params, mixed keys, spreads, explicit options and test files alone', () => {
+    const source = `export const a = (id: string) => stripe.subscriptions.update(id, { metadata: {} });
+export const b = (id: string, account: string) =>
+  stripe.subscriptions.update(id, { stripeAccount: account, metadata: {} });
+export const c = (id: string, options: object) => stripe.subscriptions.update(id, { ...options });
+export const d = (id: string, account: string) =>
+  stripe.subscriptions.update(id, {}, { stripeAccount: account });
+export const e = () => stripe.checkout.sessions.create({});`;
+    expect(moved(source).edits).toEqual([]);
+    expect(
+      moved(
+        `export const t = (s: string) => stripe.checkout.sessions.create({ stripeAccount: s });`,
+        'app/checkout.test.ts',
+      ).edits,
+    ).toEqual([]);
   });
 });
