@@ -1303,7 +1303,7 @@ export function createReviewArtifacts(
           : []),
         ...(legacyPeerDeps
           ? [
-              "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies, so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+              `- Dependency Installation: \`npm ci\` rejected the ${resolvedLockfiles.length ? 'resolved' : 'committed'} lockfile's peer dependencies, so Refit installed the same lockfile with \`--legacy-peer-deps\`. Check that your own install uses the same setting.`,
             ]
           : []),
         ...(fromBunLock
