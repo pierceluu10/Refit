@@ -744,8 +744,17 @@ export function createReviewArtifacts(
     typeof patch.sdkUpgrade === 'object' &&
     'to' in patch.sdkUpgrade &&
     'from' in patch.sdkUpgrade
-      ? (patch.sdkUpgrade as { from: string; to: string })
+      ? (patch.sdkUpgrade as {
+          from: string;
+          to: string;
+          raised?: { name: string; from: string; to: string; range: string }[];
+        })
       : undefined;
+  const raisedPeers = summaryList(
+    (upgrade?.raised ?? []).map(
+      ({ name, from, to }) => `${code(name)} from ${code(from)} to ${code(to)}`,
+    ),
+  );
   const pinFrom = report.apiVersion.application;
   const pinTo = report.apiVersion.after;
   const movesPin = (file: FileChange) =>
@@ -811,7 +820,7 @@ export function createReviewArtifacts(
               : []),
             ...(upgrade && (/(?:^|\/)package\.json$/.test(file.path) || LOCKFILE.test(file.path))
               ? [
-                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}.`,
+                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}${raisedPeers ? ` and raises ${raisedPeers}` : ''}.`,
                 ]
               : []),
           ].join(' ') || `Updates ${plainText(provider)} API usage for the new contract.`;
@@ -930,6 +939,11 @@ export function createReviewArtifacts(
     upgrade.from.split('.')[0] !== upgrade.to.split('.')[0]
       ? [
           `Upgrades ${code('stripe')} across major versions, ${code(upgrade.from)} to ${code(upgrade.to)}; [its changelog](${STRIPE_NODE_CHANGELOG}) lists type and behavior changes the checks may not cover.`,
+        ]
+      : []),
+    ...(upgrade?.raised?.length
+      ? [
+          `Raises ${raisedPeers} with it: stripe ${code(upgrade.to)} declares ${summaryList(upgrade.raised.map(({ name, range }) => `${code(name)} ${code(range)}`))} as an optional peer, and Refit takes the lowest version in that range. Newer types can reject code that compiled before; check your own type check and editor.`,
         ]
       : []),
     ...movedExpressions.map(

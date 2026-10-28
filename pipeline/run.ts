@@ -608,7 +608,11 @@ async function runOpenApiPipeline(options: {
             diff:
               patch.diff +
               renderFileReplacements(repository, upgrade.upgrade.files, 'stripe-package'),
-            sdkUpgrade: { from: upgrade.upgrade.from, to: upgrade.upgrade.to },
+            sdkUpgrade: {
+              from: upgrade.upgrade.from,
+              to: upgrade.upgrade.to,
+              ...(upgrade.upgrade.raised ? { raised: upgrade.upgrade.raised } : {}),
+            },
             warnings: [
               upgrade.upgrade.warning ??
                 `Upgrades stripe from ${upgrade.upgrade.from} to ${upgrade.upgrade.to} in ${upgrade.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
