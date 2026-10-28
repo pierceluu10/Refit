@@ -211,15 +211,15 @@ export function localReceiverReads<
 // Owner decision D2b for contract changes: a response change stays `unknown` when code reads its
 // property name on an object Refit cannot trace (operation-reach.ts annotateReach). Where every
 // read of that name (`reads`, the analyzer's findings for the change's owner) is untraced and
-// `local` shows its receiver is the repository's own type, the change is not reached: it becomes
-// `unused` with the reads it checked, and leaves `impacts`. A traced or confirmed read, a computed
-// property and a read `local` does not return keep the change as it was.
-export function localReach(options: {
+// `local` shows its receiver is not a Stripe type, the change is not reached: it becomes `unused`
+// with the reads it checked, and leaves `impacts`. A traced or confirmed read, a computed property
+// and a read `local` does not return keep the change as it was.
+export async function localReach(options: {
   changes: Record<string, unknown>[];
   impacts: readonly BreakingOperationImpact[];
   before: Record<string, unknown>;
   reads: (removals: Removal[]) => Finding[];
-  local: (reads: Finding[]) => Finding[];
+  local: (reads: Finding[]) => Promise<readonly Finding[]> | readonly Finding[];
 }) {
   const owners = new Map<Record<string, unknown>, { schema: string; property: string }>();
   for (const change of options.changes) {
@@ -241,7 +241,7 @@ export function localReach(options: {
   const site = (read: Pick<Finding, 'file' | 'line' | 'column' | 'expression'>) =>
     `${read.file}:${read.line}:${read.column}${read.expression}`;
   const local = new Set(
-    options.local(findings.filter((finding) => finding.untraced)).map((read) => site(read)),
+    (await options.local(findings.filter((finding) => finding.untraced))).map((read) => site(read)),
   );
   const cleared: { change: Record<string, unknown>; reads: Finding[] }[] = [];
   for (const [change, owner] of owners) {
@@ -255,7 +255,7 @@ export function localReach(options: {
       .join(', ');
     Object.assign(change, {
       reach: 'unused',
-      reachReason: `Owner decision D2b: TypeScript's checker shows every read of \`${owner.property}\` (${listed}${reads.length > 3 ? ` and ${reads.length - 3} more` : ''}) reads an object the repository declares itself, not ${owner.schema}; the type oracle passed and the AI proposed no change.`,
+      reachReason: `Owner decision D2b: TypeScript's checker shows every read of \`${owner.property}\` (${listed}${reads.length > 3 ? ` and ${reads.length - 3} more` : ''}) reads an object that is not a Stripe type, not ${owner.schema}; the type oracle passed and the AI proposed no change.`,
     });
     cleared.push({ change, reads });
   }
