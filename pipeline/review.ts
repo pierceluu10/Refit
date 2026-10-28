@@ -1266,7 +1266,7 @@ export function createReviewArtifacts(
   ];
   const tracedCalls = versionBump ? report.sdkCalls.length : 0;
   const overview = versionBump
-    ? `Refit traced ${tracedCalls} ${plainText(provider)} call${tracedCalls === 1 ? '' : 's'} in this code, and none uses anything ${plainText(provider)} API ${after} changes. This patch moves every ${code('apiVersion')} pin to ${after}${upgrade ? ` and upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)} in the package manifest and lockfile` : ''}.${passed ? ' The checks passed before and after the change.' : ''}`
+    ? `Refit traced ${tracedCalls} ${plainText(provider)} call${tracedCalls === 1 ? '' : 's'} in this code, and none uses anything ${plainText(provider)} API ${after} changes. ${pinFiles.length ? `This patch moves every ${code('apiVersion')} pin to ${after}${upgrade ? ` and upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)} in the package manifest and lockfile` : ''}.` : `No client sets ${code('apiVersion')}, so the installed ${code(report.adapter.packageName)} decides the version: this patch upgrades it${upgrade ? ` from ${code(upgrade.from)} to ${code(upgrade.to)}` : ''} in the package manifest and lockfile, which sends ${after}.`}${passed ? ' The checks passed before and after the change.' : ''}`
     : shopify
       ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
       : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${
