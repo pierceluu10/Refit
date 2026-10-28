@@ -30,7 +30,13 @@ import {
 } from './validation-options.ts';
 import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
-import { droppedRequestPaths, untouchedCalls, untracedEdits } from './ai-patch-policies.ts';
+import {
+  droppedRequestPaths,
+  emitOptions,
+  typeOnlyRepairFailures,
+  untouchedCalls,
+  untracedEdits,
+} from './ai-patch-policies.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
@@ -76,6 +82,7 @@ import {
   crossesTypeRemovals,
   KEEP_UNTYPED_REQUEST_PROPERTIES,
   OPEN_ENUM_REPAIR,
+  TYPE_ASSERTION_REPAIR,
   OPEN_ENUM_RULE,
   keepsPartialRestore,
   openEnumRepair,
@@ -485,6 +492,14 @@ export function compareTypeCheck(
 const typeCheckFinished = (run: CheckResult) =>
   !['error', 'not-run'].includes(run.status) && (run.exitCode === 0 || typeErrors(run).length > 0);
 
+// The type check the oracle runs on the original code: the check's own type check part.
+function oracleCommand(command: string[]) {
+  const kinds = checkKinds(command, {});
+  return (
+    typeCheckCommand(command) ?? (kinds.size === 1 && kinds.has('typecheck') ? command : undefined)
+  );
+}
+
 // The type oracle (stripe-type-evidence.ts TypeOracle): only where the final patch installs a
 // stripe-node upgrade of its own and the check compares type errors. The original code is checked
 // once more, with only the patch's package files applied and its prepared dependencies.
@@ -513,10 +528,7 @@ export async function runTypeOracle(options: {
   if (!options.compareTypeErrors || !to || !options.packages || !options.dependencies)
     return undefined;
   const sdk = { from: options.upgrade?.from ?? null, to };
-  const kinds = checkKinds(options.command, {});
-  const command =
-    typeCheckCommand(options.command) ??
-    (kinds.size === 1 && kinds.has('typecheck') ? options.command : undefined);
+  const command = oracleCommand(options.command);
   const prefix = options.packageDirectory ? `${options.packageDirectory}/` : '';
   const compare = (run: CheckResult | undefined, side: string): OracleComparison => {
     if (options.typeCheckUnavailable)
@@ -1744,6 +1756,10 @@ export async function validateMigration(options: {
       keptProperties?: string[];
       // The restore kept only such properties and changed no enum types.
       enumsUnchanged?: boolean;
+      // Upgrade-introduced type errors repaired by an assertion at their site (TYPE_ASSERTION_REPAIR).
+      typeAssertions?: { file: string; line: number; code: string }[];
+      // Why a type repair was refused by the type-only gate (typeOnlyRepairFailures).
+      typeOnlyGate?: { repair: 'deterministic' | 'ai'; failures: string[] };
     } = {
       limit: repairLimit,
       requested: 0,
@@ -1758,6 +1774,58 @@ export async function validateMigration(options: {
           : 'baseline-failed',
       error: null,
     };
+    // The type oracle's run of the original code with the target stripe-node, once per package
+    // diff: the type repairs below need it before runTypeOracle records it.
+    const oracleRuns = new Map<string, Promise<CheckResult>>();
+    const oracleCheck = (diff: string, command: string[], dependencies: string) => {
+      // Every install of one package diff installs the same lockfile, so it is checked once.
+      const key = `${digest(diff)} ${command.join(' ')}`;
+      if (!oracleRuns.has(key))
+        oracleRuns.set(
+          key,
+          timed('typeOracle', async () => {
+            const directory = await sandboxInput(root, 'oracle-');
+            await applyPatch(archive, directory, `${directory}.patch`, diff);
+            options.onProgress?.('Type-checking the original code with the target stripe-node...');
+            return containerCheck({
+              directory,
+              image,
+              command,
+              dependencies,
+              signal: options.signal,
+              ...sandbox,
+            });
+          }),
+        );
+      return oracleRuns.get(key)!;
+    };
+    // Of `errors`, the ones the target stripe-node introduces into the original code: by file, code
+    // and message, and no more of each than the oracle's run has, so the same error a rule's edit
+    // repeats elsewhere does not count. None when the oracle cannot run on this candidate.
+    const upgradeErrors = async <T extends { key: string }>(errors: T[]) => {
+      const command = oracleCommand(options.command);
+      if (
+        !command ||
+        !options.compareTypeErrors ||
+        typeCheckUnavailable ||
+        !typeCheckFinished(baselineRun) ||
+        !candidateDependencies ||
+        candidateDependencies === dependencies
+      )
+        return [];
+      const run = await oracleCheck(
+        packageDiff(proposal.diff, packageDirectory),
+        command,
+        candidateDependencies,
+      ).catch(() => undefined);
+      if (!run || !typeCheckFinished(run)) return [];
+      const count = (list: { key: string }[], key: string) =>
+        list.filter((error) => error.key === key).length;
+      const upgrade = introducedTypeErrors(baselineRun, run);
+      return errors.filter((error) => count(errors, error.key) <= count(upgrade, error.key));
+    };
+    const inPackage = <T extends { file: string }>(error: T) =>
+      packageDirectory ? { ...error, file: `${packageDirectory}/${error.file}` } : error;
     // stripe-node 22.4.0 widened open response enums with OtherString. Before any AI repair, a
     // deterministic repair restores their known literals where the upgraded types reject them. It
     // is kept when every introduced error is that shape and the checks then pass, or, before an AI
@@ -1936,6 +2004,127 @@ export async function validateMigration(options: {
         }
       }
     }
+    // Founders' decision (2026-10-27): type errors the stripe-node upgrade introduces, where a
+    // Stripe type it widened is assigned to a narrower type, get an assertion to that type at the
+    // site (stripe-open-enums.ts assertionSite). Only errors the type oracle shows the upgrade
+    // introduced into the original code qualify, and the repair must pass the type-only gate:
+    // statements with such an error only, the same JavaScript per file. It is kept when the checks
+    // then pass, which a type check comparing errors shows as zero new errors, or, before an AI
+    // repair of a rules proposal, when they fail only on the errors it left alone.
+    // shortcut: without AI, a candidate mixing restore and assertion shapes gets neither; upgrade
+    // by selecting the restorable errors of both when a measured row needs it.
+    const assertionCandidates =
+      baseline.status === 'passed' &&
+      patched.status === 'failed' &&
+      options.compareTypeErrors &&
+      candidateSources &&
+      sdkUpgrade?.to
+        ? introducedTypeErrors(baselineRun, patched)
+        : [];
+    // The oracle runs only where some error has an assertion shape at all.
+    const fromUpgrade =
+      candidateSources &&
+      restorableOpenEnumErrors(
+        candidateSources.files,
+        assertionCandidates.map(inPackage),
+        undefined,
+        true,
+      ).length
+        ? (await upgradeErrors(assertionCandidates)).map(inPackage)
+        : [];
+    const assertionErrors =
+      candidateSources && fromUpgrade.length
+        ? options.aiPatch && ruleSources
+          ? restorableOpenEnumErrors(candidateSources.files, fromUpgrade, undefined, true)
+          : fromUpgrade.length === assertionCandidates.length
+            ? fromUpgrade
+            : []
+        : [];
+    const assertionFiles =
+      candidateSources && assertionErrors.length
+        ? openEnumRepair(candidateSources.files, assertionErrors, undefined, true)
+        : undefined;
+    if (assertionFiles?.length && candidateSources) {
+      const sources = candidateSources;
+      const current = new Map(sources.files.map((file) => [file.path, file.content]));
+      const repaired = new Map(assertionFiles.map((file) => [file.path, file.content]));
+      const failures = typeOnlyRepairFailures({
+        before: sources,
+        after: {
+          ...sources,
+          files: sources.files.map((file) => ({
+            ...file,
+            content: repaired.get(file.path) ?? file.content,
+          })),
+        },
+        errors: assertionErrors,
+        compilerOptions: (path) => emitOptions(sources.root, path),
+      });
+      if (failures.length) repair.typeOnlyGate = { repair: 'deterministic', failures };
+      else {
+        const diff =
+          proposal.diff +
+          renderPatch(
+            {
+              ...sources,
+              files: assertionFiles.map((file) => ({
+                path: file.path,
+                content: current.get(file.path)!,
+              })),
+            },
+            assertionFiles.map((file) => ({
+              file: file.path,
+              start: 0,
+              end: current.get(file.path)!.length,
+              replacement: file.content,
+              changeId: OPEN_ENUM_RULE,
+            })),
+          );
+        options.onProgress?.(
+          'Asserting the types the stripe-node upgrade widened; running checks in offline Docker...',
+        );
+        const prepared = await prepareCandidate(diff, originalSources, report);
+        const check = compared(
+          await timed('patchedChecks', () =>
+            containerCheck({
+              directory: prepared.directory,
+              image,
+              command: options.command,
+              dependencies: prepared.dependencies,
+              signal: options.signal,
+              ...sandbox,
+            }),
+          ),
+        );
+        if (
+          check.status === 'passed' ||
+          (check.status === 'failed' &&
+            options.aiPatch &&
+            keepsPartialRestore(
+              assertionCandidates,
+              assertionErrors,
+              introducedTypeErrors(baselineRun, check),
+            ))
+        ) {
+          proposal = { ...proposal, diff };
+          publicationFiles = prepared.publicationFiles;
+          candidateDirectory = prepared.directory;
+          candidateSources = prepared.sources;
+          candidateDependencies = prepared.dependencies;
+          candidateEnvironment = prepared.environment;
+          patched = check;
+          recordAttempt();
+          repair.typeAssertions = assertionErrors.map(({ file, line, code }) => ({
+            file,
+            line,
+            code,
+          }));
+          if (check.status === 'passed') repair.stopReason = TYPE_ASSERTION_REPAIR;
+          // The assertions are a rule edit, so the AI guards do not count them as the model's.
+          else ruleSources = prepared.sources.files;
+        }
+      }
+    }
     // Every AI request's cost, whether its proposal was checked or refused.
     let aiCostUsd = costOf(proposal);
     const aiCoverage =
@@ -2097,6 +2286,8 @@ export async function validateMigration(options: {
         coverage.error = `${error.name}: ${error.message}`;
       }
     }
+    let typeRepair:
+      { base: Repository; errors: { file: string; line: number; column: number }[] } | undefined;
     while (
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
@@ -2138,6 +2329,18 @@ export async function validateMigration(options: {
         repair.error = `Stripe moved subscription billing periods onto subscription items, and ${periodReads.map((error) => `${error.file}:${error.line}`).join(', ')} still ${periodReads.length === 1 ? 'reads one' : 'read them'} from the subscription. Choosing an item is a reviewed rule (stripeSubscriptionPeriods), so it stops for review.`;
         break;
       }
+      // Founders' decision (2026-10-27): when every error left is one the stripe-node upgrade
+      // introduced into the original code, the AI repairs types only, under the same type-only
+      // gate as the deterministic assertions, and ships [Needs review] (decision 8).
+      // Once it applies, it holds for every later round, against the candidate it first applied to.
+      if (
+        !typeRepair &&
+        introduced.length &&
+        candidateSources &&
+        !(rules && coverage?.outcome === 'checks-failed') &&
+        (await upgradeErrors(introduced)).length === introduced.length
+      )
+        typeRepair = { base: candidateSources, errors: introduced.map(inPackage) };
       repair.requested++;
       options.onProgress?.(
         `Patched checks failed. Requesting AI repair ${repair.requested} of ${repairLimit}...`,
@@ -2221,6 +2424,20 @@ export async function validateMigration(options: {
         if (dropped.length) {
           repair.stopReason = 'review-required';
           repair.error = `AI repair drops removed request parameter ${dropped.join(', ')}; it stops for review.`;
+          break;
+        }
+        const typeOnly = typeRepair
+          ? typeOnlyRepairFailures({
+              before: typeRepair.base,
+              after: preparedCandidate.sources,
+              errors: typeRepair.errors,
+              compilerOptions: (path) => emitOptions(preparedCandidate.sources.root, path),
+            })
+          : [];
+        if (typeOnly.length) {
+          repair.typeOnlyGate = { repair: 'ai', failures: typeOnly };
+          repair.stopReason = 'review-required';
+          repair.error = `AI repair of the type errors the stripe-node upgrade introduced is not type-only: ${typeOnly[0]}`;
           break;
         }
         options.onProgress?.('Running repaired checks in offline Docker...');
@@ -2523,20 +2740,7 @@ export async function validateMigration(options: {
       before: beforeSpecification.document as Record<string, unknown>,
       files: originalSources.files,
       packageDirectory,
-      check: (diff, command, dependencies) =>
-        timed('typeOracle', async () => {
-          const directory = await sandboxInput(root, 'oracle-');
-          await applyPatch(archive, directory, `${directory}.patch`, diff);
-          options.onProgress?.('Type-checking the original code with the target stripe-node...');
-          return containerCheck({
-            directory,
-            image,
-            command,
-            dependencies,
-            signal: options.signal,
-            ...sandbox,
-          });
-        }),
+      check: oracleCheck,
     });
     options.signal?.throwIfAborted();
     if (rules && coverage?.outcome === 'kept' && candidateSources) {

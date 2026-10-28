@@ -392,6 +392,18 @@ it('says when the open-enum repair restored widened Stripe enum values', async (
   );
 });
 
+it('names each type assertion and keeps a validated draft out of review', async () => {
+  const value = await report();
+  value.validation.repair.stopReason = 'type-assertion-repair';
+  value.validation.repair.typeAssertions = [{ file: 'lib/utils.ts', line: 165, code: 'TS2322' }];
+  const artifacts = createReviewArtifacts(value);
+  expect(artifacts.files['pull-request.md']).toContain(
+    'Asserts the type this code expects at `lib/utils.ts:165`',
+  );
+  expect(artifacts.files['pull-request.md']).toContain('compiles to the same JavaScript');
+  expect(artifacts.manifest.title).not.toMatch(/^\[Needs review\] /);
+});
+
 it('marks a draft that keeps sending an untyped request property for review', async () => {
   const value = await report();
   value.validation.repair.stopReason = 'open-enum-repair';
