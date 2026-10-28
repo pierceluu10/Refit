@@ -3,6 +3,7 @@ import { analyzeRepository } from './analyzer.ts';
 import {
   adapterContract,
   compareOpenApi,
+  errorObjectOptional,
   expansionLocation,
   switchedEnumAdditions,
   unmappedBreakingChanges,
@@ -476,4 +477,24 @@ it('records literal expansions and treats any other expand mention as expanding 
     "stripe.invoices.retrieve(id, { expand: [...fields, 'customer'] });",
   ])
     expect(fields(source), source).toContain('*');
+});
+
+it('marks only error-object fields of the default response that became optional as handled', () => {
+  const optional = (property: string, status: string) => ({
+    id: 'response-property-became-optional',
+    text: `the response property \`${property}\` became optional for the status \`${status}\``,
+  });
+  expect(errorObjectOptional(optional('error/payment_intent/currency', 'default'))).toEqual({
+    reach: 'handled',
+    reachReason: 'Error-object field became optional; no client reads it as required.',
+  });
+  // A success response, a property outside `error/` and another change kind stay as they were.
+  expect(errorObjectOptional(optional('error/payment_intent/currency', '200'))).toBeUndefined();
+  expect(errorObjectOptional(optional('payment_intent/currency', 'default'))).toBeUndefined();
+  expect(
+    errorObjectOptional({
+      id: 'response-property-became-nullable',
+      text: 'the response property `error/payment_intent/currency` became nullable for the status `default`',
+    }),
+  ).toBeUndefined();
 });
