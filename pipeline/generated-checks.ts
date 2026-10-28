@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import ts from 'typescript-compiler';
+import { HARNESS_FILE, HARNESS_SPECIFIER } from './behaviour-harness.ts';
 import { removeDockerContainer, resolveDockerImage } from './docker-sandbox.ts';
 import { AUTH_STAND_INS, STAND_INS_RUNTIME, type RuntimeStandIns } from './runtime-stand-ins.ts';
 import { createSourceImportResolver } from './source-imports.ts';
@@ -250,6 +251,7 @@ const standIns = JSON.parse(readFileSync(new URL('stand-ins.json', import.meta.u
 const runtime = new URL('stand-ins.mjs', import.meta.url).href;
 export async function resolve(specifier, context, next) {
   if (specifier === '${BEHAVIOUR_MODULE}') return { url: '${BEHAVIOUR_MODULE}', shortCircuit: true };
+  if (specifier === '${HARNESS_SPECIFIER}') return { url: new URL('${HARNESS_FILE}', import.meta.url).href, shortCircuit: true };
   if (specifier === '@prisma/client' && standIns.prisma) return { url: 'refit:prisma', shortCircuit: true };
   const resolved = await locate(specifier, context, next);
   return standIns.auth[specifier]

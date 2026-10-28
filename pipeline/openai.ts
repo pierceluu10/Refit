@@ -31,20 +31,32 @@ export const MAX_OUTPUT_TOKENS = 25_000;
 // 3.5 bytes per token: a 16,384 cap rejected evidence the byte limit allowed.
 const MAX_INPUT_TOKENS = 131_072;
 
-// A response OpenAI completed and billed that Refit cannot use; `budget` is what it cost.
+// A response OpenAI completed and billed that Refit cannot use; `budget` is what it cost and
+// `incomplete` OpenAI's reason for stopping early, such as max_output_tokens.
 export class UnusableAiResponse extends PipelineInputError {
   constructor(
     readonly budget: { costUsd: number; spentUsd: number; limitUsd: number } | null,
     message: string,
+    readonly incomplete?: string,
   ) {
     super(message);
   }
 }
 
+// A caller whose answers are larger than a repair's (whole test files) sets its own limits.
+export interface OutputLimits {
+  maxOutputTokens?: number;
+  maxResponseBytes?: number;
+  timeoutMs?: number;
+}
+
 export async function requestStructuredOutput(
   request: { evidence: unknown; instructions: string; name: string; schema: object },
   options: AiOptions,
+  limits: OutputLimits = {},
 ) {
+  const maxOutputTokens = limits.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
+  const maxResponseBytes = limits.maxResponseBytes ?? MAX_RESPONSE_BYTES;
   if (!options.apiKey.trim() || !options.model.trim())
     throw new PipelineInputError('AI requests require OPENAI_API_KEY and OPENAI_MODEL.');
   const input = JSON.stringify(request.evidence);
@@ -58,7 +70,7 @@ export async function requestStructuredOutput(
     service_tier: 'default',
     instructions: request.instructions,
     input: [{ role: 'user', content: input }],
-    max_output_tokens: MAX_OUTPUT_TOKENS,
+    max_output_tokens: maxOutputTokens,
     ...(options.reasoningEffort ? { reasoning: { effort: options.reasoningEffort } } : {}),
     text: {
       format: { type: 'json_schema', name: request.name, strict: true, schema: request.schema },
@@ -92,19 +104,14 @@ export async function requestStructuredOutput(
       throw new PipelineInputError(
         'AI input exceeds the token limit or its count is invalid. Narrow the source context.',
       );
-    settle = await reserveAiBudget(
-      options.budget,
-      options.model,
-      Number(tokens),
-      MAX_OUTPUT_TOKENS,
-    );
+    settle = await reserveAiBudget(options.budget, options.model, Number(tokens), maxOutputTokens);
   }
   let response: Response;
   for (let attempt = 0; ; attempt++) {
     response = await fetch(RESPONSES_URL, {
       method: 'POST',
       redirect: 'error',
-      signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
+      signal: AbortSignal.timeout(limits.timeoutMs ?? GENERATION_TIMEOUT_MS),
       headers: { Authorization: `Bearer ${options.apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
@@ -118,7 +125,7 @@ export async function requestStructuredOutput(
     await sleep(retryDelay(response.headers, attempt));
   }
   const result = parseObject(
-    await readBoundedResponse(response, MAX_RESPONSE_BYTES, 'OpenAI response'),
+    await readBoundedResponse(response, maxResponseBytes, 'OpenAI response'),
     'OpenAI response',
   );
   const usage = responseUsage(result.usage);
@@ -135,6 +142,7 @@ export async function requestStructuredOutput(
     throw new UnusableAiResponse(
       budget,
       `OpenAI response was incomplete or invalid${typeof reason === 'string' ? ` (${reason.slice(0, 64)})` : ''}.`,
+      typeof reason === 'string' ? reason.slice(0, 64) : undefined,
     );
   }
   const texts: string[] = [];
