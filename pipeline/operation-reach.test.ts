@@ -8,6 +8,8 @@ import {
   CURRENCY_CODE_RULE,
   currencyCodeEdits,
   enumValueEdits,
+  REQUEST_OPTIONS_RULE,
+  requestOptionEdits,
   responsePropertyOwner,
 } from './operation-reach.ts';
 import { applySourceEdits } from './patches.ts';
@@ -1292,5 +1294,43 @@ describe('a documented enum successor', () => {
       'app/api/checkout/route.test.ts',
     );
     expect(test.edits).toEqual([]);
+  });
+});
+
+describe('request options passed as params (stripe-node 22)', () => {
+  const moved = (source: string, path?: string) => {
+    const context = traced(source, path);
+    const edits = requestOptionEdits(context);
+    return {
+      edits,
+      patched: applySourceEdits(context.repository.files[0].content, edits).slice(CLIENT.length),
+    };
+  };
+
+  it('moves an options-only last argument after an explicit undefined', () => {
+    const { edits, patched } = moved(`export const go = (id: string, account: string) =>
+  stripe.subscriptions.update(id, { stripeAccount: account, idempotencyKey: 'k' });
+export const make = (stripeAccount: string) => stripe.checkout.sessions.create({ stripeAccount });`);
+    expect(edits.map((edit) => edit.rule)).toEqual([REQUEST_OPTIONS_RULE, REQUEST_OPTIONS_RULE]);
+    expect(patched).toBe(`export const go = (id: string, account: string) =>
+  stripe.subscriptions.update(id, undefined, { stripeAccount: account, idempotencyKey: 'k' });
+export const make = (stripeAccount: string) => stripe.checkout.sessions.create(undefined, { stripeAccount });`);
+  });
+
+  it('leaves params, mixed keys, spreads, explicit options and test files alone', () => {
+    const source = `export const a = (id: string) => stripe.subscriptions.update(id, { metadata: {} });
+export const b = (id: string, account: string) =>
+  stripe.subscriptions.update(id, { stripeAccount: account, metadata: {} });
+export const c = (id: string, options: object) => stripe.subscriptions.update(id, { ...options });
+export const d = (id: string, account: string) =>
+  stripe.subscriptions.update(id, {}, { stripeAccount: account });
+export const e = () => stripe.checkout.sessions.create({});`;
+    expect(moved(source).edits).toEqual([]);
+    expect(
+      moved(
+        `export const t = (s: string) => stripe.checkout.sessions.create({ stripeAccount: s });`,
+        'app/checkout.test.ts',
+      ).edits,
+    ).toEqual([]);
   });
 });

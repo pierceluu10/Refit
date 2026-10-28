@@ -6,7 +6,14 @@ import {
 } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
-import { annotateReach, currencyCodeEdits, enumValueEdits } from './operation-reach.ts';
+import {
+  annotateReach,
+  currencyCodeEdits,
+  enumValueEdits,
+  REQUEST_OPTIONS_RULE,
+  REQUEST_OPTIONS_SINCE,
+  requestOptionEdits,
+} from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
@@ -17,8 +24,9 @@ import {
   proposePatch,
   renderFileReplacements,
   renderPatch,
+  REQUEST_OPTIONS_WARNING,
 } from './patches.ts';
-import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
+import { STRIPE_SDK_RELEASES, stripePackageUpgrade } from './stripe-package-upgrade.ts';
 import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
 import { REQUEST_MOVE_RULES } from './request-move-families.ts';
 import { STRIPE_PACK } from './rule-pack.ts';
@@ -226,6 +234,13 @@ async function runOpenApiPipeline(options: {
           STRIPE_PACK.requestMoves,
         )
       : []),
+    // Only where the target's stripe-node release reads arguments by position.
+    ...(provider.packageName === STRIPE.packageName &&
+    isObject(after.document.info) &&
+    Number(STRIPE_SDK_RELEASES[String(after.document.info.version)]?.split('.')[0]) >=
+      REQUEST_OPTIONS_SINCE
+      ? requestOptionEdits({ repository, calls: analysis.calls, mappings: operationMappings })
+      : []),
   ];
   const stripePackage =
     provider.packageName === STRIPE.packageName
@@ -322,7 +337,8 @@ async function runOpenApiPipeline(options: {
       (edit) =>
         PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') ||
         REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
-        edit.rule === INVOICE_PREVIEW_RULE,
+        edit.rule === INVOICE_PREVIEW_RULE ||
+        edit.rule === REQUEST_OPTIONS_RULE,
     ) &&
     (bumpsVersion || sdkDefault) &&
     (upgradeRequired || preview) &&
@@ -391,6 +407,8 @@ async function runOpenApiPipeline(options: {
   for (const rule of REQUEST_MOVE_RULES) movedTo[rule] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[INVOICE_PREVIEW_RULE] =
     bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
+  // Request options move only together with the stripe-node release that needs them last.
+  movedTo[REQUEST_OPTIONS_RULE] = movedTo[INVOICE_PREVIEW_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const kept = [
     ...analyzedEdits.filter(
@@ -448,13 +466,15 @@ async function runOpenApiPipeline(options: {
   const edits = kept.filter(
     (edit) => !reviewed.some((finding) => editCovers(repository, [edit], finding)),
   );
+  // Request options moved last ride the other rule edits or the version bump, never alone.
+  const optionEdits = edits.filter((edit) => edit.rule === REQUEST_OPTIONS_RULE);
   const ruleEdits = edits.filter(isFieldMove);
   // The pin and the stripe-node upgrade ride the rules' edits. Under owner decision 1 they also
   // make the patch when a removed request parameter is left for review, as the #88 waiver does:
   // the parameter stays in place and the draft names it.
   const movesVersion =
     !configuredMigrationProposal &&
-    (ruleEdits.length > 0 ||
+    (ruleEdits.length > optionEdits.length ||
       (Boolean(options.leaveReviewedFindings) &&
         reviewed.some((finding) => finding.requestParameter)));
   // A dropped payment-method rename tells the customer which gate dropped it (F2).
@@ -655,8 +675,8 @@ async function runOpenApiPipeline(options: {
     provider.packageName === STRIPE.packageName &&
     typeof targetVersion === 'string' &&
     !analysis.findings.length &&
-    !analyzedEdits.length &&
-    !kept.length &&
+    analyzedEdits.every((edit) => edit.rule === REQUEST_OPTIONS_RULE) &&
+    kept.every((edit) => edit.rule === REQUEST_OPTIONS_RULE) &&
     everyPinMoves &&
     (versionEdits.length > 0 || sdkDefault)
       ? await stripePackageUpgrade(
@@ -683,17 +703,18 @@ async function runOpenApiPipeline(options: {
           versionBump: true as const,
           summary: `Update the pinned Stripe API version to ${String(targetVersion)} and upgrade stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to}.`,
           status: 'proposed' as const,
-          edits: versionEdits.length + versionBump.upgrade.files.length,
+          edits: versionEdits.length + optionEdits.length + versionBump.upgrade.files.length,
           unresolvedFindings: 0,
           unresolvedSites: [] as ReturnType<typeof unresolvedSites>,
           diff:
-            renderPatch(repository, versionEdits) +
+            renderPatch(repository, [...versionEdits, ...optionEdits]) +
             renderFileReplacements(repository, versionBump.upgrade.files, 'stripe-package'),
           validation: 'not-run',
           warnings: [
             versionBump.upgrade.warning ??
               `Upgrades stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to} in ${versionBump.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
             'Webhook endpoints keep the API version set in the Stripe Dashboard; this patch does not change them.',
+            ...(optionEdits.length ? [REQUEST_OPTIONS_WARNING] : []),
           ],
           sdkUpgrade: {
             from: versionBump.upgrade.from,
@@ -701,7 +722,7 @@ async function runOpenApiPipeline(options: {
             ...(versionBump.upgrade.raised ? { raised: versionBump.upgrade.raised } : {}),
           },
           // AI repairs start again from the original code and must keep these edits.
-          ruleEdits: versionEdits,
+          ruleEdits: [...versionEdits, ...optionEdits],
         }
       : undefined;
   const patch = reviewReason
@@ -735,7 +756,9 @@ async function runOpenApiPipeline(options: {
             ? {
                 ...proposePatch(
                   repository,
-                  movesVersion ? [...edits, ...versionEdits] : edits,
+                  movesVersion
+                    ? [...edits, ...versionEdits]
+                    : edits.filter((edit) => edit.rule !== REQUEST_OPTIONS_RULE),
                   unresolvedFindings.length,
                   provider,
                   replacements,
