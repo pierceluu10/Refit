@@ -2,7 +2,7 @@ import ts from 'typescript-compiler';
 import { componentReference, isObject } from './specifications.ts';
 import { TEST_PATH } from './source-paths.ts';
 import type { MappedSdkCall, ProviderOperationMapping } from './provider-operations.ts';
-import type { RequestMove } from './rule-pack.ts';
+import { STRIPE_PACK, type RequestMove } from './rule-pack.ts';
 import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
 import { FORMAT_ANNOTATION } from './schema-equivalence.ts';
 
@@ -842,6 +842,30 @@ function requestReach(
   let compatible: string | undefined;
   for (const { file, body } of callBodies(context.repository, calls, argumentIndex)) {
     if (required) {
+      // A kept request move whose documented replacement is this property, such as the promotion
+      // code `coupon` sent as `promotion` (request-move-families.ts), sends it in this call.
+      const predecessor =
+        path.length === 1 &&
+        body &&
+        body !== 'unknown' &&
+        ts.isObjectLiteralExpression(body) &&
+        body.properties.find(
+          (entry) =>
+            (ts.isPropertyAssignment(entry) || ts.isShorthandPropertyAssignment(entry)) &&
+            ts.isIdentifier(entry.name) &&
+            STRIPE_PACK.requestMoves.some(
+              (move) =>
+                move.family !== 'request-enum-value' &&
+                move.replacement === property &&
+                move.parameter === (entry.name as ts.Identifier).text &&
+                move.operations.includes(mapping!.operationId),
+            ) &&
+            context.edited(file, entry.getStart()),
+        );
+      if (predecessor) {
+        handled ??= file;
+        continue;
+      }
       const parents = path.length > 1 ? sentValues(body, path.slice(0, -1)) : [body];
       if (parents === 'unknown') unknown ??= file;
       else if (parents.length)

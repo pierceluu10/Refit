@@ -43,6 +43,12 @@ const before = {
         },
       },
     },
+    '/v1/promotion_codes': {
+      post: {
+        operationId: 'PostPromotionCodes',
+        responses: { '200': { content: { 'application/json': { schema: ref('product') } } } },
+      },
+    },
     '/v1/products': {
       post: {
         operationId: 'PostProducts',
@@ -139,6 +145,12 @@ const provider: ProviderAdapter = {
       operationId: 'PostCheckoutSessions',
     },
     { resource: 'products', method: 'create', schema: 'product', operationId: 'PostProducts' },
+    {
+      resource: 'promotionCodes',
+      method: 'create',
+      schema: 'product',
+      operationId: 'PostPromotionCodes',
+    },
     { resource: 'prices', method: 'list', schema: 'price_list', operationId: 'GetPrices' },
     {
       resource: 'invoices',
@@ -469,6 +481,31 @@ it('blocks a newly required nested property only for calls that send its parent'
     reach(
       'export const go = (id) => stripe.subscriptions.update(id, { billing_cycle_anchor: { month: 1 } });',
       [{ ...required }],
+    )[0][0],
+  ).toBe('reached');
+});
+
+it('credits a newly required property to the kept request move that sends it', () => {
+  const required = () => ({
+    id: 'new-required-request-property',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/promotion_codes',
+    text: 'added the new required request property `promotion`',
+  });
+  const source =
+    "export const go = (coupon: string) => stripe.promotionCodes.create({ coupon, code: 'SAVE' });";
+  const offset = (CLIENT + source).indexOf('coupon,');
+  const coupon = (_file: string, at: number) => at === offset;
+  expect(reach(source, [required()], [], coupon)[0][0]).toBe('handled');
+  // Without the kept edit, or for a property no move replaces, the call still must send it.
+  expect(reach(source, [required()])[0][0]).toBe('reached');
+  expect(
+    reach(
+      source,
+      [{ ...required(), text: 'added the new required request property `code2`' }],
+      [],
+      coupon,
     )[0][0],
   ).toBe('reached');
 });
