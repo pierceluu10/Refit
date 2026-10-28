@@ -7,12 +7,12 @@ import { hasErrorCode } from './state-files.ts';
 // Preparation installs dependencies with lifecycle scripts disabled and checks run on a clean
 // checkout, so files a repository's tools generate at install or dev time are missing: the Prisma
 // client its `postinstall` generates, and the next-env.d.ts its tsconfig.json includes. With
-// REFIT_GENERATE_CLIENTS=1, validation recreates them offline in each check's sandbox, before the
-// checks, from committed inputs only. It is off by default: running generators the repository's
-// dependencies provide before the checks was not accepted on 2026-10-22, and turning it on by
-// default needs a founder's sign-off (docs/PREPARATION-FAILURES.md).
+// Validation recreates them offline in each check's sandbox, before the checks, from committed
+// inputs only; they never reach the patch. On by default since the founder's decision of
+// 2026-10-28 (AGENTS.md), which superseded the removal of 2026-10-22; REFIT_GENERATE_CLIENTS=0
+// turns it off.
 export const generatorsEnabled = (environment: NodeJS.ProcessEnv = process.env) =>
-  environment.REFIT_GENERATE_CLIENTS === '1';
+  environment.REFIT_GENERATE_CLIENTS !== '0';
 const PRISMA_GENERATE =
   /^(?:npx )?prisma generate((?: --no-engine| --schema(?:=| )(?!-)[\w@./-]+)*)$/;
 const EXIT_MARKER = 'REFIT_GENERATOR_EXIT=';

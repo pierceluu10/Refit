@@ -61,10 +61,10 @@ it('runs the postinstall Prisma generation the repository declares', async () =>
   ).toEqual([['prisma', 'generate', '--schema', 'db/schema.prisma']]);
 });
 
-it('is off unless REFIT_GENERATE_CLIENTS=1', () => {
-  expect(generatorsEnabled({})).toBe(false);
-  expect(generatorsEnabled({ REFIT_GENERATE_CLIENTS: 'true' })).toBe(false);
+it('is on unless REFIT_GENERATE_CLIENTS=0', () => {
+  expect(generatorsEnabled({})).toBe(true);
   expect(generatorsEnabled({ REFIT_GENERATE_CLIENTS: '1' })).toBe(true);
+  expect(generatorsEnabled({ REFIT_GENERATE_CLIENTS: '0' })).toBe(false);
 });
 
 it('generates the client of a repository that declares @prisma/client and commits a schema', async () => {
