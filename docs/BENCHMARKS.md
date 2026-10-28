@@ -631,6 +631,20 @@ A census of every blocker on every row of main `89f1c0ed`, and the committed-sou
 
 - **Runs.** Before, main at `6c6ff6a9`: l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `b884fe3e` (this branch with `6c6ff6a9` merged): l2-push-249 [40621391261](https://github.com/refit-dev/refit-bench/actions/runs/40621391261), heldout-30 [40621394549](https://github.com/refit-dev/refit-bench/actions/runs/40621394549).
 - **2 rows now prepare, none validates.** Shobhnik13/SynthAI passes both checks and keeps other stops; tomsoderlund/login-as-a-service's baseline fails. Small-Web-Co/tinypivot and inventashif/hackerai pass the fixed checks and stop on real lockfile drift and a Node 24 engine requirement. No patch newly validates.
+## Documented-replacement rules (October 28)
+
+`feat/stripe-generated-rules` (#357) adds a reach rule for removed API operations, walks oasdiff `items` segments as array members where the schema is an array (so `Subscription.items` reads as a property), and adds the `request-enum-value` rule family with dahlia's three Checkout `ui_mode` successors ([rules](MINED-RULES.md#documented-replacement-rules-2026-10-28)).
+
+| Set (no AI, default flags)                    | Before: main `89f1c0ed` | After: `a4438b81` |
+| --------------------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated             |                      84 |                86 |
+| l2-push-249: rows with a contract-change stop |                      86 |                83 |
+
+- **Runs.** `gh workflow run benchmark.yml --repo refit-dev/refit-bench -f commit=<sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`. Before: [40688452206](https://github.com/refit-dev/refit-bench/actions/runs/40688452206) at main `89f1c0ed`; the brief's before run 40624345477 was cancelled with 108 of 249 rows, so it was run again. After: [40637566055](https://github.com/refit-dev/refit-bench/actions/runs/40637566055) at `a4438b810c3f9930f997c77fc1d44273a70a17df`. Compared with `scripts/stripe-benchmark-compare.mjs`: 247 of 249 outcomes identical, 245 identical in every compared field.
+- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on `removed the required property …/items/data/items/price/product/anyOf[…: Product]/features`, which the old path walk could not attribute to a Stripe object. It is now `Product.features`, which neither repository reads. Both `migration.patch` files are byte-identical to the before run's, were applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json). FlowCraft's checks did not run in the before run (dependency preparation) and passed in the after run; that difference is run noise.
+- **Stops cleared but not counted.** `GET /v1/invoices/upcoming` blocks 6 rows instead of 20; each of the 6 has an untraced Stripe call that may request it, so it stays `unknown`. Product.features blocks 0 rows instead of 5. Chivo1530/CHIVITO-AI-DEV loses its contract-change stop and keeps its dependency-preparation stop. Strata-Labs/BitScript's checks ran in the before run and not in the after run (dependency preparation, run noise; the same patch).
+- **The `ui_mode` rules edited nothing.** All 5 rows that send `ui_mode` build the request with spreads, through an untraced client or in a body Refit cannot read, so each stays a stop, as designed. The rules have 0 wrong patches on this set, and no row exercised them; they are covered by tests only.
+- **heldout-30 not run.** Run [40727895025](https://github.com/refit-dev/refit-bench/actions/runs/40727895025) was cancelled on the founder's instruction (2026-10-28) to stop every heldout-30 and l2-push-249 run.
 - **Not measured:** AI patches, publication and the hosted worker.
 
 ## Before and after the overnight merges (October 22)

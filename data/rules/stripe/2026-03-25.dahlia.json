@@ -22,7 +22,7 @@
       },
       "status": "auto",
       "origin": "hand-written",
-      "benchmark": "refit-bench comparison on l2-push-249 against main 89f1c0ed in docs/BENCHMARKS.md (documented-replacement rules, 2026-10-28)."
+      "benchmark": "refit-bench l2-push-249 40688452206 (main 89f1c0ed) and 40637566055 (a4438b81): 0 edits and 0 wrong patches, because no row sends ui_mode as a literal in a traced body; heldout-30 not run. See docs/BENCHMARKS.md, documented-replacement rules (October 28)."
     },
     {
       "rule": "stripe-checkout-ui-mode-embedded",
@@ -42,7 +42,7 @@
       },
       "status": "auto",
       "origin": "hand-written",
-      "benchmark": "refit-bench comparison on l2-push-249 against main 89f1c0ed in docs/BENCHMARKS.md (documented-replacement rules, 2026-10-28)."
+      "benchmark": "refit-bench l2-push-249 40688452206 (main 89f1c0ed) and 40637566055 (a4438b81): 0 edits and 0 wrong patches, because no row sends ui_mode as a literal in a traced body; heldout-30 not run. See docs/BENCHMARKS.md, documented-replacement rules (October 28)."
     },
     {
       "rule": "stripe-checkout-ui-mode-custom",
@@ -62,7 +62,7 @@
       },
       "status": "auto",
       "origin": "hand-written",
-      "benchmark": "refit-bench comparison on l2-push-249 against main 89f1c0ed in docs/BENCHMARKS.md (documented-replacement rules, 2026-10-28)."
+      "benchmark": "refit-bench l2-push-249 40688452206 (main 89f1c0ed) and 40637566055 (a4438b81): 0 edits and 0 wrong patches, because no row sends ui_mode as a literal in a traced body; heldout-30 not run. See docs/BENCHMARKS.md, documented-replacement rules (October 28)."
     }
   ]
 }
