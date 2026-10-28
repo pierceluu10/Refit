@@ -265,7 +265,7 @@ it('rejects malformed command arrays before starting any processes', async () =>
   ).rejects.toThrow(/nonempty JSON array/);
 });
 
-it.each([-1, 3, 1.5, NaN])(
+it.each([-1, 5, 1.5, NaN])(
   'rejects invalid repair limits before starting processes: %s',
   async (repairAttempts) => {
     await expect(

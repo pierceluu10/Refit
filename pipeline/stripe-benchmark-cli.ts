@@ -52,7 +52,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests [--stripe-test-mode] | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--resolve-lockfiles] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0-4] [--ai-effort low|medium|high|xhigh|max]] [--behaviour-tests [--stripe-test-mode] | --behaviour-tests-dry-run | --no-behaviour-tests] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--resolve-lockfiles] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -86,6 +86,10 @@ const { values } = parseArgs({
     'behaviour-tests-dry-run': { type: 'boolean' },
     // Runs the behaviour tests against Stripe test mode with STRIPE_TEST_KEY (provider-sandbox.ts).
     'stripe-test-mode': { type: 'boolean' },
+    // --ai writes behaviour tests with the same model by default; this turns them off.
+    'no-behaviour-tests': { type: 'boolean' },
+    // OPENAI_REASONING_EFFORT for every AI request (low, medium, high, xhigh or max).
+    'ai-effort': { type: 'string' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -116,6 +120,7 @@ const repairAttempts = validateRepairAttempts(
   Boolean(values.ai),
 );
 if (values.env) process.loadEnvFile(values.env);
+if (values['ai-effort']) process.env.OPENAI_REASONING_EFFORT = values['ai-effort'];
 if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
@@ -193,7 +198,14 @@ const { rows: previous } = await openRunDirectory(
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
       // Rows may then carry baseline results an earlier run recorded (workflow.baselineReused).
       'REFIT_BASELINE_CHECK_CACHE_DIRECTORY',
-      ...(values.ai || writer ? ['OPENAI_MODEL'] : []),
+      ...(values.ai || writer
+        ? [
+            'OPENAI_MODEL',
+            'OPENAI_REASONING_EFFORT',
+            'OPENAI_ESCALATION_MODEL',
+            'OPENAI_ESCALATION_EFFORT',
+          ]
+        : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty,
@@ -548,7 +560,9 @@ async function benchmark(entry: Selected, index: number) {
               ? ['--write-behaviour-tests']
               : values['behaviour-tests-dry-run']
                 ? ['--write-behaviour-tests-dry-run']
-                : []),
+                : values['no-behaviour-tests']
+                  ? ['--no-behaviour-tests']
+                  : []),
             ...(values['stripe-test-mode'] ? ['--stripe-test-mode'] : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',

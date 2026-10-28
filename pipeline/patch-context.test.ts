@@ -48,15 +48,15 @@ it('keeps multiple editable files out of read-only context', () => {
 
 it('rejects excessive import context instead of silently truncating essential evidence', () => {
   const files: Record<string, string> = {};
-  const CONTEXT_CHAIN_LENGTH = 14;
+  const CONTEXT_CHAIN_LENGTH = 26;
   for (let index = 0; index < CONTEXT_CHAIN_LENGTH; index++)
     files[`${index}.ts`] =
       index + 1 < CONTEXT_CHAIN_LENGTH ? `import './${index + 1}.ts';` : 'export {};';
   expect(() => buildPatchContext(repository(files), new Set(['0.ts']))).toThrow(/context exceeds/);
-  // A coverage request keeps the nearest twelve instead.
+  // A coverage request keeps the nearest 24 instead.
   expect(
     buildPatchContext(repository(files), new Set(['0.ts']), true).map((file) => file.path),
-  ).toEqual(Array.from({ length: 12 }, (_, index) => `${index + 1}.ts`));
+  ).toEqual(Array.from({ length: 24 }, (_, index) => `${index + 1}.ts`));
 });
 
 it('includes static CommonJS and import-equals dependencies transitively without following dynamic calls', () => {
@@ -70,4 +70,20 @@ it('includes static CommonJS and import-equals dependencies transitively without
     'payments.cts',
     'client.cts',
   ]);
+});
+
+it('adds the files that import an editable file to a coverage request, after its imports', () => {
+  const files = {
+    'billing.ts': "import { stripe } from './client.ts'; export const plan = (p) => p.price;",
+    'client.ts': 'export const stripe = {};',
+    'route.ts': "import { plan } from './billing.ts'; plan(PLANS.pro);",
+    'unrelated.ts': 'export const unrelated = true;',
+  };
+  expect(
+    buildPatchContext(repository(files), new Set(['billing.ts']), true).map((file) => file.path),
+  ).toEqual(['client.ts', 'route.ts']);
+  // The first patch keeps its imports only.
+  expect(
+    buildPatchContext(repository(files), new Set(['billing.ts'])).map((file) => file.path),
+  ).toEqual(['client.ts']);
 });

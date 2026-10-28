@@ -7,7 +7,7 @@ import { assessmentConfiguration } from './assessment.ts';
 import { publicationConfiguration, publishUnresolved } from './publication.ts';
 import { PipelineInputError } from './types.ts';
 import { runWorkflow } from './workflow.ts';
-import { parseCheckCommand } from './validation-options.ts';
+import { parseCheckCommand, HOSTED_REPAIR_ATTEMPTS } from './validation-options.ts';
 import { readWorkflowConfiguration, REPOSITORY_CONFIGURATION } from './workflow-configuration.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
@@ -20,8 +20,7 @@ import { stripeTestMode } from './stripe-test-mode.ts';
 const RUN_DIRECTORY_PREFIX = 'refit-run-';
 
 const USAGE =
-  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--write-behaviour-tests (sends the original Stripe modules to OpenAI) [--stripe-test-mode (runs them against Stripe test mode with STRIPE_TEST_KEY)] | --write-behaviour-tests-dry-run] [--publish-unresolved | --publish-validated-only] [--shopify-sdk-upgrade] [--publish-draft --github owner/repository --base main [--github-app] [--supersede-drafts]]';
-
+  'Usage: refit run [--integration <id>] [--output <new-directory-outside-repository>]\n   or: refit run --config <run.json> [--repository <git-root>] [--output <new-directory>]\n   or: refit run --repository <clean-git-directory> --before <spec.json-or-yaml> (--after <spec.json-or-yaml> | --latest-stripe) --image <local-image> --command \'["npm","test"]\'\nOptional: [--env <.env>] [--quiet] [--human | --json] [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--full-diff (requires oasdiff)] [--provider-config <adapter.json>] [--assess] [--ai-patch [--documentation-snapshot <saved-note.json> ...]] [--repair-attempts 0-4 (sends failed check output to OpenAI)] [--write-behaviour-tests (sends the original Stripe modules to OpenAI; the default with --ai-patch where stripe-mock is configured) [--stripe-test-mode (runs them against Stripe test mode with STRIPE_TEST_KEY)] | --write-behaviour-tests-dry-run | --no-behaviour-tests] [--publish-unresolved | --publish-validated-only] [--shopify-sdk-upgrade] [--publish-draft --github owner/repository --base main [--github-app] [--supersede-drafts]]';
 try {
   const { values } = parseArgs({
     options: {
@@ -48,6 +47,8 @@ try {
       'write-behaviour-tests': { type: 'boolean' },
       'write-behaviour-tests-dry-run': { type: 'boolean' },
       'stripe-test-mode': { type: 'boolean' },
+      // --ai-patch writes behaviour tests by default where stripe-mock settings exist.
+      'no-behaviour-tests': { type: 'boolean' },
       'documentation-snapshot': { type: 'string', multiple: true },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
@@ -143,12 +144,16 @@ try {
       fullDiff: values['full-diff'] ?? configuration?.fullDiff,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
-      behaviourTestWriter: values['write-behaviour-tests-dry-run']
-        ? { model: process.env.OPENAI_MODEL?.trim() || DRY_RUN_MODEL, dryRun: true }
-        : assessmentConfiguration(values['write-behaviour-tests'], process.env),
+      behaviourTestWriter: values['no-behaviour-tests']
+        ? false
+        : values['write-behaviour-tests-dry-run']
+          ? { model: process.env.OPENAI_MODEL?.trim() || DRY_RUN_MODEL, dryRun: true }
+          : assessmentConfiguration(values['write-behaviour-tests'], process.env),
       providerSandbox: stripeTestMode(values['stripe-test-mode'], values['write-behaviour-tests']),
       documentationSnapshots: values['documentation-snapshot'],
-      repairAttempts: Number(values['repair-attempts'] ?? 0),
+      repairAttempts: Number(
+        values['repair-attempts'] ?? (values['ai-patch'] ? HOSTED_REPAIR_ATTEMPTS : 0),
+      ),
       publication: values['publish-draft']
         ? {
             ...publicationConfiguration(

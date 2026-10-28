@@ -8,15 +8,22 @@ const REQUEST_TIMEOUT_MS = 60_000;
 // A response may reason through most of the output allowance before it answers, and an aborted
 // request keeps its full reservation, so generation waits longer than token counting.
 const GENERATION_TIMEOUT_MS = 180_000;
-export const MAX_INPUT_BYTES = 64 * 1024;
+// gpt-6.1-sol reads 1,050,000 tokens (developers.openai.com/api/docs/models/gpt-6.1-sol, read
+// 2026-10-28). At 64 KiB, 6 of 249 l2-push-249 repositories never reached the model because their
+// affected files alone were larger (run 40591190068); 256 KiB costs at most about $0.15 of input.
+export const MAX_INPUT_BYTES = 256 * 1024;
+export const INPUT_LIMIT = `${MAX_INPUT_BYTES / 1024} KiB`;
+// Reasoning effort the Responses API accepts for gpt-6.1-sol, weakest first (same page).
+export const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 const MAX_RESPONSE_BYTES = 256 * 1024;
 // Reasoning tokens count against this limit. OpenAI recommends reserving at least 25,000 tokens for
 // reasoning and output (developers.openai.com/api/docs/guides/reasoning/advice-on-prompting). At
 // 4,096, a repair in the PG8 eval came back incomplete without saying why; the error now names it.
 export const MAX_OUTPUT_TOKENS = 25_000;
-// At least 2 bytes per token, so the 64 KiB byte limit binds first. JSON-wrapped source measures
-// about 3.5 bytes per token: a 16,384 cap rejected evidence the byte limit allowed.
-const MAX_INPUT_TOKENS = 32_768;
+// At least 2 bytes per token, so the byte limit binds first. JSON-wrapped source measures about
+// 3.5 bytes per token: a 16,384 cap rejected evidence the byte limit allowed.
+const MAX_INPUT_TOKENS = 131_072;
 
 // A response OpenAI completed and billed that Refit cannot use; `budget` is what it cost.
 export class UnusableAiResponse extends PipelineInputError {
@@ -37,7 +44,7 @@ export async function requestStructuredOutput(
   const input = JSON.stringify(request.evidence);
   if (Buffer.byteLength(input) > MAX_INPUT_BYTES)
     throw new PipelineInputError(
-      'AI evidence exceeds the 64 KiB input limit; narrow the repository scope.',
+      `AI evidence exceeds the ${INPUT_LIMIT} input limit; narrow the repository scope.`,
     );
   const body = {
     model: options.model,
@@ -46,6 +53,7 @@ export async function requestStructuredOutput(
     instructions: request.instructions,
     input: [{ role: 'user', content: input }],
     max_output_tokens: MAX_OUTPUT_TOKENS,
+    ...(options.reasoningEffort ? { reasoning: { effort: options.reasoningEffort } } : {}),
     text: {
       format: { type: 'json_schema', name: request.name, strict: true, schema: request.schema },
     },

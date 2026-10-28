@@ -19,7 +19,7 @@ kill_timeout = 300
   # Push 279 ended 2026-10-25: back to one job process on shared-cpu-2x, as the push planned. A target
   # whose doctor stops reruns every interval and counts against the 1440-job daily cap, so the
   # worker still polls hourly.
-  REFIT_HOSTED_FLAGS = "--publish-draft --supersede-drafts --ai-patch --repair-attempts 2 --interval 3600"
+  REFIT_HOSTED_FLAGS = "--publish-draft --supersede-drafts --ai-patch --repair-attempts 3 --interval 3600"
   REFIT_HOSTED_INSTALLATION_JOBS = "1"
   # Validation images named by approved .refit.json files; pulled on boot.
   REFIT_HOSTED_IMAGES = "node:22-alpine stripe/stripe-mock:latest"

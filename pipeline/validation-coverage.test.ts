@@ -632,7 +632,7 @@ it.each([
     {
       ...UNTRACED[1],
       files: {
-        'src/lib/stripe.ts': `${UNTRACED[1].files['src/lib/stripe.ts']}// ${'x'.repeat(70 * 1024)}\n`,
+        'src/lib/stripe.ts': `${UNTRACED[1].files['src/lib/stripe.ts']}// ${'x'.repeat(270 * 1024)}\n`,
       },
     },
   ],

@@ -155,7 +155,7 @@ const MAX_COMMAND_OUTPUT_BYTES = 50 * 1024 * 1024;
 const SOURCE_ARCHIVE_MIB: Record<string, number> = { '4g': 512, '2g': 256 };
 const sourceArchiveBytes = () =>
   (SOURCE_ARCHIVE_MIB[validationProfile().workspace] ?? 50) * 1024 * 1024;
-const MAX_REPAIR_LOG_CHARACTERS = 4096;
+const MAX_REPAIR_LOG_CHARACTERS = 16_384;
 
 export interface ValidationAttempt {
   number: number;
@@ -191,6 +191,8 @@ interface CoverageAttempt {
   // Owner decision D2b: untraced reads the AI left unchanged that the type checker shows read the
   // repository's own objects, never a Stripe type; they no longer count as unresolved.
   localReads?: ReturnType<typeof unresolvedSites>;
+  // The stronger step asked after a first answer with no edit (ai-patches.ts).
+  escalation?: { model: string; reasoningEffort: string | null; edits: number };
 }
 // Contract changes named per traced call in a coverage target; the run report has the rest.
 const MAX_TARGET_CHANGES = 3;
@@ -2415,6 +2417,7 @@ export async function validateMigration(options: {
           requestRemovals,
         );
         charge(candidate);
+        if (candidate.escalation) coverage.escalation = candidate.escalation;
         // The model's edits are the proposal's beyond the rules'.
         if (candidate.edits <= ruleEdits.length)
           coverage.response = {
@@ -2755,6 +2758,12 @@ export async function validateMigration(options: {
                 removals: requestRemovals,
                 before: beforeSpecification,
                 after: afterSpecification,
+                // Where the patch changes the original code, so the tests reach every changed line.
+                changedLines: changedStripeLines(
+                  originalSources,
+                  candidateSources!,
+                  report.findings,
+                ).original,
                 ai: options.behaviourTestWriter!,
               }),
             )
