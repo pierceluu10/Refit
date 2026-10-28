@@ -288,6 +288,59 @@ describe('rule generation', () => {
     });
   });
 
+  it('checks an enum successor sent as an object against both contracts', () => {
+    const path = '/v1/subscriptions/{subscription_exposed_id}';
+    const anchor = (schema: Record<string, unknown>) => ({
+      [path]: {
+        post: {
+          operationId: 'PostSubscriptionsSubscriptionExposedId',
+          requestBody: {
+            content: {
+              'application/x-www-form-urlencoded': {
+                schema: { type: 'object', properties: { billing_cycle_anchor: schema } },
+              },
+            },
+          },
+          responses: {},
+        },
+      },
+    });
+    const object = {
+      type: 'object',
+      properties: { type: { type: 'string', enum: ['now', 'unchanged'] } },
+      required: ['type'],
+    };
+    const evidence: RuleEvidence = {
+      pages: new Map([[SOURCE, page(`# Example\n\n${QUOTE}`)]]),
+      before: document({}, anchor({ type: 'string', enum: ['now', 'unchanged'] })),
+      after: document({}, anchor(object)),
+      diff: [
+        {
+          id: 'request-property-enum-value-removed',
+          text: 'removed the enum value `now` of the request property `billing_cycle_anchor`',
+          operation: 'POST',
+          operationId: 'PostSubscriptionsSubscriptionExposedId',
+          path,
+        },
+      ],
+    };
+    const successor = candidate({
+      family: 'request-enum-value',
+      operations: [`POST ${path}`],
+      parameter: 'billing_cycle_anchor',
+      value: 'now',
+      replacement: 'now',
+      discriminator: 'type',
+    });
+    expect(complete(successor, evidence)).toHaveProperty('rule.discriminator', 'type');
+    // A key the object does not have, or no key where the parameter became an object.
+    for (const discriminator of ['kind', ''])
+      expect(complete({ ...successor, discriminator }, evidence)).toEqual({
+        reason:
+          'the contracts do not agree with the request-enum-value on PostSubscriptionsSubscriptionExposedId',
+      });
+  });
+
   it('counts field moves split across pages as one reproduction', () => {
     const coupon = hand('stripe-coupon-id-helper');
     const part = (schema: string, target: string[]) =>

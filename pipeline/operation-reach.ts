@@ -5,6 +5,7 @@ import type { MappedSdkCall, ProviderOperationMapping } from './provider-operati
 import { STRIPE_PACK, type RequestMove } from './rule-pack.ts';
 import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
 import { FORMAT_ANNOTATION } from './schema-equivalence.ts';
+import { SDK_OPERATIONS, stripeSdkOperations } from './stripe-operations.ts';
 
 // Whether traced code reaches the part of the contract an oasdiff change touches:
 // `reached` (a traced call sends it or traced code reads it), `unknown` (tracing cannot tell, so it
@@ -735,8 +736,9 @@ export function requestOptionEdits(
 
 // Rule-table enum successors (the `request-enum-value` family): a removed enum value written as a
 // literal in a traced call's own request becomes the value Stripe documents in its place, such as
-// Checkout's `ui_mode: 'embedded'` becoming `'embedded_page'`. Constants, computed values and test
-// files stay for review.
+// Checkout's `ui_mode: 'embedded'` becoming `'embedded_page'`, or, where the successor is an object,
+// endive's `billing_cycle_anchor: 'now'` becoming `{ type: 'now' }`. Constants, computed values and
+// test files stay for review.
 export function enumValueEdits(
   changes: Record<string, unknown>[],
   context: Pick<ReachContext, 'repository' | 'calls' | 'mappings'>,
@@ -778,11 +780,14 @@ export function enumValueEdits(
             literal.end <= body.end
           ) {
             const quote = literal.getText()[0];
+            const successor = `${quote}${move.replacement}${quote}`;
             edits.set(`${file}:${literal.getStart()}`, {
               file,
               start: literal.getStart(),
               end: literal.end,
-              replacement: `${quote}${move.replacement}${quote}`,
+              replacement: move.discriminator
+                ? `{ ${move.discriminator}: ${successor} }`
+                : successor,
               changeId: move.rule,
               rule: move.rule,
             });
@@ -791,6 +796,49 @@ export function enumValueEdits(
     }
   }
   return [...edits.values()];
+}
+
+// stripe-node signs and verifies webhook payloads locally (Webhooks.js), and `mockResolvedValue` and
+// the other Jest and Vitest `mock*` methods configure a test double: neither sends a request.
+const LOCAL_WEBHOOK_HELPER =
+  /\.webhooks\.(?:constructEvent|generateTestHeaderString|signature\.verifyHeader)(?:Async)?$/;
+const MOCK_SETUP = /\.mock[A-Z]\w*$/;
+const sdkMethods = new WeakMap<object, ReturnType<typeof stripeSdkOperations>>();
+
+// The first untraced call that may request the change's operation. Where the adapter maps the
+// operation, only a call with its method name may. Otherwise any call may, except one known to
+// request another operation: a stripe-node method the before contract gives another operation
+// (stripe-operations.ts names them as tracing does), a local webhook helper or test-double setup.
+function untracedRequester(
+  change: Record<string, unknown>,
+  mapping: ProviderOperationMapping | undefined,
+  context: ReachContext,
+) {
+  if (mapping)
+    return context
+      .untracedCalls()
+      .find((expression) => expression.endsWith(`.${mapping.resource}.${mapping.method}`));
+  let others = sdkMethods.get(context.before);
+  if (!others)
+    sdkMethods.set(context.before, (others = stripeSdkOperations(SDK_OPERATIONS, context.before)));
+  const paths = isObject(context.before.paths) ? context.before.paths : {};
+  const item = paths[String(change.path)];
+  const own = isObject(item) ? item[String(change.operation).toLowerCase()] : undefined;
+  const operationId = change.operationId ?? (isObject(own) ? own.operationId : undefined);
+  return context
+    .untracedCalls()
+    .find(
+      (expression) =>
+        !LOCAL_WEBHOOK_HELPER.test(expression) &&
+        !MOCK_SETUP.test(expression) &&
+        !others.some(
+          (entry) =>
+            operationId !== undefined &&
+            entry.operationId !== undefined &&
+            entry.operationId !== operationId &&
+            expression.endsWith(`.${entry.resource}.${entry.method}`),
+        ),
+    );
 }
 
 // With `formatOnly` (D4: the `currency` format adds no constraint), only a value Refit can read and
@@ -810,13 +858,7 @@ function requestReach(
     };
   const mapping = changeMapping(change, context.mappings);
   const operation = mapping ? `${mapping.resource}.${mapping.method}` : String(change.path);
-  // An untraced call may request the operation: one with its method name, or any at all when the
-  // adapter does not map the operation to a method.
-  const untraced = context
-    .untracedCalls()
-    .find(
-      (expression) => !mapping || expression.endsWith(`.${mapping.resource}.${mapping.method}`),
-    );
+  const untraced = untracedRequester(change, mapping, context);
   if (untraced)
     return {
       reach: 'unknown',
@@ -840,6 +882,25 @@ function requestReach(
   let unknown: string | undefined;
   let handled: string | undefined;
   let compatible: string | undefined;
+  // A pack enum successor that sends `parameter` as an object holding `key`.
+  const objectSuccessor = (parameter: string, key?: string) =>
+    STRIPE_PACK.requestMoves.some(
+      (move) =>
+        move.family === 'request-enum-value' &&
+        move.parameter === parameter &&
+        move.discriminator !== undefined &&
+        (key === undefined || move.discriminator === key) &&
+        move.operations.includes(mapping!.operationId),
+    );
+  // Every literal the value can be is rewritten by a kept rule edit.
+  const rewritten = (file: string, value: ts.Expression) => {
+    const literals = literalValues(value);
+    return (
+      literals !== 'unknown' &&
+      literals.length > 0 &&
+      literals.every((literal) => context.edited(file, literal.getStart()))
+    );
+  };
   for (const { file, body } of callBodies(context.repository, calls, argumentIndex)) {
     if (required) {
       // A kept request move whose documented replacement is this property, such as the promotion
@@ -868,6 +929,15 @@ function requestReach(
       }
       const parents = path.length > 1 ? sentValues(body, path.slice(0, -1)) : [body];
       if (parents === 'unknown') unknown ??= file;
+      // An enum successor edit that sends the parent as an object with this property, such as
+      // `billing_cycle_anchor: { type: 'now' }`, rewrites each value the call sends.
+      else if (
+        path.length > 1 &&
+        objectSuccessor(path.slice(0, -1).join('/'), path.at(-1)) &&
+        parents.length &&
+        parents.every((parent) => typeof parent === 'object' && rewritten(file, parent))
+      )
+        handled ??= file;
       else if (parents.length)
         return {
           reach: 'reached',
@@ -915,6 +985,15 @@ function requestReach(
         }
         if (formatOnly) continue;
       }
+      // An enum successor edit that sends an object replaces each value whose type changed.
+      if (
+        change.id === 'request-property-type-changed' &&
+        objectSuccessor(property) &&
+        rewritten(file, sent)
+      ) {
+        handled ??= file;
+        continue;
+      }
       // The card rule renames `payment_method_types` where it is written.
       if (ts.isPropertyAssignment(sent.parent) && context.edited(file, sent.parent.getStart())) {
         handled ??= file;
@@ -954,11 +1033,7 @@ function requestReach(
 function operationReach(change: Record<string, unknown>, context: ReachContext): ChangeReach {
   const mapping = changeMapping(change, context.mappings);
   const operation = mapping ? `${mapping.resource}.${mapping.method}` : String(change.path);
-  const untraced = context
-    .untracedCalls()
-    .find(
-      (expression) => !mapping || expression.endsWith(`.${mapping.resource}.${mapping.method}`),
-    );
+  const untraced = untracedRequester(change, mapping, context);
   if (untraced)
     return {
       reach: 'unknown',

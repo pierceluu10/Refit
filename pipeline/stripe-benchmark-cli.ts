@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { signedEventSummary } from './signed-events.ts';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +16,7 @@ import {
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
 import { selectCheck, ungradedEvidence } from './check-selection.ts';
+import { MAX_DOCUMENTATION_SOURCES } from './documentation-sources.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PASSING_REACH } from './operation-reach.ts';
 import { sdkPackageDirectory } from './preparation-packages.ts';
@@ -24,6 +25,7 @@ import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
 import { typedStripeClients } from './type-clients.ts';
 import {
+  contractChangePages,
   forkAtCommit,
   PUBLISH_BASE,
   repositoryAdapter,
@@ -188,6 +190,21 @@ const changelogPages = (
     changes: Record<string, string>;
   }
 ).changes;
+const changelogContents = await Promise.all(
+  (await readdir(join(CHANGELOG, 'pages'), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .flatMap(async (entry) =>
+      Promise.all(
+        (await readdir(join(CHANGELOG, 'pages', entry.name)))
+          .filter((file) => file.endsWith('.json'))
+          .map(async (file) => {
+            const path = join(CHANGELOG, 'pages', entry.name, file);
+            const { content } = JSON.parse(await readFile(path, 'utf8')) as { content: string };
+            return { path, version: entry.name, content };
+          }),
+      ),
+    ),
+).then((groups) => groups.flat());
 const productionFailures = new Map<string, string>();
 // Every option but the paths that only locate inputs and outputs, and the harness's own flags.
 const {
@@ -460,6 +477,7 @@ async function benchmark(entry: Selected, index: number) {
   // on machine load, not the pair, so it is not reused. A reused failure is recorded exactly like
   // the first, so a row does not depend on which repository --concurrency reached first.
   const failed = productionFailures.get(entry.before);
+  let contractNotes: string[] = [];
   if (failed) result.productionMode = { error: failed };
   else
     try {
@@ -471,6 +489,22 @@ async function benchmark(entry: Selected, index: number) {
         leaveReviewedFindings,
       });
       result.productionMode = { ...summarize(scan), stop: scanStop(scan) ?? null };
+      contractNotes =
+        scan.specificationDiff.engine === 'oasdiff'
+          ? contractChangePages(
+              unmappedBreakingChanges(
+                scan.specificationDiff,
+                scan.changes,
+                scan.findings,
+                scan.operationChanges,
+                scan.requestChanges,
+                scan.expandedFields,
+              ) as Record<string, unknown>[],
+              changelogContents,
+              entry.before,
+              latest,
+            )
+          : [];
     } catch (error) {
       if (!/time limit/.test(message(error))) productionFailures.set(entry.before, message(error));
       result.productionMode = { error: message(error) };
@@ -478,9 +512,16 @@ async function benchmark(entry: Selected, index: number) {
   lap('productionMode');
   const full = result.fullAdapter as { confirmed: number; confirmedFields: string[] };
   const production = result.productionMode as { error?: string; stop?: string | null };
+  // Pages for removed fields the code reads, then for contract changes traced code reaches.
   const notes = [
-    ...new Set(full.confirmedFields?.map((field) => changelogPages[field]).filter(Boolean)),
-  ].map((page) => join(CHANGELOG, page));
+    ...new Set([
+      ...(full.confirmedFields ?? [])
+        .map((field) => changelogPages[field])
+        .filter(Boolean)
+        .map((page) => join(CHANGELOG, page)),
+      ...contractNotes,
+    ]),
+  ].slice(0, MAX_DOCUMENTATION_SOURCES);
   result.changelogNotes = notes.map((path) => path.slice(CHANGELOG.length + 1));
   // docs/VERSION-BUMP-PRS.md: where production mode found no usage, the workflow may open a checked
   // version bump; it applies every gate itself.

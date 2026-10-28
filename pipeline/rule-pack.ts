@@ -52,7 +52,8 @@ export interface RequestMove {
   rule: string;
   // `request-rename` sends the value under `replacement`; `request-wrap` sends
   // `replacement: { type: discriminator, [parameter]: value }`; `request-enum-value` sends the
-  // literal `value` of `parameter` as `replacement`.
+  // literal `value` of `parameter` as `replacement`, or with a discriminator as
+  // `{ [discriminator]: replacement }`.
   family: 'request-rename' | 'request-wrap' | 'request-enum-value';
   operations: string[];
   parameter: string;
@@ -187,6 +188,12 @@ export function checkRequestMove(file: string, entry: unknown, rules: Set<string
     fail(file, `${entry.rule} needs the removed enum value.`);
   if (entry.family === 'request-wrap' && typeof entry.discriminator !== 'string')
     fail(file, `${entry.rule} needs a discriminator.`);
+  if (
+    entry.family === 'request-enum-value' &&
+    entry.discriminator !== undefined &&
+    (typeof entry.discriminator !== 'string' || !IDENTIFIER.test(entry.discriminator))
+  )
+    fail(file, `${entry.rule} discriminator must be a property name.`);
 }
 
 export function parseRulePack(value: unknown, file: string): RulePack {

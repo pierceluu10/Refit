@@ -1,6 +1,7 @@
 import { splitRows } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { analyzeRepository } from './analyzer.ts';
+import { requestProperty } from './operation-reach.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { runPipeline } from './run.ts';
 import {
@@ -278,4 +279,44 @@ export function workflowExitReason(error: unknown, limitMs: number) {
     .split('\n')
     .at(-1);
   return `refit run ${signal ? `was killed by ${signal}` : `exited with code ${code}`}${last ? `: ${last}` : '.'}`;
+}
+
+// Saved changelog pages for the breaking changes traced code reaches that no rule migrates, so an
+// AI coverage request reads what Stripe says about them: a page of a version after `before`, up to
+// `after`, that names the changed property in code (`billing_cycle_anchor`,
+// `Subscription#update.billing_cycle_anchor`). `pages` maps each saved page's path to its version
+// directory and Markdown.
+export function contractChangePages(
+  changes: Record<string, unknown>[],
+  pages: { path: string; version: string; content: string }[],
+  before: string,
+  after: string,
+) {
+  const properties = new Set(
+    changes
+      .filter((change) => change.reach === 'reached')
+      .flatMap((change) => {
+        const text = String(change.text);
+        const property = requestProperty(text) ?? text.match(/property `([^`]+)`/)?.[1];
+        return property
+          ? [
+              property
+                .replace(/anyOf\[[^\]]*\]\//g, '')
+                .split('/')
+                .at(-1)!,
+            ]
+          : [];
+      }),
+  );
+  const date = (version: string) => version.slice(0, 10);
+  return pages
+    .filter(
+      (page) =>
+        date(page.version) > date(before) &&
+        date(page.version) <= date(after) &&
+        [...page.content.matchAll(/`([^`]+)`/g)].some(([, code]) =>
+          [...properties].some((property) => code === property || code.endsWith(`.${property}`)),
+        ),
+    )
+    .map((page) => page.path);
 }

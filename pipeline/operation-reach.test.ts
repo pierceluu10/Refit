@@ -15,6 +15,7 @@ import {
 import { applySourceEdits } from './patches.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { STRIPE_PACK } from './rule-pack.ts';
 import { FORMAT_ANNOTATION } from './schema-equivalence.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
@@ -523,6 +524,31 @@ it('treats an operation an untraced call may request as unknown', () => {
       'The untraced call `payments.checkout.sessions.create` may request `checkout.sessions.create` with `line_items/items/dynamic_tax_rates`.',
     ],
   ]);
+});
+
+it('rules out untraced calls known to request another operation for an unmapped one', () => {
+  const resume = () => ({
+    id: 'new-required-request-property',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/subscriptions/{subscription}/resume',
+    operationId: 'PostSubscriptionsSubscriptionResume',
+    text: 'added the new required request property `billing_cycle_anchor/type`',
+  });
+  // blefnk/all-in-one-nextjs-template and MeiyuTech/AET-App stopped on calls like these.
+  const elsewhere = [
+    'mockStripe.webhooks.constructEvent.mockReturnValue',
+    'stripe.webhooks.constructEvent',
+    'stripe.products.create',
+    'stripe.subscriptions.update',
+  ];
+  expect(reach(AI_COMPANION, [resume()], elsewhere)).toEqual([
+    ['unused', 'No traced call requests `/v1/subscriptions/{subscription}/resume`.'],
+  ]);
+  for (const call of ['stripe.subscriptions.resume', 'billing.client.fetch'])
+    expect(reach(AI_COMPANION, [resume()], [...elsewhere, call])[0][1]).toBe(
+      `The untraced call \`${call}\` may request \`/v1/subscriptions/{subscription}/resume\` with \`billing_cycle_anchor/type\`.`,
+    );
 });
 
 it('names the Stripe object that owns a changed response property', () => {
@@ -1331,6 +1357,81 @@ describe('a documented enum successor', () => {
       'app/api/checkout/route.test.ts',
     );
     expect(test.edits).toEqual([]);
+  });
+});
+
+describe('an enum successor sent as an object (endive billing_cycle_anchor)', () => {
+  const moves = STRIPE_PACK.requestMoves.filter(
+    (move) => move.parameter === 'billing_cycle_anchor',
+  );
+  const changes = () =>
+    [
+      [
+        'request-property-enum-value-removed',
+        'removed the enum value `now` of the request property `billing_cycle_anchor`',
+      ],
+      [
+        'request-property-enum-value-removed',
+        'removed the enum value `unchanged` of the request property `billing_cycle_anchor`',
+      ],
+      [
+        'request-property-type-changed',
+        'the `billing_cycle_anchor` request property `type` changed from `string` to `object`',
+      ],
+      [
+        'new-required-request-property',
+        'added the new required request property `billing_cycle_anchor/type`',
+      ],
+    ].map(([id, text]) => ({
+      id,
+      level: 3,
+      operation: 'POST',
+      path: '/v1/subscriptions/{subscription_exposed_id}',
+      text,
+    }));
+  const run = (source: string) => {
+    const context = traced(source);
+    const edits = enumValueEdits(changes(), context, moves);
+    const annotated: Record<string, unknown>[] = changes();
+    annotateReach(annotated, {
+      ...context,
+      untracedCalls: () => [],
+      edited: (file, offset) =>
+        edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
+      removals: [],
+    });
+    return {
+      patched: applySourceEdits(context.repository.files[0].content, edits),
+      reach: annotated.map((change) => change.reach),
+    };
+  };
+
+  it('sends the documented object and passes every change it answers', () => {
+    // stopinder/helio-therapist api/billing/annual.js, shortened.
+    const literal = run(
+      "export const go = (id) => stripe.subscriptions.update(id, { billing_cycle_anchor: 'now', proration_behavior: 'create_prorations' });",
+    );
+    expect(moves.map((move) => move.rule).sort()).toEqual([
+      'stripe-billing-cycle-anchor-now',
+      'stripe-billing-cycle-anchor-unchanged',
+    ]);
+    expect(literal.patched).toContain("billing_cycle_anchor: { type: 'now' }");
+    expect(literal.reach).toEqual(['handled', 'unused', 'handled', 'handled']);
+    const conditional = run(
+      "export const go = (id, reset) => stripe.subscriptions.update(id, { billing_cycle_anchor: reset ? 'now' : 'unchanged' });",
+    );
+    expect(conditional.patched).toContain(
+      "billing_cycle_anchor: reset ? { type: 'now' } : { type: 'unchanged' }",
+    );
+    expect(conditional.reach).toEqual(['handled', 'handled', 'handled', 'handled']);
+  });
+
+  it('keeps stopping where the value is not a literal in the call', () => {
+    const constant = run(
+      "const ANCHOR = 'now';\nexport const go = (id) => stripe.subscriptions.update(id, { billing_cycle_anchor: ANCHOR });",
+    );
+    expect(constant.patched).not.toContain('type:');
+    expect(constant.reach).toEqual(['reached', 'unused', 'reached', 'reached']);
   });
 });
 
