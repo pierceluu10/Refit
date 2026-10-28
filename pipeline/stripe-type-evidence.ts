@@ -141,7 +141,8 @@ export function typeOraclePasses(oracle: TypeOracle | undefined) {
 }
 
 // How a cleared read was shown not to read a Stripe object (localReceiverReads).
-export type LocalProof = 'repository-type' | 'literal-config' | 'generated-type' | 'receiver-type';
+export type LocalProof =
+  'repository-type' | 'literal-config' | 'generated-type' | 'receiver-type' | 'prisma-client';
 export interface LocalReceiverOptions {
   // The removed fields reads name by `changeId` (`line_item` for line_item.price); the
   // receiver-type proof needs the schema a read's change removes the property from.
@@ -153,6 +154,9 @@ export interface LocalReceiverOptions {
   // rejects a Stripe object assigned to an incompatible repository type. The repository-type
   // proof holds only there.
   typeChecked?: (file: string) => boolean;
+  // The models the repository's committed Prisma schema declares (runtime-stand-ins.ts), for the
+  // prisma-client proof.
+  prismaModels?: readonly string[];
 }
 
 // Headers a code generator writes at the top of the types it generates from the repository's own
@@ -173,7 +177,11 @@ const CALLBACK_METHODS = new Set([
   'forEach',
   'map',
   'some',
+  'sort',
+  'toSorted',
 ]);
+// Comparators, whose first two parameters are both elements.
+const COMPARATOR_METHODS = new Set(['sort', 'toSorted']);
 const SUBARRAY_METHODS = new Set(['filter', 'slice']);
 const MUTATING_METHODS = new Set(['copyWithin', 'fill', 'push', 'splice', 'unshift']);
 const WEBHOOK_CONSTRUCTORS = new Set(['constructEvent', 'constructEventAsync']);
@@ -198,10 +206,14 @@ const STRIPE_RELATED = /[\\/]node_modules[\\/](?:@[^\\/]+[\\/])?[^\\/]*stripe[^\
 //   function's return annotation, never.
 // - `literal-config`: the receiver is an object literal written in the repository, directly, through
 //   a `const`, or as an element of a `const` array of object literals (by index, `find`, `at`, or as
-//   the element parameter of a callback such as `find` or `map`) that nothing writes an element into.
+//   the element parameter of a callback such as `find`, `map` or a `sort` comparator) that nothing
+//   writes an element into, or as a property of a `const` object literal of object literals read by a
+//   computed key; `null` and `undefined` count as no value.
 // - `generated-type`: the receiver is a `const` asserted to a type a code generator wrote from the
 //   repository's own schema (GENERATED_TYPES), which declares the property, outside a function that
 //   constructs a Stripe webhook event, and not asserted from an event's `data.object`.
+// - `receiver-type` (also behind a type assertion, followed from the asserted value) and
+//   `prisma-client`: see their definitions below.
 // A read never counts where its property is also read on a traced Stripe object in the same function.
 export function localReceiverReads<
   Read extends {
@@ -329,6 +341,8 @@ export function localReceiverReads<
   const unchanged = (symbol: ts.Symbol) =>
     referencesOf(symbol).every((reference) => {
       const parent = reference.parent;
+      // Through a namespace import (`cfg.plans.pro = …`) the object escapes what is checked here.
+      if (ts.isPropertyAccessExpression(parent) && parent.name === reference) return false;
       if (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent))
         return (
           parent.expression !== reference ||
@@ -383,16 +397,30 @@ export function localReceiverReads<
     node = value(node);
     if (ts.isObjectLiteralExpression(node))
       return !node.properties.some((property) => ts.isSpreadAssignment(property));
-    if (ts.isElementAccessExpression(node)) return literalArray(node.expression, depth + 1);
+    // No value at all (`plan ? PLANS[plan] : null`) is not a Stripe object either.
+    if (
+      node.kind === ts.SyntaxKind.NullKeyword ||
+      (ts.isIdentifier(node) && node.text === 'undefined' && !symbolOf(node)?.valueDeclaration)
+    )
+      return true;
+    if (ts.isConditionalExpression(node))
+      return literalObject(node.whenTrue, depth + 1) && literalObject(node.whenFalse, depth + 1);
+    if (ts.isElementAccessExpression(node))
+      return literalArray(node.expression, depth + 1) || literalRecord(node.expression, depth + 1);
     const array = method(node, ELEMENT_METHODS);
     if (array) return literalArray(array, depth + 1);
     const declaration = ts.isIdentifier(node) ? symbolOf(node)?.valueDeclaration : undefined;
     if (declaration && ts.isParameter(declaration)) {
       const callback = declaration.parent;
       const call = callback.parent;
+      const index = callback.parameters.indexOf(declaration);
       return (
         (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) &&
-        callback.parameters[0] === declaration &&
+        (index === 0 ||
+          (index === 1 &&
+            ts.isCallExpression(call) &&
+            ts.isPropertyAccessExpression(call.expression) &&
+            COMPARATOR_METHODS.has(call.expression.name.text))) &&
         ts.isIdentifier(declaration.name) &&
         ts.isCallExpression(call) &&
         call.arguments[0] === callback &&
@@ -400,6 +428,65 @@ export function localReceiverReads<
       );
     }
     return literalBinding(node, literalObject, depth);
+  };
+  // An object literal whose every property is an object literal, read by a computed key: a table
+  // of plans keyed by name.
+  const literalRecord = (node: ts.Expression, depth = 0): boolean => {
+    if (depth > 8) return false;
+    node = value(node);
+    if (ts.isObjectLiteralExpression(node))
+      return node.properties.every(
+        (property) =>
+          ts.isPropertyAssignment(property) &&
+          ts.isObjectLiteralExpression(value(property.initializer)) &&
+          literalObject(property.initializer, depth + 1),
+      );
+    return (
+      literalBinding(node, literalRecord, depth) &&
+      entriesUnchanged(symbolOf(node as ts.Identifier)!)
+    );
+  };
+  // Each entry of a record (`plans.pro`, `plans[key]`) is only read: a property of it, or the value
+  // of a `const` (directly, behind a cast or as a branch of a conditional) that is itself unchanged.
+  // `Object.assign(plans.pro, …)` or a write into an entry could put anything there.
+  const entriesUnchanged = (symbol: ts.Symbol) =>
+    referencesOf(symbol).every((reference) => {
+      const entry = reference.parent;
+      if (
+        !(ts.isPropertyAccessExpression(entry) || ts.isElementAccessExpression(entry)) ||
+        entry.expression !== reference
+      )
+        return true;
+      let use: ts.Node = entry;
+      while (
+        ts.isParenthesizedExpression(use.parent) ||
+        ts.isAsExpression(use.parent) ||
+        ts.isNonNullExpression(use.parent) ||
+        ts.isSatisfiesExpression(use.parent) ||
+        (ts.isConditionalExpression(use.parent) && use.parent.condition !== use)
+      )
+        use = use.parent;
+      const parent = use.parent;
+      if (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent))
+        return (
+          parent.expression === use && !assigned(parent) && !ts.isDeleteExpression(parent.parent)
+        );
+      if (
+        ts.isVariableDeclaration(parent) &&
+        parent.initializer === use &&
+        constant(parent) &&
+        ts.isIdentifier(parent.name)
+      ) {
+        const alias = symbolOf(parent.name);
+        return Boolean(alias && unchanged(alias));
+      }
+      return false;
+    });
+  // `sort` passes array elements to its comparator only on an array; a class's own `sort` may not.
+  const arrayComparator = (callee: ts.PropertyAccessExpression) => {
+    if (!COMPARATOR_METHODS.has(callee.name.text)) return true;
+    const type = checker.getNonNullableType(checker.getTypeAtLocation(callee.expression));
+    return checker.isArrayType(type) || checker.isTupleType(type);
   };
   // Where a typed receiver's type comes from an annotation, the value written into it must have a
   // repository type as well; a Stripe value, unresolved here, does not.
@@ -437,6 +524,7 @@ export function localReceiverReads<
         !declaration.type &&
         ts.isPropertyAccessExpression(callee) &&
         CALLBACK_METHODS.has(callee.name.text) &&
+        arrayComparator(callee) &&
         annotatedSource(callee.expression)
       );
     }
@@ -645,7 +733,8 @@ export function localReceiverReads<
   const flows = (node: ts.Expression, schemas: readonly string[], depth = 0): boolean => {
     if (depth > 6 || asserted(node, checker)) return false;
     node = value(node);
-    if (ts.isAwaitExpression(node)) return flows(node.expression, schemas, depth + 1);
+    // A read of a smaller expression ends by itself; only the steps through declarations count.
+    if (ts.isAwaitExpression(node)) return flows(node.expression, schemas, depth);
     if (ts.isConditionalExpression(node))
       return flows(node.whenTrue, schemas, depth + 1) && flows(node.whenFalse, schemas, depth + 1);
     if (
@@ -660,7 +749,7 @@ export function localReceiverReads<
     if (ts.isCallExpression(node))
       return returns(node, schemas, depth) && flows(node.expression, schemas, depth + 1);
     if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node))
-      return flows(node.expression, schemas, depth + 1);
+      return flows(node.expression, schemas, depth);
     if (ts.isArrayLiteralExpression(node))
       return node.elements.every((element) =>
         flows(ts.isSpreadElement(element) ? element.expression : element, schemas, depth + 1),
@@ -724,7 +813,11 @@ export function localReceiverReads<
       owner.parent.arguments.includes(owner)
     ) {
       const callee = owner.parent.expression;
-      if (!ts.isPropertyAccessExpression(callee) || !CALLBACK_METHODS.has(callee.name.text))
+      if (
+        !ts.isPropertyAccessExpression(callee) ||
+        !CALLBACK_METHODS.has(callee.name.text) ||
+        !arrayComparator(callee)
+      )
         return false;
       if (!flows(callee.expression, schemas, depth + 1)) return false;
       if (!parameter.type) return true;
@@ -800,6 +893,164 @@ export function localReceiverReads<
       flows(access.expression, schemas)
     );
   };
+  // receiver-type behind an assertion: `(product as any).default_price` reads a Stripe.Product's
+  // default_price whatever the cast says, so the receiver's type is followed from the asserted
+  // value, which must flow (no annotation or assertion of its own), through each property read. Every
+  // object it can be must declare the property and not be the changed schema's Stripe object.
+  const unasserted = (node: ts.Expression, schemas: readonly string[]): ts.Type[] | undefined => {
+    if (
+      ts.isParenthesizedExpression(node) ||
+      ts.isNonNullExpression(node) ||
+      ts.isAsExpression(node) ||
+      ts.isTypeAssertionExpression(node) ||
+      ts.isSatisfiesExpression(node)
+    )
+      return unasserted(node.expression, schemas);
+    let types: ts.Type[];
+    if (ts.isPropertyAccessExpression(node)) {
+      const owners = unasserted(node.expression, schemas);
+      if (!owners) return undefined;
+      types = [];
+      for (const owner of owners) {
+        const property = checker.getPropertyOfType(owner, node.name.text);
+        // Only stripe-node's own declarations describe what Stripe sends; a repository holder's
+        // property can be written with anything behind a cast.
+        if (
+          !property?.declarations?.length ||
+          !property.declarations.every((declaration) =>
+            STRIPE_PACKAGE.test(declaration.getSourceFile().fileName),
+          )
+        )
+          return undefined;
+        types.push(checker.getTypeOfSymbolAtLocation(property, node));
+      }
+    } else if (flows(node, schemas)) types = [checker.getTypeAtLocation(node)];
+    else return undefined;
+    const members = types
+      .map((type) => checker.getNonNullableType(type))
+      .flatMap((type) => (type.isUnion() ? type.types : [type]));
+    if (members.some((type) => type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)))
+      return undefined;
+    // A primitive member (a Stripe id where the object is not expanded) has no Stripe fields.
+    const objects = members.filter((type) => type.flags & ts.TypeFlags.Object);
+    return objects.length ? objects : undefined;
+  };
+  const assertedReceiverType = (access: ts.PropertyAccessExpression, read: Read) => {
+    if (!TYPESCRIPT.test(read.file) || !(options.typeChecked?.(read.file) ?? false)) return false;
+    if (!asserted(access.expression, checker)) return false;
+    const schemas = schemasOf(read);
+    const receivers = unasserted(access.expression, schemas);
+    return Boolean(
+      receivers?.every(
+        (receiver) =>
+          checker.getPropertyOfType(receiver, access.name.text) &&
+          notSchema(receiver, schemas) &&
+          !acceptsSchema(receiver, schemas),
+      ),
+    );
+  };
+  // prisma-client: a model delegate (`prisma.subscription`) on a client the repository constructs
+  // from @prisma/client. The generated client is missing from a clean checkout, so its type is
+  // unresolved here; the delegate's name is a model the committed schema declares.
+  // shortcut: a client generated to a custom output path, or one extended with `$extends`, is not
+  // followed; add it when a run shows one.
+  const prismaImport = (node: ts.Node) => {
+    const declaration = ts.isIdentifier(node)
+      ? checker.getSymbolAtLocation(node)?.declarations?.[0]
+      : undefined;
+    return Boolean(
+      declaration &&
+      ts.isImportSpecifier(declaration) &&
+      (declaration.propertyName ?? declaration.name).text === 'PrismaClient' &&
+      ts.isStringLiteral(declaration.parent.parent.parent.moduleSpecifier) &&
+      declaration.parent.parent.parent.moduleSpecifier.text === '@prisma/client',
+    );
+  };
+  // `PrismaClient`, optionally with `| undefined` or `| null`, as a global or holder declares it.
+  const prismaTypeNode = (node: ts.TypeNode | undefined): boolean =>
+    Boolean(
+      node &&
+      (ts.isUnionTypeNode(node)
+        ? node.types.some(ts.isTypeReferenceNode) &&
+          node.types.every(
+            (member) =>
+              (ts.isLiteralTypeNode(member) && member.literal.kind === ts.SyntaxKind.NullKeyword) ||
+              member.kind === ts.SyntaxKind.UndefinedKeyword ||
+              prismaTypeNode(member),
+          )
+        : ts.isTypeReferenceNode(node) && prismaImport(node.typeName)),
+    );
+  // A write of `.name` on an untyped receiver (`(globalThis as any).prisma = …`) that the symbol's
+  // references cannot see.
+  const untypedWrite = (name: string) => {
+    const visit = (node: ts.Node): boolean =>
+      (ts.isPropertyAccessExpression(node) &&
+        node.name.text === name &&
+        assigned(node) &&
+        Boolean(checker.getTypeAtLocation(node.expression).flags & ts.TypeFlags.Any)) ||
+      Boolean(ts.forEachChild(node, (child) => visit(child) || undefined));
+    return sources.some(visit);
+  };
+  const prismaClient = (node: ts.Expression, seen: Set<ts.Node>, depth = 0): boolean => {
+    if (depth > 8) return false;
+    node = value(node);
+    if (seen.has(node)) return true;
+    seen.add(node);
+    if (
+      ts.isBinaryExpression(node) &&
+      [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+        node.operatorToken.kind,
+      )
+    )
+      return prismaClient(node.left, seen, depth + 1) && prismaClient(node.right, seen, depth + 1);
+    if (ts.isNewExpression(node)) return prismaImport(node.expression);
+    if (ts.isIdentifier(node)) {
+      const declaration = symbolOf(node)?.valueDeclaration;
+      return Boolean(
+        declaration &&
+        ts.isVariableDeclaration(declaration) &&
+        own(declaration) &&
+        constant(declaration) &&
+        declaration.initializer &&
+        prismaClient(declaration.initializer, seen, depth + 1),
+      );
+    }
+    // A holder for reuse across hot reloads (`globalThis.prisma`, `globalForPrisma.prisma`): typed
+    // PrismaClient, and every value the repository writes into it a client too.
+    if (ts.isPropertyAccessExpression(node)) {
+      const symbol = checker.getSymbolAtLocation(node.name);
+      const declarations = symbol?.getDeclarations() ?? [];
+      return Boolean(
+        symbol &&
+        declarations.length &&
+        declarations.every(
+          (declaration) =>
+            (ts.isVariableDeclaration(declaration) || ts.isPropertySignature(declaration)) &&
+            own(declaration) &&
+            prismaTypeNode(declaration.type),
+        ) &&
+        !untypedWrite(symbol.name) &&
+        referencesOf(symbol).every((reference) => {
+          const access = reference.parent;
+          if (!ts.isPropertyAccessExpression(access) || access.name !== reference)
+            return !assigned(reference);
+          if (!assigned(access)) return true;
+          const write = access.parent;
+          return (
+            ts.isBinaryExpression(write) &&
+            write.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+            prismaClient(write.right, seen, depth + 1)
+          );
+        }),
+      );
+    }
+    return false;
+  };
+  const models = new Set(
+    (options.prismaModels ?? []).map((model) => model.charAt(0).toLowerCase() + model.slice(1)),
+  );
+  const prismaDelegate = (access: ts.PropertyAccessExpression) =>
+    models.has(access.name.text) && prismaClient(access.expression, new Set());
   const results: (Read & { proof: LocalProof })[] = [];
   for (const read of candidates) {
     const source = program.getSourceFile(resolve(root, read.file));
@@ -833,9 +1084,11 @@ export function localReceiverReads<
         ? 'literal-config'
         : generatedType(access)
           ? 'generated-type'
-          : receiverType(access, read)
+          : receiverType(access, read) || assertedReceiverType(access, read)
             ? 'receiver-type'
-            : undefined;
+            : prismaDelegate(access)
+              ? 'prisma-client'
+              : undefined;
     if (proof) results.push({ ...read, proof });
   }
   return results;

@@ -2891,6 +2891,66 @@
         "upgradeComplete": "no.",
         "wouldMerge": "no; not published."
       }
+    },
+    {
+      "repo": "heyzbh/scrapmatic-saas-app",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40772950934 (heldout-30, bench/combined-final 790dd7c7, the same patch); no new run. Replayed offline on feat/proof-validation: validation's local-read step over the patched checkout with stripe-node 23.0.0 types, then publicationWaiver and the draft title over the saved report.json. Needs review before (checks passed but detected findings remain unresolved), validated after. Read from migration.patch with CRLF line endings normalised.",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: checkout.sessions.create payment_method_types [\"card\", \"paypal\"] becomes allowed_payment_method_types with the same list (keep-listed default, owner decision 2026-10-24); stripe-node 17.5.0 to 23.0.0, whose default pin is the target, since no client sets apiVersion.",
+        "bothVersions": "n/a: a request parameter.",
+        "nothingUnrelated": "yes: one line in lib/stripe.ts, package.json and the lockfile's stripe entry.",
+        "pleaseCheck": "the 5 reads that held it are not on the changed objects: PricingList.tsx:19 (product as any).default_price?.unit_amount reads a Price (Product.default_price), not the InvoiceItem whose unit_amount endive removes (receiver-type through the cast); :24 a.price/b.price in .sort and :59 product.price read the object literal fetchProducts maps (repository-type). lib/stripe.ts item.price.product on a Checkout line item type-checks with stripe-node 23. Managed Payments: on a Stripe account where it is on by default, Checkout rejects both payment_method_types and allowed_payment_method_types (refit-bench test-mode account, KPZ231/what-now-chaos in the same run), so the original code already fails there; not a regression.",
+        "upgradeComplete": "yes: tsc -p . passes with stripe-node 23.0.0 and the type oracle shows no introduced error (grade C).",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "Jose-Wernerson/Turbo-Gestor",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40772950934 (heldout-30, bench/combined-final 790dd7c7, the same patch); no new run. Replayed offline on feat/proof-validation: validation's local-read step over the patched checkout with stripe-node 23.0.0 types, then publicationWaiver and the draft title over the saved report.json. Needs review before (checks passed but detected findings remain unresolved), validated after. Read from migration.patch with CRLF line endings normalised.",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: three apiVersion pins 2023-10-16 to 2026-09-30.endive with stripe-node 14.25.0 to 23.0.0; payment_method_types ['card'] to allowed_payment_method_types ['card'] (owner decision 2026-10-16).",
+        "bothVersions": "yes for the webhook: it reads only session.metadata, customer, subscription, subscription.metadata/status and invoice.id, present in both versions; the signed-event check replayed 4 events with the same result.",
+        "nothingUnrelated": "yes: the pins, the one parameter, package.json and the lockfile.",
+        "pleaseCheck": "the 2 held reads, app/dashboard/planos/upgrade/page.tsx:135 and :200 planoSelecionado.features, read the page's own planosInfo table of object literals (literal-config), not Product.features; the page uses only @stripe/stripe-js. Managed Payments: on a Stripe account where it is on by default, Checkout rejects both payment_method_types and allowed_payment_method_types (refit-bench test-mode account, KPZ231/what-now-chaos in the same run), so the original code already fails there; not a regression.",
+        "upgradeComplete": "yes: tsc -p . passes, type oracle clean (grade C).",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "Shivamrai15/Safari",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40772950934 (heldout-30, bench/combined-final 790dd7c7, the same patch); no new run. Replayed offline on feat/proof-validation: validation's local-read step over the patched checkout with stripe-node 23.0.0 types, then publicationWaiver and the draft title over the saved report.json. Needs review before (checks passed but detected findings remain unresolved), validated after. Read from migration.patch with CRLF line endings normalised.",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2024-04-10 to endive with stripe-node 15.8.0 to 23.0.0; current_period_end in manageSubscriptionStatusChange goes through the period helper, items[0] matching the item whose price the same call stores; payment_method_types ['card'] renamed.",
+        "bothVersions": "yes: the helper returns the old subscription-level field when present, else the item's.",
+        "nothingUnrelated": "yes: helper added to lib/upsert.ts and the edited lines only.",
+        "pleaseCheck": "the 4 held reads, lib/upsert.ts db.price and db.subscription, are Prisma model delegates on the client lib/db.ts constructs from @prisma/client (globalThis.prisma || new PrismaClient()), models Price and Subscription in prisma/schema.prisma (prisma-client). The webhook route reads only checkout session and Price/Product fields endive keeps. Managed Payments: on a Stripe account where it is on by default, Checkout rejects both payment_method_types and allowed_payment_method_types (refit-bench test-mode account, KPZ231/what-now-chaos in the same run), so the original code already fails there; not a regression.",
+        "upgradeComplete": "yes: tsc -p . passes with the generated Prisma client, type oracle clean (grade C).",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "devczero/vid-analyzer-saas",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40772950934 (heldout-30, bench/combined-final 790dd7c7, the same patch); no new run. Replayed offline on feat/proof-validation: validation's local-read step over the patched checkout with stripe-node 23.0.0 types, then publicationWaiver and the draft title over the saved report.json. Needs review before (checks passed but detected findings remain unresolved), validated after. Read from migration.patch with CRLF line endings normalised.",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2024-12-18.acacia to endive with stripe-node 17.7.0 to 23.0.0; invoice.subscription through getInvoiceSubscription, current_period_start/end through the period helpers with items[0], the item whose plan the same objects store; payment_method_types ['card'] renamed.",
+        "bothVersions": "yes: both helpers read the old field first, so webhook payloads of either version work.",
+        "nothingUnrelated": "yes: helpers and the edited reads in the webhook route, lib/stripe.ts, package.json and the lockfile.",
+        "pleaseCheck": "the 8 held reads are prisma.subscription delegates (webhook route lines 118, 131, 141; app/pricing/page.tsx:15) on the client lib/prisma.ts constructs (globalForPrisma.prisma || new PrismaClient()), model Subscription in prisma/schema.prisma (prisma-client). Managed Payments: on a Stripe account where it is on by default, Checkout rejects both payment_method_types and allowed_payment_method_types (refit-bench test-mode account, KPZ231/what-now-chaos in the same run), so the original code already fails there; not a regression.",
+        "upgradeComplete": "yes: the project's own type errors in app/api/transcript are on both sides; none introduced (grade C).",
+        "wouldMerge": "yes."
+      }
     }
   ]
 }
