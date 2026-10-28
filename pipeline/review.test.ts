@@ -1157,3 +1157,39 @@ it('pads inline code whose content starts or ends with a backtick', () => {
   expect(code('`start')).toBe('`` `start ``');
   expect(code('end`')).toBe('`` end` ``');
 });
+
+it('names a types-only peer raised with the stripe-node upgrade', async () => {
+  const value = await report();
+  if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
+  // Run reports carry the upgrade beside the patch fields.
+  const upgrade = {
+    sdkUpgrade: {
+      from: '18.1.0',
+      to: '23.0.0',
+      raised: [{ name: '@types/node', from: '18.11.18', to: '20.0.0', range: '>=20' }],
+    },
+  };
+  value.patch = {
+    ...value.patch,
+    ...upgrade,
+    diff: `${value.patch.diff}diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -1,4 +1,4 @@
+ {
+-  "dependencies": { "stripe": "^18.0.0" },
+-  "devDependencies": { "@types/node": "18.11.18" }
++  "dependencies": { "stripe": "^23.0.0" },
++  "devDependencies": { "@types/node": "20.0.0" }
+ }
+`,
+  };
+  if ('diff' in value.patch) value.validation.patchHash = digest(value.patch.diff);
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  expect(body).toContain(
+    '- `package.json`: Upgrades `stripe` from `18.1.0` to `23.0.0` and raises `@types/node` from `18.11.18` to `20.0.0`.',
+  );
+  expect(body).toContain(
+    'Raises `@types/node` from `18.11.18` to `20.0.0` with it: stripe `23.0.0` declares `@types/node` `>=20` as an optional peer',
+  );
+});

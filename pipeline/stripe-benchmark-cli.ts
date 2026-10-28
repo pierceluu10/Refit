@@ -114,7 +114,7 @@ const { values } = parseArgs({
     'allow-dirty': { type: 'boolean' },
     // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
     'validation-workspace': { type: 'string' },
-    // Resolves refused or missing npm lockfiles for validation (REFIT_LOCKFILE_RESOLUTION=on).
+    // Sets REFIT_LOCKFILE_RESOLUTION=on explicitly; it is the default, so runs before it was stay reproducible.
     'resolve-lockfiles': { type: 'boolean' },
     // Skips recreating the Prisma client and next-env.d.ts before every check
     // (REFIT_GENERATE_CLIENTS=0; declared-generators.ts).

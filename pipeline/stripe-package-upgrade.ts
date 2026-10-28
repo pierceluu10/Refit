@@ -101,6 +101,8 @@ export interface PackageUpgrade {
   files: { path: string; before: string; after: string }[];
   // Replaces the default patch warning when the upgrade is not a verified lockfile edit.
   warning?: string;
+  // Types-only peers raised with stripe, which the draft names.
+  raised?: Raised;
 }
 
 type Refusal = { reason: string };
@@ -411,6 +413,7 @@ async function manifestUpgrade(
       from: declaredMinimum(declared.spec)!,
       to: target,
       files: [{ path: 'package.json', before: manifestText, after: bump?.text ?? after }],
+      ...(bump ? { raised: bump.raised } : {}),
       warning: `Upgrades stripe from ${declared.spec} to exactly ${target}${bump ? ` and ${raisedText(bump.raised, target)}` : ''} in package.json only: the project commits no lockfile, so npm install resolves stripe ${target} and the rest of the dependency tree at install time${resolved ? '. Refit checked the patch against a package-lock.json it resolved for validation only, which this patch does not add, so your own install can resolve other versions' : ', which Refit did not check'}. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
     },
   };
@@ -492,7 +495,12 @@ async function resolvedPeerUpgrade(
   const outside = changesOutside(lockText, resolved.lockfile, ['stripe', ...raised]);
   if (outside.length)
     return {
-      reason: `Raising ${raised.join(', ')} with stripe ${target} changes ${outside.slice(0, 5).join(', ')}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''} in package-lock.json, outside stripe, the raised peer and the packages only they reach.`,
+      reason: `Raising ${raised.join(', ')} with stripe ${target} changes ${outside
+        .slice(0, 5)
+        .map((key) => key || 'the root record')
+        .join(
+          ', ',
+        )}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''} in package-lock.json, outside stripe, the raised peer and the packages only they reach.`,
     };
   const lock = parseJson(resolved.lockfile);
   const packages = isObject(lock) && isObject(lock.packages) ? lock.packages : {};
@@ -513,6 +521,7 @@ async function resolvedPeerUpgrade(
         { path: 'package.json', before: manifestText, after: bump.text },
         { path: 'package-lock.json', before: lockText, after: resolved.lockfile },
       ],
+      raised: bump.raised,
       warning: `Upgrades stripe from ${from} to ${target} and ${raisedText(bump.raised, target)} (now ${bump.raised.map(({ name }) => `${name} ${version(name)}`).join(', ')}). npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${resolution.before}${Object.entries(
         resolved.late,
       )
