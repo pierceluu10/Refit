@@ -59,14 +59,19 @@ const PROVIDER = {
   ],
 };
 
-// A TypeScript app whose only lockfile is one the stripe-node upgrade does not edit (bun.lock).
-async function scan(extension: 'ts' | 'js') {
+// A TypeScript app whose only lockfile is one the stripe-node upgrade does not edit (bun.lock), or
+// `lockfiles` in its place.
+async function scan(
+  extension: 'ts' | 'js',
+  lockfiles: Record<string, string> = { 'bun.lock': '{}\n' },
+  lockfile?: string,
+) {
   const root = await mkdtemp(join(tmpdir(), 'refit-pin-upgrade-'));
   roots.push(root);
   const repository = join(root, 'repository');
   for (const [path, content] of Object.entries({
     'package.json': JSON.stringify({ dependencies: { stripe: '22.6.2' } }),
-    'bun.lock': '{}\n',
+    ...lockfiles,
     [`lib/stripe.${extension}`]: `import Stripe from 'stripe';\nexport const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '${BEFORE}' });\nexport const checkout = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });\n`,
   })) {
     await mkdir(dirname(join(repository, path)), { recursive: true });
@@ -89,6 +94,7 @@ async function scan(extension: 'ts' | 'js') {
     apiVersion: BEFORE,
     proposePatch: true,
     leaveReviewedFindings: true,
+    lockfile,
   });
 }
 
@@ -131,4 +137,33 @@ it('still moves a JavaScript pin, which no installed type checks', async () => {
   if (!('diff' in report.patch)) throw new Error('Expected a patch');
   expect(report.patch.diff).toContain(`apiVersion: '${TARGET}'`);
   expect(report.patch).not.toHaveProperty('pinBlocked');
+});
+
+// ItusiAI/Open-Magiviz commits package-lock.json and pnpm-lock.yaml. The workflow's scan has no
+// lockfile choice yet, so a refusal of both together must not keep the pin; validation chooses one.
+it('holds the pin only once a chosen lockfile is refused, when several are committed', async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  const lockfiles = {
+    // lockfileVersion 1 is refused before any registry request.
+    'package-lock.json': JSON.stringify({
+      name: 'app',
+      lockfileVersion: 1,
+      packages: { '': { dependencies: { stripe: '22.6.2' } } },
+    }),
+    'pnpm-lock.yaml': "lockfileVersion: '9.0'\n",
+  };
+  const unchosen = await scan('ts', lockfiles);
+  if (!('diff' in unchosen.patch)) throw new Error('Expected a patch');
+  expect(unchosen.patch.diff).toContain(`apiVersion: '${TARGET}'`);
+  expect(unchosen.patch).not.toHaveProperty('pinBlocked');
+
+  const chosen = await scan('ts', lockfiles, 'package-lock.json');
+  if (!('diff' in chosen.patch)) throw new Error('Expected a patch');
+  expect(chosen.patch.diff).not.toContain(`'${TARGET}'`);
+  expect(chosen.patch).toMatchObject({
+    keptApiVersion: true,
+    pinBlocked: 'Only npm lockfile versions 2 and 3 are upgraded.',
+  });
+  expect(fetch).not.toHaveBeenCalled();
 });
