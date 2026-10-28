@@ -9,7 +9,12 @@ import {
   type StripeOperation,
 } from './stripe-operations.ts';
 import { PipelineInputError, type Repository } from './types.ts';
-import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import {
+  NO_USAGE_REASON,
+  proposalReviewReason,
+  scanReviewReason,
+  versionBumpBlock,
+} from './workflow.ts';
 import { targetReached } from './migration-review.ts';
 
 // Refit adapters accept at most 100 operations; Stripe exposes far more, so each repository
@@ -107,7 +112,7 @@ export function summaryTable(entries: Record<string, unknown>[]) {
   return [
     '# Stripe benchmark summary',
     '',
-    `Repositories: ${rows.length}. Affected in either mode: ${affected.length}. Production mode runs the full contract diff, as a hosted worker does, with the benchmark's SDK-spec adapter (customerMode records the built-in adapter's scan); benchmark mode turns the full diff off. Pull requests: ${count('outcome', 'pull request')}.`,
+    `Repositories: ${rows.length}. Affected in either mode: ${affected.length}. Production mode runs the full contract diff, as a hosted worker does, with the benchmark's SDK-spec adapter (customerMode records the built-in adapter's scan); benchmark mode turns the full diff off. Pull requests: ${count('outcome', 'pull request')}. Version bumps (every Stripe call traced, none affected; counted apart from migration fixes): ${count('outcome', 'version-bump')}.`,
     ...(predates.length
       ? [
           '',
@@ -215,28 +220,36 @@ type ScanInputs = {
   apiVersion: string;
   providerConfig: string;
   keepListedPaymentMethods?: boolean;
+  fullDiff?: boolean;
 };
 
-// The workflow's scan stage: why it stops, if it does, and the proposed patch.
+// The workflow's scan stage: why it stops, if it does, and the proposed patch. Where the scan finds
+// no usage, `versionBump` says why runWorkflow opens no version bump, or `eligible` when it tries one.
 export async function workflowScan(
   inputs: ScanInputs,
   aiPatch: boolean,
   leaveReviewedFindings: boolean,
 ) {
-  return runPipeline({ ...inputs, proposePatch: true, leaveReviewedFindings }).then(
-    (scan) => ({
-      stop: targetReached(scan)
-        ? undefined
-        : (scanReviewReason(scan, aiPatch, leaveReviewedFindings) ??
-          proposalReviewReason(scan, aiPatch)),
+  try {
+    const scan = await runPipeline({ ...inputs, proposePatch: true, leaveReviewedFindings });
+    const stop = targetReached(scan)
+      ? undefined
+      : (scanReviewReason(scan, aiPatch, leaveReviewedFindings) ??
+        proposalReviewReason(scan, aiPatch));
+    if (!stop?.startsWith(NO_USAGE_REASON)) return { stop, patch: scan.patch };
+    const block = await versionBumpBlock(scan, inputs.repository);
+    return {
+      stop: block ? `${stop} Refit opened no version bump: ${block}` : undefined,
       patch: scan.patch,
-    }),
-    (error: unknown) => ({
+      versionBump: block ?? 'eligible',
+    };
+  } catch (error) {
+    return {
       stop: undefined,
       patch: undefined,
       error: error instanceof Error ? error.message : String(error),
-    }),
-  );
+    };
+  }
 }
 
 export async function workflowScanStop(

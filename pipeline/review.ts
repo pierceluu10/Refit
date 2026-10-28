@@ -625,23 +625,27 @@ export function createReviewArtifacts(
   const subscriptionPolicy = report.findings.some((finding) => finding.webhook?.migration)
     ? report.adapter.stripeSubscriptionPeriods
     : undefined;
-  const description = subscriptionPolicy
-    ? 'preserve subscription periods after item-level billing'
-    : request && requestChanges.length === 1 && !operationChanges.length && !readChanges.length
-      ? `update ${request.resource}.${request.method} after ${request.removed} removal`
-      : endpoint && operationChanges.length === 1 && !readChanges.length
-        ? `replace retired ${endpoint.resource}.${endpoint.method} calls`
-        : cardRename && !readChanges.length
-          ? 'move payment_method_types to allowed_payment_method_types'
-          : currencyEdits.length && !readChanges.length
-            ? 'lowercase currency codes'
-            : change && readChanges.length === 1
-              ? provider === 'Stripe' &&
-                change.schema === 'payment_intent' &&
-                change.property === 'charges'
-                ? 'restore payment history after charges removal'
-                : `migrate removed ${change.schema}.${change.property} reads`
-              : `migrate removed ${provider} API fields`;
+  // docs/VERSION-BUMP-PRS.md: every Stripe call traced and none uses what the target changes.
+  const versionBump = 'versionBump' in patch && patch.versionBump === true;
+  const description = versionBump
+    ? `upgrade Stripe API to ${report.apiVersion.after}`
+    : subscriptionPolicy
+      ? 'preserve subscription periods after item-level billing'
+      : request && requestChanges.length === 1 && !operationChanges.length && !readChanges.length
+        ? `update ${request.resource}.${request.method} after ${request.removed} removal`
+        : endpoint && operationChanges.length === 1 && !readChanges.length
+          ? `replace retired ${endpoint.resource}.${endpoint.method} calls`
+          : cardRename && !readChanges.length
+            ? 'move payment_method_types to allowed_payment_method_types'
+            : currencyEdits.length && !readChanges.length
+              ? 'lowercase currency codes'
+              : change && readChanges.length === 1
+                ? provider === 'Stripe' &&
+                  change.schema === 'payment_intent' &&
+                  change.property === 'charges'
+                  ? 'restore payment history after charges removal'
+                  : `migrate removed ${change.schema}.${change.property} reads`
+                : `migrate removed ${provider} API fields`;
   const versionTitle = shopify ? `upgrade Admin API to ${report.apiVersion.after}` : undefined;
   const scope = (
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
@@ -890,6 +894,11 @@ export function createReviewArtifacts(
         }`,
       ]
     : [
+        ...(versionBump
+          ? [
+              `None of ${plainText(provider)} API ${after}'s breaking changes reaches the traced calls (see Changed, Not Used By Traced Code).`,
+            ]
+          : []),
         ...(readChanges.length
           ? [`Removes response fields ${changes} in ${plainText(provider)} API ${after}.`]
           : []),
@@ -1192,6 +1201,11 @@ export function createReviewArtifacts(
     `Refit changed nothing outside this repository${stripe ? ': no Stripe Dashboard, webhook endpoint or account setting' : ''}.`,
   ];
   const checklist = [
+    ...(versionBump
+      ? [
+          "Check each webhook endpoint's API version in the Stripe Dashboard (Developers > Webhooks). Endpoints have their own version, which this pull request does not change.",
+        ]
+      : []),
     `Read each change under Code Changes${sources.length ? ' against the provider page linked in Overview' : ''}.`,
     ...(dependency
       ? [
@@ -1250,13 +1264,16 @@ export function createReviewArtifacts(
                 `Fix what ${commandText(validation.command)} reports on the migrated code (see Automated Verification Gates).`,
               ]),
   ];
-  const overview = shopify
-    ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
-    : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${
-        patch.diff
-          ? `${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount}.`
-          : `No Refit rule changes the ${usageCount} in ${fileCount}, so this patch changes no files.`
-      }`;
+  const tracedCalls = versionBump ? report.sdkCalls.length : 0;
+  const overview = versionBump
+    ? `Refit traced ${tracedCalls} ${plainText(provider)} call${tracedCalls === 1 ? '' : 's'} in this code, and none uses anything ${plainText(provider)} API ${after} changes. This patch moves every ${code('apiVersion')} pin to ${after}${upgrade ? ` and upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)} in the package manifest and lockfile` : ''}.${passed ? ' The checks passed before and after the change.' : ''}`
+    : shopify
+      ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
+      : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${
+          patch.diff
+            ? `${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount}.`
+            : `No Refit rule changes the ${usageCount} in ${fileCount}, so this patch changes no files.`
+        }`;
   const checks = passed
     ? passedChecks(validation)
     : dependency
@@ -1367,9 +1384,23 @@ export function createReviewArtifacts(
           ]
         : []),
       '## Overview',
-      shopify
-        ? overview
-        : `${overview}${sources.length ? ` ${plainText(provider)} documents the change: ${sources.join(', ')}.` : ''}`,
+      ...(versionBump
+        ? [
+            overview,
+            '## Traced Stripe Calls',
+            siteList(
+              report.sdkCalls.map(
+                (call) =>
+                  `${code(`${call.file}:${call.line}`)} ${code(`${call.resource}.${call.method}`)}`,
+              ),
+              Math.max(siteLimit, 1),
+            ),
+          ]
+        : [
+            shopify
+              ? overview
+              : `${overview}${sources.length ? ` ${plainText(provider)} documents the change: ${sources.join(', ')}.` : ''}`,
+          ]),
       '## API Impact & Spec Changes',
       [
         `- Breaking Changes: ${breaking.join(' ') || 'Recorded in the technical evidence.'}`,
