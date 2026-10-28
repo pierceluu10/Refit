@@ -784,7 +784,9 @@ async function prepareCandidateDependencies(
   },
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
-  await command('git', ['add', '-A'], candidateDirectory);
+  // The directory holds only the revision's archived files and the patch; --force keeps a tracked
+  // lockfile the repository's .gitignore also lists.
+  await command('git', ['add', '-A', '--force'], candidateDirectory);
   // A large tree would make the commit start `git gc --auto` in the background, which can still be
   // writing packs when the .git directory is removed below (ENOTEMPTY).
   await command(
