@@ -894,12 +894,18 @@ const EMITTING = (node: ts.Node) =>
   ts.isEnumDeclaration(node) || ts.isModuleDeclaration(node) || ts.isDecorator(node);
 
 // The compiler options of the tsconfig.json nearest to `path`, inside the repository, without the
-// options that only stop or redirect emit.
-export function emitOptions(root: string, path: string): ts.CompilerOptions {
+// options that only stop or redirect emit. Undefined when there is none or it does not resolve
+// completely (an `extends` Refit cannot read), since the defaults may emit differently.
+// shortcut: an `extends` from an installed package is not read in the sandbox and so refuses;
+// upgrade by resolving it from the prepared dependencies if a measured row needs it.
+export function emitOptions(root: string, path: string): ts.CompilerOptions | undefined {
   const config = ts.findConfigFile(dirname(join(root, path)), ts.sys.fileExists);
-  if (!config || relative(root, config).startsWith('..')) return {};
+  if (!config || relative(root, config).startsWith('..')) return;
   const parsed = ts.readConfigFile(config, ts.sys.readFile);
-  if (parsed.error) return {};
+  if (parsed.error) return;
+  const content = ts.parseJsonConfigFileContent(parsed.config, ts.sys, dirname(config));
+  // TS18003: no input files matched, which says nothing about the options.
+  if (content.errors.some((error) => error.code !== 18003)) return;
   const {
     noEmit,
     emitDeclarationOnly,
@@ -908,7 +914,7 @@ export function emitOptions(root: string, path: string): ts.CompilerOptions {
     composite,
     incremental,
     ...options
-  } = ts.parseJsonConfigFileContent(parsed.config, ts.sys, dirname(config)).options;
+  } = content.options;
   return options;
 }
 
@@ -932,7 +938,7 @@ export function typeOnlyRepairFailures(options: {
   before: Repository;
   after: Repository;
   errors: readonly { file: string; line: number; column: number }[];
-  compilerOptions: (path: string) => ts.CompilerOptions;
+  compilerOptions: (path: string) => ts.CompilerOptions | undefined;
 }) {
   const failures: string[] = [];
   const paths = new Set([...options.before.files, ...options.after.files].map((file) => file.path));
@@ -949,6 +955,10 @@ export function typeOnlyRepairFailures(options: {
       continue;
     }
     const compilerOptions = options.compilerOptions(path);
+    if (!compilerOptions) {
+      failures.push(`${path}: the repository's compiler options for the file cannot be read.`);
+      continue;
+    }
     const emit = (content: string) =>
       ts.transpileModule(content, { fileName: path, compilerOptions, reportDiagnostics: false })
         .outputText;
@@ -1017,11 +1027,13 @@ function enclosingStatement(source: ts.SourceFile, start: number, end: number) {
       ts.isBlock(node) ||
       ts.isSourceFile(node) ||
       ts.isModuleBlock(node) ||
-      ts.isCaseOrDefaultClause(node)
+      ts.isCaseOrDefaultClause(node) ||
+      ts.isClassLike(node)
     )
       return undefined;
-    // Text inserted where a statement starts is a statement of its own.
-    if (ts.isStatement(node))
+    // Text inserted where a statement starts is a statement of its own. A class member counts as
+    // one, so that an error in one method does not open the whole class.
+    if (ts.isStatement(node) || ts.isClassElement(node))
       return start === end && start === node.getStart(source) ? undefined : node;
   }
 }

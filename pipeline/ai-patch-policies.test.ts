@@ -1206,3 +1206,30 @@ it('holds an AI type repair to the same gate as the deterministic one', () => {
     ),
   ).toContain('src/sync.ts:4: the repair adds or removes a statement.');
 });
+
+it('refuses a class field next to the method that holds the error, and unread compiler options', () => {
+  // Emitted under useDefineForClassFields, `q;` resets what the base constructor set.
+  const before = `import Stripe from 'stripe';
+type Interval = 'month' | 'year';
+class Sync extends Base {
+  row(price: Stripe.Price) {
+    const interval: Interval = price.recurring!.interval;
+  }
+}
+`;
+  const after = before.replace(
+    'class Sync extends Base {\n',
+    'class Sync extends Base {\n  q: string;\n',
+  );
+  const gate = (compilerOptions: () => Record<string, never> | undefined) =>
+    typeOnlyRepairFailures({
+      before: repository('src/sync.ts', before),
+      after: repository('src/sync.ts', after),
+      errors: [{ file: 'src/sync.ts', line: 5, column: 11 }],
+      compilerOptions,
+    });
+  expect(gate(() => ({}))).toEqual(['src/sync.ts:4: the repair adds or removes a statement.']);
+  expect(gate(() => undefined)).toEqual([
+    "src/sync.ts: the repository's compiler options for the file cannot be read.",
+  ]);
+});

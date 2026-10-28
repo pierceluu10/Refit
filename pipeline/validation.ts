@@ -1785,9 +1785,10 @@ export async function validateMigration(options: {
         );
       return oracleRuns.get(key)!;
     };
-    // The errors the target stripe-node introduces into the original code, by file, code and
-    // message, or undefined when the oracle cannot run on this candidate.
-    const upgradeErrorKeys = async () => {
+    // Of `errors`, the ones the target stripe-node introduces into the original code: by file, code
+    // and message, and no more of each than the oracle's run has, so the same error a rule's edit
+    // repeats elsewhere does not count. None when the oracle cannot run on this candidate.
+    const upgradeErrors = async <T extends { key: string }>(errors: T[]) => {
       const command = oracleCommand(options.command);
       if (
         !command ||
@@ -1797,15 +1798,17 @@ export async function validateMigration(options: {
         !candidateDependencies ||
         candidateDependencies === dependencies
       )
-        return undefined;
+        return [];
       const run = await oracleCheck(
         packageDiff(proposal.diff, packageDirectory),
         command,
         candidateDependencies,
       ).catch(() => undefined);
-      return run && typeCheckFinished(run)
-        ? new Set(introducedTypeErrors(baselineRun, run).map((error) => error.key))
-        : undefined;
+      if (!run || !typeCheckFinished(run)) return [];
+      const count = (list: { key: string }[], key: string) =>
+        list.filter((error) => error.key === key).length;
+      const upgrade = introducedTypeErrors(baselineRun, run);
+      return errors.filter((error) => count(errors, error.key) <= count(upgrade, error.key));
     };
     const inPackage = <T extends { file: string }>(error: T) =>
       packageDirectory ? { ...error, file: `${packageDirectory}/${error.file}` } : error;
@@ -2001,10 +2004,17 @@ export async function validateMigration(options: {
       sdkUpgrade?.to
         ? introducedTypeErrors(baselineRun, patched)
         : [];
-    const upgradeKeys = assertionCandidates.length ? await upgradeErrorKeys() : undefined;
-    const fromUpgrade = upgradeKeys
-      ? assertionCandidates.filter((error) => upgradeKeys.has(error.key)).map(inPackage)
-      : [];
+    // The oracle runs only where some error has an assertion shape at all.
+    const fromUpgrade =
+      candidateSources &&
+      restorableOpenEnumErrors(
+        candidateSources.files,
+        assertionCandidates.map(inPackage),
+        undefined,
+        true,
+      ).length
+        ? (await upgradeErrors(assertionCandidates)).map(inPackage)
+        : [];
     const assertionErrors =
       candidateSources && fromUpgrade.length
         ? options.aiPatch && ruleSources
@@ -2259,6 +2269,8 @@ export async function validateMigration(options: {
         coverage.error = `${error.name}: ${error.message}`;
       }
     }
+    let typeRepair:
+      { base: Repository; errors: { file: string; line: number; column: number }[] } | undefined;
     while (
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
@@ -2303,14 +2315,15 @@ export async function validateMigration(options: {
       // Founders' decision (2026-10-27): when every error left is one the stripe-node upgrade
       // introduced into the original code, the AI repairs types only, under the same type-only
       // gate as the deterministic assertions, and ships [Needs review] (decision 8).
-      const keys = introduced.length ? await upgradeErrorKeys() : undefined;
-      const typeRepairBase =
-        keys &&
+      // Once it applies, it holds for every later round, against the candidate it first applied to.
+      if (
+        !typeRepair &&
+        introduced.length &&
         candidateSources &&
         !(rules && coverage?.outcome === 'checks-failed') &&
-        introduced.every((error) => keys.has(error.key))
-          ? candidateSources
-          : undefined;
+        (await upgradeErrors(introduced)).length === introduced.length
+      )
+        typeRepair = { base: candidateSources, errors: introduced.map(inPackage) };
       repair.requested++;
       options.onProgress?.(
         `Patched checks failed. Requesting AI repair ${repair.requested} of ${repairLimit}...`,
@@ -2396,11 +2409,11 @@ export async function validateMigration(options: {
           repair.error = `AI repair drops removed request parameter ${dropped.join(', ')}; it stops for review.`;
           break;
         }
-        const typeOnly = typeRepairBase
+        const typeOnly = typeRepair
           ? typeOnlyRepairFailures({
-              before: typeRepairBase,
+              before: typeRepair.base,
               after: preparedCandidate.sources,
-              errors: introduced.map(inPackage),
+              errors: typeRepair.errors,
               compilerOptions: (path) => emitOptions(preparedCandidate.sources.root, path),
             })
           : [];
