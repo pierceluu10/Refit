@@ -197,7 +197,7 @@ export async function catalog() {
 });
 
 it('clears a webhook handler read on a local object and keeps the event payload', async () => {
-  const local = `interface Account { subscription: string | null }
+  const local = `interface Account { email: string; subscription: string | null }
 const accounts = new Map<string, Account>();
 export function handle(event: { type: string; data: { object: unknown } }, id: string) {
   const account = accounts.get(id);
@@ -294,4 +294,78 @@ export const plan = async () => (await prisma.subscription.findFirst())?.price; 
     await proof(content, start, 'price', {}, { typeChecked: () => false, changes: CHANGES }),
   ).toBeUndefined();
   expect(await proof(content, start, 'price', {}, { typeChecked: () => true })).toBeUndefined();
+});
+
+it('keeps a receiver whose type a Stripe object fits, however the object gets there', async () => {
+  // Line accepts a Stripe line item structurally, so tsc lets one through each of these writes.
+  const head = `import Stripe from 'stripe';
+const stripe = new Stripe('sk_test');
+interface Line { id: string; price: { id: string } | null }
+`;
+  const writes: [string, string][] = [
+    [
+      `const order: { item: Line } = { item: { id: 'x', price: null } };
+export async function f() {
+  order.item = (await stripe.invoiceItems.list()).data[0];
+  return order.item.price; // read
+}
+`,
+      'order.item',
+    ],
+    [
+      `export async function f() {
+  const rows: Line[] = [];
+  rows.push((await stripe.invoiceItems.list()).data[0]);
+  return rows[0].price; // read
+}
+`,
+      'rows[0]',
+    ],
+    [
+      `const cache = new Map<string, Line>();
+export async function f() {
+  cache.set('a', (await stripe.invoiceItems.list()).data[0]);
+  return cache.get('a')!.price; // read
+}
+`,
+      'cache.get',
+    ],
+    [
+      `class Cart {
+  constructor(private line: Line) {}
+  total() { return this.line.price; } // read
+}
+export const f = async () => new Cart((await stripe.invoiceItems.list()).data[0]).total();
+`,
+      'this.line',
+    ],
+    [
+      `async function load(): Promise<Line> { return (await stripe.invoiceItems.list()).data[0]; }
+export async function f() {
+  const [line] = await Promise.all([load()]);
+  return line.price; // read
+}
+`,
+      'line.price',
+    ],
+    [
+      `export async function f() {
+  const rows: Line[] = (await stripe.invoiceItems.list()).data;
+  for (const row of rows) console.log(row.price); // read
+}
+`,
+      'row.price',
+    ],
+    [
+      `export async function f() {
+  const row = { id: '', price: null as { id: string } | null };
+  Object.assign(row, (await stripe.invoiceItems.list()).data[0]);
+  return row.price; // read
+}
+`,
+      'row.price',
+    ],
+  ];
+  for (const [code, start] of writes)
+    expect(await proof(head + code, start, 'price'), start).toBeUndefined();
 });

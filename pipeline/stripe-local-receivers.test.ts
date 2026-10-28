@@ -22,6 +22,9 @@ declare class Stripe {
 export = Stripe;
 `;
 
+// The removed field the reads name: line_item.price.
+const CHANGES = [{ id: 'line-item-price', schema: 'line_item' }];
+
 const directories: string[] = [];
 afterEach(async () => {
   await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true })));
@@ -59,6 +62,7 @@ function read(content: string, file: string, receiver: string) {
     line: line + 1,
     column: lines[line].indexOf(`${receiver}.price`) + 1,
     expression: '.price',
+    changeId: 'line-item-price',
   };
 }
 
@@ -71,7 +75,10 @@ async function proof(
   options: LocalReceiverOptions = { typeChecked: () => true },
 ) {
   const repository = await checkout({ [file]: content, ...extra });
-  return localReceiverReads(repository, [read(content, file, receiver)], options)[0]?.proof;
+  return localReceiverReads(repository, [read(content, file, receiver)], {
+    changes: CHANGES,
+    ...options,
+  })[0]?.proof;
 }
 
 async function cleared(file: string, content: string, receiver: string, extra = {}) {
@@ -196,7 +203,9 @@ export async function load(stripe: Stripe, id: string) {
   expect(
     await cleared('src/helper.ts', helper('await stripe.invoiceItems.retrieve(id)'), 'line'),
   ).toBe(false);
-  expect(await cleared('src/local.ts', helper("{ price: { id: 'p' } }"), 'line')).toBe(true);
+  // Since a line item fits `Line`, a Stripe object could reach it by any write tsc accepts, so
+  // even a helper whose only caller passes a literal stays held.
+  expect(await cleared('src/local.ts', helper("{ price: { id: 'p' } }"), 'line')).toBe(false);
   // Callers outside the repository are not seen.
   expect(
     await cleared('src/exported.ts', helper("{ price: { id: 'p' } }", 'export '), 'line'),

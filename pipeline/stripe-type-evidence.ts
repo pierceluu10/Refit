@@ -218,8 +218,15 @@ export function localReceiverReads<
     .filter((path) => SOURCE.test(path) && !TEST_PATH.test(path));
   if (!candidates.length || files.length > MAX_TYPED_FILES) return [];
   const root = resolve(repository.root);
+  // The installed stripe types are loaded even where no file imports them, so the receiver-type
+  // checks can compare with them (acceptsSchema).
+  const stripe = stripePackageDirectory(root);
+  const entry = stripe ? stripeTypesEntry(stripe) : undefined;
   const program = ts.createProgram(
-    files.map((path) => resolve(root, path)),
+    [
+      ...files.map((path) => resolve(root, path)),
+      ...(entry ? [entry.ambient ?? entry.module!] : []),
+    ],
     compilerOptions(root),
   );
   const checker = program.getTypeChecker();
@@ -317,6 +324,28 @@ export function localReceiverReads<
       }
       return false;
     });
+  // No repository code can change an object's properties: no reference is written through, passed
+  // to a call (`Object.assign(row, …)`), returned, or copied into another binding or literal.
+  const unchanged = (symbol: ts.Symbol) =>
+    referencesOf(symbol).every((reference) => {
+      const parent = reference.parent;
+      if (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent))
+        return (
+          parent.expression !== reference ||
+          (!assigned(parent) && !ts.isDeleteExpression(parent.parent))
+        );
+      return !(
+        ((ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+          parent.arguments?.includes(reference)) ||
+        ts.isReturnStatement(parent) ||
+        ts.isArrowFunction(parent) ||
+        ts.isArrayLiteralExpression(parent) ||
+        ts.isPropertyAssignment(parent) ||
+        ts.isShorthandPropertyAssignment(parent) ||
+        (ts.isVariableDeclaration(parent) && parent.initializer === reference) ||
+        (ts.isBinaryExpression(parent) && parent.right === reference && assigned(parent.left))
+      );
+    });
   // A `const` binding cannot be reassigned, but an array's elements can be replaced or added to.
   const literalBinding = (
     node: ts.Expression,
@@ -334,7 +363,7 @@ export function localReceiverReads<
       constant(declaration) &&
       declaration.initializer &&
       literal(declaration.initializer, depth + 1) &&
-      (!elements || unwritten(symbol)),
+      (elements ? unwritten(symbol) : unchanged(symbol)),
     );
   };
   const literalArray = (node: ts.Expression, depth = 0): boolean => {
@@ -439,9 +468,59 @@ export function localReceiverReads<
       })
     );
   };
-  const repositoryType = (access: ts.PropertyAccessExpression, file: string) => {
+  // The installed stripe package's types for each schema, by the SDK spec's resource names.
+  let stripeTypes: Map<string, ts.Type[]> | undefined;
+  const schemaTypes = (schema: string) => {
+    if (!stripeTypes) {
+      const found = new Map<string, ts.Type[]>();
+      const visit = (node: ts.Node, stripe: string) => {
+        if (
+          (ts.isInterfaceDeclaration(node) || ts.isClassDeclaration(node)) &&
+          node.name &&
+          !node.typeParameters
+        ) {
+          const symbol = checker.getSymbolAtLocation(node.name);
+          const type = symbol && checker.getDeclaredTypeOfSymbol(symbol);
+          const name = type ? (typeNames(type, checker, stripe)[0] ?? '') : '';
+          const mapped = name.startsWith('Stripe.') ? classSchemas.get(name.slice(7)) : undefined;
+          if (type && mapped) found.set(mapped, [...(found.get(mapped) ?? []), type]);
+        }
+        ts.forEachChild(node, (child) => visit(child, stripe));
+      };
+      for (const source of program.getSourceFiles()) {
+        const stripe = STRIPE_PACKAGE.exec(source.fileName)?.[1];
+        if (stripe) visit(source, stripe);
+      }
+      stripeTypes = found;
+    }
+    return stripeTypes.get(schema) ?? [];
+  };
+  // A passing type check lets a Stripe object reach a receiver without a cast only where its type
+  // is assignable to the receiver's, however the value travels (a property write, push, Map.set,
+  // a spread, a constructor). With the target stripe-node the removed field is gone from it, so a
+  // receiver that requires the field cannot take it. Unknown schemas and types prove nothing.
+  // shortcut: a value typed `any` (JSON.parse, an untyped library) written into the receiver is not
+  // seen; upgrade by following writes if a review finds one.
+  const acceptsSchema = (receiver: ts.Type, schemas: readonly string[]) => {
+    if (receiver.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return true;
+    const types = schemas.map(schemaTypes);
+    return (
+      !schemas.length ||
+      types.some((list) => !list.length) ||
+      types.some((list) => list.some((type) => checker.isTypeAssignableTo(type, receiver)))
+    );
+  };
+  const schemasOf = (read: Read) =>
+    (options.changes ?? [])
+      .filter((change) => change.id === read.changeId)
+      .map((change) => change.schema);
+  const receiverOf = (access: ts.PropertyAccessExpression) =>
+    checker.getNonNullableType(checker.getTypeAtLocation(access.expression));
+  const repositoryType = (access: ts.PropertyAccessExpression, read: Read) => {
+    const file = read.file;
     if (!TYPESCRIPT.test(file) || !(options.typeChecked?.(file) ?? false)) return false;
     if (asserted(access.expression, checker)) return false;
+    if (acceptsSchema(receiverOf(access), schemasOf(read))) return false;
     const declarations = checker.getSymbolAtLocation(access.name)?.getDeclarations() ?? [];
     return (
       declarations.length > 0 &&
@@ -713,15 +792,10 @@ export function localReceiverReads<
   };
   const receiverType = (access: ts.PropertyAccessExpression, read: Read) => {
     if (!TYPESCRIPT.test(read.file) || !(options.typeChecked?.(read.file) ?? false)) return false;
-    const schemas = (options.changes ?? [])
-      .filter((change) => change.id === read.changeId)
-      .map((change) => change.schema);
+    const schemas = schemasOf(read);
     return (
-      schemas.length > 0 &&
-      notSchema(
-        checker.getNonNullableType(checker.getTypeAtLocation(access.expression)),
-        schemas,
-      ) &&
+      !acceptsSchema(receiverOf(access), schemas) &&
+      notSchema(receiverOf(access), schemas) &&
       propertyNotSchema(access, schemas) &&
       flows(access.expression, schemas)
     );
@@ -753,7 +827,7 @@ export function localReceiverReads<
       return scope.getStart(source) <= position && position < scope.getEnd();
     });
     if (tracedHere) continue;
-    const proof: LocalProof | undefined = repositoryType(access, read.file)
+    const proof: LocalProof | undefined = repositoryType(access, read)
       ? 'repository-type'
       : literalObject(access.expression)
         ? 'literal-config'
