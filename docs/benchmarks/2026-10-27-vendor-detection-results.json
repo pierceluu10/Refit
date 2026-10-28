@@ -1,7 +1,8 @@
 {
   "formatVersion": 1,
+  "commit": "22058f325e03a07abc089d879122fbe79e62bda7",
   "labels": "docs/benchmarks/2026-10-27-vendor-detection-labels.json",
-  "scannedAt": "2026-10-27T16:57:29.574Z",
+  "scannedAt": "2026-10-28T02:16:20.486Z",
   "scores": {
     "all": {
       "repositories": 26,
