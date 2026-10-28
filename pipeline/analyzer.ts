@@ -889,7 +889,9 @@ export function analyzeRepository(
       expression = expression.expression;
     if (ts.isCallExpression(expression)) {
       const callee = expression.expression;
-      if (ts.isIdentifier(callee) && helperReturns.has(symbol(callee)!)) return true;
+      // A transparent wrapper or a declared Stripe return type already traces the call.
+      if (ts.isIdentifier(callee) && helperReturns.has(symbol(callee)!))
+        return !wrappers.has(symbol(callee)!) && !stripeTypes?.expressionSchema(expression);
       return ts.isPropertyAccessExpression(callee) && fromHelper(callee.expression, seen);
     }
     if (!ts.isIdentifier(expression)) return false;

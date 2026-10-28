@@ -268,7 +268,8 @@ it('traces a listed object through at(), find() and a filtered copy', () => {
     ).toEqual([['.current_period_end', 'confirmed', false]]);
 });
 
-it('traces what a local helper returns and passes, with review confidence', () => {
+// A helper that only returns the SDK call is a transparent wrapper: reads through it stay confirmed.
+it('traces what a local helper passes with review confidence, and a wrapper return as confirmed', () => {
   const result = analyze(`async function load(id: string) {
   return stripe.subscriptions.retrieve(id)
 }
@@ -282,7 +283,7 @@ export async function GET(id: string) {
 `);
   expect(traced(result)).toEqual([
     ['.current_period_end', 'review', false],
-    ['.current_period_end', 'review', false],
+    ['.current_period_end', 'confirmed', false],
   ]);
 });
 
