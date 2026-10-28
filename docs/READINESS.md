@@ -19,6 +19,19 @@ Founder decision (Otabek, 2026-10-28), widening D2b: an untraced read of a remov
 ## October 28 checkpoint: one of several committed lockfiles, chosen by rule (unreleased, after 0.39.0)
 
 Founder decision (Otabek, 2026-10-28). A root that commits more than one of `package-lock.json`, `pnpm-lock.yaml` and `yarn.lock` no longer stops as `conflicting-dependency-files` when a rule picks one: the `packageManager` pin (unless a workflow installs with another manager), else the only manager the GitHub workflows install with, else the only lockfile in sync with `package.json`, else the most recently committed lockfile in sync (`chosenLockfile`, `pipeline/dependency-inputs.ts`). Refit installs only that one; the draft names it, the rule and what each other one shows. Ties, shallow history, pins without their lockfile, workflows with two managers, and a chosen lockfile that fails its own checks keep stopping; tracked `node_modules`, shrinkwrap and pnpm hooks are unchanged. The stripe-node upgrade edits every lockfile when it can and otherwise only the chosen one, and the draft says which lockfiles still lock the older `stripe`. The managed checkout and the benchmark fetch blobless history only when a commit has two or more root lockfiles. Verified: refit-bench l2-push-249 40624045392 (main, 84 validated) → 40626067947 (lane A, 90) → 40634781011 (this change, 96), none lost; the subset run 40634774301 validates 3 of the 7 conflicting-lockfile stops. heldout-30: 40624360669 → 40682647162, 10 → 12 validated, none lost. The six newly validated patches are read and labelled `correct` in `docs/benchmarks/fix-reviews.json`. See [Dependencies](DEPENDENCIES.md) and [Benchmarks](BENCHMARKS.md#conflicting-lockfiles-chosen-by-rule-october-28).
+## October 28 checkpoint: type-only repair of upgrade-introduced type errors (unreleased, after 0.39.0)
+
+Under the founders' decision of 2026-10-27, validation can repair type errors that the stripe-node upgrade introduces into application code. Such a repair must pass `typeOnlyRepairFailures` (`pipeline/ai-patch-policies.ts`):
+
+- Each changed TypeScript file compiles with `transpileModule` under the repository's own compiler options to the same JavaScript as before.
+- The repair edits only statements holding an error the oracle lists as introduced, and adds no statements.
+- It writes no enum, namespace or decorator.
+
+The deterministic repair (`openEnumRepair` in `pipeline/stripe-open-enums.ts`, `type-assertion-repair`) asserts the narrower type where a widened Stripe value is assigned. It does so only when the file can name the target type and the assertion drops no `null` or `undefined`. A repair that passes the gate and the checks may publish validated, and the draft names each assertion.
+
+An AI repair of errors that all come from the upgrade must pass the same gate, and it stays `[Needs review]`.
+
+On refit-bench no outcome changed, with or without AI: l2-push-249 has 84 validated (88 with AI) and heldout-30 has 10 (11 with AI). One patch keeps its pin move and upgrade through a deterministic assertion, reviewed `correct`. Its draft stays `[Needs review]` for an untraced read. No AI repair reached the gate, because the upgrade's remaining errors are removals, arity changes and null widening, which no type assertion may honestly fix ([benchmarks](BENCHMARKS.md#type-only-repair-of-upgrade-introduced-type-errors-october-28)). Tests: `pipeline/ai-patch-policies.test.ts`, `pipeline/stripe-open-enums.test.ts`, `pipeline/review.test.ts`.
 
 ## October 27 checkpoint: install-time vendor detection (unreleased, after 0.39.0)
 

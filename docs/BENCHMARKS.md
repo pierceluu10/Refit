@@ -479,6 +479,41 @@ An `apiVersion` pin was `api-version-untraced` whenever its client could escape 
 - **What still stops.** 16 l2-push-249 rows keep an untraced version, from clients passed to helpers Refit cannot read, class bindings, or ambiguous aliases. Webhook endpoint versions are unchanged by this lane, and failed pin-move errors on `api-version-kept` drafts are still not recorded.
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## Type-only repair of upgrade-introduced type errors (October 28)
+
+`claude/stripe-type-repair-gate` repairs type errors the stripe-node upgrade introduces in application code, under the founders' decision of 2026-10-27, without changing runtime behaviour. Each repair passes a type-only gate (`typeOnlyRepairFailures` in `pipeline/ai-patch-policies.ts`):
+
+- Every changed file must compile to the same JavaScript under the repository's compiler options.
+- The repair may edit only statements that hold an error the type oracle lists as introduced.
+- It may not touch an enum, namespace or decorator.
+
+The deterministic repair asserts the narrower type at the site where a widened Stripe type is assigned (`stripe-open-enums.ts`). An AI repair of such errors must pass the same gate and stays `[Needs review]` ([guard](AI-PATCH-GUARD.md#type-only-repairs-of-upgrade-introduced-type-errors-october-27)).
+
+| Set (default flags)                      | Before: main `89f1c0ed` | After: `d311ec37` |
+| ---------------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated, no AI |                      84 |                84 |
+| l2-push-249: production validated, AI    |                      88 |                88 |
+| heldout-30: production validated, no AI  |                      10 |                10 |
+| heldout-30: production validated, AI     |                      11 |                11 |
+
+- **Runs.**
+  - Before, at `89f1c0ed`: l2-push-249 no AI [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) and AI [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726); heldout-30 no AI [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669) and AI [40624075884](https://github.com/refit-dev/refit-bench/actions/runs/40624075884).
+  - After, at `d311ec37`: l2-push-249 no AI [40626081878](https://github.com/refit-dev/refit-bench/actions/runs/40626081878) and AI [40626090687](https://github.com/refit-dev/refit-bench/actions/runs/40626090687); heldout-30 no AI [40626098795](https://github.com/refit-dev/refit-bench/actions/runs/40626098795) and AI [40626107102](https://github.com/refit-dev/refit-bench/actions/runs/40626107102).
+  - Dispatch: `gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249` and `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`, each also with `-f ai=true -f ai_budget=200` (l2) or `30` (heldout).
+  - AI spend: l2 $1.07 before and $1.10 after; heldout $0.16 both times.
+- **1 patch improves; it is not newly validated.** On Alex-Unnippillil/share-house-portal, the stripe-node 16.6.0 → 23.0.0 upgrade broke the type check with TS2322: the widened `Subscription.Status` was returned as the narrower Supabase status union. The patch therefore kept the old pin and package (`api-version-kept`).
+  - The fix is one assertion inside the `if` that already narrows `status` to those four literals. It passes the gate, and the tests and `tsc` pass in offline Docker (grade B). The patch now moves the pin to `2026-09-30.endive` and upgrades stripe-node in both lockfiles.
+  - Without AI and with AI the patch is byte-identical. Read in full and reviewed `correct` in [fix-reviews.json](benchmarks/fix-reviews.json).
+  - The draft stays `[Needs review]` for one untraced `.type` read on a Plaid object, so the validated count does not move.
+- **Other changed rows are run noise, none lost.** Without AI, 246 of 249 rows are identical in every compared field; with AI, also 246. Both heldout-30 pairs are identical on 30 of 30.
+  - kondax-com/Bocker fails its own baseline in one run of each pair (a 288 ms timing test).
+  - vinroger/onellm-frontend hit the 300-second dependency-preparation limit in the after run without AI.
+  - CRONANANI/EzanaFinance3 reached the 20-minute limit in the before run with AI.
+- **The AI path was never exercised.** No row had only upgrade-introduced errors that the deterministic repair left. The AI type-only gate refused nothing because nothing reached it.
+  - The patched type errors on l2-push-249 (79 on 12 rows in run 40591181316) are mostly removed fields, removed request parameters, arity changes, nullable widening and errors in JavaScript files. A type-only repair must not hide those.
+  - Only Bocker shows the widened-enum shape (4 errors), beside 31 others.
+- **Not measured:** publication and the hosted worker.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).
