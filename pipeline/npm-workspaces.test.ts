@@ -73,17 +73,32 @@ it('reads the { packages } declaration the way npm does', () => {
   ).toEqual(['extensions/theme']);
 });
 
+it('excludes what a negation after the positive patterns matches, as npm and pnpm do', () => {
+  const paths = ['packages/a', 'examples/react', 'examples/stackblitz-vue', 'tools/x'].map(
+    (directory) => `${directory}/package.json`,
+  );
+  expect(
+    npmWorkspaceDirectories(
+      { workspaces: ['packages/*', 'examples/*', '!examples/stackblitz-vue'] },
+      paths,
+    ),
+  ).toEqual(['examples/react', 'packages/a']);
+  expect(npmWorkspaceDirectories({ workspaces: ['!packages/a'] }, paths)).toEqual([]);
+});
+
 it.each([
   ['../outside/*'],
+  ['!../outside'],
   ['/private/*'],
-  ['!packages/a'],
+  ['!packages/a', 'packages/*'],
+  ['packages/*', '!!packages/a'],
   { packages: ['packages/*'], nohoist: ['**'] },
   { packages: ['../outside/*'] },
   ['packages/\n*'],
   [null],
 ])('rejects unsupported or escaping declarations before reading extra files: %j', (workspaces) => {
   expect(() => npmWorkspaceDirectories({ ...manifest, workspaces }, [])).toThrow(
-    /positive relative/,
+    /relative path\/glob patterns, with any negations after/,
   );
 });
 

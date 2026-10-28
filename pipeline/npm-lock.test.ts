@@ -40,6 +40,48 @@ it('retains exact committed input hashes and accepts public scoped packages and 
   });
 });
 
+it('accepts a sha1 hash beside a SHA-512 one, which npm checks instead, and a leftover extraneous directory record', () => {
+  const lockContent = JSON.stringify({
+    ...lock,
+    packages: {
+      ...lock.packages,
+      'node_modules/stripe': {
+        ...record,
+        integrity: `sha1-${Buffer.alloc(20).toString('base64')} ${STRONG_INTEGRITY}`,
+      },
+      engines: { extraneous: true },
+    },
+  });
+  expect(validateNpmLock(JSON.stringify(manifest), lockContent)).toMatchObject({ packages: 2 });
+});
+
+it.each([
+  { ...record, integrity: `sha1-${Buffer.alloc(20).toString('base64')}` },
+  { ...record, integrity: `sha1-YWJjZA== ${STRONG_INTEGRITY}` },
+  { ...record, integrity: `${STRONG_INTEGRITY} md5-${Buffer.alloc(16).toString('base64')}` },
+])('refuses integrity without a well-formed SHA-256-or-stronger hash: %j', (value) => {
+  expect(() =>
+    validateNpmLock(
+      JSON.stringify(manifest),
+      JSON.stringify({ ...lock, packages: { '': manifest, 'node_modules/stripe': value } }),
+    ),
+  ).toThrow(/SHA-256-or-stronger/);
+});
+
+it.each([
+  { engines: { extraneous: true, resolved: 'https://registry.npmjs.org/a/-/a-1.0.0.tgz' } },
+  { engines: { extraneous: true, link: true, resolved: 'engines' } },
+  { engines: { version: '1.0.0' } },
+  { 'engines/node_modules/a': { extraneous: true } },
+])('refuses directory records npm could install from: %j', (extra) => {
+  expect(() =>
+    validateNpmLock(
+      JSON.stringify(manifest),
+      JSON.stringify({ ...lock, packages: { ...lock.packages, ...extra } }),
+    ),
+  ).toThrow();
+});
+
 it.each([
   { ...record, resolved: 'https://secret@registry.npmjs.org/stripe/-/stripe.tgz' },
   { ...record, resolved: 'https://registry.npmjs.org/stripe/-/stripe.tgz?token=secret' },

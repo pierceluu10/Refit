@@ -2546,6 +2546,36 @@
         "upgradeComplete": "yes: stripe ^15.1.0 to ^23.0.0 in package.json and package-lock.json; the client sets no apiVersion, so the upgrade moves the version.",
         "wouldMerge": "not as validated: the contract-change review comes first; the changed lines are right and tsc passes on both sides."
       }
+    },
+    {
+      "repo": "samarbadriddin0v/notion-clone",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40582675661 (after, feat/response-read-tracing 17e30256), subsets/l2-push-249.json, no AI. Before: production mode stopped on 14 reached-unknown removals of Product `features` nested under subscription items in customer responses (\"not a property of a named Stripe object\"); after: the owner of `items/data/items/price/product` resolves to the Product the code never reads `features` on, so those changes pass. migration.patch from the shard-2 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the one Checkout Session creation (app/api/stripe/subscription/route.ts:36) sends exactly [\"card\"], which the card rule moves to allowed_payment_method_types.",
+        "bothVersions": "yes: only the request key and the pin change; no response read is rewritten.",
+        "nothingUnrelated": "yes: the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: no code reads `features`; customers.list and customers.create results are read only for their id.",
+        "upgradeComplete": "yes: apiVersion moves from 2023-10-16 to 2026-09-30.endive and stripe from ^14.7.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "shagunmistry/FlowCraft",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40582675661 (after, feat/response-read-tracing 17e30256), subsets/l2-push-249.json, no AI. Before: production mode stopped on 14 reached-unknown removals of Product `features` nested under subscription items in customer responses (\"not a property of a named Stripe object\"); after: the owner of `items/data/items/price/product` resolves to the Product the code never reads `features` on, so those changes pass. migration.patch from the shard-8 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: subscription.current_period_end reads go through getSubscriptionPeriodEnd (with items[0] where the code lists subscriptions, plain in the webhook's customer.subscription.updated branch), invoice.subscription goes through getInvoiceSubscription inside the invoice branch, and the card rule renames payment_method_types in src/app/api/checkout-session/route.ts.",
+        "bothVersions": "yes: the generated helpers in the new src/app/api/stripeSubscriptionPeriod.ts return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the period and invoice reads, the helper file and its imports, the card rename, the stripe dependency and pnpm-lock.yaml.",
+        "pleaseCheck": "Nothing left: no code reads `features`.",
+        "upgradeComplete": "yes: stripe ^14.23.0 to ^23.0.0 in package.json and pnpm-lock.yaml; the clients set no apiVersion, so the upgrade moves the version.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
     }
   ]
 }
