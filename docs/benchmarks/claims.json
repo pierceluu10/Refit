@@ -17179,6 +17179,132 @@
           "reason": "Part of the list name l2-push-249, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated          |           80 |                80 |",
+      "values": [
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40553722899 and 40553727358, which are not committed."
+        },
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40553722899 and 40553727358, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows with an untraced version |           19 |                16 |",
+      "values": [
+        {
+          "says": "19",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40553722899 and 40553727358, which are not committed."
+        },
+        {
+          "says": "16",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40553722899 and 40553727358, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated           |            9 |                 9 |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40553722899 and 40553727358, which are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40553722899 and 40553727358, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `ae6127f7`: l2-push-249 [40553722899](https://github.com/refit-dev/refit-bench/actions/runs/40553722899), heldout-30 [40553727358](https://github.com/refit-dev/refit-bench/actions/runs/40553727358). Counts apply the needs-review fix above.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40448715209",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40448718890",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40553722899",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40553727358",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **3 rows lose the untraced-version stop, none validates.** Yosef-Ali/compasstio-ai, doganarif/build-it and alanagoyal/branded keep other blockers (contract changes, a removed request parameter, a kept API version). Only branded's patch changes: it now also upgrades stripe-node, read in full and reviewed `correct` for its two period reads; its draft stays `[Needs review]`.",
+      "values": [
+        {
+          "says": "3",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40553722899 and 40553727358, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** 16 l2-push-249 rows keep an untraced version, from clients passed to helpers Refit cannot read, class bindings, or ambiguous aliases. Webhook endpoint versions are unchanged by this lane, and failed pin-move errors on `api-version-kept` drafts are still not recorded.",
+      "values": [
+        {
+          "says": "16",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40553722899 and 40553727358, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
     }
   ]
 }

@@ -431,6 +431,21 @@ Owner decision D4: a schema change that leaves the structure the same is not bre
 - **What still stops.** 86 l2-push-249 rows keep a contract-change stop, most beside another blocker (removed request parameters, kept or untraced API versions, webhook versions). Addisu87/digital-marketplace failed dependency preparation on a registry 502 in the after run (`needs-review` before and after).
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## API versions untraced only where the client escapes (October 27)
+
+An `apiVersion` pin was `api-version-untraced` whenever its client could escape anywhere Refit cannot see. `feat/api-version-tracing` narrows that doubt to clients that really reach unseen code: a client passed to an opaque helper, an unsafe class binding, a webhook event Refit cannot trace, or an alias in a file whose resolution is ambiguous. A client handed to an exported local helper whose parameter Refit reads (`listCharges(client: Stripe)`) keeps its pin traced; a rest parameter or `eval` still makes it unknown.
+
+| Set (no AI, default flags)                 | Before: main | After: `ae6127f7` |
+| ------------------------------------------ | -----------: | ----------------: |
+| l2-push-249: production validated          |           80 |                80 |
+| l2-push-249: rows with an untraced version |           19 |                16 |
+| heldout-30: production validated           |            9 |                 9 |
+
+- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `ae6127f7`: l2-push-249 [40553722899](https://github.com/refit-dev/refit-bench/actions/runs/40553722899), heldout-30 [40553727358](https://github.com/refit-dev/refit-bench/actions/runs/40553727358). Counts apply the needs-review fix above.
+- **3 rows lose the untraced-version stop, none validates.** Yosef-Ali/compasstio-ai, doganarif/build-it and alanagoyal/branded keep other blockers (contract changes, a removed request parameter, a kept API version). Only branded's patch changes: it now also upgrades stripe-node, read in full and reviewed `correct` for its two period reads; its draft stays `[Needs review]`.
+- **What still stops.** 16 l2-push-249 rows keep an untraced version, from clients passed to helpers Refit cannot read, class bindings, or ambiguous aliases. Webhook endpoint versions are unchanged by this lane, and failed pin-move errors on `api-version-kept` drafts are still not recorded.
+- **Not measured:** AI patches, publication and the hosted worker.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).

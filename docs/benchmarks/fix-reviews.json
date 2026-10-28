@@ -2531,6 +2531,21 @@
         "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
         "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
       }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40553722899 (after, feat/api-version-tracing ae6127f7), subsets/l2-push-249.json, no AI. Before: the draft stopped on api-version-untraced and contract changes and did not upgrade stripe-node; after: the client's version is traced, so the patch also upgrades stripe-node, and the draft stays [Needs review] on contract changes. migration.patch from the shard-0 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: both subscription.current_period_end reads in lib/billing-state.ts go through getSubscriptionPeriodEnd with items[0]; the second keeps the original null check and truthiness test.",
+        "bothVersions": "yes: the generated helper returns the old field when the object has it.",
+        "nothingUnrelated": "yes: the two reads, the generated helper, the stripe dependency and package-lock.json.",
+        "pleaseCheck": "The draft is [Needs review] for contract changes the code reaches; this lane does not change them.",
+        "upgradeComplete": "yes: stripe ^15.1.0 to ^23.0.0 in package.json and package-lock.json; the client sets no apiVersion, so the upgrade moves the version.",
+        "wouldMerge": "not as validated: the contract-change review comes first; the changed lines are right and tsc passes on both sides."
+      }
     }
   ]
 }

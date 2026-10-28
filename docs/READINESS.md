@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 27 checkpoint: API versions untraced only where the client escapes (unreleased, after 0.39.0)
+
+`declaredApiVersions` now starts from `versionUnsafe` (`pipeline/analyzer.ts`): only clients passed to opaque helpers, unsafe class bindings, untraced webhook events and aliases in ambiguous files make a pin `api-version-untraced`, and an exported helper's typed client parameter is followed (`pipeline/helper-clients.ts`, `pipeline/source-imports.ts`). On refit-bench without AI, rows with an untraced version on l2-push-249 fall from 19 to 16; validated stays at 80 and 9 ([benchmarks](BENCHMARKS.md#api-versions-untraced-only-where-the-client-escapes-october-27)). Test: `pipeline/declared-api-versions.test.ts`.
+
 ## October 27 checkpoint: structurally equivalent schema changes are compatible (unreleased, after 0.39.0)
 
 Owner decision D4: `pipeline/schema-equivalence.ts` marks an oasdiff change compatible when the schemas on both sides have the same structure, such as a renamed subschema with the same shape or a format-only annotation, for any OpenAPI provider ([schema equivalence](SCHEMA-EQUIVALENCE.md)). On refit-bench without AI, l2-push-249 goes from 80 to 84 validated and heldout-30 from 9 to 10; rows with a contract-change stop on l2-push-249 fall from 97 to 86 ([benchmarks](BENCHMARKS.md#structurally-equivalent-schema-changes-october-27)). Tests: `pipeline/schema-equivalence.test.ts`.
