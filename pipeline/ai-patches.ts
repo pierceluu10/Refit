@@ -1,5 +1,5 @@
 import ts from 'typescript-compiler';
-import { migrationReviewReason, unresolvedSites } from './migration-review.ts';
+import { migrationReviewReasons, unresolvedSites } from './migration-review.ts';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { analyzeRepository, syntaxErrors } from './analyzer.ts';
 import { buildAssessmentEvidence } from './assessment.ts';
@@ -16,6 +16,7 @@ import {
   addedItemChoices,
   addedTypeEscapes,
   changedEventTypes,
+  contentOf,
   droppedRequestPaths,
   editedTestFiles,
   newShapeOnlyReads,
@@ -117,6 +118,7 @@ const TRUNCATION_MARKER = '\n[truncated]';
 const POLICY_REPAIR_INSTRUCTIONS = `
 Founder decision (2026-10-28): repair.policies names the owner policies that used to stop this repair. For the type-error findings they cover, these replace the rules above that forbid changing a request parameter, argument or literal the new SDK types reject:
 - A request parameter the target API version removed: replace it with the replacement the provider documents, keeping what the request does. If the provider documents no replacement, make the smallest change that keeps the request valid and say exactly what it changes. Never drop a parameter without naming it in why.
+- A method or operation the target version removed: call the replacement the provider documents, mapping its parameters as the documentation says.
 - A changed call signature, such as an argument count error: call the method as the new SDK defines it, passing the same values.
 - A webhook payload or subscription read the new types reject: read the old shape when present and the new location otherwise. Never choose one subscription item for the whole subscription.
 Every edit has why and source. why names each parameter, argument or field it changes, the build error it fixes and whether the request's behaviour stays the same or exactly what changes. source is the https URL of the provider's documentation page the edit follows, or none when no page documents it. Never invent a URL.
@@ -386,7 +388,15 @@ export async function proposeAiPatch(
       finding.changeId !== TYPE_ERROR_CHANGE &&
       !editCovers(repository, deterministicEdits, finding),
   );
-  const reviewReason = migrationReviewReason({ findings }, false, true, true);
+  // Founder decision (2026-10-28): a policy repair also replaces an operation a contract review
+  // flags, such as a removed method, following the provider's documented replacement.
+  const reviewReason = migrationReviewReasons({ findings }, false, true, true).find(
+    (entry) =>
+      !(
+        repair?.policies?.length &&
+        findings.some((finding) => finding.contractReview === entry.reason)
+      ),
+  )?.reason;
   if (reviewReason) throw new PipelineInputError(reviewReason);
   // The model works on the rule-patched code and sees only the findings that remain there.
   const original = repository;
@@ -682,7 +692,26 @@ export async function proposeAiPatch(
       `AI patch edits ${tests.join(', ')} on the repository's test paths; the checks that judge a migration stay as the repository wrote them, so it stops for review.`,
       proposal(),
     );
-  const ruleLines = rewrittenRuleLines(original, ruleBase, modified, aiFiles);
+  // Founder decision (2026-10-28): a policy repair may rewrite a rule's line inside the statement of
+  // a build error it cites, where the file it edits is exactly the rules' code.
+  const errorLines = (file: string) =>
+    edits
+      .filter(
+        (edit) =>
+          policyRepair &&
+          edit.file === file &&
+          edit.changeId === TYPE_ERROR_CHANGE &&
+          contentOf(repository, file) === contentOf(ruleBase, file),
+      )
+      .map((edit) => {
+        const text = contentOf(repository, file)!;
+        const line = (offset: number) => text.slice(0, offset).split('\n').length;
+        return [line(edit.start), line(Math.max(edit.end - 1, edit.start))] as const;
+      });
+  const ruleLines = rewrittenRuleLines(original, ruleBase, modified, aiFiles).filter(
+    (entry) =>
+      !errorLines(entry.file).some(([start, end]) => entry.line >= start && entry.line <= end),
+  );
   if (ruleLines.length)
     throw new AiPolicyStop(
       `AI patch changes ${ruleLines.map((entry) => `${entry.file}:${entry.line}`).join(', ')}, which the deterministic rules already changed; a rule's edit changes only with its rule, so it stops for review.`,

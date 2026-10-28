@@ -2680,6 +2680,11 @@ export async function validateMigration(options: {
             ]
           : []),
       ];
+      // A contract review (such as a removed method) used to keep AI out of the repair.
+      const contractReviews = policies.length
+        ? [...new Set(report.findings.flatMap((finding) => finding.contractReview ?? []))]
+        : [];
+      policies.push(...contractReviews.map((reason) => `Contract review: ${reason}`));
       if (policies.length) repair.policies = policies;
       // Founders' decision (2026-10-27): when every error left is one the stripe-node upgrade
       // introduced into the original code, the AI repairs types only, under the same type-only

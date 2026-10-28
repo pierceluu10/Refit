@@ -704,6 +704,29 @@ it('lets a policy repair replace a rejected request parameter it explains and ci
   expect(String(request[1]?.body)).toContain('repair.policies names the owner policies');
 });
 
+it('lets a policy repair past a contract review that stops other AI requests', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  const reviewed = findings.map((finding, index) =>
+    index
+      ? finding
+      : { ...finding, contractReview: 'Stripe removed this operation; it needs review.' },
+  );
+  respond([{ ...TRIAL_EDIT, why: 'Keeps trial_from_plan.', source: 'none', findingId }]);
+  await expect(proposeAiPatch(repository, report.changes, reviewed, OPTIONS)).rejects.toThrow(
+    'Stripe removed this operation; it needs review.',
+  );
+  const proposal = await proposeAiPatch(
+    repository,
+    report.changes,
+    reviewed,
+    OPTIONS,
+    undefined,
+    undefined,
+    POLICY_REPAIR,
+  );
+  expect(proposal.diff).toContain('+      metadata: { ...metadata },');
+});
+
 it('still stops a policy repair that changes a request parameter without naming it', async () => {
   const { repository, report, findings, findingId } = await typeErrorFixture();
   respond([{ ...TRIAL_REPLACEMENT, why: 'Uses a fixed trial.', findingId }]);
