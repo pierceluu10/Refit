@@ -36,6 +36,11 @@ export interface SignedEventAdapter {
   // with node:crypto's createHmac in scope.
   signer: string;
   newSecret(): string;
+  // JavaScript expression for the sandbox's record of provider requests ({ requests, reset }), if
+  // the sandbox keeps one, and the source of a regular expression for the provider's object IDs,
+  // which a recorded path or error message masks.
+  requestRecorder?: string;
+  idPattern: string;
   // Handlers whose signed events the patch can affect, or why one cannot be called.
   sites(
     repository: Repository,
@@ -84,6 +89,28 @@ function imports(path: string, content: string) {
   };
   const namespaces = new Map<string, string>();
   for (const statement of source.statements) {
+    // `export { x } from` and `export * from` load the module like an import does.
+    if (
+      ts.isExportDeclaration(statement) &&
+      statement.moduleSpecifier &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      !statement.isTypeOnly
+    ) {
+      const specifier = statement.moduleSpecifier.text;
+      add(specifier);
+      if (statement.exportClause && ts.isNamedExports(statement.exportClause))
+        for (const element of statement.exportClause.elements)
+          add(specifier, (element.propertyName ?? element.name).text);
+      continue;
+    }
+    if (
+      ts.isImportEqualsDeclaration(statement) &&
+      ts.isExternalModuleReference(statement.moduleReference) &&
+      ts.isStringLiteral(statement.moduleReference.expression)
+    ) {
+      add(statement.moduleReference.expression.text, 'default');
+      continue;
+    }
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier))
       continue;
     const specifier = statement.moduleSpecifier.text;
@@ -106,7 +133,9 @@ function imports(path: string, content: string) {
       add(namespaces.get(node.expression.text)!, node.name.text);
     if (
       ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+      node.arguments.length === 1 &&
       ts.isStringLiteralLike(node.arguments[0])
     )
       add(node.arguments[0].text, 'default');
@@ -149,6 +178,12 @@ export function standIns(options: {
     options.repository.files.map((file) => [resolve(root, file.path), file.content]),
   );
   const resolver = createSourceImportResolver(options.repository, sources);
+  // An installed package's name, never a path or an alias such as `@/lib`, `~/lib`, `#lib` or a
+  // repository directory reached through baseUrl.
+  const directories = new Set(options.repository.files.map((file) => file.path.split('/')[0]));
+  const bare = (specifier: string) =>
+    /^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(?:\/.*)?$/i.test(specifier) &&
+    !directories.has(specifier.split('/')[0]);
   const sdk = (specifier: string) =>
     options.sdkPackages.some((name) => specifier === name || specifier.startsWith(`${name}/`));
   const graph = new Map<
@@ -174,21 +209,28 @@ export function standIns(options: {
     }
   };
   for (const file of options.handlerFiles) visit(file);
-  // A module is kept when it, or anything it imports, is SDK code or code the patch touched.
-  const kept = new Map<string, boolean>();
-  const keeps = (path: string, seen = new Set<string>()): boolean => {
-    if (kept.has(path)) return kept.get(path)!;
-    if (seen.has(path)) return false;
-    seen.add(path);
-    const node = graph.get(path);
-    const result =
-      options.keep.has(path) ||
-      !node ||
-      [...node.packages.keys()].some(sdk) ||
-      [...node.local.values()].some((target) => keeps(target, seen));
-    kept.set(path, result);
-    return result;
-  };
+  // A module is kept when it, or anything it imports, is SDK code or code the patch touched: a
+  // fixed point, so an import cycle cannot hide a path to the SDK.
+  const kept = new Set(
+    [...graph]
+      .filter(
+        ([path, node]) =>
+          options.keep.has(path) ||
+          [...node.packages.keys()].some(sdk) ||
+          // An import Refit could not resolve might be the SDK client; the module stays real.
+          [...node.packages.keys()].some((specifier) => !bare(specifier)),
+      )
+      .map(([path]) => path),
+  );
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const [path, node] of graph)
+      if (!kept.has(path) && [...node.local.values()].some((target) => kept.has(target))) {
+        kept.add(path);
+        grew = true;
+      }
+  }
+  const keeps = (path: string) => kept.has(path);
   const modules: Record<string, string[]> = {};
   const packages: Record<string, string[]> = {};
   for (const [path, node] of graph) {
@@ -197,7 +239,12 @@ export function standIns(options: {
     // Packages are replaced only where a kept module imports them; a stood-in module never loads.
     if (!keeps(path) && !options.handlerFiles.includes(path)) continue;
     for (const [specifier, taken] of node.packages)
-      if (!sdk(specifier) && !NODE_BUILTIN.test(specifier) && !(specifier in FRAMEWORK_STAND_INS))
+      if (
+        bare(specifier) &&
+        !sdk(specifier) &&
+        !NODE_BUILTIN.test(specifier) &&
+        !(specifier in FRAMEWORK_STAND_INS)
+      )
         packages[specifier] = [...new Set([...(packages[specifier] ?? []), ...taken])].sort();
   }
   return { modules, packages };
@@ -290,7 +337,7 @@ const make = (label) => new Proxy(function () {}, {
 });
 globalThis.__refitStandIn = make;
 const describe = (error) => error instanceof Error ? error.name + ': ' + error.message : (() => { try { return JSON.stringify(error) ?? String(error); } catch { return String(error); } })();
-const masked = (text) => String(text).replace(/\\b[a-z]{2,8}_[A-Za-z0-9]{6,}\\b/g, '<id>').replace(/\\d+/g, '#').slice(0, 300);
+const masked = (text) => String(text).replace(new RegExp(config.idPattern, 'g'), '<id>').replace(/\\d+/g, '#').slice(0, 300);
 const timeout = () => new Promise((_, reject) => {
   const timer = setTimeout(() => reject(Object.assign(new Error('did not settle within 10 seconds'), { timeout: true })), 10000);
   timer.unref();
@@ -315,7 +362,8 @@ async function deliver(handler, event, version) {
   });
   globalThis.__refitRequest = request;
   calls.length = 0;
-  globalThis.__refitStripe?.reset();
+  const recorder = (__RECORDER__);
+  recorder?.reset();
   try {
     const response = await Promise.race([module[handler.exportName](request, { params: {} }), timeout()]);
     const text = response instanceof Response ? await response.text() : '';
@@ -328,7 +376,7 @@ async function deliver(handler, event, version) {
   return {
     ...record,
     calls: calls.slice(0, 200),
-    requests: (globalThis.__refitStripe?.requests ?? []).slice(0, 50).map((item) => ({ method: item.method, path: masked(item.path), body: shape(item.body) })),
+    requests: (recorder?.requests ?? []).slice(0, 50).map((item) => ({ method: item.method, path: masked(item.path), body: shape(item.body) })),
   };
 }
 for (const handler of config.handlers)
@@ -351,6 +399,7 @@ export function signedEventTest(options: {
   const config = {
     secret: options.secret,
     header: options.adapter.signatureHeader,
+    idPattern: options.adapter.idPattern,
     frameworks: FRAMEWORK_STAND_INS,
     standIns: options.standIns,
     handlers: options.handlers.map(({ file, exportName, secretEnv, events }) => ({
@@ -364,6 +413,7 @@ export function signedEventTest(options: {
     path: SIGNED_EVENT_TEST,
     content: TEST.replace('__CONFIG__', () => JSON.stringify(config))
       .replace('__SIGNER__', () => options.adapter.signer)
+      .replace('__RECORDER__', () => options.adapter.requestRecorder ?? 'undefined')
       .replace('__HOOK__', () => JSON.stringify(HOOK)),
   };
 }
@@ -405,39 +455,58 @@ const behaviour = (record: DeliveryRecord) => {
   return rest;
 };
 
-// The first place two deliveries differ, said so a reviewer can find it.
-export function firstDifference(a: unknown, b: unknown, path = ''): string | undefined {
+// The first place two deliveries differ, said so a reviewer can find it. Inside a stand-in call's
+// arguments a key only one side has is skipped: a whole provider object passed to a backend
+// legitimately gains and loses fields between versions; a field the code names stays on both sides.
+export function firstDifference(
+  a: unknown,
+  b: unknown,
+  path = '',
+  sides: [string, string] = ['the old-version event', 'the new-version event'],
+): string | undefined {
   if (JSON.stringify(a) === JSON.stringify(b)) return;
   if (a && b && typeof a === 'object' && typeof b === 'object') {
+    const argument = /^calls\[\d+\]\.args\[/.test(path) && !Array.isArray(a);
     for (const key of [...new Set([...Object.keys(a), ...Object.keys(b)])]) {
+      if (argument && !(Object.hasOwn(a, key) && Object.hasOwn(b, key))) continue;
       const where = Array.isArray(a) ? `${path}[${key}]` : path ? `${path}.${key}` : key;
       const found = firstDifference(
         (a as Record<string, unknown>)[key],
         (b as Record<string, unknown>)[key],
         where,
+        sides,
       );
       if (found) return found;
     }
+    // Every key either matched or was skipped; arrays of different lengths differ at an index.
+    return;
   }
-  return `${path || 'the result'}: ${JSON.stringify(a) ?? 'absent'} on the old-version event, ${JSON.stringify(b) ?? 'absent'} on the new-version event`;
+  return `${path || 'the result'}: ${JSON.stringify(a) ?? 'absent'} on ${sides[0]}, ${JSON.stringify(b) ?? 'absent'} on ${sides[1]}`;
 }
 
 export type SignedEventStatus = 'passed' | 'unresolved' | 'regression' | 'not-runnable';
 
+const failed = (record?: DeliveryRecord) =>
+  record?.outcome === 'threw' || record?.outcome === 'timeout' || record?.outcome === 'load';
+
 // What the deliveries prove, per handler and event. Same code, same values: only the event's API
 // version differs between the two deliveries on one side.
 // - Counted, as a regression that fails validation: an event the original code completed (a 2xx
-//   response) and handled the same way in both versions, which the patched code handles differently
-//   in the new version.
+//   response) and handled the same way in both versions, which the patched code handles
+//   differently in the new version; and one where the original code still returned on the new
+//   version and the patched code throws.
 // - Unresolved, a [Needs review] draft: an event both the original and the patched code handle
-//   differently in the new version. The patch did not cause it and did not fix it.
-// - Excluded: an event the original code does not complete with the old version (the handler needs
-//   something the sandbox lacks, or did not accept the signature).
-// - Reported, never counted: a patched module that does not load, and patched code that fails the
-//   same way on both versions where the original completed, because each side's mock serves its own
-//   version's fixtures.
-// A handler file covers its changed lines when at least one event behaved the same on both versions
-// on the patched code, none differed, and every changed line of the file ran on both sides.
+//   differently in the new version (the patch did not cause it and did not fix it), and an event
+//   whose stand-in calls on the patched code differ from the original's on the old version, which
+//   each side's own mock cannot explain alone.
+// - Excluded: an event the original code does not complete with the old version (the handler
+//   needs something the sandbox lacks, or did not accept the signature).
+// - Reported, never counted: a delivery that left no record, a patched module that does not load,
+//   and patched code that fails the same way on both versions where the original completed.
+// A handler file covers its changed lines only when every event the original completed behaved the
+// same on both versions on the patched code and matched the original's calls, and every changed
+// line of the file ran on both sides: coverage is per process, so an event that did not count
+// could otherwise have run the lines.
 export function compareSignedEvents(options: {
   sites: SignedEventSite[];
   original: DeliveryRecord[];
@@ -468,7 +537,13 @@ export function compareSignedEvents(options: {
       };
       if (!completed(originalBefore))
         return { ...results, result: 'not-runnable' as const, detail: results.original.before };
-      if (!before || !after || before.outcome === 'load' || after.outcome === 'load')
+      if (!originalAfter || !before || !after)
+        return {
+          ...results,
+          result: 'not-counted' as const,
+          detail: 'A delivery left no record.',
+        };
+      if (before.outcome === 'load' || after.outcome === 'load')
         return {
           ...results,
           result: 'not-counted' as const,
@@ -476,15 +551,17 @@ export function compareSignedEvents(options: {
         };
       const id = `${site.file} ${type}`;
       const difference = firstDifference(behaviour(before), behaviour(after));
-      const originalDifference =
-        originalAfter && firstDifference(behaviour(originalBefore!), behaviour(originalAfter));
-      if (difference && originalDifference) {
-        unresolved.push({ id, error: difference });
-        return { ...results, result: 'unresolved' as const, detail: difference };
-      }
-      if (difference) {
+      const originalDifference = firstDifference(
+        behaviour(originalBefore!),
+        behaviour(originalAfter),
+      );
+      if (difference && (!originalDifference || (failed(after) && !failed(originalAfter)))) {
         regressions.push({ id, error: difference });
         return { ...results, result: 'differs' as const, detail: difference };
+      }
+      if (difference) {
+        unresolved.push({ id, error: difference });
+        return { ...results, result: 'unresolved' as const, detail: difference };
       }
       if (!completed(before))
         return {
@@ -492,6 +569,17 @@ export function compareSignedEvents(options: {
           result: 'not-counted' as const,
           detail: `The patched code ${results.patched.before} on events of both versions; the original completed against its own version's mock.`,
         };
+      const crossSide = firstDifference(
+        { calls: originalBefore!.calls },
+        { calls: before.calls },
+        '',
+        ['the original code', 'the patched code'],
+      );
+      if (crossSide) {
+        const error = `${crossSide} (old-version event)`;
+        unresolved.push({ id, error });
+        return { ...results, result: 'unresolved' as const, detail: error };
+      }
       return {
         ...results,
         result: 'same' as const,
@@ -505,9 +593,10 @@ export function compareSignedEvents(options: {
     const unrun = (['original', 'patched'] as const).flatMap((side) =>
       (options.missing[side][site.file] ?? []).map((line) => `${side} line ${line}`),
     );
+    const counted = events.filter((event) => event.result !== 'not-runnable');
     if (
-      events.some((event) => event.result === 'same') &&
-      events.every((event) => !['differs', 'unresolved'].includes(event.result)) &&
+      counted.length &&
+      counted.every((event) => event.result === 'same') &&
       !unrun.length &&
       options.changedFiles.includes(site.file)
     )
@@ -559,8 +648,12 @@ export function prepareSignedEvents(options: {
       skipped.push({ file: site.file, reason: 'The original code has no such handler.' });
   if (!runnable.length) return { sites: runnable, skipped };
   const handlerFiles = runnable.map((site) => site.file);
+  // Every file the patch adds or changes stays real, Refit's generated helper module included.
+  const before = new Map(options.original.files.map((file) => [file.path, file.content]));
   const keep = new Set([
-    ...options.changedFiles,
+    ...options.patched.files
+      .filter((file) => before.get(file.path) !== file.content)
+      .map((file) => file.path),
     ...options.findings.map((finding) => finding.file),
   ]);
   const side = (repository: Repository) =>

@@ -505,3 +505,78 @@ export async function POST(req: Request) {
     { file: 'pages/api/webhook.ts', reason: expect.stringContaining('no exported POST') },
   ]);
 });
+
+it('keeps modules that reach Stripe through a re-export, require(), an import cycle or an unresolved alias', async () => {
+  const root = await scratch();
+  const repository = await writeApp(root, {
+    ...LIBRARIES,
+    'lib/index.ts': "export { stripe } from './stripe';\n",
+    'lib/client.js': "const Stripe = require('stripe');\nmodule.exports = new Stripe('sk');\n",
+    'lib/a.ts':
+      "import { stripe } from './stripe';\nimport { b } from './b';\nexport const a = () => stripe;\n",
+    'lib/b.ts': "import { a } from './a';\nexport const b = () => a();\n",
+    'lib/aliased.ts': "import { stripe } from '#lib/stripe';\nexport const c = stripe;\n",
+    'lib/db.ts':
+      "import { createClient } from '@supabase/supabase-js';\nexport const db = createClient('', '');\n",
+    'app/api/webhook/route.ts': `import { stripe } from '../../../lib/index';
+import client from '../../../lib/client.js';
+import { b } from '../../../lib/b';
+import { c } from '../../../lib/aliased';
+import { db } from '../../../lib/db';
+import { auth } from '@clerk/nextjs';
+export async function POST() {}
+`,
+  });
+  expect(
+    standIns({
+      repository,
+      handlerFiles: ['app/api/webhook/route.ts'],
+      sdkPackages: ['stripe'],
+      keep: new Set(),
+    }),
+  ).toEqual({ modules: { 'lib/db.ts': ['db'] }, packages: { '@clerk/nextjs': ['auth'] } });
+});
+
+it('compares a stand-in call with the original code, and ignores fields a whole object gains between versions', () => {
+  const record = (version: 'before' | 'after', args: unknown[]) => ({
+    file: 'route.ts',
+    handler: 'POST',
+    event: 'invoice.paid',
+    version,
+    outcome: 'returned' as const,
+    status: 200,
+    body: '',
+    calls: [{ call: 'db.save', args }],
+    requests: [],
+  });
+  const compare = (original: unknown[][], patched: unknown[][]) =>
+    compareSignedEvents({
+      sites: [
+        { file: 'route.ts', exportName: 'POST', secretEnv: 'S', eventTypes: ['invoice.paid'] },
+      ],
+      original: [record('before', original[0]), record('after', original[1])],
+      patched: [record('before', patched[0]), record('after', patched[1])],
+      missing: { original: {}, patched: {} },
+      changedFiles: ['route.ts'],
+    });
+  // A whole invoice passed on: the new version adds `parent` and drops `subscription`.
+  const old = [{ id: '<string>', subscription: '<string>' }];
+  const current = [{ id: '<string>', parent: { subscription_details: '<string>' } }];
+  expect(compare([old, current], [old, current])).toMatchObject({
+    status: 'passed',
+    covered: ['route.ts'],
+  });
+  // A helper that returns undefined on both versions still differs from the original code.
+  const read = [{ periodEnd: '<number>' }];
+  const lost = [{ periodEnd: '<undefined>' }];
+  expect(compare([read, read], [lost, lost])).toMatchObject({
+    status: 'unresolved',
+    covered: [],
+    unresolved: [
+      {
+        error:
+          'calls[0].args[0].periodEnd: "<number>" on the original code, "<undefined>" on the patched code (old-version event)',
+      },
+    ],
+  });
+});

@@ -185,7 +185,7 @@ export function stripeSignedEventAdapter(options: {
   afterFixtures: unknown;
   beforeVersion: string;
   afterVersion: string;
-  // The after contract: its expandable references a fixture leaves null get placeholder IDs.
+  // The before contract: expandable references its fixture leaves null get placeholder IDs.
   beforeSpecification?: unknown;
 }): SignedEventAdapter {
   const resources = (fixtures: unknown) =>
@@ -221,6 +221,9 @@ export function stripeSignedEventAdapter(options: {
     signer:
       "(payload, secret, timestamp) => 't=' + timestamp + ',v1=' + createHmac('sha256', secret).update(timestamp + '.' + payload, 'utf8').digest('hex')",
     newSecret: () => newSigningSecret('whsec_refit_'),
+    // The behaviour sandbox's redirect to stripe-mock records each request (generated-checks.ts).
+    requestRecorder: 'globalThis.__refitStripe',
+    idPattern: '\\b[a-z]{2,8}_[A-Za-z0-9]{6,}\\b',
     sites(repository: Repository, findings: readonly Finding[], changedFiles: readonly string[]) {
       const webhookFiles = new Set(
         findings.flatMap((finding) =>
@@ -251,7 +254,25 @@ export function stripeSignedEventAdapter(options: {
         const exportName = routeHandler(file.content, file.path);
         const types = new Set<string>();
         const literals = (node: ts.Node) => {
-          if (ts.isStringLiteralLike(node) && /^[a-z_]+(?:\.[a-z_]+)+$/.test(node.text)) {
+          // Only a literal the code compares an event type with: a `case`, `===`/`!==`, or an
+          // element of a list (`[...].includes(event.type)`), never any dotted string.
+          const parent = node.parent;
+          const compared =
+            parent &&
+            ((ts.isCaseClause(parent) && parent.expression === node) ||
+              (ts.isBinaryExpression(parent) &&
+                [
+                  ts.SyntaxKind.EqualsEqualsEqualsToken,
+                  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+                  ts.SyntaxKind.EqualsEqualsToken,
+                  ts.SyntaxKind.ExclamationEqualsToken,
+                ].includes(parent.operatorToken.kind)) ||
+              ts.isArrayLiteralExpression(parent));
+          if (
+            compared &&
+            ts.isStringLiteralLike(node) &&
+            /^[a-z_]+(?:\.[a-z_]+)+$/.test(node.text)
+          ) {
             const schema = eventSchema(node.text, before);
             if (schema && Object.hasOwn(before, schema) && Object.hasOwn(after, schema))
               types.add(node.text);
@@ -283,7 +304,7 @@ export function stripeSignedEventAdapter(options: {
       return { sites, skipped };
     },
     events(site: SignedEventSite): SignedEvent[] {
-      return site.eventTypes.map((type) => {
+      return site.eventTypes.map((type, index) => {
         const schema = eventSchema(type, before)!;
         // The same placeholders on both versions, so they differ only in shape.
         const fill = (object: JsonObject) => {
@@ -295,9 +316,11 @@ export function stripeSignedEventAdapter(options: {
         const old = fill(clone(before[schema]) as JsonObject);
         const current = fill(overlay(clone(after[schema]), old) as JsonObject);
         carryMoves(old, current, schema);
+        // One ID per delivery, the same length in both versions, so a handler that drops an
+        // event it has already seen still handles each one.
         const envelope = (object: JsonObject, version: string) =>
           JSON.stringify({
-            id: 'evt_refit_webhook_check',
+            id: `evt_refit_check_${String(index).padStart(2, '0')}${version === options.afterVersion ? 'n' : 'o'}`,
             object: 'event',
             api_version: version,
             created: 1700000000,
