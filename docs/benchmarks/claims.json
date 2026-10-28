@@ -16708,6 +16708,104 @@
           "reason": "Part of the list name l2-push-249, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, no AI  |                      10 |                 9 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, AI     |                      10 |                 9 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: the type oracle runs above (main's code, outcome for outcome). After, at `63646f2a`: l2-push-249 no AI [40591181316](https://github.com/refit-dev/refit-bench/actions/runs/40591181316), AI [40591190068](https://github.com/refit-dev/refit-bench/actions/runs/40591190068); heldout-30 no AI [40591185819](https://github.com/refit-dev/refit-bench/actions/runs/40591185819), AI [40591194943](https://github.com/refit-dev/refit-bench/actions/runs/40591194943).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40591181316",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40591190068",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40591185819",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40591194943",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **1 row changed.** KPZ231/what-now-chaos is graded D (no test reaches `src/app/api/checkout/route.js`; only the generated stripe-mock check ran it), so its draft was already `[Needs review]`; it now ends `needs-review`. Every other row is identical, except that with AI kondax-com/Bocker's patch failed its checks after it failed its baseline in the before run; it stops `needs-review` in both.",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Why it matters for the lanes.** On l2-push-249 the spec-noise filter frees 4 rows whose draft keeps `trial_from_plan` (kpirabaharan/Spotify-Clone, adityayaduvanshi/Full-Stack-Music-Web-App, afdon/music-app, AlefeSk8/Spotify-Clone-Next.js); they now count as `needs-review`, not validated.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the merged results of refit-bench runs 40545715035, 40545759381, 40545721985, 40545751982, 40591181316, 40591190068, 40591185819, 40591194943 and 40552957597, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
     }
   ]
 }
