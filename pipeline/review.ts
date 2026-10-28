@@ -7,6 +7,7 @@ import { CURRENCY_CODE_RULE, PASSING_REACH } from './operation-reach.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
 import type { validateMigration } from './validation.ts';
+import type { LocalProof } from './stripe-type-evidence.ts';
 import {
   INTEGRATION_MARKER,
   MIGRATION_MARKER,
@@ -324,6 +325,13 @@ function siteList(sites: string[], limit: number) {
 type Validation = ValidationReport['validation'];
 
 // Each check that did not pass: what ran, on which code, and how it ended.
+// How localReceiverReads proved a read does not read a provider object, worded for the draft.
+const LOCAL_PROOFS: Record<LocalProof, string> = {
+  'repository-type': 'a type the repository declares',
+  'literal-config': 'an object literal the repository writes',
+  'generated-type': "a type generated from the repository's own schema",
+};
+
 function failedChecks(validation: Validation) {
   const generated = validation.generated;
   const checks: [string, Validation['baseline'], string][] = [
@@ -1291,6 +1299,21 @@ export function createReviewArtifacts(
         ...(validation.coverageAi?.gate?.typeCheckOnly
           ? [
               '- Validated by type check, no tests: every contract change the AI patch handles is visible to the type check against the target stripe-node, which shows no new error in the TypeScript files it changed.',
+            ]
+          : []),
+        // Founder decision (2026-10-28): untraced reads proven not to read a Stripe object.
+        ...(validation.localReads?.length
+          ? [
+              `- Untraced Reads Cleared: Refit proved these reads of removed field names do not read a ${plainText(provider)} object, so they were left unchanged and do not hold the draft for review: ${summaryList(
+                [
+                  ...new Set(
+                    validation.localReads.map(
+                      (site) =>
+                        `${code(`${site.file}:${site.line}`)} reads ${code(site.expression)} (${LOCAL_PROOFS[site.proof]})`,
+                    ),
+                  ),
+                ],
+              )}.`,
             ]
           : []),
         ...(legacyPeerDeps

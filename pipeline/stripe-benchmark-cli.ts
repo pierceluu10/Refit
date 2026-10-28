@@ -678,6 +678,8 @@ async function benchmark(entry: Selected, index: number) {
       ...(report.validation?.repair?.error ? { repairError: report.validation.repair.error } : {}),
       // Every AI request of the run, refused and repair requests included.
       aiCostUsd: report.validation?.aiCostUsd ?? report.patch?.budget?.costUsd,
+      // Founder decision (2026-10-28): untraced reads proven not to read a Stripe object.
+      ...(report.validation?.localReads ? { localReads: report.validation.localReads } : {}),
       ...(report.validation?.coverageAi
         ? {
             coverageAi: {
