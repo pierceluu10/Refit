@@ -10,7 +10,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import { chmod, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 import {
@@ -24,7 +24,9 @@ import {
   dockerSandboxArguments,
   preparationProfile,
   removeDockerContainer,
+  removeExpiredSandboxContainers,
   resolveDockerImage,
+  SANDBOX_EXPIRY_LABEL,
   validationProfile,
 } from './docker-sandbox.ts';
 import {
@@ -37,6 +39,28 @@ import {
 import { PipelineInputError } from './types.ts';
 
 const execute = promisify(execFile);
+const DOCKER_TIMEOUT_MS = 60_000;
+const SWEEP_GRACE_MS = 10 * 60 * 1000;
+// A hung daemon fails the call instead of blocking the job.
+const docker = (argumentsList: string[]) =>
+  execute('docker', argumentsList, { timeout: DOCKER_TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024 });
+
+// Build networks a killed job left behind; containers on them go through the sandbox sweeper.
+async function removeExpiredNetworks(now = Date.now()) {
+  const { stdout } = await docker([
+    'network',
+    'ls',
+    '--filter',
+    `label=${SANDBOX_EXPIRY_LABEL}`,
+    '--format',
+    `{{.Name}}\t{{.Label "${SANDBOX_EXPIRY_LABEL}"}}`,
+  ]).catch(() => ({ stdout: '' }));
+  for (const line of stdout.split('\n').filter(Boolean)) {
+    const [name, expires] = line.split('\t');
+    if (name.startsWith('refit-build-') && Number(expires) < now)
+      await docker(['network', 'rm', name]).catch(() => undefined);
+  }
+}
 const PROXY_PORT = 3128;
 const MAX_LOG_CHARACTERS = 4000;
 
@@ -46,29 +70,58 @@ export function repositoryInstallEnabled(value = process.env.REFIT_REPOSITORY_IN
 }
 
 // An HTTP proxy that tunnels CONNECT (and forwards plain HTTP) only to allowlisted hosts on 80
-// and 443, and prints each refused host as REFIT_DENIED=<host>.
+// and 443, and prints each refused host as REFIT_DENIED=<host>. A name is checked by every address
+// it resolves to and the proxy connects to that checked address, so an allowlisted name that
+// points at a private, loopback, link-local or metadata address (169.254.169.254) is refused too.
 export const PROXY_SCRIPT = `
-const http = require("node:http"), net = require("node:net");
+const http = require("node:http"), net = require("node:net"), dns = require("node:dns");
 const allowed = new Set(JSON.parse(process.argv[1]));
-const ok = (host, port) => allowed.has(String(host).toLowerCase()) && (port === 443 || port === 80);
 const deny = (host) => console.error("REFIT_DENIED=" + host);
+const v4 = (a) => a.split(".").map(Number);
+const privateAddress = (address) => {
+  const mapped = /^::ffff:(\\d+\\.\\d+\\.\\d+\\.\\d+)$/i.exec(address);
+  if (mapped) address = mapped[1];
+  if (net.isIPv4(address)) {
+    const [a, b] = v4(address);
+    return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b < 128) ||
+      (a === 169 && b === 254) || (a === 172 && b >= 16 && b < 32) || (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19));
+  }
+  const lower = address.toLowerCase();
+  return lower === "::" || lower === "::1" || /^f[cd]/.test(lower) || /^fe[89ab]/.test(lower) || /^ff/.test(lower);
+};
+// The public address to connect to, or undefined when the host or any address it has is refused.
+const resolve = (host, port, done) => {
+  host = String(host).toLowerCase().replace(/^\\[|\\]$/g, "");
+  if (!allowed.has(host) || (port !== 443 && port !== 80) || net.isIP(host)) return done(undefined);
+  dns.lookup(host, { all: true }, (error, addresses) => {
+    if (error || !addresses.length || addresses.some((entry) => privateAddress(entry.address))) return done(undefined);
+    done(addresses[0].address);
+  });
+};
 const server = http.createServer((request, response) => {
   let url; try { url = new URL(request.url); } catch { response.writeHead(400).end(); return; }
   const port = Number(url.port || 80);
-  if (url.protocol !== "http:" || !ok(url.hostname, port)) { deny(url.hostname); response.writeHead(403).end(); return; }
-  const upstream = http.request({ host: url.hostname, port, path: url.pathname + url.search, method: request.method, headers: request.headers },
-    (reply) => { response.writeHead(reply.statusCode, reply.headers); reply.pipe(response); });
-  upstream.on("error", () => response.destroy());
-  request.pipe(upstream);
+  if (url.protocol !== "http:") { deny(url.hostname); response.writeHead(403).end(); return; }
+  resolve(url.hostname, port, (address) => {
+    if (!address) { deny(url.hostname); response.writeHead(403).end(); return; }
+    const upstream = http.request({ host: address, port, path: url.pathname + url.search, method: request.method, headers: { ...request.headers, host: url.host } },
+      (reply) => { response.writeHead(reply.statusCode, reply.headers); reply.pipe(response); });
+    upstream.on("error", () => response.destroy());
+    request.pipe(upstream);
+  });
 });
 server.on("connect", (request, socket, head) => {
-  const [host, portText] = String(request.url).split(":");
-  const port = Number(portText);
-  if (!ok(host, port)) { deny(host); socket.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n"); return; }
-  const upstream = net.connect(port, host, () => { socket.write("HTTP/1.1 200 Connection Established\\r\\n\\r\\n"); upstream.write(head); upstream.pipe(socket); socket.pipe(upstream); });
-  upstream.on("error", () => socket.destroy()); socket.on("error", () => upstream.destroy());
+  const match = /^(.+):(\\d+)$/.exec(String(request.url));
+  const host = match ? match[1] : String(request.url);
+  socket.on("error", () => socket.destroy());
+  resolve(host, Number(match && match[2]), (address) => {
+    if (!address) { deny(host); socket.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n"); return; }
+    const upstream = net.connect(Number(match[2]), address, () => { socket.write("HTTP/1.1 200 Connection Established\\r\\n\\r\\n"); upstream.write(head); upstream.pipe(socket); socket.pipe(upstream); });
+    upstream.on("error", () => socket.destroy()); socket.on("close", () => upstream.destroy());
+  });
 });
-server.listen(${PROXY_PORT}, "0.0.0.0", () => console.error("REFIT_PROXY_READY"));
+server.listen(Number(process.argv[2] || ${PROXY_PORT}), "0.0.0.0", () => console.error("REFIT_PROXY_READY"));
 `;
 
 // Runs in the install container after the committed tree is copied to /workspace: installs the
@@ -161,10 +214,13 @@ async function runInstall(
   signal?: AbortSignal,
 ) {
   const child = spawn('docker', argumentsList, { stdio: ['ignore', 'pipe', 'pipe'], signal });
+  signal?.throwIfAborted();
   const exited = new Promise<number | null>((resolve, reject) => {
     child.once('error', reject);
     child.once('close', (code) => resolve(code));
   });
+  // An abort rejects before stdout ends; handled here so it never surfaces as unhandled.
+  exited.catch(() => undefined);
   const timeout = setTimeout(() => child.kill('SIGKILL'), timeoutSeconds * 1000);
   const { archiveBytes } = validationProfile();
   const hash = createHash('sha256');
@@ -202,7 +258,7 @@ async function runInstall(
 
 async function proxyReady(proxy: string) {
   for (let attempt = 0; attempt < 50; attempt++) {
-    const { stderr } = await execute('docker', ['logs', proxy]);
+    const { stderr } = await docker(['logs', proxy]);
     if (stderr.includes('REFIT_PROXY_READY')) return;
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
@@ -250,16 +306,23 @@ export async function buildRepositoryEnvironment(options: {
   options.onProgress?.(
     `Running the repository's own install (${plan.command.join(' ')}, from ${plan.file}) in Refit's build sandbox; egress is limited to ${hosts.length} named hosts...`,
   );
+  let built = false;
+  await removeExpiredSandboxContainers();
+  await removeExpiredNetworks();
   try {
     await mkdir(input, { mode: 0o755 });
     await chmod(scratch, 0o755);
     await committedTree(options.repository, input);
-    await execute('docker', ['network', 'create', '--internal', network]);
-    await execute('docker', [
+    const expires = `${SANDBOX_EXPIRY_LABEL}=${Date.now() + timeoutSeconds * 1000 + SWEEP_GRACE_MS}`;
+    await docker(['network', 'create', '--internal', '--label', expires, network]);
+    await docker([
       'run',
       '-d',
       '--name',
       proxy,
+      // The existing sweeper removes it after a crash or SIGKILL skipped this function's cleanup.
+      '--label',
+      expires,
       '--network',
       'bridge',
       '--pull',
@@ -282,7 +345,7 @@ export async function buildRepositoryEnvironment(options: {
       PROXY_SCRIPT,
       JSON.stringify(hosts),
     ]);
-    await execute('docker', ['network', 'connect', network, proxy]);
+    await docker(['network', 'connect', network, proxy]);
     await proxyReady(proxy);
     const result = await runInstall(
       installArguments({
@@ -298,7 +361,7 @@ export async function buildRepositoryEnvironment(options: {
       timeoutSeconds,
       options.signal,
     );
-    const proxyLog = await execute('docker', ['logs', proxy]).then(
+    const proxyLog = await docker(['logs', proxy]).then(
       (output) => output.stderr,
       () => '',
     );
@@ -334,16 +397,36 @@ export async function buildRepositoryEnvironment(options: {
       },
       validation: { network: 'none' },
     };
-    return { directory: scratch, archive, environment, reused: false };
+    built = true;
+    return { directory: dirname(archive), archive, environment, reused: false };
   } finally {
     const cleanup = await Promise.allSettled([
       removeDockerContainer(name),
       removeDockerContainer(proxy),
       rm(options.copyArchiveTo ? scratch : input, { recursive: true, force: true }),
+      // A failed build leaves no partial archive behind (it can be up to the archive limit).
+      built ? Promise.resolve() : rm(archive, { force: true }),
     ]);
-    await execute('docker', ['network', 'rm', network]).catch(() => undefined);
+    await docker(['network', 'rm', network]).catch(() => undefined);
     for (const entry of cleanup) if (entry.status === 'rejected') throw entry.reason;
   }
+}
+
+// Stops the repository's own install must not get around: a lockfile that is missing, out of
+// sync, unverifiable or rejected by npm would install versions the repository never committed
+// (owner decisions on lockfile drift), and the archive limit binds the build sandbox too.
+const KEPT_STOPS = new Set([
+  'dependency-archive-limit',
+  'no-lockfile',
+  'lockfile-out-of-sync',
+  'lockfile-integrity',
+  'peer-dependency-conflict',
+]);
+
+// Whether a refusal with this message falls back to the repository's own install (refit doctor).
+export function fallsBackToRepositoryInstall(message: string) {
+  const failure = preparationFailure(new DependencyPreparationError(message));
+  return Boolean(failure) && !KEPT_STOPS.has(failure!.reason) && repositoryInstallEnabled();
 }
 
 // Refit's own preparation first; where it refuses for a repository-side reason, the
@@ -355,7 +438,7 @@ export async function prepareEnvironment(options: Parameters<typeof prepareDepen
     const failure = preparationFailure(error);
     if (
       !failure ||
-      failure.reason === 'dependency-archive-limit' ||
+      KEPT_STOPS.has(failure.reason) ||
       options.packageDirectory ||
       !repositoryInstallEnabled() ||
       !(error instanceof Error)

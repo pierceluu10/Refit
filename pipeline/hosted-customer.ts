@@ -13,8 +13,9 @@ import {
   authenticateGitHubWorkflow,
   type GitHubAppConfiguration,
 } from './github-app.ts';
-import { GitHubRequestError, requestGitHub } from './github.ts';
-import type { openInventoryStore } from './inventory-store.ts';
+import { GitHubRateLimitError, GitHubRequestError, requestGitHub } from './github.ts';
+import { PipelineInputError } from './types.ts';
+import type { Pool } from 'pg';
 import { environmentFlag } from './monitoring.ts';
 import { customerReason, type openPullOutcomeStore } from './pull-outcomes.ts';
 import { isObject } from './specifications.ts';
@@ -43,7 +44,15 @@ export async function syncPullOutcomeReasons(options: {
       await options.outcomes.setReason(row.repository, row.number, customerReason(comments));
     } catch (error) {
       // A deleted pull request or a removed repository has no reason to read.
-      if (error instanceof GitHubRequestError && error.status === 404)
+      // A deleted pull request, a removed repository or a suspended installation has no reason
+      // to read; leaving the row unchecked would hold back every newer one.
+      if (
+        (error instanceof GitHubRequestError &&
+          !(error instanceof GitHubRateLimitError) &&
+          error.status >= 400 &&
+          error.status < 500) ||
+        error instanceof PipelineInputError
+      )
         await options.outcomes.setReason(row.repository, row.number, null);
       else
         options.onProgress?.(
@@ -53,19 +62,22 @@ export async function syncPullOutcomeReasons(options: {
   }
 }
 
-// shortcut: proposals are remembered per worker process and every open Refit draft is re-read on
+// Approved repositories only. shortcut: proposals are remembered per worker process and every open Refit draft is re-read on
 // every pass; both are idempotent (the branch's pull request, the marked comment). Record them in
 // PostgreSQL when the beta has more than a handful of repositories.
 export async function syncCustomerCi(options: {
   app: GitHubAppConfiguration;
-  inventories: ReturnType<typeof openInventoryStore>;
+  database: Pool;
   proposed: Set<string>;
   signal: AbortSignal;
   onProgress?: (message: string) => void;
 }) {
-  const repositories = [
-    ...new Set((await options.inventories.read()).map((row) => row.repository.toLowerCase())),
-  ];
+  // Only repositories with a stored approval (a target): installation alone activates nothing.
+  const repositories = (
+    await options.database.query<{ repository: string }>(
+      'SELECT DISTINCT lower(repository) AS repository FROM refit_targets ORDER BY 1',
+    )
+  ).rows.map((row) => row.repository);
   for (const repository of repositories) {
     if (options.signal.aborted) return;
     try {

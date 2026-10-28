@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com
-      - run: npm ci
+      - run: npm ci && npm run build && npx vercel deploy --token $VERCEL_TOKEN
         if: steps.filter.outputs.code == 'true'
       - run: npm test
 `;
@@ -45,7 +45,8 @@ const files = (extra: Record<string, string> = {}) =>
 it("runs the repository's own CI setup with its secrets, on Refit branches only, read-only", () => {
   const workflow = customerCiWorkflow(files({ '.github/workflows/ci.yml': CI }))!;
   const value = parse(workflow.content);
-  expect(value.on).toEqual({ push: { branches: ['refit/**'] } });
+  // Never on the proposal branch: nothing runs before the customer merges it.
+  expect(value.on).toEqual({ push: { branches: ['refit/**', '!refit/validation-workflow'] } });
   expect(value.permissions).toEqual({ contents: 'read' });
   expect(Object.keys(value.jobs)).toEqual(['baseline', 'patched']);
   const patched = value.jobs.patched;
@@ -56,7 +57,7 @@ it("runs the repository's own CI setup with its secrets, on Refit branches only,
   ).toEqual(['actions/checkout@v4', 'actions/setup-node@v4', 'npm ci', 'npm test']);
   expect(patched.steps[0].with['persist-credentials']).toBe(false);
   expect(value.jobs.baseline.steps[1].run).toContain('git merge-base');
-  expect(workflow.content).not.toMatch(/pull_request_target|write|steps\.filter|&a1/);
+  expect(workflow.content).not.toMatch(/pull_request_target|write|steps\.filter|&a1|deploy|build/);
 });
 
 it('falls back to setup-node and the lockfile install, and avoids a watch-mode test script', () => {
@@ -88,6 +89,10 @@ it('counts CI results under the offline gates', () => {
   expect(customerCiOutcome('success', 'success')).toBe('passed');
   expect(customerCiOutcome('success', 'failure')).toBe('regression');
   expect(customerCiOutcome('failure', 'success')).toBe('baseline-failed');
+  // A cancelled, skipped or timed-out job is no evidence, and never closes a draft.
+  expect(customerCiOutcome('success', 'cancelled')).toBe('inconclusive');
+  expect(customerCiOutcome('success', 'missing')).toBe('inconclusive');
+  expect(customerCiOutcome('cancelled', 'failure')).toBe('inconclusive');
   expect(customerCiOutcome('success', null)).toBe('pending');
   expect(customerCiOutcome(undefined, 'success')).toBe('missing');
 });

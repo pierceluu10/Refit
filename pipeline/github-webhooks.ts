@@ -197,7 +197,15 @@ function closedPullRequest(payload: Record<string, unknown>): GitHubWebhook {
     !isObject(request.head) ||
     typeof request.head.ref !== 'string' ||
     !request.head.ref.startsWith('refit/') ||
-    request.head.ref === CUSTOMER_CI_BRANCH
+    request.head.ref === CUSTOMER_CI_BRANCH ||
+    // Refit's pull requests are opened by its App bot from a branch in the repository itself.
+    !isObject(request.user) ||
+    request.user.type !== 'Bot' ||
+    !isObject(request.head.repo) ||
+    !isObject(repository) ||
+    request.head.repo.full_name !== repository.full_name ||
+    // A draft Refit closed itself (superseded, or a regression) is not a customer's decision.
+    (request.merged !== true && isObject(payload.sender) && payload.sender.type === 'Bot')
   )
     return { kind: 'ignored' };
   if (

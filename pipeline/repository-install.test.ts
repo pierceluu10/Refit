@@ -20,7 +20,14 @@ it('recognises only install commands that keep development dependencies', () => 
     'install',
     '--frozen-lockfile',
   ]);
-  expect(installCommand('yarn')?.command).toEqual(['yarn', 'install']);
+  expect(installCommand('yarn')?.command).toEqual(['yarn', 'install', '--frozen-lockfile']);
+  // Always frozen: only the committed lockfile's versions are installed.
+  expect(installCommand('npm install --no-audit')?.command).toEqual(['npm', 'ci', '--no-audit']);
+  expect(installCommand('pnpm i --no-frozen-lockfile')?.command).toEqual([
+    'pnpm',
+    'install',
+    '--frozen-lockfile',
+  ]);
   expect(installCommand('yarn --frozen-lockfile --network-timeout 600000')?.command).toEqual([
     'yarn',
     'install',

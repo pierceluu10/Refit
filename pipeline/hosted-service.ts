@@ -991,7 +991,7 @@ export async function runHostedService(options: {
         if (options.customerCi && !options.signal.aborted)
           await syncCustomerCi({
             app: options.app,
-            inventories,
+            database: options.database,
             proposed: proposedCustomerCi,
             signal: options.signal,
             onProgress,

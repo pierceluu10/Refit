@@ -91,7 +91,10 @@ export async function recordPullOutcome(client: PoolClient, change: ClosedPullRe
   await client.query(
     `INSERT INTO refit_pull_outcomes
        (installation_id, repository, number, outcome, head, merge_commit, pushed, closed_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     SELECT $1, $2, $3, $4, $5, $6, $7, $8
+     FROM refit_installation_repositories r JOIN refit_installations i ON i.id = r.installation_id
+     -- Only repositories of an allowed installation, as for every other hosted record.
+     WHERE r.installation_id = $1 AND lower(r.repository) = $2 AND i.allowed
      ON CONFLICT (repository, number) DO UPDATE SET
        outcome = EXCLUDED.outcome, head = EXCLUDED.head, merge_commit = EXCLUDED.merge_commit,
        pushed = EXCLUDED.pushed, closed_at = EXCLUDED.closed_at, reason_checked = false`,

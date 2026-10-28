@@ -12,10 +12,11 @@ import {
 const PUSHED = 'a'.repeat(40);
 const MERGE = 'c'.repeat(40);
 const body = (value: object) => new TextEncoder().encode(JSON.stringify(value));
-const closed = (pull: object) =>
+const closed = (pull: object, sender: object = { login: 'dev', type: 'User' }) =>
   parseWebhook(
     body({
       action: 'closed',
+      sender,
       installation: { id: 456 },
       repository: { full_name: 'Acme/Shop' },
       pull_request: {
@@ -24,7 +25,8 @@ const closed = (pull: object) =>
         merge_commit_sha: MERGE,
         closed_at: '2026-10-28T12:00:00Z',
         body: `Refit draft\n<!-- refit-pushed: ${PUSHED} -->`,
-        head: { ref: 'refit/stripe-endive', sha: PUSHED },
+        user: { login: 'refit[bot]', type: 'Bot' },
+        head: { ref: 'refit/stripe-endive', sha: PUSHED, repo: { full_name: 'Acme/Shop' } },
         base: { sha: 'b'.repeat(40) },
         ...pull,
       },
@@ -54,6 +56,15 @@ it('classifies a closed Refit pull request by whether its head is the commit Ref
   expect(pullOutcome({ merged: false, head: PUSHED, pushed: PUSHED })).toBe('closed-unmerged');
   // Other pull requests, and the validation workflow's own, are not Refit migrations.
   expect(closed({ head: { ref: 'feature/x', sha: PUSHED } })).toEqual({ kind: 'ignored' });
+  // A person's branch named refit/*, or one from a fork, is not a Refit pull request.
+  expect(closed({ user: { login: 'dev', type: 'User' } })).toEqual({ kind: 'ignored' });
+  expect(
+    closed({ head: { ref: 'refit/x', sha: PUSHED, repo: { full_name: 'someone/shop' } } }),
+  ).toEqual({ kind: 'ignored' });
+  // Refit closing its own draft (superseded, or a CI regression) is not the customer's decision.
+  expect(closed({ merged: false }, { login: 'refit[bot]', type: 'Bot' })).toEqual({
+    kind: 'ignored',
+  });
   expect(closed({ head: { ref: 'refit/validation-workflow', sha: PUSHED } })).toEqual({
     kind: 'ignored',
   });

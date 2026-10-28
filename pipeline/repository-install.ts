@@ -50,10 +50,16 @@ export function installCommand(
     flags.unshift(verb);
   }
   if (!flags.every((flag) => FLAGS[manager].test(flag))) return undefined;
-  return {
-    manager,
-    command: [manager, ...(verb && !verb.startsWith('--') ? [verb] : ['install']), ...flags],
-  };
+  return { manager, command: frozen(manager, flags) };
+}
+
+// The install in its frozen form, so only the committed lockfile's versions are installed and
+// graded: `npm install` runs as `npm ci`, and pnpm and Yarn always get a frozen lockfile.
+function frozen(manager: InstallManager, flags: string[]) {
+  if (manager === 'npm') return ['npm', 'ci', ...flags];
+  const kept = flags.filter((flag) => flag !== '--no-frozen-lockfile');
+  const locked = kept.includes('--frozen-lockfile') || kept.includes('--immutable');
+  return [manager, 'install', ...kept, ...(locked ? [] : ['--frozen-lockfile'])];
 }
 
 // Splits a shell script into its commands. Anything with substitution or redirection stays one

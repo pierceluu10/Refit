@@ -30,6 +30,13 @@ const quote = (word: string) =>
 // oven-sh/setup-bun, ...).
 const SETUP_ACTION = /^[\w.-]+\/(?:setup-[\w.-]+|action-setup)@/;
 
+function installSegment(script: string) {
+  return script
+    .split(/&&|;|\n/)
+    .map((part) => part.trim())
+    .find((part) => installCommand(part))!;
+}
+
 // The steps of the repository's own CI job up to and including its install, verbatim (their
 // `env` keeps the customer's `${{ secrets.* }}` references), without its checkout.
 function ciSetup(content: string) {
@@ -56,7 +63,19 @@ function ciSetup(content: string) {
           (step, position) =>
             isObject(step) && (position === index || SETUP_ACTION.test(String(step.uses ?? ''))),
         )
-        .map((step) => Object.fromEntries(Object.entries(step).filter(([key]) => key !== 'if'))),
+        .map((step, position, kept) =>
+          Object.fromEntries(
+            Object.entries(step)
+              .filter(([key]) => key !== 'if')
+              // The install step runs only its recognised install command, never what the same
+              // script does after it (a build, a deploy with the customer's tokens).
+              .map(([key, value]) =>
+                key === 'run' && position === kept.length - 1
+                  ? [key, installSegment(String(value))]
+                  : [key, value],
+              ),
+          ),
+        ),
     };
   }
   return undefined;
@@ -117,7 +136,8 @@ export function customerCiWorkflow(files: ReadonlyMap<string, string>, check?: s
   });
   const workflow = {
     name: 'Refit validation',
-    on: { push: { branches: ['refit/**'] } },
+    // Never on the proposal branch itself: the workflow runs only once the customer merged it.
+    on: { push: { branches: ['refit/**', `!${CUSTOMER_CI_BRANCH}`] } },
     permissions: { contents: 'read' },
     concurrency: { group: 'refit-validation-${{ github.ref }}', 'cancel-in-progress': true },
     jobs: { baseline: job(true), patched: job(false) },
@@ -226,10 +246,18 @@ export async function proposeCustomerCi(options: {
     tree: isObject(tree) ? tree.sha : undefined,
     parents: [parent],
   });
+  // A branch left by an earlier attempt whose pull request failed to open is moved, not refused.
   await request('POST', `/repos/${repository}/git/refs`, {
     ref: `refs/heads/${CUSTOMER_CI_BRANCH}`,
     sha: isObject(created) ? created.sha : undefined,
-  });
+  }).catch((error) =>
+    error instanceof GitHubRequestError && error.status === 422
+      ? request('PATCH', `/repos/${repository}/git/refs/heads/${CUSTOMER_CI_BRANCH}`, {
+          sha: isObject(created) ? created.sha : undefined,
+          force: true,
+        })
+      : Promise.reject(error),
+  );
   const text = customerCiPullRequest(
     workflow.plan.file,
     String(parse(workflow.content).jobs.patched.steps.at(-1).run),
@@ -242,7 +270,8 @@ export async function proposeCustomerCi(options: {
   return { status: 'opened' as const, url: isObject(pull) ? String(pull.html_url) : '' };
 }
 
-export type CustomerCiOutcome = 'passed' | 'regression' | 'baseline-failed' | 'pending' | 'missing';
+export type CustomerCiOutcome =
+  'passed' | 'regression' | 'baseline-failed' | 'inconclusive' | 'pending' | 'missing';
 
 // The offline gates applied to the two jobs: evidence only when the base passed.
 export function customerCiOutcome(
@@ -251,8 +280,11 @@ export function customerCiOutcome(
 ): CustomerCiOutcome {
   if (baseline === undefined || patched === undefined) return 'missing';
   if (baseline === null || patched === null) return 'pending';
-  if (baseline !== 'success') return 'baseline-failed';
-  return patched === 'success' ? 'passed' : 'regression';
+  // Only a job that ran and failed counts; cancelled, skipped or timed-out jobs say nothing.
+  if (baseline === 'failure') return 'baseline-failed';
+  if (baseline !== 'success') return 'inconclusive';
+  if (patched === 'success') return 'passed';
+  return patched === 'failure' ? 'regression' : 'inconclusive';
 }
 
 // The newest workflow run for this commit, its jobs and their log tails.
@@ -322,6 +354,8 @@ export function customerCiComment(evidence: Awaited<ReturnType<typeof readCustom
       'Your CI failed on this patch and passed on the base commit, so Refit closed this draft as a regression. Do not merge it.',
     'baseline-failed':
       'Your CI failed on the base commit too, so its result on this patch is not evidence either way.',
+    inconclusive:
+      'Your CI did not finish both jobs (one was cancelled, skipped or timed out), so it is not evidence either way.',
     pending: 'Your CI is still running.',
     missing: 'Your CI did not run the Refit validation workflow on this commit.',
   }[evidence.outcome];

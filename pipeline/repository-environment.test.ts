@@ -149,3 +149,41 @@ it.runIf(process.env.REFIT_DOCKER_IMAGE && process.env.REFIT_NPM_PREPARE === '1'
     expect((await readFile(archive)).length).toBe(built.environment.archiveBytes);
   },
 );
+
+it('refuses hosts off the allowlist, and allowlisted names that resolve to private addresses', async () => {
+  const { spawn } = await import('node:child_process');
+  const { connect } = await import('node:net');
+  const { PROXY_SCRIPT } = await import('./repository-environment.ts');
+  const port = 30000 + Math.floor(Math.random() * 20000);
+  const proxy = spawn(process.execPath, [
+    '-e',
+    PROXY_SCRIPT,
+    JSON.stringify(['localhost']),
+    String(port),
+  ]);
+  let log = '';
+  proxy.stderr.on('data', (chunk: Buffer) => (log += chunk.toString()));
+  try {
+    for (let attempt = 0; attempt < 100 && !log.includes('REFIT_PROXY_READY'); attempt++)
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    const tunnel = (target: string) =>
+      new Promise<string>((resolve) => {
+        const socket = connect(port, '127.0.0.1', () =>
+          socket.write(`CONNECT ${target} HTTP/1.1\r\nHost: ${target}\r\n\r\n`),
+        );
+        let reply = '';
+        socket.on('data', (chunk) => (reply += chunk.toString()));
+        socket.on('close', () => resolve(reply));
+        socket.on('error', () => resolve(reply));
+      });
+    // localhost is allowlisted but resolves to a loopback address.
+    expect(await tunnel('localhost:443')).toMatch(/^HTTP\/1\.1 403/);
+    expect(await tunnel('example.org:443')).toMatch(/^HTTP\/1\.1 403/);
+    expect(await tunnel('127.0.0.1:443')).toMatch(/^HTTP\/1\.1 403/);
+    expect(log).toContain('REFIT_DENIED=localhost');
+    expect(log).toContain('REFIT_DENIED=example.org');
+  } finally {
+    proxy.kill();
+    await new Promise((resolve) => proxy.once('exit', resolve));
+  }
+});
