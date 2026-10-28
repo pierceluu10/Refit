@@ -171,10 +171,10 @@ it('needs a passing type check for a repository type', async () => {
   const content = `interface Plan {
   price: number;
 }
-export function amount(plans: Plan[]) {
-  const plan = plans[0];
+function amount(plan: Plan) {
   return plan.price;
 }
+export const total = amount({ price: 10 });
 `;
   expect(await proof('src/typed.ts', content, 'plan')).toBe('repository-type');
   expect(await proof('src/typed.ts', content, 'plan', {}, {})).toBeUndefined();
@@ -212,6 +212,39 @@ export async function load(stripe: Stripe, id: string) {
 }
 `;
   expect(await cleared('src/annotated.ts', annotated, 'line')).toBe(false);
+});
+
+it('keeps a Stripe object asserted to a repository type anywhere on its way', async () => {
+  // createdbymax/Loopletter: `event.data.object as StripeInvoice` passed through two helpers.
+  const chain = (origin: string, after = '') => `import Stripe from 'stripe';
+interface Line {
+  price: { id: string } | null;
+}
+function store(line: Line) {
+  return line.price;
+}
+function handle(line: Line) {
+  return store(line);
+}
+export async function load(stripe: Stripe, id: string) {
+  ${origin}
+  return handle(line);
+}
+${after}`;
+  const retrieved = 'const line = (await stripe.invoiceItems.retrieve(id)) as Line;';
+  expect(await cleared('src/chain.ts', chain(retrieved), 'line')).toBe(false);
+  const either =
+    'const line = id ? ((await stripe.invoiceItems.retrieve(id)) as Line) : { price: null };';
+  expect(await cleared('src/either.ts', chain(either), 'line')).toBe(false);
+  const fetchLine = `async function fetchLine(stripe: Stripe, id: string) {
+  return (await stripe.invoiceItems.retrieve(id)) as Line;
+}
+`;
+  const returned = chain('const line = await fetchLine(stripe, id);', fetchLine);
+  expect(await cleared('src/returned.ts', returned, 'line')).toBe(false);
+  expect(await cleared('src/literal.ts', chain('const line = { price: null };'), 'line')).toBe(
+    true,
+  );
 });
 
 it('keeps a union with a Stripe type and a read traced to Stripe in the same function', async () => {

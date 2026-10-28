@@ -357,33 +357,107 @@ export function localReceiverReads<
     }
     return literalBinding(node, literalObject, depth);
   };
-  // Where a typed receiver's type comes from an annotation, the value written into it must have a
-  // repository type as well; a Stripe value, unresolved here, does not.
-  const annotatedSource = (node: ts.Expression): boolean => {
-    let root = node;
-    while (
-      ts.isPropertyAccessExpression(root) ||
-      ts.isElementAccessExpression(root) ||
-      ts.isNonNullExpression(root) ||
-      ts.isParenthesizedExpression(root) ||
-      ts.isCallExpression(root)
+  // The return expressions of a function the repository writes, nested functions excluded.
+  const returned = (body: ts.ConciseBody): ts.Expression[] => {
+    if (!ts.isBlock(body)) return [body];
+    const found: ts.Expression[] = [];
+    const visit = (node: ts.Node) => {
+      if (ts.isReturnStatement(node)) found.push(node.expression ?? ts.factory.createVoidZero());
+      else if (!ts.isFunctionLike(node)) ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(body, visit);
+    return found;
+  };
+  // Every path the repository writes into a typed receiver must start at a value with no type
+  // assertion on the way: a Stripe value asserted to a local type, then passed through parameters,
+  // `const`s or a function's return, keeps its runtime shape. `let`, untyped parameters other than a
+  // literal array's callback element, return annotations and library functions are not followed.
+  // shortcut: property writes (`holder.invoice = event.data.object as Local`) and `this` are not
+  // followed; follow assignments when a measured repository reads a value written that way.
+  const sourced = (node: ts.Expression, depth = 0, visited = new Set<ts.Node>()): boolean => {
+    if (depth > 16) return false;
+    const next = (child: ts.Expression) => sourced(child, depth + 1, visited);
+    if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) return false;
+    if (
+      ts.isParenthesizedExpression(node) ||
+      ts.isNonNullExpression(node) ||
+      ts.isAwaitExpression(node) ||
+      ts.isSatisfiesExpression(node) ||
+      ts.isPropertyAccessExpression(node) ||
+      ts.isElementAccessExpression(node)
     )
-      root = root.expression;
-    if (!ts.isIdentifier(root)) return true;
-    let declaration: ts.Node | undefined = symbolOf(root)?.valueDeclaration;
+      return next(node.expression);
+    if (ts.isConditionalExpression(node)) return next(node.whenTrue) && next(node.whenFalse);
+    if (
+      ts.isBinaryExpression(node) &&
+      [
+        ts.SyntaxKind.BarBarToken,
+        ts.SyntaxKind.QuestionQuestionToken,
+        ts.SyntaxKind.AmpersandAmpersandToken,
+      ].includes(node.operatorToken.kind)
+    )
+      return next(node.left) && next(node.right);
+    if (ts.isCallExpression(node)) {
+      const callee = value(node.expression);
+      if (ts.isPropertyAccessExpression(callee) || ts.isElementAccessExpression(callee))
+        return next(callee.expression);
+      let declaration = ts.isIdentifier(callee) ? symbolOf(callee)?.valueDeclaration : undefined;
+      if (
+        declaration &&
+        ts.isVariableDeclaration(declaration) &&
+        constant(declaration) &&
+        declaration.initializer &&
+        (ts.isArrowFunction(declaration.initializer) ||
+          ts.isFunctionExpression(declaration.initializer))
+      )
+        declaration = declaration.initializer;
+      if (
+        !declaration ||
+        !own(declaration) ||
+        !(
+          ts.isFunctionDeclaration(declaration) ||
+          ts.isArrowFunction(declaration) ||
+          ts.isFunctionExpression(declaration)
+        ) ||
+        !declaration.body ||
+        declaration.type
+      )
+        return false;
+      if (visited.has(declaration)) return true;
+      visited.add(declaration);
+      return returned(declaration.body).every(next);
+    }
+    if (!ts.isIdentifier(node)) return true;
+    let declaration: ts.Node | undefined = symbolOf(node)?.valueDeclaration;
     while (declaration && ts.isBindingElement(declaration)) declaration = declaration.parent.parent;
     if (!declaration) return true;
+    if (visited.has(declaration)) return true;
+    visited.add(declaration);
     if (ts.isFunctionDeclaration(declaration) || ts.isMethodDeclaration(declaration))
       return !declaration.type;
-    if (ts.isVariableDeclaration(declaration) && declaration.type)
-      return (
-        constant(declaration) &&
-        Boolean(declaration.initializer) &&
-        localType(declaration.initializer!)
-      );
-    if (!ts.isParameter(declaration) || !declaration.type) return true;
+    if (ts.isVariableDeclaration(declaration)) {
+      const statement = declaration.parent.parent;
+      if (ts.isForOfStatement(statement)) return next(statement.expression);
+      if (!own(declaration) || !constant(declaration) || !declaration.initializer) return false;
+      if (declaration.type && !localType(declaration.initializer)) return false;
+      return next(declaration.initializer);
+    }
+    if (!ts.isParameter(declaration)) return true;
     const owner = declaration.parent;
     const index = owner.parameters.indexOf(declaration);
+    if (!declaration.type) {
+      // An untyped callback element of a repository array: the array decides its value.
+      const call = owner.parent;
+      return (
+        (ts.isArrowFunction(owner) || ts.isFunctionExpression(owner)) &&
+        index === 0 &&
+        ts.isCallExpression(call) &&
+        call.arguments.includes(owner) &&
+        ts.isPropertyAccessExpression(call.expression) &&
+        CALLBACK_METHODS.has(call.expression.name.text) &&
+        next(call.expression.expression)
+      );
+    }
     const binding =
       ts.isFunctionDeclaration(owner) && owner.name
         ? owner
@@ -405,7 +479,7 @@ export function localReceiverReads<
         if (!ts.isCallExpression(call) || call.expression !== reference) return false;
         const argument = call.arguments[index];
         if (!argument) return Boolean(declaration.initializer || declaration.questionToken);
-        return !ts.isSpreadElement(argument) && !asserted(argument, checker) && localType(argument);
+        return !ts.isSpreadElement(argument) && localType(argument) && next(argument);
       })
     );
   };
@@ -417,7 +491,7 @@ export function localReceiverReads<
       declarations.length > 0 &&
       declarations.every(own) &&
       localType(access.expression) &&
-      annotatedSource(access.expression)
+      sourced(access.expression)
     );
   };
   const enclosing = (node: ts.Node): ts.Node => {
