@@ -58,7 +58,7 @@ import {
   validateApiVersionPolicy,
   type ApiVersionPolicy,
 } from './api-version.ts';
-import { PipelineInputError } from './types.ts';
+import { PipelineInputError, type SourceEdit } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
 import { addTypeEvidence, stripePackageDirectory } from './stripe-type-evidence.ts';
@@ -187,6 +187,7 @@ async function runOpenApiPipeline(options: {
     enumChecks,
     // Only model replacement proposals read direct client-method calls; reports do not list them.
     clientMethodCalls: _clientMethodCalls,
+    renamePaths,
     ...analysis
   } = analyzeRepository(
     repository,
@@ -259,18 +260,22 @@ async function runOpenApiPipeline(options: {
   // the API version its release pins: upgrading the package is the version bump, in any language.
   // `apiVersion: null` (the account default) is unknown, not absent, and never counts.
   const constructors = apiVersionDeclarations.filter((entry) => entry.kind === 'constructor');
-  const sdkPinned =
+  // The upgrade moves at least one client that omits the option: enough for a payment-method
+  // rename whose own path holds only such clients (below).
+  const sdkDefault =
     !options.keepApiVersion &&
     provider.packageName === STRIPE.packageName &&
     Boolean(applicationApiVersion) &&
     typeof targetVersion === 'string' &&
     targetVersion !== applicationApiVersion &&
-    constructors.length > 0 &&
+    constructors.some((entry) => entry.absent) &&
+    !repository.files.some((file) => file.content.includes('setApiVersion'));
+  const sdkPinned =
+    sdkDefault &&
     constructors.every((entry) => entry.absent) &&
     apiVersionDeclarations.every(
       (entry) => entry.kind === 'constructor' || entry.status === 'inherited',
-    ) &&
-    !repository.files.some((file) => file.content.includes('setApiVersion'));
+    );
   const bumpsVersion = versionEdits.length > 0 || sdkPinned;
   const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
   // A client without the option follows the package's pin, so any such client needs the upgrade.
@@ -292,7 +297,7 @@ async function runOpenApiPipeline(options: {
         REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
         edit.rule === INVOICE_PREVIEW_RULE,
     ) &&
-    bumpsVersion &&
+    (bumpsVersion || sdkDefault) &&
     (upgradeRequired || preview) &&
     typeof targetVersion === 'string'
       ? await stripePackageUpgrade(repository.root, targetVersion, options.lockfileResolution)
@@ -324,6 +329,31 @@ async function runOpenApiPipeline(options: {
     everyPinMoves &&
     (!patchRequested || !upgradeRequired || upgraded) &&
     !configuredMigrationProposal;
+  // Founders' decision (2026-10-27): a payment-method rename also stands when every declaration on
+  // its own path is proven, even if another client or request elsewhere has an untraced version:
+  // its calls inherit their client's version, and every constructor of that client either has a
+  // literal pin the patch moves (or one already at or past the target) or omits the option and
+  // moves with the stripe-node upgrade. An escape hatch makes every constructor unknown.
+  const renameMoves =
+    (bumpsVersion || sdkDefault) &&
+    (!patchRequested || !upgradeRequired || upgraded) &&
+    !configuredMigrationProposal;
+  // A literal pin reaches the target when the patch moves it or it already sends the target or later.
+  const pinReaches = (value: string) =>
+    typeof targetVersion === 'string' &&
+    (value >= targetVersion ||
+      (movesPin(value) &&
+        provider.packageName === STRIPE.packageName &&
+        Boolean(applicationApiVersion)));
+  const reaches = (entry: (typeof apiVersionDeclarations)[number]) =>
+    entry.status === 'literal'
+      ? pinReaches(entry.value!)
+      : entry.kind === 'request'
+        ? entry.status === 'inherited'
+        : Boolean(entry.absent);
+  const pathMoves = (edit: SourceEdit) =>
+    renameMoves &&
+    Boolean(renamePaths.get(edit)?.every((index) => reaches(apiVersionDeclarations[index])));
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[MOVED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   for (const rule of REQUEST_MOVE_RULES) movedTo[rule] = movedTo[CARD_PAYMENT_METHOD_RULE];
@@ -331,7 +361,12 @@ async function runOpenApiPipeline(options: {
     bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
   // The period helper reads either API version, so it does not depend on the version pin.
   const kept = [
-    ...analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]),
+    ...analyzedEdits.filter(
+      (edit) =>
+        !isFieldMove(edit) ||
+        movedTo[edit.rule!] ||
+        (PAYMENT_METHOD_RENAME_RULES.has(edit.rule!) && pathMoves(edit)),
+    ),
     // A lowercase currency code is valid under either API version, so it needs no pin gate.
     ...(specificationDiff && provider.packageName === STRIPE.packageName
       ? currencyCodeEdits(specificationDiff.changes, {
@@ -358,6 +393,10 @@ async function runOpenApiPipeline(options: {
       if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
         delete finding.webhook!.migration;
     }
+  // A rename kept on its own path bumps the version through the stripe-node upgrade.
+  const versionBumped =
+    bumpsVersion ||
+    kept.some((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') && !movedTo[edit.rule!]);
   // A removed request parameter the kept card-only rename covers no longer stops the run.
   for (const finding of analysis.findings)
     if (finding.requestParameter && editCovers(repository, kept, finding))
@@ -388,22 +427,35 @@ async function runOpenApiPipeline(options: {
         reviewed.some((finding) => finding.requestParameter)));
   // A dropped payment-method rename tells the customer which gate dropped it (F2).
   const renames = analyzedEdits.filter((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? ''));
-  const unresolved = apiVersionDeclarations.find(
-    (entry) => entry.status === 'unknown' && !(entry.kind === 'constructor' && entry.absent),
-  );
-  const gate = movedTo[CARD_PAYMENT_METHOD_RULE]
+  const untraced = (entry: (typeof apiVersionDeclarations)[number]) =>
+    entry.status === 'unknown' && !(entry.kind === 'constructor' && entry.absent);
+  const dropped = renames.filter((edit) => !kept.includes(edit));
+  const onPath = dropped
+    .flatMap((edit) => renamePaths.get(edit) ?? [])
+    .map((index) => apiVersionDeclarations[index]);
+  const unmoved = onPath.find((entry) => entry.status === 'literal' && !reaches(entry));
+  // Name a declaration on a dropped rename's own path when one is untraced; any untraced one when
+  // a dropped rename's path is not known.
+  const unresolved =
+    onPath.find(untraced) ??
+    (dropped.some((edit) => !renamePaths.get(edit)) && !everyPinMoves
+      ? apiVersionDeclarations.find(untraced)
+      : undefined);
+  const gate = !dropped.length
     ? undefined
     : options.keepApiVersion
       ? 'the patch that moved the API version failed the repository checks, so this one leaves every pin unchanged'
       : configuredMigrationProposal
         ? 'this patch applies a configured migration, which does not move the API version'
-        : !everyPinMoves && unresolved
+        : unresolved
           ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
-          : !bumpsVersion
-            ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
-            : cardUpgrade && 'reason' in cardUpgrade
-              ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
-              : undefined;
+          : unmoved
+            ? `the ${unmoved.kind === 'constructor' ? 'client created' : 'request'} at ${unmoved.file}:${unmoved.line} pins ${unmoved.value}, which this patch does not move to ${targetVersion}`
+            : !bumpsVersion && !sdkDefault
+              ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
+              : cardUpgrade && 'reason' in cardUpgrade
+                ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
+                : undefined;
   if (gate)
     for (const finding of analysis.findings)
       if (finding.requestParameter && editCovers(repository, renames, finding))
@@ -587,7 +639,7 @@ async function runOpenApiPipeline(options: {
   // literal type and the moved fields' types. An SDK-pinned version moves only with the upgrade.
   // The upgrade is added only when the patch bumps the version.
   const bumpedVersion =
-    bumpsVersion &&
+    versionBumped &&
     'diff' in patch &&
     patch.status === 'proposed' &&
     'generator' in patch &&

@@ -26,6 +26,9 @@ export function declaredApiVersions(options: {
   // Receives the text span of each literal version, for a patch that bumps it. `endpoint` marks a
   // literal that also sets a webhook endpoint's api_version, so moving it changes that endpoint.
   literals?: { file: string; start: number; end: number; value: string; endpoint?: true }[];
+  // Receives the declaration indexes that decide each client binding's and each SDK call's
+  // version, so a caller can check one request's own path.
+  paths?: { clients: Map<ts.Symbol, number[]>; calls: Map<ts.CallExpression, number[]> };
 }): ApiVersionDeclaration[] {
   const mapping = options.provider.apiVersion;
   if (!mapping) return [];
@@ -324,6 +327,11 @@ export function declaredApiVersions(options: {
         unsafe.has(binding);
       const uncertain = hatch || unresolved;
       if (result.node && !uncertain) literalSpan(result.node, result.value!);
+      if (binding && options.paths)
+        options.paths.clients.set(binding, [
+          ...(options.paths.clients.get(binding) ?? []),
+          declarations.length,
+        ]);
       declarations.push({
         ...location(node),
         kind: 'constructor',
@@ -350,6 +358,7 @@ export function declaredApiVersions(options: {
       node.arguments.some(ts.isSpreadElement) ||
       results.some((result) => result.status === 'unknown') ||
       new Set(literal.map((result) => result.value)).size > 1;
+    const first = declarations.length;
     for (const result of literal) {
       literalSpan(result.node!, result.value!);
       declarations.push({
@@ -371,6 +380,10 @@ export function declaredApiVersions(options: {
           ? 'Request options are dynamic, conflicting or optional; the effective override is unverified.'
           : 'No override in the adapter-declared option arguments; inherits the client version.',
       });
+    options.paths?.calls.set(
+      node,
+      Array.from({ length: declarations.length - first }, (_, index) => first + index),
+    );
   }
   return declarations;
 }
