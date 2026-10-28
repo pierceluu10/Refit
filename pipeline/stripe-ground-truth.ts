@@ -141,7 +141,7 @@ export function stripeTypesEntry(stripePackage: string) {
   return { module: join(stripePackage, types) };
 }
 
-function compilerOptions(root: string, stripeModule?: string): ts.CompilerOptions {
+export function compilerOptions(root: string, stripeModule?: string): ts.CompilerOptions {
   const config = join(root, 'tsconfig.json');
   const base: ts.CompilerOptions = {};
   if (existsSync(config)) {
@@ -188,7 +188,7 @@ function typeNames(
 
 // shortcut: follows only the receiver's own variable initializers; a cast at a caller of a typed
 // parameter is not seen. Upgrade if callers' casts must be distinguished.
-function asserted(expression: ts.Expression, checker: ts.TypeChecker, depth = 0): boolean {
+export function asserted(expression: ts.Expression, checker: ts.TypeChecker, depth = 0): boolean {
   if (depth > 8) return false;
   if (ts.isAsExpression(expression) || ts.isTypeAssertionExpression(expression)) return true;
   if (

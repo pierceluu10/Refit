@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
+import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import {
   apiVersionSourceBlocked,
@@ -15,7 +16,9 @@ import {
   validateApiVersion,
   type ApiVersionPolicy,
 } from './api-version.ts';
-import { digest, readSpecification } from './specifications.ts';
+import { digest, isObject, readSpecification } from './specifications.ts';
+import type { ProviderAdapter } from './providers.ts';
+import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { TEST_PATH } from './source-paths.ts';
 import { readRepository } from './repository.ts';
@@ -26,6 +29,7 @@ import {
 } from './validation-options.ts';
 import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
+import { droppedRequestPaths, untouchedCalls, untracedEdits } from './ai-patch-policies.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
@@ -49,6 +53,13 @@ import {
   type GeneratedChecks,
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
+import {
+  type OracleComparison,
+  type TypeOracle,
+  localReceiverReads,
+  typeOraclePasses,
+  typeOracleReach,
+} from './stripe-type-evidence.ts';
 import {
   behaviourCommand,
   changedStripeLines,
@@ -75,11 +86,14 @@ import { selectValidationRuntime } from './validation-runtime.ts';
 import { checkFailures, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
 import {
   advisoryTypeError,
+  checkKinds,
   gradeEvidence,
+  runsTests,
   TESTS_FAILED,
   testsFoundNone,
   TYPE_CHECK_STARTED,
   typeCheckCommand,
+  typeCheckCoverage,
   unavailableTypeCheck,
   ungradedEvidence,
 } from './check-selection.ts';
@@ -142,9 +156,149 @@ interface CoverageAttempt {
   repair?: { requested: number; stopReason: string; error: string | null };
   // Sites the rules' patch left that the kept proposal's rescan no longer finds.
   resolved?: ReturnType<typeof unresolvedSites>;
+  // Owner decision D2 for a kept proposal: why it is not published as validated (none: it is).
+  gate?: { passed: boolean; failures: string[]; typeCheckOnly?: boolean };
+  // Owner decision D2b: untraced reads the AI left unchanged that the type checker shows read the
+  // repository's own objects, never a Stripe type; they no longer count as unresolved.
+  localReads?: ReturnType<typeof unresolvedSites>;
 }
 // Contract changes named per traced call in a coverage target; the run report has the rest.
 const MAX_TARGET_CHANGES = 3;
+// Lines a D2 gate failure names; the run report has the rest.
+const MAX_GATE_SITES = 5;
+
+const siteList = (sites: readonly { file: string; line: number }[]) =>
+  `${sites
+    .slice(0, MAX_GATE_SITES)
+    .map((site) => (site.line ? `${site.file}:${site.line}` : site.file))
+    .join(
+      ', ',
+    )}${sites.length > MAX_GATE_SITES ? ` and ${sites.length - MAX_GATE_SITES} more` : ''}`;
+
+// Contract changes a type check sees once the target stripe-node is installed (owner decision D2a):
+// a removed field, a changed type, a removed enum value. A field that became required, optional or
+// nullable, a new default and every other change are behavioural and need the repository's tests.
+const TYPE_VISIBLE_CHANGES = new Set([
+  'request-property-removed',
+  'response-required-property-removed',
+  'response-optional-property-removed',
+  'request-property-type-changed',
+  'response-property-type-changed',
+  'request-property-enum-value-removed',
+  'response-property-enum-value-removed',
+]);
+const TYPESCRIPT_SOURCE = /\.[cm]?tsx?$/;
+
+// Owner decision D2 (Pierce, 2026-10-27): a kept coverage AI patch publishes as a validated draft
+// only when the target stripe-node is installed and the patched code type-checks against it with
+// no new errors (`typeChecked`, the type oracle), the repository's own tests ran and passed on it
+// offline (`testsPassed`), it edits only the Stripe sites Refit traced in the rules' code, sends
+// every request parameter the rules' code sent, and changes the traced call of every reached
+// breaking contract change no rule migrates. D2a lets the passing type check stand in for tests
+// (`typeCheckOnly`) when every such change is type-visible, every file the AI changed is TypeScript
+// the type check covers (`typeCheckedFiles`) and the checks passed. `failures` says why it does
+// not publish validated; none means it does.
+export function aiValidationGate(options: {
+  rules: Repository;
+  patched: Repository;
+  provider: ProviderAdapter;
+  // What the model was asked to resolve, at lines of the rules' code (coverageTargets).
+  targets: readonly Pick<
+    Finding,
+    'file' | 'line' | 'changeId' | 'expression' | 'confidence' | 'untraced'
+  >[];
+  // Breaking contract changes no rule migrates (unmappedBreakingChanges).
+  unmapped: readonly unknown[];
+  typeChecked: boolean;
+  testsPassed: boolean;
+  checksPassed: boolean;
+  typeCheckedFiles: ReadonlySet<string>;
+}) {
+  const files = new Set(
+    [...options.rules.files, ...options.patched.files]
+      .map((file) => file.path)
+      .filter(
+        (path) =>
+          options.rules.files.find((file) => file.path === path)?.content !==
+          options.patched.files.find((file) => file.path === path)?.content,
+      ),
+  );
+  const outside = untracedEdits(
+    options.rules,
+    options.patched,
+    files,
+    options.provider,
+    options.targets.filter((target) => target.changeId !== CONTRACT_CHANGE),
+  );
+  const dropped = droppedRequestPaths(options.rules, options.patched, files, options.provider);
+  const calls = options.targets.filter((target) => target.changeId === CONTRACT_CHANGE);
+  const untouched = untouchedCalls(options.rules, options.patched, options.provider, calls);
+  const unmapped = options.unmapped.filter(isObject);
+  const unhandled = unmapped.filter((entry) => {
+    const operation = `${String(entry.operation).toUpperCase()} ${String(entry.path)}`;
+    const sites = calls.filter((call) => call.expression === operation);
+    return !sites.length || sites.some((site) => untouched.includes(site));
+  });
+  const behavioural = unmapped.filter((entry) => !TYPE_VISIBLE_CHANGES.has(String(entry.id)));
+  const untyped = [...files].filter(
+    (path) =>
+      !TYPESCRIPT_SOURCE.test(path) ||
+      path.endsWith('.d.ts') ||
+      !options.typeCheckedFiles.has(path),
+  );
+  const typeCheckOnly =
+    !options.testsPassed &&
+    options.typeChecked &&
+    options.checksPassed &&
+    !behavioural.length &&
+    !untyped.length;
+  const failures = [
+    ...(options.typeChecked
+      ? []
+      : [
+          'The type oracle did not show that the patched code type-checks against the target stripe-node, installed in the workspace, with no new errors.',
+        ]),
+    ...(options.testsPassed || typeCheckOnly
+      ? []
+      : [
+          `The repository's own tests did not run and pass on the patch offline, and the type check cannot stand in for them: ${
+            !options.checksPassed
+              ? 'the checks did not pass'
+              : behavioural.length
+                ? `${behavioural
+                    .slice(0, MAX_GATE_SITES)
+                    .map((entry) => String(entry.id))
+                    .join(', ')} ${behavioural.length === 1 ? 'is' : 'are'} not type-visible`
+                : untyped.length
+                  ? `the type check does not cover ${siteList(untyped.map((file) => ({ file, line: 0 })))}`
+                  : 'the type oracle did not pass'
+          }.`,
+        ]),
+    ...(outside.length
+      ? [`The AI changed code outside the Stripe sites Refit traced: ${siteList(outside)}.`]
+      : []),
+    ...(dropped.length
+      ? [
+          `The AI no longer sends ${dropped
+            .slice(0, MAX_GATE_SITES)
+            .map((entry) => `${entry.call} ${entry.path} (${entry.file}:${entry.line})`)
+            .join(', ')}.`,
+        ]
+      : []),
+    ...(unhandled.length
+      ? [
+          `The AI left the traced call unchanged for ${unhandled
+            .slice(0, MAX_GATE_SITES)
+            .map(
+              (entry) =>
+                `${String(entry.operation).toUpperCase()} ${String(entry.path)} ${String(entry.text)}`,
+            )
+            .join('; ')}.`,
+        ]
+      : []),
+  ];
+  return { failures, typeCheckOnly: !failures.length && typeCheckOnly };
+}
 
 // What an AI proposal, or the error that refused one, reports its requests cost.
 function costOf(value: unknown) {
@@ -319,6 +473,108 @@ export function compareTypeCheck(
         stdout: `${INTRODUCED_TYPE_ERRORS}${introduced.map(formatTypeError).join('\n')}\n\n${check.stdout}`,
       }
     : { ...check, status: 'passed' };
+}
+
+// A type check finished when it exited cleanly or reported type errors.
+const typeCheckFinished = (run: CheckResult) =>
+  !['error', 'not-run'].includes(run.status) && (run.exitCode === 0 || typeErrors(run).length > 0);
+
+// The type oracle (stripe-type-evidence.ts TypeOracle): only where the final patch installs a
+// stripe-node upgrade of its own and the check compares type errors. The original code is checked
+// once more, with only the patch's package files applied and its prepared dependencies.
+export async function runTypeOracle(options: {
+  compareTypeErrors?: boolean;
+  command: string[];
+  upgrade?: { from?: string; to?: string };
+  // The final patch's package.json and lockfile sections.
+  packages: string;
+  // The final patch's prepared dependencies, when it installed its own.
+  dependencies?: string;
+  baseline: CheckResult;
+  patched: CheckResult;
+  typeCheckUnavailable?: string;
+  report: Pick<
+    Awaited<ReturnType<typeof runPipeline>>,
+    'specificationDiff' | 'operationImpacts' | 'adapter'
+  >;
+  before: Record<string, unknown>;
+  files: { path: string; content: string }[];
+  // Original paths, with the nested package Refit checks in as their prefix.
+  packageDirectory?: string;
+  check: (diff: string, command: string[], dependencies: string) => Promise<CheckResult>;
+}): Promise<TypeOracle | undefined> {
+  const to = options.upgrade?.to;
+  if (!options.compareTypeErrors || !to || !options.packages || !options.dependencies)
+    return undefined;
+  const sdk = { from: options.upgrade?.from ?? null, to };
+  const kinds = checkKinds(options.command, {});
+  const command =
+    typeCheckCommand(options.command) ??
+    (kinds.size === 1 && kinds.has('typecheck') ? options.command : undefined);
+  const prefix = options.packageDirectory ? `${options.packageDirectory}/` : '';
+  const compare = (run: CheckResult | undefined, side: string): OracleComparison => {
+    if (options.typeCheckUnavailable)
+      return {
+        status: 'unavailable',
+        reason: `the type check is unavailable: ${options.typeCheckUnavailable}`,
+      };
+    if (!run) return { status: 'unavailable', reason: 'the check has no type check of its own' };
+    if (!typeCheckFinished(options.baseline))
+      return {
+        status: 'unavailable',
+        reason: 'the type check did not finish on the original code',
+      };
+    if (!typeCheckFinished(run))
+      return {
+        status: 'unavailable',
+        reason: `the type check did not finish on ${side}${run.error ? `: ${run.error}` : ''}`,
+      };
+    const seen = new Set<string>();
+    return {
+      status: 'compared',
+      introduced: introducedTypeErrors(options.baseline, run)
+        .filter((error) => {
+          const position = `${error.key} ${error.line} ${error.column}`;
+          return !seen.has(position) && Boolean(seen.add(position));
+        })
+        .map(({ key, ...error }) => ({ ...error, file: `${prefix}${error.file}` })),
+    };
+  };
+  const unpatched = compare(
+    command && typeCheckFinished(options.baseline) && !options.typeCheckUnavailable
+      ? // The oracle is evidence only: a sandbox that cannot apply or run it leaves it unavailable.
+        await options
+          .check(options.packages, command, options.dependencies)
+          .catch((error: unknown) => ({
+            ...NOT_RUN,
+            status: 'error' as const,
+            error: error instanceof Error ? error.message : String(error),
+          }))
+      : command
+        ? NOT_RUN
+        : undefined,
+    'the original code with the target stripe-node',
+  );
+  const reached =
+    unpatched.status === 'compared'
+      ? typeOracleReach(
+          options.report.specificationDiff.changes as Record<string, unknown>[],
+          unpatched.introduced,
+          {
+            files: options.files,
+            impacts: options.report.operationImpacts,
+            mappings: validateProviderOperationMappings(options.report.adapter, options.before),
+            before: options.before,
+            sdk: to,
+          },
+        )
+      : [];
+  return {
+    sdk,
+    unpatched,
+    patched: compare(options.patched, 'the patched code'),
+    reached,
+  };
 }
 
 async function command(binary: string, args: string[], cwd?: string) {
@@ -2146,10 +2402,6 @@ export async function validateMigration(options: {
       generated,
       behaviour,
     );
-    // A type check finished when it exited cleanly or reported type errors.
-    const typeChecked = (run: CheckResult) =>
-      !['error', 'not-run'].includes(run.status) &&
-      (run.exitCode === 0 || typeErrors(run).length > 0);
     const introducedByPatch = brokenTestsTypeCheck
       ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck).filter(
           (error) => !advisory?.(error.file),
@@ -2208,7 +2460,9 @@ export async function validateMigration(options: {
                   (failure) => failure.side === 'baseline',
                 ),
               }).trim(),
-              typeCheck: !(typeChecked(baselineRun) && typeChecked(brokenTestsTypeCheck))
+              typeCheck: !(
+                typeCheckFinished(baselineRun) && typeCheckFinished(brokenTestsTypeCheck)
+              )
                 ? { passed: false, detail: 'the type check did not finish on both sides' }
                 : introducedByPatch.length
                   ? {
@@ -2232,6 +2486,107 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
+    const typeOracle = await runTypeOracle({
+      compareTypeErrors: options.compareTypeErrors,
+      command: options.command,
+      upgrade:
+        'sdkUpgrade' in proposal
+          ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
+          : undefined,
+      packages: packageDiff(proposal.diff, packageDirectory),
+      // The final patch's own install; without one the target SDK is not what the checks ran on.
+      dependencies:
+        !dependencyFailure && candidateDependencies !== dependencies
+          ? candidateDependencies
+          : undefined,
+      baseline: baselineRun,
+      patched: brokenTestsTypeCheck ?? patched,
+      typeCheckUnavailable,
+      report,
+      before: beforeSpecification.document as Record<string, unknown>,
+      files: originalSources.files,
+      packageDirectory,
+      check: (diff, command, dependencies) =>
+        timed('typeOracle', async () => {
+          const directory = await sandboxInput(root, 'oracle-');
+          await applyPatch(archive, directory, `${directory}.patch`, diff);
+          options.onProgress?.('Type-checking the original code with the target stripe-node...');
+          return containerCheck({
+            directory,
+            image,
+            command,
+            dependencies,
+            signal: options.signal,
+            ...sandbox,
+          });
+        }),
+    });
+    options.signal?.throwIfAborted();
+    if (rules && coverage?.outcome === 'kept' && candidateSources) {
+      const { failures, typeCheckOnly } = aiValidationGate({
+        rules: rules.candidateSources,
+        patched: candidateSources,
+        provider: report.adapter,
+        targets,
+        unmapped: unmappedBreakingChanges(
+          report.specificationDiff,
+          report.changes,
+          report.findings,
+          report.operationChanges,
+          report.requestChanges,
+          report.expandedFields,
+        ),
+        typeChecked: typeOraclePasses(typeOracle),
+        testsPassed:
+          validationStatus === 'passed' &&
+          !noTests &&
+          (await runsTests(candidateSources, options.command, packageDirectory)),
+        checksPassed: validationStatus === 'passed',
+        typeCheckedFiles: typeCheckCoverage(candidateSources, options.command, packageDirectory),
+      });
+      coverage.gate = {
+        passed: !failures.length,
+        failures,
+        ...(typeCheckOnly ? { typeCheckOnly } : {}),
+      };
+      // Under D2 the AI changed every reached call no rule migrates, so they no longer count.
+      if (!failures.length)
+        proposal = {
+          ...proposal,
+          unresolvedFindings: proposal.unresolvedFindings - operationUsages,
+        };
+    }
+    // Owner decision D2b (2026-10-27): where the AI left an untraced read unchanged (it proposed
+    // nothing more, or its kept patch passed the D2 gate), the read stops counting only when the
+    // type oracle passed and TypeScript's checker shows its receiver is the repository's own type.
+    // shortcut: a Stripe object assigned to a repository type with the field optional is not seen;
+    // upgrade by following assignments into the receiver if a review finds one.
+    if (
+      rules &&
+      coverage &&
+      candidateSources &&
+      (coverage.outcome === 'no-proposal' || coverage.gate?.passed) &&
+      typeOraclePasses(typeOracle) &&
+      'unresolvedSites' in proposal &&
+      proposal.unresolvedSites
+    ) {
+      const reads = analyzeRepository(
+        { ...originalSources, files: candidateSources.files },
+        report.changes,
+        report.adapter,
+        beforeSpecification.schemas,
+      ).findings.filter((finding) => finding.untraced && !TEST_PATH.test(finding.file));
+      const local = localReceiverReads(candidateSources, reads);
+      const left = resolvedSites(proposal.unresolvedSites, unresolvedSites(local));
+      if (local.length && left.length === proposal.unresolvedSites.length - local.length) {
+        coverage.localReads = unresolvedSites(local);
+        proposal = {
+          ...proposal,
+          unresolvedFindings: proposal.unresolvedFindings - local.length,
+          unresolvedSites: left,
+        };
+      }
+    }
     const reviewTypeErrors = options.compareTypeErrors
       ? introducedTypeErrors(baselineRun, patched)
           .filter(reviewTypeError)
@@ -2272,6 +2627,7 @@ export async function validateMigration(options: {
         ? { advisoryTypeErrors: advisoryErrors.map(({ key, ...error }) => error) }
         : {}),
       ...(typeCheckUnavailable ? { typeCheckUnavailable } : {}),
+      ...(typeOracle ? { typeOracle } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
       ...(brokenTestsTypeCheck
         ? { brokenTestsTypeCheck: { command: brokenTestsCommand, patched: brokenTestsTypeCheck } }

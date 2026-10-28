@@ -3,6 +3,7 @@ import { componentReference, isObject } from './specifications.ts';
 import { TEST_PATH } from './source-paths.ts';
 import type { MappedSdkCall, ProviderOperationMapping } from './provider-operations.ts';
 import type { Finding, Removal, Repository, SourceEdit } from './types.ts';
+import { FORMAT_ANNOTATION } from './schema-equivalence.ts';
 
 // Whether traced code reaches the part of the contract an oasdiff change touches:
 // `reached` (a traced call sends it or traced code reads it), `unknown` (tracing cannot tell, so it
@@ -28,6 +29,8 @@ const REQUEST_PROPERTY = [/the `([^`]+)` request property/, /request property `(
 // https://docs.stripe.com/currencies: "use all lowercase letters when entering the three-letter ISO
 // code in any payment request", which is what the new `currency` format describes.
 const CURRENCY_FORMAT = /request property `format` changed from `none` to `currency`$/;
+const QUERY_CURRENCY_FORMAT =
+  /^for the `query` request parameter `([^`]+)`, the `format` was changed from `none` to `currency`$/;
 const STRIPE_CURRENCY = /^[a-z]{3}$/;
 // A quoted three-letter code with no escapes, so lowercasing the source text lowercases the value.
 const CURRENCY_LITERAL = /^(['"`])[A-Za-z]{3}\1$/;
@@ -597,7 +600,7 @@ export interface ReachContext {
   edited: (file: string, offset: number) => boolean;
 }
 
-const requestProperty = (text: string) =>
+export const requestProperty = (text: string) =>
   REQUEST_PROPERTY.map((pattern) => text.match(pattern)?.[1]).find(Boolean);
 
 const changeMapping = (change: Record<string, unknown>, mappings: ProviderOperationMapping[]) =>
@@ -650,9 +653,16 @@ export function currencyCodeEdits(
   return [...edits.values()];
 }
 
-function requestReach(change: Record<string, unknown>, context: ReachContext): ChangeReach {
+// With `formatOnly` (D4: the `currency` format adds no constraint), only a value Refit can read and
+// Stripe rejects is reached; a value it cannot read no longer stops.
+function requestReach(
+  change: Record<string, unknown>,
+  context: ReachContext,
+  formatOnly = false,
+): ChangeReach {
   const text = String(change.text);
-  const property = requestProperty(text);
+  const property =
+    requestProperty(text) ?? (formatOnly ? text.match(QUERY_CURRENCY_FORMAT)?.[1] : undefined);
   if (!property)
     return {
       reach: 'unknown',
@@ -686,7 +696,7 @@ function requestReach(change: Record<string, unknown>, context: ReachContext): C
   // when it is top level.
   const required = ALWAYS_REACHED.has(String(change.id));
   const path = property.split('/');
-  const currencyFormat = CURRENCY_FORMAT.test(text);
+  const currencyFormat = CURRENCY_FORMAT.test(text) || QUERY_CURRENCY_FORMAT.test(text);
   let unknown: string | undefined;
   let handled: string | undefined;
   let compatible: string | undefined;
@@ -733,6 +743,7 @@ function requestReach(change: Record<string, unknown>, context: ReachContext): C
             reachReason: `The \`${operation}\` call in ${file} sends \`${property}\` as \`${invalid.text}\`; the target contract gives it the \`currency\` format, a lowercase three-letter ISO code (https://docs.stripe.com/currencies).`,
           };
         }
+        if (formatOnly) continue;
       }
       // The card rule renames `payment_method_types` where it is written.
       if (ts.isPropertyAssignment(sent.parent) && context.edited(file, sent.parent.getStart())) {
@@ -787,6 +798,16 @@ export function annotateReach(changes: Record<string, unknown>[], context: Reach
     });
   const findings = removals.size ? context.readFindings([...removals.values()]) : [];
   for (const change of changes) {
+    // D4 lists a format-only `currency` change as compatible, unless a traced call visibly sends a
+    // code Stripe rejects: that stays reached, or handled where the currency rule lowercases it.
+    if (
+      change.equivalence === FORMAT_ANNOTATION &&
+      (CURRENCY_FORMAT.test(String(change.text)) || QUERY_CURRENCY_FORMAT.test(String(change.text)))
+    ) {
+      const traced = requestReach(change, context, true);
+      if (traced.reach === 'reached' || traced.reach === 'handled') Object.assign(change, traced);
+      continue;
+    }
     if (change.reach) continue;
     let reach: ChangeReach;
     const id = String(change.id);

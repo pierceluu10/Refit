@@ -483,3 +483,21 @@ export const save = async (id: string, item?: string) => {
 };`),
   ).toEqual(['unknown']);
 });
+
+it('verifies a pin whose client goes to an exported helper Refit traces, but not one whose argument may leave it', () => {
+  const helper = `${prefix}
+    const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' });
+    export function listCharges(client: Stripe) {
+      return client.charges.list();
+    }`;
+  expect(evidence(`${helper}\n    listCharges(stripe);`).source.status).toBe('verified');
+  expect(
+    evidence(`${helper.replace('client: Stripe', '...clients: Stripe[]').replace('client.charges', 'clients[0].charges')}
+    listCharges(stripe);`).source.status,
+  ).toBe('unknown');
+  expect(
+    evidence(
+      `${helper.replace('return client', 'eval("");\n      return client')}\n    listCharges(stripe);`,
+    ).source.status,
+  ).toBe('unknown');
+});

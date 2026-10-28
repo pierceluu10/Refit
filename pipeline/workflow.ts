@@ -21,6 +21,7 @@ import {
   publishDraft,
   type publicationConfiguration,
   publicationWaiver,
+  aiPatchValidated,
 } from './publication.ts';
 import { createReviewArtifacts, NEEDS_REVIEW_PREFIX } from './review.ts';
 import { runPipeline } from './run.ts';
@@ -444,7 +445,7 @@ export async function runWorkflow(options: {
         `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}${checkFailureText(report.validation)}`,
         runId,
       );
-    if (!reviews && report.patch.generator === 'openai')
+    if (!reviews && report.patch.generator === 'openai' && !aiPatchValidated(report))
       return await finish('needs-review', AI_PATCH_STOP, runId);
     if (reviews && !report.publicationFiles.length)
       return await finish(
@@ -462,6 +463,14 @@ export async function runWorkflow(options: {
       return await finish(
         'needs-review',
         'Checks passed but detected findings remain unresolved. Publication was not attempted.',
+        runId,
+      );
+    // The draft's own title says [Needs review] (kept untyped properties, a grade-D check, advisory
+    // type errors): the run is not a validated fix even though every gate passed.
+    if (!publication && needsReview)
+      return await finish(
+        'needs-review',
+        'Baseline and patched checks passed, but the draft is [Needs review]; publication was not requested.',
         runId,
       );
     if (!publication)

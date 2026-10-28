@@ -620,13 +620,19 @@ type ReviewSite = { file: string; line: number; detail?: string };
 
 const firstSentence = (text: string) => text.split(/(?<=\.)\s/)[0];
 
-// Owner decision 8: AI patches always ship for review, whatever their checks show.
+// Owner decision 8: AI patches ship for review, whatever their checks show, unless owner decision D2's
+// gate passed (validation.coverageAi.gate).
 const AI_PATCH_REVIEW = {
   reason:
     'Refit asked an AI model for this patch. Checks that pass do not show that it keeps what the code does.',
   check: 'Read each AI-written line listed under Why this needs review as you would a teammate’s.',
 };
-// An AI patch is never validated for publication, so --publish-validated-only stops it.
+// Owner decision D2: a kept AI patch that passed every gate publishes like the rules' patch.
+export const aiPatchValidated = (report: Report) =>
+  report.patch.generator === 'openai' && report.validation.coverageAi?.gate?.passed === true;
+
+// An AI patch that fails owner decision D2's gate is never validated for publication, so
+// --publish-validated-only stops it.
 export const AI_PATCH_STOP = `${AI_PATCH_REVIEW.reason} It publishes only as a [Needs review] draft, which --publish-validated-only turns off.`;
 
 // Owner decision 1 (Pierce, 2026-10-24, pierceluu10/Refit#300; the CLI default), wherever
@@ -654,7 +660,8 @@ export function publicationWaiver(
     !baselineFailed
   )
     return undefined;
-  const deterministic = patch.generator === 'deterministic';
+  const aiValidated = aiPatchValidated(report);
+  const deterministic = patch.generator === 'deterministic' || aiValidated;
   const targetVersion = report.apiVersion.after ?? 'the target API version';
   const changed = new Set(
     [...patch.diff.matchAll(/^\+\+\+ ("b\/.+")$/gm)].map((match) =>
@@ -759,7 +766,9 @@ export function publicationWaiver(
           },
         ]
       : []),
-    ...(patch.generator === 'openai' ? [{ gate: 'ai-patch' as const, ...AI_PATCH_REVIEW }] : []),
+    ...(patch.generator === 'openai' && !aiValidated
+      ? [{ gate: 'ai-patch' as const, ...AI_PATCH_REVIEW }]
+      : []),
     ...migrationReviewReasons(report, deterministic).map((entry) =>
       entry.reason === WEBHOOK_REVIEW_REASON
         ? {
@@ -866,7 +875,7 @@ export function publicationWaiver(
           },
         ]
       : []),
-    ...(unmapped.length || impacts.length
+    ...((unmapped.length || impacts.length) && !aiValidated
       ? [
           {
             gate: 'contract-changes' as const,
@@ -898,7 +907,10 @@ export async function publishDraft(
   doctor: readonly ReadinessCheck[] = [],
 ) {
   const apiVersion = report.apiVersion;
-  const reviewReason = migrationReviewReason(report, report.patch.generator === 'deterministic');
+  const reviewReason = migrationReviewReason(
+    report,
+    report.patch.generator === 'deterministic' || aiPatchValidated(report),
+  );
   const reviews = publicationWaiver(report, options.allowUnresolved, doctor);
   if (reviewReason && !reviews) throw new PipelineInputError(reviewReason);
   if (
@@ -932,7 +944,8 @@ export async function publishDraft(
     throw new PipelineInputError(
       'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings, unless owner decision 1 publishes it for review (off with --publish-validated-only).',
     );
-  if (report.patch.generator === 'openai' && !reviews) throw new PipelineInputError(AI_PATCH_STOP);
+  if (report.patch.generator === 'openai' && !reviews && !aiPatchValidated(report))
+    throw new PipelineInputError(AI_PATCH_STOP);
   const provider = `${PROVIDER_MARKER} ${report.provider} -->`;
   const target = apiVersion.after ?? 'the target contract';
   const version =

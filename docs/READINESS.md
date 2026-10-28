@@ -1,5 +1,25 @@
 # Refit implementation checkpoints
 
+## October 27 checkpoint: API versions untraced only where the client escapes (unreleased, after 0.39.0)
+
+`declaredApiVersions` now starts from `versionUnsafe` (`pipeline/analyzer.ts`): only clients passed to opaque helpers, unsafe class bindings, untraced webhook events and aliases in ambiguous files make a pin `api-version-untraced`, and an exported helper's typed client parameter is followed (`pipeline/helper-clients.ts`, `pipeline/source-imports.ts`). On refit-bench without AI, rows with an untraced version on l2-push-249 fall from 19 to 16; validated stays at 80 and 9 ([benchmarks](BENCHMARKS.md#api-versions-untraced-only-where-the-client-escapes-october-27)). Test: `pipeline/declared-api-versions.test.ts`.
+
+## October 27 checkpoint: structurally equivalent schema changes are compatible (unreleased, after 0.39.0)
+
+Owner decision D4: `pipeline/schema-equivalence.ts` marks an oasdiff change compatible when the schemas on both sides have the same structure, such as a renamed subschema with the same shape or a format-only annotation, for any OpenAPI provider ([schema equivalence](SCHEMA-EQUIVALENCE.md)). On refit-bench without AI, l2-push-249 goes from 80 to 84 validated and heldout-30 from 9 to 10; rows with a contract-change stop on l2-push-249 fall from 97 to 86 ([benchmarks](BENCHMARKS.md#structurally-equivalent-schema-changes-october-27)). Tests: `pipeline/schema-equivalence.test.ts`.
+
+## October 27 checkpoint: AI patches on stops under D2, D2a and D2b (unreleased, after 0.39.0)
+
+The coverage AI attempt now publishes as a validated draft only through `aiValidationGate` (`pipeline/validation.ts`): the target stripe-node installed, `typeOraclePasses`, the repository's own tests passing offline or, for type-visible changes only (removed or renamed field, changed type, removed enum value), a passing type check over the files it covered (`typeCheckCoverage` in `pipeline/check-selection.ts`), and a diff limited to traced sites. A type-check-only pass is labelled "validated by type check, no tests" in the draft. An AI "no change needed" answer clears untraced reads only where the type oracle passed and `localReceiverReads` shows the receiver is the application's own object. On refit-bench with AI, l2-push-249 goes from 80 to 84 validated and heldout-30 from 9 to 10, all through D2b with the rules' patch, each reviewed ([benchmarks](BENCHMARKS.md#ai-patches-on-stops-under-d2-d2a-and-d2b-october-27)). Tests: `pipeline/ai-traced-sites.test.ts`, `pipeline/stripe-local-receivers.test.ts`, `pipeline/workflow-waivers.test.ts`.
+
+## October 27 checkpoint: validated means the draft is not [Needs review] (unreleased, after 0.39.0)
+
+A run without publication whose draft title is `[Needs review]` (kept untyped request properties, a grade-D patch, advisory JavaScript type errors) now ends `needs-review` with "Baseline and patched checks passed, but the draft is [Needs review]", not `validated` (`pipeline/workflow.ts`). On refit-bench heldout-30 goes from 10 to 9 validated with and without AI (KPZ231/what-now-chaos, grade D) and l2-push-249 stays at 80 ([benchmarks](BENCHMARKS.md#validated-means-the-draft-is-not-needs-review-october-27)). Test: `pipeline/workflow-waivers.test.ts`.
+
+## October 27 checkpoint: type oracle on the target stripe-node (unreleased, after 0.39.0)
+
+When the final patch upgrades stripe-node with prepared dependencies of its own and the check compares type errors, validation type-checks the original code once more with the target stripe-node installed (`runTypeOracle` in `pipeline/validation.ts`, recorded as `validation.typeOracle`). Errors on a traced call's property, on the operation's own stripe-node request type, or TS2339/TS2551 on the Stripe type of a changed response object move that change from `unknown` to `reached`; zero errors never moves a change toward `unused`, `compatible` or `handled`. `typeOraclePasses` is the type condition of the AI patch gate. On refit-bench it changed no outcome: 80 of l2-push-249 and 10 of heldout-30 validate with and without AI, before and after ([benchmarks](BENCHMARKS.md#type-oracle-october-27)). Tests: `pipeline/stripe-type-oracle.test.ts`.
+
 ## October 26 checkpoint: AI classification of Stripe release changes (unreleased, after 0.39.0)
 
 `refit classify-release` sends each saved changelog page of a Stripe release to OpenAI through the shared client and spending ledger and scores the strict-JSON answer (category, handling, rule-pack family, identifiers) against the hand catalog, never sending its handling. With `--statements none` the model lists the changes itself, as it must for an uncatalogued release, and they are matched to the catalog's statements by shared content words; `--statements catalog` sends the catalog's statements as an upper bound. It is review only: nothing it predicts edits code or feeds a pack. Pages only (refit-bench run 40285557374, `gpt-6.1-sol`, $0.70), 70 of 125 catalog statements got the catalog's handling (95 with statements given), and by hand review the same 8 statements got a rule or AI edit where the catalog stops or has no signal in both modes, so every `rule` and `ai` prediction needs human review ([Release classification](RELEASE-CLASSIFICATION.md)). Tests: `pipeline/release-classification.test.ts`, which replays both runs' recorded outputs to their committed scores.
@@ -14,6 +34,7 @@ Preparation now builds the refusals O2 classified as buildable and #289 left:
 - **Peer-only npm drift.** An `npm ci` that reports the lockfile out of sync is retried once with `--legacy-peer-deps`, as `ERESOLVE` is (an extension of the 2026-10-20 decision, announced on the board); anything beyond peers still stops.
 
 On `subsets/l2-prep-remaining.json` (before 40159661032, after 40164744067):
+
 - guillermolg00/nextjs-stripe-store and Ardione321/prep-ai now prepare from `bun.lock` and pass their type checks, with findings left.
 - Alex-Unnippillil/share-house-portal prepares with pnpm, as its CI installs, and passes its tests.
 - devczero/saas-pdf-analysis-dev validates.
