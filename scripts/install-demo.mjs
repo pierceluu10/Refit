@@ -98,6 +98,15 @@ async function installDelivery() {
     cursor = /[?&]cursor=([^&>]+)>; rel="next"/.exec(response.headers.get('link') ?? '')?.[1];
     if (!cursor) break;
   }
+  // Read only: whether the App has a webhook URL at all (the URL itself is not printed) and how
+  // many installations it has. Nothing in the App's settings is changed.
+  const hook = await requestGitHub(jwt, 'GET', '/app/hook/config').catch(() => null);
+  const installations = await requestGitHub(jwt, 'GET', '/app/installations?per_page=100').catch(
+    () => null,
+  );
+  console.error(
+    `App webhook URL ${hook?.url ? 'set' : 'not set'}; ${Array.isArray(installations) ? installations.length : 'unknown'} installations.`,
+  );
   throw new Error(
     `No installation delivery${values.owner ? ` for ${values.owner}` : ''} in the App's recent deliveries. ` +
       `The log holds ${[...seen.values()].reduce((a, b) => a + b, 0)} deliveries` +
