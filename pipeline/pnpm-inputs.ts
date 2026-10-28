@@ -48,8 +48,11 @@ const CONFIGURATION_KEYS = new Set([
   'minimumReleaseAge',
   'minimumReleaseAgeExclude',
   'patchedDependencies',
+  'shellEmulator',
+  'trustPolicy',
 ]);
 const IMPORTER_SECTIONS = new Set(['dependencies', 'devDependencies', 'optionalDependencies']);
+const PNPM_LOCK_VERSIONS: unknown[] = [9, '9.0', '6.0'];
 const LOCK_KEYS = new Set([
   'lockfileVersion',
   'settings',
@@ -102,6 +105,16 @@ function configuration(value: Record<string, unknown>, source: string) {
   )
     throw new PipelineInputError(
       'pnpm minimumReleaseAge must be a whole number of minutes and minimumReleaseAgeExclude a list of package patterns.',
+    );
+  // pnpm 10 reads trustPolicy only while it picks a version to resolve (npm-resolver), where
+  // no-downgrade can only refuse one, and shellEmulator only chooses the shell scripts run in.
+  if (
+    (value.trustPolicy !== undefined &&
+      !['off', 'no-downgrade'].includes(value.trustPolicy as string)) ||
+    (value.shellEmulator !== undefined && typeof value.shellEmulator !== 'boolean')
+  )
+    throw new PipelineInputError(
+      'pnpm trustPolicy must be "off" or "no-downgrade" and shellEmulator a boolean.',
     );
   if (
     value.patchedDependencies !== undefined &&
@@ -258,6 +271,7 @@ export function validatePnpmInputs(
     throw new PipelineInputError('Selected pnpm workspaces differ from their committed patterns.');
   const manifests = new Map<string, Record<string, unknown>>([['.', manifest]]);
   const names = new Map<string, string>();
+  const binDirectories = new Set<string>();
   for (const directory of directories) {
     const content = workspaceContents.get(directory)!;
     if (Buffer.byteLength(content) > MAX_PACKAGE_BYTES)
@@ -270,8 +284,8 @@ export function validatePnpmInputs(
       names.has(value.name)
     )
       throw new PipelineInputError('pnpm workspace package names must be explicit and unique.');
+    if (value.bin !== undefined) binDirectories.add(directory);
     if (
-      value.bin !== undefined ||
       value.workspaces !== undefined ||
       value.pnpm !== undefined ||
       (value.packageManager !== undefined && value.packageManager !== manifest.packageManager)
@@ -415,6 +429,12 @@ export function validatePnpmInputs(
       }
     }
   }
+  // pnpm links a package's bin only into the node_modules/.bin of the projects that depend on it,
+  // so a workspace no importer links to adds no bin link pointing at its unbuilt files.
+  if (Object.values(workspaceLinks).some((target) => binDirectories.has(target)))
+    throw new PipelineInputError(
+      'Workspace bins, nested workspace declarations and workspace pnpm settings require a custom validation image.',
+    );
   return {
     manager: 'pnpm' as const,
     managerVersion: pin[1],
@@ -442,6 +462,10 @@ export function validatePnpmInputs(
 }
 
 function registryGraph(document: Record<string, unknown>) {
+  if (!PNPM_LOCK_VERSIONS.includes(document.lockfileVersion as string | number))
+    throw new PipelineInputError(
+      `Automatic preparation reads pnpm-lock.yaml lockfile versions 6 and 9 (pnpm 8 or later); this one is version ${JSON.stringify(document.lockfileVersion)}. Run pnpm install with pnpm 8 or later and commit the lockfile it writes, or validate with a custom image.`,
+    );
   if (Object.keys(document).some((key) => !LOCK_KEYS.has(key)))
     throw new PipelineInputError(
       'Unsupported pnpm lockfile settings, patches or graph metadata require a custom image.',
@@ -452,7 +476,6 @@ function registryGraph(document: Record<string, unknown>) {
     configuration(document.settings, 'the settings of pnpm-lock.yaml');
   }
   if (
-    ![9, '9.0', '6.0'].includes(document.lockfileVersion as string | number) ||
     !isObject(document.importers) ||
     !isObject(document.packages ?? {}) ||
     !isObject(document.snapshots ?? {}) ||

@@ -7,6 +7,13 @@ An untraced read of a removed field name also stops counting where, behind a pas
 ## October 28 checkpoint: untraced reads Refit proves are not Stripe objects (unreleased, after 0.39.0)
 
 Founder decision (Otabek, 2026-10-28), widening D2b: an untraced read of a removed field name stops counting, with or without AI, where `localReceiverReads` (`pipeline/stripe-type-evidence.ts`) proves its receiver is a type the repository declares (behind a passing type check), an object literal the repository writes (a `const` config or an element of a `const` list nothing writes into), or a `const` asserted to a type Payload generated from the repository's schema. The draft lists each cleared read with its proof under "Untraced Reads Cleared". Reads through exported or Stripe-fed helpers, annotated `const`s over other values, unions with Stripe types, `any`, webhook handlers and `data.object` keep stopping, as do JavaScript ORM rows and Convex's generated `.d.ts` types. Tests: `pipeline/stripe-local-receivers.test.ts`, `pipeline/review.test.ts`. Benchmarks: pending.
+## October 28 checkpoint: preparation inputs npm and pnpm accept (unreleased, after 0.39.0)
+
+Dependency preparation accepts an integrity listing `sha1` beside a stronger hash and lockfile records outside every `node_modules` directory (`pipeline/npm-lock.ts`), workspace negations after every positive pattern (`pipeline/npm-lock.ts`, `pipeline/pnpm-inputs.ts`, `pipeline/yarn-inputs.ts`), and a pnpm workspace `bin` no importer links to (`pipeline/pnpm-inputs.ts`). On refit-bench without AI, rows stopped on dependency preparation on l2-push-249 fall from 53 to 51; validated stays at 84 and 10 ([benchmarks](BENCHMARKS.md#preparation-inputs-npm-and-pnpm-accept-october-28)). Tests: `pipeline/npm-lock.test.ts`, `pipeline/npm-workspaces.test.ts`, `pipeline/pnpm-inputs.test.ts`.
+
+## October 27 checkpoint: response reads through copies, helpers and nested owners (unreleased, after 0.39.0)
+
+The analyzer (`pipeline/analyzer.ts`) traces response objects through `at`/`find` and `filter`/`slice` copies, through private helpers' returns and the parameters every call passes the same object (review confidence, unless the parameter's declared type names the Stripe object), and a Subscription's `items` list (`pipeline/operation-reach.ts`). Writes to untraced objects and values of free-form string maps are not reads. On refit-bench without AI, l2-push-249 goes from 84 to 86 validated and heldout-30 stays at 10 ([benchmarks](BENCHMARKS.md#response-reads-through-copies-helpers-and-nested-owners-october-27)). Tests: `pipeline/stripe-list-traces.test.ts`, `pipeline/operation-reach.test.ts`.
 
 ## October 27 checkpoint: install-time vendor detection (unreleased, after 0.39.0)
 
