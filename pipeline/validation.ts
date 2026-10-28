@@ -1332,6 +1332,8 @@ async function signedEventEvidence(
       regressions: [],
     };
   }
+}
+
 // A provider's test environment for behaviour tests (--stripe-test-mode): the adapter and the
 // test keys providerKeys read from its environment variable.
 export interface ProviderSandbox {

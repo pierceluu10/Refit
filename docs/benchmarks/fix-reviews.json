@@ -2665,6 +2665,9 @@
         "upgradeComplete": "yes for npm: stripe ^17.7.0 to ^23.0.0 in package.json and package-lock.json; pnpm-lock.yaml left as committed, as the draft says.",
         "pleaseCheck": "Delete pnpm-lock.yaml, which the npm workflows never read.",
         "wouldMerge": "yes: tsc introduces no error over the 2 existing ones."
+      }
+    },
+    {
       "repo": "Alex-Unnippillil/share-house-portal",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40626081878 (after, claude/stripe-type-repair-gate d311ec37), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40626090687 produces a byte-identical migration.patch. Before: the stripe-node 16.6.0 to 23.0.0 upgrade introduced TS2322 at app/api/stripe/webhook/route.ts:395 (the widened Subscription.Status returned as the narrower Supabase status union), so the patch kept the 2024-06-20 pin and stripe 16.6.0 (api-version-kept). After: the deterministic type assertion passes the type-only gate and the checks, so the pin and the upgrade stay. migration.patch from the shard-6 artifact read in full, lockfiles skipped",
@@ -2677,6 +2680,9 @@
         "upgradeComplete": "yes: the one client pin moves to 2026-09-30.endive and stripe to 23.0.0 in both committed lockfiles.",
         "pleaseCheck": "The draft stays [Needs review] for one untraced `.type` read in app/api/plaid/exchange-public-token/route.ts:60 (a Plaid object, not Stripe) and for the major stripe-node upgrade.",
         "wouldMerge": "yes after confirming the Plaid read: tests and tsc pass on both sides in offline Docker (grade B), and the assertion is no wider than the existing guard."
+      }
+    },
+    {
       "repo": "mhaowork/warranty-watcher",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40628689742 (after, claude/refit-payment-method-types-9b09ad 7af4994d), subsets/l2-push-249.json, no AI; also subset 40628750627 (before, 9850ead) and 40628753242 (after, 4f3f9ce), subsets/pmt-version-path.json. Before: the card rename was withheld because another client's version is untraced, so the patch moved the pin and upgraded stripe-node with payment_method_types left in place and tsc failed with TS2561 (regression, not published); after: the renamed call's own client is the pinned getStripe() client, so the rename is kept and the checks pass. migration.patch from the shard artifact applied to a shallow clone at the pinned commit and read in full as git diff -w, lockfile skipped",
@@ -2734,6 +2740,9 @@
         "pleaseCheck": "routes/stripe.js:26 still sends payment_method_types after the upgrade; the draft says \"Don't merge until you change the calls below\" and names it.",
         "upgradeComplete": "yes in package.json (no lockfile is committed).",
         "wouldMerge": "not until routes/stripe.js:26 is changed by hand, as the draft says."
+      }
+    },
+    {
       "repo": "Shefaul-22/AgriFlow",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40625949948 (before, fffa3ad5: refused with \"Committed source exceeds the 50 MiB validation archive limit.\") and 40625956831 (after, 2d6f499c), subsets/source-limit-50.json, --validation-workspace 2g, no AI. After: validated, grade C (tsc --noEmit, 8 existing errors on both sides, none new). migration.patch from the shard-4 artifact read in full, lockfile changes checked to touch only stripe",

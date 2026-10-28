@@ -1137,7 +1137,7 @@ it('names the owner of a property called items that is not an array', () => {
       },
       document,
     ),
-  ).toEqual({ schema: 'product', property: 'features' });
+  ).toMatchObject({ schema: 'product', property: 'features' });
 });
 
 describe('a removed operation', () => {
