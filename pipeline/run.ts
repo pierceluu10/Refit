@@ -26,7 +26,11 @@ import {
   renderPatch,
   REQUEST_OPTIONS_WARNING,
 } from './patches.ts';
-import { STRIPE_SDK_RELEASES, stripePackageUpgrade } from './stripe-package-upgrade.ts';
+import {
+  PACKAGE_FILES,
+  STRIPE_SDK_RELEASES,
+  stripePackageUpgrade,
+} from './stripe-package-upgrade.ts';
 import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
 import { REQUEST_MOVE_RULES } from './request-move-families.ts';
 import { STRIPE_PACK } from './rule-pack.ts';
@@ -810,7 +814,11 @@ async function runOpenApiPipeline(options: {
     versionEdits.length > 0 &&
     'generator' in patch &&
     patch.generator !== 'openai' &&
-    !/ is already (?:locked|declared)\.$/.test(upgrade.reason);
+    !/ is already (?:locked|declared)\.$/.test(upgrade.reason) &&
+    // With several root lockfiles, validation chooses one (chosenLockfile) and upgrades that one
+    // alone; until it has, a refusal of them all together does not hold the pin.
+    (options.lockfile !== undefined ||
+      repository.lockfiles.filter((entry) => PACKAGE_FILES.includes(entry.file)).length < 2);
   const upgradedPatch =
     upgrade && 'diff' in patch
       ? 'upgrade' in upgrade
