@@ -5,7 +5,17 @@ import { diffLines } from 'diff';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -792,6 +802,41 @@ export async function sandboxInput(root: string, prefix: string) {
   const directory = await mkdtemp(join(root, prefix));
   await chmod(directory, 0o755);
   return directory;
+}
+
+// The receiver-type proof reads declared types, so the prepared dependencies are unpacked for it
+// and linked beside the sources, as the sandbox unpacks them, then removed; nothing in them runs.
+export async function withDependencyTypes<T>(
+  root: string,
+  directory: string,
+  archive: string | undefined,
+  run: () => T,
+): Promise<T> {
+  if (!archive) return run();
+  const unpacked = await mkdtemp(join(root, 'types-'));
+  const links: string[] = [];
+  try {
+    await command('tar', ['-xf', archive, '-C', unpacked]);
+    // The archive holds `node_modules` and each workspace package's own, under their parents.
+    const link = async (path: string): Promise<void> => {
+      for (const entry of await readdir(join(unpacked, path), { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const child = join(path, entry.name);
+        if (entry.name !== 'node_modules') await link(child);
+        else if (!(await lstat(join(directory, child)).catch(() => undefined))) {
+          await symlink(join(unpacked, child), join(directory, child)).then(
+            () => links.push(join(directory, child)),
+            () => undefined,
+          );
+        }
+      }
+    };
+    await link('');
+    return run();
+  } finally {
+    await Promise.all(links.map((path) => rm(path)));
+    await rm(unpacked, { recursive: true, force: true });
+  }
 }
 
 async function applyPatch(archive: string, directory: string, patch: string, diff: string) {
@@ -3144,13 +3189,21 @@ export async function validateMigration(options: {
         report.adapter,
         beforeSpecification.schemas,
       ).findings.filter((finding) => !TEST_PATH.test(finding.file));
-      const local = localReceiverReads(
-        candidateSources,
-        findings.filter((finding) => finding.untraced),
-        {
-          traced: findings.filter((finding) => !finding.untraced),
-          typeChecked: (file) => typeOraclePasses(typeOracle) || Boolean(covered?.has(file)),
-        },
+      const sources = candidateSources;
+      const local = await withDependencyTypes(
+        root,
+        join(sources.root, packageDirectory ?? ''),
+        candidateDependencies,
+        () =>
+          localReceiverReads(
+            sources,
+            findings.filter((finding) => finding.untraced),
+            {
+              traced: findings.filter((finding) => !finding.untraced),
+              typeChecked: (file) => typeOraclePasses(typeOracle) || Boolean(covered?.has(file)),
+              changes: report.changes,
+            },
+          ),
       );
       const left = resolvedSites(proposal.unresolvedSites, unresolvedSites(local));
       if (local.length && left.length === proposal.unresolvedSites.length - local.length) {
