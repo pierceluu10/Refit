@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 27 checkpoint: structurally equivalent schema changes are compatible (unreleased, after 0.39.0)
+
+Owner decision D4: `pipeline/schema-equivalence.ts` marks an oasdiff change compatible when the schemas on both sides have the same structure, such as a renamed subschema with the same shape or a format-only annotation, for any OpenAPI provider ([schema equivalence](SCHEMA-EQUIVALENCE.md)). On refit-bench without AI, l2-push-249 goes from 80 to 84 validated and heldout-30 from 9 to 10; rows with a contract-change stop on l2-push-249 fall from 97 to 86 ([benchmarks](BENCHMARKS.md#structurally-equivalent-schema-changes-october-27)). Tests: `pipeline/schema-equivalence.test.ts`.
+
 ## October 27 checkpoint: AI patches on stops under D2, D2a and D2b (unreleased, after 0.39.0)
 
 The coverage AI attempt now publishes as a validated draft only through `aiValidationGate` (`pipeline/validation.ts`): the target stripe-node installed, `typeOraclePasses`, the repository's own tests passing offline or, for type-visible changes only (removed or renamed field, changed type, removed enum value), a passing type check over the files it covered (`typeCheckCoverage` in `pipeline/check-selection.ts`), and a diff limited to traced sites. A type-check-only pass is labelled "validated by type check, no tests" in the draft. An AI "no change needed" answer clears untraced reads only where the type oracle passed and `localReceiverReads` shows the receiver is the application's own object. On refit-bench with AI, l2-push-249 goes from 80 to 84 validated and heldout-30 from 9 to 10, all through D2b with the rules' patch, each reviewed ([benchmarks](BENCHMARKS.md#ai-patches-on-stops-under-d2-d2a-and-d2b-october-27)). Tests: `pipeline/ai-traced-sites.test.ts`, `pipeline/stripe-local-receivers.test.ts`, `pipeline/workflow-waivers.test.ts`.
