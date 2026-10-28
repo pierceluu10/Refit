@@ -186,6 +186,7 @@ export async function runWorkflow(options: {
   behaviourTestWriter?: BehaviourTestWriter | false;
   // --stripe-test-mode: behaviour tests run against Stripe test mode (validation.ts).
   providerSandbox?: ProviderSandbox;
+  signedEventChecks?: boolean;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -409,6 +410,7 @@ export async function runWorkflow(options: {
         // pays for a second identical request; reuse the first run's tests if that retry needs grade A.
         behaviourTestWriter: keepApiVersion ? undefined : behaviourTestWriter(options),
         providerSandbox: options.providerSandbox,
+        signedEventChecks: options.signedEventChecks,
         documentationSnapshots: options.documentationSnapshots,
         repairAttempts: options.repairAttempts,
         leaveReviewedFindings: allowUnresolved,

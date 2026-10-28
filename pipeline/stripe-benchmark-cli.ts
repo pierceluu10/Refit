@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { signedEventSummary } from './signed-events.ts';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -52,7 +53,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0-4] [--ai-effort low|medium|high|xhigh|max]] [--behaviour-tests [--stripe-test-mode] | --behaviour-tests-dry-run | --no-behaviour-tests] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--resolve-lockfiles] [--generate-clients] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0-4] [--ai-effort low|medium|high|xhigh|max]] [--behaviour-tests [--stripe-test-mode] | --behaviour-tests-dry-run | --no-behaviour-tests] [--webhook-checks] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--resolve-lockfiles] [--generate-clients] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -90,6 +91,9 @@ const { values } = parseArgs({
     'no-behaviour-tests': { type: 'boolean' },
     // OPENAI_REASONING_EFFORT for every AI request (low, medium, high, xhigh or max).
     'ai-effort': { type: 'string' },
+    // Sends signed webhook events of both API versions to the handlers a patch can affect
+    // (signed-events.ts), offline; no key needed.
+    'webhook-checks': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -568,6 +572,7 @@ async function benchmark(entry: Selected, index: number) {
                   ? ['--no-behaviour-tests']
                   : []),
             ...(values['stripe-test-mode'] ? ['--stripe-test-mode'] : []),
+            ...(values['webhook-checks'] ? ['--webhook-checks'] : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
@@ -624,6 +629,9 @@ async function benchmark(entry: Selected, index: number) {
       behaviourTestWriter: report.validation?.behaviourTestWriter,
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
+      ...(report.validation?.signedEvents
+        ? { signedEvents: signedEventSummary(report.validation.signedEvents) }
+        : {}),
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
       ...(report.validation?.typeOracle
         ? {
