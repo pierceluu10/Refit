@@ -213,8 +213,9 @@ http.createServer((req, res) => {
     let message;
     if (response.status >= 400)
       try {
+        // Not cut here: a cut credential could escape the host's redaction, which runs on all of it.
         const value = JSON.parse(text)?.error?.message;
-        if (typeof value === 'string') message = value.slice(0, 300);
+        if (typeof value === 'string') message = value;
       } catch {}
     print({ ...record, attempts, status: response.status, ...(response.status === config.rateLimit.status ? { rateLimited: true } : {}), ...(message ? { message } : {}) });
     const out = {};

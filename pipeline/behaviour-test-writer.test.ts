@@ -652,6 +652,7 @@ const REPOSITORY = {
       content: "import Stripe from 'stripe';\nexport const plan = 'pro';\n",
     },
     { path: 'lib/db.ts', content: 'export const db = {};\n' },
+    { path: 'lib/checkout.ts', content: "export { plan } from './billing';\n" },
   ],
   dependencies: [],
   lockfiles: [],
@@ -912,7 +913,12 @@ it.each([
     {
       content: testFile("  mock.module('../lib/billing.ts', {});", MOCK),
     },
-    'which holds Stripe code',
+    'which holds or reaches Stripe code',
+  ],
+  [
+    'a mock of a repository module that reaches stripe through another module',
+    { content: testFile("  mock.module('../lib/checkout.ts', {});", MOCK) },
+    'which holds or reaches Stripe code',
   ],
   [
     "a mock of Node's network",
@@ -922,7 +928,7 @@ it.each([
   [
     'a mock by alias',
     { content: testFile("  mock.module('@/lib/db', {});", MOCK) },
-    'by an alias or absolute path',
+    'not a package the harness covers',
   ],
   [
     'a computed mock',
@@ -937,7 +943,55 @@ it.each([
         `${MOCK}\nimport Stripe from 'stripe';`,
       ),
     },
-    'mocks part of the Stripe SDK with mock.method',
+    'only mock.module and mock.fn may be used',
+  ],
+  [
+    'a renamed mock',
+    { content: testFile("  m.module('stripe', {});", "import { mock as m } from 'node:test';") },
+    'renames mock',
+  ],
+  [
+    "a mock taken from the test's context",
+    {
+      content:
+        "import { test } from 'node:test';\ntest('x', ({ mock: m }) => m.module('stripe', {}));\n",
+    },
+    'renames mock',
+  ],
+  [
+    'a computed mock member',
+    { content: testFile("  mock['module']('stripe', {});", MOCK) },
+    'uses mock other than as mock.<member>(...)',
+  ],
+  [
+    'a mock passed on',
+    { content: testFile("  mock.module.call(mock, 'stripe', {});", MOCK) },
+    'uses mock other than as mock.<member>(...)',
+  ],
+  [
+    'a destructured mock',
+    { content: testFile("  const { module: replace } = mock;\n  replace('stripe', {});", MOCK) },
+    'uses mock other than as mock.<member>(...)',
+  ],
+  [
+    'a Stripe method redefined',
+    {
+      content: testFile(
+        "  const stripe = new Stripe('sk_test_123');\n  Object.defineProperty(stripe.customers, 'create', { value: async () => ({}) });",
+        "import Stripe from 'stripe';",
+      ),
+    },
+    'changes part of the Stripe SDK',
+  ],
+  [
+    'a Stripe method replaced by mock.fn',
+    {
+      content: testFile(
+        "  const stripe = new Stripe('sk_test_123');\n  stripe.customers.create = mock.fn(async () => ({}));",
+        `${MOCK}\nimport Stripe from 'stripe';`,
+      ),
+    },
+    'replaces part of the Stripe SDK',
   ],
   [
     'a replaced Stripe method',

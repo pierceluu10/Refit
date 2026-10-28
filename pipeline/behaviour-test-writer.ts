@@ -87,7 +87,31 @@ const NETWORK_MODULES = new Set([
   'child_process',
   'module',
 ]);
-const MOCKS = new Set(['method', 'getter', 'setter', 'property']);
+// The only packages a test may replace: those refit-behaviour/harness has doubles for. Anything else
+// is replaced through the repository module that wraps it, by relative path, so an alias or a
+// workspace package can never stand for a module that reaches Stripe.
+const MOCKABLE_PACKAGES = new Set([
+  'next/headers',
+  'next-auth',
+  'next-auth/next',
+  '@clerk/nextjs',
+  '@clerk/nextjs/server',
+  '@kinde-oss/kinde-auth-nextjs/server',
+  '@auth0/nextjs-auth0',
+  '@supabase/supabase-js',
+  '@supabase/ssr',
+  '@supabase/auth-helpers-nextjs',
+  '@prisma/client',
+  'firebase/firestore',
+  'firebase-admin',
+  'firebase-admin/firestore',
+  'express',
+]);
+// node:test's mock members a test may call: mock.method and its kin could replace an SDK method on
+// an object of any name, so only module mocks and free-standing functions are allowed.
+const MOCK_MEMBERS = new Set(['module', 'fn', 'timers', 'reset', 'restoreAll']);
+// Calls that change another object's members.
+const REDEFINE = new Set(['defineProperty', 'defineProperties', 'assign', 'set', 'setPrototypeOf']);
 const WRITES = new Set([
   'appendFile',
   'appendFileSync',
@@ -201,7 +225,7 @@ Application dependencies (never Stripe):
 - When the code needs a database, a signed-in session, a Next.js request context or an Express app it does not export before it reaches a Stripe line, replace that dependency with node:test's mock.module(specifier, options) before importing the code, then await import() it. ${HARNESS_SPECIFIER} exports ready options: nextHeaders({ headers, cookies }) for 'next/headers'; nextAuth(session) for 'next-auth' or 'next-auth/next'; clerk(user) for '@clerk/nextjs' or '@clerk/nextjs/server'; kinde(user) for '@kinde-oss/kinde-auth-nextjs/server'; auth0(user) for '@auth0/nextjs-auth0'; supabase({ user, tables }) for '@supabase/supabase-js', '@supabase/ssr' or '@supabase/auth-helpers-nextjs'; prismaClient(tables) for '@prisma/client'; firestore(collections) for 'firebase/firestore'; firestoreAdmin(collections) for 'firebase-admin/firestore' or 'firebase-admin'; express() for 'express'. Without a user they sign in testUser; pass null to test the signed-out path.
 - prisma(tables) returns a Prisma client for a repository module that exports one, such as mock.module('../lib/db.ts', { namedExports: { db: prisma({ user: [{ id: 'u1', stripeCustomerId }] }) } }). tables ({ user: [rows] }, keyed by the client's property name) and collections ({ users: { [id]: data } }) are yours to seed; the doubles change them in place, so assert what the code wrote there.
 - After express() is mocked and the module that builds the app is imported, request(method, path, { body, headers }) calls its route and resolves with { status, headers, body }; a string body reaches express.raw() unchanged, for signed webhooks. nextRequest(url, init) builds a NextRequest for a route handler.
-- mock.module a repository module only by its exact relative path with extension, and only one without Stripe code: never stripe, a module that imports stripe, a file in evidence.files, or Node's built-in modules. Never replace the Stripe client or its methods.
+- mock.module only the packages listed above, or a repository module by its exact relative path with extension that does not reach Stripe: never stripe, a module that imports stripe or imports one that does, a file in evidence.files, or Node's built-in modules. Use mock only as mock.module(...) and mock.fn(...), never mock.method, and never rename it. Never replace or redefine the Stripe client or its methods.
 
 What to test:
 - Every finding's line must run in at least one test: Refit measures line coverage on both runs. List what each file covers in findingIds, using only the ids in evidence.findings and evidence.changedLines.
@@ -594,16 +618,16 @@ function testFileProblems(
     if (/stripe/i.test(text)) return at(node, `mocks '${text}'; Stripe is never replaced`);
     if (text.startsWith('node:') || BUILTINS.has(bare) || NETWORK_MODULES.has(bare))
       return at(node, `mocks Node's '${text}' module`);
-    if (PACKAGES.has(text)) return at(node, `mocks '${text}'`);
     if (text.startsWith('./') || text.startsWith('../')) {
       const target = posix.normalize(posix.join(BEHAVIOUR_DIRECTORY, text));
-      const source = repositoryFiles.get(target);
-      if (target.startsWith('../') || source === undefined)
+      if (target.startsWith('../') || !repositoryFiles.has(target))
         return at(node, `mocks '${text}', which is not a repository file`);
-      if (stripeCode.has(target) || STRIPE_IMPORT.test(source))
-        at(node, `mocks '${text}', which holds Stripe code`);
-    } else if (/^(?:[@~#]\/|\/)/.test(text))
-      at(node, `mocks '${text}' by an alias or absolute path; use the module's relative path`);
+      if (stripeCode.has(target)) at(node, `mocks '${text}', which holds or reaches Stripe code`);
+    } else if (!MOCKABLE_PACKAGES.has(text))
+      at(
+        node,
+        `mocks '${text}', which is not a package the harness covers; mock the repository module that uses it by its relative path`,
+      );
   };
   // A Stripe object, or a chain through one, such as stripe.checkout.sessions.
   const throughStripe = (node: ts.Expression): boolean => {
@@ -701,18 +725,21 @@ function testFileProblems(
       else if (writer(node.expression) && !inTemporary(node.arguments[0] ?? node))
         at(node, `${callee} writes outside a temporary directory from mkdtemp`);
       if (callee && TEST_CALLS.has(callee) && ts.isIdentifier(node.expression)) tests++;
-      const mock =
-        ts.isPropertyAccessExpression(node.expression) &&
-        nameOf(node.expression.expression) === 'mock';
-      if (mock && callee === 'module') mocked(node);
       if (
-        mock &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        nameOf(node.expression.expression) === 'mock' &&
+        callee === 'module'
+      )
+        mocked(node);
+      if (
         callee &&
-        MOCKS.has(callee) &&
+        REDEFINE.has(callee) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        ['Object', 'Reflect'].includes(nameOf(node.expression.expression) ?? '') &&
         node.arguments[0] &&
         throughStripe(node.arguments[0])
       )
-        at(node, `mocks part of the Stripe SDK with mock.${callee}`);
+        at(node, 'changes part of the Stripe SDK');
     } else if (
       (ts.isIdentifier(node) || ts.isPropertyAccessExpression(node)) &&
       writer(node) &&
@@ -749,20 +776,71 @@ function testFileProblems(
       nameOf(node.left) === '__refitStripe'
     )
       at(node, "replaces the harness's request log");
-    // stripe.checkout.sessions.create = async () => ...: a data field named after Stripe is fine.
+    // stripe.checkout.sessions.create = ...; a field named after Stripe on another object
+    // (user.stripeCustomerId) and process.env.STRIPE_* are fine.
     if (
       ts.isBinaryExpression(node) &&
       node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
       (ts.isPropertyAccessExpression(node.left) || ts.isElementAccessExpression(node.left)) &&
       throughStripe(node.left.expression) &&
-      (ts.isArrowFunction(unwrap(node.right)) || ts.isFunctionExpression(unwrap(node.right)))
+      !node.left.getText(source).startsWith('process.env')
     )
       at(node, 'replaces part of the Stripe SDK');
+    // node:test's mock only as mock.<member>(...): never renamed, destructured, passed on or
+    // reached by a computed key, which would hide a mock.module call from the checks above.
+    const mockName =
+      (ts.isIdentifier(node) && node.text === 'mock') ||
+      (ts.isPropertyAccessExpression(node) && node.name.text === 'mock');
+    if (mockName) {
+      const target = ts.isPropertyAccessExpression(node) ? node.name : node;
+      const parent = node.parent;
+      const member =
+        ts.isPropertyAccessExpression(parent) &&
+        parent.expression === node &&
+        ts.isCallExpression(parent.parent) &&
+        parent.parent.expression === parent;
+      const declared =
+        (ts.isImportSpecifier(parent) && !parent.propertyName) ||
+        (ts.isBindingElement(parent) && parent.name === target && !parent.propertyName) ||
+        (ts.isPropertyAccessExpression(parent) && parent.name === node);
+      if (target === node && !member && !declared)
+        at(node, 'uses mock other than as mock.<member>(...)');
+      else if (member && !MOCK_MEMBERS.has((parent as ts.PropertyAccessExpression).name.text))
+        at(
+          node,
+          `calls mock.${(parent as ts.PropertyAccessExpression).name.text}; only mock.module and mock.fn may be used`,
+        );
+    }
+    if (
+      (ts.isImportSpecifier(node) || ts.isBindingElement(node)) &&
+      node.propertyName &&
+      ['mock', 'module'].includes(nameOf(node.propertyName as ts.Expression) ?? '')
+    )
+      at(node, `renames ${nameOf(node.propertyName as ts.Expression)}`);
     ts.forEachChild(node, visit);
   };
   visit(source);
   if (!importsTest || !tests) problems.push(`${path} defines no node:test tests`);
   return problems;
+}
+
+// Repository files a test may never replace: the code under test, files importing stripe, and every
+// file that reaches one of those through its imports, as the sandbox resolves them.
+function stripeReach(repository: Repository, protectedFiles: readonly string[] = []) {
+  const imports = generatedImportMap(repository);
+  const reach = new Set([
+    ...protectedFiles,
+    ...repository.files.filter((file) => STRIPE_IMPORT.test(file.content)).map((file) => file.path),
+  ]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const [file, targets] of Object.entries(imports))
+      if (!reach.has(file) && Object.values(targets).some((target) => reach.has(target))) {
+        reach.add(file);
+        grew = true;
+      }
+  }
+  return reach;
 }
 
 // Parses the model's answer strictly. Any problem refuses every file: a test the contract forbids
@@ -798,7 +876,7 @@ export function parseBehaviourTests(
   const repositoryFiles = new Map(
     options.repository.files.map((file) => [file.path, file.content]),
   );
-  const stripeCode = new Set(options.protectedFiles);
+  const stripeCode = stripeReach(options.repository, options.protectedFiles);
   const known = new Set(options.findingIds);
   const refusals: string[] = [];
   const rejectedCitations: string[] = [];

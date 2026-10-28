@@ -1384,6 +1384,20 @@ async function signedEventEvidence(
   }
 }
 
+// How far behaviour tests got on the original code: files kept (passing there), then changed lines
+// they ran there. Only the original side, which the writer is fed back.
+function originalProgress(result: {
+  status: string;
+  tests?: { path: string }[];
+  dropped?: { file: string }[];
+  coverage?: { covered: { original: Record<string, number[]> } };
+}) {
+  if (result.status === 'unavailable') return -1;
+  const kept = (result.tests?.length ?? 0) - (result.dropped?.length ?? 0);
+  const lines = Object.values(result.coverage?.covered.original ?? {}).flat().length;
+  return kept * 10_000 + lines;
+}
+
 // A provider's test environment for behaviour tests (--stripe-test-mode): the adapter and the
 // test keys providerKeys read from its environment variable.
 export interface ProviderSandbox {
@@ -3005,8 +3019,19 @@ export async function validateMigration(options: {
         written = { record, files: written.files };
         break;
       }
+      const rerun = await runBehaviour(next.files);
+      // A round that does worse on the original code than the one before keeps the earlier files.
+      if (originalProgress(rerun) < originalProgress(behaviour)) {
+        record.feedback!.at(-1)!.reason =
+          'Its files did worse on the original code; the earlier files are kept.';
+        written = {
+          record: { ...previous, costUsd: record.costUsd, feedback: record.feedback },
+          files: written.files,
+        };
+        break;
+      }
       written = { record, files: next.files };
-      behaviour = await runBehaviour(next.files);
+      behaviour = rerun;
     }
     const signedEvents =
       options.signedEventChecks && !behaviourBlocked
