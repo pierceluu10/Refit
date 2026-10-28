@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { funnel, preparationGroup } from '../scripts/validation-funnel.mjs';
+import { blockerCensus, funnel, preparationGroup } from '../scripts/validation-funnel.mjs';
 
 const affected = { fullAdapter: { confirmed: 1 } };
 const failed = (validation: string) => ({
@@ -249,4 +249,95 @@ it('places untested patches at the preparation refusal that kept them untested',
   });
   expect(result.stages).toEqual({ 'preparation-refused': 5, 'scan-stop': 1 });
   expect(result.preparationPatch).toEqual({ 'D, patch kept': 5 });
+});
+
+// Shapes from rows of Actions run 40609750399 (blefnk/all-in-one-nextjs-template, duggal1/flux-io).
+it('lists every blocker on a row and counts rows where it is the only one', () => {
+  const dropped =
+    'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior. The owner-approved rename to allowed_payment_method_types applies to this value, but the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: Only root npm, pnpm or Yarn 1 projects are upgraded.';
+  const untraced =
+    'Receiver or property cannot be proven by the supported local analysis; inspect manually.';
+  const census = blockerCensus(
+    [
+      {
+        ...affected,
+        repo: 'blefnk/all-in-one-nextjs-template',
+        checks: 'none',
+        packageManager: 'none',
+        workflow: {
+          status: 'needs-review',
+          stage: 'validation',
+          validation: 'untested',
+          sdkUpgrade: { skipped: 'Only root npm, pnpm or Yarn 1 projects are upgraded.' },
+          waivedGates: ['dependency-preparation', 'removed-request-parameter', 'contract-changes'],
+        },
+      },
+      {
+        ...affected,
+        repo: 'duggal1/flux-io',
+        checks: 'typecheck',
+        workflow: {
+          ...unprepared('the committed lockfile is out of sync with package.json'),
+          sdkUpgrade: { from: '16.7.0', to: '23.0.0' },
+          typeOracle: { patched: { status: 'compared', count: 0, introduced: [] } },
+        },
+      },
+      {
+        ...affected,
+        repo: 'tmachnacki/podvex',
+        checks: 'typecheck',
+        workflow: {
+          status: 'validated',
+          stage: 'validation',
+          validation: 'passed',
+          sdkUpgrade: { skipped: 'stripe 23.0.0 is already locked.' },
+          typeOracle: {
+            patched: {
+              count: 1,
+              introduced: [{ code: 'TS2339', file: 'a.ts', line: 3 }],
+            },
+          },
+          grade: { letter: 'C' },
+        },
+      },
+    ],
+    new Map([
+      [
+        'blefnk/all-in-one-nextjs-template',
+        {
+          findings: [
+            {
+              confidence: 'confirmed',
+              reason: dropped,
+              requestParameter: { parameter: 'payment_method_types' },
+            },
+            { confidence: 'review', reason: untraced },
+            { confidence: 'confirmed', reason: 'A moved field the rules migrate.' },
+          ],
+        },
+      ],
+    ]),
+  );
+  expect(
+    Object.fromEntries(
+      census.repositories.map((row) => [row.repo, row.blockers.map((entry) => entry.blocker)]),
+    ),
+  ).toEqual({
+    'blefnk/all-in-one-nextjs-template': [
+      'no-lockfile',
+      'stripe-upgrade-refused-other',
+      'pmt-rename-dropped-stripe-upgrade',
+      'untraced-reads',
+      'contract-change',
+    ],
+    'duggal1/flux-io': ['lockfile-out-of-sync'],
+    'tmachnacki/podvex': ['new-type-errors-after-upgrade'],
+  });
+  expect(census.blockers['lockfile-out-of-sync']).toEqual({
+    rows: 1,
+    only: 1,
+    repos: ['duggal1/flux-io'],
+  });
+  expect(census.blockers['no-lockfile']).toMatchObject({ rows: 1, only: 0 });
+  expect(census.unblocked).toBe(0);
 });
