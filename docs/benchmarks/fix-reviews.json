@@ -2636,6 +2636,36 @@
         "pleaseCheck": "The draft says paypal is now filtered by buyer eligibility and asks to commit a lockfile.",
         "wouldMerge": "yes after the paypal check; tsc introduces no error over the 5 existing ones."
       }
+    },
+    {
+      "repo": "ItusiAI/Open-Magiviz",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624360669 (before, main 89f1c0ed) and 40682647162 (after, feat/conflicting-lockfiles ce5755ac, --resolve-lockfiles), subsets/heldout-30.json, no AI; read after the run, nothing tuned on it. Before: the stripe upgrade refused on pnpm-lock.yaml and preparation stopped on the two lockfiles; after: package-lock.json is installed because the GitHub workflows install with npm, the upgrade edits it only, and the draft names pnpm-lock.yaml as left on the older stripe. migration.patch from the shard-4 artifact read in full, the CRLF whole-file hunks compared line by line; lockfile checked for its stripe entries only",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the three clients move from 2026-01-28.clover to 2026-09-30.endive and both Checkout Session payment_method_types ['card'] become allowed_payment_method_types.",
+        "bothVersions": "not applicable: request-side changes only, sent with the pin move.",
+        "nothingUnrelated": "yes: three pins, two card renames, the stripe dependency and package-lock.json.",
+        "upgradeComplete": "yes for npm: stripe ^20.3.1 to ^23.0.0 in package.json and package-lock.json; pnpm-lock.yaml left as committed, as the draft says.",
+        "pleaseCheck": "Delete pnpm-lock.yaml, which the npm workflows never read.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "VishalRaut2106/HackMate_AI",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624360669 (before, main 89f1c0ed) and 40682647162 (after, feat/conflicting-lockfiles ce5755ac, --resolve-lockfiles), subsets/heldout-30.json, no AI; read after the run, nothing tuned on it. Before: the stripe upgrade refused on pnpm-lock.yaml and preparation stopped on the two lockfiles; after: package-lock.json is installed because the GitHub workflows install with npm, the upgrade edits it only, and the draft names pnpm-lock.yaml as left on the older stripe. migration.patch from the shard-9 artifact read in full, the CRLF whole-file hunks compared line by line; lockfile checked for its stripe entries only",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2025-02-24.acacia to 2026-09-30.endive; four current_period_start/end reads through the generated helpers with items[0]; two invoice.subscription reads through getInvoiceSubscription.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the new location otherwise.",
+        "nothingUnrelated": "yes: the pin, the six reads and their helpers, the stripe dependency and package-lock.json.",
+        "upgradeComplete": "yes for npm: stripe ^17.7.0 to ^23.0.0 in package.json and package-lock.json; pnpm-lock.yaml left as committed, as the draft says.",
+        "pleaseCheck": "Delete pnpm-lock.yaml, which the npm workflows never read.",
+        "wouldMerge": "yes: tsc introduces no error over the 2 existing ones."
+      }
     }
   ]
 }
