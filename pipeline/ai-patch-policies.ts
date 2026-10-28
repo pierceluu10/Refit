@@ -37,7 +37,7 @@ const unwrap = (node: ts.Expression): ts.Expression =>
 const lineOf = (source: ts.SourceFile, node: ts.Node) =>
   source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 
-export function contentOf(repository: Repository, path: string) {
+function contentOf(repository: Repository, path: string) {
   return repository.files.find((file) => file.path === path)?.content;
 }
 

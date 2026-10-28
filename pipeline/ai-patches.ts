@@ -16,7 +16,6 @@ import {
   addedItemChoices,
   addedTypeEscapes,
   changedEventTypes,
-  contentOf,
   droppedRequestPaths,
   editedTestFiles,
   newShapeOnlyReads,
@@ -692,26 +691,7 @@ export async function proposeAiPatch(
       `AI patch edits ${tests.join(', ')} on the repository's test paths; the checks that judge a migration stay as the repository wrote them, so it stops for review.`,
       proposal(),
     );
-  // Founder decision (2026-10-28): a policy repair may rewrite a rule's line inside the statement of
-  // a build error it cites, where the file it edits is exactly the rules' code.
-  const errorLines = (file: string) =>
-    edits
-      .filter(
-        (edit) =>
-          policyRepair &&
-          edit.file === file &&
-          edit.changeId === TYPE_ERROR_CHANGE &&
-          contentOf(repository, file) === contentOf(ruleBase, file),
-      )
-      .map((edit) => {
-        const text = contentOf(repository, file)!;
-        const line = (offset: number) => text.slice(0, offset).split('\n').length;
-        return [line(edit.start), line(Math.max(edit.end - 1, edit.start))] as const;
-      });
-  const ruleLines = rewrittenRuleLines(original, ruleBase, modified, aiFiles).filter(
-    (entry) =>
-      !errorLines(entry.file).some(([start, end]) => entry.line >= start && entry.line <= end),
-  );
+  const ruleLines = rewrittenRuleLines(original, ruleBase, modified, aiFiles);
   if (ruleLines.length)
     throw new AiPolicyStop(
       `AI patch changes ${ruleLines.map((entry) => `${entry.file}:${entry.line}`).join(', ')}, which the deterministic rules already changed; a rule's edit changes only with its rule, so it stops for review.`,
