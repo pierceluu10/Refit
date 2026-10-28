@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { signedEventSummary } from './signed-events.ts';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -50,7 +51,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--webhook-checks] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -82,6 +83,9 @@ const { values } = parseArgs({
     // Builds each behaviour-test request without sending it, and records per repository whether
     // the real run would send it, why not, and its estimated tokens and cost. No key needed.
     'behaviour-tests-dry-run': { type: 'boolean' },
+    // Sends signed webhook events of both API versions to the handlers a patch can affect
+    // (signed-events.ts), offline; no key needed.
+    'webhook-checks': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -540,6 +544,7 @@ async function benchmark(entry: Selected, index: number) {
               : values['behaviour-tests-dry-run']
                 ? ['--write-behaviour-tests-dry-run']
                 : []),
+            ...(values['webhook-checks'] ? ['--webhook-checks'] : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
@@ -596,6 +601,9 @@ async function benchmark(entry: Selected, index: number) {
       behaviourTestWriter: report.validation?.behaviourTestWriter,
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
+      ...(report.validation?.signedEvents
+        ? { signedEvents: signedEventSummary(report.validation.signedEvents) }
+        : {}),
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
       ...(report.validation?.typeOracle
         ? {

@@ -10,6 +10,7 @@ import {
   sandboxTranspile,
   writeHarness,
 } from './generated-checks.ts';
+import { signedEventRecords, type DeliveryRecord } from './signed-events.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError, type Finding, type Repository } from './types.ts';
 import type { CheckResult } from './validation.ts';
@@ -272,6 +273,10 @@ for (const name of existsSync(coverage) ? readdirSync(coverage) : []) {
   }
 }
 console.log('REFIT_BEHAVIOUR_COVERAGE=' + JSON.stringify(scripts));
+// Signed-event deliveries (signed-events.ts) write one record each.
+const records = root + '.refit-webhooks';
+for (const name of existsSync(records) ? readdirSync(records).sort() : [])
+  console.log('REFIT_WEBHOOK_RECORD=' + readFileSync(records + '/' + name, 'utf8'));
 console.log('REFIT_BEHAVIOUR_DONE');
 `;
 
@@ -368,6 +373,7 @@ export function behaviourOutput(stdout: string) {
     exit,
     coverage,
     done,
+    records: signedEventRecords(stdout),
   };
 }
 
@@ -515,6 +521,7 @@ export function compareBehaviourRuns(options: {
           testExitCode: side.output.exit,
           tests: side.output.tests,
           stderr: side.check.stderr.slice(-2000),
+          ...(side.output.records.length ? { records: side.output.records } : {}),
         },
       ]),
     ) as Record<
@@ -526,6 +533,7 @@ export function compareBehaviourRuns(options: {
         testExitCode: number | null;
         tests: TestResult[];
         stderr: string;
+        records?: DeliveryRecord[];
       }
     >,
   };

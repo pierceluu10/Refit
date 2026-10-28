@@ -1103,3 +1103,30 @@ it('grades a scoped type check by the files its generated configuration covers',
     ).letter,
   ).toBe('D');
 });
+
+it('lets signed webhook events cover a handler for grade C, never B or A', async () => {
+  const embedbase = await repository(EMBEDBASE);
+  const options = {
+    repository: embedbase,
+    command: ['node', '-e', '0'],
+    changedFiles: ['dashboard/pages/api/webhooks.ts'],
+    packageDirectory: 'dashboard',
+  };
+  await expect(gradeEvidence(options)).resolves.toMatchObject({ letter: 'D' });
+  await expect(
+    gradeEvidence({ ...options, signedEvents: ['dashboard/pages/api/webhooks.ts'] }),
+  ).resolves.toEqual({
+    letter: 'C',
+    level: 'type-check',
+    reason:
+      'Signed webhook events of both API versions ran every changed line of dashboard/pages/api/webhooks.ts on the original and the patched code, and the patched handler behaved the same way on both.',
+  });
+  // A changed file the events did not cover keeps the grade at D.
+  await expect(
+    gradeEvidence({
+      ...options,
+      changedFiles: [...options.changedFiles, 'dashboard/utils/stripe.ts'],
+      signedEvents: ['dashboard/pages/api/webhooks.ts'],
+    }),
+  ).resolves.toMatchObject({ letter: 'D' });
+});
