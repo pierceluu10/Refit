@@ -11,7 +11,7 @@ import {
 import { MAX_INPUT_BYTES, requestStructuredOutput } from './openai.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { applySourceEdits, editCovers, renderPatch } from './patches.ts';
-import { buildPatchContext } from './patch-context.ts';
+import { buildPatchContext, MAX_CONTEXT_FILES } from './patch-context.ts';
 import {
   addedItemChoices,
   addedTypeEscapes,
@@ -90,7 +90,7 @@ export const TYPE_ERROR_CHANGE = 'type-error';
 // An SDK call traced to a breaking contract change no Refit rule migrates.
 export const CONTRACT_CHANGE = 'contract-change';
 const COVERAGE_INSTRUCTIONS = `
-These findings are what Refit's rules left unresolved; resolve only these. Findings with untraced true read a removed field name on a value Refit could not trace to a provider object: edit one only when the supplied code shows the value is that provider's object, otherwise leave it and state the uncertainty. Their reason states a limit of Refit's tracer, not evidence that the value is something else: follow the value through the supplied code, such as an element of a list response's data. The supplied files already contain the rules' edits. Where the rules migrated the same removed field elsewhere, often by calling a helper defined in the supplied files or evidence.contextFiles, migrate a remaining read of the provider's object the same way, through that helper, passing the object alone: never copy an item-selection argument the rules derived from other code. Findings with changeId "contract-change" are SDK calls that reach a breaking change in the target contract no Refit rule migrates; the reason names the change. Edit within the statement containing the call only where the code depends on what changed, otherwise leave it and state why.`;
+These findings are what Refit's rules left unresolved; resolve only these. Findings with untraced true read a removed field name on a value Refit could not trace to a provider object: edit one only when the supplied code shows the value is that provider's object, otherwise leave it and state the uncertainty. Their reason states a limit of Refit's tracer, not evidence that the value is something else: follow the value through the supplied code, such as an element of a list response's data. The supplied files already contain the rules' edits. Where the rules migrated the same removed field elsewhere, often by calling a helper defined in the supplied files or evidence.contextFiles, migrate a remaining read of the provider's object the same way, through that helper, passing the object alone: never copy an item-selection argument the rules derived from other code. Findings with changeId "contract-change" are SDK calls that reach a breaking change in the target contract no Refit rule migrates; the reason names the change. Edit within the statement containing the call only where the code depends on what changed, otherwise leave it and state why. When evidence.contextPartial is true, some imported modules were left out of evidence.contextFiles to fit the input limit: never assume what they contain, and leave a finding that depends on them unchanged with that uncertainty.`;
 const TYPE_ERROR_INSTRUCTIONS = `
 Findings with changeId "type-error" are TypeScript errors the migration introduced, usually because the upgraded SDK types changed; the reason holds the compiler message. Fix each in place so the code typechecks against the new SDK types while keeping its behavior: match the new type shapes and correct invalid literals outside request bodies. A request parameter or value the new types reject is a review item, not a migration: never rename, remove or change it. Never change a webhook event type string: an event name the new types reject is a review item, not a migration. An edit citing a type-error finding must lie within the statement or member containing its reported position; when the cause is elsewhere, such as a type declared in another statement or file, leave that error and state it as an uncertainty. Keep values in the request objects they were sent in, such as metadata.`;
 const WEBHOOK_INSTRUCTIONS = `
@@ -388,13 +388,33 @@ export async function proposeAiPatch(
     ? await readDocumentationSnapshots(documentationSnapshots)
     : [];
   const addedProperties = findAddedProperties(schemaDefinitions, afterSchemaDefinitions, changes);
-  const evidence = {
+  // A coverage request keeps the nearest imported modules that fit, so a large application still
+  // gets its request; the model is told the context is partial.
+  const contextFiles = buildPatchContext(repository, allowed, Boolean(candidate?.targets));
+  const compose = (context: Repository['files']) => ({
     ...impact,
     ...(addedProperties.length ? { addedProperties } : {}),
     files: repository.files.filter((file) => allowed.has(file.path)),
-    contextFiles: buildPatchContext(repository, allowed),
+    contextFiles: context,
+    // At the file limit the nearest-first walk may have left modules out.
+    ...(candidate?.targets &&
+    (context.length < contextFiles.length || contextFiles.length === MAX_CONTEXT_FILES)
+      ? { contextPartial: true }
+      : {}),
     ...(repair ? { repair } : {}),
-  };
+  });
+  // Vendor notes come before the farthest modules: a coverage request drops modules until the
+  // evidence fits with every note whole.
+  const cut = (fields: ReturnType<typeof vendorNoteFields>) =>
+    Boolean(
+      fields.documentation?.some((note) => note.truncated) ||
+      fields.documentationOmissions?.some((note) => note.reason === 'input-limit'),
+    );
+  const fitted = (evidence: ReturnType<typeof compose>) =>
+    evidenceBytes(evidence) <= MAX_INPUT_BYTES && !cut(vendorNoteFields(evidence, notes));
+  let evidence = compose(contextFiles);
+  while (candidate?.targets && evidence.contextFiles.length && !fitted(evidence))
+    evidence = compose(evidence.contextFiles.slice(0, -1));
   const noted = { ...evidence, ...vendorNoteFields(evidence, notes) };
   const instructions =
     INSTRUCTIONS +

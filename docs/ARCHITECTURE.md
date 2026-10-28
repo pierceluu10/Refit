@@ -114,6 +114,26 @@ A baseline failure stops before model generation. Generation uses the OpenAI Res
 
 Validation archives committed HEAD and checks separate baseline/patched copies in disposable non-root containers. Optional npm preparation installs matching root manifest/lockfile inputs in a distinct restricted container with registry network access and lifecycle scripts disabled; validation receives only the verified dependency snapshot and stays offline. Cache identity binds committed inputs, immutable image ID and preparation recipe. Checks limit execution to 120 seconds, 1 MiB per output stream, 1 CPU, 5 GiB memory, a 4 GiB workspace and 128 processes by default (`REFIT_VALIDATION_WORKSPACE` selects smaller profiles). Validation containers have no network, host environment, Git metadata or Docker socket; their only variable is `CI=true`, so test runners such as vitest and jest run once instead of watching. Commands may differ between old/new test contracts; both are recorded, and reviewers must assess equivalent coverage. Original repository files are not modified. See [dependency preparation](DEPENDENCIES.md) for supported lockfile shapes and boundaries.
 
+### Type oracle
+
+When the final patch upgrades stripe-node, prepares its own dependencies and the check compares type errors (`compareTypeErrors`), validation runs the repository's type check once more in the same offline sandbox: on the original code with only the patch's `package.json` and lockfile sections applied, so with the target stripe-node installed. A tests-then-type-check chain runs only its type check part (`typeCheckCommand`); a check without its own type check leaves the oracle unavailable. `runTypeOracle` (`pipeline/validation.ts`) records the result as `validation.typeOracle`, typed `TypeOracle` in `pipeline/stripe-type-evidence.ts`:
+
+```ts
+interface TypeOracle {
+  sdk: { from: string | null; to: string }; // stripe-node before, and installed by the final patch
+  unpatched: OracleComparison; // original code + target SDK vs original code + original SDK
+  patched: OracleComparison; // final patched code + target SDK vs original code + original SDK
+  reached: { changeId; operation; path; file; line; code }[]; // changes the unpatched errors moved to `reached`
+}
+type OracleComparison =
+  | { status: 'compared'; introduced: { file; line; column; code; message }[] }
+  | { status: 'unavailable'; reason: string };
+```
+
+`patched` is computed on the final candidate, after restores, repairs and a kept coverage AI patch, from the same patched type check validation already runs; advisory JavaScript errors count there. `typeOraclePasses(oracle)` is D2's type condition: the target SDK is installed and the patched code has zero type errors the original code and SDK did not have. An absent oracle (no stripe-node upgrade, no prepared dependencies of the patch's own, no type comparison) does not pass. Tests passing and the diff touching only traced sites are separate D2 conditions.
+
+The unpatched errors are reach evidence (`typeOracleReach`). A contract change whose reach is `unknown` becomes `reached` where the target SDK's types reject it: a request change when an error sits on a property of that name, or quotes it, inside a traced call of its operation, or when an error anywhere quotes it on the operation's own stripe-node request type (`checkout.sessions.create` is `SessionCreateParams`), which only the SDK's typing of that call gives it; a response change when TS2339 or TS2551 reports that property missing on the Stripe type of the change's object schema (`Subscription`, `Response<Subscription>`). Test files never count. The reason names the stripe-node release, code, position and message. Every other reach stays as tracing decided it, and zero errors is never evidence of absence: casts, `any` and untyped `require()` clients hide errors, so the oracle never moves a change toward `unused`, `compatible` or `handled`. A sandbox that cannot apply or run the extra check leaves the comparison unavailable and the validation unchanged.
+
 The historical Stripe migration preserves retrieval and charge history using paginated `stripe.charges.list({ payment_intent })`, rather than substituting a single `latest_charge`. The independent billing evaluation covers successful/failed payments, refunds, history, 103 attempts and empty history under two simulated contracts. This proves those checked behaviors, not live Stripe or universal correctness.
 
 ## Local state and publication

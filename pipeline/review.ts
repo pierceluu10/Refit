@@ -1287,6 +1287,12 @@ export function createReviewArtifacts(
           ? `- Evidence Grade: **${grade.letter ? `${grade.letter}, ` : ''}${EVIDENCE_LABELS[grade.level]}.** ${plainText(grade.reason)}`
           : `- Evidence Strength: ${evidenceStrength(validation, generatedPassed)}`,
         `- Test Suite Output: ${checks}${generatedResult}`,
+        // Owner decision D2a: the type check stood in for tests the repository does not have.
+        ...(validation.coverageAi?.gate?.typeCheckOnly
+          ? [
+              '- Validated by type check, no tests: every contract change the AI patch handles is visible to the type check against the target stripe-node, which shows no new error in the TypeScript files it changed.',
+            ]
+          : []),
         ...(legacyPeerDeps
           ? [
               "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies, so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
