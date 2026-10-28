@@ -4,21 +4,23 @@
 // worker stored: per repository the detected vendors, their labels and the watch targets.
 // Private repositories are counted but never named, because demo output may be public.
 //
-//   GITHUB_APP_ID=… GITHUB_APP_PRIVATE_KEY_FILE=… REFIT_WEBHOOK_SECRET=… REFIT_SERVICE_TOKEN=… \
-//   REFIT_DATABASE_URL=… \
-//   node scripts/install-demo.mjs --owner <login> --service http://127.0.0.1:8787 \
-//     --output demo.json [--summary <markdown file>] [--delivery <id>]
+// Two steps, so the worker can be started with the delivery's account allowed:
+//
+//   GITHUB_APP_ID=… GITHUB_APP_PRIVATE_KEY_FILE=… \
+//   node scripts/install-demo.mjs fetch --delivery-file <private json> [--owner <login>] [--delivery <id>]
+//   REFIT_WEBHOOK_SECRET=… REFIT_SERVICE_TOKEN=… REFIT_DATABASE_URL=… \
+//   node scripts/install-demo.mjs replay --delivery-file <private json> --service http://127.0.0.1:8787 \
+//     --output demo.json [--summary <markdown file>]
+//
+// fetch prints the delivery's account (and writes `account=` to GITHUB_OUTPUT when set). The
+// delivery file names private repositories, so it must stay out of public artifacts.
 import { createHmac } from 'node:crypto';
-import { appendFile, writeFile } from 'node:fs/promises';
+import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import { tsImport } from 'tsx/esm/api';
 
 const load = (path) => tsImport(path, { parentURL: import.meta.url, tsconfig: false });
-const { appJwt, githubAppConfiguration } = await load('../pipeline/github-app.ts');
-const { requestGitHub } = await load('../pipeline/github.ts');
-const { openHostedPool } = await load('../pipeline/hosted-database.ts');
-const { openInventoryStore } = await load('../pipeline/inventory-store.ts');
 
 const INSTALL_EVENTS = new Map([
   ['installation', 'created'],
@@ -27,10 +29,15 @@ const INSTALL_EVENTS = new Map([
 const DELIVERY_PAGES = 5;
 const POLL_MS = 10_000;
 const INVENTORY_TIMEOUT_MS = 20 * 60_000;
-const WATCH_TIMEOUT_MS = 15 * 60_000;
+const WATCH_TIMEOUT_MS = 20 * 60_000;
 
-const { values } = parseArgs({
+const USAGE =
+  'Usage: fetch --delivery-file <json> [--owner <login>] [--delivery <id>]\n' +
+  '       replay --delivery-file <json> --service <url> --output <json> [--summary <md>]';
+const { values, positionals } = parseArgs({
+  allowPositionals: true,
   options: {
+    'delivery-file': { type: 'string' },
     owner: { type: 'string' },
     service: { type: 'string' },
     output: { type: 'string' },
@@ -38,16 +45,19 @@ const { values } = parseArgs({
     delivery: { type: 'string' },
   },
 });
-if (!values.owner || !values.service || !values.output)
-  throw new Error('Usage: --owner <login> --service <url> --output <json> [--summary <md>]');
-const secret = process.env.REFIT_WEBHOOK_SECRET;
-const token = process.env.REFIT_SERVICE_TOKEN;
-if (!secret || !token || !process.env.REFIT_DATABASE_URL)
-  throw new Error('REFIT_WEBHOOK_SECRET, REFIT_SERVICE_TOKEN and REFIT_DATABASE_URL are required.');
-const app = githubAppConfiguration(process.env);
+const command = positionals[0];
+if (
+  !values['delivery-file'] ||
+  !['fetch', 'replay'].includes(command) ||
+  (command === 'replay' && (!values.service || !values.output))
+)
+  throw new Error(USAGE);
 
-// The newest install delivery for the owner's account, or the one named by --delivery.
+// The newest install delivery (for --owner's account when given), or the one named by --delivery.
 async function installDelivery() {
+  const { appJwt, githubAppConfiguration } = await load('../pipeline/github-app.ts');
+  const { requestGitHub } = await load('../pipeline/github.ts');
+  const app = githubAppConfiguration(process.env);
   const jwt = await appJwt(app);
   let cursor = '';
   for (let page = 0; page < DELIVERY_PAGES; page += 1) {
@@ -55,25 +65,63 @@ async function installDelivery() {
       `https://api.github.com/app/hook/deliveries?per_page=100${cursor ? `&cursor=${cursor}` : ''}`,
       { headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/vnd.github+json' } },
     );
-    if (!response.ok) throw new Error(`Listing App deliveries failed with HTTP ${response.status}.`);
+    if (!response.ok)
+      throw new Error(`Listing App deliveries failed with HTTP ${response.status}.`);
     for (const item of await response.json()) {
-      if (values.delivery ? String(item.id) !== values.delivery : INSTALL_EVENTS.get(item.event) !== item.action)
+      if (
+        values.delivery
+          ? String(item.id) !== values.delivery
+          : INSTALL_EVENTS.get(item.event) !== item.action
+      )
         continue;
       const detail = await requestGitHub(jwt, 'GET', `/app/hook/deliveries/${item.id}`);
       const payload = detail.request?.payload;
-      if (payload?.installation?.account?.login?.toLowerCase() !== values.owner.toLowerCase()) continue;
-      return { id: item.id, guid: item.guid, event: item.event, action: item.action, deliveredAt: item.delivered_at, payload };
+      const login = payload?.installation?.account?.login;
+      if (!login || (values.owner && login.toLowerCase() !== values.owner.toLowerCase())) continue;
+      return {
+        id: item.id,
+        guid: item.guid,
+        event: item.event,
+        action: item.action,
+        deliveredAt: item.delivered_at,
+        payload,
+      };
     }
     cursor = /[?&]cursor=([^&>]+)>; rel="next"/.exec(response.headers.get('link') ?? '')?.[1];
     if (!cursor) break;
   }
-  throw new Error(`No installation delivery for ${values.owner} in the App's recent deliveries.`);
+  throw new Error(
+    `No installation delivery${values.owner ? ` for ${values.owner}` : ''} in the App's recent deliveries.`,
+  );
 }
+
+const repositoriesOf = (payload) => payload.repositories ?? payload.repositories_added ?? [];
+
+if (command === 'fetch') {
+  const delivery = await installDelivery();
+  const account = delivery.payload.installation.account.login;
+  const named = repositoriesOf(delivery.payload);
+  await writeFile(values['delivery-file'], JSON.stringify(delivery), { mode: 0o600 });
+  console.log(
+    `Found ${delivery.event}.${delivery.action} delivery ${delivery.id} (${delivery.deliveredAt}) for ${account}: ${named.length} repositories, ${named.filter((repository) => !repository.private).length} public.`,
+  );
+  if (process.env.GITHUB_OUTPUT)
+    await appendFile(process.env.GITHUB_OUTPUT, `account=${account}\n`);
+  process.exit(0);
+}
+
+const secret = process.env.REFIT_WEBHOOK_SECRET;
+const token = process.env.REFIT_SERVICE_TOKEN;
+if (!secret || !token || !process.env.REFIT_DATABASE_URL)
+  throw new Error('REFIT_WEBHOOK_SECRET, REFIT_SERVICE_TOKEN and REFIT_DATABASE_URL are required.');
+const { openHostedPool } = await load('../pipeline/hosted-database.ts');
+const { openInventoryStore } = await load('../pipeline/inventory-store.ts');
 
 async function service(path, init) {
   const response = await fetch(`${values.service}${path}`, init);
   const body = await response.json();
-  if (!response.ok) throw new Error(`${path} answered HTTP ${response.status}: ${body.error ?? ''}`);
+  if (!response.ok)
+    throw new Error(`${path} answered HTTP ${response.status}: ${body.error ?? ''}`);
   return body;
 }
 const status = () => service('/status', { headers: { Authorization: `Bearer ${token}` } });
@@ -86,11 +134,14 @@ async function until(timeoutMs, done) {
   throw new Error(`Timed out after ${timeoutMs / 1000} seconds.`);
 }
 
-const delivery = await installDelivery();
-const named = delivery.payload.repositories ?? delivery.payload.repositories_added ?? [];
-const visibility = new Map(named.map((repository) => [repository.full_name.toLowerCase(), !repository.private]));
+const delivery = JSON.parse(await readFile(values['delivery-file'], 'utf8'));
+const owner = delivery.payload.installation.account.login;
+const named = repositoriesOf(delivery.payload);
+const visibility = new Map(
+  named.map((repository) => [repository.full_name.toLowerCase(), !repository.private]),
+);
 console.log(
-  `Replaying ${delivery.event}.${delivery.action} delivery ${delivery.id} (${delivery.deliveredAt}) for ${values.owner}: ${named.length} repositories, ${[...visibility.values()].filter(Boolean).length} public.`,
+  `Replaying ${delivery.event}.${delivery.action} delivery ${delivery.id} (${delivery.deliveredAt}) for ${owner}: ${named.length} repositories, ${[...visibility.values()].filter(Boolean).length} public.`,
 );
 const body = JSON.stringify(delivery.payload);
 const accepted = await service('/github/webhook', {
@@ -103,7 +154,8 @@ const accepted = await service('/github/webhook', {
   },
   body,
 });
-console.log(`Worker accepted the delivery: ${JSON.stringify(accepted)}`);
+// Only the status: the receipt lists enrolled repositories, which may be private.
+console.log(`Worker accepted the delivery: ${accepted.status}`);
 
 const inventoried = (current) =>
   [...visibility.keys()].every((repository) => {
@@ -118,9 +170,14 @@ const final = await until(WATCH_TIMEOUT_MS, (current) =>
 console.log(`Every watch target was captured (${final.watch.targets.length}).`);
 
 // Stored inventories are read from the database: `refit hosted inventory` would queue another scan.
-const pool = openHostedPool(process.env.REFIT_DATABASE_URL, (error) => console.error(error.message));
+const pool = openHostedPool(process.env.REFIT_DATABASE_URL, (error) =>
+  console.error(error.message),
+);
 const inventories = openInventoryStore(pool);
-const targets = new Map(final.watch.targets.map((target) => [target.provider, target]));
+// Without each target's repository list, which names private repositories too.
+const targets = new Map(
+  final.watch.targets.map(({ repositories: _users, ...target }) => [target.provider, target]),
+);
 const repositories = [];
 let withheld = 0;
 for (const [repository, open] of visibility) {
@@ -149,8 +206,13 @@ for (const [repository, open] of visibility) {
 await pool.end();
 const report = {
   formatVersion: 1,
-  delivery: { id: delivery.id, event: delivery.event, action: delivery.action, deliveredAt: delivery.deliveredAt },
-  owner: values.owner,
+  delivery: {
+    id: delivery.id,
+    event: delivery.event,
+    action: delivery.action,
+    deliveredAt: delivery.deliveredAt,
+  },
+  owner,
   privateRepositoriesWithheld: withheld,
   repositories,
   watchTargets: final.watch.targets.map(({ repositories: users, ...target }) => ({
@@ -163,17 +225,25 @@ await writeFile(values.output, `${JSON.stringify(report, null, 2)}\n`);
 
 const capture = (target) =>
   (target?.captures ?? [])
-    .map((item) => `${item.kind === 'specification' ? 'OpenAPI' : 'docs'} ${'hash' in item ? item.hash.slice(0, 12) : `failed: ${item.error}`}`)
+    .map(
+      (item) =>
+        `${item.kind === 'specification' ? 'OpenAPI' : 'docs'} ${'hash' in item ? item.hash.slice(0, 12) : `failed: ${item.error}`}`,
+    )
     .join('; ');
 const lines = [
   `## Install-time vendor inventory`,
   '',
-  `Replayed \`${delivery.event}.${delivery.action}\` delivery ${delivery.id} (delivered ${delivery.deliveredAt}) for \`${values.owner}\` into \`refit hosted serve\` with PostgreSQL ${process.env.POSTGRES_VERSION ?? ''}.`,
+  `Replayed \`${delivery.event}.${delivery.action}\` delivery ${delivery.id} (delivered ${delivery.deliveredAt}) for \`${owner}\` into \`refit hosted serve\` with PostgreSQL ${process.env.POSTGRES_VERSION ?? ''}.`,
   withheld ? `${withheld} private repositories were inventoried but are not named here.` : '',
   '',
 ];
 for (const entry of repositories) {
-  lines.push(`### ${entry.repository}`, '', `Inventory: ${entry.inventory.status ?? 'none'}${entry.inventory.stop ? ` (${entry.inventory.stop})` : ''}${entry.inventory.error ? ` error: ${entry.inventory.error}` : ''}`, '');
+  lines.push(
+    `### ${entry.repository}`,
+    '',
+    `Inventory: ${entry.inventory.status ?? 'none'}${entry.inventory.stop ? ` (${entry.inventory.stop})` : ''}${entry.inventory.error ? ` error: ${entry.inventory.error}` : ''}`,
+    '',
+  );
   if (!entry.vendors.length) lines.push('No catalog vendor detected.', '');
   else {
     lines.push('| Vendor | Label | Evidence | Watch target |', '| --- | --- | --- | --- |');
@@ -184,7 +254,12 @@ for (const entry of repositories) {
     lines.push('');
   }
 }
-lines.push('### Watch targets', '', '| Vendor | OpenAPI | Changelog pages | Captured | Error |', '| --- | --- | --- | --- | --- |');
+lines.push(
+  '### Watch targets',
+  '',
+  '| Vendor | OpenAPI | Changelog pages | Captured | Error |',
+  '| --- | --- | --- | --- | --- |',
+);
 for (const target of final.watch.targets)
   lines.push(
     `| ${target.provider} | ${target.sources.specification ?? '-'} | ${target.sources.documentation.map((page) => page.url).join('<br>') || '-'} | ${capture(target)} | ${target.error ?? ''} |`,
