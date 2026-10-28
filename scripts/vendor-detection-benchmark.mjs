@@ -2,6 +2,7 @@
 // labels: each repository is cloned at its labelled commit, scanned and deleted. Nothing in it is
 // installed or run, and no vendor is contacted.
 // Usage: node scripts/vendor-detection-benchmark.mjs --root <dir> --output <results.json>
+import { execFileSync } from 'node:child_process';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { tsImport } from 'tsx/esm/api';
@@ -45,7 +46,9 @@ for (const label of labels) {
           [
             ...detection.packages.map((item) => `package ${item.name} ${item.file}`),
             ...detection.hostnames.map((item) => `host ${item.hostname} ${item.file}:${item.line}`),
-            ...detection.references.map((item) => `${item.kind} ${item.name} ${item.file}:${item.line}`),
+            ...detection.references.map(
+              (item) => `${item.kind} ${item.name} ${item.file}:${item.line}`,
+            ),
           ].slice(0, 4),
         ]),
       ),
@@ -76,6 +79,7 @@ function score(subset) {
 }
 const results = {
   formatVersion: 1,
+  commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   labels: LABELS,
   scannedAt: new Date().toISOString(),
   scores: {
