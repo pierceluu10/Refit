@@ -475,7 +475,9 @@ it('says which of several committed lockfiles Refit installed and why it did not
     installation: {},
     lockfileChoice: {
       lockfile: 'pnpm-lock.yaml',
-      outOfSync: {
+      rule: 'in-sync',
+      because: 'the only one in sync with `package.json`',
+      others: {
         'package-lock.json':
           'package.json dependencies differ from the committed package-lock.json: jsdom is "^24.0.0" in package.json but missing in the lockfile.',
       },
@@ -483,6 +485,66 @@ it('says which of several committed lockfiles Refit installed and why it did not
   };
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
     '- Dependency Installation: the repository commits `pnpm-lock.yaml` and `package-lock.json`. Refit installed `pnpm-lock.yaml`, the only one in sync with `package.json`, and did not read the other: package.json dependencies differ from the committed package-lock.json: jsdom is "^24.0.0" in package.json but missing in the lockfile. Delete the lockfile your package manager does not use.',
+  );
+  // ensarokumus/tldr-app at 566f26e: both in sync, yarn.lock committed last.
+  value.validation.environment = {
+    installation: {},
+    lockfileChoice: {
+      lockfile: 'yarn.lock',
+      rule: 'newest',
+      because:
+        'the most recently committed lockfile in sync with `package.json` (last changed 2026-03-28T19:05:40+11:00)',
+      others: {
+        'package-lock.json': 'package-lock.json was last changed 2026-03-28T18:19:51+11:00.',
+      },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the repository commits `yarn.lock` and `package-lock.json`. Refit installed `yarn.lock`, the most recently committed lockfile in sync with `package.json` (last changed 2026-03-28T19:05:40+11:00), and did not read the other: package-lock.json was last changed 2026-03-28T18:19:51+11:00. Delete the lockfile your package manager does not use.',
+  );
+  // When the patch upgrades stripe in the chosen lockfile alone, the draft names the others.
+  const upgrade =
+    'diff --git "a/package.json" "b/package.json"\n--- "a/package.json"\n+++ "b/package.json"\n@@ -1 +1 @@\n-{"dependencies":{"stripe":"^15.12.0"}}\n+{"dependencies":{"stripe":"^23.0.0"}}\n' +
+    'diff --git "a/yarn.lock" "b/yarn.lock"\n--- "a/yarn.lock"\n+++ "b/yarn.lock"\n@@ -1 +1 @@\n-stripe@^15.12.0:\n+stripe@^23.0.0:\n';
+  value.patch.diff += upgrade;
+  value.validation.patchHash = digest(value.patch.diff);
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    'This patch upgrades stripe in `yarn.lock` only and leaves `package-lock.json` as committed, still locking the older stripe. Delete the lockfile your package manager does not use.',
+  );
+  value.patch.diff = value.patch.diff.replace(upgrade, '');
+  value.validation.patchHash = digest(value.patch.diff);
+  // Ankit-Sharma1011/Quill at bdd4055 pins pnpm.
+  value.validation.environment = {
+    installation: {},
+    lockfileChoice: {
+      lockfile: 'pnpm-lock.yaml',
+      rule: 'package-manager',
+      because: 'the lockfile of the manager package.json pins (`"packageManager": "pnpm@11.1.2"`)',
+      others: { 'package-lock.json': 'not read' },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the repository commits `pnpm-lock.yaml` and `package-lock.json`. Refit installed `pnpm-lock.yaml`, the lockfile of the manager package.json pins (`"packageManager": "pnpm@11.1.2"`), and did not read the other. Delete the lockfile your package manager does not use.',
+  );
+});
+
+it('says when the checks ran against a lockfile Refit resolved, and as of which date', async () => {
+  const value = await report();
+  expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('Refit resolved');
+  value.validation.environment = {
+    installation: {},
+    resolvedLockfile: { reason: 'no-lockfile', before: '2026-09-15T00:00:00Z' },
+  };
+  value.validation.patchedEnvironment = {
+    installation: {},
+    resolvedLockfile: {
+      reason: 'no-lockfile',
+      before: '2026-09-15T00:00:00Z',
+      late: { stripe: { spec: '23.0.0', published: '2026-10-01T00:52:07.438Z' } },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the checks ran against a `package-lock.json` Refit resolved, not one the repository commits (it commits none). npm resolved it with lifecycle scripts off from registry.npmjs.org as of 2026-09-15T00:00:00Z, the last commit date; `stripe@23.0.0` as of 2026-10-01T00:52:07.438Z, and installed it with `npm ci`. It is not part of this pull request; commit your own lockfile and rerun your checks.',
   );
 });
 

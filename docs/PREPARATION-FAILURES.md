@@ -138,6 +138,15 @@ None of the 12 conflicting-lockfile refusals in run 40236299492 has both a `pack
 
 `kondax-com/Bocker` pins no manager and patches `next`. Its `pnpm-lock.yaml` records the patch's SHA-256, which only pnpm 10 computes (pnpm 9 hashes patch files as base32), so its frozen install under the pnpm 9.15.9 fallback failed with `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`. An unpinned lockfile that records patches now installs with pnpm 10.34.7.
 
+## Conflicting lockfiles: one chosen by rule (October 28)
+
+Founder decision (Otabek, 2026-10-28). With several root lockfiles Refit now installs one by rule (`chosenLockfile` in `pipeline/dependency-inputs.ts`; rules in [Dependencies](DEPENDENCIES.md)): the `packageManager` pin, else the only manager the GitHub workflows install with, else the only lockfile in sync with `package.json`, else the most recently committed of those in sync. The stripe-node upgrade then edits every lockfile when all of them can be upgraded, and otherwise only the chosen one, and the draft names the ones it leaves on the older `stripe`. The seven `conflicting-dependency-files` stops of l2-push-249 (`docs/benchmarks/subsets/l3-conflicting-lockfiles.json`):
+
+- Validated: `Ankit-Sharma1011/Quill` (the pnpm pin), `ensarokumus/tldr-app` (`yarn.lock`, committed last; both lockfiles upgraded) and `avikalp987/quill` (`package-lock.json`, committed last; `pnpm-lock.yaml` left on stripe 13.7.0).
+- Still stopping: `cesarolvr/journeylog-app` (the newest, `package-lock.json`, fails `npm ci` with `EBADENGINE` on amqplib 0.5.2, and nothing falls back to the other), `Librum-Reader/Librum-Website` (the newest, `yarn.lock`, records no integrity), `dheerajcl/Jynx2.0` (both lockfiles added in the same commit) and `passion-27/QuotesAI` (a `link:` dependency).
+
+Repositories that already installed their one in-sync lockfile now also take the stripe upgrade, which used to refuse because the lockfiles disagree: `omar99elnemr/Docubot` and `saidMounaim/tick-event` validate; `LucasKlemke/doctor-reborn` upgrades too, and its own `@ts-expect-error` above `apiVersion` becomes unused (TS2578), so the patch fails its type check and is not published, where before it moved the pin on stripe 18 and passed. Tracked `node_modules`, `npm-shrinkwrap.json` and pnpm hooks keep stopping.
+
 ## Needs owner decision
 
 - **Yarn 1 preparation space.** Decided by owner decision 3 (2026-10-24, Push 279): preparation and validation default to the 4 GiB profile (#303). Under it all five Yarn 1 repositories of the Push 279 set that ran out of the 2 GiB workspace prepare (refit-bench run 40142158182). Yarn 1 fetches every package its lockfile records, other platforms' optional binaries included, before it reads their `os` and `cpu` fields, so no install flag avoids that download; under the smaller `2g` profile they still run out of space.

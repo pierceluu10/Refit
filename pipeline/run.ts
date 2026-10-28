@@ -103,6 +103,12 @@ async function runOpenApiPipeline(options: {
   keepApiVersion?: boolean;
   // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
   keepListedPaymentMethods?: boolean;
+  // Validation only: the networked lockfile resolver a types-only peer bump uses
+  // (lockfile-resolution.ts), with the repository's commit date as its cutoff.
+  lockfileResolution?: { image: string; before: string };
+  // Validation only: of several committed lockfiles, the one preparation installs; the stripe-node
+  // upgrade edits that one alone (dependency-inputs.ts chosenLockfile).
+  lockfile?: string;
   // Shopify only: propose the SDK major upgrade a target version needs (docs/SHOPIFY-SDK-UPGRADE.md).
   shopifySdkUpgrade?: boolean;
   // Validation only: subscription-period reads its patched type check rejected (analyzer.ts).
@@ -303,7 +309,12 @@ async function runOpenApiPipeline(options: {
     bumpsVersion &&
     (upgradeRequired || preview) &&
     typeof targetVersion === 'string'
-      ? await stripePackageUpgrade(repository.root, targetVersion)
+      ? await stripePackageUpgrade(
+          repository.root,
+          targetVersion,
+          options.lockfileResolution,
+          options.lockfile,
+        )
       : undefined;
   const upgraded = Boolean(cardUpgrade && 'upgrade' in cardUpgrade);
   // Every client that may send the renamed field must reach the target version: a dynamic or
@@ -604,7 +615,13 @@ async function runOpenApiPipeline(options: {
     bumpedVersion &&
     (upgradeRequired || ruleEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE)) &&
     typeof targetVersion === 'string'
-      ? (cardUpgrade ?? (await stripePackageUpgrade(repository.root, targetVersion)))
+      ? (cardUpgrade ??
+        (await stripePackageUpgrade(
+          repository.root,
+          targetVersion,
+          options.lockfileResolution,
+          options.lockfile,
+        )))
       : undefined;
   const upgradedPatch =
     upgrade && 'diff' in patch
