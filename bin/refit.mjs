@@ -35,6 +35,7 @@ const commands = new Map([
   ['api-hosts', 'api-hosts-cli.ts'],
   ['classify-release', 'release-classification-cli.ts'],
   ['rules', 'rules-cli.ts'],
+  ['learn', 'learning-cli.ts'],
 ]);
 const usage = `Refit: reviewable API migrations
 
@@ -77,6 +78,7 @@ Usage: refit <command> [options]
   api-hosts        List the external HTTP API hosts a repository calls (review only)
   classify-release Classify a Stripe release's breaking changes with AI and score the catalog
   rules            Check (and generate) the vendor rule tables in data/rules
+  learn            Record failure signatures, learn, promote and demote rules (data/learning)
 
 Use refit <command> --help for command options.
 Use --env <path> to load credentials explicitly. Existing environment values take precedence.

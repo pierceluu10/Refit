@@ -320,6 +320,8 @@ export function proposePatch(
               : `Replace ${listedWarnings.length || movedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types and update the pinned Stripe API version.`,
       status: 'proposed' as const,
       edits: edits.length,
+      // Which rules edited, so an outcome can be attributed to a learned rule (learning.ts).
+      rules: [...new Set(fieldMoves.map((edit) => edit.rule!))].sort(),
       unresolvedFindings,
       diff: renderPatch(repository, edits),
       validation: 'not-run',

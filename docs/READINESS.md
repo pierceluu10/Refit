@@ -1,5 +1,16 @@
 # Refit implementation checkpoints
 
+## October 28 checkpoint: the autonomous loop's learning steps (unreleased, after 0.39.0)
+
+Founder decision (Otabek, 2026-10-28; `docs/AUTONOMOUS-LOOP.md`). `refit learn` (`pipeline/learning.ts`) adds four steps: spot, learn, promote and roll back.
+
+- **Spot:** each failed row gets a stable signature, counted new against seen in `data/learning/signatures.json`. The Stripe benchmark summary lists the new ones.
+- **Learn:** proven AI fixes (grade A or B, or merged without edits) become candidate request renames and enum-value replacements.
+- **Promote:** a candidate proven on 3 or more distinct repositories, with no contrary evidence, that passes the `rules:check` verification is written to its own learned pack, `data/learning/rules/stripe/`.
+- **Roll back:** one revert, closed PR, CI failure or later check failure demotes the rule to `review-only` and lists its PRs to flag.
+
+Blind lists are refused. The offline replay of three saved runs found 54 signatures and no candidates, because no AI fix there was proven at A or B. A synthetic candidate grounded against the real contracts rebuilt the shipped dahlia `ui_mode` rule. Not built: feeding hosted PR outcomes to `demote` automatically, and commenting on flagged PRs. Tests: `pipeline/learning.test.ts`. See [Learning loop](LEARNING-LOOP.md).
+
 ## October 28 checkpoint: Stripe calls traced by the client's type (unreleased, after 0.39.0)
 
 Founder decision (2026-10-28): a type-checker result naming a Stripe type counts as evidence of Stripe usage. `pipeline/type-clients.ts` traces a call `x.<resource>.<method>(…)` where TypeScript's checker types `x` as stripe-node's client from the stripe package's own declarations; casts, `any`, destructuring and unannotated parameters along the client's path keep it untraced, and JavaScript factories that return `new Stripe(…)` are traced as `js-return` and stay for review. Every traced call records `traceSource`; the Stripe benchmark records `tracedCallsBySource`. Refit now ships `stripe@23.0.0` as a devDependency, read offline when the repository has none installed. A local scan of the Oct 16 active-teams list at bf81624d (64 repositories; one exceeds the scan limits): 1,836 likely calls, 1,499 traced before, 130 more traced (118 type, 12 js-return) in 9 repositories, untraced 337 → 207. A hand-check of 32 traced calls (30 type, 2 js-return, 8 repositories) found no false trace. The GitHub Actions before/after runs (40771922684, 40771932616) were cancelled six minutes in, so validated outcomes are not measured yet. Tests: `pipeline/type-clients.test.ts`. See [Client tracing](CLIENT-TRACING.md).
