@@ -575,7 +575,8 @@ export function responsePropertyOwner(
       node = resolve(members[Number(subschema[1]) - 1]);
       continue;
     }
-    // `items` is an array's members, or a property of that name (Subscription.items).
+    // oasdiff writes an array's items as `items`, which is also a property name (a subscription's
+    // `items` list object).
     if (segment === 'items' && node.type === 'array') {
       node = resolve(node.items);
       continue;

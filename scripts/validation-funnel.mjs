@@ -41,9 +41,12 @@ export const PREPARATION_GROUPS = [
   ['unsupported-pnpm-settings', /^Unsupported pnpm (?:lockfile )?settings/],
   [
     'unsupported-workspace-layout',
-    /^Workspace bins, nested workspace declarations|^npm workspaces require at most \d+ positive relative/,
+    /^Workspace bins, nested workspace declarations|^npm workspaces require at most \d+ (?:positive )?relative/,
   ],
-  ['unsupported-lockfile', /requires a root npm lockfile version 2 or 3/],
+  [
+    'unsupported-lockfile',
+    /requires a root npm lockfile version 2 or 3|^Automatic preparation reads pnpm-lock\.yaml lockfile versions/,
+  ],
   ['peer-dependency-conflict', /\bERESOLVE\b/],
   ['install-timeout', /^Dependency preparation exceeded \d+ seconds/],
 ];

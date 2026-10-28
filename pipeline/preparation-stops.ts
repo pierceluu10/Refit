@@ -32,7 +32,7 @@ export const PREPARATION_STOPS = [
   {
     reason: 'unsupported-lockfile',
     pattern:
-      /^Automatic preparation requires a root npm lockfile version 2 or 3|^npm preparation inputs exceed|^Automatic preparation reads dependencies only from the repository root|^Automatic preparation reads a bun\.lock only|^Automatic preparation does not read bunfig\.toml/,
+      /^Automatic preparation requires a root npm lockfile version 2 or 3|^npm preparation inputs exceed|^Automatic preparation reads dependencies only from the repository root|^Automatic preparation reads a bun\.lock only|^Automatic preparation does not read bunfig\.toml|^Automatic preparation reads pnpm-lock\.yaml lockfile versions/,
     summary: 'the lockfile is too old, too large or not at the repository root',
     action: REFIT_BUILD,
   },

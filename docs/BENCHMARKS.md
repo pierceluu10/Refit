@@ -492,6 +492,21 @@ Owner decision D4: a schema change that leaves the structure the same is not bre
 - **What still stops.** 86 l2-push-249 rows keep a contract-change stop, most beside another blocker (removed request parameters, kept or untraced API versions, webhook versions). Addisu87/digital-marketplace failed dependency preparation on a registry 502 in the after run (`needs-review` before and after).
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## Response reads through copies, helpers and nested owners (October 27)
+
+`feat/response-read-tracing` traces a response object through `at()`, `find()` and copies made with `filter()` or `slice()`, through a private helper's return value and through the parameters every call of it passes the same object, and reads a Subscription's `items` list as subscription items, so a change nested under them (`items/data/items/price/product`) has a named owner. A write to an untraced object and a value of a free-form map such as `metadata` no longer count as reads. Reads through a helper keep review confidence, except through a parameter whose declared type already names the Stripe object.
+
+| Set (no AI, default flags)        | Before: main `6c6ff6a9` | After: `d5b75c9f` |
+| --------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated |                      84 |                86 |
+| heldout-30: production validated  |                      10 |                10 |
+
+- **Runs.** Before, main at `6c6ff6a9` (after the spec-noise and API-version merges): l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `d5b75c9f`: l2-push-249 [40619980162](https://github.com/refit-dev/refit-bench/actions/runs/40619980162), heldout-30 [40619983267](https://github.com/refit-dev/refit-bench/actions/runs/40619983267). `d5b75c9f` branches from `d9217cac`, before the API-version merge, so the rows whose only difference is an `api-version-untraced` or `webhook-api-version` stop (compasstio-ai, build-it, branded, mern-vsms, RealEstateBrokerageMarket) come from that merge, not this branch. heldout-30 matches main on 30 of 30 rows.
+- **Two regressions found and fixed.** The first heldout-30 run at `78e0c291` ([40554003990](https://github.com/refit-dev/refit-bench/actions/runs/40554003990)) moved VishalRaut2106/HackMate_AI's two `invoice.subscription` reads from confirmed to review: the helper parameter rule also covered `invoice: Stripe.Invoice`. `17e30256` keeps a declared Stripe type on its declared-type trace. The local suite then showed reads through a transparent wrapper and a helper with a declared Stripe return type downgraded to review (`nested-sdk.test.ts`, `stripe-types.test.ts`); `d5b75c9f` keeps those confirmed. Each has a test.
+- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on 14 removals of Product `features` nested under subscription items in customer responses, which the code never reads. Each `migration.patch` was applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json). Their results at `d5b75c9f` match `17e30256` in every compared field, diff included.
+- **What still stops.** Chivo1530/CHIVITO-AI-DEV loses its contract-change stop and gr8monk3ys/link-flame its source-evidence stop, but both keep a dependency-preparation stop. aresjinwoo94-cpu/EliteVault gains 2 confirmed period reads in `scripts/sync-stripe-plan.mjs`, on a client already pinned at basil, so the patch correctly leaves them; its draft stays `[Needs review]`. kondax-com/Bocker's baseline tests failed in this run (and in the preparation run) and passed on main with the same dependency archive: a flaky test in the repository, `[Needs review]` either way.
+- **Not measured:** AI patches, publication and the hosted worker.
+
 ## API versions untraced only where the client escapes (October 27)
 
 An `apiVersion` pin was `api-version-untraced` whenever its client could escape anywhere Refit cannot see. `feat/api-version-tracing` narrows that doubt to clients that really reach unseen code: a client passed to an opaque helper, an unsafe class binding, a webhook event Refit cannot trace, or an alias in a file whose resolution is ambiguous. A client handed to an exported local helper whose parameter Refit reads (`listCharges(client: Stripe)`) keeps its pin traced; a rest parameter or `eval` still makes it unknown.
@@ -604,6 +619,19 @@ A census of every blocker on every row of main `89f1c0ed`, and the committed-sou
 - **`2g`: 8 rows pass the source check.** Before, 8 of the 16 rows over 50 MiB were refused with the 50 MiB message; after, none. Shefaul-22/AgriFlow validates (C). mouhamedanflosse/digitalHome and shivamm-55/HippoSphere (C) and CRONANANI/EzanaFinance3 (D) pass their checks and stay `[Needs review]`. Traviseric/arxmint and Eziox-Development/eziox-web stop at lockfile integrity and lockfile drift, RaulRicco/CashBack's preparation fails, and SimplerDevelopment/SimplerDevelopment writes no manifest, as at `4g`. The four passing patches were read in full: AgriFlow, digitalHome and HippoSphere `correct`, EzanaFinance3 `unsure` (untraced reads in files the patch does not touch), in `benchmarks/fix-reviews.json`.
 - **Not repeated:** the AI runs after the change. The limit is checked before any patch is validated and stops nothing at `4g`, so the AI budget was kept.
 - **Not measured:** host memory while buffering a source tree near 512 MiB on the Fly worker, publication and the night set.
+## Preparation inputs npm and pnpm accept (October 28)
+
+`feat/preparation-failures` accepts what npm and pnpm themselves accept in four lockfile and workspace shapes from the l2-push-249 triage ([preparation failures](PREPARATION-FAILURES.md#preparation-coverage-triage-2026-10-27)): an integrity that lists `sha1` beside a stronger hash, a lockfile record outside every `node_modules` directory, workspace negations after every positive pattern, and a pnpm workspace `bin` no importer links to.
+
+| Set (no AI, default flags)                          | Before: main `6c6ff6a9` | After: `b884fe3e` |
+| --------------------------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated                   |                      84 |                84 |
+| l2-push-249: rows stopped on dependency preparation |                      53 |                51 |
+| heldout-30: production validated                    |                      10 |                10 |
+
+- **Runs.** Before, main at `6c6ff6a9`: l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `b884fe3e` (this branch with `6c6ff6a9` merged): l2-push-249 [40621391261](https://github.com/refit-dev/refit-bench/actions/runs/40621391261), heldout-30 [40621394549](https://github.com/refit-dev/refit-bench/actions/runs/40621394549).
+- **2 rows now prepare, none validates.** Shobhnik13/SynthAI passes both checks and keeps other stops; tomsoderlund/login-as-a-service's baseline fails. Small-Web-Co/tinypivot and inventashif/hackerai pass the fixed checks and stop on real lockfile drift and a Node 24 engine requirement. No patch newly validates.
+- **Not measured:** AI patches, publication and the hosted worker.
 
 ## Before and after the overnight merges (October 22)
 

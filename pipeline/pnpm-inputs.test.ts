@@ -7,6 +7,7 @@ import {
 } from './pnpm-inputs.ts';
 import { parsePnpmLock } from './pnpm-lock.ts';
 import { resolveLockedDependency } from './lockfiles.ts';
+import { preparationStop } from './preparation-stops.ts';
 
 const INTEGRITY = `sha512-${Buffer.alloc(64).toString('base64')}`;
 type ObjectData = Record<string, any>;
@@ -88,6 +89,18 @@ it('validates explicit workspace links and default/named catalog constraints', (
     workspaceLinks: { 'packages/billing/node_modules/ids': 'packages/ids' },
     workspaceOptionalLinks: { 'node_modules/.pnpm/node_modules/ids': 'packages/ids' },
   });
+  // A bin is linked only into its dependents' node_modules/.bin: one no importer links to is fine.
+  sample.workspaces.set('packages/cli', JSON.stringify({ name: 'cli', bin: 'dist/index.js' }));
+  sample.lock.importers['packages/cli'] = {};
+  expect(validate(sample)).toMatchObject({
+    workspaceHashes: { 'packages/cli': expect.any(String) },
+  });
+  sample.workspaces.set(
+    'packages/ids',
+    JSON.stringify({ name: 'ids', version: '1.0.0', bin: 'x.js' }),
+  );
+  expect(() => validate(sample)).toThrow('Workspace bins');
+  sample.workspaces.set('packages/ids', JSON.stringify({ name: 'ids', version: '1.0.0' }));
   sample.workspace.catalogs.stable.stripe = '11.0.0';
   expect(() => validate(sample)).toThrow('catalog requirements differ');
   sample.workspace.catalogs.stable.stripe = '10.17.0';
@@ -256,6 +269,10 @@ it.each([
     'workspace binary',
     (s: ReturnType<typeof scenario>) => {
       s.workspaces.set('packages/cli', JSON.stringify({ name: 'cli', bin: 'index.js' }));
+      s.manifest.devDependencies = { cli: 'workspace:*' };
+      s.lock.importers['.'].devDependencies = {
+        cli: { specifier: 'workspace:*', version: 'link:packages/cli' },
+      };
       s.lock.importers['packages/cli'] = {};
     },
   ],
@@ -460,4 +477,18 @@ it('accepts committed patches and overrides only as pnpm-lock.yaml records them'
     mutate(sample);
     expect(() => validate(sample), message).toThrow(message);
   }
+});
+it('names a pnpm 7 lockfile version instead of calling it an unsupported setting', () => {
+  const sample = scenario();
+  sample.lock = { lockfileVersion: 5.4, specifiers: {}, dependencies: {}, packages: {} };
+  let message = '';
+  try {
+    validate(sample);
+  } catch (error) {
+    message = (error as Error).message;
+  }
+  expect(message).toMatch(
+    /lockfile versions 6 and 9 \(pnpm 8 or later\); this one is version 5\.4/,
+  );
+  expect(preparationStop(message)?.reason).toBe('unsupported-lockfile');
 });
