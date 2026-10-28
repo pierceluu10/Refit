@@ -918,9 +918,22 @@ it.skipIf(
       apiVersionPolicy: 'source-verified',
       image: process.env.REFIT_DOCKER_IMAGE!,
       prepareDependencies: true,
-      command: ['npx', '--no-install', 'tsc', '--noEmit'],
+      compareTypeErrors: true,
+      command: ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false'],
     });
     expect(report.patch).toMatchObject({ sdkUpgrade: { from: '16.12.0', to: TARGET } });
+    // The type oracle: the original code fails the target SDK's types where it reads the removed
+    // field, and the patched code adds no type error.
+    expect(report.validation.typeOracle).toMatchObject({
+      sdk: { from: '16.12.0', to: TARGET },
+      unpatched: {
+        status: 'compared',
+        introduced: expect.arrayContaining([
+          expect.objectContaining({ file: 'src/billing.ts', line: 5, code: 'TS2339' }),
+        ]),
+      },
+      patched: { status: 'compared', introduced: [] },
+    });
     // Under stripe 16 types both the new apiVersion literal and item periods fail to typecheck.
     expect(report.validation).toMatchObject({
       status: 'passed',

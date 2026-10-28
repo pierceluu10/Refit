@@ -234,6 +234,49 @@ it('includes imported context but prevents a model from editing read-only module
   );
 });
 
+it('keeps the nearest imported modules that fit a coverage request and says the context is partial', async () => {
+  const { repository, report } = await fixture();
+  const CHAIN = 14;
+  // Large enough that the whole chain is over the 64 KiB input limit.
+  const filler = `// ${'x'.repeat(8 * 1024)}\n`;
+  repository.files[0].content = "import './0.ts';\n" + repository.files[0].content;
+  for (let index = 0; index < CHAIN; index++)
+    repository.files.push({
+      path: `${index}.ts`,
+      content: `${index + 1 < CHAIN ? `import './${index + 1}.ts';\n` : ''}${filler}`,
+    });
+  const findings = report.findings.map((finding) => ({ ...finding, line: finding.line + 1 }));
+  const coverage = (targets: typeof findings) =>
+    proposeAiPatch(
+      repository,
+      report.changes,
+      findings,
+      OPTIONS,
+      undefined,
+      {},
+      undefined,
+      undefined,
+      {},
+      [],
+      { files: repository.files, rules: repository.files, targets },
+    );
+  respond([]);
+  const proposal = await coverage(findings);
+  const context = (proposal.evidence as { contextFiles: { path: string }[] }).contextFiles;
+  console.log(context.map((file) => file.path));
+  expect(context.length).toBeGreaterThan(0);
+  expect(context.length).toBeLessThan(12);
+  expect(context.map((file) => file.path)).toEqual(
+    Array.from({ length: context.length }, (_, index) => `${index}.ts`),
+  );
+  expect(proposal.evidence).toMatchObject({ contextPartial: true });
+  expect(modelEvidence().body.instructions).toContain('evidence.contextPartial');
+  // The first patch keeps refusing.
+  await expect(proposeAiPatch(repository, report.changes, findings, OPTIONS)).rejects.toThrow(
+    /context exceeds 12/,
+  );
+});
+
 it('attaches one saved vendor page to the model request', async () => {
   const { repository, report } = await fixture();
   const page = await writeSnapshot('Use the Charges list filtered by payment_intent.');

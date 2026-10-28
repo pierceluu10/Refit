@@ -597,6 +597,28 @@ async function benchmark(entry: Selected, index: number) {
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
+      ...(report.validation?.typeOracle
+        ? {
+            typeOracle: {
+              ...report.validation.typeOracle,
+              ...Object.fromEntries(
+                (['unpatched', 'patched'] as const).map((side) => {
+                  const comparison = report.validation!.typeOracle![side];
+                  return [
+                    side,
+                    comparison.status === 'compared'
+                      ? {
+                          status: comparison.status,
+                          count: comparison.introduced.length,
+                          introduced: comparison.introduced.slice(0, MAX_RECORDED_CHANGES),
+                        }
+                      : comparison,
+                  ];
+                }),
+              ),
+            },
+          }
+        : {}),
       ...(report.validation?.dependencyFailure
         ? {
             dependencyFailure: {
@@ -666,6 +688,9 @@ async function benchmark(entry: Selected, index: number) {
               error: report.validation.coverageAi.error,
               response: report.validation.coverageAi.response,
               repair: report.validation.coverageAi.repair?.stopReason,
+              // Owner decision D2: whether the kept proposal publishes validated, and why not.
+              gate: report.validation.coverageAi.gate,
+              localReads: report.validation.coverageAi.localReads,
               // The proposal its checks refused, which the result leaves out.
               diff: report.validation.coverageAi.attempts?.at(-1)?.diff?.slice(0, 8000),
               check: report.validation.coverageAi.attempts?.at(-1)?.check?.status,
