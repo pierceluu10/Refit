@@ -4,9 +4,11 @@ import { createSourceImportResolver } from './source-imports.ts';
 import { sourceModuleReferences } from './source-modules.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 
-const MAX_CONTEXT_FILES = 12;
+export const MAX_CONTEXT_FILES = 12;
 
-export function buildPatchContext(repository: Repository, editable: Set<string>) {
+// Imported modules the editable files reach, nearest first. Past MAX_CONTEXT_FILES it refuses,
+// unless `nearest`, which keeps the nearest ones and leaves the rest out.
+export function buildPatchContext(repository: Repository, editable: Set<string>, nearest = false) {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file]),
   );
@@ -14,7 +16,7 @@ export function buildPatchContext(repository: Repository, editable: Set<string>)
   const pending = repository.files.filter((file) => editable.has(file.path));
   const visited = new Set(pending.map((file) => file.path));
   const context: Repository['files'] = [];
-  for (let index = 0; index < pending.length; index++) {
+  files: for (let index = 0; index < pending.length; index++) {
     const file = pending[index];
     const path = resolve(repository.root, file.path);
     const source = ts.createSourceFile(path, file.content, ts.ScriptTarget.Latest, true);
@@ -22,10 +24,12 @@ export function buildPatchContext(repository: Repository, editable: Set<string>)
       const imported = resolution.resolve(name, path);
       const target = imported && sources.get(imported);
       if (!target || visited.has(target.path)) continue;
-      if (context.length >= MAX_CONTEXT_FILES)
+      if (context.length >= MAX_CONTEXT_FILES) {
+        if (nearest) break files;
         throw new PipelineInputError(
           'AI patch context exceeds 12 imported source files; narrow the repository scope.',
         );
+      }
       visited.add(target.path);
       pending.push(target);
       context.push(target);

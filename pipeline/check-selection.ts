@@ -475,6 +475,16 @@ export function checkKinds(command: readonly string[], scripts: Record<string, u
   return kinds;
 }
 
+// Whether a check command runs the repository's own tests, read from the package it runs in.
+export async function runsTests(
+  repository: Repository,
+  command: readonly string[],
+  packageDirectory?: string,
+) {
+  const { scripts } = await manifestScripts(checkDirectory(repository, packageDirectory).root);
+  return checkKinds(command, scripts).has('tests');
+}
+
 // The test files a check command names, when it runs only some.
 function listedTests(command: readonly string[]) {
   return command
@@ -592,6 +602,16 @@ function checkedProgram(
       : readConfiguration(join(checkRoot, TSCONFIG)),
     graph,
   );
+}
+
+// The repository paths a check's type check covers, for owner decision D2a.
+export function typeCheckCoverage(
+  repository: Repository,
+  command: readonly string[],
+  packageDirectory?: string,
+) {
+  const check = checkDirectory(repository, packageDirectory);
+  return checkedProgram(repository.root, check.root, command, importGraph(repository));
 }
 
 // A validation whose checks did not pass proves nothing about the patch.

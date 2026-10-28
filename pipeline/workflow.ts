@@ -21,6 +21,7 @@ import {
   publishDraft,
   type publicationConfiguration,
   publicationWaiver,
+  aiPatchValidated,
 } from './publication.ts';
 import { createReviewArtifacts, NEEDS_REVIEW_PREFIX } from './review.ts';
 import { runPipeline } from './run.ts';
@@ -444,7 +445,7 @@ export async function runWorkflow(options: {
         `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}${checkFailureText(report.validation)}`,
         runId,
       );
-    if (!reviews && report.patch.generator === 'openai')
+    if (!reviews && report.patch.generator === 'openai' && !aiPatchValidated(report))
       return await finish('needs-review', AI_PATCH_STOP, runId);
     if (reviews && !report.publicationFiles.length)
       return await finish(

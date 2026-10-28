@@ -437,6 +437,124 @@ export function droppedRequestPaths(
   );
 }
 
+// Owner decision D2 (2026-10-27): an AI patch publishes validated only if it edits nothing but the
+// Stripe sites Refit traced. Each line of `before` (the rules' code) the AI's code changes or
+// deletes must lie on a traced site: a traced SDK call, from its first line to its last, or the
+// line of a traced read in `reads`. A line the AI inserts must sit inside one call's lines. A test
+// file, a new file and a deleted file are never traced sites. Returns the 1-based lines of `before`
+// that break this (line 0 for a whole file). The rules' own edits are already in `before`, so the
+// package, lockfile and API-version edits they make are never charged to the AI.
+export function untracedEdits(
+  before: Repository,
+  after: Repository,
+  files: Set<string>,
+  provider: ProviderAdapter,
+  reads: readonly Pick<Finding, 'file' | 'line' | 'confidence' | 'untraced'>[],
+) {
+  const sdkCalls = analyzeRepository(before, [], provider).sdkCalls;
+  return [...files].flatMap((path) => {
+    const from = contentOf(before, path);
+    const to = contentOf(after, path);
+    if (from === to) return [];
+    if (TEST_PATH.test(path) || from === undefined || to === undefined)
+      return [{ file: path, line: 0 }];
+    const calls = callLines(from, path, sdkCalls);
+    const sites = [
+      ...calls,
+      ...reads
+        .filter((read) => read.file === path && read.confidence === 'confirmed' && !read.untraced)
+        .map((read) => [read.line, read.line] as const),
+    ];
+    const edited = editedLines(from, to);
+    return [
+      ...[...edited.changed].filter(
+        (line) => !sites.some(([start, end]) => line >= start && line <= end),
+      ),
+      // An insertion that replaces nothing goes between lines `line - 1` and `line`.
+      ...[...edited.inserted].filter(
+        (line) => !calls.some(([start, end]) => line - 1 >= start && line <= end),
+      ),
+    ]
+      .sort((first, second) => first - second)
+      .map((line) => ({ file: path, line }));
+  });
+}
+
+// 1-based lines of `from` that a diff to `to` changes or deletes, and the lines before which it
+// inserts lines that replace nothing.
+function editedLines(from: string, to: string) {
+  const changed = new Set<number>();
+  const inserted = new Set<number>();
+  let line = 1;
+  let replacing = false;
+  for (const part of diffLines(from, to)) {
+    if (part.removed) {
+      for (let index = 0; index < part.count; index++) changed.add(line + index);
+      line += part.count;
+    } else if (part.added) {
+      if (!replacing) inserted.add(line);
+    } else line += part.count;
+    replacing = Boolean(part.removed);
+  }
+  return { changed, inserted };
+}
+
+// The sites, at lines of `before`, whose traced SDK call the AI's code leaves exactly as it was:
+// no line from the call's first to its last changes and none is inserted between them. A site on no traced call counts as untouched.
+export function untouchedCalls<Site extends { file: string; line: number }>(
+  before: Repository,
+  after: Repository,
+  provider: ProviderAdapter,
+  sites: readonly Site[],
+) {
+  const sdkCalls = analyzeRepository(before, [], provider).sdkCalls;
+  return sites.filter((site) => {
+    const from = contentOf(before, site.file);
+    const to = contentOf(after, site.file);
+    if (from === undefined || to === undefined) return true;
+    const call = callLines(from, site.file, sdkCalls).find(
+      ([start, end]) => site.line >= start && site.line <= end,
+    );
+    if (!call) return true;
+    const [start, end] = call;
+    const edited = editedLines(from, to);
+    return (
+      ![...edited.changed].some((line) => line >= start && line <= end) &&
+      ![...edited.inserted].some((line) => line - 1 >= start && line <= end)
+    );
+  });
+}
+
+// The first and last 1-based line of each traced SDK call in a file.
+function callLines(
+  content: string,
+  path: string,
+  sdkCalls: ReturnType<typeof analyzeRepository>['sdkCalls'],
+) {
+  const source = parse(path, content);
+  const starts = new Map(
+    sdkCalls
+      .filter((call) => call.file === path)
+      .map((call) => [source.getPositionOfLineAndCharacter(call.line - 1, call.column - 1), call]),
+  );
+  const lines: (readonly [number, number])[] = [];
+  const visit = (node: ts.Node) => {
+    const call = ts.isCallExpression(node) ? starts.get(node.getStart(source)) : undefined;
+    // A chained call such as `.then()` starts at the same position; the method name picks the
+    // traced one.
+    if (
+      call &&
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === call.method
+    )
+      lines.push([lineOf(source, node), source.getLineAndCharacterOfPosition(node.end).line + 1]);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return lines;
+}
+
 // Files the AI changed on the repository's test paths (source-paths.ts): the checks that judge a
 // migration stay as the repository wrote them.
 export const editedTestFiles = (files: Set<string>) =>

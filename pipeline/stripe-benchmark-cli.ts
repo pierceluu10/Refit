@@ -688,6 +688,9 @@ async function benchmark(entry: Selected, index: number) {
               error: report.validation.coverageAi.error,
               response: report.validation.coverageAi.response,
               repair: report.validation.coverageAi.repair?.stopReason,
+              // Owner decision D2: whether the kept proposal publishes validated, and why not.
+              gate: report.validation.coverageAi.gate,
+              localReads: report.validation.coverageAi.localReads,
               // The proposal its checks refused, which the result leaves out.
               diff: report.validation.coverageAi.attempts?.at(-1)?.diff?.slice(0, 8000),
               check: report.validation.coverageAi.attempts?.at(-1)?.check?.status,

@@ -253,6 +253,43 @@ it('marks a passing AI patch for review and adds refit doctor findings to its re
   expect(publishDraft).not.toHaveBeenCalled();
 });
 
+it('publishes a kept AI patch that passed the D2 gate as validated, and only that one', async () => {
+  const passing = await untested('passed');
+  delete (passing.validation as { dependencyFailure?: unknown }).dependencyFailure;
+  const ran = { status: 'passed' as const, exitCode: 0, stdout: '', stderr: '' };
+  passing.validation.baseline = ran;
+  passing.validation.patched = ran;
+  passing.patch.generator = 'openai' as typeof passing.patch.generator;
+  const coverage = {
+    outcome: 'kept' as const,
+    costUsd: 0.05,
+    targets: [],
+    gate: { passed: true, failures: [] as string[] },
+  };
+  (passing.validation as { coverageAi?: typeof coverage }).coverageAi = coverage;
+  vi.mocked(validateMigration).mockResolvedValue(passing);
+  vi.mocked(publishDraft).mockClear();
+  const validated = await runWorkflow({
+    ...inputs,
+    output: await output(),
+    publication: { repository: 'o/r', base: 'main', token: 'unused' },
+  });
+  expect(validated.manifest).not.toHaveProperty('waivedGates');
+  expect(validated.manifest.status).toBe('draft-created');
+  expect(publishDraft).toHaveBeenCalledOnce();
+
+  // A failed gate keeps owner decision 8: review only.
+  vi.mocked(publishDraft).mockClear();
+  coverage.gate = { passed: false, failures: ["The repository's own tests did not run."] };
+  const refused = await runWorkflow({
+    ...inputs,
+    output: await output(),
+    publication: { repository: 'o/r', base: 'main', token: 'unused' },
+  });
+  expect(refused.manifest).toMatchObject({ status: 'needs-review', reason: AI_PATCH_STOP });
+  expect(publishDraft).not.toHaveBeenCalled();
+});
+
 it('ends a passing run whose draft is [Needs review] as needs-review, not validated', async () => {
   const passing = await untested('passed');
   delete (passing.validation as { dependencyFailure?: unknown }).dependencyFailure;

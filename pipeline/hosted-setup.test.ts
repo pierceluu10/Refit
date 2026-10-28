@@ -140,7 +140,7 @@ it('states the worker’s real draft and AI settings and links organization sett
   expect(text).toContain('Refit opens a draft pull request for you to review. It never merges.');
   // Under --publish-validated-only an AI patch never opens a draft (owner decision 8).
   expect(text).toContain(
-    'using the operator’s own key and a capped budget, but it never opens a pull request for an AI patch.',
+    'using the operator’s own key and a capped budget, but it opens a pull request for an AI patch only when the AI edited only traced Stripe code and the upgraded types and the repository’s own tests pass.',
   );
   expect(text).toContain('ask the operator of this Refit service');
 });
@@ -150,7 +150,7 @@ it('says which drafts open as [Needs review] when the worker publishes them (own
   const { get } = await serve({ publishDraft: true, publishUnresolved: true, aiPatch: true });
   const { text } = await get(`/github/setup?installation_id=${INSTALLATION}`);
   expect(text).toContain(
-    'using the operator’s own key and a capped budget; that draft is always titled [Needs review].',
+    'using the operator’s own key and a capped budget; that draft is titled [Needs review] unless the AI edited only traced Stripe code and the upgraded types and the repository’s own tests pass.',
   );
   expect(text).toContain(
     'When it could not run the checks on a patch, or a change needs your decision, the draft is titled [Needs review] and lists every reason. It never opens one whose checks ran and failed, and it never merges.',
