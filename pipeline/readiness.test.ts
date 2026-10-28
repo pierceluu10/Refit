@@ -796,3 +796,23 @@ it('checks the preparation inputs of the nested package that holds the SDK code'
       '1 locked package records in app passed preparation input checks. Installation and engine compatibility were not tested.',
   });
 });
+
+it('reports a customer image whose node_modules the checks link, without starting a container', async () => {
+  const sample = await setup();
+  await writeFile(
+    join(sample.repository, '.refit.json'),
+    JSON.stringify({
+      ...sample.configuration,
+      prepareDependencies: undefined,
+      imageNodeModules: '/opt/app/node_modules',
+    }),
+  );
+  await commit(sample.repository);
+  const result = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(result).toMatchObject({ status: 'ready-for-validation', image: imageId });
+  expect(result.checks.find((check) => check.id === 'dependencies')).toMatchObject({
+    status: 'review',
+    detail: expect.stringContaining('link /opt/app/node_modules from the validation image'),
+    action: expect.stringContaining('readable by user 65534'),
+  });
+});

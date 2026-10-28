@@ -171,6 +171,7 @@ export async function runWorkflow(options: {
   baselineCommand?: string[];
   checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
+  imageNodeModules?: string;
   generatedChecks?: GeneratedChecks;
   compareTypeErrors?: boolean;
   keepListedPaymentMethods?: boolean;
@@ -397,6 +398,7 @@ export async function runWorkflow(options: {
         baselineCommand: options.baselineCommand,
         checkTimeoutSeconds: options.checkTimeoutSeconds,
         prepareDependencies: options.prepareDependencies,
+        imageNodeModules: options.imageNodeModules,
         generatedChecks: options.generatedChecks,
         compareTypeErrors: options.compareTypeErrors,
         assessment: options.assessment,

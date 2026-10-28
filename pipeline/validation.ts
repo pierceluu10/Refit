@@ -53,6 +53,7 @@ import {
   type GeneratedChecks,
 } from './generated-checks.ts';
 import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.ts';
+import { IMAGE_PACKAGE_CHANGE, linkImageNodeModules } from './customer-image.ts';
 import {
   type OracleComparison,
   type TypeOracle,
@@ -594,6 +595,8 @@ const typescriptMount = () => [{ source: typescriptDirectory(), target: '/refit/
 interface CheckSandbox {
   timeoutMs: number;
   packageDirectory?: string;
+  // .refit.json imageNodeModules: linked as node_modules where no prepared archive supplies one.
+  imageNodeModules?: string;
 }
 
 async function containerCheck({
@@ -605,6 +608,7 @@ async function containerCheck({
   signal,
   timeoutMs,
   packageDirectory,
+  imageNodeModules,
 }: {
   directory: string;
   image: string;
@@ -622,7 +626,9 @@ async function containerCheck({
         name,
         directory,
         image,
-        command: argumentsList,
+        command: dependencies
+          ? argumentsList
+          : linkImageNodeModules(argumentsList, imageNodeModules),
         network: 'none',
         timeoutMs,
         dependencies,
@@ -1237,6 +1243,7 @@ export async function validateMigration(options: {
   // .refit.json checkTimeoutSeconds: how long each check may run (validation-options.ts).
   checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
+  imageNodeModules?: string;
   compareTypeErrors?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
@@ -1302,7 +1309,11 @@ export async function validateMigration(options: {
   if (reviewReason) throw new PipelineInputError(reviewReason);
   // Stripe code in one nested package with its own lockfile is prepared and checked there.
   const packageDirectory = sdkPackageDirectory(preflight, committedFiles(snapshot.entries));
-  const sandbox: CheckSandbox = { timeoutMs, packageDirectory };
+  const sandbox: CheckSandbox = {
+    timeoutMs,
+    packageDirectory,
+    imageNodeModules: options.imageNodeModules,
+  };
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
@@ -1457,6 +1468,11 @@ export async function validateMigration(options: {
           environment: candidateEnvironment,
           dependencyFailure: candidateFailure,
         } = installed ?? (await preparePatched(patchedDirectory, untested, options.signal)));
+      else if (packageDiff(diff, packageDirectory) && options.imageNodeModules) {
+        if (!untested || !options.recordUntested)
+          throw new PipelineInputError(IMAGE_PACKAGE_CHANGE.message);
+        candidateFailure = IMAGE_PACKAGE_CHANGE;
+      }
       const patchedSources = await readRepository(patchedDirectory, report.adapter.packageName);
       const shopify = report.provider === SHOPIFY.id;
       const declarations = shopify
@@ -2668,6 +2684,7 @@ export async function validateSourcePatch(options: {
   baselineCommand?: string[];
   checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
+  imageNodeModules?: string;
   compareTypeErrors?: boolean;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
@@ -2676,6 +2693,7 @@ export async function validateSourcePatch(options: {
   const baselineCommand = validateCheckCommand(options.baselineCommand ?? options.command);
   const sandbox: CheckSandbox = {
     timeoutMs: validateCheckTimeout(options.checkTimeoutSeconds) * 1000,
+    imageNodeModules: options.imageNodeModules,
   };
   const snapshot = await readCommittedRepository(options.repository);
   const { revision, entries } = snapshot;
@@ -2749,6 +2767,8 @@ export async function validateSourcePatch(options: {
       if (options.prepareDependencies && packageDiff(diff))
         ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
           await prepareCandidateDependencies(candidateDirectory, root, image, options));
+      else if (options.imageNodeModules && packageDiff(diff))
+        throw new PipelineInputError(IMAGE_PACKAGE_CHANGE.message);
       options.onProgress?.('Running patched checks in offline Docker...');
       patched = compared(
         await containerCheck({

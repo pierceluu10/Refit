@@ -774,9 +774,12 @@ export async function inspectRepositoryReadiness(options: {
       id: 'dependencies',
       title: 'Validation dependencies',
       status: 'review',
-      detail: 'A custom validation image must supply the dependencies used by the check commands.',
-      action:
-        'Run baseline validation to verify that the image contains the required runtime and dependencies.',
+      detail: workflow.imageNodeModules
+        ? `The checks link ${workflow.imageNodeModules} from the validation image as node_modules; Refit prepares no dependencies. A patch that changes package files is recorded untested.`
+        : 'A custom validation image must supply the dependencies used by the check commands.',
+      action: workflow.imageNodeModules
+        ? `Run baseline validation to verify that ${workflow.imageNodeModules} exists in the image, is readable by user 65534 and matches the committed lockfile.`
+        : 'Run baseline validation to verify that the image contains the required runtime and dependencies.',
     });
   report.image = image.value ?? null;
   if (image.value)

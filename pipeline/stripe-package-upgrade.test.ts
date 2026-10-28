@@ -6,6 +6,7 @@ import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
 import { DependencyPreparationError, prepareDependencies } from './dependency-preparation.ts';
+import { IMAGE_PACKAGE_CHANGE } from './customer-image.ts';
 import {
   codeDiff,
   packageDiff,
@@ -1016,6 +1017,65 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
       patched: { status: 'not-run' },
       dependencyFailure: { reason: 'dependency-archive-limit' },
     });
+    expect(report.publicationFiles.map((file) => file.path).sort()).toEqual([
+      'billing.ts',
+      'package-lock.json',
+      'package.json',
+    ]);
+  },
+  300_000,
+);
+
+it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
+  'leaves an upgrade untested in a customer image, whose dependencies are the original ones',
+  async () => {
+    registry();
+    const repository = await project();
+    await writeFile(join(repository, 'billing.ts'), SOURCE);
+    const git = (args: string[]) =>
+      execute('git', ['-C', repository, '-c', 'commit.gpgsign=false', ...args]);
+    await git(['init', '-q', '-b', 'main']);
+    await git(['add', '.']);
+    await git([
+      '-c',
+      'user.name=Refit Tests',
+      '-c',
+      'user.email=tests@refit.local',
+      'commit',
+      '-qm',
+      'seed',
+    ]);
+    const root = await mkdtemp(join(tmpdir(), 'refit-sdk-upgrade-image-'));
+    roots.push(root);
+    await writeFile(join(root, 'before.json'), JSON.stringify(SUBSCRIPTION(false)));
+    await writeFile(join(root, 'after.json'), JSON.stringify(SUBSCRIPTION(true)));
+    await writeFile(join(root, 'provider.json'), JSON.stringify(PROVIDER));
+    const { validateMigration } = await import('./validation.ts');
+    const input = {
+      repository,
+      before: join(root, 'before.json'),
+      after: join(root, 'after.json'),
+      providerConfig: join(root, 'provider.json'),
+      apiVersion: '2024-06-20',
+      image: process.env.REFIT_DOCKER_IMAGE!,
+      imageNodeModules: '/opt/app/node_modules',
+      // The baseline runs with node_modules linked into the copy.
+      command: [
+        'node',
+        '-e',
+        'process.exit(require("fs").lstatSync("node_modules").isSymbolicLink() ? 0 : 1)',
+      ],
+    };
+    await expect(validateMigration(input)).rejects.toThrow(IMAGE_PACKAGE_CHANGE.message);
+    const report = await validateMigration({ ...input, recordUntested: true });
+    expect(report.patch).toMatchObject({ sdkUpgrade: { from: '12.18.0', to: TARGET } });
+    expect(report.validation).toMatchObject({
+      status: 'untested',
+      baseline: { status: 'passed' },
+      patched: { status: 'not-run' },
+      dependencyFailure: { reason: 'customer-image-package-change' },
+    });
+    expect(vi.mocked(prepareDependencies)).not.toHaveBeenCalled();
     expect(report.publicationFiles.map((file) => file.path).sort()).toEqual([
       'billing.ts',
       'package-lock.json',
