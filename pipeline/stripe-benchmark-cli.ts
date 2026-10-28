@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { signedEventSummary } from './signed-events.ts';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -90,6 +91,9 @@ const { values } = parseArgs({
     'no-behaviour-tests': { type: 'boolean' },
     // OPENAI_REASONING_EFFORT for every AI request (low, medium, high, xhigh or max).
     'ai-effort': { type: 'string' },
+    // Sends signed webhook events of both API versions to the handlers a patch can affect
+    // (signed-events.ts), offline; no key needed.
+    'webhook-checks': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -565,6 +569,7 @@ async function benchmark(entry: Selected, index: number) {
                 : values['no-behaviour-tests']
                   ? ['--no-behaviour-tests']
                   : []),
+            ...(values['webhook-checks'] ? ['--webhook-checks'] : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
@@ -621,6 +626,9 @@ async function benchmark(entry: Selected, index: number) {
       behaviourTestWriter: report.validation?.behaviourTestWriter,
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
+      ...(report.validation?.signedEvents
+        ? { signedEvents: signedEventSummary(report.validation.signedEvents) }
+        : {}),
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
       ...(report.validation?.typeOracle
         ? {

@@ -86,6 +86,8 @@ import {
   writeBehaviourHarness,
   type BehaviourTest,
 } from './behaviour-tests.ts';
+import { compareSignedEvents, prepareSignedEvents } from './signed-events.ts';
+import { stripeSignedEventAdapter } from './stripe-signed-events.ts';
 import { compactPatch, renderPatch } from './patches.ts';
 import {
   crossesOpenEnums,
@@ -1229,6 +1231,88 @@ export async function runBehaviourTests(options: {
   };
 }
 
+// Signed webhook checks (signed-events.ts) with Stripe's adapter: the handlers the patch can affect
+// get signed events of both API versions, built from each version's fixtures, on the original and
+// the patched code, in the behaviour-test sandbox. Setup problems are unavailable, never a failure.
+async function signedEventEvidence(
+  options: Omit<Parameters<typeof runBehaviourTests>[0], 'settings' | 'tests'> & {
+    settings?: GeneratedChecks;
+    versions: [string, string];
+    specification: unknown;
+  },
+) {
+  try {
+    if (!options.settings)
+      throw new PipelineInputError(
+        "Signed webhook checks need generatedChecks settings: a local stripe-mock image and both versions' fixtures.",
+      );
+    const [beforeFixtures, afterFixtures] = await Promise.all(
+      [options.settings.beforeFixtures, options.settings.afterFixtures].map(async (path) =>
+        JSON.parse(await readFile(path, 'utf8')),
+      ),
+    );
+    const adapter = stripeSignedEventAdapter({
+      beforeFixtures,
+      afterFixtures,
+      beforeVersion: options.versions[0],
+      afterVersion: options.versions[1],
+      beforeSpecification: options.specification,
+    });
+    const changed = changedStripeLines(
+      options.original.repository,
+      options.patched.repository,
+      options.findings,
+    );
+    const changedFiles = [
+      ...new Set([...Object.keys(changed.original), ...Object.keys(changed.patched)]),
+    ];
+    const prepared = prepareSignedEvents({
+      adapter,
+      original: options.original.repository,
+      patched: options.patched.repository,
+      findings: (options.findings ?? []) as Finding[],
+      changedFiles,
+    });
+    if (!prepared.test)
+      return {
+        status: 'not-runnable' as const,
+        reason: 'No webhook handler the patch can affect could be called.',
+        skipped: prepared.skipped,
+        regressions: [],
+      };
+    const run = await runBehaviourTests({
+      ...options,
+      settings: options.settings,
+      tests: [prepared.test],
+    });
+    if (run.status === 'unavailable')
+      return {
+        status: 'unavailable' as const,
+        reason: run.reason ?? 'The sandbox did not finish.',
+        skipped: prepared.skipped,
+        regressions: [],
+      };
+    return {
+      ...compareSignedEvents({
+        sites: prepared.sites,
+        original: run.sides.original.records ?? [],
+        patched: run.sides.patched.records ?? [],
+        missing: run.coverage.missing,
+        changedFiles,
+      }),
+      ...(prepared.skipped.length ? { skipped: prepared.skipped } : {}),
+      test: { path: prepared.test.path, sha256: digest(prepared.test.content) },
+    };
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    return {
+      status: 'unavailable' as const,
+      reason: `Signed webhook checks could not run: ${setupError(error)}`,
+      regressions: [],
+    };
+  }
+}
+
 // Behaviour tests that cannot be set up or run are reported as unavailable, never as a failure.
 async function behaviourEvidence(
   options: Omit<Parameters<typeof runBehaviourTests>[0], 'settings'> & {
@@ -1307,6 +1391,9 @@ export async function validateMigration(options: {
   // --write-behaviour-tests: without behaviourTests, one model request writes them from the
   // original code (behaviour-test-writer.ts); --write-behaviour-tests-dry-run only builds it.
   behaviourTestWriter?: BehaviourTestWriter;
+  // --webhook-checks: signed events of both API versions sent to the webhook handlers the patch can
+  // affect (signed-events.ts); they need generatedChecks' stripe-mock image and fixtures.
+  signedEventChecks?: boolean;
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
   keepApiVersion?: boolean;
@@ -2668,16 +2755,51 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
+    const signedEvents =
+      options.signedEventChecks && !behaviourBlocked
+        ? await timed('signedEvents', () =>
+            signedEventEvidence({
+              settings: options.generatedChecks,
+              versions: [beforeSpecification, afterSpecification].map((specification) =>
+                String(
+                  (specification.document as { info?: { version?: unknown } }).info?.version ?? '',
+                ),
+              ) as [string, string],
+              specification: beforeSpecification.document,
+              image,
+              root,
+              original: {
+                directory: baselineDirectory,
+                contract: options.before,
+                repository: originalSources,
+                dependencies: stripeOnly?.dependencies?.original ?? dependencies,
+              },
+              patched: {
+                directory: candidateDirectory!,
+                contract: options.after,
+                repository: candidateSources!,
+                dependencies:
+                  stripeOnly?.dependencies?.patched ?? candidateDependencies ?? dependencies,
+              },
+              findings: report.findings,
+              sandbox,
+              onProgress: options.onProgress,
+              signal: options.signal,
+            }),
+          )
+        : options.signedEventChecks
+          ? { status: 'not-run' as const, reason: behaviourBlocked!, regressions: [] }
+          : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
     const validationStatus =
       currentRevision !== revision || currentStatus
         ? 'stale'
         : dependencyFailure || noCheck
-          ? behaviour?.regressions.length
+          ? behaviour?.regressions.length || signedEvents?.regressions.length
             ? 'regression'
             : 'untested'
-          : checkStatus(baseline, patched, generated, behaviour);
+          : checkStatus(baseline, patched, generated, behaviour, signedEvents);
     const failures = checkFailures(
       baselineCommand,
       options.command,
@@ -2685,6 +2807,7 @@ export async function validateMigration(options: {
       patched,
       generated,
       behaviour,
+      signedEvents,
     );
     const introducedByPatch = brokenTestsTypeCheck
       ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck).filter(
@@ -2724,6 +2847,9 @@ export async function validateMigration(options: {
             typeCheckUnavailable,
             packageDirectory,
             testsFoundNone: noTests,
+            ...(signedEvents && 'covered' in signedEvents && signedEvents.covered.length
+              ? { signedEvents: signedEvents.covered }
+              : {}),
           })
         : undefined;
     const grade = ownGrade
@@ -2910,6 +3036,7 @@ export async function validateMigration(options: {
       ...(stripeOnly ? { stripeOnly: stripeOnly.record } : {}),
       ...(written ? { behaviourTestWriter: written.record } : {}),
       ...(behaviour ? { behaviour } : {}),
+      ...(signedEvents ? { signedEvents } : {}),
       ...(grade ? { grade } : {}),
       attempts,
       repair,

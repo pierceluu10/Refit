@@ -3,7 +3,7 @@ import { resolvableComponentSchema } from './specifications.ts';
 import type { Location } from './types.ts';
 
 // Snapshot event mappings from stripe-node v19.1.0 types/EventTypes.d.ts.
-const EVENT_SCHEMAS: Record<string, string> = Object.fromEntries([
+export const EVENT_SCHEMAS: Record<string, string> = Object.fromEntries([
   ...[
     'created',
     'updated',
