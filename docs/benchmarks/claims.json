@@ -17305,6 +17305,123 @@
           "reason": "Part of the list name l2-push-249, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated |                      84 |                86 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        },
+        {
+          "says": "86",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before, main at `6c6ff6a9` (after the spec-noise and API-version merges): l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `d5b75c9f`: l2-push-249 [40619980162](https://github.com/refit-dev/refit-bench/actions/runs/40619980162), heldout-30 [40619983267](https://github.com/refit-dev/refit-bench/actions/runs/40619983267). `d5b75c9f` branches from `d9217cac`, before the API-version merge, so the rows whose only difference is an `api-version-untraced` or `webhook-api-version` stop (compasstio-ai, build-it, branded, mern-vsms, RealEstateBrokerageMarket) come from that merge, not this branch. heldout-30 matches main on 30 of 30 rows.",
+      "values": [
+        {
+          "says": "30",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40621425780",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40621428835",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40619980162",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40619983267",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Two regressions found and fixed.** The first heldout-30 run at `78e0c291` ([40554003990](https://github.com/refit-dev/refit-bench/actions/runs/40554003990)) moved VishalRaut2106/HackMate_AI's two `invoice.subscription` reads from confirmed to review: the helper parameter rule also covered `invoice: Stripe.Invoice`. `17e30256` keeps a declared Stripe type on its declared-type trace. The local suite then showed reads through a transparent wrapper and a helper with a declared Stripe return type downgraded to review (`nested-sdk.test.ts`, `stripe-types.test.ts`); `d5b75c9f` keeps those confirmed. Each has a test.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40554003990",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on 14 removals of Product `features` nested under subscription items in customer responses, which the code never reads. Each `migration.patch` was applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json). Their results at `d5b75c9f` match `17e30256` in every compared field, diff included.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        },
+        {
+          "says": "14",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** Chivo1530/CHIVITO-AI-DEV loses its contract-change stop and gr8monk3ys/link-flame its source-evidence stop, but both keep a dependency-preparation stop. aresjinwoo94-cpu/EliteVault gains 2 confirmed period reads in `scripts/sync-stripe-plan.mjs`, on a client already pinned at basil, so the patch correctly leaves them; its draft stays `[Needs review]`. kondax-com/Bocker's baseline tests failed in this run (and in the preparation run) and passed on main with the same dependency archive: a flaky test in the repository, `[Needs review]` either way.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        }
+      ],
+      "ignore": []
     }
   ]
 }

@@ -25,6 +25,7 @@ function schemas(after: boolean): Record<string, unknown> {
         id: string,
         status: string,
         cancel_at_period_end: { type: 'boolean' },
+        metadata: { type: 'object', additionalProperties: string },
         items: list('subscription_item'),
         ...(after ? {} : { current_period_start: integer, current_period_end: integer }),
       },
@@ -239,4 +240,73 @@ it('does not confirm a read on a page the code writes to', () => {
 `);
   expect(reads(result)).toEqual([['.current_period_end', 'review', 6]]);
   expect(result.edits).toEqual([]);
+});
+
+// Response reads through array element and copy methods, local helpers, writes and free-form maps.
+const traced = (result: ReturnType<typeof analyze>) =>
+  result.findings.map((finding) => [
+    finding.expression,
+    finding.confidence,
+    finding.untraced ?? false,
+  ]);
+
+it('traces a listed object through at(), find() and a filtered copy', () => {
+  for (const pick of [
+    'subs.data.at(0)',
+    'subs.data.find((s) => s.status === "active")',
+    'subs.data.filter((s) => s.status === "active")[0]',
+  ])
+    expect(
+      traced(
+        analyze(`export async function end(customer: string) {
+  const subs = await stripe.subscriptions.list({ customer })
+  const first = ${pick}
+  return first?.current_period_end
+}
+`),
+      ),
+    ).toEqual([['.current_period_end', 'confirmed', false]]);
+});
+
+// A helper that only returns the SDK call is a transparent wrapper: reads through it stay confirmed.
+it('traces what a local helper passes with review confidence, and a wrapper return as confirmed', () => {
+  const result = analyze(`async function load(id: string) {
+  return stripe.subscriptions.retrieve(id)
+}
+function end(subscription: { current_period_end: number }) {
+  return subscription.current_period_end
+}
+export async function GET(id: string) {
+  const subscription = await load(id)
+  return [subscription.current_period_end, end(subscription)]
+}
+`);
+  expect(traced(result)).toEqual([
+    ['.current_period_end', 'review', false],
+    ['.current_period_end', 'confirmed', false],
+  ]);
+});
+
+it('counts neither a write to an untraced object nor a metadata value as a read', () => {
+  expect(
+    traced(
+      analyze(`export async function save(id: string, row: { current_period_end?: number }) {
+  const subscription = await stripe.subscriptions.retrieve(id)
+  row.current_period_end = 0
+  return subscription.metadata.current_period_end
+}
+`),
+    ),
+  ).toEqual([]);
+});
+
+it('keeps confirming a read through a helper parameter typed as the Stripe object', () => {
+  const result = analyze(`function end(subscription: Stripe.Subscription) {
+  return subscription.current_period_end
+}
+export async function GET(id: string) {
+  return end(await stripe.subscriptions.retrieve(id))
+}
+`);
+  expect(traced(result)).toEqual([['.current_period_end', 'confirmed', false]]);
 });
