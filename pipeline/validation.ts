@@ -1603,6 +1603,8 @@ export async function validateMigration(options: {
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
   keepApiVersion?: boolean;
+  // docs/VERSION-BUMP-PRS.md: see runPipeline.
+  versionBump?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
   // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give

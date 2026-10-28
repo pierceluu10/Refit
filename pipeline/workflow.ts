@@ -42,11 +42,14 @@ import { COMPRESSED_SUFFIX, compressEvidence } from './state-files.ts';
 import { countBreakingOperationUsages } from './provider-operations.ts';
 import { apiVersionSourceBlocked, type ApiVersionPolicy } from './api-version.ts';
 import type { ReadinessCheck } from './readiness.ts';
+import { PASSING_REACH } from './operation-reach.ts';
+import { readRepository } from './repository.ts';
+import { measureCoverage } from './sdk-coverage.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
 // Both hold the full contract diff, which dominates their size; see COMPRESSED_SUFFIX.
 const COMPRESSED_EVIDENCE = new Set(['scan.json', 'report.json']);
-const NO_USAGE_REASON =
+export const NO_USAGE_REASON =
   'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
 const NO_PATCH_NOTE =
   'Refit opens a [Needs review] draft wherever it used to stop, but this run has no code change to publish.';
@@ -59,6 +62,7 @@ type Status =
   | 'needs-review'
   | 'validation-failed'
   | 'validated'
+  | 'version-bump'
   | 'draft-created'
   | 'draft-updated'
   | 'draft-closed'
@@ -138,6 +142,56 @@ function scanStop(scan: Awaited<ReturnType<typeof runPipeline>>, aiPatch: boolea
     return `${unmapped.length} breaking contract changes are outside the supported migration rules. Review the recorded contract report before proposing a patch.`;
   if (!scan.findings.some((finding) => finding.confidence === 'confirmed')) return NO_USAGE_REASON;
 }
+
+// docs/VERSION-BUMP-PRS.md: why a repository whose scan found no usage still gets no version bump,
+// or nothing when every gate holds. A wrong bump is worse than none, so each gate fails closed;
+// validation then decides whether the bump is published.
+export async function versionBumpBlock(
+  scan: Awaited<ReturnType<typeof runPipeline>>,
+  repository: string,
+) {
+  if (scan.adapter.packageName !== 'stripe') return 'Version bumps cover Stripe only.';
+  if (scan.findings.length)
+    return `Refit found ${scan.findings.length} usage${scan.findings.length === 1 ? '' : 's'} to review.`;
+  if (scan.specificationDiff.engine !== 'oasdiff')
+    return 'The full contract diff did not run, so the contract cannot show the code is unaffected.';
+  const reached = (scan.specificationDiff.changes as { level?: unknown; reach?: unknown }[]).filter(
+    (change) => Number(change.level) >= 2 && !PASSING_REACH.has(change.reach),
+  ).length;
+  if (reached)
+    return `${reached} breaking contract change${reached === 1 ? ' is' : 's are'} reached by traced code or of unknown reach.`;
+  if (scan.skippedFiles.length || scan.warnings.some((warning) => warning.startsWith('Skipped ')))
+    return 'The scan skipped files, so it cannot show the code is unaffected.';
+  if (scan.sourceResolution.warnings.length)
+    return 'Some imports could not be resolved, so the scan may be incomplete.';
+  const untracedVersion = scan.apiVersion.source.declarations.find(
+    (entry) => entry.status === 'unknown' && !(entry.kind === 'constructor' && entry.absent),
+  );
+  if (untracedVersion)
+    return `Refit cannot resolve the API version set at ${untracedVersion.file}:${untracedVersion.line}.`;
+  const sites = measureCoverage(await readRepository(repository, 'stripe'), 'stripe').filter(
+    (site) => site.likelySdk,
+  );
+  if (!sites.length) return 'Refit detected no Stripe call.';
+  const untraced = sites.filter((site) => !site.traced).length;
+  if (untraced)
+    return `${untraced} of ${sites.length} detected Stripe calls ${untraced === 1 ? 'is' : 'are'} untraced and might use something the version changed.`;
+  // The contract diff sees a call only through an operation mapped to the OpenAPI document.
+  const unmapped = scan.sdkCalls.filter(
+    (call) =>
+      !scan.adapter.operations.some(
+        (operation) =>
+          operation.resource === call.resource &&
+          operation.method === call.method &&
+          operation.operationId,
+      ),
+  );
+  if (unmapped.length)
+    return `${unmapped.length} traced Stripe call${unmapped.length === 1 ? ' is' : 's are'} not mapped to a contract operation, so the contract diff cannot check ${unmapped.length === 1 ? 'it' : 'them'}: ${unmapped.map((call) => `${call.resource}.${call.method}`).join(', ')}.`;
+}
+
+const VERSION_BUMP_NOT_PUBLISHED =
+  'Refit tried a version bump (every Stripe call traced, none affected), but its checks did not pass, so nothing was published.';
 
 // The rules' patch moved a pin or upgraded stripe-node.
 function movesApiVersion(report: Awaited<ReturnType<typeof validateMigration>>) {
@@ -369,7 +423,16 @@ export async function runWorkflow(options: {
           runId,
         );
     }
-    if (reviewReason) return await finish('needs-review', reviewReason, runId);
+    // Every Stripe call traced and none affected: a checked version bump instead of the stop.
+    const noUsage = Boolean(reviewReason?.startsWith(NO_USAGE_REASON));
+    const bumpBlock = noUsage ? await versionBumpBlock(scan, options.repository) : undefined;
+    const versionBump = noUsage && !bumpBlock;
+    if (reviewReason && !versionBump)
+      return await finish(
+        'needs-review',
+        bumpBlock ? `${reviewReason} Refit opened no version bump: ${bumpBlock}` : reviewReason,
+        runId,
+      );
     if (publication?.app) {
       options.signal?.throwIfAborted();
       options.onProgress?.('Checking for an existing Refit Agent migration...');
@@ -388,7 +451,9 @@ export async function runWorkflow(options: {
         }
       }
     }
-    const proposalReason = proposalReviewReason(scan, Boolean(options.aiPatch));
+    const proposalReason = versionBump
+      ? undefined
+      : proposalReviewReason(scan, Boolean(options.aiPatch));
     if (proposalReason) return await finish('needs-review', proposalReason, runId);
     stage = 'validation';
     options.signal?.throwIfAborted();
@@ -397,6 +462,7 @@ export async function runWorkflow(options: {
       validateMigration({
         ...inputs,
         keepApiVersion,
+        versionBump,
         image: options.image,
         command: options.command,
         baselineCommand: options.baselineCommand,
@@ -418,10 +484,25 @@ export async function runWorkflow(options: {
         onProgress: options.onProgress,
         signal: options.signal,
       });
-    let report = await validate(false);
+    // A bump that cannot be checked keeps the scan's honest stop and publishes nothing.
+    const bumpStop = (why: string) =>
+      finish('needs-review', `${reviewReason} ${VERSION_BUMP_NOT_PUBLISHED} ${why}`, runId);
+    let bumpError: string | undefined;
+    const validated = await validate(false).catch((error: unknown) => {
+      if (!versionBump || !(error instanceof PipelineInputError)) throw error;
+      bumpError = error.message;
+      return undefined;
+    });
+    if (!validated) return await bumpStop(bumpError!);
+    let report = validated;
     // Owner decision 1: a rules' patch that moved the API version and then failed the checks is
     // retried without the move, keeping the edits that work under either version.
-    if (allowUnresolved && report.validation.status === 'regression' && movesApiVersion(report)) {
+    if (
+      allowUnresolved &&
+      !versionBump &&
+      report.validation.status === 'regression' &&
+      movesApiVersion(report)
+    ) {
       options.onProgress?.(
         'The patch failed the checks. Validating it without the API-version move...',
       );
@@ -434,6 +515,20 @@ export async function runWorkflow(options: {
     }
     runId = report.runId;
     validation = report.validation.status;
+    // AI repair may fix a bump that breaks the build; it then ships as [Needs review] like any AI
+    // patch (founder decision, 2026-10-28). A bump with failing or no checks, or new advisory type
+    // errors, publishes nothing.
+    const advisory =
+      'advisoryTypeErrors' in report.validation &&
+      Array.isArray(report.validation.advisoryTypeErrors)
+        ? report.validation.advisoryTypeErrors.length
+        : 0;
+    if (versionBump && report.validation.status !== 'passed')
+      return await bumpStop(`Validation returned ${report.validation.status}.`);
+    if (versionBump && advisory)
+      return await bumpStop(
+        `The bump introduced ${advisory} type error${advisory === 1 ? '' : 's'} in JavaScript files.`,
+      );
     const reviews = publicationWaiver(report, allowUnresolved, options.doctor);
     waivedGates.push(...new Set(reviews?.map((entry) => entry.gate)));
     const review = createReviewArtifacts(report, 'local', options.integration, reviews);
@@ -482,7 +577,7 @@ export async function runWorkflow(options: {
       );
     if (!publication)
       return await finish(
-        'validated',
+        versionBump && report.patch.generator === 'deterministic' ? 'version-bump' : 'validated',
         'Baseline and patched checks passed. Review artifacts are ready; publication was not requested.',
         runId,
       );

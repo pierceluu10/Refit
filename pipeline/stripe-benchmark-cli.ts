@@ -47,7 +47,7 @@ import {
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 import { typeErrorKeys } from './type-errors.ts';
-import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import { NO_USAGE_REASON, proposalReviewReason, scanReviewReason } from './workflow.ts';
 import { readEvidence } from './state-files.ts';
 import { NO_OP_CHECK } from './review.ts';
 
@@ -468,7 +468,13 @@ async function benchmark(entry: Selected, index: number) {
     ...new Set(full.confirmedFields?.map((field) => changelogPages[field]).filter(Boolean)),
   ].map((page) => join(CHANGELOG, page));
   result.changelogNotes = notes.map((path) => path.slice(CHANGELOG.length + 1));
-  if (!full.confirmed) {
+  // docs/VERSION-BUMP-PRS.md: where production mode found no usage, the workflow may open a checked
+  // version bump; it applies every gate itself.
+  const bumpCandidate =
+    !full.confirmed &&
+    Boolean(values.validate) &&
+    String(production.stop ?? '').startsWith(NO_USAGE_REASON);
+  if (!full.confirmed && !bumpCandidate) {
     log('not affected');
     return;
   }
@@ -506,6 +512,12 @@ async function benchmark(entry: Selected, index: number) {
   };
   result.validatable = checkable && Boolean(selection.command);
   result.checks = !checkable ? 'none' : (selection.kind ?? 'generated-only');
+  // A bump is published only with checks that ran, so without them the row stays not affected.
+  if (bumpCandidate && !(checkable && selection.command)) {
+    result.versionBump = checkable ? selection.reason : 'No lockfile declares stripe.';
+    log('not affected; no check can run a version bump');
+    return;
+  }
   if (values.validate && (checkable || unlocked)) {
     const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
     const generatedChecks =
@@ -523,7 +535,7 @@ async function benchmark(entry: Selected, index: number) {
     // A customer's worker runs the full contract diff. When it stops before validation, the
     // workflow runs without it (benchmark mode) to measure what the rules alone would do; when it
     // does not stop, the diff adds nothing else, so the workflow below is the customer's run.
-    const productionPasses = !production.error && !production.stop;
+    const productionPasses = (!production.error && !production.stop) || bumpCandidate;
     await writeFile(
       config,
       `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(productionPasses ? { fullDiff: true } : {}), ...(selection.compareTypeErrors ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
@@ -538,11 +550,17 @@ async function benchmark(entry: Selected, index: number) {
         apiVersion: entry.before,
         providerConfig: adapterPath,
         ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
+        ...(bumpCandidate ? { fullDiff: true } : {}),
       },
       Boolean(ai),
       leaveReviewedFindings,
     );
     const stop = scan.stop;
+    if (scan.versionBump) result.versionBump = scan.versionBump;
+    if (bumpCandidate && stop) {
+      log(`not affected; no version bump: ${scan.versionBump ?? stop}`);
+      return;
+    }
     // A repository with no check keeps its patch, graded D, for a [Needs review] draft.
     const noCheck = !stop && !command;
     lap('workflowScan');

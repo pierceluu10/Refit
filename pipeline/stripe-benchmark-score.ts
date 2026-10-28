@@ -93,6 +93,11 @@ export function repositoryOutcome(
 ): { outcome: Outcome; reason: string } {
   if (labelled.verdict === 'undecided') return { outcome: 'undecided', reason: labelled.reason };
   const changed = workflow?.patch === 'proposed';
+  // A version bump changes only the pins and stripe-node: right only where nothing breaks.
+  if (workflow?.status === 'version-bump')
+    return labelled.verdict === 'unaffected'
+      ? { outcome: 'correct', reason: 'version bump' }
+      : { outcome: 'incorrect', reason: 'version bump on a repository with breaking usage' };
   if (labelled.verdict === 'unaffected')
     return changed
       ? {
