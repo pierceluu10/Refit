@@ -101,6 +101,8 @@ async function runOpenApiPipeline(options: {
   // the patch keeps only edits that work under either version (the workflow's retry after a
   // regression).
   keepApiVersion?: boolean;
+  // Why stripe-node could not be upgraded with the pin, when that kept every pin (set by runPipeline).
+  pinBlocked?: string;
   // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
   keepListedPaymentMethods?: boolean;
   // Validation only: the networked lockfile resolver a types-only peer bump uses
@@ -229,37 +231,12 @@ async function runOpenApiPipeline(options: {
     ]),
   );
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
-  const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
-  const patchRequested = Boolean(options.proposePatch || options.aiPatch);
-  // Founder decision (Otabek, 2026-10-28): TypeScript checks a pin against the installed
-  // stripe-node's apiVersion type, so a pin moves only with the upgrade. When the upgrade is
-  // refused, every pin stays and the draft names the blocker (api-version-kept).
-  const pinUpgrade =
-    !options.keepApiVersion &&
-    patchRequested &&
-    typescript &&
-    provider.packageName === STRIPE.packageName &&
-    typeof targetVersion === 'string' &&
-    applicationApiVersion &&
-    targetVersion !== applicationApiVersion
-      ? await stripePackageUpgrade(
-          repository.root,
-          targetVersion,
-          options.lockfileResolution,
-          options.lockfile,
-        )
-      : undefined;
-  const pinBlocked =
-    pinUpgrade && 'reason' in pinUpgrade && !pinUpgrade.reason.endsWith('is already locked.')
-      ? pinUpgrade.reason
-      : undefined;
-  const keepApiVersion = Boolean(options.keepApiVersion || pinBlocked);
   // Owner decision 1: every traced pin older than the target moves to it, including one that sends
   // another version than the application's; the draft lists each pin with the version it sent.
   // Stripe versions start with their date, so string order is release order, and a pin newer than
   // the target is never moved back.
   const movesPin = (value: string) =>
-    !keepApiVersion &&
+    !options.keepApiVersion &&
     (options.leaveReviewedFindings
       ? typeof targetVersion === 'string' && value < targetVersion
       : targetVersion !== applicationApiVersion && value === applicationApiVersion);
@@ -302,7 +279,7 @@ async function runOpenApiPipeline(options: {
   // The upgrade moves at least one client that omits the option: enough for a payment-method
   // rename whose own path holds only such clients (below).
   const sdkDefault =
-    !keepApiVersion &&
+    !options.keepApiVersion &&
     provider.packageName === STRIPE.packageName &&
     Boolean(applicationApiVersion) &&
     typeof targetVersion === 'string' &&
@@ -316,6 +293,7 @@ async function runOpenApiPipeline(options: {
       (entry) => entry.kind === 'constructor' || entry.status === 'inherited',
     );
   const bumpsVersion = versionEdits.length > 0 || sdkPinned;
+  const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
   // A client without the option follows the package's pin, so any such client needs the upgrade.
   const upgradeRequired = typescript || constructors.some((entry) => entry.absent);
   // The reviewed card-only rename is kept only with the target pin in the same patch and, for
@@ -325,6 +303,7 @@ async function runOpenApiPipeline(options: {
   // failed upgrade stops that run.
   // The mined request moves follow the same rule. stripe-node has invoices.createPreview only from
   // 15.6.0, so that rewrite needs the upgrade in JavaScript too.
+  const patchRequested = Boolean(options.proposePatch || options.aiPatch);
   const preview = analyzedEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
   const cardUpgrade =
     patchRequested &&
@@ -337,13 +316,12 @@ async function runOpenApiPipeline(options: {
     (bumpsVersion || sdkDefault) &&
     (upgradeRequired || preview) &&
     typeof targetVersion === 'string'
-      ? (pinUpgrade ??
-        (await stripePackageUpgrade(
+      ? await stripePackageUpgrade(
           repository.root,
           targetVersion,
           options.lockfileResolution,
           options.lockfile,
-        )))
+        )
       : undefined;
   const upgraded = Boolean(cardUpgrade && 'upgrade' in cardUpgrade);
   // Every client that may send the renamed field must reach the target version: a dynamic or
@@ -486,8 +464,8 @@ async function runOpenApiPipeline(options: {
       : undefined);
   const gate = !dropped.length
     ? undefined
-    : pinBlocked
-      ? `the stripe package cannot be upgraded with the pin, so this patch leaves every pin unchanged: ${pinBlocked.replace(/\.$/, '')}`
+    : options.pinBlocked
+      ? `the stripe package cannot be upgraded with the pin, so this patch leaves every pin unchanged: ${options.pinBlocked.replace(/\.$/, '')}`
       : options.keepApiVersion
         ? 'the patch that moved the API version failed the repository checks, so this one leaves every pin unchanged'
         : configuredMigrationProposal
@@ -684,8 +662,8 @@ async function runOpenApiPipeline(options: {
               : {}),
             // AI repairs start again from the original code and must keep these rule edits.
             ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
-            ...(keepApiVersion ? { keptApiVersion: true as const } : {}),
-            ...(pinBlocked ? { pinBlocked } : {}),
+            ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
+            ...(options.pinBlocked ? { pinBlocked: options.pinBlocked } : {}),
           }
         : {
             status: 'not-generated' as const,
@@ -706,7 +684,6 @@ async function runOpenApiPipeline(options: {
     (upgradeRequired || ruleEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE)) &&
     typeof targetVersion === 'string'
       ? (cardUpgrade ??
-        pinUpgrade ??
         (await stripePackageUpgrade(
           repository.root,
           targetVersion,
@@ -714,6 +691,19 @@ async function runOpenApiPipeline(options: {
           options.lockfile,
         )))
       : undefined;
+  // Founder decision (Otabek, 2026-10-28): TypeScript checks a pin against the installed
+  // stripe-node's apiVersion type, so a rules' pin moves only with the upgrade. When the upgrade is
+  // refused, runPipeline scans again with every pin kept and the draft names the blocker
+  // (api-version-kept). An AI proposal is not asked again.
+  const pinWithoutUpgrade =
+    upgrade &&
+    'reason' in upgrade &&
+    typescript &&
+    movesVersion &&
+    versionEdits.length > 0 &&
+    'generator' in patch &&
+    patch.generator !== 'openai' &&
+    !/ is already (?:locked|declared)\.$/.test(upgrade.reason);
   const upgradedPatch =
     upgrade && 'diff' in patch
       ? 'upgrade' in upgrade
@@ -738,7 +728,10 @@ async function runOpenApiPipeline(options: {
           }
         : {
             ...patch,
-            sdkUpgrade: { skipped: upgrade.reason },
+            sdkUpgrade: {
+              skipped: upgrade.reason,
+              ...(pinWithoutUpgrade ? { pinMoved: true as const } : {}),
+            },
             warnings: [
               `The stripe package was not upgraded: ${upgrade.reason}`,
               ...('warnings' in patch ? patch.warnings : []),
@@ -886,7 +879,16 @@ export async function runPipeline(
   options: Parameters<typeof runOpenApiPipeline>[0],
 ): Promise<PipelineReport> {
   const kinds = await Promise.all([options.before, options.after].map(isShopifySnapshotFile));
-  if (!kinds.some(Boolean)) return runOpenApiPipeline(options);
+  if (!kinds.some(Boolean)) {
+    const report = await runOpenApiPipeline(options);
+    const upgrade =
+      'sdkUpgrade' in report.patch
+        ? (report.patch.sdkUpgrade as { skipped?: string; pinMoved?: true } | undefined)
+        : undefined;
+    return upgrade?.pinMoved
+      ? runOpenApiPipeline({ ...options, keepApiVersion: true, pinBlocked: upgrade.skipped })
+      : report;
+  }
   const [before, after] = await Promise.all([
     readSpecification(options.before),
     readSpecification(options.after),
