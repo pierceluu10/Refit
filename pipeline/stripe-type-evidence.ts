@@ -208,6 +208,67 @@ export function localReceiverReads<
   });
 }
 
+// Owner decision D2b for contract changes: a response change stays `unknown` when code reads its
+// property name on an object Refit cannot trace (operation-reach.ts annotateReach). Where every
+// read of that name (`reads`, the analyzer's findings for the change's owner) is untraced and
+// `local` shows its receiver is the repository's own type, the change is not reached: it becomes
+// `unused` with the reads it checked, and leaves `impacts`. A traced or confirmed read, a computed
+// property and a read `local` does not return keep the change as it was.
+export function localReach(options: {
+  changes: Record<string, unknown>[];
+  impacts: readonly BreakingOperationImpact[];
+  before: Record<string, unknown>;
+  reads: (removals: Removal[]) => Finding[];
+  local: (reads: Finding[]) => Finding[];
+}) {
+  const owners = new Map<Record<string, unknown>, { schema: string; property: string }>();
+  for (const change of options.changes) {
+    if (change.reach !== 'unknown' || !String(change.id).startsWith('response-')) continue;
+    const owner = responsePropertyOwner(change, options.before);
+    if (owner) owners.set(change, owner);
+  }
+  const removals = new Map<string, Removal>();
+  for (const { schema, property } of owners.values())
+    removals.set(`reach:${schema}.${property}`, {
+      id: `reach:${schema}.${property}`,
+      schema,
+      property,
+      pointer: `/components/schemas/${schema}/properties/${property}`,
+    });
+  const findings = removals.size
+    ? options.reads([...removals.values()]).filter((finding) => !TEST_PATH.test(finding.file))
+    : [];
+  const site = (read: Pick<Finding, 'file' | 'line' | 'column' | 'expression'>) =>
+    `${read.file}:${read.line}:${read.column}${read.expression}`;
+  const local = new Set(
+    options.local(findings.filter((finding) => finding.untraced)).map((read) => site(read)),
+  );
+  const cleared: { change: Record<string, unknown>; reads: Finding[] }[] = [];
+  for (const [change, owner] of owners) {
+    const reads = findings.filter(
+      (finding) => finding.changeId === `reach:${owner.schema}.${owner.property}`,
+    );
+    if (!reads.length || !reads.every((read) => read.untraced && local.has(site(read)))) continue;
+    const listed = reads
+      .slice(0, 3)
+      .map((read) => `${read.file}:${read.line}`)
+      .join(', ');
+    Object.assign(change, {
+      reach: 'unused',
+      reachReason: `Owner decision D2b: TypeScript's checker shows every read of \`${owner.property}\` (${listed}${reads.length > 3 ? ` and ${reads.length - 3} more` : ''}) reads an object the repository declares itself, not ${owner.schema}; the type oracle passed and the AI proposed no change.`,
+    });
+    cleared.push({ change, reads });
+  }
+  const gone = new Set(cleared.map(({ change }) => `${String(change.id)} ${String(change.text)}`));
+  const impacts = options.impacts.flatMap((impact) => {
+    const changes = impact.changes.filter((entry) => !gone.has(`${entry.id} ${entry.text}`));
+    return changes.length
+      ? [changes.length === impact.changes.length ? impact : { ...impact, changes }]
+      : [];
+  });
+  return { cleared, impacts };
+}
+
 // `Property 'x' does not exist on type 'Stripe.Subscription'` (TS2339), or with a suggestion (TS2551),
 // also on an awaited SDK response, `Response<Subscription>`.
 const MISSING_PROPERTY =
