@@ -1,0 +1,1410 @@
+{
+  "formatVersion": 1,
+  "checkedAt": "2026-10-27T10:21:44.090Z",
+  "checks": [
+    {
+      "provider": "stripe",
+      "ecosystem": "pypi",
+      "name": "stripe",
+      "url": "https://pypi.org/pypi/stripe/json",
+      "status": 200,
+      "latest": "16.0.1",
+      "source": "https://github.com/stripe/stripe-python/blob/master/CHANGELOG.md"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "go",
+      "name": "github.com/stripe/stripe-go",
+      "url": "https://proxy.golang.org/github.com/stripe/stripe-go/@latest",
+      "status": 200,
+      "latest": "v70.15.0+incompatible"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "rubygems",
+      "name": "stripe",
+      "url": "https://rubygems.org/api/v1/gems/stripe.json",
+      "status": 200,
+      "latest": "20.0.0",
+      "source": "https://github.com/stripe/stripe-ruby"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "packagist",
+      "name": "stripe/stripe-php",
+      "url": "https://repo.packagist.org/p2/stripe/stripe-php.json",
+      "status": 200,
+      "latest": "v22.1.0-beta.1",
+      "source": "https://github.com/stripe/stripe-php.git"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripe-java",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripe-java/maven-metadata.xml",
+      "status": 200,
+      "latest": "34.1.0-beta.1",
+      "source": "git@github.com:stripe/stripe-java.git"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripe-android",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripe-android/maven-metadata.xml",
+      "status": 200,
+      "latest": "23.25.1",
+      "source": "https://github.com/stripe/stripe-android"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripeterminal",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripeterminal/maven-metadata.xml",
+      "status": 200,
+      "latest": "6.0.0",
+      "source": "https://github.com/stripe/stripe-terminal-android"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripeterminal-core",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripeterminal-core/maven-metadata.xml",
+      "status": 200,
+      "latest": "6.0.0",
+      "source": "https://github.com/stripe/stripe-terminal-android"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "maven",
+      "name": "com.stripe:stripeterminal-localmobile",
+      "url": "https://repo1.maven.org/maven2/com/stripe/stripeterminal-localmobile/maven-metadata.xml",
+      "status": 200,
+      "latest": "3.10.2",
+      "source": "https://github.com/stripe/stripe-terminal-android"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "nuget",
+      "name": "Stripe.net",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/stripe.net/index.json",
+      "status": 200,
+      "latest": "53.1.0-beta.1",
+      "source": "https://github.com/stripe/stripe-dotnet"
+    },
+    {
+      "provider": "stripe",
+      "ecosystem": "cargo",
+      "name": "async-stripe",
+      "url": "https://crates.io/api/v1/crates/async-stripe",
+      "status": 200,
+      "latest": "0.41.0",
+      "source": "https://github.com/arlyon/async-stripe"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "pypi",
+      "name": "openai",
+      "url": "https://pypi.org/pypi/openai/json",
+      "status": 200,
+      "latest": "3.39.0",
+      "source": "https://github.com/openai/openai-python"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "go",
+      "name": "github.com/openai/openai-go",
+      "url": "https://proxy.golang.org/github.com/openai/openai-go/@latest",
+      "status": 200,
+      "latest": "v1.12.0",
+      "source": "https://github.com/openai/openai-go"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "go",
+      "name": "github.com/sashabaranov/go-openai",
+      "url": "https://proxy.golang.org/github.com/sashabaranov/go-openai/@latest",
+      "status": 200,
+      "latest": "v1.43.0",
+      "source": "https://github.com/sashabaranov/go-openai"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "rubygems",
+      "name": "openai",
+      "url": "https://rubygems.org/api/v1/gems/openai.json",
+      "status": 200,
+      "latest": "0.113.0",
+      "source": "https://github.com/openai/openai-ruby"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "rubygems",
+      "name": "ruby-openai",
+      "url": "https://rubygems.org/api/v1/gems/ruby-openai.json",
+      "status": 200,
+      "latest": "8.3.0",
+      "source": "https://github.com/alexrudall/ruby-openai"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "packagist",
+      "name": "openai-php/client",
+      "url": "https://repo.packagist.org/p2/openai-php/client.json",
+      "status": 200,
+      "latest": "v0.21.0",
+      "source": "https://github.com/openai-php/client.git"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "maven",
+      "name": "com.openai:openai-java",
+      "url": "https://repo1.maven.org/maven2/com/openai/openai-java/maven-metadata.xml",
+      "status": 200,
+      "latest": "4.93.0",
+      "source": "https://github.com/openai/openai-java"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "maven",
+      "name": "com.theokanning.openai-gpt3-java:service",
+      "url": "https://repo1.maven.org/maven2/com/theokanning/openai-gpt3-java/service/maven-metadata.xml",
+      "status": 200,
+      "latest": "0.18.2",
+      "source": "https://github.com/theokanning/openai-java"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "nuget",
+      "name": "OpenAI",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/openai/index.json",
+      "status": 200,
+      "latest": "2.14.0",
+      "source": "https://github.com/openai/openai-dotnet/tree/OpenAI_2.14.0"
+    },
+    {
+      "provider": "openai",
+      "ecosystem": "cargo",
+      "name": "async-openai",
+      "url": "https://crates.io/api/v1/crates/async-openai",
+      "status": 200,
+      "latest": "0.42.2",
+      "source": "https://github.com/64bit/async-openai"
+    },
+    {
+      "provider": "anthropic",
+      "ecosystem": "pypi",
+      "name": "anthropic",
+      "url": "https://pypi.org/pypi/anthropic/json",
+      "status": 200,
+      "latest": "2.3.0",
+      "source": "https://github.com/anthropics/anthropic-sdk-python"
+    },
+    {
+      "provider": "anthropic",
+      "ecosystem": "go",
+      "name": "github.com/anthropics/anthropic-sdk-go",
+      "url": "https://proxy.golang.org/github.com/anthropics/anthropic-sdk-go/@latest",
+      "status": 200,
+      "latest": "v1.84.0",
+      "source": "https://github.com/anthropics/anthropic-sdk-go"
+    },
+    {
+      "provider": "anthropic",
+      "ecosystem": "rubygems",
+      "name": "anthropic",
+      "url": "https://rubygems.org/api/v1/gems/anthropic.json",
+      "status": 200,
+      "latest": "2.3.0",
+      "source": "https://github.com/anthropics/anthropic-sdk-ruby"
+    },
+    {
+      "provider": "anthropic",
+      "ecosystem": "packagist",
+      "name": "anthropic-ai/sdk",
+      "url": "https://repo.packagist.org/p2/anthropic-ai/sdk.json",
+      "status": 200,
+      "latest": "v1.3.0",
+      "source": "https://github.com/anthropics/anthropic-sdk-php.git"
+    },
+    {
+      "provider": "anthropic",
+      "ecosystem": "maven",
+      "name": "com.anthropic:anthropic-java",
+      "url": "https://repo1.maven.org/maven2/com/anthropic/anthropic-java/maven-metadata.xml",
+      "status": 200,
+      "latest": "3.3.0",
+      "source": "https://github.com/anthropics/anthropic-sdk-java"
+    },
+    {
+      "provider": "anthropic",
+      "ecosystem": "nuget",
+      "name": "Anthropic",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/anthropic/index.json",
+      "status": 200,
+      "latest": "13.3.0",
+      "source": "https://docs.anthropic.com/claude/reference/"
+    },
+    {
+      "provider": "anthropic",
+      "ecosystem": "nuget",
+      "name": "Anthropic.SDK",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/anthropic.sdk/index.json",
+      "status": 200,
+      "latest": "5.10.0",
+      "source": "https://github.com/tghamm/Anthropic.SDK"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "pypi",
+      "name": "google-genai",
+      "url": "https://pypi.org/pypi/google-genai/json",
+      "status": 200,
+      "latest": "2.33.0",
+      "source": "https://github.com/googleapis/python-genai"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "pypi",
+      "name": "google-generativeai",
+      "url": "https://pypi.org/pypi/google-generativeai/json",
+      "status": 200,
+      "latest": "0.8.6",
+      "source": "https://github.com/google/generative-ai-python"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "go",
+      "name": "google.golang.org/genai",
+      "url": "https://proxy.golang.org/google.golang.org/genai/@latest",
+      "status": 200,
+      "latest": "v1.76.0",
+      "source": "https://github.com/googleapis/go-genai"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "go",
+      "name": "github.com/google/generative-ai-go",
+      "url": "https://proxy.golang.org/github.com/google/generative-ai-go/@latest",
+      "status": 200,
+      "latest": "v0.20.1",
+      "source": "https://github.com/google/generative-ai-go"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "rubygems",
+      "name": "gemini-ai",
+      "url": "https://rubygems.org/api/v1/gems/gemini-ai.json",
+      "status": 200,
+      "latest": "4.3.0",
+      "source": "https://github.com/gbaptista/gemini-ai"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "packagist",
+      "name": "google-gemini-php/client",
+      "url": "https://repo.packagist.org/p2/google-gemini-php/client.json",
+      "status": 200,
+      "latest": "2.8.0",
+      "source": "https://github.com/google-gemini-php/client.git"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "maven",
+      "name": "com.google.genai:google-genai",
+      "url": "https://repo1.maven.org/maven2/com/google/genai/google-genai/maven-metadata.xml",
+      "status": 200,
+      "latest": "1.79.0",
+      "source": "git@github.com:googleapis/java-genai.git"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "nuget",
+      "name": "Google.GenAI",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/google.genai/index.json",
+      "status": 200,
+      "latest": "1.27.0",
+      "source": "https://github.com/googleapis/dotnet-genai"
+    },
+    {
+      "provider": "gemini",
+      "ecosystem": "nuget",
+      "name": "Google_GenerativeAI",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/google_generativeai/index.json",
+      "status": 200,
+      "latest": "3.6.8",
+      "source": "https://github.com/gunpal5/Google_GenerativeAI"
+    },
+    {
+      "provider": "shopify",
+      "ecosystem": "pypi",
+      "name": "ShopifyAPI",
+      "url": "https://pypi.org/pypi/ShopifyAPI/json",
+      "status": 200,
+      "latest": "12.7.0",
+      "source": "https://github.com/Shopify/shopify_python_api"
+    },
+    {
+      "provider": "shopify",
+      "ecosystem": "go",
+      "name": "github.com/bold-commerce/go-shopify",
+      "url": "https://proxy.golang.org/github.com/bold-commerce/go-shopify/@latest",
+      "status": 200,
+      "latest": "v2.3.0+incompatible"
+    },
+    {
+      "provider": "shopify",
+      "ecosystem": "rubygems",
+      "name": "shopify_api",
+      "url": "https://rubygems.org/api/v1/gems/shopify_api.json",
+      "status": 200,
+      "latest": "16.3.1",
+      "source": "https://github.com/shopify/shopify_api"
+    },
+    {
+      "provider": "shopify",
+      "ecosystem": "packagist",
+      "name": "shopify/shopify-api",
+      "url": "https://repo.packagist.org/p2/shopify/shopify-api.json",
+      "status": 200,
+      "latest": "v6.1.1",
+      "source": "https://github.com/Shopify/shopify-api-php.git"
+    },
+    {
+      "provider": "shopify",
+      "ecosystem": "nuget",
+      "name": "ShopifySharp",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/shopifysharp/index.json",
+      "status": 200,
+      "latest": "7.0.0-b166",
+      "source": "https://github.com/nozzlegear/shopifysharp"
+    },
+    {
+      "provider": "meta-graph",
+      "ecosystem": "pypi",
+      "name": "facebook-business",
+      "url": "https://pypi.org/pypi/facebook-business/json",
+      "status": 200,
+      "latest": "26.0.2",
+      "source": "https://github.com/facebook/facebook-python-business-sdk/tarball/26.0.2"
+    },
+    {
+      "provider": "meta-graph",
+      "ecosystem": "rubygems",
+      "name": "facebookbusiness",
+      "url": "https://rubygems.org/api/v1/gems/facebookbusiness.json",
+      "status": 200,
+      "latest": "26.0.2",
+      "source": "https://github.com/facebook/facebook-ruby-business-sdk"
+    },
+    {
+      "provider": "meta-graph",
+      "ecosystem": "packagist",
+      "name": "facebook/php-business-sdk",
+      "url": "https://repo.packagist.org/p2/facebook/php-business-sdk.json",
+      "status": 200,
+      "latest": "26.0.2",
+      "source": "https://github.com/facebook/facebook-php-business-sdk.git"
+    },
+    {
+      "provider": "meta-graph",
+      "ecosystem": "maven",
+      "name": "com.facebook.business.sdk:facebook-java-business-sdk",
+      "url": "https://repo1.maven.org/maven2/com/facebook/business/sdk/facebook-java-business-sdk/maven-metadata.xml",
+      "status": 200,
+      "latest": "26.0.2",
+      "source": "https://github.com/facebook/facebook-java-business-sdk"
+    },
+    {
+      "provider": "github",
+      "ecosystem": "pypi",
+      "name": "PyGithub",
+      "url": "https://pypi.org/pypi/PyGithub/json",
+      "status": 200,
+      "latest": "2.10.0",
+      "source": "https://github.com/pygithub/pygithub"
+    },
+    {
+      "provider": "github",
+      "ecosystem": "go",
+      "name": "github.com/google/go-github",
+      "url": "https://proxy.golang.org/github.com/google/go-github/@latest",
+      "status": 200,
+      "latest": "v17.0.0+incompatible"
+    },
+    {
+      "provider": "github",
+      "ecosystem": "rubygems",
+      "name": "octokit",
+      "url": "https://rubygems.org/api/v1/gems/octokit.json",
+      "status": 200,
+      "latest": "10.0.0",
+      "source": "https://github.com/octokit/octokit.rb"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "pypi",
+      "name": "twilio",
+      "url": "https://pypi.org/pypi/twilio/json",
+      "status": 200,
+      "latest": "9.12.0",
+      "source": "https://github.com/twilio/twilio-python/"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "go",
+      "name": "github.com/twilio/twilio-go",
+      "url": "https://proxy.golang.org/github.com/twilio/twilio-go/@latest",
+      "status": 200,
+      "latest": "v1.32.0",
+      "source": "https://github.com/twilio/twilio-go"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "rubygems",
+      "name": "twilio-ruby",
+      "url": "https://rubygems.org/api/v1/gems/twilio-ruby.json",
+      "status": 200,
+      "latest": "7.12.0",
+      "source": "https://github.com/twilio/twilio-ruby"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "packagist",
+      "name": "twilio/sdk",
+      "url": "https://repo.packagist.org/p2/twilio/sdk.json",
+      "status": 200,
+      "latest": "8.13.0",
+      "source": "https://github.com/twilio/twilio-php.git"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "maven",
+      "name": "com.twilio.sdk:twilio",
+      "url": "https://repo1.maven.org/maven2/com/twilio/sdk/twilio/maven-metadata.xml",
+      "status": 200,
+      "latest": "13.1.0",
+      "source": "git@github.com:twilio/twilio-java.git"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "nuget",
+      "name": "Twilio",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/twilio/index.json",
+      "status": 200,
+      "latest": "8.1.0",
+      "source": "http://github.com/twilio/twilio-csharp"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "nuget",
+      "name": "Twilio.AspNet.Core",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/twilio.aspnet.core/index.json",
+      "status": 200,
+      "latest": "8.1.2",
+      "source": "https://github.com/twilio-labs/twilio-aspnet"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "nuget",
+      "name": "Twilio.AspNet.Common",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/twilio.aspnet.common/index.json",
+      "status": 200,
+      "latest": "8.1.2",
+      "source": "https://github.com/twilio-labs/twilio-aspnet"
+    },
+    {
+      "provider": "twilio",
+      "ecosystem": "nuget",
+      "name": "Twilio.AspNet.Mvc",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/twilio.aspnet.mvc/index.json",
+      "status": 200,
+      "latest": "8.1.2",
+      "source": "https://github.com/twilio-labs/twilio-aspnet"
+    },
+    {
+      "provider": "sendgrid",
+      "ecosystem": "pypi",
+      "name": "sendgrid",
+      "url": "https://pypi.org/pypi/sendgrid/json",
+      "status": 200,
+      "latest": "6.12.5",
+      "source": "https://github.com/sendgrid/sendgrid-python/"
+    },
+    {
+      "provider": "sendgrid",
+      "ecosystem": "go",
+      "name": "github.com/sendgrid/sendgrid-go",
+      "url": "https://proxy.golang.org/github.com/sendgrid/sendgrid-go/@latest",
+      "status": 200,
+      "latest": "v3.16.1+incompatible",
+      "source": "https://github.com/sendgrid/sendgrid-go"
+    },
+    {
+      "provider": "sendgrid",
+      "ecosystem": "rubygems",
+      "name": "sendgrid-ruby",
+      "url": "https://rubygems.org/api/v1/gems/sendgrid-ruby.json",
+      "status": 200,
+      "latest": "6.7.0",
+      "source": "https://github.com/sendgrid/sendgrid-ruby"
+    },
+    {
+      "provider": "sendgrid",
+      "ecosystem": "packagist",
+      "name": "sendgrid/sendgrid",
+      "url": "https://repo.packagist.org/p2/sendgrid/sendgrid.json",
+      "status": 200,
+      "latest": "8.1.11",
+      "source": "https://github.com/sendgrid/sendgrid-php.git"
+    },
+    {
+      "provider": "sendgrid",
+      "ecosystem": "maven",
+      "name": "com.sendgrid:sendgrid-java",
+      "url": "https://repo1.maven.org/maven2/com/sendgrid/sendgrid-java/maven-metadata.xml",
+      "status": 200,
+      "latest": "5.0.0-rc.1",
+      "source": "https://github.com/sendgrid/sendgrid-java"
+    },
+    {
+      "provider": "sendgrid",
+      "ecosystem": "nuget",
+      "name": "SendGrid",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/sendgrid/index.json",
+      "status": 200,
+      "latest": "9.29.3",
+      "source": "https://sendgrid.com/"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "pypi",
+      "name": "resend",
+      "url": "https://pypi.org/pypi/resend/json",
+      "status": 200,
+      "latest": "2.50.0",
+      "source": "https://github.com/resendlabs/resend-python"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "go",
+      "name": "github.com/resend/resend-go",
+      "url": "https://proxy.golang.org/github.com/resend/resend-go/@latest",
+      "status": 200,
+      "latest": "v1.7.0",
+      "source": "https://github.com/resend/resend-go"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "go",
+      "name": "github.com/resendlabs/resend-go",
+      "url": "https://proxy.golang.org/github.com/resendlabs/resend-go/@latest",
+      "status": 200,
+      "latest": "v1.7.0",
+      "source": "https://github.com/resendlabs/resend-go"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "rubygems",
+      "name": "resend",
+      "url": "https://rubygems.org/api/v1/gems/resend.json",
+      "status": 200,
+      "latest": "1.18.0",
+      "source": "https://github.com/resend/resend-ruby"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "packagist",
+      "name": "resend/resend-php",
+      "url": "https://repo.packagist.org/p2/resend/resend-php.json",
+      "status": 200,
+      "latest": "v1.17.0",
+      "source": "https://github.com/resend/resend-php.git"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "maven",
+      "name": "com.resend:resend-java",
+      "url": "https://repo1.maven.org/maven2/com/resend/resend-java/maven-metadata.xml",
+      "status": 200,
+      "latest": "4.29.0",
+      "source": "https://github.com/resendlabs/resend-java"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "nuget",
+      "name": "Resend",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/resend/index.json",
+      "status": 200,
+      "latest": "0.24.0",
+      "source": "https://github.com/resend/resend-dotnet/"
+    },
+    {
+      "provider": "resend",
+      "ecosystem": "cargo",
+      "name": "resend-rs",
+      "url": "https://crates.io/api/v1/crates/resend-rs",
+      "status": 200,
+      "latest": "0.35.0",
+      "source": "https://github.com/resend/resend-rust"
+    },
+    {
+      "provider": "postmark",
+      "ecosystem": "pypi",
+      "name": "postmarker",
+      "url": "https://pypi.org/pypi/postmarker/json",
+      "status": 200,
+      "latest": "1.0",
+      "source": "https://github.com/Stranger6667/postmarker"
+    },
+    {
+      "provider": "postmark",
+      "ecosystem": "rubygems",
+      "name": "postmark",
+      "url": "https://rubygems.org/api/v1/gems/postmark.json",
+      "status": 200,
+      "latest": "1.25.1",
+      "source": "https://postmarkapp.com"
+    },
+    {
+      "provider": "mailgun",
+      "ecosystem": "go",
+      "name": "github.com/mailgun/mailgun-go",
+      "url": "https://proxy.golang.org/github.com/mailgun/mailgun-go/@latest",
+      "status": 200,
+      "latest": "v2.0.0+incompatible"
+    },
+    {
+      "provider": "mailgun",
+      "ecosystem": "rubygems",
+      "name": "mailgun-ruby",
+      "url": "https://rubygems.org/api/v1/gems/mailgun-ruby.json",
+      "status": 200,
+      "latest": "1.4.6",
+      "source": "https://github.com/mailgun/mailgun-ruby"
+    },
+    {
+      "provider": "paypal",
+      "ecosystem": "pypi",
+      "name": "paypal-server-sdk",
+      "url": "https://pypi.org/pypi/paypal-server-sdk/json",
+      "status": 200,
+      "latest": "2.4.0",
+      "source": "https://github.com/paypal/PayPal-Python-Server-SDK"
+    },
+    {
+      "provider": "paypal",
+      "ecosystem": "rubygems",
+      "name": "paypal-server-sdk",
+      "url": "https://rubygems.org/api/v1/gems/paypal-server-sdk.json",
+      "status": 200,
+      "latest": "2.4.0",
+      "source": "https://github.com/paypal/PayPal-Ruby-Server-SDK"
+    },
+    {
+      "provider": "paypal",
+      "ecosystem": "packagist",
+      "name": "paypal/paypal-server-sdk",
+      "url": "https://repo.packagist.org/p2/paypal/paypal-server-sdk.json",
+      "status": 200,
+      "latest": "2.4.0",
+      "source": "https://github.com/paypal/PayPal-PHP-Server-SDK.git"
+    },
+    {
+      "provider": "paypal",
+      "ecosystem": "maven",
+      "name": "com.paypal.sdk:paypal-server-sdk",
+      "url": "https://repo1.maven.org/maven2/com/paypal/sdk/paypal-server-sdk/maven-metadata.xml",
+      "status": 200,
+      "latest": "2.4.0",
+      "source": "https://github.com/paypal/PayPal-Java-Server-SDK"
+    },
+    {
+      "provider": "paypal",
+      "ecosystem": "nuget",
+      "name": "PayPalServerSDK",
+      "url": "https://api.nuget.org/v3/registration5-gz-semver2/paypalserversdk/index.json",
+      "status": 200,
+      "latest": "2.4.0",
+      "source": ""
+    },
+    {
+      "provider": "slack",
+      "ecosystem": "pypi",
+      "name": "slack-sdk",
+      "url": "https://pypi.org/pypi/slack-sdk/json",
+      "status": 200,
+      "latest": "3.45.0",
+      "source": "https://github.com/slackapi/python-slack-sdk"
+    },
+    {
+      "provider": "slack",
+      "ecosystem": "pypi",
+      "name": "slack-bolt",
+      "url": "https://pypi.org/pypi/slack-bolt/json",
+      "status": 200,
+      "latest": "1.30.0",
+      "source": "https://github.com/slackapi/bolt-python"
+    },
+    {
+      "provider": "slack",
+      "ecosystem": "go",
+      "name": "github.com/slack-go/slack",
+      "url": "https://proxy.golang.org/github.com/slack-go/slack/@latest",
+      "status": 200,
+      "latest": "v0.31.0",
+      "source": "https://github.com/slack-go/slack"
+    },
+    {
+      "provider": "slack",
+      "ecosystem": "rubygems",
+      "name": "slack-ruby-client",
+      "url": "https://rubygems.org/api/v1/gems/slack-ruby-client.json",
+      "status": 200,
+      "latest": "3.3.0",
+      "source": "http://github.com/slack-ruby/slack-ruby-client"
+    },
+    {
+      "provider": "cloudflare",
+      "ecosystem": "pypi",
+      "name": "cloudflare",
+      "url": "https://pypi.org/pypi/cloudflare/json",
+      "status": 200,
+      "latest": "5.9.0",
+      "source": "https://github.com/cloudflare/cloudflare-python"
+    },
+    {
+      "provider": "cloudflare",
+      "ecosystem": "go",
+      "name": "github.com/cloudflare/cloudflare-go",
+      "url": "https://proxy.golang.org/github.com/cloudflare/cloudflare-go/@latest",
+      "status": 200,
+      "latest": "v0.119.0",
+      "source": "https://github.com/cloudflare/cloudflare-go"
+    },
+    {
+      "provider": "firebase",
+      "ecosystem": "pypi",
+      "name": "firebase-admin",
+      "url": "https://pypi.org/pypi/firebase-admin/json",
+      "status": 200,
+      "latest": "7.7.0",
+      "source": "https://github.com/firebase/firebase-admin-python"
+    },
+    {
+      "provider": "firebase",
+      "ecosystem": "go",
+      "name": "firebase.google.com/go",
+      "url": "https://proxy.golang.org/firebase.google.com/go/@latest",
+      "status": 200,
+      "latest": "v3.13.0+incompatible"
+    },
+    {
+      "provider": "supabase",
+      "ecosystem": "pypi",
+      "name": "supabase",
+      "url": "https://pypi.org/pypi/supabase/json",
+      "status": 200,
+      "latest": "2.33.0",
+      "source": "https://github.com/supabase/supabase-py/tree/main/CHANGELOG.md"
+    },
+    {
+      "provider": "supabase",
+      "ecosystem": "go",
+      "name": "github.com/supabase-community/supabase-go",
+      "url": "https://proxy.golang.org/github.com/supabase-community/supabase-go/@latest",
+      "status": 200,
+      "latest": "v0.0.4",
+      "source": "https://github.com/supabase-community/supabase-go"
+    },
+    {
+      "provider": "plaid",
+      "ecosystem": "pypi",
+      "name": "plaid-python",
+      "url": "https://pypi.org/pypi/plaid-python/json",
+      "status": 200,
+      "latest": "46.0.0",
+      "source": "https://github.com/plaid/plaid-python/tarball/v46.0.0"
+    },
+    {
+      "provider": "plaid",
+      "ecosystem": "go",
+      "name": "github.com/plaid/plaid-go",
+      "url": "https://proxy.golang.org/github.com/plaid/plaid-go/@latest",
+      "status": 200,
+      "latest": "v1.10.0"
+    },
+    {
+      "provider": "plaid",
+      "ecosystem": "rubygems",
+      "name": "plaid",
+      "url": "https://rubygems.org/api/v1/gems/plaid.json",
+      "status": 200,
+      "latest": "53.0.0",
+      "source": "https://github.com/plaid/plaid-ruby"
+    },
+    {
+      "provider": "square",
+      "ecosystem": "pypi",
+      "name": "squareup",
+      "url": "https://pypi.org/pypi/squareup/json",
+      "status": 200,
+      "latest": "46.0.0.20260916",
+      "source": "https://github.com/square/square-python-sdk"
+    },
+    {
+      "provider": "square",
+      "ecosystem": "rubygems",
+      "name": "square.rb",
+      "url": "https://rubygems.org/api/v1/gems/square.rb.json",
+      "status": 200,
+      "latest": "47.0.0.20260916",
+      "source": "https://squareup.com/developers"
+    },
+    {
+      "provider": "google-maps",
+      "ecosystem": "pypi",
+      "name": "googlemaps",
+      "url": "https://pypi.org/pypi/googlemaps/json",
+      "status": 200,
+      "latest": "4.10.0",
+      "source": "https://github.com/googlemaps/google-maps-services-python"
+    },
+    {
+      "provider": "google-maps",
+      "ecosystem": "go",
+      "name": "googlemaps.github.io/maps",
+      "url": "https://proxy.golang.org/googlemaps.github.io/maps/@latest",
+      "status": 200,
+      "latest": "v1.7.0",
+      "source": "https://github.com/googlemaps/google-maps-services-go"
+    },
+    {
+      "provider": "algolia",
+      "ecosystem": "pypi",
+      "name": "algoliasearch",
+      "url": "https://pypi.org/pypi/algoliasearch/json",
+      "status": 200,
+      "latest": "4.48.0",
+      "source": "https://github.com/algolia/algoliasearch-client-python"
+    },
+    {
+      "provider": "algolia",
+      "ecosystem": "go",
+      "name": "github.com/algolia/algoliasearch-client-go",
+      "url": "https://proxy.golang.org/github.com/algolia/algoliasearch-client-go/@latest",
+      "status": 200,
+      "latest": "v2.25.0+incompatible"
+    },
+    {
+      "provider": "algolia",
+      "ecosystem": "rubygems",
+      "name": "algolia",
+      "url": "https://rubygems.org/api/v1/gems/algolia.json",
+      "status": 200,
+      "latest": "3.46.1",
+      "source": "https://github.com/algolia/algoliasearch-client-ruby"
+    },
+    {
+      "provider": "hubspot",
+      "ecosystem": "pypi",
+      "name": "hubspot-api-client",
+      "url": "https://pypi.org/pypi/hubspot-api-client/json",
+      "status": 200,
+      "latest": "12.0.0",
+      "source": "https://github.com/HubSpot/hubspot-api-python"
+    },
+    {
+      "provider": "notion",
+      "ecosystem": "pypi",
+      "name": "notion-client",
+      "url": "https://pypi.org/pypi/notion-client/json",
+      "status": 200,
+      "latest": "3.1.0",
+      "source": "https://github.com/ramnes/notion-sdk-py"
+    },
+    {
+      "provider": "airtable",
+      "ecosystem": "pypi",
+      "name": "pyairtable",
+      "url": "https://pypi.org/pypi/pyairtable/json",
+      "status": 200,
+      "latest": "3.5.0.post1",
+      "source": "https://github.com/gtalarico/pyairtable"
+    },
+    {
+      "provider": "sentry",
+      "ecosystem": "pypi",
+      "name": "sentry-sdk",
+      "url": "https://pypi.org/pypi/sentry-sdk/json",
+      "status": 200,
+      "latest": "2.73.0",
+      "source": "https://github.com/getsentry/sentry-python/blob/master/CHANGELOG.md"
+    },
+    {
+      "provider": "sentry",
+      "ecosystem": "go",
+      "name": "github.com/getsentry/sentry-go",
+      "url": "https://proxy.golang.org/github.com/getsentry/sentry-go/@latest",
+      "status": 200,
+      "latest": "v0.50.0",
+      "source": "https://github.com/getsentry/sentry-go"
+    },
+    {
+      "provider": "sentry",
+      "ecosystem": "rubygems",
+      "name": "sentry-ruby",
+      "url": "https://rubygems.org/api/v1/gems/sentry-ruby.json",
+      "status": 200,
+      "latest": "7.1.0",
+      "source": "https://github.com/getsentry/sentry-ruby/tree/7.1.0/sentry-ruby"
+    },
+    {
+      "provider": "discord",
+      "ecosystem": "pypi",
+      "name": "discord.py",
+      "url": "https://pypi.org/pypi/discord.py/json",
+      "status": 200,
+      "latest": "2.7.1",
+      "source": "https://github.com/Rapptz/discord.py/issues"
+    },
+    {
+      "provider": "discord",
+      "ecosystem": "go",
+      "name": "github.com/bwmarrin/discordgo",
+      "url": "https://proxy.golang.org/github.com/bwmarrin/discordgo/@latest",
+      "status": 200,
+      "latest": "v0.29.0",
+      "source": "https://github.com/bwmarrin/discordgo"
+    },
+    {
+      "provider": "discord",
+      "ecosystem": "rubygems",
+      "name": "discordrb",
+      "url": "https://rubygems.org/api/v1/gems/discordrb.json",
+      "status": 200,
+      "latest": "3.8.0",
+      "source": "https://github.com/shardlab/discordrb"
+    },
+    {
+      "provider": "aws",
+      "ecosystem": "pypi",
+      "name": "boto3",
+      "url": "https://pypi.org/pypi/boto3/json",
+      "status": 200,
+      "latest": "1.43.119",
+      "source": "https://github.com/boto/boto3"
+    },
+    {
+      "provider": "aws",
+      "ecosystem": "pypi",
+      "name": "botocore",
+      "url": "https://pypi.org/pypi/botocore/json",
+      "status": 200,
+      "latest": "1.43.119",
+      "source": "https://github.com/boto/botocore"
+    },
+    {
+      "provider": "aws",
+      "ecosystem": "go",
+      "name": "github.com/aws/aws-sdk-go",
+      "url": "https://proxy.golang.org/github.com/aws/aws-sdk-go/@latest",
+      "status": 200,
+      "latest": "v1.55.8",
+      "source": "https://github.com/aws/aws-sdk-go"
+    },
+    {
+      "provider": "aws",
+      "ecosystem": "go",
+      "name": "github.com/aws/aws-sdk-go-v2",
+      "url": "https://proxy.golang.org/github.com/aws/aws-sdk-go-v2/@latest",
+      "status": 200,
+      "latest": "v1.47.4",
+      "source": "https://github.com/aws/aws-sdk-go-v2"
+    },
+    {
+      "provider": "aws",
+      "ecosystem": "rubygems",
+      "name": "aws-sdk",
+      "url": "https://rubygems.org/api/v1/gems/aws-sdk.json",
+      "status": 200,
+      "latest": "3.3.0",
+      "source": "https://github.com/aws/aws-sdk-ruby/tree/version-3/gems/aws-sdk"
+    },
+    {
+      "provider": "aws",
+      "ecosystem": "rubygems",
+      "name": "aws-sdk-core",
+      "url": "https://rubygems.org/api/v1/gems/aws-sdk-core.json",
+      "status": 200,
+      "latest": "3.261.0",
+      "source": "https://github.com/aws/aws-sdk-ruby/tree/version-3/gems/aws-sdk-core"
+    },
+    {
+      "provider": "aws",
+      "ecosystem": "rubygems",
+      "name": "aws-sdk-s3",
+      "url": "https://rubygems.org/api/v1/gems/aws-sdk-s3.json",
+      "status": 200,
+      "latest": "1.235.0",
+      "source": "https://github.com/aws/aws-sdk-ruby/tree/version-3/gems/aws-sdk-s3"
+    },
+    {
+      "provider": "mistral",
+      "ecosystem": "pypi",
+      "name": "mistralai",
+      "url": "https://pypi.org/pypi/mistralai/json",
+      "status": 200,
+      "latest": "3.5.0",
+      "source": "https://github.com/mistralai/client-python.git"
+    },
+    {
+      "provider": "cohere",
+      "ecosystem": "pypi",
+      "name": "cohere",
+      "url": "https://pypi.org/pypi/cohere/json",
+      "status": 200,
+      "latest": "7.3.0",
+      "source": "https://github.com/cohere-ai/cohere-python"
+    },
+    {
+      "provider": "groq",
+      "ecosystem": "pypi",
+      "name": "groq",
+      "url": "https://pypi.org/pypi/groq/json",
+      "status": 200,
+      "latest": "1.7.0",
+      "source": "https://github.com/groq/groq-python"
+    },
+    {
+      "provider": "replicate",
+      "ecosystem": "pypi",
+      "name": "replicate",
+      "url": "https://pypi.org/pypi/replicate/json",
+      "status": 200,
+      "latest": "1.0.7",
+      "source": "https://github.com/replicate/replicate-python"
+    },
+    {
+      "provider": "elevenlabs",
+      "ecosystem": "pypi",
+      "name": "elevenlabs",
+      "url": "https://pypi.org/pypi/elevenlabs/json",
+      "status": 200,
+      "latest": "2.74.1",
+      "source": "https://github.com/elevenlabs/elevenlabs-python"
+    },
+    {
+      "provider": "deepgram",
+      "ecosystem": "pypi",
+      "name": "deepgram-sdk",
+      "url": "https://pypi.org/pypi/deepgram-sdk/json",
+      "status": 200,
+      "latest": "7.15.0",
+      "source": "https://github.com/deepgram/deepgram-python-sdk"
+    },
+    {
+      "provider": "deepgram",
+      "ecosystem": "go",
+      "name": "github.com/deepgram/deepgram-go-sdk",
+      "url": "https://proxy.golang.org/github.com/deepgram/deepgram-go-sdk/@latest",
+      "status": 200,
+      "latest": "v1.9.0",
+      "source": "https://github.com/deepgram/deepgram-go-sdk"
+    },
+    {
+      "provider": "assemblyai",
+      "ecosystem": "pypi",
+      "name": "assemblyai",
+      "url": "https://pypi.org/pypi/assemblyai/json",
+      "status": 200,
+      "latest": "1.8.2",
+      "source": "https://github.com/AssemblyAI/assemblyai-python-sdk"
+    },
+    {
+      "provider": "huggingface",
+      "ecosystem": "pypi",
+      "name": "huggingface-hub",
+      "url": "https://pypi.org/pypi/huggingface-hub/json",
+      "status": 200,
+      "latest": "2.3.0",
+      "source": "https://github.com/huggingface/huggingface_hub"
+    },
+    {
+      "provider": "pinecone",
+      "ecosystem": "pypi",
+      "name": "pinecone",
+      "url": "https://pypi.org/pypi/pinecone/json",
+      "status": 200,
+      "latest": "10.2.0",
+      "source": "https://github.com/pinecone-io/python-sdk/issues"
+    },
+    {
+      "provider": "pinecone",
+      "ecosystem": "pypi",
+      "name": "pinecone-client",
+      "url": "https://pypi.org/pypi/pinecone-client/json",
+      "status": 200,
+      "latest": "6.0.0",
+      "source": "https://www.pinecone.io"
+    },
+    {
+      "provider": "pinecone",
+      "ecosystem": "go",
+      "name": "github.com/pinecone-io/go-pinecone",
+      "url": "https://proxy.golang.org/github.com/pinecone-io/go-pinecone/@latest",
+      "status": 200,
+      "latest": "v1.1.1",
+      "source": "https://github.com/pinecone-io/go-pinecone"
+    },
+    {
+      "provider": "upstash",
+      "ecosystem": "pypi",
+      "name": "upstash-redis",
+      "url": "https://pypi.org/pypi/upstash-redis/json",
+      "status": 200,
+      "latest": "1.8.0",
+      "source": "https://github.com/upstash/redis-python"
+    },
+    {
+      "provider": "posthog",
+      "ecosystem": "pypi",
+      "name": "posthog",
+      "url": "https://pypi.org/pypi/posthog/json",
+      "status": 200,
+      "latest": "7.75.11",
+      "source": "https://github.com/posthog/posthog-python"
+    },
+    {
+      "provider": "posthog",
+      "ecosystem": "go",
+      "name": "github.com/posthog/posthog-go",
+      "url": "https://proxy.golang.org/github.com/posthog/posthog-go/@latest",
+      "status": 200,
+      "latest": "v1.38.0",
+      "source": "https://github.com/posthog/posthog-go"
+    },
+    {
+      "provider": "posthog",
+      "ecosystem": "rubygems",
+      "name": "posthog-ruby",
+      "url": "https://rubygems.org/api/v1/gems/posthog-ruby.json",
+      "status": 200,
+      "latest": "3.28.4",
+      "source": "https://github.com/PostHog/posthog-ruby"
+    },
+    {
+      "provider": "mixpanel",
+      "ecosystem": "pypi",
+      "name": "mixpanel",
+      "url": "https://pypi.org/pypi/mixpanel/json",
+      "status": 200,
+      "latest": "5.4.1",
+      "source": "https://github.com/mixpanel/mixpanel-python"
+    },
+    {
+      "provider": "mixpanel",
+      "ecosystem": "rubygems",
+      "name": "mixpanel-ruby",
+      "url": "https://rubygems.org/api/v1/gems/mixpanel-ruby.json",
+      "status": 200,
+      "latest": "3.4.0",
+      "source": "https://github.com/mixpanel/mixpanel-ruby"
+    },
+    {
+      "provider": "amplitude",
+      "ecosystem": "pypi",
+      "name": "amplitude-analytics",
+      "url": "https://pypi.org/pypi/amplitude-analytics/json",
+      "status": 200,
+      "latest": "1.3.0",
+      "source": "https://github.com/amplitude/Amplitude-Python/issues"
+    },
+    {
+      "provider": "langfuse",
+      "ecosystem": "pypi",
+      "name": "langfuse",
+      "url": "https://pypi.org/pypi/langfuse/json",
+      "status": 200,
+      "latest": "5.0.4",
+      "source": "https://github.com/langfuse/langfuse-python/releases"
+    },
+    {
+      "provider": "langsmith",
+      "ecosystem": "pypi",
+      "name": "langsmith",
+      "url": "https://pypi.org/pypi/langsmith/json",
+      "status": 200,
+      "latest": "0.14.13",
+      "source": "https://github.com/langchain-ai/langsmith-python"
+    },
+    {
+      "provider": "vonage",
+      "ecosystem": "pypi",
+      "name": "vonage",
+      "url": "https://pypi.org/pypi/vonage/json",
+      "status": 200,
+      "latest": "4.9.1",
+      "source": "https://github.com/Vonage/vonage-python-sdk"
+    },
+    {
+      "provider": "vonage",
+      "ecosystem": "rubygems",
+      "name": "vonage",
+      "url": "https://rubygems.org/api/v1/gems/vonage.json",
+      "status": 200,
+      "latest": "7.36.0",
+      "source": "https://github.com/Vonage/vonage-ruby-sdk"
+    },
+    {
+      "provider": "pusher",
+      "ecosystem": "pypi",
+      "name": "pusher",
+      "url": "https://pypi.org/pypi/pusher/json",
+      "status": 200,
+      "latest": "3.3.4",
+      "source": "https://github.com/pusher/pusher-http-python"
+    },
+    {
+      "provider": "pusher",
+      "ecosystem": "rubygems",
+      "name": "pusher",
+      "url": "https://rubygems.org/api/v1/gems/pusher.json",
+      "status": 200,
+      "latest": "2.1.1",
+      "source": "https://github.com/pusher/pusher-http-ruby"
+    },
+    {
+      "provider": "pusher",
+      "ecosystem": "go",
+      "name": "github.com/pusher/pusher-http-go",
+      "url": "https://proxy.golang.org/github.com/pusher/pusher-http-go/@latest",
+      "status": 200,
+      "latest": "v3.0.0+incompatible"
+    },
+    {
+      "provider": "ably",
+      "ecosystem": "pypi",
+      "name": "ably",
+      "url": "https://pypi.org/pypi/ably/json",
+      "status": 200,
+      "latest": "3.1.4",
+      "source": "https://github.com/ably/ably-pubsub-python"
+    },
+    {
+      "provider": "ably",
+      "ecosystem": "rubygems",
+      "name": "ably",
+      "url": "https://rubygems.org/api/v1/gems/ably.json",
+      "status": 200,
+      "latest": "1.2.8",
+      "source": "http://github.com/ably/ably-ruby"
+    },
+    {
+      "provider": "ably",
+      "ecosystem": "go",
+      "name": "github.com/ably/ably-go",
+      "url": "https://proxy.golang.org/github.com/ably/ably-go/@latest",
+      "status": 200,
+      "latest": "v1.4.1",
+      "source": "https://github.com/ably/ably-go"
+    },
+    {
+      "provider": "mux",
+      "ecosystem": "pypi",
+      "name": "mux_python",
+      "url": "https://pypi.org/pypi/mux_python/json",
+      "status": 200,
+      "latest": "5.1.2",
+      "source": "https://github.com/muxinc/mux-python"
+    },
+    {
+      "provider": "datadog",
+      "ecosystem": "pypi",
+      "name": "datadog-api-client",
+      "url": "https://pypi.org/pypi/datadog-api-client/json",
+      "status": 200,
+      "latest": "2.62.0",
+      "source": "https://github.com/DataDog/datadog-api-client-python/issues"
+    },
+    {
+      "provider": "datadog",
+      "ecosystem": "pypi",
+      "name": "datadog",
+      "url": "https://pypi.org/pypi/datadog/json",
+      "status": 200,
+      "latest": "0.55.0",
+      "source": "https://github.com/DataDog/datadogpy/issues"
+    },
+    {
+      "provider": "datadog",
+      "ecosystem": "go",
+      "name": "github.com/DataDog/datadog-api-client-go",
+      "url": "https://proxy.golang.org/github.com/datadog/datadog-api-client-go/@latest",
+      "status": 200,
+      "latest": "v1.16.0"
+    },
+    {
+      "provider": "new-relic",
+      "ecosystem": "pypi",
+      "name": "newrelic",
+      "url": "https://pypi.org/pypi/newrelic/json",
+      "status": 200,
+      "latest": "14.1.0",
+      "source": "https://github.com/newrelic/newrelic-python-agent"
+    },
+    {
+      "provider": "new-relic",
+      "ecosystem": "rubygems",
+      "name": "newrelic_rpm",
+      "url": "https://rubygems.org/api/v1/gems/newrelic_rpm.json",
+      "status": 200,
+      "latest": "10.9.1",
+      "source": "https://github.com/newrelic/newrelic-ruby-agent"
+    },
+    {
+      "provider": "new-relic",
+      "ecosystem": "go",
+      "name": "github.com/newrelic/go-agent",
+      "url": "https://proxy.golang.org/github.com/newrelic/go-agent/@latest",
+      "status": 200,
+      "latest": "v3.45.0+incompatible",
+      "source": "https://github.com/newrelic/go-agent"
+    },
+    {
+      "provider": "exa",
+      "ecosystem": "pypi",
+      "name": "exa-py",
+      "url": "https://pypi.org/pypi/exa-py/json",
+      "status": 200,
+      "latest": "2.26.0",
+      "source": null
+    },
+    {
+      "provider": "tavily",
+      "ecosystem": "pypi",
+      "name": "tavily-python",
+      "url": "https://pypi.org/pypi/tavily-python/json",
+      "status": 200,
+      "latest": "0.8.5",
+      "source": "https://github.com/tavily-ai/tavily-python"
+    },
+    {
+      "provider": "firecrawl",
+      "ecosystem": "pypi",
+      "name": "firecrawl-py",
+      "url": "https://pypi.org/pypi/firecrawl-py/json",
+      "status": 200,
+      "latest": "4.54.0",
+      "source": "https://github.com/firecrawl/firecrawl"
+    },
+    {
+      "provider": "voyage",
+      "ecosystem": "pypi",
+      "name": "voyageai",
+      "url": "https://pypi.org/pypi/voyageai/json",
+      "status": 200,
+      "latest": "0.5.0",
+      "source": null
+    }
+  ]
+}

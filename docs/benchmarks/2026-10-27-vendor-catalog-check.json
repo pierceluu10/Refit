@@ -1,0 +1,1408 @@
+{
+  "formatVersion": 1,
+  "checkedAt": "2026-10-27T10:21:21.216Z",
+  "checks": [
+    {
+      "vendor": "stripe",
+      "kind": "envVars",
+      "subject": "https://raw.githubusercontent.com/stripe-samples/accept-a-payment/main/.env.example",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "stripe",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
+      "ok": true,
+      "hash": "7cff4cc46d0654101a36a3302f7544640f5f73e4f3cad6f264f0e23c19fa1776",
+      "bytes": 8317513
+    },
+    {
+      "vendor": "stripe",
+      "kind": "documentation",
+      "subject": "https://docs.stripe.com/changelog.md",
+      "ok": true,
+      "hash": "5f8e62eb38ee7a8ce0aece36a7d6b7f2bc738a3066519a1eb47520e3b531f3ac",
+      "contentType": "text/markdown"
+    },
+    {
+      "vendor": "openai",
+      "kind": "envVars",
+      "subject": "https://registry.npmjs.org/openai",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "openai",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml",
+      "ok": true,
+      "hash": "d74d98b317790803fbb8b670012a923d820aa49393eab29540839f86e1ea84f8",
+      "bytes": 4218126
+    },
+    {
+      "vendor": "openai",
+      "kind": "documentation",
+      "subject": "https://developers.openai.com/api/docs/changelog",
+      "ok": true,
+      "hash": "94bc930ec93e2c9cf0a6baf80edb08378150d81b7bd1d4ab7d2cd1c9fc26fc1d",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "anthropic",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@anthropic-ai/sdk@1.3.0/client.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "anthropic",
+      "kind": "documentation",
+      "subject": "https://platform.claude.com/docs/en/release-notes/overview.md",
+      "ok": true,
+      "hash": "affb0cceb17d417125986af10eeb2c2620668a670a0565a7f0b1ce859e345906",
+      "contentType": "text/markdown"
+    },
+    {
+      "vendor": "gemini",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@google/genai@2.31.0/dist/node/index.cjs",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "gemini",
+      "kind": "documentation",
+      "subject": "https://ai.google.dev/gemini-api/docs/changelog",
+      "ok": true,
+      "hash": "4119ed959757a07d8dde1548040b678fae303ea03340b53c158d06374a904088",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "shopify",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@shopify/shopify-app-remix@6.0.2/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "shopify",
+      "kind": "documentation",
+      "subject": "https://shopify.dev/changelog",
+      "ok": true,
+      "hash": "80bb15a304639f7ae340859cad6f9daced981c417e91da2545f882b9b183dcd0",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "meta-graph",
+      "kind": "documentation",
+      "subject": "https://developers.facebook.com/docs/graph-api/changelog",
+      "ok": true,
+      "hash": "c6733f4c98b2d04be59053821d96058d0bc73a6560694318d7e850d3b4760e11",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "github",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json",
+      "ok": true,
+      "hash": "3177ad6a86ca04c57a9bef3fc24e28a339efb8eb040c6f950af3d3ed2fee7fa3",
+      "bytes": 13502446
+    },
+    {
+      "vendor": "github",
+      "kind": "documentation",
+      "subject": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+      "ok": true,
+      "hash": "d64c06cd98b9cbd010056ddbb75157860bbf164e5080bdb7c43308416c322b33",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "twilio",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/twilio@6.2.0/lib/base/BaseTwilio.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "twilio",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_api_v2010.json",
+      "ok": true,
+      "hash": "bfdf249a129819af274d6bdc7672156ea3416ad48670a6f0544def6ef386ba87",
+      "bytes": 1878657
+    },
+    {
+      "vendor": "twilio",
+      "kind": "documentation",
+      "subject": "https://www.twilio.com/en-us/changelog",
+      "ok": true,
+      "hash": "5eab37be2d954005ac88b0f99cb579013af8305bc5a983e59ae8a70f4a2c7dee",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "sendgrid",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@sendgrid/mail@8.1.6/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "sendgrid",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/twilio/sendgrid-oai/main/spec/json/tsg_mail_v3.json",
+      "ok": true,
+      "hash": "4ba24d0feb8a6b347f60528161d1cf0e7591987d2b3a64a6533685dc2b39d19f",
+      "bytes": 54706
+    },
+    {
+      "vendor": "resend",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/resend@6.34.1/dist/index.cjs",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "resend",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/resend/resend-openapi/main/resend.yaml",
+      "ok": true,
+      "hash": "4e77ff7fb4d4dafe04e6fc007f1780d66d31a56a409d592568b61bb6bd70500f",
+      "bytes": 372505
+    },
+    {
+      "vendor": "resend",
+      "kind": "documentation",
+      "subject": "https://resend.com/changelog",
+      "ok": true,
+      "hash": "0bb1aecf13c019a6762566f32a54698a270a2a09882f074303333d9c421e8b7b",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "postmark",
+      "kind": "documentation",
+      "subject": "https://postmarkapp.com/updates",
+      "ok": true,
+      "hash": "e9f1a39d0151e45ea2ba967c0a271b6667df70a0d3b90f6c93f2e8c506f2eb18",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "mailgun",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/mailgun.js@14.1.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "paypal",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/paypal/paypal-rest-api-specifications/main/openapi/checkout_orders_v2.json",
+      "ok": true,
+      "hash": "14db0b9e0d7440e38595b823724599edc7ab8b7a2b41ac442463e81b7d477fd6",
+      "bytes": 971284
+    },
+    {
+      "vendor": "slack",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@slack/bolt@5.1.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "slack",
+      "kind": "documentation",
+      "subject": "https://docs.slack.dev/changelog/",
+      "ok": true,
+      "hash": "13eec02afbe3bfb04d043632105dc77f085ec72ae3d6c1b6c5c277fc0bf87473",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "cloudflare",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/cloudflare@7.3.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "cloudflare",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/cloudflare/api-schemas/main/openapi.json",
+      "ok": true,
+      "hash": "5cce9a4aa0bfd47dbb7b21b2be28dc8b6ab250a9613ef012089adbc64ed9ce4b",
+      "bytes": 27649720
+    },
+    {
+      "vendor": "cloudflare",
+      "kind": "documentation",
+      "subject": "https://developers.cloudflare.com/fundamentals/api/reference/deprecations/",
+      "ok": true,
+      "hash": "eef22d45b70c5b93a775a862245895bb350cf2907536a2d92ccebd2040d478ad",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "auth0",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@auth0/nextjs-auth0@4.33.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "clerk",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@clerk/backend@3.26.3/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "clerk",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@clerk/nextjs@7.9.21/dist/types/types.d.ts",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "clerk",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/clerk/openapi-specs/main/bapi/2025-04-10.yml",
+      "ok": true,
+      "hash": "15286249c932371ab4d8564d6c71dd379a53f8bd95fcdd0b5d0c977f1085ce25",
+      "bytes": 686034
+    },
+    {
+      "vendor": "clerk",
+      "kind": "documentation",
+      "subject": "https://clerk.com/changelog",
+      "ok": true,
+      "hash": "30460a50ab56da92f29865b03b3f34abc781eddea817e96f08d1be47af81c0f7",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "supabase",
+      "kind": "envVars",
+      "subject": "https://raw.githubusercontent.com/supabase/supabase/master/examples/auth/nextjs/.env.example",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "supabase",
+      "kind": "specification",
+      "subject": "https://api.supabase.com/api/v1-json",
+      "ok": true,
+      "hash": "b11f3b59dc07831121b972f6234996aba9eb5fcaa89c39c1ce359e4cad2e146c",
+      "bytes": 350921
+    },
+    {
+      "vendor": "supabase",
+      "kind": "documentation",
+      "subject": "https://supabase.com/changelog",
+      "ok": true,
+      "hash": "22db7926dec89dfca983b0a2284149993a3317d7b30d419b35f20e80768018a0",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "plaid",
+      "kind": "envVars",
+      "subject": "https://raw.githubusercontent.com/plaid/quickstart/master/.env.example",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "plaid",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/plaid/plaid-openapi/master/2020-09-14.yml",
+      "ok": true,
+      "hash": "ea443cd78f6f6bb648c6f0c13f4b00095c3520dcaf45fc7930c36594227a43ee",
+      "bytes": 3287800
+    },
+    {
+      "vendor": "plaid",
+      "kind": "documentation",
+      "subject": "https://plaid.com/docs/changelog/",
+      "ok": true,
+      "hash": "e9fbbf1392609b3a2351d95fb6592d05a52a1b590d3bf01ae60976fcda358a77",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "square",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/square/connect-api-specification/master/api.json",
+      "ok": true,
+      "hash": "8f65460732e19d7445f7a34d8a9df09163db45273df5176a1cc794890ef591fb",
+      "bytes": 3273134
+    },
+    {
+      "vendor": "square",
+      "kind": "documentation",
+      "subject": "https://developer.squareup.com/docs/changelog/connect",
+      "ok": true,
+      "hash": "bd5c0322ac3e2d26877454c497ec0fd893a4ad5f5d710c5930b81e98b4b6dc7c",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "adyen",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/Adyen/adyen-openapi/main/json/CheckoutService-v71.json",
+      "ok": true,
+      "hash": "f7760968bed1b5816199d516aad22229b8b170d486b842751c18e0d3f961a9b4",
+      "bytes": 937645
+    },
+    {
+      "vendor": "lob",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/lob/lob-openapi/main/dist/lob-api-bundled.yml",
+      "ok": true,
+      "hash": "dd725a9f981b653e3a35068ad95a1f83ede3a7c00a73f7cea2b37cfb30fed2f6",
+      "bytes": 994103
+    },
+    {
+      "vendor": "google-maps",
+      "kind": "documentation",
+      "subject": "https://developers.google.com/maps/documentation/places/web-service/release-notes",
+      "ok": true,
+      "hash": "853d4482855f1f7625f14b8cb6613035f8bff54ec2e010aff2edeea272aa147f",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "algolia",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/algolia/api-clients-automation/main/specs/bundled/search.yml",
+      "ok": true,
+      "hash": "c7c58735e2f525fa014f5606acebb339e1962e7f1f3016c8f0d09673a09b9276",
+      "bytes": 306545
+    },
+    {
+      "vendor": "hubspot",
+      "kind": "documentation",
+      "subject": "https://developers.hubspot.com/changelog",
+      "ok": true,
+      "hash": "52f11e32e54ac7f42d5dab1cc0ee9b07b7ebca73b071ce56fabd887af0027a77",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "intercom",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/intercom/Intercom-OpenAPI/main/descriptions/2.11/api.intercom.io.yaml",
+      "ok": true,
+      "hash": "0624d034b3fd096e99efba8e968243c9a2820d0c05c709a0b5cc5fe3227dc92f",
+      "bytes": 711536
+    },
+    {
+      "vendor": "notion",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@notionhq/client@5.28.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "notion",
+      "kind": "documentation",
+      "subject": "https://developers.notion.com/page/changelog",
+      "ok": true,
+      "hash": "065aa7cfbd7f07717b22dab7bca85fc247d7587ecdf1fae916d43b2a64793c60",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "airtable",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/airtable@0.12.2/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "sentry",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@sentry/node@11.9.0/build/cjs/sdk/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "sentry",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/getsentry/sentry-api-schema/main/openapi-derefed.json",
+      "ok": true,
+      "hash": "372657f0c9e412c28c67835bc70f0bec13930f3a1aad5de8cc3d8aff672d0e86",
+      "bytes": 4473927
+    },
+    {
+      "vendor": "discord",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/discord.js@14.27.0/src/client/Client.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "discord",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/discord/discord-api-spec/main/specs/openapi.json",
+      "ok": true,
+      "hash": "f1fd407f798bc011c0031b9222fc0b21e80b2bb28987f5ed0b35d5c041630dee",
+      "bytes": 1195038
+    },
+    {
+      "vendor": "aws",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/aws-sdk@2.1693.0/lib/credentials/environment_credentials.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "mistral",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@mistralai/mistralai@3.3.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "mistral",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@mistralai/mistralai@3.3.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "mistral",
+      "kind": "npm",
+      "subject": "@mistralai/mistralai",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "mistral",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/mistralai/platform-docs-public/main/openapi.yaml",
+      "ok": true,
+      "hash": "60f5e92dcc4cae89a1c1eec614c409a1ce9da37f1e856d2868ff6734474f5859",
+      "bytes": 661948
+    },
+    {
+      "vendor": "cohere",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/cohere-ai@8.3.0/auth/BearerAuthProvider.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "cohere",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/cohere-ai@8.3.0/environments.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "cohere",
+      "kind": "npm",
+      "subject": "cohere-ai",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "cohere",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/cohere-ai/cohere-developer-experience/main/cohere-openapi.yaml",
+      "ok": true,
+      "hash": "25184037512d4149d2e2ded604bcf00d748a8fe23f979534020a9f0036fd2e71",
+      "bytes": 1140155
+    },
+    {
+      "vendor": "groq",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@ai-sdk/groq@4.0.71/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "groq",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/groq-sdk@1.6.0/client.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "groq",
+      "kind": "npm",
+      "subject": "groq-sdk",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "groq",
+      "kind": "npm",
+      "subject": "@ai-sdk/groq",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "groq",
+      "kind": "documentation",
+      "subject": "https://console.groq.com/docs/changelog",
+      "ok": true,
+      "hash": "2315492b51c2c27acf19718f345638ec37600ca2584ca605e7de1c2e32a5cb89",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "replicate",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/replicate@1.4.0/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "replicate",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/replicate@1.4.0/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "replicate",
+      "kind": "npm",
+      "subject": "replicate",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "replicate",
+      "kind": "specification",
+      "subject": "https://api.replicate.com/openapi.json",
+      "ok": true,
+      "hash": "4500bf86453ef1ab65a9e133929ce97f468cff9aa62ab7512d00fd588abb8b39",
+      "bytes": 92838
+    },
+    {
+      "vendor": "replicate",
+      "kind": "documentation",
+      "subject": "https://replicate.com/changelog",
+      "ok": true,
+      "hash": "d8b58b1d1b7a509b422c5d1d56e04c8c51721abe248b3f30bec06afd8d1ca57b",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "openrouter",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@openrouter/ai-sdk-provider@3.1.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "openrouter",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@openrouter/ai-sdk-provider@3.1.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "openrouter",
+      "kind": "npm",
+      "subject": "@openrouter/ai-sdk-provider",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "openrouter",
+      "kind": "npm",
+      "subject": "@openrouter/sdk",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "openrouter",
+      "kind": "specification",
+      "subject": "https://openrouter.ai/openapi.json",
+      "ok": true,
+      "hash": "d5d04a41741dbe2586c1ff7dc219418cecfb2f346af7108b36c7541834d0160f",
+      "bytes": 2537983
+    },
+    {
+      "vendor": "deepseek",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@ai-sdk/deepseek@3.0.74/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "deepseek",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@ai-sdk/deepseek@3.0.74/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "deepseek",
+      "kind": "npm",
+      "subject": "@ai-sdk/deepseek",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "deepseek",
+      "kind": "documentation",
+      "subject": "https://api-docs.deepseek.com/updates",
+      "ok": true,
+      "hash": "564a756ad971466c1f4066b221c5d95b232fbec1cca29f0a97d3df3c1fc84587",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "xai",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@ai-sdk/xai@5.0.31/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "xai",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@ai-sdk/xai@5.0.31/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "xai",
+      "kind": "npm",
+      "subject": "@ai-sdk/xai",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "perplexity",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@ai-sdk/perplexity@5.0.21/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "perplexity",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@ai-sdk/perplexity@5.0.21/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "perplexity",
+      "kind": "npm",
+      "subject": "@ai-sdk/perplexity",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "perplexity",
+      "kind": "npm",
+      "subject": "@perplexity-ai/perplexity_ai",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "elevenlabs",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@elevenlabs/elevenlabs-js@2.74.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "elevenlabs",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@elevenlabs/elevenlabs-js@2.74.0/reference.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "elevenlabs",
+      "kind": "npm",
+      "subject": "@elevenlabs/elevenlabs-js",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "elevenlabs",
+      "kind": "npm",
+      "subject": "elevenlabs",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "elevenlabs",
+      "kind": "specification",
+      "subject": "https://api.elevenlabs.io/openapi.json",
+      "ok": true,
+      "hash": "7e6397600c64048a798e120073ae3e9e7f2d8bb684f0c75eb4a5602f89b149fe",
+      "bytes": 2341628
+    },
+    {
+      "vendor": "deepgram",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@deepgram/sdk@5.16.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "deepgram",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@deepgram/sdk@5.16.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "deepgram",
+      "kind": "npm",
+      "subject": "@deepgram/sdk",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "assemblyai",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/assemblyai@4.42.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "assemblyai",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/assemblyai@4.42.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "assemblyai",
+      "kind": "npm",
+      "subject": "assemblyai",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "huggingface",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@huggingface/inference@4.13.32/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "huggingface",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@huggingface/inference@4.13.32/src/types.ts",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "huggingface",
+      "kind": "npm",
+      "subject": "@huggingface/inference",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "huggingface",
+      "kind": "npm",
+      "subject": "@huggingface/hub",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "pinecone",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@pinecone-database/pinecone@9.1.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "pinecone",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@pinecone-database/pinecone@9.1.0/dist/admin/tokenProvider.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "pinecone",
+      "kind": "npm",
+      "subject": "@pinecone-database/pinecone",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "upstash",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@upstash/redis@1.40.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "upstash",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@upstash/qstash@2.12.1/h3.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "upstash",
+      "kind": "npm",
+      "subject": "@upstash/redis",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "upstash",
+      "kind": "npm",
+      "subject": "@upstash/ratelimit",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "upstash",
+      "kind": "npm",
+      "subject": "@upstash/qstash",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "upstash",
+      "kind": "npm",
+      "subject": "@upstash/vector",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "neon",
+      "kind": "hostnames",
+      "subject": "https://neon.com/api_spec/release/v2.json",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "neon",
+      "kind": "npm",
+      "subject": "@neondatabase/serverless",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "neon",
+      "kind": "specification",
+      "subject": "https://neon.com/api_spec/release/v2.json",
+      "ok": true,
+      "hash": "7b9cad8e4ca2fadfef3732e6b0a7059f9661ba213cf66ce806b65ea29fe3f3fe",
+      "bytes": 913308
+    },
+    {
+      "vendor": "vercel",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@vercel/blob@2.8.2/dist/client.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "vercel",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/vercel@65.4.0/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "vercel",
+      "kind": "npm",
+      "subject": "@vercel/analytics",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "vercel",
+      "kind": "npm",
+      "subject": "@vercel/blob",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "vercel",
+      "kind": "npm",
+      "subject": "@vercel/kv",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "vercel",
+      "kind": "npm",
+      "subject": "@vercel/postgres",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "vercel",
+      "kind": "npm",
+      "subject": "@vercel/speed-insights",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "vercel",
+      "kind": "npm",
+      "subject": "@vercel/edge-config",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "vercel",
+      "kind": "specification",
+      "subject": "https://openapi.vercel.sh/",
+      "ok": true,
+      "hash": "891a059ce001de395d9dc0e17badc1e52e10c79dce0feaa8377623d7392addc4",
+      "bytes": 11927273
+    },
+    {
+      "vendor": "vercel",
+      "kind": "documentation",
+      "subject": "https://vercel.com/changelog",
+      "ok": true,
+      "hash": "ef131787cd70712a188f9546f889cf283c7916744644298d3d490dd713efe0c6",
+      "contentType": "text/html"
+    },
+    {
+      "vendor": "posthog",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/posthog-node@5.57.2/src/client.ts",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "posthog",
+      "kind": "npm",
+      "subject": "posthog-js",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "posthog",
+      "kind": "npm",
+      "subject": "posthog-node",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "mixpanel",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/mixpanel@0.24.0/lib/flags/types.d.ts",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "mixpanel",
+      "kind": "npm",
+      "subject": "mixpanel",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "mixpanel",
+      "kind": "npm",
+      "subject": "mixpanel-browser",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "amplitude",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@amplitude/analytics-core@2.61.0/lib/cjs/config.d.ts",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "amplitude",
+      "kind": "npm",
+      "subject": "@amplitude/analytics-browser",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "amplitude",
+      "kind": "npm",
+      "subject": "@amplitude/analytics-node",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "langfuse",
+      "kind": "envVars",
+      "subject": "https://pypi.org/pypi/langfuse/json",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "langfuse",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/langfuse@3.39.2/lib/index.mjs",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "langfuse",
+      "kind": "npm",
+      "subject": "langfuse",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "langfuse",
+      "kind": "npm",
+      "subject": "@langfuse/client",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "langfuse",
+      "kind": "npm",
+      "subject": "@langfuse/tracing",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "langsmith",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/langsmith@0.11.1/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "langsmith",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/langsmith@0.11.1/lib/run_trees.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "langsmith",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/langsmith@0.11.1/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "langsmith",
+      "kind": "npm",
+      "subject": "langsmith",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "linear",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@linear/sdk@99.0.0/dist/index.mjs",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "linear",
+      "kind": "npm",
+      "subject": "@linear/sdk",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "vonage",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@vonage/server-client@1.23.1/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "vonage",
+      "kind": "npm",
+      "subject": "@vonage/server-sdk",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "pusher",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/pusher@5.3.4/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "pusher",
+      "kind": "npm",
+      "subject": "pusher",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "pusher",
+      "kind": "npm",
+      "subject": "pusher-js",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "ably",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/ably@2.30.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "ably",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/ably@2.30.0/build/ably.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "ably",
+      "kind": "npm",
+      "subject": "ably",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "mux",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@mux/mux-node@15.5.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "mux",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@mux/mux-node@15.5.0/client.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "mux",
+      "kind": "npm",
+      "subject": "@mux/mux-node",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "datadog",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@datadog/datadog-api-client@1.64.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "datadog",
+      "kind": "hostnames",
+      "subject": "https://raw.githubusercontent.com/DataDog/datadog-api-client-typescript/master/.generator/schemas/v2/openapi.yaml",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "datadog",
+      "kind": "npm",
+      "subject": "@datadog/datadog-api-client",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "datadog",
+      "kind": "npm",
+      "subject": "@datadog/browser-rum",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "datadog",
+      "kind": "npm",
+      "subject": "@datadog/browser-logs",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "datadog",
+      "kind": "specification",
+      "subject": "https://raw.githubusercontent.com/DataDog/datadog-api-client-typescript/master/.generator/schemas/v2/openapi.yaml",
+      "ok": true,
+      "hash": "25b5f762c34350c3e736a8df4994d82c0fbcc1a16ad248b0240cbe3b01a6604c",
+      "bytes": 9222589
+    },
+    {
+      "vendor": "new-relic",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/newrelic@14.9.0/lib/agent.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "new-relic",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/newrelic@14.9.0/lib/config/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "new-relic",
+      "kind": "npm",
+      "subject": "newrelic",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "new-relic",
+      "kind": "npm",
+      "subject": "@newrelic/browser-agent",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "exa",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/exa-js@2.26.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "exa",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/exa-js@2.26.0/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "exa",
+      "kind": "npm",
+      "subject": "exa-js",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "tavily",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@tavily/core@0.7.14/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "tavily",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@tavily/core@0.7.14/dist/index.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "tavily",
+      "kind": "npm",
+      "subject": "@tavily/core",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "firecrawl",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/@mendable/firecrawl-js@4.51.0/README.md",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "firecrawl",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/@mendable/firecrawl-js@4.51.0/.env.example",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "firecrawl",
+      "kind": "npm",
+      "subject": "@mendable/firecrawl-js",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "vendor": "voyage",
+      "kind": "envVars",
+      "subject": "https://unpkg.com/voyageai@0.4.0/dist/cjs/auth/BearerAuthProvider.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "voyage",
+      "kind": "hostnames",
+      "subject": "https://unpkg.com/voyageai@0.4.0/dist/cjs/environments.js",
+      "status": 200,
+      "ok": true,
+      "missing": []
+    },
+    {
+      "vendor": "voyage",
+      "kind": "npm",
+      "subject": "voyageai",
+      "ok": true,
+      "status": 200
+    }
+  ]
+}

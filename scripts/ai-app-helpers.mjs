@@ -194,7 +194,8 @@ export function checkoutDirectory(root, repo) {
 }
 
 // Shallow fetch of one commit into <root>/<owner>__<name>; nothing in it is installed or run.
-export async function shallowCheckout(root, repo, sha) {
+// `host` is github.com unless a frozen list records another forge (gitlab.com).
+export async function shallowCheckout(root, repo, sha, host = 'github.com') {
   if (!validRepoName(repo)) throw new Error('Invalid repository name.');
   if (!validSha(sha)) throw new Error('Invalid commit SHA.');
   const directory = checkoutDirectory(root, repo);
@@ -212,7 +213,7 @@ export async function shallowCheckout(root, repo, sha) {
     await execute('git', ['init', '-q', directory]);
     await execute(
       'git',
-      ['-C', directory, 'fetch', '-q', '--depth', '1', `https://github.com/${repo}`, sha],
+      ['-C', directory, 'fetch', '-q', '--depth', '1', `https://${host}/${repo}`, sha],
       { timeout: 300_000, env },
     );
     await execute('git', ['-C', directory, 'checkout', '-q', 'FETCH_HEAD'], { env });

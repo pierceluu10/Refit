@@ -2,7 +2,14 @@ import { lstat, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-compiler';
-import { detectProviders } from './agent-catalog.ts';
+import {
+  AGENT_CATALOG,
+  scanProviders,
+  vendorStatus,
+  vendorWatch,
+  type VendorStatus,
+  type VendorWatch,
+} from './agent-catalog.ts';
 import { analyzeRepository } from './analyzer.ts';
 import {
   configuredIntegrations,
@@ -26,8 +33,11 @@ import { readRepository } from './repository.ts';
 import { confirmRepositoryAccess } from './service-worker.ts';
 import { digest, isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
+import type { VendorReference } from './vendor-references.ts';
 
-export const INVENTORY_FORMAT_VERSION = 1;
+// Version 2 adds each provider's status, watch target and environment or non-JS/TS hostname
+// references, and the vendor scan's extent.
+export const INVENTORY_FORMAT_VERSION = 2;
 const KILOBYTE = 1024;
 const MILLISECONDS_PER_SECOND = 1000;
 const REVISION = /^[a-f0-9]{40}$/;
@@ -92,9 +102,13 @@ export interface Inventory {
     name: string;
     // Whether Refit ships a reviewed agent for this provider.
     agent: boolean;
+    status: VendorStatus;
+    watch: VendorWatch;
     packages: { file: string; name: string; version: string; locked: string | null }[];
     hostnames: { file: string; line: number; hostname: string }[];
+    references: VendorReference[];
   }[];
+  vendorScan: { files: number; truncated: boolean };
   integrations: Awaited<ReturnType<typeof configuredIntegrations>>;
   // Stripe API versions the code pins on its clients or requests: literal, or `unknown` when
   // computed. Requests that inherit their client's version are left out.
@@ -217,10 +231,11 @@ export async function scanInventory(
   now: Date,
   signal?: AbortSignal,
 ): Promise<Inventory> {
-  const detections = await detectProviders(directory);
+  const { detections, vendorScan } = await scanProviders(directory);
   signal?.throwIfAborted();
   const detected = new Set(detections.map((detection) => detection.agent.id));
   const integrations = await configuredIntegrations(directory);
+  const configured = new Set(integrations.map((integration) => integration.agent));
   const deadlines = await scanDeadlines(directory, registry, now);
   let ignores: Inventory['ignores'];
   try {
@@ -239,13 +254,17 @@ export async function scanInventory(
   signal?.throwIfAborted();
   return {
     formatVersion: INVENTORY_FORMAT_VERSION,
-    providers: detections.map(({ agent, packages, hostnames }) => ({
-      id: agent.id,
-      name: agent.name,
-      agent: agent.adapter !== null,
-      packages,
-      hostnames,
+    providers: detections.map((detection) => ({
+      id: detection.agent.id,
+      name: detection.agent.name,
+      agent: detection.agent.adapter !== null,
+      status: vendorStatus(detection, configured.has(detection.agent.id)),
+      watch: vendorWatch(detection.agent),
+      packages: detection.packages,
+      hostnames: detection.hostnames,
+      references: detection.references,
     })),
+    vendorScan,
     integrations,
     apiVersions: apiVersions.flatMap(({ file, line, kind, value, status }) =>
       status === 'inherited'
@@ -340,6 +359,13 @@ export async function defaultRevision(
 export function inventorySummary(inventory: Inventory) {
   return {
     providers: inventory.providers.map((provider) => provider.id),
+    // Inventories before format 2 have no status or watch; they show as null until re-scanned.
+    vendors: inventory.providers.map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      status: provider.status ?? null,
+      watched: provider.watch ? provider.watch.status === 'watched' : null,
+    })),
     deadlines: inventory.deadlines.exposures.map((exposure) => ({
       id: exposure.deadline.id,
       date: exposure.deadline.date,
@@ -352,8 +378,12 @@ export function inventorySummary(inventory: Inventory) {
   };
 }
 
+// What a stored inventory was matched against: the deadline registry, the vendor catalog and the
+// inventory format, so a catalog or format change scans an unchanged revision again.
 export function registryDigest(registry: DeadlineRegistry) {
-  return digest(JSON.stringify(registry));
+  return digest(
+    JSON.stringify({ registry, catalog: AGENT_CATALOG, format: INVENTORY_FORMAT_VERSION }),
+  );
 }
 
 // Takes a read-only inventory of an installed repository's default branch from a fresh

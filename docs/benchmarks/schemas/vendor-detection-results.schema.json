@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Install-time vendor detection scored against labelled repositories",
+  "description": "Written by `node scripts/vendor-detection-benchmark.mjs`: each labelled repository cloned at its labelled commit and scanned with scanProviders (pipeline/agent-catalog.ts), compared with docs/benchmarks/2026-10-27-vendor-detection-labels.json. Uncertain labelled pairs count neither for nor against detection. See docs/INVENTORY.md#vendor-detection.",
+  "type": "object",
+  "required": ["formatVersion", "commit", "labels", "scannedAt", "scores", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "commit": { "$ref": "common.schema.json#/$defs/commit" },
+    "labels": { "type": "string", "minLength": 1 },
+    "scannedAt": { "$ref": "common.schema.json#/$defs/time" },
+    "scores": {
+      "type": "object",
+      "required": ["all", "heldOut", "b"],
+      "additionalProperties": false,
+      "properties": {
+        "all": { "$ref": "#/$defs/score" },
+        "heldOut": { "$ref": "#/$defs/score" },
+        "b": { "$ref": "#/$defs/score" }
+      }
+    },
+    "rows": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/row" } }
+  },
+  "$defs": {
+    "ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "ratio": { "type": ["number", "null"], "minimum": 0 },
+    "score": {
+      "type": "object",
+      "required": [
+        "repositories",
+        "truePositives",
+        "falsePositives",
+        "missedInCatalog",
+        "labelledOutsideCatalog",
+        "precision",
+        "recallCatalogVendors",
+        "recallAllVendors"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "repositories": { "type": "integer", "minimum": 0 },
+        "truePositives": { "type": "integer", "minimum": 0 },
+        "falsePositives": { "type": "integer", "minimum": 0 },
+        "missedInCatalog": { "type": "integer", "minimum": 0 },
+        "labelledOutsideCatalog": { "type": "integer", "minimum": 0 },
+        "precision": { "$ref": "#/$defs/ratio" },
+        "recallCatalogVendors": { "$ref": "#/$defs/ratio" },
+        "recallAllVendors": { "$ref": "#/$defs/ratio" }
+      }
+    },
+    "row": {
+      "type": "object",
+      "required": [
+        "repository",
+        "batch",
+        "detected",
+        "truePositives",
+        "falsePositives",
+        "missedInCatalog",
+        "missedOutsideCatalog",
+        "vendorScan",
+        "evidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "repository": { "$ref": "common.schema.json#/$defs/repo" },
+        "batch": { "enum": ["a", "b"] },
+        "detected": { "$ref": "#/$defs/ids" },
+        "truePositives": { "$ref": "#/$defs/ids" },
+        "falsePositives": { "$ref": "#/$defs/ids" },
+        "missedInCatalog": { "$ref": "#/$defs/ids" },
+        "missedOutsideCatalog": { "$ref": "#/$defs/ids" },
+        "vendorScan": {
+          "type": "object",
+          "required": ["files", "truncated"],
+          "additionalProperties": false,
+          "properties": {
+            "files": { "type": "integer", "minimum": 0 },
+            "truncated": { "type": "boolean" }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

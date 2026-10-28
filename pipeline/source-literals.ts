@@ -3,8 +3,8 @@ import { sourceRequests } from './source-requests.ts';
 import { sourceRows } from './source-rows.ts';
 
 // Read-only array methods: they return an element, a copy or a value, and never change the array.
-const ELEMENT_METHODS = new Set(['find', 'findLast', 'at']);
-const COPY_METHODS = new Set(['filter', 'slice', 'toSorted', 'toReversed']);
+export const ELEMENT_METHODS = new Set(['find', 'findLast', 'at']);
+export const COPY_METHODS = new Set(['filter', 'slice', 'toSorted', 'toReversed']);
 const READ_METHODS = new Set([
   ...ELEMENT_METHODS,
   ...COPY_METHODS,
