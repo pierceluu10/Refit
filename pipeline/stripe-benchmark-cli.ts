@@ -50,7 +50,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--generate-clients] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -99,6 +99,9 @@ const { values } = parseArgs({
     'allow-dirty': { type: 'boolean' },
     // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
     'validation-workspace': { type: 'string' },
+    // Recreates the Prisma client and next-env.d.ts before every check (REFIT_GENERATE_CLIENTS=1),
+    // off by default until a founder signs off (declared-generators.ts).
+    'generate-clients': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -114,6 +117,7 @@ if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
 }
+if (values['generate-clients']) process.env.REFIT_GENERATE_CLIENTS = '1';
 if (values['behaviour-tests'] && (!values.env || !values.validate))
   throw new PipelineInputError(
     '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
