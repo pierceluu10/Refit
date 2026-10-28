@@ -1,6 +1,6 @@
 # Validation ceiling
 
-**Status: plan, 2026-10-28. Nothing here is built.** Requested by Otabek (founder) on 2026-10-28.
+**Status: plan, 2026-10-28.** Agent 1's audit is built (provisional numbers below); agents 2 to 5 are not. Requested by Otabek (founder) on 2026-10-28.
 
 ## Goal
 
@@ -22,6 +22,113 @@ Shared rules, as in the other plans:
 - Open a draft PR as soon as the code and tests are in.
 - Never merge or push to main.
 - Customers do nothing beyond installing Refit and approving PRs.
+
+## Ceiling audit (agent 1)
+
+**Provisional, 2026-10-28.** The four runs at main `89f1c0ed` named above were still queued on refit-bench when this was written. The numbers below come from the latest completed full runs of the same two sets, at `63646f2a` (no AI) and `93e73d7c` (AI), which predate #361 (D4) and #362. They will be replaced by the `89f1c0ed` runs when those finish. Every count is reproducible with the command below; the per-row result, with each blocker's rule and quoted evidence, is in [`2026-10-28-validation-ceiling.json`](benchmarks/2026-10-28-validation-ceiling.json).
+
+```sh
+gh run download <run> -R refit-dev/refit-bench -D <dir>
+node scripts/validation-ceiling.mjs <dir>/merged/results.json --artifacts <dir> [--json]
+```
+
+### Rules
+
+`scripts/validation-ceiling.mjs` takes every blocker `scripts/validation-funnel.mjs --all-blockers` finds on an affected row that is not production validated, reads the row's `report.json.gz` for the detail `results.json` lacks, and gives each blocker one rule.
+
+- **Validated** means `production.status` is `validated` and the grade is not D. Before #359 a grade-D pass ended `validated`; it is not counted in any run.
+- **Not validatable** is allowed for four reasons only, each with its evidence quoted: no code path can run without the customer's own secrets or services (`customer-secrets-or-services`); there is no check of any kind and none can be generated (`no-check-possible`); Stripe documents no replacement for the removed behaviour (`no-documented-replacement`); the change needs a product decision only a person can make (`product-decision`). A row is not validatable when any of its blockers is.
+- **Fixable** is everything else: the row counts toward Y, and each blocker names the lane that covers it or `none` with a cause. When a rule is unsure it says `none`, so the ceiling never hides a Refit gap.
+- A row with no recorded blocker is never dropped: a passing grade-D patch is `grade-d` (lane T), anything else `unexplained` (`none`).
+
+| Blocker                                                                                                                | Rule                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source archive limit                                                                                                   | deps lane 0                                                                                                                                                                                                                                                                             |
+| No lockfile, lockfile out of sync or without integrity, ERESOLVE, stripe-node upgrade refused for a types-only peer    | deps lane A                                                                                                                                                                                                                                                                             |
+| Introduced type errors (oracle, or a failing patched type check)                                                       | deps lane B when every code is an assignability error (TS2322, TS2345, TS2367, TS2678, TS2820); otherwise agent 4                                                                                                                                                                       |
+| `payment_method_types` (every rename gate, outside a creation call, a removed-parameter stop or contract change on it) | deps lane C                                                                                                                                                                                                                                                                             |
+| Untraced reads                                                                                                         | held-out lane 1 (#367)                                                                                                                                                                                                                                                                  |
+| Contract change                                                                                                        | split by the changes the gate lists: unknown reach, a read by the leaf's name only or a parameter Refit cannot read go to held-out lane 2 (#365); a reached removal, a removed path or a new required property to agent 3 (#357); any other reached change is `none`, by its oasdiff id |
+| Conflicting lockfiles, or an upgrade refused because lockfiles disagree                                                | held-out lane 3 (#366)                                                                                                                                                                                                                                                                  |
+| Baseline fails on a missing generated client, an env var, a database or the network                                    | agent 2                                                                                                                                                                                                                                                                                 |
+| API version move regressed and was kept (`api-version-kept`)                                                           | agent 4                                                                                                                                                                                                                                                                                 |
+| Webhook version                                                                                                        | agent 5                                                                                                                                                                                                                                                                                 |
+| No runnable check (`require()` only, no tests), AI patch review, grade D                                               | lane T: its behaviour tests are a check Refit can generate                                                                                                                                                                                                                              |
+| Non-registry dependency                                                                                                | not validatable (`customer-secrets-or-services`) only for a private registry, an SSH Git URL or a token; public Git, URL and local paths are `none`                                                                                                                                     |
+| Everything else                                                                                                        | `none`, by cause                                                                                                                                                                                                                                                                        |
+
+### Per set
+
+| Run                                                                                                  | Affected | Validated | Validatable (Y) | Not validatable |
+| ---------------------------------------------------------------------------------------------------- | -------: | --------: | --------------: | --------------: |
+| l2-push-249, no AI, [40591181316](https://github.com/refit-dev/refit-bench/actions/runs/40591181316) |      249 |        80 |             249 |               0 |
+| l2-push-249, AI, [40552354557](https://github.com/refit-dev/refit-bench/actions/runs/40552354557)    |      249 |        84 |             249 |               0 |
+| heldout-30, no AI, [40591185819](https://github.com/refit-dev/refit-bench/actions/runs/40591185819)  |       30 |         9 |              30 |               0 |
+| heldout-30, AI, [40552360621](https://github.com/refit-dev/refit-bench/actions/runs/40552360621)     |       30 |        10 |              30 |               0 |
+
+Fixable rows by lane: rows with a blocker of that lane, and in brackets the rows that lane alone would clear. A row with several lanes counts under each.
+
+| Lane                                  | l2 no AI | l2 AI   | heldout no AI | heldout AI |
+| ------------------------------------- | -------- | ------- | ------------- | ---------- |
+| held-out 1, untraced reads            | 82 (16)  | 78 (12) | 10 (5)        | 9 (4)      |
+| held-out 2, contract reach shapes     | 72 (5)   | 72 (5)  | 4 (0)         | 4 (0)      |
+| `none`                                | 67 (7)   | 68 (7)  | 6 (0)         | 6 (0)      |
+| deps C, `payment_method_types`        | 55 (2)   | 54 (2)  | 5 (0)         | 5 (0)      |
+| agent 3, documented replacements      | 42 (8)   | 42 (8)  | 6 (1)         | 6 (1)      |
+| deps A, lockfiles and peer bump       | 41 (11)  | 41 (11) | 2 (1)         | 2 (1)      |
+| agent 4, upgrade fallout              | 21 (0)   | 21 (0)  | 0             | 0          |
+| held-out 3, several lockfiles         | 12 (2)   | 12 (2)  | 3 (0)         | 3 (0)      |
+| agent 5, webhooks                     | 8 (0)    | 9 (0)   | 0             | 0          |
+| deps B, type-only repairs             | 7 (0)    | 7 (0)   | 0             | 0          |
+| lane T, test mode and generated tests | 6 (4)    | 8 (4)   | 3 (3)         | 3 (3)      |
+| agent 2, runtime stand-ins            | 0        | 0       | 0             | 0          |
+
+`none`, by cause (rows, and in brackets the rows where it is the only gap):
+
+| Cause                                                                     | l2 no AI | l2 AI  | heldout no AI | heldout AI |
+| ------------------------------------------------------------------------- | -------- | ------ | ------------- | ---------- |
+| Stripe response or client may be mutated or escape                        | 28 (1)   | 28 (1) | 0             | 0          |
+| Untraced API version                                                      | 19 (0)   | 19 (0) | 0             | 0          |
+| Reached `request-property-type-changed` (all `currency` gaining a format) | 13 (0)   | 13 (0) | 1 (0)         | 1 (0)      |
+| Reached `response-property-enum-value-added` (a switch or comparison)     | 8 (0)    | 8 (0)  | 0             | 0          |
+| Repository's own check fails on the original code                         | 8 (1)    | 8 (1)  | 1 (0)         | 1 (0)      |
+| API version pin Refit cannot confirm                                      | 7 (0)    | 7 (0)  | 0             | 0          |
+| Public Git, URL or local-path dependency                                  | 6 (2)    | 6 (2)  | 2 (0)         | 2 (0)      |
+| Submodules left out of validation                                         | 5 (1)    | 5 (1)  | 0             | 0          |
+| No `apiVersion` on a stripe-node whose default is unknown                 | 4 (0)    | 4 (0)  | 0             | 0          |
+| stripe-node upgrade refused for this lockfile shape                       | 4 (0)    | 4 (0)  | 2 (0)         | 2 (0)      |
+| Unsupported lockfile or workspace layout                                  | 4 (0)    | 4 (0)  | 0             | 0          |
+| Stripe only in a nested package                                           | 2 (0)    | 2 (0)  | 0             | 0          |
+| Benchmark infrastructure                                                  | 1 (0)    | 2 (0)  | 0             | 0          |
+| Check needs a tool the image lacks (`bun`)                                | 1 (0)    | 1 (0)  | 0             | 0          |
+| Check timeout                                                             | 1 (0)    | 1 (0)  | 0             | 0          |
+| Dependency tree over the sandbox limit                                    | 1 (0)    | 1 (0)  | 0             | 0          |
+| Native module not built                                                   | 1 (1)    | 1 (1)  | 0             | 0          |
+
+### No row is provably not validatable
+
+Every "not validatable" call was challenged against the evidence, and none survived:
+
+- **Submodules (5 rows).** Each is a gitlink with no `.gitmodules` at the scanned commit (`gh api repos/<repo>/git/trees/<commit>`: `metrics-server`, `server/facefusion`, `mobile`, `.claude/worktrees/…` and `~/.claude/skills/gstack`), so there is nothing to fetch, private or public. Refit's gate refuses the row anyway. That is a Refit gap, not a customer service.
+- **Non-registry dependencies (6 rows on l2, 2 on heldout).** All are public: GitHub shorthands, GitHub archive and `codeload` tarballs, `link:` paths and a bun.lock layout. None names a private registry, an SSH URL or a token.
+- **Baselines that fail.** None needs a customer secret: the failures are the repositories' own tests, a native module built without install scripts, a missing `bun`, and a Jest config TypeScript could not parse.
+- **Reached enum additions.** A new `subscription.status` value compared with string literals may need a product decision about what the app does with it. But the existing code's else branch may already be right, and lane T can show that, so these stay `none`.
+- **Reached removals.** No Stripe page read for this audit says a reached removal has no replacement. Agent 3 records the documented replacement, or "none documented", for each change; until it records "none documented" with the page, those rows stay fixable.
+
+So Y equals the affected count on both sets: every gap is a Refit gap, and each has a lane or a named cause.
+
+### What no lane covers, ranked
+
+Rows with each cause on l2-push-249 with AI (no-AI is within one row). The first three are worth a lane each; the rest are smaller or will shrink on main.
+
+1. **Stripe responses and clients that may be mutated or escape (28 rows, 1 alone).** `pipeline/analyzer.ts` traces a removed-field read to a Stripe response but cannot prove the object was not reassigned, mutated, passed to another function or produced by an optional SDK call (`uncertainMutation`), so it marks the read `review` and the draft `[Needs review]` (plus 4 rows where a declared `Stripe.*` value "may be mutated"). This is the largest gap and is different from lane 1's untraced reads: the receiver is known to be Stripe; only aliasing is unproven. A lane would add an escape and mutation analysis for these receivers (no write to the binding or its properties, calls that receive it are local and read-only), so the read counts as confirmed and the existing rules migrate it. Where the proof fails it keeps stopping. Measure on l2-push-249; it touches `analyzer.ts` only.
+2. **API version evidence (27 rows across untraced, unconfirmed and default pins).** `api-version-untraced` (19), `api-version` (7) and `api-version-default` (4) hold rows whose patch is otherwise ready. #362, merged at `89f1c0ed`, narrows `api-version-untraced` to clients that escape, so the `89f1c0ed` runs will show how much is left. A lane would follow pins through constants, config objects and factory functions, and for `api-version-default` record the stripe-node default for the releases outside Refit's table. Re-rank this one after the `89f1c0ed` runs.
+3. **The repository's own checks fail on the original code (8 + 1 + 1 + 1 rows: own tests, native module, `bun`, timeout).** Refit cannot tell a regression from an existing failure, so it stops. A lane would run the baseline, record which tests already fail, and validate the patch on the tests that pass on both sides (with lane T's behaviour tests where they reach the change), naming the excluded tests in the draft. It also needs `bun` in the check image, and install scripts for native modules decided by the founders, because running them is code execution the owners turned off.
+4. **Reached enum additions (8 rows) and other reached behaviour changes.** Stripe added an enum value the code switches over or compares with literals (`subscription.status` gaining `paused`). No rule handles it, and the right handling is the app's choice. A lane would generate a lane T behaviour test that sends the new value and checks the code takes its default path, and publish only where that holds. Otherwise the draft keeps naming the value. If the founders decide such a change is always a product decision, these become `product-decision` rows instead.
+5. **Public non-registry dependencies (6 rows, 2 alone) and lockfile shapes the upgrade refuses (4).** GitHub shorthands, archive tarballs and `link:` paths are public but Refit fetches only from registry.npmjs.org. Pinned pnpm lockfile versions and multi-entry yarn.lock stop the stripe-node upgrade. Both are preparation work in lane A's resolver, which would fetch public Git tarballs by commit with an integrity it records, and rewrite those lockfile shapes.
+6. **Submodules (5 rows, 1 alone).** All five are orphan gitlinks with no `.gitmodules`. A gitlink with no URL holds no code anyone can check out. A small change lets validation skip it and name it in the draft, rather than refusing the row.
+
+`reached request-property-type-changed` (13 rows) is the `currency` format change D4 (#361) already treats as compatible on main for literals; it is not ranked until the `89f1c0ed` runs show what remains. Agent 2 has no row in these runs: no baseline fails on a missing Prisma client or environment here, because those rows stop earlier. Its count may change once lanes A and 3 let more rows reach their checks.
 
 ## Prompts
 
