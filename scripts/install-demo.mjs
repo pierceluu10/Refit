@@ -26,7 +26,7 @@ const INSTALL_EVENTS = new Map([
   ['installation', 'created'],
   ['installation_repositories', 'added'],
 ]);
-const DELIVERY_PAGES = 5;
+const DELIVERY_PAGES = 20;
 const POLL_MS = 10_000;
 const INVENTORY_TIMEOUT_MS = 20 * 60_000;
 const WATCH_TIMEOUT_MS = 20 * 60_000;
@@ -60,6 +60,10 @@ async function installDelivery() {
   const app = githubAppConfiguration(process.env);
   const jwt = await appJwt(app);
   let cursor = '';
+  // What the App's delivery log holds, for the error when no delivery fits: events only, no payload.
+  const seen = new Map();
+  let oldest = null;
+  let newest = null;
   for (let page = 0; page < DELIVERY_PAGES; page += 1) {
     const response = await fetch(
       `https://api.github.com/app/hook/deliveries?per_page=100${cursor ? `&cursor=${cursor}` : ''}`,
@@ -68,6 +72,10 @@ async function installDelivery() {
     if (!response.ok)
       throw new Error(`Listing App deliveries failed with HTTP ${response.status}.`);
     for (const item of await response.json()) {
+      const kind = `${item.event}.${item.action ?? '-'}`;
+      seen.set(kind, (seen.get(kind) ?? 0) + 1);
+      if (!oldest || item.delivered_at < oldest) oldest = item.delivered_at;
+      if (!newest || item.delivered_at > newest) newest = item.delivered_at;
       if (
         values.delivery
           ? String(item.id) !== values.delivery
@@ -91,7 +99,11 @@ async function installDelivery() {
     if (!cursor) break;
   }
   throw new Error(
-    `No installation delivery${values.owner ? ` for ${values.owner}` : ''} in the App's recent deliveries.`,
+    `No installation delivery${values.owner ? ` for ${values.owner}` : ''} in the App's recent deliveries. ` +
+      `The log holds ${[...seen.values()].reduce((a, b) => a + b, 0)} deliveries` +
+      (oldest
+        ? ` from ${oldest} to ${newest}: ${[...seen].map(([k, n]) => `${k} ${n}`).join(', ')}.`
+        : '.'),
   );
 }
 
