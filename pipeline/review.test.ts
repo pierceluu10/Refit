@@ -465,6 +465,26 @@ it('says which of several committed lockfiles Refit installed and why it did not
   );
 });
 
+it('says when the checks ran against a lockfile Refit resolved, and as of which date', async () => {
+  const value = await report();
+  expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('Refit resolved');
+  value.validation.environment = {
+    installation: {},
+    resolvedLockfile: { reason: 'no-lockfile', before: '2026-09-15T00:00:00Z' },
+  };
+  value.validation.patchedEnvironment = {
+    installation: {},
+    resolvedLockfile: {
+      reason: 'no-lockfile',
+      before: '2026-09-15T00:00:00Z',
+      late: { stripe: { spec: '23.0.0', published: '2026-10-01T00:52:07.438Z' } },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the checks ran against a `package-lock.json` Refit resolved, not one the repository commits (it commits none). npm resolved it with lifecycle scripts off from registry.npmjs.org as of 2026-09-15T00:00:00Z, the last commit date; `stripe@23.0.0` as of 2026-10-01T00:52:07.438Z, and installed it with `npm ci`. It is not part of this pull request; commit your own lockfile and rerun your checks.',
+  );
+});
+
 it('says how many glibc-only packages Refit removed after the verified npm install', async () => {
   const value = await report();
   expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('glibc');

@@ -1,3 +1,4 @@
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { aiSafetyStop, migrationReviewReason, unresolvedSites } from './migration-review.ts';
 import { diffLines } from 'diff';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
@@ -783,6 +784,8 @@ async function prepareCandidateDependencies(
     signal?: AbortSignal;
     onProgress?: (message: string) => void;
     packageDirectory?: string;
+    // The original repository's commit date: a lockfile resolved for the candidate is cut off there.
+    committedAt?: string;
   },
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
@@ -814,6 +817,7 @@ async function prepareCandidateDependencies(
     repository: candidateDirectory,
     image,
     packageDirectory: options.packageDirectory,
+    committedAt: options.committedAt,
     copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
@@ -1311,6 +1315,7 @@ export async function validateMigration(options: {
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
+  const committedAt = (await git(['show', '-s', '--format=%cI', revision])).stdout.trim();
   const runtime = await selectValidationRuntime(snapshot, options.image);
   const image = await resolveDockerImage(runtime.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
@@ -1348,6 +1353,9 @@ export async function validateMigration(options: {
           ...options,
           repository: baselineDirectory,
           proposePatch: true,
+          lockfileResolution: lockfileResolutionEnabled()
+            ? { image, before: committedAt }
+            : undefined,
           aiPatch: baselinePassed ? options.aiPatch : undefined,
           assessment: baselinePassed ? options.assessment : undefined,
           onProgress: baselinePassed ? options.onProgress : undefined,
@@ -1363,6 +1371,7 @@ export async function validateMigration(options: {
             prepareCandidateDependencies(directory, root, image, {
               ...options,
               packageDirectory,
+              committedAt,
               signal,
             }),
           )),
@@ -1789,6 +1798,9 @@ export async function validateMigration(options: {
           ...options,
           repository: baselineDirectory,
           proposePatch: true,
+          lockfileResolution: lockfileResolutionEnabled()
+            ? { image, before: committedAt }
+            : undefined,
           aiPatch: undefined,
           assessment: undefined,
           onProgress: undefined,

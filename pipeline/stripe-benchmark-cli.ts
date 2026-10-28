@@ -32,6 +32,7 @@ import {
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { validationProfile } from './docker-sandbox.ts';
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
 import { AiPolicyStop } from './ai-patches.ts';
 import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
@@ -50,7 +51,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--resolve-lockfiles] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
@@ -99,6 +100,8 @@ const { values } = parseArgs({
     'allow-dirty': { type: 'boolean' },
     // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
     'validation-workspace': { type: 'string' },
+    // Resolves refused or missing npm lockfiles for validation (REFIT_LOCKFILE_RESOLUTION=on).
+    'resolve-lockfiles': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -114,6 +117,7 @@ if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
 }
+if (values['resolve-lockfiles']) process.env.REFIT_LOCKFILE_RESOLUTION = 'on';
 if (values['behaviour-tests'] && (!values.env || !values.validate))
   throw new PipelineInputError(
     '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
@@ -457,7 +461,7 @@ async function benchmark(entry: Selected, index: number) {
   const locked = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
     existsSync(join(checkRoot, lockfile)),
   );
-  const checkable = locked && Boolean(declared.stripe);
+  const checkable = (locked || lockfileResolutionEnabled()) && Boolean(declared.stripe);
   // Owner decision 1: a project that commits no lockfile runs the workflow as a customer's generated
   // configuration does; preparation refuses, and the patch is kept untested, graded D.
   const unlocked = !locked && Boolean(declared.stripe);
