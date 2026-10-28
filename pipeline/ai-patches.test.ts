@@ -727,6 +727,40 @@ it('lets a policy repair past a contract review that stops other AI requests', a
   expect(proposal.diff).toContain('+      metadata: { ...metadata },');
 });
 
+it('lets a policy repair replace a removed operation it names, and only then', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  const replaced = {
+    file: 'checkout.ts',
+    original: "await stripe.checkout.sessions.create({\n    mode: 'subscription',",
+    replacement: "await stripe.checkout.sessions.createPreview({\n    mode: 'subscription',",
+    source: 'https://docs.stripe.com/changelog',
+    findingId,
+  };
+  respond([{ ...replaced, why: 'Calls createPreview because the version removed create.' }]);
+  const proposal = await proposeAiPatch(
+    repository,
+    report.changes,
+    findings,
+    OPTIONS,
+    undefined,
+    undefined,
+    POLICY_REPAIR,
+  );
+  expect(proposal.diff).toContain('+  await stripe.checkout.sessions.createPreview({');
+  respond([{ ...replaced, why: 'Calls the documented replacement.' }]);
+  await expect(
+    proposeAiPatch(
+      repository,
+      report.changes,
+      findings,
+      OPTIONS,
+      undefined,
+      undefined,
+      POLICY_REPAIR,
+    ),
+  ).rejects.toThrow('AI patch drops or changes');
+});
+
 it('still stops a policy repair that changes a request parameter without naming it', async () => {
   const { repository, report, findings, findingId } = await typeErrorFixture();
   respond([{ ...TRIAL_REPLACEMENT, why: 'Uses a fixed trial.', findingId }]);

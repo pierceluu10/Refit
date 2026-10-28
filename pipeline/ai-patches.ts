@@ -16,6 +16,7 @@ import {
   addedItemChoices,
   addedTypeEscapes,
   changedEventTypes,
+  contentOf,
   droppedRequestPaths,
   editedTestFiles,
   newShapeOnlyReads,
@@ -642,16 +643,20 @@ export async function proposeAiPatch(
       proposal(),
     );
   // Under the founder decision a repair may change what a request sends, but never silently: each
-  // changed path must be named in the why of an edit in its file.
+  // changed path must be named in the why of an edit in its file, or the whole call replaced by one
+  // the why names the old method of (a removed operation's documented replacement).
+  const method = (call: string) => call.slice(call.lastIndexOf('.') + 1);
   const dropped = droppedRequestPaths(ruleBase, modified, aiFiles, provider).filter(
     (entry) =>
       !policyRepair ||
       !explanations.some(
         (note) =>
           note.finding.file === entry.file &&
-          note.why.includes(
+          (note.why.includes(
             /([A-Za-z_$][\w$]*)(?:\[\])?(?:=.*)?$/.exec(entry.path)?.[1] ?? entry.path,
-          ),
+          ) ||
+            (note.why.includes(method(entry.call)) &&
+              !contentOf(modified, entry.file)?.includes(`.${method(entry.call)}(`))),
       ),
   );
   if (dropped.length)
