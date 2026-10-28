@@ -64,13 +64,23 @@ export function isRegistrySource(source: unknown): source is string {
 // A published package's own declarations reach the lockfile as its record's dependencies. npm reads
 // an empty range there as "*" (@tabler/icons-react 3.36.1 declares "@tabler/icons": ""), and the
 // lockfile still pins what it installs.
-export function dependencySources(value: Record<string, unknown>, file: string, published = false) {
+export function dependencySources(
+  value: Record<string, unknown>,
+  file: string,
+  published = false,
+  // GitHub tarballs Refit pinned for validation only (lockfile-resolution.ts githubSources).
+  tarballs: ReadonlySet<string> = new Set(),
+) {
   for (const section of DEPENDENCY_SECTIONS) {
     const dependencies = value[section];
     if (dependencies === undefined) continue;
     if (!isObject(dependencies)) throw new PipelineInputError(`npm ${section} must be an object.`);
     for (const [name, source] of Object.entries(dependencies))
-      if (!(published && source === '') && !isRegistrySource(source))
+      if (
+        !(published && source === '') &&
+        !isRegistrySource(source) &&
+        !(typeof source === 'string' && tarballs.has(source))
+      )
         throw new PipelineInputError(
           `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${quotedSource(source)}. Local, Git and URL dependencies need the repository install.`,
         );
@@ -140,6 +150,7 @@ export function validateNpmLock(
   packageContent: string,
   lockContent: string,
   workspaceContents: ReadonlyMap<string, string> = new Map(),
+  tarballs: ReadonlySet<string> = new Set(),
 ) {
   if (
     Buffer.byteLength(packageContent) > MAX_PACKAGE_BYTES ||
@@ -152,7 +163,7 @@ export function validateNpmLock(
   const lock = parseObject(lockContent, 'package-lock.json');
   if (manifest.bundledDependencies !== undefined || manifest.bundleDependencies !== undefined)
     throw new PipelineInputError('Root bundled dependencies need the repository install.');
-  dependencySources(manifest, 'package.json');
+  dependencySources(manifest, 'package.json', false, tarballs);
   if (manifest.overrides !== undefined) {
     if (!isObject(manifest.overrides))
       throw new PipelineInputError('npm overrides must be an object.');
@@ -280,6 +291,7 @@ export function validateNpmLock(
       record,
       path ? `package-lock.json record ${path}` : 'package-lock.json',
       path.startsWith('node_modules/') || path.includes('/node_modules/'),
+      path ? undefined : tarballs,
     );
     if (!path) continue;
     if (workspaces.has(path)) continue;
@@ -359,7 +371,8 @@ export function validateNpmLock(
         `package-lock.json records ${path}${others ? ` and ${others} more packages` : ''} without a version, registry "resolved" URL and SHA-256-or-stronger "integrity", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile.`,
       );
     }
-    assertRegistryTarball(record.resolved as string, path, true);
+    if (!tarballs.has(record.resolved as string))
+      assertRegistryTarball(record.resolved as string, path, true);
   }
   return {
     packageHash: digest(packageContent),

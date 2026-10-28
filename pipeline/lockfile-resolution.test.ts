@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { readCommittedRepository } from './committed-repository.ts';
@@ -9,8 +9,12 @@ import { readPreparationInputs } from './dependency-inputs.ts';
 import { prepareDependencies } from './dependency-preparation.ts';
 import {
   changesOutside,
+  githubSources,
   keepSeedNames,
   lockfileResolutionEnabled,
+  npmrcRefusal,
+  onRegistryHost,
+  RESOLVE_SCRIPT,
   resolvedLockfileSnapshot,
   resolveNpmLockfile,
 } from './lockfile-resolution.ts';
@@ -39,6 +43,7 @@ beforeEach(() => {
 afterEach(async () => {
   delete process.env.REFIT_LOCKFILE_RESOLUTION;
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.mocked(resolveNpmLockfile).mockClear();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -283,7 +288,19 @@ it('resolves only root npm projects with registry dependencies, as configured', 
   process.env.REFIT_LOCKFILE_RESOLUTION = 'on';
   expect(
     await resolvedLockfileSnapshot(
-      await snapshot({ 'package.json': manifest, 'pnpm-lock.yaml': '' }),
+      await snapshot({ 'package.json': manifest, 'yarn.lock': '' }),
+      'lockfile-out-of-sync',
+      options,
+    ),
+  ).toBeUndefined();
+  // pnpm reads settings, workspaces and patches from files resolution does not receive.
+  expect(
+    await resolvedLockfileSnapshot(
+      await snapshot({
+        'package.json': manifest,
+        'pnpm-lock.yaml': '',
+        'pnpm-workspace.yaml': 'packages: []\n',
+      }),
       'lockfile-out-of-sync',
       options,
     ),
@@ -291,7 +308,7 @@ it('resolves only root npm projects with registry dependencies, as configured', 
   expect(
     await resolvedLockfileSnapshot(
       await snapshot({ 'package.json': manifest }),
-      'peer-dependency-conflict',
+      'dependency-archive-limit',
       options,
     ),
   ).toBeUndefined();
@@ -309,13 +326,23 @@ it('resolves only root npm projects with registry dependencies, as configured', 
   await expect(
     resolvedLockfileSnapshot(
       await snapshot({
-        'package.json': manifest,
+        'package.json': manifest.replace('"stripe"', '"@acme/ui": "^1.0.0",\n    "stripe"'),
         '.npmrc': '@acme:registry=https://npm.acme.test/\n',
       }),
       'no-lockfile',
       options,
     ),
   ).rejects.toThrow(/\.npmrc configures another registry or registry credentials/);
+  // Refused for an unpinned Git dependency, resolution does not apply and the refusal stands.
+  expect(
+    await resolvedLockfileSnapshot(
+      await snapshot({
+        'package.json': manifest.replace('"^22.6.2"', '"github:stripe/stripe-node#master"'),
+      }),
+      'non-registry-dependency',
+      options,
+    ),
+  ).toBeUndefined();
   // A binary bun.lockb does not stop resolution; the .npmrc check shows it was reached.
   await expect(
     resolvedLockfileSnapshot(
@@ -337,6 +364,178 @@ it('resolves only root npm projects with registry dependencies, as configured', 
   ).toBeUndefined();
   expect(resolveNpmLockfile).not.toHaveBeenCalled();
 });
+
+const COMMIT = '7eb2d9abeb36e47c9f7183210f43d44bfd27503a';
+const ARCHIVE = `https://codeload.github.com/ai/react/tar.gz/${COMMIT}`;
+
+it('pins public GitHub dependencies to their archive at a locked commit or a declared commit or tag', () => {
+  const seed = JSON.stringify({
+    lockfileVersion: 3,
+    packages: {
+      'node_modules/@nanostores/react': {
+        version: '0.8.0',
+        resolved: `git+ssh://git@github.com/ai/react.git#${COMMIT}`,
+      },
+    },
+  });
+  expect(
+    githubSources(
+      { dependencies: { '@nanostores/react': 'github:ai/react', stripe: '^16.9.0' } },
+      seed,
+    ),
+  ).toEqual({
+    manifest: { dependencies: { '@nanostores/react': ARCHIVE, stripe: '^16.9.0' } },
+    sources: { '@nanostores/react': { source: 'github:ai/react', tarball: ARCHIVE } },
+  });
+  expect(
+    githubSources({
+      dependencies: { a: `git+https://github.com/o/a.git#${COMMIT}` },
+      devDependencies: { b: 'o/b#v1.2.3' },
+    }).manifest,
+  ).toEqual({
+    dependencies: { a: `https://codeload.github.com/o/a/tar.gz/${COMMIT}` },
+    devDependencies: { b: 'https://codeload.github.com/o/b/tar.gz/v1.2.3' },
+  });
+  // A branch, an unpinned repository, a lock record of another repository, another host and a
+  // local path keep their named stop.
+  for (const [source, lock] of [
+    ['github:ai/react#main', undefined],
+    ['github:ai/react', undefined],
+    ['github:someone/react', seed],
+    ['gitlab:ai/react', undefined],
+    ['file:../react', undefined],
+    ['github:ai/react#semver:^0.8.0', undefined],
+  ] as const)
+    expect(() => githubSources({ dependencies: { '@nanostores/react': source } }, lock)).toThrow(
+      /^Automatic preparation supports public npm registry dependencies only; package\.json declares @nanostores\/react as/,
+    );
+});
+
+it('accepts a GitHub archive in package-lock.json only where Refit pinned it', () => {
+  const manifest = JSON.stringify({ dependencies: { '@nanostores/react': ARCHIVE } });
+  const lock = JSON.stringify({
+    lockfileVersion: 3,
+    packages: {
+      '': { dependencies: { '@nanostores/react': ARCHIVE } },
+      'node_modules/@nanostores/react': {
+        version: '0.8.0',
+        resolved: ARCHIVE,
+        integrity: INTEGRITY,
+      },
+    },
+  });
+  expect(() => validateNpmLock(manifest, lock)).toThrow(
+    /^Automatic preparation supports public npm registry dependencies only/,
+  );
+  expect(validateNpmLock(manifest, lock, new Map(), new Set([ARCHIVE])).packages).toBe(1);
+  // An archive recorded below the root is still refused.
+  const nested = JSON.parse(lock);
+  nested.packages['node_modules/x'] = { version: '1.0.0', resolved: ARCHIVE, integrity: INTEGRITY };
+  expect(() =>
+    validateNpmLock(manifest, JSON.stringify(nested), new Map(), new Set(['https://other.test'])),
+  ).toThrow();
+});
+
+it('refuses an .npmrc registry only for the scopes package.json declares, and any credentials', () => {
+  const manifest = { dependencies: { next: '^15.0.0' } };
+  expect(npmrcRefusal('\n@jsr:registry=https://npm.jsr.io\n', manifest)).toBeUndefined();
+  expect(npmrcRefusal('legacy-peer-deps=true\n', manifest)).toBeUndefined();
+  for (const [npmrc, declared] of [
+    ['@jsr:registry=https://npm.jsr.io', { dependencies: { '@jsr/std__path': '^1.0.0' } }],
+    ['@jsr:registry=https://npm.jsr.io', { dependencies: { path: 'npm:@jsr/std__path@^1' } }],
+    ['registry=https://npm.acme.test/', manifest],
+    ['//registry.npmjs.org/:_authToken=${NPM_TOKEN}', manifest],
+  ] as const)
+    expect(npmrcRefusal(npmrc, declared)).toMatch(
+      /configures another registry or registry credentials/,
+    );
+});
+
+it('retries an npm peer conflict once with --legacy-peer-deps and records it', async () => {
+  const root = await directory({ 'package.json': '{"dependencies":{"a":"^1.0.0"}}\n' });
+  const binary = await directory({});
+  // Stands in for npm: ERESOLVE unless --legacy-peer-deps is passed.
+  await writeFile(
+    join(binary, 'npm'),
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+require('node:fs').appendFileSync(${JSON.stringify(join(binary, 'calls'))}, args.join(' ') + '\\n');
+if (!args.includes('--legacy-peer-deps')) { console.error('npm error code ERESOLVE'); process.exit(1); }
+require('node:fs').writeFileSync('package-lock.json', '{"lockfileVersion":3}');
+`,
+  );
+  await chmod(join(binary, 'npm'), 0o755);
+  vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
+  const { stdout } = await execute(
+    process.execPath,
+    ['--input-type=module', '-e', RESOLVE_SCRIPT, BEFORE, '0', 'npm', '0', '[]'],
+    { cwd: root, env: process.env },
+  );
+  expect(JSON.parse(stdout)).toEqual({
+    lockfile: '{"lockfileVersion":3}',
+    late: {},
+    legacyPeerDeps: true,
+  });
+  const calls = (await readFile(join(binary, 'calls'), 'utf8')).trim().split('\n');
+  expect(calls).toHaveLength(2);
+  expect(calls[1]).toMatch(/--before=2026-09-15T00:00:00Z --legacy-peer-deps$/);
+});
+
+it('moves mirror URLs to registry.npmjs.org in a lockfile that installs GitHub archives', () => {
+  const lock = {
+    lockfileVersion: 3,
+    packages: {
+      '': { name: 'app' },
+      'node_modules/a': { resolved: 'https://registry.npmmirror.com/a/-/a-1.0.0.tgz' },
+      'node_modules/b': { resolved: 'https://registry.yarnpkg.com/b/-/b-1.0.0.tgz' },
+      'node_modules/c': { resolved: ARCHIVE },
+    },
+  };
+  expect(JSON.parse(onRegistryHost(JSON.stringify(lock))).packages).toEqual({
+    '': { name: 'app' },
+    'node_modules/a': { resolved: 'https://registry.npmjs.org/a/-/a-1.0.0.tgz' },
+    'node_modules/b': { resolved: 'https://registry.npmjs.org/b/-/b-1.0.0.tgz' },
+    'node_modules/c': { resolved: ARCHIVE },
+  });
+});
+
+// Networked: resolves with pnpm in Docker against registry.npmjs.org, then prepares the result.
+it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
+  'prepares a pnpm project whose lockfile misses a package.json declaration',
+  async () => {
+    // Recorded with pnpm 9.15.9 from package.json without ms on 2026-10-28.
+    const committed = await fixture('pnpm-committed-lock.yaml');
+    const root = await directory(
+      {
+        'package.json': JSON.stringify({
+          name: 'pnpm-resolution-fixture',
+          version: '1.0.0',
+          private: true,
+          dependencies: { ms: '2.1.3', nanoid: '^3.3.0' },
+        }),
+        'pnpm-lock.yaml': committed,
+      },
+      true,
+    );
+    await expect(readPreparationInputs(await readCommittedRepository(root))).rejects.toThrow(
+      /^pnpm importer/,
+    );
+    const prepared = await prepareDependencies({
+      repository: root,
+      image: IMAGE!,
+      cacheDirectory: await mkdtemp(join(tmpdir(), 'refit-lock-cache-')),
+    });
+    expect(prepared.environment).toMatchObject({
+      manager: 'pnpm',
+      resolvedLockfile: {
+        reason: 'lockfile-out-of-sync',
+        before: '2026-09-15T00:00:00.000Z',
+        manager: 'pnpm',
+      },
+    });
+  },
+  600_000,
+);
 
 // Networked: resolves in Docker against registry.npmjs.org, then prepares the result offline.
 it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(

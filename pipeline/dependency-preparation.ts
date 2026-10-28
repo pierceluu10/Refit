@@ -60,9 +60,11 @@ const LEGACY_PEER_DEPS_MARKER = 'REFIT_LEGACY_PEER_DEPS=1';
 const PRUNED_GLIBC_MARKER = 'REFIT_PRUNED_GLIBC_PACKAGES';
 // --replace-registry-host=always fetches every locked tarball from registry.npmjs.org, including
 // ones a lockfile resolved through a public mirror (npm-lock.ts); integrity still decides.
-const npmCi = (binary: string) =>
+// A resolved lockfile with GitHub archives keeps their host; it records no mirror URLs
+// (lockfile-resolution.ts onRegistryHost).
+const npmCi = (binary: string, archives = false) =>
   `${binary} ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ` +
-  '--registry=https://registry.npmjs.org --replace-registry-host=always --cache=/workspace/.npm-cache';
+  `--registry=https://registry.npmjs.org${archives ? '' : ' --replace-registry-host=always'} --cache=/workspace/.npm-cache`;
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
 const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
@@ -168,10 +170,16 @@ export const npmCiWithPeerRetry = (ci: string, log = '/workspace/.refit-npm-ci.l
   `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${ci} --legacy-peer-deps >&2; cat ${log} >&2; ` +
   `else cat ${log} >&2; exit 1; fi; `;
 function installCommand(
-  { manager, managerVersion, legacyPeerDeps, platformPackages }: PreparationIdentity,
+  {
+    manager,
+    managerVersion,
+    legacyPeerDeps,
+    platformPackages,
+    resolvedLockfile,
+  }: PreparationIdentity,
   platformPackageMode?: 'skip' | 'install',
 ) {
-  const NPM_CI = npmCi(managerVersion ? '"$refit_tool"' : 'npm');
+  const NPM_CI = npmCi(managerVersion ? '"$refit_tool"' : 'npm', !!resolvedLockfile?.github);
   return [
     'sh',
     '-c',
@@ -593,13 +601,16 @@ export async function prepareDependencies(options: {
   try {
     return await prepare(options);
   } catch (error) {
-    // npm ci can find a lockfile out of sync that Refit's own check accepted (missing peers);
-    // resolution then starts from that lockfile, once.
+    // npm ci or pnpm can find a lockfile out of sync that Refit's own check accepted (missing
+    // peers), and npm ci can reject its peers even with --legacy-peer-deps; resolution then starts
+    // from that lockfile, once.
     const outOfSync =
       !options.packageDirectory &&
       error instanceof PipelineInputError &&
-      /^npm dependency preparation failed/.test(error.message) &&
-      preparationFailure(error)?.reason === 'lockfile-out-of-sync' &&
+      /^p?npm dependency preparation failed/.test(error.message) &&
+      ['lockfile-out-of-sync', 'peer-dependency-conflict'].includes(
+        preparationFailure(error)?.reason ?? '',
+      ) &&
       lockfileResolutionEnabled();
     try {
       if (outOfSync) return await prepare(options, error);
@@ -610,18 +621,21 @@ export async function prepareDependencies(options: {
   }
 }
 
-// A refused or missing npm lockfile is replaced by one resolved as of the commit date, for
-// validation only (lockfile-resolution.ts); the original refusal leads any further one.
+// A refused or missing npm or pnpm lockfile is replaced by one resolved as of the commit date, for
+// validation only (lockfile-resolution.ts); the original refusal leads any further one. A GitHub
+// dependency refused as non-registry is resolved from its public archive.
 async function withResolvedLockfile(
   snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
   error: unknown,
   options: Parameters<typeof prepareDependencies>[0],
 ) {
-  const failure = preparationFailure(error);
-  if (!failure || !(error instanceof Error)) throw error;
+  const reason =
+    preparationFailure(error)?.reason ??
+    (error instanceof PipelineInputError ? preparationStop(error.message)?.reason : undefined);
+  if (!reason || !(error instanceof Error)) throw error;
   let resolved;
   try {
-    resolved = await resolvedLockfileSnapshot(snapshot, failure.reason, {
+    resolved = await resolvedLockfileSnapshot(snapshot, reason, {
       image: DOCKER_IMAGE_ID.test(options.image)
         ? options.image
         : await resolveDockerImage(options.image),
@@ -633,7 +647,11 @@ async function withResolvedLockfile(
     const host =
       cause instanceof LockfileResolutionError &&
       cause.result &&
-      hostInstallFailure('npm', cause.result, cause.result.stderr);
+      hostInstallFailure(
+        /^pnpm/.test(cause.message) ? 'pnpm' : 'npm',
+        cause.result,
+        cause.result.stderr,
+      );
     if (host) throw host;
     if (!(cause instanceof PipelineInputError)) throw cause;
     throw new DependencyPreparationError(

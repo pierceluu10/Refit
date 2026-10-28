@@ -20,3 +20,4 @@ pipeline/grammars
 pipeline/fixtures/generated-stripe/src
 pipeline/fixtures/lockfile-resolution/
 pipeline/fixtures/conflicting-lockfiles/
+pipeline/fixtures/lockfile-resolution/*.yaml
