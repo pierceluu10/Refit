@@ -22,6 +22,7 @@ import { sdkPackageDirectory } from './preparation-packages.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
+import { typedStripeClients } from './type-clients.ts';
 import {
   forkAtCommit,
   PUBLISH_BASE,
@@ -276,10 +277,25 @@ async function benchmark(entry: Selected, index: number) {
     return;
   }
   lap('read');
+  const stripePackage = values['stripe-package']
+    ? join(resolve(values['stripe-package']), entry.repo.replace('/', '__'))
+    : undefined;
   try {
-    const sites = measureCoverage(repository, 'stripe').filter((site) => site.likelySdk);
+    const sites = measureCoverage(repository, 'stripe', {
+      typeTracing: true,
+      stripePackage,
+    }).filter((site) => site.likelySdk);
     result.sdkCalls = sites.length;
     result.tracedCalls = sites.filter((site) => site.traced).length;
+    // How each traced call was traced (docs/CLIENT-TRACING.md).
+    result.tracedCallsBySource = Object.fromEntries(
+      (['analyzer', 'type', 'js-return'] as const).map((source) => [
+        source,
+        sites.filter((site) => site.traceSource === source).length,
+      ]),
+    );
+    const typed = typedStripeClients(repository, stripePackage);
+    if (typed.skipped) result.typeTracing = typed.skipped;
   } catch (error) {
     result.scanCrash = message(error);
     log('scanner crashed');
@@ -304,9 +320,7 @@ async function benchmark(entry: Selected, index: number) {
     before,
     after,
     apiVersion: entry.before,
-    ...(values['stripe-package']
-      ? { stripePackage: join(resolve(values['stripe-package']), entry.repo.replace('/', '__')) }
-      : {}),
+    ...(stripePackage ? { stripePackage } : {}),
     ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
   };
   const webhookFiles = new Set(

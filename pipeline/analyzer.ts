@@ -11,6 +11,7 @@ import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
 import { factoryClients, proxyClient } from './factory-clients.ts';
 import { helperClients } from './helper-clients.ts';
+import type { TraceSource, TypedClient } from './type-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
@@ -282,7 +283,10 @@ export function analyzeRepository(
   // `modelFixClients`: trace only the client shapes the model-fix edits were decided on (AGENTS.md),
   // leaving lazy Proxy clients with a local or bound methods, a Proxy over a filled holder and a
   // holder used as the client to stop for review.
+  // `typedClients`: client expressions found by type (type-clients.ts); calls on them are traced
+  // where the analyzer's own tracers find no client.
   options: {
+    typedClients?: TypedClient[];
     traceUnverifiedPackageImports?: boolean;
     invoicePreview?: InvoicePreviewMove;
     typeCheckedPeriodReads?: { file: string; position: number }[];
@@ -295,11 +299,12 @@ export function analyzeRepository(
   );
   const findings: Finding[] = [];
   const imports: Location[] = [];
-  const calls: (Location & { method: string })[] = [];
+  const calls: (Location & { method: string; traceSource: TraceSource })[] = [];
   const sdkCalls: (Location & {
     resource: string;
     method: string;
     expression: string;
+    traceSource: TraceSource;
     helperClient?: Finding['helperClient'];
   })[] = [];
   const sdkCallNodes = new Map<ts.Node, (typeof sdkCalls)[number]>();
@@ -515,11 +520,23 @@ export function analyzeRepository(
     factoryBindings?.call(node) ??
     (ts.isIdentifier(node) ? symbol(node) : undefined);
   imports.push(...sdk.imports.map(location));
+  const typedClients = new Map(
+    (options.typedClients ?? []).map((client) => [
+      `${client.file}\0${client.start}\0${client.end}`,
+      client.source,
+    ]),
+  );
+  const typedClient = (node: ts.Node) =>
+    typedClients.size
+      ? typedClients.get(
+          `${locations.get(node.getSourceFile().fileName)}\0${node.getStart()}\0${node.end}`,
+        )
+      : undefined;
   function sdkAccess(expression: ts.Expression) {
     const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
     let current = expression;
     while (ts.isPropertyAccessExpression(current) && ts.isIdentifier(current.name)) {
-      if (classBindings?.reference(current)) break;
+      if (classBindings?.reference(current) || typedClient(current)) break;
       properties.push(current as ts.PropertyAccessExpression & { name: ts.Identifier });
       current = current.expression;
     }
@@ -527,9 +544,12 @@ export function analyzeRepository(
     while (ts.isNonNullExpression(current) || ts.isParenthesizedExpression(current))
       current = current.expression;
     const binding = clientBinding(current);
-    if (!binding || !clients.has(binding)) return;
-    return { client: current, properties: properties.reverse() };
+    const traceSource: TraceSource | undefined =
+      binding && clients.has(binding) ? 'analyzer' : typedClient(current);
+    if (!traceSource) return;
+    return { client: current, properties: properties.reverse(), traceSource };
   }
+  let typedUntrusted = false;
   function sdkCall(node: ts.Node) {
     if (!ts.isCallExpression(node)) return;
     const access = sdkAccess(node.expression);
@@ -546,7 +566,12 @@ export function analyzeRepository(
       expression: `${access.client.getText()}.${resource}.${method}`,
       client: access.client,
       start: access.properties[0].name.getStart(),
+      traceSource: access.traceSource,
+      // A call that may not run, a JavaScript client traced only by what its factory returns (lower
+      // confidence) or a typed client next to an unsafe construction: its findings stay for review.
       optional:
+        access.traceSource === 'js-return' ||
+        (access.traceSource === 'type' && typedUntrusted) ||
         Boolean(node.questionDotToken) ||
         (ts.isPropertyAccessExpression(access.client) && Boolean(access.client.questionDotToken)) ||
         access.properties.some((property) => Boolean(property.questionDotToken)),
@@ -1062,6 +1087,7 @@ export function analyzeRepository(
         resource: sdk.resource,
         method: sdk.method,
         expression: sdk.expression,
+        traceSource: sdk.traceSource,
       };
       sdkCalls.push(evidence);
       sdkCallNodes.set(node, evidence);
@@ -1081,6 +1107,7 @@ export function analyzeRepository(
         ...location(node),
         method: `${operation.resource}.${operation.method}`,
         ...(operation.operationId ? { operationId: operation.operationId } : {}),
+        traceSource: sdk!.traceSource,
       });
   }
   const providerDetected =
@@ -1188,6 +1215,18 @@ export function analyzeRepository(
     if (spread || unsafeConstructors.has(sdk.binding(creation)!)) initialUnsafe.add(binding);
     if (spread || mutatedConstructors.has(sdk.binding(creation)!)) initialMutated.add(binding);
   }
+  // A call traced by type may use any client the repository makes, so it is trusted only where
+  // every Stripe constructor and construction is.
+  typedUntrusted = nodes.some((node) => {
+    const creation = sdk.creation(node);
+    const constructor = creation && sdk.binding(creation);
+    return Boolean(
+      creation &&
+      (creation.arguments?.some(ts.isSpreadElement) ||
+        (constructor &&
+          (unsafeConstructors.has(constructor) || mutatedConstructors.has(constructor)))),
+    );
+  });
   for (const [response, origin] of origins)
     if (sdkCall(origin)?.optional) {
       initialUnsafe.add(response);
@@ -1293,7 +1332,7 @@ export function analyzeRepository(
           ? 'Removed request field in a direct SDK argument under an operator-authored rename with a matching recorded contract.'
           : edit.status === 'review'
             ? edit.reason
-            : 'SDK client escape, mutation or optional invocation prevents a request-field edit; inspect manually.',
+            : 'SDK client escape, mutation, optional invocation or a JavaScript-only client trace prevents a request-field edit; inspect manually.',
       });
       if (confirmed && edit.status === 'editable')
         edits.push({
@@ -1471,7 +1510,7 @@ export function analyzeRepository(
       ...helperEvidence(call.client),
       reason: confirmed
         ? 'Removed endpoint call on an immutable SDK client under an operator-authored replacement with a matching recorded contract.'
-        : 'SDK client escape, mutation or optional invocation prevents a configured endpoint edit; inspect manually.',
+        : 'SDK client escape, mutation, optional invocation or a JavaScript-only client trace prevents a configured endpoint edit; inspect manually.',
     });
     if (confirmed)
       edits.push({

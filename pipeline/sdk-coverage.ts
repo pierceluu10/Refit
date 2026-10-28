@@ -1,6 +1,7 @@
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { typedStripeClients, type TraceSource } from './type-clients.ts';
 import type { Repository } from './types.ts';
 
 export type CoverageProvider = 'openai' | 'anthropic' | 'stripe';
@@ -167,6 +168,7 @@ export interface CallSite {
   column: number;
   expression: string;
   traced: boolean;
+  traceSource?: TraceSource;
   likelySdk: boolean;
   reason?: MissReason;
 }
@@ -260,11 +262,25 @@ function classifyMiss(
   return 'unresolved';
 }
 
-export function measureCoverage(repository: Repository, provider: CoverageProvider) {
+// `typeTracing`: also trace Stripe calls by the receiver's type (type-clients.ts).
+export function measureCoverage(
+  repository: Repository,
+  provider: CoverageProvider,
+  options: { typeTracing?: boolean; stripePackage?: string } = {},
+) {
   const sdk = COVERAGE_SDKS[provider];
-  const analysis = analyzeRepository(repository, [], sdk.adapter);
-  const traced = new Set(
-    analysis.sdkCalls.map((call) => `${call.file}\0${call.line}\0${call.column}`),
+  const typed =
+    options.typeTracing && provider === 'stripe'
+      ? typedStripeClients(repository, options.stripePackage)
+      : undefined;
+  const analysis = analyzeRepository(repository, [], sdk.adapter, {}, [], [], [], [], {
+    typedClients: typed?.clients,
+  });
+  const traced = new Map(
+    analysis.sdkCalls.map((call) => [
+      `${call.file}\0${call.line}\0${call.column}`,
+      call.traceSource,
+    ]),
   );
   const sites: CallSite[] = [];
   for (const file of repository.files) {
@@ -300,10 +316,12 @@ export function measureCoverage(repository: Repository, provider: CoverageProvid
             column: position.character + 1,
             expression: `${root.getText(source).slice(0, 60)}.${names.join('.')}`,
           };
-          const isTraced = traced.has(`${site.file}\0${site.line}\0${site.column}`);
+          const traceSource = traced.get(`${site.file}\0${site.line}\0${site.column}`);
+          const isTraced = Boolean(traceSource);
           sites.push({
             ...site,
             traced: isTraced,
+            ...(traceSource ? { traceSource } : {}),
             likelySdk: isTraced || importsSdk || sdk.hint.test(root.getText(source)),
             ...(isTraced
               ? {}

@@ -42,6 +42,22 @@
       "tracedCalls": {
         "$ref": "common.schema.json#/$defs/count"
       },
+      "tracedCallsBySource": {
+        "type": "object",
+        "x-added": "2026-10-28",
+        "description": "Traced calls by how they were traced (docs/CLIENT-TRACING.md): the analyzer's tracers, the receiver's type, or a JavaScript factory's return.",
+        "required": ["analyzer", "type", "js-return"],
+        "properties": {
+          "analyzer": { "$ref": "common.schema.json#/$defs/count" },
+          "type": { "$ref": "common.schema.json#/$defs/count" },
+          "js-return": { "$ref": "common.schema.json#/$defs/count" }
+        }
+      },
+      "typeTracing": {
+        "enum": ["too-large", "no-stripe-types"],
+        "x-added": "2026-10-28",
+        "description": "Why type tracing did not run; absent when it ran."
+      },
       "calledMethods": {
         "$ref": "common.schema.json#/$defs/count"
       },
