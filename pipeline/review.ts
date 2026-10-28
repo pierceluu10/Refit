@@ -331,6 +331,7 @@ const LOCAL_PROOFS: Record<LocalProof, string> = {
   'repository-type': 'a type the repository declares',
   'literal-config': 'an object literal the repository writes',
   'generated-type': "a type generated from the repository's own schema",
+  'receiver-type': 'a type that is not the changed object',
 };
 
 function failedChecks(validation: Validation) {

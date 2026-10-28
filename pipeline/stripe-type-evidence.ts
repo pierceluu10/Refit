@@ -10,6 +10,7 @@ import {
   labelReads,
   SOURCE,
   stripeTypesEntry,
+  typeNames,
 } from './stripe-ground-truth.ts';
 import type { Finding, Removal, Repository } from './types.ts';
 
@@ -140,8 +141,11 @@ export function typeOraclePasses(oracle: TypeOracle | undefined) {
 }
 
 // How a cleared read was shown not to read a Stripe object (localReceiverReads).
-export type LocalProof = 'repository-type' | 'literal-config' | 'generated-type';
+export type LocalProof = 'repository-type' | 'literal-config' | 'generated-type' | 'receiver-type';
 export interface LocalReceiverOptions {
+  // The removed fields reads name by `changeId` (`line_item` for line_item.price); the
+  // receiver-type proof needs the schema a read's change removes the property from.
+  changes?: readonly Pick<Removal, 'id' | 'schema'>[];
   // Removed-field reads Refit traced to Stripe objects: a cleared property must not also be read on
   // one in the same function.
   traced?: readonly { file: string; line: number; column: number; expression: string }[];
@@ -173,6 +177,11 @@ const CALLBACK_METHODS = new Set([
 const SUBARRAY_METHODS = new Set(['filter', 'slice']);
 const MUTATING_METHODS = new Set(['copyWithin', 'fill', 'push', 'splice', 'unshift']);
 const WEBHOOK_CONSTRUCTORS = new Set(['constructEvent', 'constructEventAsync']);
+// The stripe package's own files, under npm, Yarn and pnpm layouts.
+const STRIPE_PACKAGE = /^(.*[\\/]node_modules[\\/]stripe)[\\/]/;
+// Any other package whose name mentions Stripe (@stripe/stripe-js, stripe-event-types, a plugin)
+// may declare Stripe API objects under its own names, so its types prove nothing.
+const STRIPE_RELATED = /[\\/]node_modules[\\/](?:@[^\\/]+[\\/])?[^\\/]*stripe[^\\/]*[\\/]/i;
 
 // Founder decision (Otabek, 2026-10-28), widening owner decision D2b (2026-10-27): of `reads`
 // (removed-field reads at the line and column where the property access starts), the ones Refit can
@@ -195,7 +204,13 @@ const WEBHOOK_CONSTRUCTORS = new Set(['constructEvent', 'constructEventAsync']);
 //   constructs a Stripe webhook event, and not asserted from an event's `data.object`.
 // A read never counts where its property is also read on a traced Stripe object in the same function.
 export function localReceiverReads<
-  Read extends { file: string; line: number; column: number; expression: string },
+  Read extends {
+    file: string;
+    line: number;
+    column: number;
+    expression: string;
+    changeId?: string;
+  },
 >(repository: Repository, reads: readonly Read[], options: LocalReceiverOptions = {}) {
   const candidates = reads.filter((read) => SOURCE.test(read.file) && !read.file.endsWith('.d.ts'));
   const files = repository.files
@@ -203,8 +218,15 @@ export function localReceiverReads<
     .filter((path) => SOURCE.test(path) && !TEST_PATH.test(path));
   if (!candidates.length || files.length > MAX_TYPED_FILES) return [];
   const root = resolve(repository.root);
+  // The installed stripe types are loaded even where no file imports them, so the receiver-type
+  // checks can compare with them (acceptsSchema).
+  const stripe = stripePackageDirectory(root);
+  const entry = stripe ? stripeTypesEntry(stripe) : undefined;
   const program = ts.createProgram(
-    files.map((path) => resolve(root, path)),
+    [
+      ...files.map((path) => resolve(root, path)),
+      ...(entry ? [entry.ambient ?? entry.module!] : []),
+    ],
     compilerOptions(root),
   );
   const checker = program.getTypeChecker();
@@ -302,6 +324,28 @@ export function localReceiverReads<
       }
       return false;
     });
+  // No repository code can change an object's properties: no reference is written through, passed
+  // to a call (`Object.assign(row, …)`), returned, or copied into another binding or literal.
+  const unchanged = (symbol: ts.Symbol) =>
+    referencesOf(symbol).every((reference) => {
+      const parent = reference.parent;
+      if (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent))
+        return (
+          parent.expression !== reference ||
+          (!assigned(parent) && !ts.isDeleteExpression(parent.parent))
+        );
+      return !(
+        ((ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+          parent.arguments?.includes(reference)) ||
+        ts.isReturnStatement(parent) ||
+        ts.isArrowFunction(parent) ||
+        ts.isArrayLiteralExpression(parent) ||
+        ts.isPropertyAssignment(parent) ||
+        ts.isShorthandPropertyAssignment(parent) ||
+        (ts.isVariableDeclaration(parent) && parent.initializer === reference) ||
+        (ts.isBinaryExpression(parent) && parent.right === reference && assigned(parent.left))
+      );
+    });
   // A `const` binding cannot be reassigned, but an array's elements can be replaced or added to.
   const literalBinding = (
     node: ts.Expression,
@@ -319,7 +363,7 @@ export function localReceiverReads<
       constant(declaration) &&
       declaration.initializer &&
       literal(declaration.initializer, depth + 1) &&
-      (!elements || unwritten(symbol)),
+      (elements ? unwritten(symbol) : unchanged(symbol)),
     );
   };
   const literalArray = (node: ts.Expression, depth = 0): boolean => {
@@ -381,6 +425,21 @@ export function localReceiverReads<
         Boolean(declaration.initializer) &&
         localType(declaration.initializer!)
       );
+    // An array method's callback: its element comes from the array, wherever that comes from.
+    if (
+      ts.isParameter(declaration) &&
+      (ts.isArrowFunction(declaration.parent) || ts.isFunctionExpression(declaration.parent)) &&
+      ts.isCallExpression(declaration.parent.parent) &&
+      declaration.parent.parent.arguments.includes(declaration.parent)
+    ) {
+      const callee = declaration.parent.parent.expression;
+      return (
+        !declaration.type &&
+        ts.isPropertyAccessExpression(callee) &&
+        CALLBACK_METHODS.has(callee.name.text) &&
+        annotatedSource(callee.expression)
+      );
+    }
     if (!ts.isParameter(declaration) || !declaration.type) return true;
     const owner = declaration.parent;
     const index = owner.parameters.indexOf(declaration);
@@ -409,9 +468,59 @@ export function localReceiverReads<
       })
     );
   };
-  const repositoryType = (access: ts.PropertyAccessExpression, file: string) => {
+  // The installed stripe package's types for each schema, by the SDK spec's resource names.
+  let stripeTypes: Map<string, ts.Type[]> | undefined;
+  const schemaTypes = (schema: string) => {
+    if (!stripeTypes) {
+      const found = new Map<string, ts.Type[]>();
+      const visit = (node: ts.Node, stripe: string) => {
+        if (
+          (ts.isInterfaceDeclaration(node) || ts.isClassDeclaration(node)) &&
+          node.name &&
+          !node.typeParameters
+        ) {
+          const symbol = checker.getSymbolAtLocation(node.name);
+          const type = symbol && checker.getDeclaredTypeOfSymbol(symbol);
+          const name = type ? (typeNames(type, checker, stripe)[0] ?? '') : '';
+          const mapped = name.startsWith('Stripe.') ? classSchemas.get(name.slice(7)) : undefined;
+          if (type && mapped) found.set(mapped, [...(found.get(mapped) ?? []), type]);
+        }
+        ts.forEachChild(node, (child) => visit(child, stripe));
+      };
+      for (const source of program.getSourceFiles()) {
+        const stripe = STRIPE_PACKAGE.exec(source.fileName)?.[1];
+        if (stripe) visit(source, stripe);
+      }
+      stripeTypes = found;
+    }
+    return stripeTypes.get(schema) ?? [];
+  };
+  // A passing type check lets a Stripe object reach a receiver without a cast only where its type
+  // is assignable to the receiver's, however the value travels (a property write, push, Map.set,
+  // a spread, a constructor). With the target stripe-node the removed field is gone from it, so a
+  // receiver that requires the field cannot take it. Unknown schemas and types prove nothing.
+  // shortcut: a value typed `any` (JSON.parse, an untyped library) written into the receiver is not
+  // seen; upgrade by following writes if a review finds one.
+  const acceptsSchema = (receiver: ts.Type, schemas: readonly string[]) => {
+    if (receiver.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return true;
+    const types = schemas.map(schemaTypes);
+    return (
+      !schemas.length ||
+      types.some((list) => !list.length) ||
+      types.some((list) => list.some((type) => checker.isTypeAssignableTo(type, receiver)))
+    );
+  };
+  const schemasOf = (read: Read) =>
+    (options.changes ?? [])
+      .filter((change) => change.id === read.changeId)
+      .map((change) => change.schema);
+  const receiverOf = (access: ts.PropertyAccessExpression) =>
+    checker.getNonNullableType(checker.getTypeAtLocation(access.expression));
+  const repositoryType = (access: ts.PropertyAccessExpression, read: Read) => {
+    const file = read.file;
     if (!TYPESCRIPT.test(file) || !(options.typeChecked?.(file) ?? false)) return false;
     if (asserted(access.expression, checker)) return false;
+    if (acceptsSchema(receiverOf(access), schemasOf(read))) return false;
     const declarations = checker.getSymbolAtLocation(access.name)?.getDeclarations() ?? [];
     return (
       declarations.length > 0 &&
@@ -472,6 +581,225 @@ export function localReceiverReads<
       !constructsEvent(enclosing(access))
     );
   };
+  // receiver-type: a part of the receiver's type that is not the changed schema's Stripe object.
+  const notSchema = (type: ts.Type, schemas: readonly string[], depth = 0): boolean => {
+    if (depth > 8) return false;
+    if (type.isUnion() || type.isIntersection())
+      return type.types.every((member) => notSchema(member, schemas, depth + 1));
+    if (!(type.flags & ts.TypeFlags.Object)) return false;
+    const declarations = (type.aliasSymbol ?? type.getSymbol())?.getDeclarations() ?? [];
+    if (!declarations.length) return false;
+    for (const declaration of declarations) {
+      const path = declaration.getSourceFile().fileName;
+      const stripe = STRIPE_PACKAGE.exec(path)?.[1];
+      if (stripe) {
+        // Resource names come from Stripe's SDK spec (x-stripeResource), as the type evidence's do.
+        const name = typeNames(type, checker, stripe)[0] ?? '';
+        const schema = name.startsWith('Stripe.') ? classSchemas.get(name.slice(7)) : undefined;
+        // Stripe's resources are interfaces; an unmapped one may be a variant of the changed
+        // object (an upcoming invoice), and only classes such as its errors are not resources.
+        if (schema ? schemas.includes(schema) : !ts.isClassDeclaration(declaration)) return false;
+      } else if (STRIPE_RELATED.test(path)) return false;
+    }
+    const target = (type as ts.TypeReference).target ?? type;
+    return (target.isClassOrInterface() ? (checker.getBaseTypes(target) ?? []) : []).every((base) =>
+      notSchema(base, schemas, depth + 1),
+    );
+  };
+  // The property itself: `Pick<Stripe.LineItem, 'price'>` or a spread of a Stripe object declares
+  // it on the Stripe type, whatever the receiver's own name.
+  const propertyNotSchema = (access: ts.PropertyAccessExpression, schemas: readonly string[]) => {
+    const declarations = checker.getSymbolAtLocation(access.name)?.getDeclarations() ?? [];
+    return (
+      declarations.length > 0 &&
+      declarations.every((declaration) => {
+        const path = declaration.getSourceFile().fileName;
+        if (!STRIPE_RELATED.test(path)) return true;
+        const owner = declaration.parent;
+        const symbol =
+          (ts.isInterfaceDeclaration(owner) || ts.isClassDeclaration(owner)) && owner.name
+            ? checker.getSymbolAtLocation(owner.name)
+            : undefined;
+        return Boolean(
+          STRIPE_PACKAGE.test(path) &&
+          symbol &&
+          notSchema(checker.getDeclaredTypeOfSymbol(symbol), schemas),
+        );
+      })
+    );
+  };
+  const assigned = (reference: ts.Node) => {
+    const parent = reference.parent;
+    return (
+      (ts.isBinaryExpression(parent) &&
+        parent.left === reference &&
+        parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+        parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ||
+      ((ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
+        [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(parent.operator))
+    );
+  };
+  // Every value that can reach `node` carries the type the checker reports: no type assertion,
+  // annotation or return type stands in for a value Refit cannot see. A runtime check (`instanceof`)
+  // on an `any` or `unknown` value narrows it to a class, which cannot lie.
+  const flows = (node: ts.Expression, schemas: readonly string[], depth = 0): boolean => {
+    if (depth > 6 || asserted(node, checker)) return false;
+    node = value(node);
+    if (ts.isAwaitExpression(node)) return flows(node.expression, schemas, depth + 1);
+    if (ts.isConditionalExpression(node))
+      return flows(node.whenTrue, schemas, depth + 1) && flows(node.whenFalse, schemas, depth + 1);
+    if (
+      ts.isBinaryExpression(node) &&
+      [
+        ts.SyntaxKind.QuestionQuestionToken,
+        ts.SyntaxKind.BarBarToken,
+        ts.SyntaxKind.AmpersandAmpersandToken,
+      ].includes(node.operatorToken.kind)
+    )
+      return flows(node.left, schemas, depth + 1) && flows(node.right, schemas, depth + 1);
+    if (ts.isCallExpression(node))
+      return returns(node, schemas, depth) && flows(node.expression, schemas, depth + 1);
+    if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node))
+      return flows(node.expression, schemas, depth + 1);
+    if (ts.isArrayLiteralExpression(node))
+      return node.elements.every((element) =>
+        flows(ts.isSpreadElement(element) ? element.expression : element, schemas, depth + 1),
+      );
+    if (!ts.isIdentifier(node)) return true;
+    const symbol = symbolOf(node);
+    let declaration: ts.Node | undefined = symbol?.valueDeclaration;
+    while (declaration && ts.isBindingElement(declaration)) declaration = declaration.parent.parent;
+    if (!symbol || !declaration) return false;
+    // A library's value (an imported client or ORM) has the type its package declares.
+    if (!own(declaration)) return true;
+    if (
+      ts.isFunctionDeclaration(declaration) ||
+      ts.isClassDeclaration(declaration) ||
+      ts.isEnumDeclaration(declaration)
+    )
+      return true;
+    if (checker.getTypeOfSymbol(symbol).flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
+      const narrowed = checker.getNonNullableType(checker.getTypeAtLocation(node));
+      const members = narrowed.isUnion() ? narrowed.types : [narrowed];
+      return members.every((member) =>
+        (member.getSymbol()?.getDeclarations() ?? []).some(ts.isClassDeclaration),
+      );
+    }
+    if (ts.isVariableDeclaration(declaration)) {
+      const statement = declaration.parent.parent;
+      if (ts.isForOfStatement(statement) && declaration.parent === statement.initializer)
+        return flows(statement.expression, schemas, depth + 1);
+      if (!declaration.initializer) return false;
+      if (!constant(declaration) && referencesOf(symbol).some(assigned)) return false;
+      return (
+        flows(declaration.initializer, schemas, depth + 1) &&
+        (!declaration.type ||
+          notSchema(
+            checker.getNonNullableType(checker.getTypeAtLocation(declaration.initializer)),
+            schemas,
+          ))
+      );
+    }
+    if (ts.isParameter(declaration)) return parameterFlows(declaration, schemas, depth);
+    return false;
+  };
+  // An argument or returned value behind an annotation: its own flow, and its type, which the
+  // annotation could hide.
+  const fills = (node: ts.Expression, schemas: readonly string[], depth: number) =>
+    !ts.isSpreadElement(node) &&
+    flows(node, schemas, depth + 1) &&
+    notSchema(checker.getNonNullableType(checker.getTypeAtLocation(node)), schemas);
+  const parameterFlows = (
+    parameter: ts.ParameterDeclaration,
+    schemas: readonly string[],
+    depth: number,
+  ): boolean => {
+    const owner = parameter.parent;
+    const index = owner.parameters.indexOf(parameter);
+    if (parameter.dotDotDotToken) return false;
+    // A callback of an array method: the array passes each value.
+    if (
+      (ts.isArrowFunction(owner) || ts.isFunctionExpression(owner)) &&
+      ts.isCallExpression(owner.parent) &&
+      owner.parent.arguments.includes(owner)
+    ) {
+      const callee = owner.parent.expression;
+      if (!ts.isPropertyAccessExpression(callee) || !CALLBACK_METHODS.has(callee.name.text))
+        return false;
+      if (!flows(callee.expression, schemas, depth + 1)) return false;
+      if (!parameter.type) return true;
+      const passed = checker.getContextualType(owner)?.getCallSignatures()[0]?.parameters[index];
+      return Boolean(
+        passed &&
+        notSchema(
+          checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(passed, owner)),
+          schemas,
+        ),
+      );
+    }
+    // A named function: every repository reference calls it with values that flow.
+    const binding =
+      ts.isFunctionDeclaration(owner) && owner.name
+        ? owner
+        : (ts.isArrowFunction(owner) || ts.isFunctionExpression(owner)) &&
+            ts.isVariableDeclaration(owner.parent) &&
+            constant(owner.parent)
+          ? owner.parent
+          : undefined;
+    const name = binding?.name;
+    const symbol = name && ts.isIdentifier(name) ? symbolOf(name) : undefined;
+    if (!symbol) return false;
+    const calls = referencesOf(symbol).filter(
+      (reference) =>
+        reference !== name &&
+        !ts.isImportSpecifier(reference.parent) &&
+        !ts.isImportClause(reference.parent) &&
+        !ts.isExportSpecifier(reference.parent),
+    );
+    return (
+      calls.length > 0 &&
+      calls.every((reference) => {
+        const call = reference.parent;
+        if (!ts.isCallExpression(call) || call.expression !== reference) return false;
+        const argument = call.arguments[index];
+        if (!argument) return Boolean(parameter.initializer || parameter.questionToken);
+        return fills(argument, schemas, depth);
+      })
+    );
+  };
+  // A repository function: every value it returns flows, and fits its return annotation.
+  const returns = (call: ts.CallExpression, schemas: readonly string[], depth: number) => {
+    const declaration = checker.getResolvedSignature(call)?.declaration;
+    if (!declaration || !ts.isFunctionLike(declaration)) return false;
+    if (!own(declaration)) return true;
+    const body = 'body' in declaration ? declaration.body : undefined;
+    if (!body) return false;
+    const fits = (returned: ts.Expression) =>
+      declaration.type ? fills(returned, schemas, depth) : flows(returned, schemas, depth + 1);
+    if (!ts.isBlock(body)) return fits(body as ts.Expression);
+    const values: ts.Expression[] = [];
+    let bare = false;
+    const visit = (node: ts.Node) => {
+      if (ts.isFunctionLike(node)) return;
+      if (ts.isReturnStatement(node)) {
+        if (node.expression) values.push(node.expression);
+        else bare = true;
+      }
+      ts.forEachChild(node, visit);
+    };
+    ts.forEachChild(body, visit);
+    return !bare && values.every(fits);
+  };
+  const receiverType = (access: ts.PropertyAccessExpression, read: Read) => {
+    if (!TYPESCRIPT.test(read.file) || !(options.typeChecked?.(read.file) ?? false)) return false;
+    const schemas = schemasOf(read);
+    return (
+      !acceptsSchema(receiverOf(access), schemas) &&
+      notSchema(receiverOf(access), schemas) &&
+      propertyNotSchema(access, schemas) &&
+      flows(access.expression, schemas)
+    );
+  };
   const results: (Read & { proof: LocalProof })[] = [];
   for (const read of candidates) {
     const source = program.getSourceFile(resolve(root, read.file));
@@ -499,13 +827,15 @@ export function localReceiverReads<
       return scope.getStart(source) <= position && position < scope.getEnd();
     });
     if (tracedHere) continue;
-    const proof: LocalProof | undefined = repositoryType(access, read.file)
+    const proof: LocalProof | undefined = repositoryType(access, read)
       ? 'repository-type'
       : literalObject(access.expression)
         ? 'literal-config'
         : generatedType(access)
           ? 'generated-type'
-          : undefined;
+          : receiverType(access, read)
+            ? 'receiver-type'
+            : undefined;
     if (proof) results.push({ ...read, proof });
   }
   return results;
