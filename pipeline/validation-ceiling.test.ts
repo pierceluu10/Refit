@@ -96,6 +96,28 @@ it('sends unread parameters and removed paths to the planned lanes', () => {
       'reached',
       'GET /v1/payment_methods for the `query` request parameter `ending_before`, the maxLength was set to `5000`: Refit cannot read the request property in "…".',
     ),
+  ).toBe('none');
+  expect(
+    rule(
+      'request-property-type-changed',
+      'reached',
+      'POST /v1/prices the `currency` request property `format` changed from `none` to `currency`: The `prices.create` call in convex/init.ts sends `currency`.',
+    ),
+  ).toBe('heldout-2');
+  expect(
+    rule(
+      'request-property-any-of-removed',
+      'reached',
+      'POST /v1/customers/{customer} removed `subschema #1: optional_fields_address` from the `address` request property: The `customers.update` call in lib/upsert.ts sends `address`.',
+    ),
+  ).toBe('heldout-2');
+  // Lane C renames the request parameter; a response path naming it is a reach shape.
+  expect(
+    rule(
+      'response-property-became-optional',
+      'unknown',
+      'GET /v1/charges the response property `error/payment_intent/payment_method_types` became optional for the status `default`: lib/stripe.ts:9 reads `payment_method_types` on an object Refit cannot trace.',
+    ),
   ).toBe('heldout-2');
   expect(
     rule(
@@ -164,6 +186,7 @@ it('separates runtime stand-ins from a repository test that fails on its own', (
       { validation: { baseline: { stdout, stderr: '' } } },
     ).blockers[0];
   expect(baseline('Error: connect ECONNREFUSED 127.0.0.1:5432').lane).toBe('ceiling-2');
+  expect(baseline("Error: Cannot find module '.prisma/client/default'").lane).toBe('ceiling-2');
   const own = baseline(
     '× Stripe Webhook Handler > should handle checkout.session.completed\n → expected 400 to be 200',
   );
@@ -195,6 +218,44 @@ it('reads upgrade fallout from a failing patched type check', () => {
     },
   });
   expect(row.blockers.map((b) => b.lane)).toEqual(['ceiling-4']);
+});
+
+it('follows a pin the old types reject to the upgrade refusal, and leaves JavaScript errors to the grade', () => {
+  const regression = (
+    introduced: { file: string; code: string; message: string }[],
+    skipped?: string,
+  ) =>
+    classifyRow({
+      ...affected,
+      ...needsReview,
+      checks: 'typecheck',
+      workflow: {
+        status: 'validation-failed',
+        validation: 'regression',
+        ...(skipped ? { sdkUpgrade: { skipped } } : {}),
+        typeOracle: {
+          patched: {
+            count: introduced.length,
+            introduced: introduced.map((e) => ({ ...e, line: 3 })),
+          },
+        },
+      },
+    }).blockers.map((b) => b.lane);
+  const pin = {
+    file: 'lib/stripe.ts',
+    code: 'TS2322',
+    message: 'Type \'"2026-09-30.endive"\' is not assignable to type \'"2023-10-16"\'.',
+  };
+  expect(
+    regression([pin], 'Only single-project pnpm lockfile version 6 files are upgraded.'),
+  ).toEqual(['none', 'none']);
+  expect(regression([pin])).toEqual(['none']);
+  expect(regression([{ file: 'api/webhook.js', code: 'TS2345', message: 'x' }])).toEqual([
+    'test-mode-T',
+  ]);
+  expect(regression([{ file: 'api/webhook.ts', code: 'TS2345', message: 'x' }])).toEqual([
+    'deps-B',
+  ]);
 });
 
 it('names a grade-D pass and an unexplained stop instead of dropping them', () => {

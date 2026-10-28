@@ -6,6 +6,7 @@ export interface BlockerRule extends RowBlocker {
   verdict: 'fixable' | 'not-validatable';
   lane?: string;
   cause?: string;
+  changes?: number;
   reason?: string;
 }
 export interface ContractChange {

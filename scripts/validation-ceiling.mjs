@@ -75,8 +75,8 @@ const STATIC = {
   'untraced-api-version': fixable('none', 'untraced API version'),
   'api-version-default': fixable('none', 'no apiVersion on a stripe-node whose default is unknown'),
   'api-version-unconfirmed': fixable('none', 'API version pin Refit cannot confirm'),
-  // The patch that moved the pin and upgraded stripe-node failed its checks: upgrade fallout.
-  'api-version-kept': fixable('ceiling-4'),
+  // The report does not record why the patch that moved the pin failed (tests or types).
+  'api-version-kept': fixable('none', 'moved pin failed its checks, cause not recorded'),
   infrastructure: fixable('none', 'benchmark infrastructure'),
   unexplained: fixable('none', 'not validated, blocker not recorded'),
 };
@@ -102,7 +102,7 @@ const SOURCE_EVIDENCE = [
 ];
 // Runtime dependencies a repository's own test needs before it reaches Stripe code (agent 2).
 const RUNTIME =
-  /process\.env\.\w+|environment variable|ECONNREFUSED|ENOTFOUND|getaddrinfo|DATABASE_URL|MongoServerError|MongooseServerSelectionError|supabaseUrl is required|PrismaClientInitializationError/;
+  /@prisma\/client|\.prisma\/client|PrismaClient|prisma generate|process\.env\.\w+|environment variable|ECONNREFUSED|ENOTFOUND|getaddrinfo|DATABASE_URL|MongoServerError|MongooseServerSelectionError|supabaseUrl is required|PrismaClientInitializationError/;
 // Why a repository's own check fails on the original code, where the output says so.
 const BASELINE_CAUSES = [
   [
@@ -114,6 +114,11 @@ const BASELINE_CAUSES = [
 // oasdiff ids of a change that takes something away; agent 3 gives the documented replacement.
 const REMOVAL = /removed/;
 const LEAF_READ = /: \S+:\d+ reads `[^`]+`\.$/;
+// The two D4 classes (docs/SCHEMA-EQUIVALENCE.md) lane 2 starts by confirming on main.
+const D4 = /`format` (?:was )?changed from `none` to|removed `subschema #\d+: \w+` from/;
+const JS_FILE = /\.(?:js|jsx|mjs|cjs)$/;
+// A pin literal the old stripe-node types reject: the upgrade was not applied with the move.
+const PIN_TYPE = /is not assignable to type '"\d{4}-\d{2}-\d{2}/;
 const UNREAD = /Refit cannot read the request property/;
 // Errors a type assertion repairs without changing behaviour (lane B); the rest need agent 4.
 const TYPE_ONLY_ERRORS = new Set(['TS2322', 'TS2345', 'TS2367', 'TS2678', 'TS2820']);
@@ -150,12 +155,15 @@ export function blockingChanges(row, report) {
 }
 
 export function changeRule(change) {
-  if (/payment_method_types/.test(change.text)) return fixable('deps-C');
+  const request = /^(?:request|new-required-request)/.test(change.id);
+  if (D4.test(change.text) && change.id !== 'not-recorded') return fixable('heldout-2');
+  if (request && /payment_method_types/.test(change.text)) return fixable('deps-C');
   if (/^api-path-removed/.test(change.id)) return fixable('ceiling-3');
-  // Reached only by the leaf's name, a parameter Refit cannot read, or not traced at all: the
-  // reach shapes of lane 2.
-  if (change.reach === 'unknown' || LEAF_READ.test(change.text) || UNREAD.test(change.text))
-    return fixable('heldout-2');
+  // #365 narrows response paths only; a request Refit cannot read stays its own gap.
+  if (request && (change.reach === 'unknown' || UNREAD.test(change.text)))
+    return fixable('none', 'request built where Refit cannot read it');
+  // Reached only by the leaf's name, or not traced at all: the reach shapes of lane 2.
+  if (change.reach === 'unknown' || LEAF_READ.test(change.text)) return fixable('heldout-2');
   // Stripe names what to send instead (the mined `promotion` move, for one).
   if (change.id === 'new-required-request-property') return fixable('ceiling-3');
   if (change.reach !== 'reached') return fixable('none', 'contract change, reach not recorded');
@@ -176,8 +184,8 @@ export function blockerRules(entry, row, report, blockers) {
       for (const change of changes) {
         const rule = changeRule(change);
         const key = `${rule.lane} ${rule.cause ?? ''}`;
-        if (!rules.has(key))
-          rules.set(key, { blocker, evidence: change.text.slice(0, 300), ...rule });
+        if (rules.has(key)) rules.get(key).changes += 1;
+        else rules.set(key, { blocker, evidence: change.text.slice(0, 300), changes: 1, ...rule });
       }
       return [...rules.values()];
     }
@@ -205,6 +213,30 @@ export function blockerRules(entry, row, report, blockers) {
       const codes = evidence.match(/TS\d+/g) ?? [];
       if (codes.length === 0)
         return [{ ...entry, ...fixable('none', 'patched check fails without new type errors') }];
+      const workflow = row.workflow ?? {};
+      const messages = [
+        evidence,
+        ...(workflow.typeOracle?.patched?.introduced ?? []).map((error) => error.message ?? ''),
+        ...(workflow.checkFailures ?? []).map((failure) => failure.firstFailure ?? ''),
+      ].join('\n');
+      if (PIN_TYPE.test(messages)) {
+        const upgrade = blockers.find((other) =>
+          other.blocker.startsWith('stripe-upgrade-refused'),
+        );
+        const lane = upgrade && blockerRules(upgrade, row, report, blockers)[0];
+        return [
+          {
+            ...entry,
+            ...(lane
+              ? fixable(lane.lane, lane.cause)
+              : fixable('none', 'pin moved without the stripe-node upgrade')),
+          },
+        ];
+      }
+      // Errors only in JavaScript files are advisory: no type repair applies, the grade decides.
+      const files = [...evidence.matchAll(/TS\d+ ([^:;]+):\d+/g)].map((match) => match[1]);
+      if (files.length > 0 && files.every((file) => JS_FILE.test(file)))
+        return [{ ...entry, ...fixable('test-mode-T') }];
       const typeOnly = codes.every((code) => TYPE_ONLY_ERRORS.has(code));
       return [{ ...entry, ...fixable(typeOnly ? 'deps-B' : 'ceiling-4') }];
     }
@@ -268,17 +300,18 @@ export function classifyRow(row, report) {
   const stage = funnelStage(row).stage;
   if (validated(row)) return { repo: row.repo, stage, verdict: 'validated', blockers: [] };
   let found = rowBlockers(row, report);
+  // A passing grade-D patch stays [Needs review] even after every other blocker is cleared.
+  if (row.workflow?.validation === 'passed' && row.workflow?.grade?.letter === 'D')
+    found.push({
+      blocker: 'grade-d',
+      evidence: row.workflow.grade.reason?.slice(0, 300) ?? 'grade D',
+    });
   if (found.length === 0)
     found = [
-      row.workflow?.validation === 'passed' && row.workflow?.grade?.letter === 'D'
-        ? { blocker: 'grade-d', evidence: row.workflow.grade.reason?.slice(0, 300) ?? 'grade D' }
-        : {
-            blocker: 'unexplained',
-            evidence: (row.production?.reason ?? row.workflow?.reason ?? 'not recorded').slice(
-              0,
-              300,
-            ),
-          },
+      {
+        blocker: 'unexplained',
+        evidence: (row.production?.reason ?? row.workflow?.reason ?? 'not recorded').slice(0, 300),
+      },
     ];
   const blockers = found.flatMap((entry) => blockerRules(entry, row, report, found));
   const reasons = [
