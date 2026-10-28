@@ -1375,6 +1375,8 @@ export async function runSandboxBehaviourTests(options: {
       cleanup,
     },
   });
+}
+
 // Signed webhook checks (signed-events.ts) with Stripe's adapter: the handlers the patch can affect
 // get signed events of both API versions, built from each version's fixtures, on the original and
 // the patched code, in the behaviour-test sandbox. Setup problems are unavailable, never a failure.
