@@ -57,6 +57,13 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
 import { prepareEnvironment } from './repository-environment.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { runtimeStandIns } from './runtime-stand-ins.ts';
+import {
+  declaredGenerators,
+  generatorExits,
+  generatorsEnabled,
+  withGenerators,
+} from './declared-generators.ts';
 import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { baselineCheck } from './validation-baseline-cache.ts';
 import { inspectArtifactFile } from './verification.ts';
@@ -379,6 +386,13 @@ export interface CheckResult {
   stdout: string;
   stderr: string;
   error?: string;
+  // Generated files recreated offline before the checks (see declared-generators.ts).
+  generators?: {
+    name: string;
+    command: string[];
+    environment?: Record<string, string>;
+    exitCode: number | null;
+  }[];
 }
 const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
@@ -653,6 +667,13 @@ async function containerCheck({
   network?: 'none' | `refit-sandbox-${string}`;
 } & CheckSandbox): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
+  // Only prepared dependencies skip the repository's install steps; a custom image ran its own.
+  const generators =
+    dependencies && generatorsEnabled()
+      ? await declaredGenerators(join(directory, packageDirectory ?? ''))
+      : [];
+  const withExit = (result: CheckResult): CheckResult =>
+    generators.length ? { ...result, ...generatorExits(generators, result.stderr) } : result;
   await removeExpiredSandboxContainers();
   try {
     const result = await execute(
@@ -661,7 +682,7 @@ async function containerCheck({
         name,
         directory,
         image,
-        command: argumentsList,
+        command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
         network,
         timeoutMs,
         dependencies,
@@ -678,7 +699,7 @@ async function containerCheck({
         signal,
       },
     );
-    return { status: 'passed', exitCode: 0, ...result };
+    return withExit({ status: 'passed', exitCode: 0, ...result });
   } catch (error) {
     signal?.throwIfAborted();
     if (!(error instanceof Error)) throw error;
@@ -689,7 +710,7 @@ async function containerCheck({
       stderr?: string;
     };
     const exitCode = typeof failure.code === 'number' ? failure.code : null;
-    return {
+    return withExit({
       status: exitCode !== null && !failure.killed && exitCode < 125 ? 'failed' : 'error',
       exitCode,
       stdout: failure.stdout ?? '',
@@ -700,7 +721,7 @@ async function containerCheck({
           : failure.killed
             ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
             : failure.message,
-    };
+    });
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
     await removeDockerContainer(name);
@@ -1135,6 +1156,7 @@ async function runGeneratedStripeChecks(
     generatedImportMap(options.original),
     generatedImportMap(options.patched),
     generatedEnvironment(options.original, options.patched),
+    await runtimeStandIns(join(options.runs[0].directory, options.sandbox.packageDirectory ?? '')),
   );
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {
@@ -1193,7 +1215,15 @@ export async function runBehaviourTests(options: {
     before: options.original.contract,
     after: options.patched.contract,
   });
-  await writeBehaviourHarness(tools, options.tests, changed, sources);
+  await writeBehaviourHarness(
+    tools,
+    options.tests,
+    changed,
+    sources,
+    await runtimeStandIns(
+      join(options.original.directory, options.sandbox?.packageDirectory ?? ''),
+    ),
+  );
   const run = (side: 'before' | 'after') => {
     const input = side === 'before' ? options.original : options.patched;
     options.onProgress?.(
