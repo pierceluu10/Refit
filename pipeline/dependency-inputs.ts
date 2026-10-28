@@ -47,6 +47,13 @@ export interface PreparationIdentity {
   // Of several committed lockfiles, the one in sync with package.json that Refit installed, and how
   // each other one disagrees with it (syncedLockfile).
   lockfileChoice?: { lockfile: string; outOfSync: Record<string, string> };
+  // A package-lock.json Refit resolved for validation only, in place of the refused or missing one
+  // (lockfile-resolution.ts): the refusal, the cutoff, and pins resolved after it.
+  resolvedLockfile?: {
+    reason: string;
+    before: string;
+    late?: Record<string, { spec: string; published: string }>;
+  };
 }
 
 interface PreparationInputs {

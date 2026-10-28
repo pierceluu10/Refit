@@ -38,6 +38,11 @@ import {
   YARN_INSTALL_COMMAND,
   YARN_SKIP_PLATFORM_PACKAGES,
 } from './manager-install.ts';
+import {
+  LockfileResolutionError,
+  lockfileResolutionEnabled,
+  resolvedLockfileSnapshot,
+} from './lockfile-resolution.ts';
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
 import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
@@ -572,6 +577,8 @@ export async function prepareDependencies(options: {
   cacheDirectory?: string;
   // A nested package (preparation-packages.ts) installs from its own manifest and lockfile.
   packageDirectory?: string;
+  // The cutoff for a resolved lockfile when the repository is a candidate Refit committed itself.
+  committedAt?: string;
   // Copied under the cache lock, so eviction cannot remove the bundle mid-copy.
   copyArchiveTo?: string;
   signal?: AbortSignal;
@@ -580,11 +587,67 @@ export async function prepareDependencies(options: {
   try {
     return await prepare(options);
   } catch (error) {
+    // npm ci can find a lockfile out of sync that Refit's own check accepted (missing peers);
+    // resolution then starts from that lockfile, once.
+    const outOfSync =
+      !options.packageDirectory &&
+      error instanceof PipelineInputError &&
+      /^npm dependency preparation failed/.test(error.message) &&
+      preparationFailure(error)?.reason === 'lockfile-out-of-sync' &&
+      lockfileResolutionEnabled();
+    try {
+      if (outOfSync) return await prepare(options, error);
+    } catch (again) {
+      throw withPreparationStop(again);
+    }
     throw withPreparationStop(error);
   }
 }
 
-async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
+// A refused or missing npm lockfile is replaced by one resolved as of the commit date, for
+// validation only (lockfile-resolution.ts); the original refusal leads any further one.
+async function withResolvedLockfile(
+  snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  error: unknown,
+  options: Parameters<typeof prepareDependencies>[0],
+) {
+  const failure = preparationFailure(error);
+  if (!failure || !(error instanceof Error)) throw error;
+  let resolved;
+  try {
+    resolved = await resolvedLockfileSnapshot(snapshot, failure.reason, {
+      image: DOCKER_IMAGE_ID.test(options.image)
+        ? options.image
+        : await resolveDockerImage(options.image),
+      before: options.committedAt,
+      signal: options.signal,
+      onProgress: options.onProgress,
+    });
+  } catch (cause) {
+    const host =
+      cause instanceof LockfileResolutionError &&
+      cause.result &&
+      hostInstallFailure('npm', cause.result, cause.result.stderr);
+    if (host) throw host;
+    if (!(cause instanceof PipelineInputError)) throw cause;
+    throw new DependencyPreparationError(
+      `${error.message} Refit could not resolve a lockfile instead: ${cause.message}`,
+      { cause },
+    );
+  }
+  if (!resolved) throw error;
+  const result = await readPreparationInputs(resolved.snapshot, snapshot.entries).catch(
+    (refused) => {
+      throw new DependencyPreparationError(
+        `${error.message} Refit resolved a lockfile as of ${resolved.record.before}, which was refused too: ${refused instanceof Error ? refused.message : String(refused)}`,
+        { cause: refused },
+      );
+    },
+  );
+  return { ...result, inputs: { ...result.inputs, resolvedLockfile: resolved.record } };
+}
+
+async function prepare(options: Parameters<typeof prepareDependencies>[0], refusal?: Error) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
   const cacheLimit = cacheLimitBytes();
@@ -592,12 +655,18 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
     submodules: options.submodules,
   })
     .then(async (snapshot) =>
-      readPreparationInputs(
-        options.packageDirectory
-          ? await packageSnapshot(snapshot, options.packageDirectory)
-          : snapshot,
-        snapshot.entries,
-      ),
+      refusal
+        ? withResolvedLockfile(snapshot, refusal, options)
+        : readPreparationInputs(
+            options.packageDirectory
+              ? await packageSnapshot(snapshot, options.packageDirectory)
+              : snapshot,
+            snapshot.entries,
+          ).catch((error) =>
+            options.packageDirectory
+              ? Promise.reject(error)
+              : withResolvedLockfile(snapshot, error, options),
+          ),
     )
     .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;

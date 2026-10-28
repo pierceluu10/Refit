@@ -687,6 +687,14 @@ export function createReviewArtifacts(
   );
   const lockfileChoice = validation.environment?.lockfileChoice as
     { lockfile: string; outOfSync: Record<string, string> } | undefined;
+  type ResolvedLockfile = {
+    reason: string;
+    before: string;
+    late?: Record<string, { spec: string; published: string }>;
+  };
+  const resolvedLockfiles = [validation.environment, validation.patchedEnvironment]
+    .map((environment) => environment?.resolvedLockfile as ResolvedLockfile | undefined)
+    .filter((entry) => entry !== undefined);
   const prunedGlibcPackages = Math.max(
     0,
     ...[validation.environment, validation.patchedEnvironment].map((environment) => {
@@ -1306,6 +1314,11 @@ export function createReviewArtifacts(
         ...(lockfileChoice
           ? [
               `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...Object.keys(lockfileChoice.outOfSync)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, the only one in sync with \`package.json\`, and did not read ${Object.keys(lockfileChoice.outOfSync).length === 1 ? 'the other' : 'the others'}: ${Object.values(lockfileChoice.outOfSync).map(plainText).join(' ')} Delete the lockfile your package manager does not use.`,
+            ]
+          : []),
+        ...(resolvedLockfiles.length
+          ? [
+              `- Dependency Installation: the checks ran against a \`package-lock.json\` Refit resolved, not one the repository commits (${{ 'no-lockfile': 'it commits none', 'lockfile-out-of-sync': 'the committed one is out of sync with `package.json`', 'lockfile-integrity': 'the committed one has entries without integrity hashes' }[resolvedLockfiles[0].reason] ?? resolvedLockfiles[0].reason}). npm resolved it with lifecycle scripts off from registry.npmjs.org as of ${resolvedLockfiles[0].before}, the last commit date${[...new Set(resolvedLockfiles.flatMap((entry) => Object.entries(entry.late ?? {}).map(([name, pin]) => `${code(`${name}@${pin.spec}`)} as of ${pin.published}`)))].map((pin, index) => `${index ? ', ' : '; '}${pin}`).join('')}, and installed it with \`npm ci\`. It is not part of this pull request; commit your own lockfile and rerun your checks.`,
             ]
           : []),
         ...(prunedGlibcPackages
