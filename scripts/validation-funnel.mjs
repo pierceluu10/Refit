@@ -217,9 +217,12 @@ export const BLOCKERS = [
   'untraced-reads',
   'source-evidence-other',
   'webhook-version',
+  'kept-untyped-property',
+  'checks-miss-changed-code',
   'ai-patch-review',
   'infrastructure',
   'no-patch',
+  'review-not-recorded',
 ];
 
 const PREPARATION_BLOCKERS = {
@@ -311,6 +314,8 @@ export function rowBlockers(row, report) {
     if (!found.has(blocker)) found.set(blocker, evidence);
   };
   const workflow = row.workflow ?? {};
+  // A validated draft is not blocked, even where an AI patch cleared scan findings (D2b).
+  if (workflow.status === 'validated') return [];
   const placed = funnelStage(row);
   if (placed.stage === 'preparation-refused') {
     const group = placed.detail ?? 'other';
@@ -393,8 +398,14 @@ export function rowBlockers(row, report) {
       'contract-change',
       `${row.productionMode.unmappedChanges} unmapped: ${[...new Set(row.productionMode.unmapped?.map((change) => change.id))].join(', ')}`,
     );
+  const kept = report?.validation?.repair?.keptProperties ?? [];
+  if (kept.length) add('kept-untyped-property', `kept unchanged: ${kept.join(', ')}`);
+  // A passing grade-D draft is [Needs review]: no check reached the changed code.
+  if (workflow.validation === 'passed' && workflow.grade?.letter === 'D')
+    add('checks-miss-changed-code', String(workflow.grade.reason ?? 'not recorded').slice(0, 300));
   if (placed.stage === 'scan-stop' && !workflow.diff)
     add('no-patch', (workflow.reason ?? row.productionMode?.stop ?? 'not recorded').slice(0, 300));
+  if (!found.size && workflow.status === 'needs-review') add('review-not-recorded', 'not recorded');
   return [...found].map(([blocker, evidence]) => ({ blocker, evidence }));
 }
 
@@ -411,10 +422,19 @@ export function artifactReports(directory) {
     }
     for (const name of names) {
       try {
-        const report = JSON.parse(
+        const { findings, patch, validation } = JSON.parse(
           gunzipSync(readFileSync(join(repos, name, 'run', 'report.json.gz'))),
         );
-        reports.set(name.replace('__', '/'), report);
+        // Keep only what rowBlockers reads: whole reports of 249 rows exceed the heap.
+        reports.set(name.replace('__', '/'), {
+          findings,
+          patch: { sdkUpgrade: patch?.sdkUpgrade },
+          validation: {
+            repair: { keptProperties: validation?.repair?.keptProperties },
+            typeOracle: validation?.typeOracle,
+            baseline: { output: validation?.baseline?.output },
+          },
+        });
       } catch {}
     }
   }
