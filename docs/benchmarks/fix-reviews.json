@@ -2546,6 +2546,66 @@
         "upgradeComplete": "yes: stripe ^15.1.0 to ^23.0.0 in package.json and package-lock.json; the client sets no apiVersion, so the upgrade moves the version.",
         "wouldMerge": "not as validated: the contract-change review comes first; the changed lines are right and tsc passes on both sides."
       }
+    },
+    {
+      "repo": "Shefaul-22/AgriFlow",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40625949948 (before, fffa3ad5: refused with \"Committed source exceeds the 50 MiB validation archive limit.\") and 40625956831 (after, 2d6f499c), subsets/source-limit-50.json, --validation-workspace 2g, no AI. After: validated, grade C (tsc --noEmit, 8 existing errors on both sides, none new). migration.patch from the shard-4 artifact read in full, lockfile changes checked to touch only stripe",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: [\"card\"] on checkout.sessions.create becomes allowed_payment_method_types: [\"card\"], the endive replacement under the card rule.",
+        "bothVersions": "yes: the only change is a request field; no response or webhook reads change. The client sets no apiVersion, so the version moves only with the stripe-node upgrade in the same patch.",
+        "nothingUnrelated": "yes: one request key, the stripe dependency in package.json and the stripe entries in package-lock.json (root declaration and node_modules/stripe version, integrity and engines); nothing else in the lockfile changes.",
+        "pleaseCheck": "The draft asks to confirm cards stay enabled for the account and points to the stripe-node 22 to 23 changelog; both are fair, not false alarms.",
+        "upgradeComplete": "yes: stripe ^22.1.1 to ^23.0.0 in package.json and package-lock.json; with no apiVersion pin the upgrade moves the request version from dahlia to 2026-09-30.endive.",
+        "wouldMerge": "yes, once cards are confirmed enabled for the account."
+      }
+    },
+    {
+      "repo": "mouhamedanflosse/digitalHome",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40625949948 (before, fffa3ad5: refused with \"Committed source exceeds the 50 MiB validation archive limit.\") and 40625956831 (after, 2d6f499c), subsets/source-limit-50.json, --validation-workspace 2g, no AI. After: needs-review, checks passed, grade C (tsc --noEmit passes on both sides). migration.patch from the shard-2 artifact read in full, lockfile changes checked to touch only stripe",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: [\"card\", \"cashapp\"] on checkout.sessions.create becomes allowed_payment_method_types with the same list (keep-listed default); products.create default_price_data.currency \"USD\" becomes \"usd\" (docs.stripe.com/currencies).",
+        "bothVersions": "yes: a lowercase currency is accepted on both versions, and the request rename ships with the pin move. No response or webhook read changes; the draft notes that webhook endpoints keep their Dashboard version.",
+        "nothingUnrelated": "yes: the request key, the currency literal, the apiVersion pin in src/lib/strip.ts and stripe in package.json and package-lock.json. In the lockfile only node_modules/stripe and the legacy dependencies.stripe entry change; stripe 23 drops its qs dependency, and the qs entry itself is untouched.",
+        "pleaseCheck": "False alarm: the Left Unchanged read src/collections/products/products.ts:86 `.price` is data.price on the Payload Product (args.data as Product), not a Stripe line item, so it is correctly left alone. The cashapp eligibility check is real.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.10.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, once cashapp is confirmed enabled and still offered where the shop relies on it; the hardcoded fee price id and the swapped priceID/stripeID in products.create were already in the code and are not touched."
+      }
+    },
+    {
+      "repo": "shivamm-55/HippoSphere",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40625949948 (before, fffa3ad5: refused with \"Committed source exceeds the 50 MiB validation archive limit.\") and 40625956831 (after, 2d6f499c), subsets/source-limit-50.json, --validation-workspace 2g, no AI. After: needs-review, checks passed, grade C (tsc --noEmit passes on both sides; npm ci needed --legacy-peer-deps on the committed lockfile). migration.patch from the shard-3 artifact read in full, lockfile changes checked to touch only stripe",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: ['card', 'paypal'] on checkout.sessions.create becomes allowed_payment_method_types with the same list (keep-listed default); products.create default_price_data.currency 'USD' becomes 'usd'.",
+        "bothVersions": "yes: request-side changes only, shipped with the pin move; a lowercase currency is valid on both versions; no response or webhook read changes.",
+        "nothingUnrelated": "yes: the request key, the currency literal, the apiVersion pin in src/lib/stripe.ts and stripe in package.json and package-lock.json. The lockfile changes only the root stripe declaration and node_modules/stripe; qs is no longer a stripe dependency and its own entry is untouched.",
+        "pleaseCheck": "False alarm: the Left Unchanged read src/collections/Products/Products.ts:104 `.price` is data.price on the Payload Product, not a Stripe object. The paypal eligibility check is real, and the --legacy-peer-deps install note is worth keeping.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.25.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, once paypal is confirmed enabled and still offered on this account."
+      }
+    },
+    {
+      "repo": "CRONANANI/EzanaFinance3",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40625949948 (before, fffa3ad5: refused with \"Committed source exceeds the 50 MiB validation archive limit.\") and 40625956831 (after, 2d6f499c), subsets/source-limit-50.json, --validation-workspace 2g, no AI. After: needs-review, checks passed, grade D (npm test passes on both sides but reaches no changed file; generated stripe-mock checks ran account/delete POST and could not call webhook POST: request.text is not a function). migration.patch from the shard-6 artifact read in full, lockfile changes checked to touch only stripe",
+      "reviewedAt": "2026-10-28",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the changed lines: subscription.current_period_end reads (1 in account/delete, 6 in the webhook's checkout.session.completed and customer.subscription.updated branches) go through the generated getSubscriptionPeriodEnd, which reads items.data[].current_period_end (basil changelog); the webhook passes items => items[0], the item the code already uses for current_plan.",
+        "bothVersions": "yes: the helper returns the top-level field when it is a number, so acacia-shaped webhook events still work; the import paths ../../stripeSubscriptionPeriod.js resolve to src/app/api/stripeSubscriptionPeriod.js from both routes. In account/delete no planItem is passed, so a multi-item subscription whose items have different periods returns undefined, toISOString throws, and the catch logs a failed cancel although Stripe already set cancel_at_period_end; the draft flags this (stripeSubscriptionPeriods).",
+        "nothingUnrelated": "yes: the 7 reads, two imports, the new helper file, the apiVersion pin in src/lib/services/stripe.js and stripe in package.json and package-lock.json; the lockfile changes only the root stripe declaration and node_modules/stripe.",
+        "pleaseCheck": "Not settled: the draft leaves 3 untraced `.type` reads at src/app/api/stripe/create-checkout-session/route.js:151, 156 and 162 (endive removes line_item.type) and about 133 reached contract changes, mostly response properties that became optional, reached through an untraced `currency` read at src/app/api/stripe/billing-summary/route.js:78. Those files are not in the patch, so the review could not tell real gaps from false alarms.",
+        "upgradeComplete": "yes: apiVersion 2024-12-18.acacia to 2026-09-30.endive and stripe ^20.4.1 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "not yet: settled by reading create-checkout-session/route.js:145-165 and billing-summary/route.js:78 at commit 4666e5a9 to see whether the `.type` and `currency` reads are on Stripe objects, and by one test-mode checkout plus customer.subscription.updated event at endive."
+      }
     }
   ]
 }

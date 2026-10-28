@@ -64,7 +64,7 @@ The installer has bridge networking to download public npm packages, runs as a n
 
 Validation snapshots the verified dependency archive into its own private temporary directory. Both baseline and patched containers extract that same snapshot into their temporary workspace, with **network disabled**. The configured application checks execute there. A passing installation is not a passing test or migration; baseline failures still stop before AI generation.
 
-The committed source is copied into the same validation workspace, so it has its own limit: 256 MiB under the `4g` profile and 50 MiB under smaller ones. A larger committed tree stops validation with a message that names what to stop committing (build output, media or data files, or files that belong in Git LFS).
+The committed source is copied into the same validation workspace, so it has its own limit: 512 MiB under the `4g` profile, 256 MiB under `2g` and 50 MiB under smaller ones (founders' decision, 2026-10-27; the largest committed tree on the frozen Stripe lists is 155.5 MiB, see [Dependency blockers](DEPENDENCY-BLOCKERS.md)). A larger committed tree stops validation with a message that names what to stop committing (build output, media or data files, or files that belong in Git LFS).
 
 ## Cache, evidence and recovery
 
