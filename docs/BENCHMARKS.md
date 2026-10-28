@@ -446,6 +446,32 @@ An `apiVersion` pin was `api-version-untraced` whenever its client could escape 
 - **What still stops.** 16 l2-push-249 rows keep an untraced version, from clients passed to helpers Refit cannot read, class bindings, or ambiguous aliases. Webhook endpoint versions are unchanged by this lane, and failed pin-move errors on `api-version-kept` drafts are still not recorded.
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## `payment_method_types` on its own API-version path (October 28)
+
+`claude/refit-payment-method-types-9b09ad` keeps the `allowed_payment_method_types` rename wherever the renamed call's own path is proven: its own request sends no version override (or a literal the patch moves), and every constructor of its client, through `const` aliases, pins a literal the patch moves or omits `apiVersion` and moves with the stripe-node upgrade. Before, any one untraced client or request anywhere in the repository dropped every rename. The founders' decision of 2026-10-27 and what still stops are in [STRIPE-PAYMENT-METHOD-TYPES.md](STRIPE-PAYMENT-METHOD-TYPES.md#founders-decision-2026-10-27-the-renames-own-api-version-path).
+
+| Set (no AI, default flags)          | Before: main `89f1c0ed` | After: `7af4994d` |
+| ----------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated   |                      84 |                84 |
+| l2-push-249: rows with a rename     |                     162 |               167 |
+| l2-push-249: renamed call sites     |                     204 |               220 |
+| heldout-30: production validated    |                      10 |                10 |
+| heldout-30: rows with a rename      |                      21 |                22 |
+| subset (9 rows): rows with a rename |                       0 |                 4 |
+
+- **Runs.** l2-push-249: before [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), after [40628689742](https://github.com/refit-dev/refit-bench/actions/runs/40628689742) (`gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=7af4994dbf21f374460f54f557f7937f34af8f12 -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`). heldout-30: before [40624048377](https://github.com/refit-dev/refit-bench/actions/runs/40624048377), after [40628692513](https://github.com/refit-dev/refit-bench/actions/runs/40628692513) (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`). Subset `subsets/pmt-version-path.json`, the 9 l2-push-249 rows whose draft still sent `payment_method_types` with an untraced or kept API version on main (rule in the file): before [40628750627](https://github.com/refit-dev/refit-bench/actions/runs/40628750627) at `9850ead0` (main plus the list), after [40628753242](https://github.com/refit-dev/refit-bench/actions/runs/40628753242) at `4f3f9cec` (`-f list=subsets/pmt-version-path.json -f offset=0 -f size=1 -f count=9`). All rows came back in all six runs. Renames are counted as `+allowed_payment_method_types` lines in each `migration.patch`.
+- **No outcome changed; nothing validated was lost.** `node scripts/stripe-benchmark-compare.mjs` finds the same outcome on 249 of 249 and 30 of 30 rows. 244 of 249 l2-push-249 rows and 29 of 30 heldout rows are identical in every compared field. No row lost a rename.
+- **6 rows gain renames (17 call sites).**
+  - mhaowork/warranty-watcher: regression (TS2561 on the left `payment_method_types`) → checks pass; `[Needs review]` only for an untraced version elsewhere.
+  - Bizgojo/drivetimetales: 5 renames. Main kept the `2023-10-16` pins after the pin move failed `tsc` (`api-version-kept`); now every traced pin moves to endive with stripe 14.25.0 → 23.0.0 and `tsc` passes on both sides (grade C).
+  - hackerai-tech/hackerai: 2 renames on a lazily created client with no `apiVersion`, plus stripe 22.6.2 → 23.0.0; was a scan stop with no patch, now an untested draft (dependency preparation fails).
+  - Sasu8823/Hairdresser_matching_service-backend (heldout-30): the confirmed `index.js` call renames; `routes/stripe.js:26` is a review-confidence call and keeps stopping, named in the draft; untested (no lockfile).
+  - qesmsep/noir-crm-dashboard: 7 sites (literal lists with `card` and `us_bank_account`, `['us_bank_account']` and the computed `[payment_method_type]`); its baseline fails, as before.
+  - kondax-com/Bocker: 1 rename; the subset pair shows the patch otherwise byte-identical. In the l2-push-249 after run its own timing test failed on the original code (`expected 199.07 to be less than 100`), so it ended `baseline-failed` instead of main's regression; neither validates.
+- **Reviewed.** Every new or changed patch that validates, or is new, was applied to a clone at its pinned commit and read in full: warranty-watcher, drivetimetales and hackerai `correct`, Sasu8823 `correct-partial` ([fix-reviews.json](benchmarks/fix-reviews.json)).
+- **What still stops.** On l2-push-249 the larger blockers are unchanged: stripe-node upgrades refused by dependency preparation (18 rows) and pin moves that fail the repository's checks (9). Getters that return a module client (puneethkotha/Zapd, geallenboy/ai-saas-template) and unconfirmed clients still stop.
+- **Not measured:** AI patches, publication and the hosted worker.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).
