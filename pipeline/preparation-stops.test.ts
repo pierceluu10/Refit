@@ -53,7 +53,7 @@ it('names the dependency that comes from outside the public registry', () => {
   for (const message of [declared, nested, privateRegistry])
     expect(preparationStop(message)).toMatchObject({
       reason: 'non-registry-dependency',
-      action: expect.stringContaining('In .refit.json, remove "prepareDependencies"'),
+      action: expect.stringContaining("Refit also tried the repository's own install"),
     });
 });
 
@@ -69,7 +69,7 @@ it('says which lockfile limit a refused lockfile misses', () => {
   );
 });
 
-it('gives every refusal Refit cannot fix a named stop with its .refit.json change', () => {
+it('gives every refusal Refit cannot fix a named stop that asks the customer to configure nothing', () => {
   // Messages from the 2026-10-22 rerun of the benchmark failures at fb0143a.
   for (const [message, reason] of [
     [
@@ -81,7 +81,7 @@ it('gives every refusal Refit cannot fix a named stop with its .refit.json chang
       'dependency-tree-too-large',
     ],
     [
-      'Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image. pnpm-lock.yaml records left-pad@1.3.0 without them.',
+      'Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources need the repository install. pnpm-lock.yaml records left-pad@1.3.0 without them.',
       'non-registry-dependency',
     ],
     [
@@ -89,7 +89,7 @@ it('gives every refusal Refit cannot fix a named stop with its .refit.json chang
       'non-registry-dependency',
     ],
     [
-      'Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.',
+      'Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks need the repository install. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.',
       'conflicting-dependency-files',
     ],
     [
@@ -97,17 +97,18 @@ it('gives every refusal Refit cannot fix a named stop with its .refit.json chang
       'unsupported-lockfile',
     ],
     [
-      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages } require a custom image.',
+      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages } need the repository install.',
       'unsupported-workspace',
     ],
     [
-      'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "patchedDependencies".',
+      'Unsupported pnpm settings need the repository install; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "patchedDependencies".',
       'unsupported-workspace',
     ],
   ] as const)
     expect(preparationStop(message)).toMatchObject({
       reason,
-      action: expect.stringMatching(/\.refit\.json/),
+      // Founder decision (2026-10-28): no stop asks the customer to configure Refit.
+      action: expect.not.stringMatching(/\.refit\.json|image|key/),
     });
   // Refusals the repository fixes itself keep their own instructions.
   expect(
@@ -123,7 +124,10 @@ it('names the setup reason a baseline check fails for', () => {
     baselineStop(
       '\n> pdfai@0.1.0 test /workspace\n> jest\n\nNo tests found, exiting with code 1\nRun with `--passWithNoTests` to exit with code 0\n',
     ),
-  ).toMatchObject({ reason: 'no-tests-found', action: expect.stringContaining('"command"') });
+  ).toMatchObject({
+    reason: 'no-tests-found',
+    action: expect.not.stringContaining('.refit.json'),
+  });
   expect(
     baselineStop(
       'Error: Could not locate the bindings file. Tried:\n → /workspace/node_modules/better-sqlite3/build/better_sqlite3.node\n',

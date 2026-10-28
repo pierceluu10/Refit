@@ -8,7 +8,6 @@ import {
   validateWorkflowSources,
 } from './validation-options.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
-import { validateImageNodeModules } from './customer-image.ts';
 
 export const MAX_WORKFLOW_CONFIGURATION_BYTES = 64 * 1024;
 export const REPOSITORY_CONFIGURATION = '.refit.json';
@@ -21,7 +20,6 @@ const CONFIGURATION_KEYS = new Set([
   'after',
   'latestStripe',
   'image',
-  'imageNodeModules',
   'command',
   'baselineCommand',
   'checkTimeoutSeconds',
@@ -145,11 +143,6 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
     throw new PipelineInputError('Run configuration fullDiff must be a boolean.');
   if (value.prepareDependencies !== undefined && typeof value.prepareDependencies !== 'boolean')
     throw new PipelineInputError('Run configuration prepareDependencies must be a boolean.');
-  // A customer image supplies the dependencies, so Refit's own preparation must not also run.
-  if (value.imageNodeModules !== undefined && value.prepareDependencies)
-    throw new PipelineInputError(
-      'Run configuration imageNodeModules names dependencies the image already has; remove prepareDependencies.',
-    );
   if (value.compareTypeErrors !== undefined && typeof value.compareTypeErrors !== 'boolean')
     throw new PipelineInputError('Run configuration compareTypeErrors must be a boolean.');
   // The repository owner's opt-in to keep listed payment methods (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
@@ -189,9 +182,6 @@ function parseSingleWorkflowConfiguration(value: Record<string, unknown>, path: 
     after: value.after === undefined ? undefined : resolve(directory, string('after')),
     latestStripe: value.latestStripe as boolean | undefined,
     image: string('image'),
-    ...(value.imageNodeModules === undefined
-      ? {}
-      : { imageNodeModules: validateImageNodeModules(value.imageNodeModules) }),
     command: validateCheckCommand(value.command),
     baselineCommand:
       value.baselineCommand === undefined ? undefined : validateCheckCommand(value.baselineCommand),

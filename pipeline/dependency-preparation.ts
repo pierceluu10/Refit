@@ -473,7 +473,7 @@ async function installDependencies(
         bytes += chunk.length;
         if (bytes > archiveBytes)
           throw new DependencyPreparationError(
-            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree.' : 'This exceeds the largest validation profile; use a custom validation image.'}`,
+            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree.' : 'This exceeds the largest validation profile; the sandbox cannot hold it.'}`,
           );
         hash.update(chunk);
         yield chunk;

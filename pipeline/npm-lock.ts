@@ -65,7 +65,7 @@ function dependencySources(value: Record<string, unknown>, file: string, publish
     for (const [name, source] of Object.entries(dependencies))
       if (!(published && source === '') && !isRegistrySource(source))
         throw new PipelineInputError(
-          `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${quotedSource(source)}. Local, Git and URL dependencies require a custom image.`,
+          `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${quotedSource(source)}. Local, Git and URL dependencies need the repository install.`,
         );
   }
 }
@@ -92,7 +92,7 @@ export function npmWorkspaceDirectories(manifest: Record<string, unknown>, paths
     )
   )
     throw new PipelineInputError(
-      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages } require a custom image.',
+      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages } need the repository install.',
     );
   const directories = paths
     .filter((path) => path.endsWith('/package.json'))
@@ -135,7 +135,7 @@ export function validateNpmLock(
   const manifest = parseObject(packageContent, 'package.json');
   const lock = parseObject(lockContent, 'package-lock.json');
   if (manifest.bundledDependencies !== undefined || manifest.bundleDependencies !== undefined)
-    throw new PipelineInputError('Root bundled dependencies require a custom validation image.');
+    throw new PipelineInputError('Root bundled dependencies need the repository install.');
   dependencySources(manifest, 'package.json');
   if (manifest.overrides !== undefined) {
     if (!isObject(manifest.overrides))
@@ -190,7 +190,7 @@ export function validateNpmLock(
         value.bundleDependencies !== undefined
       )
         throw new PipelineInputError(
-          'Each workspace requires an explicit npm name; workspace bins, nested workspace declarations and bundled dependencies require a custom image.',
+          'Each workspace requires an explicit npm name; workspace bins, nested workspace declarations and bundled dependencies need the repository install.',
         );
       dependencySources(value, `${directory}/package.json`);
       return [directory, value] as const;
@@ -287,7 +287,7 @@ export function validateNpmLock(
     }
     if (!dependencyPath || record.link)
       throw new PipelineInputError(
-        'Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records require a custom image.',
+        'Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records need the repository install.',
       );
     const verified = (value: Record<string, unknown>) =>
       typeof value.version === 'string' &&

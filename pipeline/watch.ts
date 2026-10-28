@@ -156,9 +156,6 @@ async function watchLocalOnce(
         ...(documentationSources.length ? { documentationSources } : {}),
         image: configuration.image,
         ...(configuration.prepareDependencies ? { prepareDependencies: true } : {}),
-        ...(configuration.imageNodeModules
-          ? { imageNodeModules: configuration.imageNodeModules }
-          : {}),
         ...(configuration.generatedChecks
           ? { generatedChecks: configuration.generatedChecks }
           : {}),

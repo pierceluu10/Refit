@@ -574,7 +574,7 @@ export async function proposeStripeConfiguration(
         {
           id: 'nested-project',
           detail: `stripe is declared in ${listed(outside)}, ${manifest ? `which the root lockfile does not install, so Refit cannot prepare ${projects}` : 'and this repository has no package.json at its root'}.`,
-          action: `Refit installs and checks only from the root package.json and its lockfile: make ${projects} a workspace of the root and commit the lockfile, or commit a ${REPOSITORY_CONFIGURATION} with a custom image (docs/DEPENDENCIES.md).`,
+          action: `Refit installs and checks only from the root package.json and its lockfile: make ${projects} a workspace of the root and commit the lockfile.`,
         },
       ],
     };

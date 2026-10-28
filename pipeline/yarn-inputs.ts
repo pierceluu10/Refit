@@ -42,7 +42,7 @@ export function yarnWorkspacePatterns(manifest: Record<string, unknown>) {
   if (isObject(workspaces) && Object.keys(workspaces).join(',') === 'packages')
     return workspaces.packages;
   throw new PipelineInputError(
-    'Yarn workspaces must be a pattern list or { packages }; nohoist requires a custom image.',
+    'Yarn workspaces must be a pattern list or { packages }; nohoist needs the repository install.',
   );
 }
 
@@ -85,11 +85,11 @@ export function validateYarnInputs(
     throw new PipelineInputError(
       typeof manifest.packageManager === 'string' && BERRY_PIN.test(manifest.packageManager)
         ? `packageManager pins ${manifest.packageManager}, but ${YARN_LOCKFILE} is a Yarn 1 lockfile. Run yarn install with that release and commit the lockfile it writes.`
-        : 'Yarn preparation supports an exact Yarn 1 packageManager pin, optionally with a Corepack checksum. Yarn 2+ requires a custom image.',
+        : 'Yarn preparation supports an exact Yarn 1 packageManager pin, optionally with a Corepack checksum. Yarn 2+ needs the repository install.',
     );
   if (!CLASSIC_HEADER.test(lockContent))
     throw new PipelineInputError(
-      'Automatic Yarn preparation supports Yarn 1 lockfiles only; Yarn 2+ requires a custom image.',
+      'Automatic Yarn preparation supports Yarn 1 lockfiles only; Yarn 2+ needs the repository install.',
     );
   const { entries } = parseClassic(lockContent);
   const records = new Set(Object.values(entries));
@@ -131,7 +131,7 @@ export function validateYarnInputs(
           !Object.hasOwn(entries, `${name}@${range}`)
         )
           throw new PipelineInputError(
-            `${name}@${String(range)} in ${file} is not a public registry dependency recorded in yarn.lock or an exact sibling workspace; regenerate the lockfile or use a custom image.`,
+            `${name}@${String(range)} in ${file} is not a public registry dependency recorded in yarn.lock or an exact sibling workspace; regenerate the lockfile or let Refit run the repository install.`,
           );
       }
     }
@@ -198,20 +198,20 @@ export function validateBerryInputs(
   const rc = rcContent === undefined ? {} : parseDocumentObject(rcContent, YARN_RC);
   if (rc.plugins !== undefined)
     throw new PipelineInputError(
-      `Yarn plugins (plugins in ${YARN_RC}) run their own code during installs, so they require a custom validation image.`,
+      `Yarn plugins (plugins in ${YARN_RC}) run their own code during installs, so they need the repository install.`,
     );
   if (rc.nodeLinker === undefined || rc.nodeLinker === 'pnp')
     throw new PipelineInputError(
-      `Yarn Plug'n'Play requires a custom validation image: Refit prepares Yarn 2+ only with nodeLinker: node-modules in ${YARN_RC}${rc.nodeLinker === undefined ? ", and without nodeLinker Yarn uses Plug'n'Play" : ''}.`,
+      `Yarn Plug'n'Play needs the repository install: Refit prepares Yarn 2+ only with nodeLinker: node-modules in ${YARN_RC}${rc.nodeLinker === undefined ? ", and without nodeLinker Yarn uses Plug'n'Play" : ''}.`,
     );
   if (rc.nodeLinker !== 'node-modules')
     throw new PipelineInputError(
-      `Yarn's ${JSON.stringify(rc.nodeLinker)} linker requires a custom validation image; Refit prepares Yarn 2+ only with nodeLinker: node-modules.`,
+      `Yarn's ${JSON.stringify(rc.nodeLinker)} linker needs the repository install; Refit prepares Yarn 2+ only with nodeLinker: node-modules.`,
     );
   const unsupported = Object.keys(rc).filter((key) => !BERRY_RC_KEYS.has(key));
   if (unsupported.length)
     throw new PipelineInputError(
-      `${YARN_RC} sets ${unsupported.join(', ')}, which Refit does not apply; validating with them requires a custom image.`,
+      `${YARN_RC} sets ${unsupported.join(', ')}, which Refit does not apply; validating with them needs the repository install.`,
     );
   const pin =
     typeof manifest.packageManager === 'string' ? BERRY_PIN.exec(manifest.packageManager) : null;
@@ -302,7 +302,7 @@ export function validateBerryInputs(
         record.linkType !== 'hard'
       )
         throw new PipelineInputError(
-          'Every Yarn 2+ lock entry must resolve an exact npm version with a checksum (platform-specific packages excepted, which Refit does not install); patches, git and local sources require a custom image.',
+          'Every Yarn 2+ lock entry must resolve an exact npm version with a checksum (platform-specific packages excepted, which Refit does not install); patches, git and local sources need the repository install.',
         );
     }
     for (const descriptor of key.split(/,\s*/)) descriptors.add(descriptor);
@@ -331,7 +331,7 @@ export function validateBerryInputs(
           )
         )
           throw new PipelineInputError(
-            `${name}@${String(range)} in ${file} is not a public registry dependency or a sibling workspace recorded in yarn.lock; regenerate the lockfile or use a custom image.`,
+            `${name}@${String(range)} in ${file} is not a public registry dependency or a sibling workspace recorded in yarn.lock; regenerate the lockfile or let Refit run the repository install.`,
           );
     }
   return {

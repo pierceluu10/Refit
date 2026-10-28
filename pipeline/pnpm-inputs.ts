@@ -65,7 +65,7 @@ function configuration(value: Record<string, unknown>, source: string) {
   const unsupported = Object.keys(value).filter((key) => !CONFIGURATION_KEYS.has(key));
   if (unsupported.length)
     throw new PipelineInputError(
-      `Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and ${source} sets ${unsupported.map((key) => `"${key}"`).join(', ')}.`,
+      `Unsupported pnpm settings need the repository install; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and ${source} sets ${unsupported.map((key) => `"${key}"`).join(', ')}.`,
     );
   if (
     value.overrides !== undefined &&
@@ -277,7 +277,7 @@ export function validatePnpmInputs(
       (value.packageManager !== undefined && value.packageManager !== manifest.packageManager)
     )
       throw new PipelineInputError(
-        'Workspace bins, nested workspace declarations and workspace pnpm settings require a custom validation image.',
+        'Workspace bins, nested workspace declarations and workspace pnpm settings need the repository install.',
       );
     names.set(value.name, directory);
     manifests.set(directory, value);
@@ -298,9 +298,7 @@ export function validatePnpmInputs(
       !isObject(importer.configDependencies ?? {}) ||
       Object.keys((importer.configDependencies ?? {}) as object).length
     )
-      throw new PipelineInputError(
-        'pnpm configuration dependencies require a custom validation image.',
-      );
+      throw new PipelineInputError('pnpm configuration dependencies need the repository install.');
     const managers = importer.packageManagerDependencies;
     const manager = isObject(managers) ? managers.pnpm : undefined;
     if (
@@ -336,13 +334,13 @@ export function validatePnpmInputs(
       )
     )
       throw new PipelineInputError(
-        'Injected, runtime-managed or bundled pnpm dependencies require a custom image.',
+        'Injected, runtime-managed or bundled pnpm dependencies need the repository install.',
       );
     const importer: unknown = lock.importers[directory];
     if (!isObject(importer)) throw new PipelineInputError('Missing pnpm importer.');
     if (Object.keys(importer).some((key) => !IMPORTER_SECTIONS.has(key)))
       throw new PipelineInputError(
-        'pnpm configuration dependencies, injected metadata and unknown importer fields require a custom image.',
+        'pnpm configuration dependencies, injected metadata and unknown importer fields need the repository install.',
       );
     for (const section of DEPENDENCY_SECTIONS) {
       const declarations = value[section] ?? {};
@@ -444,7 +442,7 @@ export function validatePnpmInputs(
 function registryGraph(document: Record<string, unknown>) {
   if (Object.keys(document).some((key) => !LOCK_KEYS.has(key)))
     throw new PipelineInputError(
-      'Unsupported pnpm lockfile settings, patches or graph metadata require a custom image.',
+      'Unsupported pnpm lockfile settings, patches or graph metadata need the repository install.',
     );
   if (document.settings !== undefined) {
     if (!isObject(document.settings))
@@ -490,7 +488,7 @@ function registryGraph(document: Record<string, unknown>) {
       Object.keys(value.resolution).some((key) => !['integrity', 'tarball'].includes(key))
     )
       throw new PipelineInputError(
-        `Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources require a custom image. pnpm-lock.yaml records ${key} without them.`,
+        `Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources need the repository install. pnpm-lock.yaml records ${key} without them.`,
       );
     if (value.resolution.tarball !== undefined) {
       if (typeof value.resolution.tarball !== 'string')

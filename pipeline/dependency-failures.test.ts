@@ -81,7 +81,7 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
   expect(
     preparationFailure(
       new DependencyPreparationError(
-        'Dependency archive exceeds 1024 MiB. This exceeds the largest validation profile; use a custom validation image.',
+        'Dependency archive exceeds 1024 MiB. This exceeds the largest validation profile; the sandbox cannot hold it.',
       ),
     ),
   ).toMatchObject({ reason: 'dependency-archive-limit' });

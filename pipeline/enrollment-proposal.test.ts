@@ -844,7 +844,7 @@ it('stops on a project the root lockfile does not install, or with no root packa
       detail:
         'stripe is declared in serverless/payment/checkStripeSession/package.json and serverless/payment/createStripeSession/package.json, which the root lockfile does not install, so Refit cannot prepare those projects.',
       action:
-        'Refit installs and checks only from the root package.json and its lockfile: make those projects a workspace of the root and commit the lockfile, or commit a .refit.json with a custom image (docs/DEPENDENCIES.md).',
+        'Refit installs and checks only from the root package.json and its lockfile: make those projects a workspace of the root and commit the lockfile.',
     },
   ]);
   // bolg55/fastify_starter: fastify/ and frontend/ are separate projects, with no root manifest.
@@ -858,7 +858,7 @@ it('stops on a project the root lockfile does not install, or with no root packa
       detail:
         'stripe is declared in fastify/package.json, and this repository has no package.json at its root.',
       action:
-        'Refit installs and checks only from the root package.json and its lockfile: make that project a workspace of the root and commit the lockfile, or commit a .refit.json with a custom image (docs/DEPENDENCIES.md).',
+        'Refit installs and checks only from the root package.json and its lockfile: make that project a workspace of the root and commit the lockfile.',
     },
   ]);
 });

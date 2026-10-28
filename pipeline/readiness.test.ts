@@ -589,9 +589,21 @@ it('checks committed npm inputs through the same preparation gate without instal
     JSON.stringify({ ...lock, packages: { '': { dependencies: {} } } }),
   );
   await commit(sample.repository);
+  vi.stubEnv('REFIT_REPOSITORY_INSTALL', '1');
   const rejected = await inspectRepositoryReadiness({ repository: sample.repository });
-  expect(rejected.status).toBe('needs-attention');
+  // Refit then runs the repository's own install, so nothing blocks and nothing is asked of the
+  // customer (founder decision, 2026-10-28).
   expect(rejected.checks.find((check) => check.id === 'dependencies')).toMatchObject({
+    status: 'review',
+    detail: expect.stringMatching(
+      /differ from the committed package-lock\.json[\s\S]*Refit runs the repository's own install instead \(npm ci, from package\.json\)/,
+    ),
+    action: expect.stringMatching(/^Nothing to configure\./),
+  });
+  vi.stubEnv('REFIT_REPOSITORY_INSTALL', '0');
+  const off = await inspectRepositoryReadiness({ repository: sample.repository });
+  expect(off.status).toBe('needs-attention');
+  expect(off.checks.find((check) => check.id === 'dependencies')).toMatchObject({
     status: 'blocked',
     detail: expect.stringContaining('differ from the committed package-lock.json'),
   });
@@ -794,25 +806,5 @@ it('checks the preparation inputs of the nested package that holds the SDK code'
     status: 'passed',
     detail:
       '1 locked package records in app passed preparation input checks. Installation and engine compatibility were not tested.',
-  });
-});
-
-it('reports a customer image whose node_modules the checks link, without starting a container', async () => {
-  const sample = await setup();
-  await writeFile(
-    join(sample.repository, '.refit.json'),
-    JSON.stringify({
-      ...sample.configuration,
-      prepareDependencies: undefined,
-      imageNodeModules: '/opt/app/node_modules',
-    }),
-  );
-  await commit(sample.repository);
-  const result = await inspectRepositoryReadiness({ repository: sample.repository });
-  expect(result).toMatchObject({ status: 'ready-for-validation', image: imageId });
-  expect(result.checks.find((check) => check.id === 'dependencies')).toMatchObject({
-    status: 'review',
-    detail: expect.stringContaining('link /opt/app/node_modules from the validation image'),
-    action: expect.stringContaining('readable by user 65534'),
   });
 });

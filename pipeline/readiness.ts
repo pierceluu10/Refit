@@ -1,3 +1,5 @@
+import { repositoryInstallEnabled, repositoryInstallFiles } from './repository-environment.ts';
+import { installPlan } from './repository-install.ts';
 import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { declaresVersion } from './api-version.ts';
@@ -747,7 +749,7 @@ export async function inspectRepositoryReadiness(options: {
     const dependencies = await inspectCheck(
       'dependencies',
       'Dependency preparation inputs',
-      'Commit matching root manifests and a supported public-registry lockfile, or use a custom dependency image.',
+      'Commit matching root manifests and a supported public-registry lockfile.',
       async () =>
         readPreparationInputs(
           packageDirectory
@@ -762,7 +764,18 @@ export async function inspectRepositoryReadiness(options: {
     } else if (dependencies.check.status === 'blocked') {
       dependencies.check.action =
         preparationStop(dependencies.check.detail)?.action ?? dependencies.check.action;
-      if (report.generated) {
+      // Refit builds the environment from the repository's own install instead (founder
+      // decision, 2026-10-28): nothing for the customer to change.
+      const plan =
+        !packageDirectory &&
+        repositoryInstallEnabled() &&
+        installPlan(await repositoryInstallFiles(report.repository).catch(() => new Map()));
+      if (plan) {
+        dependencies.check.status = 'review';
+        dependencies.check.detail = `${dependencies.check.detail} Refit runs the repository's own install instead (${plan.command.join(' ')}, from ${plan.file}) in its build sandbox, with lifecycle scripts as that install runs them, no secrets and egress only to public registries and the hosts the repository's files name, then validates offline on the result.`;
+        dependencies.check.action =
+          'Nothing to configure. If that install needs a private registry or credentials, the draft is published untested and the Refit validation workflow runs the checks in your CI once its pull request is merged.';
+      } else if (report.generated) {
         // The generated file names its contracts relative to itself, so they are committed with it.
         const versions = [...new Set([report.generated.apiVersion.value, report.generated.target])];
         dependencies.check.action += ` This repository commits no ${REPOSITORY_CONFIGURATION}: to change its settings, commit the generated one first (refit doctor --json prints it as generated.configuration) together with the contracts it names: run refit stripe-snapshot ${versions.map((version) => `--version ${version}`).join(' ')} --contracts . in the repository and commit refit/.`;
@@ -774,12 +787,9 @@ export async function inspectRepositoryReadiness(options: {
       id: 'dependencies',
       title: 'Validation dependencies',
       status: 'review',
-      detail: workflow.imageNodeModules
-        ? `The checks link ${workflow.imageNodeModules} from the validation image as node_modules; Refit prepares no dependencies. A patch that changes package files is recorded untested.`
-        : 'A custom validation image must supply the dependencies used by the check commands.',
-      action: workflow.imageNodeModules
-        ? `Run baseline validation to verify that ${workflow.imageNodeModules} exists in the image, is readable by user 65534 and matches the committed lockfile.`
-        : 'Run baseline validation to verify that the image contains the required runtime and dependencies.',
+      detail: 'A custom validation image must supply the dependencies used by the check commands.',
+      action:
+        'Run baseline validation to verify that the image contains the required runtime and dependencies.',
     });
   report.image = image.value ?? null;
   if (image.value)

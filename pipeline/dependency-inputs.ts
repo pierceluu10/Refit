@@ -82,7 +82,7 @@ export async function readPreparationInputs(
       /^[^/]+\/(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/.test(path),
     );
     throw new PipelineInputError(
-      `Automatic preparation reads dependencies only from the repository root, which has no committed package.json${nested.length ? ` (lockfiles exist in ${nested.slice(0, 3).join(', ')})` : ''}. Validate with a custom image, or commit a root package.json and lockfile.`,
+      `Automatic preparation reads dependencies only from the repository root, which has no committed package.json${nested.length ? ` (lockfiles exist in ${nested.slice(0, 3).join(', ')})` : ''}. Commit a root package.json and lockfile.`,
     );
   }
   if (!paths.includes(lockfile) && paths.includes(YARN_RC))
@@ -95,7 +95,7 @@ export async function readPreparationInputs(
     );
   if (bun && paths.includes('bunfig.toml'))
     throw new PipelineInputError(
-      'Automatic preparation does not read bunfig.toml, which can change the registry or the node_modules layout Bun installs. Validate with a custom image.',
+      'Automatic preparation does not read bunfig.toml, which can change the registry or the node_modules layout Bun installs. It needs the repository install.',
     );
   const pnpmHook = pnpm
     ? paths.find((path) => /^\.pnpmfile\.[cm]?js$/.test(path.split('/').at(-1)!))
@@ -114,7 +114,7 @@ export async function readPreparationInputs(
           : undefined;
   if (conflict)
     throw new PipelineInputError(
-      `Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository ${conflict}.`,
+      `Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks need the repository install. The repository ${conflict}.`,
     );
   const packageContent = await readCommittedFile(snapshot, 'package.json', MAX_PACKAGE_BYTES);
   const manifest = parseObject(packageContent, 'package.json');

@@ -123,7 +123,6 @@ try {
       output: values.output ?? join(tmpdir(), `${RUN_DIRECTORY_PREFIX}${randomUUID()}`),
       image,
       prepareDependencies: values['prepare-dependencies'] ?? configuration?.prepareDependencies,
-      imageNodeModules: configuration?.imageNodeModules,
       generatedChecks: configuration?.generatedChecks,
       compareTypeErrors: configuration?.compareTypeErrors,
       keepListedPaymentMethods: configuration?.keepListedPaymentMethods,
