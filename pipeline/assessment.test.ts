@@ -192,13 +192,23 @@ it('rejects missing configuration and oversized input before networking', async 
   expect(fetcher).not.toHaveBeenCalled();
 });
 
-it('does not retry rate limits or expose the API error body', async () => {
+it('retries rate limits a bounded number of times without exposing the API error body', async () => {
   const input = await evidence();
-  const fetcher = vi
-    .fn()
-    .mockResolvedValue(new Response('sensitive upstream error detail', { status: 429 }));
+  const fetcher = vi.fn().mockImplementation(
+    async () =>
+      new Response('sensitive upstream error detail', {
+        status: 429,
+        headers: { 'retry-after-ms': '0' },
+      }),
+  );
   vi.stubGlobal('fetch', fetcher);
-  await expect(assessMigration(input, OPTIONS)).rejects.toThrow('HTTP 429. No retry was made.');
+  const error = await assessMigration(input, OPTIONS).catch((caught: Error) => caught);
+  expect(String(error)).toContain('HTTP 429 after 4 retries.');
+  expect(String(error)).not.toContain('sensitive');
+  expect(fetcher).toHaveBeenCalledTimes(5);
+  // Other failures are not retried.
+  fetcher.mockClear().mockImplementation(async () => new Response('', { status: 500 }));
+  await expect(assessMigration(input, OPTIONS)).rejects.toThrow('HTTP 500. No retry was made.');
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
 

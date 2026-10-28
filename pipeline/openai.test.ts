@@ -53,3 +53,21 @@ it('names why a response is incomplete, such as running out of output tokens whi
     'OpenAI response was incomplete or invalid (max_output_tokens).',
   );
 });
+
+it('answers after a rate limit once OpenAI accepts the retried request', async () => {
+  const completed = {
+    id: 'resp_test',
+    model: OPTIONS.model,
+    status: 'completed',
+    output: [
+      { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: '{}' }] },
+    ],
+  };
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(new Response('', { status: 429, headers: { 'retry-after': '0' } }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(completed)));
+  vi.stubGlobal('fetch', fetcher);
+  await expect(requestStructuredOutput(REQUEST, OPTIONS)).resolves.toMatchObject({ content: '{}' });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});

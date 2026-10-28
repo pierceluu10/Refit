@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { readBoundedResponse } from './network.ts';
 import { digest, isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -17,6 +18,11 @@ export const INPUT_LIMIT = `${MAX_INPUT_BYTES / 1024} KiB`;
 export const REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 const MAX_RESPONSE_BYTES = 256 * 1024;
+// A rate-limited (429) request is not billed. Without retries, 37 of 249 l2-push-249 repositories
+// lost an AI request to 429 in run 40637083138 and 85 in 40637093239, once ten shards shared the key.
+const RATE_LIMIT_RETRIES = 4;
+const RATE_LIMIT_BACKOFF_MS = 5_000;
+const MAX_RETRY_WAIT_MS = 60_000;
 // Reasoning tokens count against this limit. OpenAI recommends reserving at least 25,000 tokens for
 // reasoning and output (developers.openai.com/api/docs/guides/reasoning/advice-on-prompting). At
 // 4,096, a repair in the PG8 eval came back incomplete without saying why; the error now names it.
@@ -93,18 +99,22 @@ export async function requestStructuredOutput(
       MAX_OUTPUT_TOKENS,
     );
   }
-  const response = await fetch(RESPONSES_URL, {
-    method: 'POST',
-    redirect: 'error',
-    signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
-    headers: { Authorization: `Bearer ${options.apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
+  let response: Response;
+  for (let attempt = 0; ; attempt++) {
+    response = await fetch(RESPONSES_URL, {
+      method: 'POST',
+      redirect: 'error',
+      signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
+      headers: { Authorization: `Bearer ${options.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (response.ok) break;
     await response.body?.cancel();
-    throw new PipelineInputError(
-      `OpenAI response request failed with HTTP ${response.status}. No retry was made.`,
-    );
+    if (response.status !== 429 || attempt === RATE_LIMIT_RETRIES)
+      throw new PipelineInputError(
+        `OpenAI response request failed with HTTP ${response.status}${response.status === 429 ? ` after ${attempt} retries` : '. No retry was made'}.`,
+      );
+    await sleep(retryDelay(response.headers, attempt));
   }
   const result = parseObject(
     await readBoundedResponse(response, MAX_RESPONSE_BYTES, 'OpenAI response'),
@@ -153,4 +163,16 @@ export async function requestStructuredOutput(
     budget,
     content: texts[0],
   };
+}
+
+// OpenAI's own wait when it sends one, otherwise exponential backoff; capped either way.
+function retryDelay(headers: Headers, attempt: number) {
+  const milliseconds = Number(headers.get('retry-after-ms') ?? NaN);
+  const seconds = Number(headers.get('retry-after') ?? NaN);
+  const wait = Number.isFinite(milliseconds)
+    ? milliseconds
+    : Number.isFinite(seconds)
+      ? seconds * 1000
+      : RATE_LIMIT_BACKOFF_MS * 2 ** attempt;
+  return Math.min(Math.max(wait, 0), MAX_RETRY_WAIT_MS);
 }
