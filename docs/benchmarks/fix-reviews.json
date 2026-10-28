@@ -2591,6 +2591,51 @@
         "pleaseCheck": "The draft names the packageManager pin as the reason; delete package-lock.json, which pnpm never reads.",
         "wouldMerge": "yes: the project installs with pnpm, and the type check passes on both sides."
       }
+    },
+    {
+      "repo": "omar99elnemr/Docubot",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed), 40626067947 (lane A, feat/lockfile-resolution 622951a0, --resolve-lockfiles) and 40634781011 (after, feat/conflicting-lockfiles 17b831d8, --resolve-lockfiles), subsets/l2-push-249.json, no AI. Before (main and lane A): pnpm-lock.yaml installed as the only lockfile in sync, but the stripe upgrade refused because package-lock.json and pnpm-lock.yaml disagree, so the pin was kept (api-version-kept). After: the upgrade edits pnpm-lock.yaml only and the patch validates at grade C. migration.patch from the shard-4 artifact read in full, the CRLF whole-file hunks compared line by line; lockfile checked for its stripe entries only",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2023-10-16 to 2026-09-30.endive; payment_method_types ['card'] to allowed_payment_method_types on the Checkout Session; both current_period_end reads through getSubscriptionPeriodEnd with items[0]; the invoice handler through getInvoiceSubscription.",
+        "bothVersions": "yes: the generated period helper returns the old current_period_end when the subscription has it and items[0]'s otherwise; getInvoiceSubscription on the invoice.payment_succeeded payload returns the old top-level subscription when present and parent.subscription_details.subscription otherwise.",
+        "nothingUnrelated": "yes: the pin, the card rename, the webhook reads and helpers, the stripe dependency and pnpm-lock.yaml.",
+        "upgradeComplete": "yes for pnpm: stripe ^14.8.0 to ^23.0.0 in package.json and 14.8.0 to 23.0.0 in pnpm-lock.yaml; package-lock.json, already out of sync with package.json, is left as committed.",
+        "pleaseCheck": "Delete package-lock.json, which does not match package.json and which pnpm never reads.",
+        "wouldMerge": "yes: tsc introduces no error over the 9 existing ones."
+      }
+    },
+    {
+      "repo": "saidMounaim/tick-event",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed), 40626067947 (lane A, feat/lockfile-resolution 622951a0, --resolve-lockfiles) and 40634781011 (after, feat/conflicting-lockfiles 17b831d8, --resolve-lockfiles), subsets/l2-push-249.json, no AI. Before: lane A and main skipped the stripe upgrade (package-lock.json locks 18.2.1, pnpm-lock.yaml 18.5.0), so moving the pin to endive failed tsc (TS2322 on apiVersion) and the run ended as its removed-parameter stop. After: pnpm-lock.yaml, the only lockfile in sync, is upgraded with the pin and the patch validates at grade C. migration.patch from the shard-1 artifact read in full, the CRLF whole-file hunks compared line by line; lockfile checked for its stripe entries only",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2025-05-28.basil to 2026-09-30.endive and payment_method_types [\"card\"] to allowed_payment_method_types on the Checkout Session.",
+        "bothVersions": "not applicable: request-side changes only, sent with the pin move.",
+        "nothingUnrelated": "yes: the pin, the card rename, the stripe dependency and pnpm-lock.yaml.",
+        "upgradeComplete": "yes for pnpm: stripe ^18.2.1 to ^23.0.0 in package.json and 18.5.0 to 23.0.0 in pnpm-lock.yaml; package-lock.json (next 15.3.4 against 15.3.8 declared) is left as committed.",
+        "pleaseCheck": "Delete package-lock.json if the project installs with pnpm.",
+        "wouldMerge": "yes: tsc introduces no error over the 7 existing ones."
+      }
+    },
+    {
+      "repo": "r0ld3x/DocTalk",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed), 40626067947 (lane A, feat/lockfile-resolution 622951a0, --resolve-lockfiles) and 40634781011 (after, feat/conflicting-lockfiles 17b831d8, --resolve-lockfiles), subsets/l2-push-249.json, no AI. No committed lockfile, so this branch's lockfile choice never runs; the patch is byte-identical to lane A's. Lane A's and main's candidate installs were killed (Docker SIGKILL), leaving it untested; here the resolved lockfile installed and tsc ran on both sides. migration.patch from the shard-7 artifact read in full, the CRLF whole-file hunks compared line by line; lockfile checked for its stripe entries only",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2023-10-16 to 2026-09-30.endive; the keep-listed move of [\"card\", \"paypal\"] to allowed_payment_method_types (default since Push 279 decision 2, named in the draft); both current_period_end reads through getSubscriptionPeriodEnd; the invoice handler through getInvoiceSubscription.",
+        "bothVersions": "yes: the generated period helper returns the old current_period_end when the subscription has it and items[0]'s otherwise; getInvoiceSubscription on the invoice.payment_succeeded payload returns the old top-level subscription when present and parent.subscription_details.subscription otherwise.",
+        "nothingUnrelated": "yes: the pin, the payment-method move, the webhook reads and helpers and the stripe dependency.",
+        "upgradeComplete": "yes: stripe ^14.22.0 to 23.0.0 in package.json; the resolved lockfile is not part of the patch, as the draft says.",
+        "pleaseCheck": "The draft says paypal is now filtered by buyer eligibility and asks to commit a lockfile.",
+        "wouldMerge": "yes after the paypal check; tsc introduces no error over the 5 existing ones."
+      }
     }
   ]
 }
