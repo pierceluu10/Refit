@@ -2546,6 +2546,51 @@
         "upgradeComplete": "yes: stripe ^15.1.0 to ^23.0.0 in package.json and package-lock.json; the client sets no apiVersion, so the upgrade moves the version.",
         "wouldMerge": "not as validated: the contract-change review comes first; the changed lines are right and tsc passes on both sides."
       }
+    },
+    {
+      "repo": "ensarokumus/tldr-app",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40634774301 (after, feat/conflicting-lockfiles 17b831d8, --resolve-lockfiles), subsets/l3-conflicting-lockfiles.json, no AI. Before: the conflicting-dependency-files stop (yarn.lock and package-lock.json, no packageManager pin, no workflow install); after: Refit installs one lockfile by the documented rule and the patch validates on the type check (grade C). migration.patch from the shard-1 artifact, byte-identical to a local Docker run, applied to a clone at the pinned commit and read in full as git diff; the whole-file hunks are CRLF files whose line endings both sides keep; lockfiles checked for the stripe entries only",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2024-04-10 to 2026-09-30.endive; payment_method_types [\"card\"] to allowed_payment_method_types [\"card\"] on the Checkout Session; both subscription.current_period_end reads go through getSubscriptionPeriodEnd with items[0]; the invoice handler reads its subscription through getInvoiceSubscription.",
+        "bothVersions": "yes: the generated period helper returns the old current_period_end when the subscription has it and items[0]'s otherwise; getInvoiceSubscription on the invoice.payment_succeeded payload (cast as a Checkout Session in the handler) returns the old top-level subscription when present and parent.subscription_details.subscription otherwise.",
+        "nothingUnrelated": "yes: the client pin, the card rename, the webhook reads and their generated helpers, the stripe dependency and the two lockfiles.",
+        "upgradeComplete": "yes: stripe ^15.12.0 to ^23.0.0 in package.json, and 15.12.0 to 23.0.0 in both yarn.lock (installed, the newer lockfile) and package-lock.json, because the both-lockfile upgrade succeeded.",
+        "pleaseCheck": "The draft names yarn.lock as installed because it was committed last and says to delete the lockfile the project does not use.",
+        "wouldMerge": "yes: the edits are the reviewed rules, and the type check passes on both sides."
+      }
+    },
+    {
+      "repo": "avikalp987/quill",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40634774301 (after, feat/conflicting-lockfiles 17b831d8, --resolve-lockfiles), subsets/l3-conflicting-lockfiles.json, no AI. Before: the conflicting-dependency-files stop (package-lock.json and pnpm-lock.yaml locking stripe 13.11.0 and 13.7.0, no pin, no workflow install); after: Refit installs one lockfile by the documented rule and the patch validates on the type check (grade C). migration.patch from the shard-1 artifact, byte-identical to a local Docker run, applied to a clone at the pinned commit and read in full as git diff; the whole-file hunks are CRLF files whose line endings both sides keep; lockfiles checked for the stripe entries only",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2023-08-16 to 2026-09-30.endive; the card rename on the Checkout Session; both current_period_end reads through getSubscriptionPeriodEnd with items[0]; the invoice handler through getInvoiceSubscription.",
+        "bothVersions": "yes: the generated period helper returns the old current_period_end when the subscription has it and items[0]'s otherwise; getInvoiceSubscription on the invoice.payment_succeeded payload (cast as a Checkout Session in the handler) returns the old top-level subscription when present and parent.subscription_details.subscription otherwise.",
+        "nothingUnrelated": "yes: the client pin, the card rename, the webhook reads and helpers, the stripe dependency and package-lock.json.",
+        "upgradeComplete": "partly by design: stripe ^13.7.0 to ^23.0.0 in package.json and package-lock.json (installed, the newer lockfile); pnpm-lock.yaml is left as committed, still locking 13.7.0, because upgrading both was refused. The run at 17b831d8 predates the draft line that names it (8af6d6db); the patch warning names it.",
+        "pleaseCheck": "Delete pnpm-lock.yaml if the project uses npm; otherwise pnpm still installs stripe 13.",
+        "wouldMerge": "yes for npm users once pnpm-lock.yaml is deleted or regenerated; the type check passes on both sides."
+      }
+    },
+    {
+      "repo": "Ankit-Sharma1011/Quill",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40634774301 (after, feat/conflicting-lockfiles 17b831d8, --resolve-lockfiles), subsets/l3-conflicting-lockfiles.json, no AI. Before: the conflicting-dependency-files stop (pnpm-lock.yaml and package-lock.json, packageManager pnpm@11.1.2; the lockfiles lock stripe 22.1.1 and 22.3.0); after: Refit installs one lockfile by the documented rule and the patch validates on the type check (grade C). migration.patch from the shard-0 artifact, byte-identical to a local Docker run, applied to a clone at the pinned commit and read in full as git diff; the whole-file hunks are CRLF files whose line endings both sides keep; lockfiles checked for the stripe entries only",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2026-04-22.dahlia to 2026-09-30.endive and payment_method_types [\"card\"] to allowed_payment_method_types [\"card\"] on the Checkout Session; there are no period or invoice reads.",
+        "bothVersions": "not applicable: request-side changes only, sent together with the pin move.",
+        "nothingUnrelated": "yes: the client pin, the card rename, the stripe dependency and pnpm-lock.yaml.",
+        "upgradeComplete": "partly by design: stripe ^22.1.1 to ^23.0.0 in package.json and pnpm-lock.yaml, the lockfile of the pinned manager; package-lock.json is left as committed (stripe 22.3.0), which npm would refuse for the new range.",
+        "pleaseCheck": "The draft names the packageManager pin as the reason; delete package-lock.json, which pnpm never reads.",
+        "wouldMerge": "yes: the project installs with pnpm, and the type check passes on both sides."
+      }
     }
   ]
 }
