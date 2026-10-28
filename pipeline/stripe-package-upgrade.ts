@@ -7,7 +7,10 @@ import {
   SpecificationUnavailableError,
 } from './network.ts';
 import { EXACT_PACKAGE_VERSION } from './npm-lock.ts';
+import { legacyPeerDeps } from './dependency-inputs.ts';
+import { changesOutside, resolveNpmLockfile } from './lockfile-resolution.ts';
 import { isObject, parseJson } from './specifications.ts';
+import { PipelineInputError } from './types.ts';
 
 // Latest stripe-node release pinned to each API version.
 // Source: stripe-node release tags (VERSION with API_VERSION / OPENAPI_VERSION), as mapped for the
@@ -263,6 +266,8 @@ function peerConflicts(
 export async function stripePackageUpgrade(
   root: string,
   apiVersion: string,
+  // The networked resolver (lockfile-resolution.ts) a types-only peer bump re-resolves with.
+  resolution?: Resolution,
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   const target = STRIPE_SDK_RELEASES[apiVersion];
   if (!target)
@@ -281,9 +286,16 @@ export async function stripePackageUpgrade(
     manifestText !== undefined &&
     [npmLock, pnpmLock, yarnLock, ...otherLocks].every((text) => text === undefined)
   )
-    return manifestUpgrade(target, manifestText);
+    return manifestUpgrade(target, manifestText, Boolean(resolution));
   const locks = [
-    npmLock && (() => npmUpgrade(target, manifestText!, npmLock)),
+    npmLock &&
+      (() =>
+        npmUpgrade(
+          target,
+          manifestText!,
+          npmLock,
+          resolution && { ...resolution, npmrc: () => read('.npmrc') },
+        )),
     pnpmLock && (() => pnpmUpgrade(target, manifestText!, pnpmLock)),
     yarnLock && (() => yarnUpgrade(target, manifestText!, yarnLock)),
   ].filter((upgrade) => typeof upgrade === 'function');
@@ -333,6 +345,7 @@ function declaredMinimum(spec: string) {
 async function manifestUpgrade(
   target: string,
   manifestText: string,
+  resolved = false,
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   let manifest: unknown;
   try {
@@ -351,32 +364,134 @@ async function manifestUpgrade(
   const release = await registryRelease(target);
   if ('reason' in release) return release;
   if (release.requiredPeers.length) return dependencyChanges(target, release.requiredPeers);
-  const conflict = peerConflicts(
-    target,
-    release.peers,
-    (name) => {
-      for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
-        const declarations = root[section];
-        const spec = isObject(declarations) ? declarations[name] : undefined;
-        if (spec !== undefined) return typeof spec === 'string' ? declaredMinimum(spec) : null;
-      }
-      return undefined;
-    },
-    'package.json',
-  );
-  if (conflict) return conflict;
+  const installed = (name: string) => {
+    for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+      const declarations = root[section];
+      const spec = isObject(declarations) ? declarations[name] : undefined;
+      if (spec !== undefined) return typeof spec === 'string' ? declaredMinimum(spec) : null;
+    }
+    return undefined;
+  };
+  const conflict = peerConflicts(target, release.peers, installed, 'package.json');
+  const after = declared.rewrite(target, undefined, '');
+  // With resolution on, validation resolves the raised peer with the rest (lockfile-resolution.ts).
+  const bump =
+    conflict && resolved ? typesPeerBump(root, after, release.peers, installed) : undefined;
+  if (conflict && !bump) return conflict;
   return {
     upgrade: {
       from: declaredMinimum(declared.spec)!,
       to: target,
+      files: [{ path: 'package.json', before: manifestText, after: bump?.text ?? after }],
+      warning: `Upgrades stripe from ${declared.spec} to exactly ${target}${bump ? ` and ${raisedText(bump.raised, target)}` : ''} in package.json only: the project commits no lockfile, so npm install resolves stripe ${target} and the rest of the dependency tree at install time${resolved ? '. Refit checked the patch against a package-lock.json it resolved for validation only, which this patch does not add, so your own install can resolve other versions' : ', which Refit did not check'}. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+    },
+  };
+}
+
+type Resolution = { image: string; before: string };
+type Raised = { name: string; from: string; to: string; range: string }[];
+
+// Founders' decision (2026-10-27): an @types/* devDependency outside stripe's optional peer range
+// is raised with stripe to the lowest version in range, keeping its ^ or ~. Any other conflicting
+// peer, or one declared elsewhere or in another form, keeps the refusal.
+function typesPeerBump(
+  manifest: Record<string, unknown>,
+  manifestText: string,
+  peers: Record<string, string>,
+  installed: (name: string) => unknown,
+) {
+  let text = manifestText;
+  const raised: Raised = [];
+  for (const [name, range] of Object.entries(peers)) {
+    const version = installed(name);
+    if (version === undefined || satisfiesMinimum(version, range)) continue;
+    const minimum = /^>=\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(range.trim());
+    const declaration = manifestDeclaration(manifest, text, name);
+    if (
+      !name.startsWith('@types/') ||
+      !minimum ||
+      'reason' in declaration ||
+      declaration.section !== 'devDependencies' ||
+      !declaration.unique
+    )
+      return undefined;
+    const to = `${minimum[1]}.${minimum[2] ?? 0}.${minimum[3] ?? 0}`;
+    text = declaration.rewrite(to, text);
+    raised.push({ name, from: declaration.spec, to: declaration.newSpec(to), range });
+  }
+  return raised.length ? { text, raised } : undefined;
+}
+
+const raisedText = (raised: Raised, target: string) =>
+  raised
+    .map(
+      ({ name, from, to, range }) =>
+        `raises ${name} from ${from} to ${to}, the lowest version in stripe ${target}'s optional peer range ${range}`,
+    )
+    .join(' and ');
+
+// Re-resolves the committed package-lock.json with stripe and the raised peers changed, and keeps
+// it only when nothing changes outside them and the packages only they reach.
+async function resolvedPeerUpgrade(
+  target: string,
+  from: string,
+  manifestText: string,
+  lockText: string,
+  bump: { text: string; raised: Raised },
+  resolution: Resolution & { npmrc: () => Promise<string | undefined> },
+): Promise<{ upgrade: PackageUpgrade } | Refusal> {
+  const raised = bump.raised.map(({ name }) => name);
+  const npmrc = (await resolution.npmrc()) ?? '';
+  if (/^\s*(?:@[^:\s]+:)?registry\s*=|_auth/m.test(npmrc))
+    return {
+      reason: `stripe ${target} needs ${raised.join(', ')} raised, and .npmrc configures another registry.`,
+    };
+  let resolved;
+  try {
+    resolved = await resolveNpmLockfile({
+      manifest: bump.text,
+      seed: lockText,
+      before: resolution.before,
+      legacyPeerDeps: legacyPeerDeps(npmrc),
+      image: resolution.image,
+    });
+  } catch (error) {
+    if (!(error instanceof PipelineInputError)) throw error;
+    return {
+      reason: `stripe ${target} needs ${raised.join(', ')} raised, and npm could not re-resolve package-lock.json: ${error.message}`,
+    };
+  }
+  const outside = changesOutside(lockText, resolved.lockfile, ['stripe', ...raised]);
+  if (outside.length)
+    return {
+      reason: `Raising ${raised.join(', ')} with stripe ${target} changes ${outside.slice(0, 5).join(', ')}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''} in package-lock.json, outside stripe, the raised peer and the packages only they reach.`,
+    };
+  const lock = parseJson(resolved.lockfile);
+  const packages = isObject(lock) && isObject(lock.packages) ? lock.packages : {};
+  const version = (name: string) => {
+    const entry = packages[`node_modules/${name}`];
+    return isObject(entry) ? entry.version : undefined;
+  };
+  if (
+    version('stripe') !== target ||
+    bump.raised.some(({ name, range }) => !satisfiesMinimum(version(name), range))
+  )
+    return { reason: `npm did not lock stripe ${target} and ${raised.join(', ')} in range.` };
+  return {
+    upgrade: {
+      from,
+      to: target,
       files: [
-        {
-          path: 'package.json',
-          before: manifestText,
-          after: declared.rewrite(target, undefined, ''),
-        },
+        { path: 'package.json', before: manifestText, after: bump.text },
+        { path: 'package-lock.json', before: lockText, after: resolved.lockfile },
       ],
-      warning: `Upgrades stripe from ${declared.spec} to exactly ${target} in package.json only: the project commits no lockfile, so npm install resolves stripe ${target} and the rest of the dependency tree at install time, which Refit did not check. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+      warning: `Upgrades stripe from ${from} to ${target} and ${raisedText(bump.raised, target)} (now ${bump.raised.map(({ name }) => `${name} ${version(name)}`).join(', ')}). npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${resolution.before}${Object.entries(
+        resolved.late,
+      )
+        .map(([name, pin]) => `, ${name} ${pin.spec} as of ${pin.published}`)
+        .join(
+          '',
+        )}; nothing outside stripe, the raised peer and the packages only they reach changed. A major SDK upgrade and a newer ${raised.join(', ')} can change other types and behavior; review the stripe-node changelog.`,
     },
   };
 }
@@ -385,6 +500,7 @@ async function npmUpgrade(
   target: string,
   manifestText: string,
   lockText: string,
+  resolution?: Resolution & { npmrc: () => Promise<string | undefined> },
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   let manifest: unknown, lock: unknown;
   try {
@@ -417,11 +533,20 @@ async function npmUpgrade(
   );
   if (missing.length || release.requiredPeers.length)
     return dependencyChanges(target, [...missing.map(([name]) => name), ...release.requiredPeers]);
-  const conflict = peerConflicts(target, peers, (name) => {
+  const installed = (name: string) => {
     const installed = packages[`node_modules/${name}`];
     return isObject(installed) ? (installed.version ?? null) : undefined;
-  });
-  if (conflict) return conflict;
+  };
+  const conflict = peerConflicts(target, peers, installed);
+  if (conflict) {
+    const bump =
+      resolution && declared.unique
+        ? typesPeerBump(manifest, declared.rewrite(target), peers, installed)
+        : undefined;
+    return bump && resolution
+      ? resolvedPeerUpgrade(target, entry.version, manifestText, lockText, bump, resolution)
+      : conflict;
+  }
   const optional = (value: Record<string, string>, key: string) =>
     Object.keys(value).length ? { [key]: value } : {};
   packages['node_modules/stripe'] = {
