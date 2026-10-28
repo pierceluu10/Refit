@@ -18,10 +18,10 @@ The plan has two parts. Stripe test mode is a referee strong enough to grant val
 
 ## Lanes
 
-| Lane | Work                                                                                    | Touches                                                                                                     |
-| ---- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| T    | Stripe test-mode runs and behaviour tests that can grant validation                     | new `pipeline/stripe-test-mode.ts`, `behaviour-tests.ts`, `check-selection.ts`, refit-bench `benchmark.yml` |
-| H    | Heavy AI by default: behaviour tests on, a stronger model, more repair rounds, measured | `stripe-benchmark-cli.ts`, `ai-budget.ts`, `ai-patches.ts`, `behaviour-test-writer.ts` prompts              |
+| Lane | Work                                                                                    | Touches                                                                                                                                        |
+| ---- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| T    | Stripe test-mode runs and behaviour tests that can grant validation                     | new `pipeline/provider-sandbox.ts` and `pipeline/stripe-test-mode.ts`, `behaviour-tests.ts`, `check-selection.ts`, refit-bench `benchmark.yml` |
+| H    | Heavy AI by default: behaviour tests on, a stronger model, more repair rounds, measured | `stripe-benchmark-cli.ts`, `ai-budget.ts`, `ai-patches.ts`, `behaviour-test-writer.ts` prompts                                                 |
 
 Lane T owns the refit-bench workflow. Lane H passes everything through the existing `model`, `ai_budget` and `flags` inputs. Lane H's measurement runs use lane T's work only after T merges.
 
@@ -44,7 +44,7 @@ Founder decision (Otabek, 2026-10-28): record it in AGENTS.md as written in docs
 
 Build:
 1. Branch feat/stripe-test-mode from origin/main in its own worktree; npm ci.
-2. pipeline/stripe-test-mode.ts: a second sandbox, separate from offline validation, which stays offline.
+2. Build it provider-neutral; Stripe is only the first adapter (Refit will add Shopify, Twilio, PayPal and others the same way). pipeline/provider-sandbox.ts holds everything that is not Stripe: the egress-allowlisted sandbox, key redaction, run tagging and cleanup hooks, rate-limit backoff with a pool of keys, and the grade A rule. An adapter (pipeline/stripe-test-mode.ts here) declares only its hosts, how a test key is recognised, how the API version is pinned, how stand-in objects are created and deleted, and its rate limit. Where a provider has no test environment, the same harness runs against a mock generated from that provider's OpenAPI spec (as stripe-mock does for Stripe); a mock alone never grants grade A. No Stripe name may appear in provider-sandbox.ts; a test proves it with a fake second adapter. Then the sandbox itself, separate from offline validation, which stays offline:
    - Network egress only to api.stripe.com through an allowlisting proxy; nothing else resolves.
    - The key comes only from the STRIPE_TEST_KEY environment variable. Refuse anything that does not start with rk_test_ or sk_test_. Never log, print, write to an artifact or pass it to the model; redact it from every captured output.
    - No repository .env, .npmrc or credentials. Lifecycle scripts off.
@@ -95,6 +95,10 @@ Don't ask me questions; pick the best option, write down why, and keep going.
 - **Behaviour tests can be wrong in the same way the patch is.** The writer never sees the patch, and a test must pass on the original code to count. That makes it independent, but not perfect, so every new grade A fix gets read by a person in `fix-reviews.json`.
 - **Rate limits.** Stripe test mode limits request rates. Lane T records 429s as "unavailable", never as a regression.
 - **Account-specific behaviour.** Refit's account is not the customer's. What it cannot reproduce (dashboard-only settings, Connect accounts, webhook endpoints) stays outside grade A, and the draft names it as the one thing to check when approving.
+
+## Other providers
+
+The referee is provider-neutral: `pipeline/provider-sandbox.ts` holds the harness, and each provider adds an adapter. Most API companies Refit plans to cover offer a free test environment Refit can own, so customers still do nothing. Shopify has development stores, Twilio has test credentials, and PayPal, Square and Plaid have sandboxes (from memory; each adapter verifies and cites its provider's docs). Providers without one fall back to a mock generated from their OpenAPI spec. That proves the request shapes, not behaviour, so those fixes stay below grade A.
 
 ## Customers do nothing (founder decision, Otabek, 2026-10-28)
 
