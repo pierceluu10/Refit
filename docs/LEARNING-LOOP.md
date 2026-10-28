@@ -69,14 +69,25 @@ refit learn replay --run <run-id> --list <frozen.json> --results <results.json>
 
 ## Offline replay (2026-10-28)
 
-The saved results of three refit-bench runs at `9e701fb1` were replayed with `refit learn replay` and a chained `recordSignatures`, with nothing written. No benchmark was started, and no blind list was read. The runs were 40624062726 (l2-push-249), 40624075884 (heldout-30) and 40687146881 (l2-push-249).
+The saved results of eight AI-enabled refit-bench runs were replayed with `refit learn replay` and chained `recordSignatures` and `recordCandidates`, with nothing written. No benchmark was started, and no progress-30 run was downloaded.
 
-- **Signatures:** 54 distinct across the three runs. The first run had 53, all new. All 9 of heldout-30's were already seen. The second l2-push-249 run added 1 new signature, a validation-stage `error`.
-- **Candidates:** none. Only 2 rows hold AI output:
-  - nicitaacom/19_spotify-clone: grade D, its checks regressed, and its one pattern renames `payment_method_types`, which is never learned.
-  - Ardione321/prep-ai: grade C, and its diff has no one-line request move.
-- **Promotions:** none. Nothing reached the 3-repository bar.
-- **Grounding:** a synthetic `ui_mode` `hosted` → `hosted_page` candidate with 3 grade-B repositories was grounded against the real pinned contracts. It rebuilt the shipped dahlia rule: `PostCheckoutSessions`, the same changelog page and a verbatim quote. Endive refused it, because endive does not remove that value.
+| Run         | List               |
+| ----------- | ------------------ |
+| 40624062726 | l2-push-249        |
+| 40624075884 | heldout-30         |
+| 40687146881 | l2-push-249        |
+| 40753185102 | p-repair-loop      |
+| 40764807844 | repair-policy      |
+| 40772802488 | behaviour-tests-20 |
+| 40772830155 | version-bump       |
+| 40772950934 | heldout-30         |
+
+- **Signatures:** 59 distinct. The first run had 53. Each later run added at most 1 new one, and the rest were already seen.
+- **Candidates:** none. The 6 AI rows are grades C (4) and D (2), none A or B. Their patterns are:
+  - `payment_method_types` renames, which are never learned;
+  - an `apiVersion` constructor value. Grounding would refuse it, because no oasdiff request entry backs it.
+- **Promotions:** none.
+- **Grounding:** a synthetic `ui_mode` `hosted` → `hosted_page` candidate with 3 grade-B repositories was grounded against the real pinned contracts. It rebuilt the shipped dahlia rule: `PostCheckoutSessions`, the same changelog page and a verbatim quote. Endive refused it.
 
 ## Limits
 
