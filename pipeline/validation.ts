@@ -19,6 +19,19 @@ import {
   type ApiVersionPolicy,
 } from './api-version.ts';
 import { digest, isObject, readSpecification } from './specifications.ts';
+import {
+  cleanupObjects,
+  createSandboxNetwork,
+  createStandIns,
+  providerCaller,
+  proxyConfig,
+  redactor,
+  removeSandboxNetwork,
+  startProxy,
+  writeProxy,
+  type SandboxAdapter,
+  type SandboxRequest,
+} from './provider-sandbox.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
@@ -79,6 +92,7 @@ import {
 } from './stripe-type-evidence.ts';
 import {
   behaviourCommand,
+  behaviourTestModeCommand,
   changedStripeLines,
   compareBehaviourRuns,
   behaviourGrade,
@@ -639,6 +653,7 @@ async function containerCheck({
   signal,
   timeoutMs,
   packageDirectory,
+  network = 'none',
 }: {
   directory: string;
   image: string;
@@ -646,6 +661,7 @@ async function containerCheck({
   dependencies?: string;
   readOnlyMounts?: { source: string; target: string }[];
   signal?: AbortSignal;
+  network?: 'none' | `refit-sandbox-${string}`;
 } & CheckSandbox): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
   // Only prepared dependencies skip the repository's install steps; a custom image ran its own.
@@ -664,7 +680,7 @@ async function containerCheck({
         directory,
         image,
         command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
-        network: 'none',
+        network,
         timeoutMs,
         dependencies,
         readOnlyMounts,
@@ -1311,15 +1327,141 @@ async function signedEventEvidence(
       regressions: [],
     };
   }
+// A provider's test environment for behaviour tests (--stripe-test-mode): the adapter and the
+// test keys providerKeys read from its environment variable.
+export interface ProviderSandbox {
+  adapter: SandboxAdapter;
+  keys: string[];
+}
+
+// Runs behaviour tests on the original code at the before API version and on the patched code at
+// the after version against the provider's test environment, one side after the other, each
+// behind its own proxy on an internal network (provider-sandbox.ts). Stand-ins for account-specific
+// objects are created first; everything the run created is removed at the end, whatever happened.
+// The keys never enter a test container and are redacted from everything recorded.
+export async function runSandboxBehaviourTests(options: {
+  tests: BehaviourTest[];
+  provider: ProviderSandbox;
+  image: string;
+  root: string;
+  original: { directory: string; contract: string; repository: Repository; dependencies?: string };
+  patched: { directory: string; contract: string; repository: Repository; dependencies?: string };
+  findings?: readonly Pick<Finding, 'file'>[];
+  sandbox?: CheckSandbox;
+  onProgress?: (message: string) => void;
+  signal?: AbortSignal;
+}) {
+  validateBehaviourTests(options.tests);
+  const { adapter, keys } = options.provider;
+  const redact = redactor(adapter, keys);
+  const sources = { original: options.original.repository, patched: options.patched.repository };
+  const changed = changedStripeLines(sources.original, sources.patched, options.findings);
+  const runId = `refit-${randomUUID()}`;
+  const contracts = {
+    original: JSON.parse(await readFile(options.original.contract, 'utf8')) as unknown,
+    patched: JSON.parse(await readFile(options.patched.contract, 'utf8')) as unknown,
+  };
+  const version = (contract: unknown) => {
+    const value = (contract as { info?: { version?: unknown } } | null)?.info?.version;
+    return typeof value === 'string' ? value : null;
+  };
+  const versions = { original: version(contracts.original), patched: version(contracts.patched) };
+  const tools = await sandboxInput(options.root, 'behaviour-');
+  await writeBehaviourHarness(tools, options.tests, changed, sources);
+  const call = providerCaller(adapter, keys, { runId });
+  const changedSources = (['original', 'patched'] as const).flatMap((side) =>
+    sources[side].files.filter((file) => file.path in changed[side]),
+  );
+  const timeoutMs = options.sandbox?.timeoutMs ?? validateCheckTimeout() * 1000;
+  const requests: Record<'original' | 'patched', SandboxRequest[]> = { original: [], patched: [] };
+  const results: Partial<Record<'original' | 'patched', CheckResult>> = {};
+  const prepared = await createStandIns(adapter, call, changedSources);
+  let network: `refit-sandbox-${string}` | undefined;
+  let cleanup;
+  try {
+    network = (await createSandboxNetwork(2 * timeoutMs)) as `refit-sandbox-${string}`;
+    for (const side of ['original', 'patched'] as const) {
+      options.signal?.throwIfAborted();
+      await writeProxy(
+        tools,
+        side,
+        proxyConfig(adapter, {
+          runId,
+          version: versions[side],
+          contract: contracts[side],
+          standIns: prepared.standIns,
+        }),
+      );
+      const proxy = await startProxy({
+        network,
+        image: options.image,
+        tools,
+        side,
+        keys,
+        timeoutMs,
+      });
+      options.onProgress?.(
+        `Running behaviour tests on the ${side} code against ${adapter.name} test mode...`,
+      );
+      try {
+        const input = options[side];
+        const result = await containerCheck({
+          directory: input.directory,
+          image: options.image,
+          command: behaviourTestModeCommand(side === 'original' ? 'before' : 'after', proxy),
+          dependencies: input.dependencies,
+          readOnlyMounts: [{ source: tools, target: '/refit/generated' }, ...typescriptMount()],
+          network,
+          signal: options.signal,
+          ...(options.sandbox ?? { timeoutMs }),
+        });
+        results[side] = {
+          ...result,
+          stdout: redact(result.stdout),
+          stderr: redact(result.stderr),
+          ...(result.error ? { error: redact(result.error) } : {}),
+        };
+      } finally {
+        requests[side] = JSON.parse(redact(JSON.stringify(await proxy.stop()))) as SandboxRequest[];
+      }
+    }
+  } finally {
+    if (network) await removeSandboxNetwork(network);
+    cleanup = await cleanupObjects(adapter, call, [
+      ...prepared.objects,
+      ...requests.original.flatMap((request) => (request.created ? [request.created] : [])),
+      ...requests.patched.flatMap((request) => (request.created ? [request.created] : [])),
+    ]);
+  }
+  return compareBehaviourRuns({
+    tests: options.tests,
+    changed,
+    sources,
+    original: results.original!,
+    patched: results.patched!,
+    target: 'test-environment',
+    sandbox: {
+      adapter,
+      runId,
+      versions,
+      requests,
+      standIns: prepared.standIns,
+      unreproducible: prepared.unreproducible,
+      cleanup,
+    },
+  });
 }
 
 // Behaviour tests that cannot be set up or run are reported as unavailable, never as a failure.
 async function behaviourEvidence(
   options: Omit<Parameters<typeof runBehaviourTests>[0], 'settings'> & {
     settings?: GeneratedChecks;
+    provider?: ProviderSandbox;
   },
 ) {
   try {
+    if (options.provider)
+      return await runSandboxBehaviourTests({ ...options, provider: options.provider });
     if (!options.settings)
       throw new PipelineInputError(
         "Behaviour tests need generatedChecks settings: a local stripe-mock image and both versions' fixtures.",
@@ -1327,9 +1469,16 @@ async function behaviourEvidence(
     return await runBehaviourTests({ ...options, settings: options.settings });
   } catch (error) {
     options.signal?.throwIfAborted();
-    const reason = `Behaviour tests could not run: ${setupError(error)}`;
+    const reason = `Behaviour tests could not run: ${
+      options.provider
+        ? redactor(options.provider.adapter, options.provider.keys)(setupError(error))
+        : setupError(error)
+    }`;
     return {
-      engine: 'node-test+stripe-mock' as const,
+      engine: options.provider
+        ? ('node-test+test-environment' as const)
+        : ('node-test+stripe-mock' as const),
+      target: options.provider ? ('test-environment' as const) : ('mock' as const),
       status: 'unavailable' as const,
       reason,
       grade: null,
@@ -1394,6 +1543,9 @@ export async function validateMigration(options: {
   // --webhook-checks: signed events of both API versions sent to the webhook handlers the patch can
   // affect (signed-events.ts); they need generatedChecks' stripe-mock image and fixtures.
   signedEventChecks?: boolean;
+  // --stripe-test-mode: behaviour tests run against the provider's test environment instead of
+  // stripe-mock, the only evidence that grants grade A (runSandboxBehaviourTests).
+  providerSandbox?: ProviderSandbox;
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
   keepApiVersion?: boolean;
@@ -2750,6 +2902,7 @@ export async function validateMigration(options: {
               },
               findings: report.findings,
               sandbox,
+              provider: options.providerSandbox,
               onProgress: options.onProgress,
               signal: options.signal,
             }),

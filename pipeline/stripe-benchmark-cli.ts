@@ -36,6 +36,7 @@ import { validationProfile } from './docker-sandbox.ts';
 import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
 import { AiPolicyStop } from './ai-patches.ts';
+import { stripeTestMode } from './stripe-test-mode.ts';
 import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import {
@@ -94,6 +95,8 @@ const { values } = parseArgs({
     // Sends signed webhook events of both API versions to the handlers a patch can affect
     // (signed-events.ts), offline; no key needed.
     'webhook-checks': { type: 'boolean' },
+    // Runs the behaviour tests against Stripe test mode with STRIPE_TEST_KEY (provider-sandbox.ts).
+    'stripe-test-mode': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -145,6 +148,8 @@ if (values['behaviour-tests-dry-run'] && (!values.validate || values['behaviour-
     '--behaviour-tests-dry-run needs --validate and replaces --behaviour-tests.',
   );
 const writer = values['behaviour-tests'] || values['behaviour-tests-dry-run'];
+// Refuses a missing, live or malformed STRIPE_TEST_KEY before any repository runs.
+stripeTestMode(values['stripe-test-mode'], values['behaviour-tests']);
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
@@ -570,6 +575,7 @@ async function benchmark(entry: Selected, index: number) {
                   ? ['--no-behaviour-tests']
                   : []),
             ...(values['webhook-checks'] ? ['--webhook-checks'] : []),
+            ...(values['stripe-test-mode'] ? ['--stripe-test-mode'] : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
@@ -703,6 +709,15 @@ async function benchmark(entry: Selected, index: number) {
               missing: report.validation.behaviour.missing,
               regressions: report.validation.behaviour.regressions,
               tests: report.validation.behaviour.tests,
+              ...(report.validation.behaviour.target
+                ? { target: report.validation.behaviour.target }
+                : {}),
+              ...(report.validation.behaviour.dropped?.length
+                ? { dropped: report.validation.behaviour.dropped }
+                : {}),
+              ...(report.validation.behaviour.sandbox
+                ? { sandbox: report.validation.behaviour.sandbox }
+                : {}),
             },
           }
         : {}),

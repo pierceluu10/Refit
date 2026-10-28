@@ -1045,7 +1045,7 @@ async function harness(
   }
 }
 
-it("SIMULATED stripe-mock: the generated test gives grade A to the card rule's patch and counts known-wrong patches as regressions (nicuk/docsflow at 3e6fd71)", async () => {
+it("SIMULATED stripe-mock: the generated test passes the card rule's patch (a mock never grants grade A) and counts known-wrong patches as regressions (nicuk/docsflow at 3e6fd71)", async () => {
   const sample = await scenario('docsflow');
   respond(CHECKOUT_ANSWER);
   const { record, files } = await writeBehaviourTests({ ...sample.inputs, ai: ai(sample.root) });
@@ -1061,7 +1061,7 @@ it("SIMULATED stripe-mock: the generated test gives grade A to the card rule's p
   expect(dropped).not.toContain('payment_method_types');
   const findings = sample.report.findings;
   const passed = await harness(files, findings, correct);
-  expect(passed).toMatchObject({ status: 'passed', grade: 'A', missing: [], regressions: [] });
+  expect(passed).toMatchObject({ status: 'passed', grade: null, missing: [], regressions: [] });
   // Both changed lines (the pin and the parameter) ran on both sides.
   expect(passed.coverage!.covered).toEqual({
     original: { 'lib/stripe-client.ts': [7, 31] },

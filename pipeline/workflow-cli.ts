@@ -15,6 +15,7 @@ import { validateApiVersionPolicy } from './api-version.ts';
 import { hasErrorCode } from './state-files.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 import { DRY_RUN_MODEL } from './behaviour-test-writer.ts';
+import { stripeTestMode } from './stripe-test-mode.ts';
 
 const RUN_DIRECTORY_PREFIX = 'refit-run-';
 
@@ -49,6 +50,7 @@ try {
       // --ai-patch writes behaviour tests by default where stripe-mock settings exist.
       'no-behaviour-tests': { type: 'boolean' },
       'webhook-checks': { type: 'boolean' },
+      'stripe-test-mode': { type: 'boolean' },
       'documentation-snapshot': { type: 'string', multiple: true },
       'repair-attempts': { type: 'string' },
       'publish-draft': { type: 'boolean' },
@@ -150,6 +152,7 @@ try {
           ? { model: process.env.OPENAI_MODEL?.trim() || DRY_RUN_MODEL, dryRun: true }
           : assessmentConfiguration(values['write-behaviour-tests'], process.env),
       signedEventChecks: values['webhook-checks'],
+      providerSandbox: stripeTestMode(values['stripe-test-mode'], values['write-behaviour-tests']),
       documentationSnapshots: values['documentation-snapshot'],
       repairAttempts: Number(
         values['repair-attempts'] ?? (values['ai-patch'] ? HOSTED_REPAIR_ATTEMPTS : 0),

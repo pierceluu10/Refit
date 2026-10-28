@@ -31,7 +31,7 @@ import { digest, isObject, readSpecification } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { checkFailureText } from './check-failures.ts';
-import { validateMigration } from './validation.ts';
+import { validateMigration, type ProviderSandbox } from './validation.ts';
 import {
   validateCheckCommand,
   validateRepairAttempts,
@@ -185,6 +185,8 @@ export async function runWorkflow(options: {
   // the same AI options unless this is false.
   behaviourTestWriter?: BehaviourTestWriter | false;
   signedEventChecks?: boolean;
+  // --stripe-test-mode: behaviour tests run against Stripe test mode (validation.ts).
+  providerSandbox?: ProviderSandbox;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -408,6 +410,7 @@ export async function runWorkflow(options: {
         // pays for a second identical request; reuse the first run's tests if that retry needs grade A.
         behaviourTestWriter: keepApiVersion ? undefined : behaviourTestWriter(options),
         signedEventChecks: options.signedEventChecks,
+        providerSandbox: options.providerSandbox,
         documentationSnapshots: options.documentationSnapshots,
         repairAttempts: options.repairAttempts,
         leaveReviewedFindings: allowUnresolved,

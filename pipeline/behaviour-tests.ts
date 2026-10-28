@@ -11,6 +11,16 @@ import {
   sandboxTranspile,
   writeHarness,
 } from './generated-checks.ts';
+import {
+  newProviderErrors,
+  sandboxBlockers,
+  sandboxGrade,
+  unavailableSide,
+  type SandboxAdapter,
+  type SandboxRequest,
+  type SandboxTarget,
+  type StandIn,
+} from './provider-sandbox.ts';
 import { signedEventRecords, type DeliveryRecord } from './signed-events.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError, type Finding, type Repository } from './types.ts';
@@ -232,20 +242,22 @@ export default async function* reporter(source) {
 }
 `;
 
-// Runs the behaviour tests with node --test under the generated checks' hooks (api.stripe.com to
-// stripe-mock, TypeScript transpiled, the side's import map) and V8 coverage, then prints the
-// coverage ranges of the changed files only.
+// Runs each behaviour test file with node --test under the generated checks' hooks (api.stripe.com
+// to stripe-mock or the sandbox proxy, TypeScript transpiled, the side's import map) and V8
+// coverage of its own, then prints the coverage ranges of the changed files per test file, so a
+// file whose tests fail on the original code can be dropped together with what it ran.
 const RUNNER = `import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { connect } from 'node:net';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+const host = process.env.REFIT_STRIPE_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.REFIT_STRIPE_MOCK_PORT ?? ${MOCK_PORT});
 const root = process.env.REFIT_GENERATED_ROOT ?? '/workspace/';
 const side = process.env.REFIT_GENERATED_SIDE === 'after' ? 'after' : 'before';
 const tool = (name) => fileURLToPath(new URL(name, import.meta.url));
 for (let attempt = 0; ; attempt++) {
   const ready = await new Promise((resolve) => {
-    const socket = connect(port, '127.0.0.1', () => { socket.end(); resolve(true); });
+    const socket = connect(port, host, () => { socket.end(); resolve(true); });
     socket.once('error', () => resolve(false));
   });
   if (ready) break;
@@ -253,26 +265,31 @@ for (let attempt = 0; ; attempt++) {
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
 const tests = readdirSync(root + '${BEHAVIOUR_DIRECTORY}').filter((name) => name.endsWith('.test.mjs')).sort().map((name) => '${BEHAVIOUR_DIRECTORY}/' + name);
-const coverage = root + '.refit-coverage';
-const run = spawnSync(process.execPath, ['--import', tool('redirect.mjs'), '--test', '--test-concurrency=1', '--test-timeout=${TEST_TIMEOUT_MS}', '--test-reporter=' + tool('reporter.mjs'), ...tests], {
-  cwd: root,
-  env: { ...process.env, NODE_V8_COVERAGE: coverage },
-  encoding: 'utf8',
-  maxBuffer: 64 * 1024 * 1024,
-});
-process.stdout.write(run.stdout ?? '');
-process.stderr.write(String(run.stderr ?? '').slice(-4000));
-if (run.error) console.error(String(run.error));
-console.log('REFIT_BEHAVIOUR_EXIT=' + JSON.stringify(run.status));
 const files = JSON.parse(readFileSync(tool('behaviour-' + side + '.json'), 'utf8'));
 const wanted = new Map(files.flatMap((file) => [[pathToFileURL(root + file).href, file], [root + file, file]]));
 const scripts = {};
-for (const name of existsSync(coverage) ? readdirSync(coverage) : []) {
-  for (const script of JSON.parse(readFileSync(coverage + '/' + name, 'utf8')).result ?? []) {
-    const file = wanted.get(script.url);
-    if (file) (scripts[file] ??= []).push(script.functions.flatMap((entry) => entry.ranges.map((range) => [range.startOffset, range.endOffset, range.count])));
+let exit = 0;
+for (const [index, test] of tests.entries()) {
+  const coverage = root + '.refit-coverage/' + index;
+  const run = spawnSync(process.execPath, ['--import', tool('redirect.mjs'), '--test', '--test-concurrency=1', '--test-timeout=${TEST_TIMEOUT_MS}', '--test-reporter=' + tool('reporter.mjs'), test], {
+    cwd: root,
+    env: { ...process.env, NODE_V8_COVERAGE: coverage },
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  process.stdout.write(run.stdout ?? '');
+  process.stderr.write(String(run.stderr ?? '').slice(-4000));
+  if (run.error) console.error(String(run.error));
+  if (run.status !== 0) exit = run.status;
+  const byFile = (scripts[test] = {});
+  for (const name of existsSync(coverage) ? readdirSync(coverage) : []) {
+    for (const script of JSON.parse(readFileSync(coverage + '/' + name, 'utf8')).result ?? []) {
+      const file = wanted.get(script.url);
+      if (file) (byFile[file] ??= []).push(script.functions.flatMap((entry) => entry.ranges.map((range) => [range.startOffset, range.endOffset, range.count])));
+    }
   }
 }
+console.log('REFIT_BEHAVIOUR_EXIT=' + JSON.stringify(exit));
 console.log('REFIT_BEHAVIOUR_COVERAGE=' + JSON.stringify(scripts));
 // Signed-event deliveries (signed-events.ts) write one record each.
 const records = root + '.refit-webhooks';
@@ -338,6 +355,26 @@ export function behaviourCommand(side: 'before' | 'after') {
   ];
 }
 
+// Behaviour tests against a provider's test environment: the container sits on the sandbox's
+// internal network, where only the proxy answers. Repository credentials files are removed and
+// lifecycle scripts stay off; the placeholder keys reach the proxy, which replaces them.
+export function behaviourTestModeCommand(
+  side: 'before' | 'after',
+  proxy: { host: string; port: number },
+) {
+  if (!/^[0-9a-f.:]+$/i.test(proxy.host))
+    throw new PipelineInputError('The sandbox proxy needs an IP address.');
+  return [
+    'sh',
+    '-c',
+    `mkdir -p /workspace/${BEHAVIOUR_DIRECTORY} && cp /refit/generated/tests/*.test.mjs /workspace/${BEHAVIOUR_DIRECTORY}/ && ` +
+      "find /workspace -path /workspace/node_modules -prune -o \\( -name '.env' -o -name '.env.*' -o -name '.npmrc' -o -name '.yarnrc' -o -name '.yarnrc.yml' -o -name '.netrc' -o -name 'credentials.json' \\) -type f -exec rm -f {} + && " +
+      `npm_config_ignore_scripts=true STRIPE_SECRET_KEY=sk_test_123 STRIPE_API_KEY=sk_test_123 STRIPE_KEY=sk_test_123 REFIT_GENERATED_SIDE=${side} ` +
+      `REFIT_STRIPE_MOCK_HOST=${proxy.host} REFIT_STRIPE_MOCK_PORT=${proxy.port} ` +
+      'exec node /refit/generated/behaviour.mjs',
+  ];
+}
+
 interface TestResult {
   file: string;
   id: string;
@@ -354,7 +391,8 @@ export function behaviourOutput(stdout: string) {
   const tests: TestResult[] = [];
   const stderr = new Map<string, string>();
   let exit: number | null = null;
-  let coverage: Record<string, Ranges[]> = {};
+  // Per test file, per changed file: each process's ranges.
+  let coverage: Record<string, Record<string, Ranges[]>> = {};
   let done = false;
   const value = (line: string) => JSON.parse(line.slice(line.indexOf('=') + 1)) as unknown;
   for (const line of stdout.split('\n'))
@@ -364,7 +402,7 @@ export function behaviourOutput(stdout: string) {
       if (!stderr.has(file)) stderr.set(file, text);
     } else if (line.startsWith('REFIT_BEHAVIOUR_EXIT=')) exit = value(line) as number | null;
     else if (line.startsWith('REFIT_BEHAVIOUR_COVERAGE='))
-      coverage = value(line) as Record<string, Ranges[]>;
+      coverage = value(line) as Record<string, Record<string, Ranges[]>>;
     else if (line === 'REFIT_BEHAVIOUR_DONE') done = true;
   return {
     // Node reports a file that failed to load as "test failed"; its own error is on stderr.
@@ -384,43 +422,89 @@ const lineList = (lines: number[]) =>
   lines.length > 8
     ? `${lines.slice(0, 8).join(', ')} and ${lines.length - 8} more`
     : lines.join(', ');
-const sideText = {
-  original: 'the original code against the before-version stripe-mock',
-  patched: 'the patched code against the after-version stripe-mock',
-};
+const sideTexts = (target: SandboxTarget, provider = 'Stripe') =>
+  target === 'test-environment'
+    ? {
+        original: `the original code against ${provider} test mode at the before version`,
+        patched: `the patched code against ${provider} test mode at the after version`,
+      }
+    : {
+        original: 'the original code against the before-version stripe-mock',
+        patched: 'the patched code against the after-version stripe-mock',
+      };
+
+// Provider evidence from the sandbox proxy (provider-sandbox.ts): each side's requests, the
+// versions each side must send, and the account-specific objects Refit stood in for or could not.
+export interface BehaviourSandbox {
+  adapter: SandboxAdapter;
+  runId: string;
+  versions: Record<Side, string | null>;
+  requests: Record<Side, SandboxRequest[]>;
+  standIns: StandIn[];
+  unreproducible: string[];
+  cleanup?: { removed: string[]; left: string[]; failed: string[] };
+}
 
 // What the two runs prove. A test that passed on the original side and fails an assertion on the
 // patched side counts against the patch, as a regression: the file is the same on both sides, so
-// only the patch and the API version differ. A side that did not finish, a test that cannot pass on
-// the original code, and a test file that does not load or a test that times out on the patched
-// side are reported and never counted. Grade A needs every test to pass on both sides and every
-// changed executable Stripe line to have run on both sides.
+// only the patch and the API version differ. A side that did not finish, a side the provider
+// rate-limited or could not serve, and a test file that does not load or a test that times out on
+// the patched side are reported and never counted. A test file with a test that fails on the
+// original code proves nothing and is dropped, with the coverage of its process. Grade A needs
+// every kept test to pass on both sides, every changed executable Stripe line to have run on both
+// sides, and a provider's test environment with no new provider error (sandboxGrade); a mock never
+// grants it.
 export function compareBehaviourRuns(options: {
   tests: readonly BehaviourTest[];
   changed: Record<Side, LinesByFile>;
   sources: Record<Side, Repository>;
   original: CheckResult;
   patched: CheckResult;
+  target?: SandboxTarget;
+  sandbox?: BehaviourSandbox;
 }) {
+  const target = options.target ?? 'mock';
+  const sideText = sideTexts(target, options.sandbox?.adapter.name);
+  const outputs = {
+    original: behaviourOutput(options.original.stdout),
+    patched: behaviourOutput(options.patched.stdout),
+  };
+  const passing = (test?: TestResult) => Boolean(test?.ok && !test.skip && !test.todo);
+  const dropped = new Map<string, string>();
+  for (const test of outputs.original.tests)
+    if (!test.ok && !dropped.has(test.file))
+      dropped.set(
+        test.file,
+        `${test.id} failed (${test.phase}) on ${sideText.original}${test.error ? `: ${test.error}` : '.'}`,
+      );
+  const kept = (test: TestResult) => !dropped.has(test.file);
   const sides = (['original', 'patched'] as const).map((side) => {
     const check = options[side];
-    const output = behaviourOutput(check.stdout);
+    const output = outputs[side];
     const error = check.stderr
       .split('\n')
       .map((line) => line.trim())
       .find((line) => /^[A-Za-z]*Error\b/.test(line));
+    const unavailable = options.sandbox && unavailableSide(options.sandbox.requests[side]);
     const broken =
       check.status === 'error'
         ? `The ${side} run did not finish: ${check.error ?? 'the container failed'}`
         : !output.done
           ? `The behaviour harness on ${sideText[side]} stopped before finishing (exit code ${check.exitCode ?? 'none'})${error ? `: ${error.slice(0, 300)}` : '.'}`
-          : undefined;
+          : unavailable
+            ? `${options.sandbox!.adapter.name} was unavailable on ${sideText[side]}: ${unavailable}`
+            : undefined;
     const content = (path: string) =>
       options.sources[side].files.find((file) => file.path === path)?.content ?? '';
+    // Only the processes of kept test files count.
+    const processes = (path: string) =>
+      Object.entries(output.coverage)
+        .filter(([file]) => !dropped.has(file))
+        .flatMap(([, files]) => files[path] ?? []);
     const coverage = Object.fromEntries(
       Object.entries(options.changed[side]).map(([path, lines]) => [
         path,
-        lineCoverage(path, content(path), lines, output.coverage[path] ?? []),
+        lineCoverage(path, content(path), lines, processes(path)),
       ]),
     );
     return { side, check, output, broken, coverage };
@@ -430,7 +514,6 @@ export function compareBehaviourRuns(options: {
     new Map(side.output.tests.map((test) => [test.id, test]));
   const before = byId(original);
   const after = byId(patched);
-  const passing = (test?: TestResult) => Boolean(test?.ok && !test.skip && !test.todo);
   const broken = original.broken ?? patched.broken;
   const regressions = broken
     ? []
@@ -444,14 +527,20 @@ export function compareBehaviourRuns(options: {
   const oneSided = broken
     ? []
     : [
-        ...[...before.keys()].filter((id) => !after.has(id)),
-        ...[...after.keys()].filter((id) => !before.has(id)),
-      ];
+        ...[...before.values()].filter((test) => kept(test) && !after.has(test.id)),
+        ...[...after.values()].filter((test) => kept(test) && !before.has(test.id)),
+      ].map((test) => test.id);
   for (const id of oneSided) missing.push(`${id} ran on one side only.`);
   for (const side of sides) {
     if (side.broken) continue;
-    if (!side.output.tests.length) missing.push(`No test ran on ${sideText[side.side]}.`);
-    for (const test of side.output.tests)
+    const tests = side.output.tests.filter(kept);
+    if (!tests.length)
+      missing.push(
+        side.output.tests.length
+          ? `No behaviour test file passed on ${sideText.original}.`
+          : `No test ran on ${sideText[side.side]}.`,
+      );
+    for (const test of tests)
       if (!passing(test))
         missing.push(
           `${test.id} ${test.ok ? (test.skip ? 'was skipped' : 'is a todo') : `failed (${test.phase})`} on ${sideText[side.side]}${test.error ? `: ${test.error}` : '.'}`,
@@ -488,11 +577,20 @@ export function compareBehaviourRuns(options: {
     0,
   );
   if (!changedCount) missing.push('The patch changes no executable Stripe line.');
+  if (options.sandbox && !broken)
+    missing.push(
+      ...sandboxBlockers(options.sandbox.adapter, {
+        versions: options.sandbox.versions,
+        requests: options.sandbox.requests,
+        unreproducible: options.sandbox.unreproducible,
+      }),
+    );
   const allPass =
     !oneSided.length &&
-    sides.every(
-      (side) => !side.broken && side.output.tests.length > 0 && side.output.tests.every(passing),
-    );
+    sides.every((side) => {
+      const tests = side.output.tests.filter(kept);
+      return !side.broken && tests.length > 0 && tests.every(passing);
+    });
   const status = broken
     ? ('unavailable' as const)
     : regressions.length
@@ -501,11 +599,16 @@ export function compareBehaviourRuns(options: {
         ? ('passed' as const)
         : ('not-passing' as const);
   return {
-    engine: 'node-test+stripe-mock' as const,
+    engine:
+      target === 'test-environment'
+        ? ('node-test+test-environment' as const)
+        : ('node-test+stripe-mock' as const),
+    target,
     status,
     ...(broken ? { reason: broken } : {}),
-    grade: status === 'passed' && !missing.length ? ('A' as const) : null,
+    grade: sandboxGrade({ target, passed: status === 'passed', missing }),
     missing,
+    dropped: [...dropped].map(([file, reason]) => ({ file, reason })),
     // The source stays with the result, so a reviewer can read the tests behind a grade.
     tests: options.tests.map((test) => ({
       path: test.path,
@@ -514,6 +617,24 @@ export function compareBehaviourRuns(options: {
     })),
     coverage,
     regressions,
+    ...(options.sandbox
+      ? {
+          sandbox: {
+            provider: options.sandbox.adapter.name,
+            runId: options.sandbox.runId,
+            versions: options.sandbox.versions,
+            standIns: options.sandbox.standIns,
+            unreproducible: options.sandbox.unreproducible,
+            newErrors: newProviderErrors(
+              options.sandbox.adapter,
+              options.sandbox.requests.original,
+              options.sandbox.requests.patched,
+            ),
+            requests: options.sandbox.requests,
+            ...(options.sandbox.cleanup ? { cleanup: options.sandbox.cleanup } : {}),
+          },
+        }
+      : {}),
     sides: Object.fromEntries(
       sides.map((side) => [
         side.side,
@@ -542,23 +663,29 @@ export function compareBehaviourRuns(options: {
   };
 }
 
-// Grade A's input for check-selection's gradeEvidence: the tests passed on both sides and every
-// changed Stripe line ran on both. Anything less keeps the checks' own grade.
+// Grade A's input for check-selection's gradeEvidence: the tests passed on both sides, every
+// changed Stripe line ran on both, and they ran against a provider's test environment. Anything
+// less keeps the checks' own grade.
 export function behaviourGrade(result: {
   status: string;
   grade: 'A' | null;
+  target?: SandboxTarget;
   missing: string[];
   tests: { path: string }[];
   coverage?: { changedLines: Record<Side, LinesByFile> };
+  sandbox?: { provider: string };
 }): BehaviourEvidence {
+  const target = result.target ?? 'mock';
+  const sideText = sideTexts(target, result.sandbox?.provider);
   const count = (side: Side) =>
     Object.values(result.coverage?.changedLines[side] ?? {}).flat().length;
   return {
     passed: result.status === 'passed',
     coversEveryChangedLine: result.grade === 'A',
+    target,
     reason:
       result.grade === 'A'
-        ? `Behaviour tests (${result.tests.map((test) => test.path).join(', ')}) passed on ${sideText.original} and on ${sideText.patched}, and ran every changed Stripe line on both sides (${count('original')} original, ${count('patched')} patched).`
-        : `Behaviour tests did not give grade A: ${result.missing[0] ?? 'no reason recorded.'}`,
+        ? `Behaviour tests (${result.tests.map((test) => test.path).join(', ')}) passed on ${sideText.original} and on ${sideText.patched}, ran every changed Stripe line on both sides (${count('original')} original, ${count('patched')} patched), and ${result.sandbox?.provider ?? 'the provider'} returned no error on the patched side that it did not return on the original.`
+        : `Behaviour tests did not give grade A: ${result.missing[0] ?? (target === 'mock' ? 'they ran against a mock, which never grants grade A.' : 'no reason recorded.')}`,
   };
 }

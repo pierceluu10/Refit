@@ -503,8 +503,38 @@ function replacementReasons(report: ValidationReport) {
   return { reasons, replacements };
 }
 
+function testModeLines(validation: unknown) {
+  const sandbox = (
+    validation as {
+      behaviour?: {
+        sandbox?: {
+          provider: string;
+          standIns: { id: string; standIn: string; assumption: string }[];
+          unreproducible: string[];
+          newErrors: string[];
+        };
+      };
+    }
+  ).behaviour?.sandbox;
+  if (!sandbox) return [];
+  return [
+    `- ${plainText(sandbox.provider)} Test Mode: the behaviour tests ran against Refit's own ${plainText(sandbox.provider)} test account, the original code at the before API version and the patch at the after version.`,
+    ...sandbox.standIns.map(
+      (item) =>
+        `- Stand-in: ${code(item.id)} is your account's object, so the tests used ${plainText(item.assumption)} in its place. **Check that your ${code(item.id)} behaves the same way.**`,
+    ),
+    ...sandbox.unreproducible.map(
+      (item) =>
+        `- Not reproduced: ${plainText(item)} lives in your account, so test mode could not check it and it stays outside grade A. **Check it when you approve.**`,
+    ),
+    ...sandbox.newErrors.map(
+      (error) => `- New ${plainText(sandbox.provider)} error on the patched side: ${code(error)}.`,
+    ),
+  ];
+}
+
 const EVIDENCE_LABELS = {
-  'behaviour-tests': 'Behaviour tests cover every changed line',
+  'behaviour-tests': "Behaviour tests in the provider's test mode cover every changed line",
   'stripe-tests': 'Tests exercise the changed code',
   'type-check': 'Type-checked only',
   'generated-check': 'Generated stripe-mock checks only',
@@ -1353,6 +1383,8 @@ export function createReviewArtifacts(
               )}.`,
             ]
           : []),
+        // Stripe test mode: what Refit stood in for in its own account, and what it could not.
+        ...testModeLines(validation),
         ...(legacyPeerDeps
           ? [
               "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies, so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",

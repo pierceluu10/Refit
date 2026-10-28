@@ -186,6 +186,16 @@ On rerun, validated Stripe fixes rose from **10 to 53** on the same 531 reposito
 
 All 43 card-rule fixes were checked against their diffs. 40 passed `tsc` with no new errors, and 3 are covered only by generated `stripe-mock` checks. 10 patches regressed on other stripe-node 23 type errors; validation caught them, and none was proposed. No other outcome changed. The tables below predate the policy.
 
+## Stripe test mode (October 28)
+
+Behaviour tests against Stripe test mode ([Stripe test mode](STRIPE-TEST-MODE.md)) on refit-dev/refit-bench, with the `STRIPE_TEST_KEY` repository secret and the workflow from refit-bench branch `feat/stripe-test-mode`, which passes that secret only when `flags` holds `--stripe-test-mode`:
+
+```bash
+gh workflow run benchmark.yml -R refit-dev/refit-bench --ref feat/stripe-test-mode -f commit=<sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249 -f ai=true -f ai_budget=200 -f flags="--behaviour-tests --stripe-test-mode"
+```
+
+Results: pending; compared with 40624062726 (main `89f1c0ed`, AI) by `scripts/stripe-benchmark-compare.mjs`, then heldout-30 against 40624075884.
+
 ## Stripe
 
 ### Fresh 381 (October 16)
