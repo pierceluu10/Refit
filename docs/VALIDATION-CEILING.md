@@ -1,6 +1,6 @@
 # Validation ceiling
 
-**Status: plan, 2026-10-28.** Agent 1's audit is built (provisional numbers below); agents 2 to 5 are not. Requested by Otabek (founder) on 2026-10-28.
+**Status: plan, 2026-10-28.** Agent 1's audit is built (l2 numbers below are provisional); agents 2 to 5 are not. Requested by Otabek (founder) on 2026-10-28.
 
 ## Goal
 
@@ -25,7 +25,7 @@ Shared rules, as in the other plans:
 
 ## Ceiling audit (agent 1)
 
-**Provisional, 2026-10-28.** The four runs at main `89f1c0ed` named above were still queued on refit-bench when this was written. The numbers below come from the latest completed full runs of the same two sets, at `63646f2a` (no AI) and `93e73d7c` (AI), which predate #361 (D4) and #362. They will be replaced by the `89f1c0ed` runs when those finish. Every count is reproducible with the command below; the per-row result, with each blocker's rule and quoted evidence, is in [`2026-10-28-validation-ceiling.json`](benchmarks/2026-10-28-validation-ceiling.json).
+**Partly provisional, 2026-10-28.** Of the four runs at main `89f1c0ed` named above, only heldout-30 no AI (40624360669) completed; l2-push-249 no AI (40624345477), l2-push-249 AI (40624353088) and heldout-30 AI (40624369322) were cancelled in the refit-bench queue. Those three columns come from the latest completed full runs of the same sets, at `63646f2a` (no AI) and `93e73d7c` (AI), which predate #361 (D4) and #362, and are marked `provisional` in the JSON. The prompts below that compare with a cancelled run id need a completed `89f1c0ed` run of that set instead. Every count is reproducible with the command below; the per-row result, with each blocker's rule and quoted evidence, is in [`2026-10-28-validation-ceiling.json`](benchmarks/2026-10-28-validation-ceiling.json).
 
 ```sh
 gh run download <run> -R refit-dev/refit-bench -D <dir>
@@ -63,17 +63,19 @@ node scripts/validation-ceiling.mjs <dir>/merged/results.json --artifacts <dir> 
 | ---------------------------------------------------------------------------------------------------- | -------: | --------: | --------------: | --------------: |
 | l2-push-249, no AI, [40591181316](https://github.com/refit-dev/refit-bench/actions/runs/40591181316) |      249 |        80 |             249 |               0 |
 | l2-push-249, AI, [40552354557](https://github.com/refit-dev/refit-bench/actions/runs/40552354557)    |      249 |        84 |             249 |               0 |
-| heldout-30, no AI, [40591185819](https://github.com/refit-dev/refit-bench/actions/runs/40591185819)  |       30 |         9 |              30 |               0 |
+| heldout-30, no AI, [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669)  |       30 |        10 |              30 |               0 |
 | heldout-30, AI, [40552360621](https://github.com/refit-dev/refit-bench/actions/runs/40552360621)     |       30 |        10 |              30 |               0 |
+
+On heldout-30 no AI, `89f1c0ed` against `63646f2a` (40591185819) changes three rows, all by #361 (D4) clearing a held-out lane 2 blocker: nishchay-veer/tunehub-next validates, and Sasu8823/Hairdresser_matching_service-backend and Shivamrai15/Safari keep only deps lane C and held-out lane 1. The `none` causes are unchanged.
 
 Fixable rows by lane: rows with a blocker of that lane, and in brackets the rows that lane alone would clear. A row with several lanes counts under each.
 
 | Lane                                     | l2 no AI | l2 AI   | heldout no AI | heldout AI |
 | ---------------------------------------- | -------- | ------- | ------------- | ---------- |
-| held-out 1, untraced reads               | 82 (16)  | 78 (12) | 10 (5)        | 9 (4)      |
+| held-out 1, untraced reads               | 82 (16)  | 78 (12) | 10 (6)        | 9 (4)      |
 | `none`                                   | 82 (7)   | 82 (7)  | 6 (0)         | 6 (0)      |
-| held-out 2, contract reach shapes and D4 | 79 (13)  | 79 (13) | 7 (1)         | 7 (1)      |
-| deps C, `payment_method_types`           | 54 (2)   | 53 (2)  | 5 (0)         | 5 (0)      |
+| held-out 2, contract reach shapes and D4 | 79 (13)  | 79 (13) | 4 (0)         | 7 (1)      |
+| deps C, `payment_method_types`           | 54 (2)   | 53 (2)  | 5 (1)         | 5 (0)      |
 | deps A, lockfiles and peer bump          | 41 (11)  | 41 (11) | 2 (1)         | 2 (1)      |
 | agent 3, documented replacements         | 25 (0)   | 25 (0)  | 4 (0)         | 4 (0)      |
 | lane T, test mode and generated tests    | 15 (4)   | 16 (4)  | 3 (3)         | 3 (3)      |
@@ -125,7 +127,7 @@ Rows with each cause on l2-push-249 with AI (no-AI is within one row). None of t
 
 1. **Requests Refit cannot read (32 rows).** A contract change on a request (a removed property, a type or format change) is held because Refit cannot see what the request sends: the call goes through an untraced client or wrapper ("the untraced call … may request …", 19 rows), or the traced call builds its body where Refit cannot read it (a spread, a variable assembled elsewhere, a helper's return, 10 rows), or the change sits on a query parameter whose path Refit cannot parse (3). #365 narrows response paths only. A lane would extend `pipeline/operation-reach.ts` request-body tracing through local variables, spreads of local objects and helper returns, follow wrapper functions to the SDK call, and parse query-parameter change paths, keeping `unknown` wherever a value can come from outside.
 2. **Stripe responses and clients that may be mutated or escape (28 rows, 1 alone).** `pipeline/analyzer.ts` traces a removed-field read to a Stripe response but cannot prove the object was not reassigned, mutated, passed to another function or produced by an optional SDK call (`uncertainMutation`), so the read is `review` (plus 4 rows where a declared `Stripe.*` value "may be mutated"). Unlike lane 1's untraced reads, the receiver is known to be Stripe; only aliasing is unproven. A lane would add an escape and mutation analysis for these receivers (no write to the binding or its properties; calls that receive it are local and read-only), so the read counts as confirmed and the existing rules migrate it, and keep stopping where the proof fails.
-3. **API version evidence (27 rows across untraced, unconfirmed and default pins; 13 more where the moved pin failed).** `api-version-untraced` (19), `api-version` (7) and `api-version-default` (4) hold rows whose patch is otherwise ready. #362, merged at `89f1c0ed`, narrows `api-version-untraced` to clients that escape, so re-rank after the `89f1c0ed` runs. A lane would follow pins through constants, config objects and factory functions, and record the stripe-node default for releases outside Refit's table. Separately, `api-version-kept` (13) never records why the moved patch failed: recording the failing check and its first errors there would let these rows join agent 4 or lane B instead of `none`.
+3. **API version evidence (27 rows across untraced, unconfirmed and default pins; 13 more where the moved pin failed).** `api-version-untraced` (19), `api-version` (7) and `api-version-default` (4) hold rows whose patch is otherwise ready. #362, merged at `89f1c0ed`, narrows `api-version-untraced` to clients that escape; the `89f1c0ed` l2 runs were cancelled, so this count predates it and needs a re-rank on a completed `89f1c0ed` l2 run. A lane would follow pins through constants, config objects and factory functions, and record the stripe-node default for releases outside Refit's table. Separately, `api-version-kept` (13) never records why the moved patch failed: recording the failing check and its first errors there would let these rows join agent 4 or lane B instead of `none`.
 4. **The repository's own checks fail on the original code (5 + native module, `bun`, timeout).** Refit cannot tell a regression from an existing failure, so it stops. A lane would record which tests already fail on the baseline and validate the patch on the tests that pass on both sides (with lane T's behaviour tests where they reach the change), naming the excluded tests in the draft. It also needs `bun` in the check image, and a founder decision on install scripts for native modules, which the owners turned off because they run code.
 5. **Reached enum additions (8 rows).** Stripe added an enum value the code switches over or compares with literals (`subscription.status` gaining `paused`). A lane would generate a lane T behaviour test that sends the new value and checks the code takes its default path, and publish only where that holds; otherwise the draft keeps naming the value. If the founders decide such a change is always a product decision, these become `product-decision` rows instead.
 6. **Dependency sources and lockfile shapes (6 public non-registry rows, 2 alone; 4 lockfile shapes the upgrade refuses; 4 unsupported layouts; 5 orphan submodules, 1 alone).** Lane A keeps Git and local dependencies stopped, so public GitHub tarballs, `codeload` URLs and `link:` paths need their own decision: fetch public Git by commit with an integrity Refit records. Pinned pnpm lockfile versions and multi-entry yarn.lock stop the stripe-node upgrade. A gitlink with no `.gitmodules` holds no code anyone can check out; validation can skip it and name it in the draft rather than refuse the row.

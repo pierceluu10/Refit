@@ -1,6 +1,7 @@
 {
   "generatedAt": "2026-10-28",
   "provisional": true,
+  "note": "The target runs at main 89f1c0ed for l2-push-249 (40624345477 no AI, 40624353088 AI) and heldout-30 AI (40624369322) were cancelled in the queue; those sets use the latest completed runs and are marked provisional.",
   "purpose": "Validation ceiling: for each affected row, validated, fixable (by a planned lane, or \"none\" with a cause) or not validatable for one of four reasons. Rules in docs/VALIDATION-CEILING.md.",
   "runs": [
     {
@@ -9,6 +10,7 @@
       "runId": 40591181316,
       "url": "https://github.com/refit-dev/refit-bench/actions/runs/40591181316",
       "refitCommit": "63646f2aee8d16ed4dd96413ce34437a25f7dc88",
+      "provisional": true,
       "command": "node scripts/validation-ceiling.mjs <run>/merged/results.json --artifacts <run> --json",
       "rows": 249,
       "affected": 249,
@@ -5561,6 +5563,7 @@
       "runId": 40552354557,
       "url": "https://github.com/refit-dev/refit-bench/actions/runs/40552354557",
       "refitCommit": "93e73d7c44c6079c091aa1f0b7924b6e78b26935",
+      "provisional": true,
       "command": "node scripts/validation-ceiling.mjs <run>/merged/results.json --artifacts <run> --json",
       "rows": 249,
       "affected": 249,
@@ -11083,24 +11086,21 @@
     {
       "set": "heldout-30",
       "mode": "no-ai",
-      "runId": 40591185819,
-      "url": "https://github.com/refit-dev/refit-bench/actions/runs/40591185819",
-      "refitCommit": "63646f2aee8d16ed4dd96413ce34437a25f7dc88",
+      "runId": 40624360669,
+      "url": "https://github.com/refit-dev/refit-bench/actions/runs/40624360669",
+      "refitCommit": "89f1c0ed59809eedfd247526f7f1a770af7447d6",
+      "provisional": false,
       "command": "node scripts/validation-ceiling.mjs <run>/merged/results.json --artifacts <run> --json",
       "rows": 30,
       "affected": 30,
       "reports": 27,
-      "validated": 9,
+      "validated": 10,
       "validatable": 30,
       "notValidatable": {},
       "lanes": {
         "heldout-1": {
           "rows": 10,
-          "only": 5
-        },
-        "heldout-2": {
-          "rows": 7,
-          "only": 1
+          "only": 6
         },
         "none": {
           "rows": 6,
@@ -11108,9 +11108,13 @@
         },
         "deps-C": {
           "rows": 5,
-          "only": 0
+          "only": 1
         },
         "ceiling-3": {
+          "rows": 4,
+          "only": 0
+        },
+        "heldout-2": {
           "rows": 4,
           "only": 0
         },
@@ -11225,7 +11229,7 @@
             {
               "blocker": "contract-change",
               "evidence": "GET /v1/account the response property `error/payment_intent/amount` became optional for the status `default`: src/server/actions/deprecated/stripe/getPaymentIntents.ts:45 reads `payment_intent.amount`.",
-              "changes": 268,
+              "changes": 254,
               "verdict": "fixable",
               "lane": "heldout-2"
             },
@@ -11439,7 +11443,7 @@
           "blockers": [
             {
               "blocker": "baseline-failed-other",
-              "evidence": "× Stripe Webhook Handler > should handle checkout.session.completed event and update application status 6ms",
+              "evidence": "× Stripe Webhook Handler > should handle checkout.session.completed event and update application status 4ms",
               "verdict": "fixable",
               "lane": "none",
               "cause": "repository's own check fails on the original code"
@@ -11526,17 +11530,8 @@
         {
           "repo": "nishchay-veer/tunehub-next",
           "stage": "validated",
-          "verdict": "fixable",
-          "lanes": ["heldout-2"],
-          "blockers": [
-            {
-              "blocker": "contract-change",
-              "evidence": "POST /v1/customers/{customer} removed `subschema #1: optional_fields_address` from the `address` request property `anyOf` list: The `customers.update` call in libs/supabaseAdmin.ts sends `address`.",
-              "changes": 1,
-              "verdict": "fixable",
-              "lane": "heldout-2"
-            }
-          ]
+          "verdict": "validated",
+          "blockers": []
         },
         {
           "repo": "PedroPini/ScaleNext",
@@ -11598,20 +11593,13 @@
           "repo": "Sasu8823/Hairdresser_matching_service-backend",
           "stage": "scan-stop",
           "verdict": "fixable",
-          "lanes": ["deps-C", "heldout-2"],
+          "lanes": ["deps-C"],
           "blockers": [
             {
               "blocker": "removed-request-parameter-other",
               "evidence": "The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.",
               "verdict": "fixable",
               "lane": "deps-C"
-            },
-            {
-              "blocker": "contract-change",
-              "evidence": "POST /v1/checkout/sessions the `line_items/items/price_data/currency` request property `format` changed from `none` to `currency`: The `checkout.sessions.create` call in index.js sends `line_items/items/price_data/currency`.",
-              "changes": 1,
-              "verdict": "fixable",
-              "lane": "heldout-2"
             },
             {
               "blocker": "contract-change",
@@ -11632,20 +11620,13 @@
           "repo": "Shivamrai15/Safari",
           "stage": "validated",
           "verdict": "fixable",
-          "lanes": ["heldout-1", "heldout-2"],
+          "lanes": ["heldout-1"],
           "blockers": [
             {
               "blocker": "untraced-reads",
               "evidence": "Receiver or property cannot be proven by the supported local analysis; inspect manually.",
               "verdict": "fixable",
               "lane": "heldout-1"
-            },
-            {
-              "blocker": "contract-change",
-              "evidence": "POST /v1/customers/{customer} removed `subschema #1: optional_fields_address` from the `address` request property `anyOf` list: The `customers.update` call in lib/upsert.ts sends `address`.",
-              "changes": 1,
-              "verdict": "fixable",
-              "lane": "heldout-2"
             }
           ]
         },
@@ -11690,6 +11671,7 @@
       "runId": 40552360621,
       "url": "https://github.com/refit-dev/refit-bench/actions/runs/40552360621",
       "refitCommit": "93e73d7c44c6079c091aa1f0b7924b6e78b26935",
+      "provisional": true,
       "command": "node scripts/validation-ceiling.mjs <run>/merged/results.json --artifacts <run> --json",
       "rows": 30,
       "affected": 30,
