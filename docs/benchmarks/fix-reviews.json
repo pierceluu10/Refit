@@ -2321,6 +2321,216 @@
         "upgradeComplete": "yes: every client moves to 2026-09-30.endive and stripe-node to ^23.0.0 in package.json and package-lock.json.",
         "wouldMerge": "yes: tsc passes on both sides."
       }
+    },
+    {
+      "repo": "raumildhandhukia/inboxradarai",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40470125581 (before, main with AI) and 40552360621 (after, feat/ai-patch-on-stops 93e73d7c), subsets/heldout-30.json, AI. Before: checks passed but two untraced `.price` reads at lib/stripe.ts:95 stayed unresolved; after: the AI answered no change needed and the type oracle passed, and both reads are on `PLANS.find(…).price`, the application's own Plan object from config/app.ts, so D2b clears them and production mode validates. migration.patch from the shard-7 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: subscription.current_period_end reads go through getSubscriptionPeriodEnd with items[0], the item the same function already reads for the plan, and invoice.subscription through getInvoiceSubscription inside the invoice.payment_succeeded branch; the Checkout Session's own subscription is left alone.",
+        "bothVersions": "yes: both helpers return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the webhook route's reads and helpers, the card rule on checkout.sessions.create, the version pin and package.json.",
+        "pleaseCheck": "Nothing left: the two `.price` reads read PLANS (config/app.ts), not a Stripe price, and are correctly left alone.",
+        "upgradeComplete": "yes: apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "CiphersLab/SaaSPilot",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40470122759 with its shard rerun 40544895386 (before, main with AI) and 40552354557 (after, feat/ai-patch-on-stops 93e73d7c), subsets/l2-push-249.json, AI. Before: checks passed but untraced `.price` reads stayed unresolved; after: the AI answered no change needed, the type oracle passed and every such read is on the application's own plan configuration (Credits_PLANS in config/stripe.ts), so D2b clears them and production mode validates. migration.patch from the shard-3 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: ['card'] becomes allowed_payment_method_types on both checkout.sessions.create calls in actions/createStripeSession.ts.",
+        "bothVersions": "yes: only request keys and the pin change; no response read is rewritten.",
+        "nothingUnrelated": "yes: the two card renames, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: the four `.price` reads at actions/createStripeSession.ts:42 and :64 read packageC from Credits_PLANS, not a Stripe price, and are correctly left alone.",
+        "upgradeComplete": "yes: apiVersion moves from 2023-08-16 to 2026-09-30.endive and stripe from ^13.7.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "palashb01/DocuChat",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40470122759 with its shard rerun 40544895386 (before, main with AI) and 40552354557 (after, feat/ai-patch-on-stops 93e73d7c), subsets/l2-push-249.json, AI. Before: checks passed but untraced `.price` reads stayed unresolved; after: the AI answered no change needed, the type oracle passed and every such read is on the application's own plan configuration (PLANS in src/config/stripe.ts), so D2b clears them and production mode validates. migration.patch from the shard-4 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the webhook route's subscription.current_period_end reads go through getSubscriptionPeriodEnd with items[0], the item the same branch reads for stripePriceId; invoice.subscription goes through getInvoiceSubscription only inside the invoice.payment_succeeded branch, and the checkout.session.completed branch keeps the Checkout Session's own subscription. The card rule renames payment_method_types in src/trpc/index.ts.",
+        "bothVersions": "yes: both helpers return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the webhook reads and generated helpers, the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: the `.price` reads in src/lib/stripe.ts and src/trpc/index.ts read PLANS, not a Stripe price, and are correctly left alone.",
+        "upgradeComplete": "yes: apiVersion moves to 2026-09-30.endive and stripe from ^14.1.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "abhirupkumar/docwhisperer",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40470122759 with its shard rerun 40544895386 (before, main with AI) and 40552354557 (after, feat/ai-patch-on-stops 93e73d7c), subsets/l2-push-249.json, AI. Before: checks passed but untraced `.price` reads stayed unresolved; after: the AI answered no change needed, the type oracle passed and every such read is on the application's own plan configuration (PLANS in src/config/stripe.ts), so D2b clears them and production mode validates. migration.patch from the shard-6 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the webhook route's subscription.current_period_end reads go through getSubscriptionPeriodEnd with items[0], the item the same branch reads for stripePriceId; invoice.subscription goes through getInvoiceSubscription only inside the invoice.payment_succeeded branch, and the checkout.session.completed branch keeps the Checkout Session's own subscription. The card rule renames payment_method_types in src/trpc/index.ts.",
+        "bothVersions": "yes: both helpers return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the webhook reads and generated helpers, the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: the `.price` reads in src/lib/stripe.ts and src/trpc/index.ts read PLANS, not a Stripe price, and are correctly left alone.",
+        "upgradeComplete": "yes: apiVersion moves to 2026-09-30.endive and stripe from ^14.1.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "JensenMPillay/pdfai",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40470122759 with its shard rerun 40544895386 (before, main with AI) and 40552354557 (after, feat/ai-patch-on-stops 93e73d7c), subsets/l2-push-249.json, AI. Before: checks passed but untraced `.price` reads stayed unresolved; after: the AI answered no change needed, the type oracle passed and every such read is on the application's own plan configuration (PLANS in src/config/stripe.ts), so D2b clears them and production mode validates. migration.patch from the shard-4 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes for the changed lines: the webhook route's subscription.current_period_end reads go through getSubscriptionPeriodEnd with items[0], the item the same branch reads for stripePriceId; the card rule renames payment_method_types: ['card', 'paypal'] in src/trpc/procedures.ts.",
+        "bothVersions": "yes for the changed lines: the helper returns the old field when the payload has it.",
+        "nothingUnrelated": "yes: the two webhook reads and the generated helper, the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "The `.price` reads in src/lib/stripe.ts and src/trpc/procedures.ts read PLANS and are correctly left alone. Not flagged and not migrated: src/app/api/webhooks/stripe/route.ts:55 reads session.subscription before the event switch on a value cast to Stripe.Checkout.Session, and the invoice.payment_succeeded case uses it, so for invoice events it is invoice.subscription, which moved under parent.subscription_details. It still works while the webhook endpoint sends the old API version; Refit's declared-type trace does not see that the cast covers invoice events.",
+        "upgradeComplete": "no: the invoice-event read above must move (or go through getInvoiceSubscription) before the webhook endpoint's version is upgraded; the client pin and stripe ^23.0.0 (pnpm-lock.yaml) do move.",
+        "wouldMerge": "yes as an SDK and client upgrade; the webhook endpoint upgrade needs the read above fixed first."
+      }
+    },
+    {
+      "repo": "nishchay-veer/tunehub-next",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448718890 (before, main) and 40552966689 (after, feat/spec-noise-filter 3b5cb244), subsets/heldout-30.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it and production mode validates. migration.patch from the shard-6 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: current_period_start and current_period_end read through the generated helpers with items[0], the item the same function reads for price_id; the card rule renames payment_method_types on the Checkout Session.",
+        "bothVersions": "yes: the helpers return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the reads, helpers, card rule, version pin, package.json and type-only Extract<> narrowings in libs/supabaseAdmin.ts and types.ts after the stripe-node 23 upgrade.",
+        "pleaseCheck": "Nothing left: customers.update still sends billing_details.address, whose shape did not change.",
+        "upgradeComplete": "yes: apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "siavashsk/spotify-clone",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40552957597 (after, feat/spec-noise-filter 3b5cb244), subsets/l2-push-249.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it. migration.patch from the shard-1 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: subscription.current_period_start and current_period_end in libs/supabaseAdmin.ts go through the generated helpers with items[0], the item the same function reads for price_id; where the Checkout Session sends payment_method_types: ['card'], it becomes allowed_payment_method_types.",
+        "nothingUnrelated": "yes: the period reads and helpers, the card rename where present, the version pin, the stripe dependency, and type-only Extract<> narrowings in libs/supabaseAdmin.ts and types.ts for the stripe-node 23 open enums (runtime values unchanged).",
+        "pleaseCheck": "Nothing left: customers.update still sends billing_details.address, whose shape did not change.",
+        "wouldMerge": "yes: tsc passes on both sides.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
+        "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
+      }
+    },
+    {
+      "repo": "psykat1116/Spotify",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40552957597 (after, feat/spec-noise-filter 3b5cb244), subsets/l2-push-249.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it. migration.patch from the shard-6 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: subscription.current_period_start and current_period_end in libs/supabaseAdmin.ts go through the generated helpers with items[0], the item the same function reads for price_id; where the Checkout Session sends payment_method_types: ['card'], it becomes allowed_payment_method_types.",
+        "nothingUnrelated": "yes: the period reads and helpers, the card rename where present, the version pin, the stripe dependency, and type-only Extract<> narrowings in libs/supabaseAdmin.ts and types.ts for the stripe-node 23 open enums (runtime values unchanged).",
+        "pleaseCheck": "Nothing left: customers.update still sends billing_details.address, whose shape did not change.",
+        "wouldMerge": "yes: tsc passes on both sides.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
+        "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
+      }
+    },
+    {
+      "repo": "Emmah-oo/spotify-clone",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40552957597 (after, feat/spec-noise-filter 3b5cb244), subsets/l2-push-249.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it. migration.patch from the shard-6 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: subscription.current_period_start and current_period_end in libs/supabaseAdmin.ts go through the generated helpers with items[0], the item the same function reads for price_id; where the Checkout Session sends payment_method_types: ['card'], it becomes allowed_payment_method_types.",
+        "nothingUnrelated": "yes: the period reads and helpers, the card rename where present, the version pin, the stripe dependency, and type-only Extract<> narrowings in libs/supabaseAdmin.ts and types.ts for the stripe-node 23 open enums (runtime values unchanged).",
+        "pleaseCheck": "Nothing left: customers.update still sends billing_details.address, whose shape did not change.",
+        "wouldMerge": "yes: tsc passes on both sides.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
+        "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
+      }
+    },
+    {
+      "repo": "Neddie28/Spotify-Clone",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40552957597 (after, feat/spec-noise-filter 3b5cb244), subsets/l2-push-249.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it. migration.patch from the shard-7 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped",
+      "reviewedAt": "2026-10-27",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: subscription.current_period_start and current_period_end in libs/supabaseAdmin.ts go through the generated helpers with items[0], the item the same function reads for price_id; where the Checkout Session sends payment_method_types: ['card'], it becomes allowed_payment_method_types.",
+        "nothingUnrelated": "yes: the period reads and helpers, the card rename where present, the version pin, the stripe dependency, and type-only Extract<> narrowings in libs/supabaseAdmin.ts and types.ts for the stripe-node 23 open enums (runtime values unchanged).",
+        "pleaseCheck": "Nothing left: customers.update still sends billing_details.address, whose shape did not change.",
+        "wouldMerge": "yes: tsc passes on both sides.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
+        "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
+      }
+    },
+    {
+      "repo": "kpirabaharan/Spotify-Clone",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40552957597 (after, feat/spec-noise-filter 3b5cb244), subsets/l2-push-249.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it. migration.patch from the shard-0 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped. The draft's title is [Needs review] (repair.keptProperties: trial_from_plan) although the run ended validated; fix/needs-review-outcome makes such runs end needs-review",
+      "reviewedAt": "2026-10-27",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the documented changes: the card rename on the Checkout Session and the period reads through the generated helpers with items[0]. subscription_data.trial_from_plan is kept as ...{ trial_from_plan: true }, so the request is unchanged, but Stripe's API reference no longer lists it.",
+        "nothingUnrelated": "yes: the card rename, the trial_from_plan spread, the period reads and helpers, the version pin, the stripe dependency and type-only Extract<> narrowings.",
+        "pleaseCheck": "The draft asks for a test-mode Checkout Session on a price with a trial; customers.update still sends billing_details.address, whose shape did not change.",
+        "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive; if Stripe rejects trial_from_plan or the subscription starts without the trial, send subscription_data.trial_period_days instead.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
+        "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
+      }
+    },
+    {
+      "repo": "adityayaduvanshi/Full-Stack-Music-Web-App",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40552957597 (after, feat/spec-noise-filter 3b5cb244), subsets/l2-push-249.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it. migration.patch from the shard-2 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped. The draft's title is [Needs review] (repair.keptProperties: trial_from_plan) although the run ended validated; fix/needs-review-outcome makes such runs end needs-review",
+      "reviewedAt": "2026-10-27",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the documented changes: the card rename on the Checkout Session and the period reads through the generated helpers with items[0]. subscription_data.trial_from_plan is kept as ...{ trial_from_plan: true }, so the request is unchanged, but Stripe's API reference no longer lists it.",
+        "nothingUnrelated": "yes: the card rename, the trial_from_plan spread, the period reads and helpers, the version pin, the stripe dependency and type-only Extract<> narrowings.",
+        "pleaseCheck": "The draft asks for a test-mode Checkout Session on a price with a trial; customers.update still sends billing_details.address, whose shape did not change.",
+        "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive; if Stripe rejects trial_from_plan or the subscription starts without the trial, send subscription_data.trial_period_days instead.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
+        "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
+      }
+    },
+    {
+      "repo": "afdon/music-app",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40552957597 (after, feat/spec-noise-filter 3b5cb244), subsets/l2-push-249.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it. migration.patch from the shard-6 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped. The draft's title is [Needs review] (repair.keptProperties: trial_from_plan) although the run ended validated; fix/needs-review-outcome makes such runs end needs-review",
+      "reviewedAt": "2026-10-27",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the documented changes: the card rename on the Checkout Session and the period reads through the generated helpers with items[0]. subscription_data.trial_from_plan is kept as ...{ trial_from_plan: true }, so the request is unchanged, but Stripe's API reference no longer lists it.",
+        "nothingUnrelated": "yes: the card rename, the trial_from_plan spread, the period reads and helpers, the version pin, the stripe dependency and type-only Extract<> narrowings.",
+        "pleaseCheck": "The draft asks for a test-mode Checkout Session on a price with a trial; customers.update still sends billing_details.address, whose shape did not change.",
+        "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive; if Stripe rejects trial_from_plan or the subscription starts without the trial, send subscription_data.trial_period_days instead.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
+        "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
+      }
+    },
+    {
+      "repo": "AlefeSk8/Spotify-Clone-Next.js",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40448715209 (before, main) and 40552957597 (after, feat/spec-noise-filter 3b5cb244), subsets/l2-push-249.json, no AI. Before: production mode stopped on the `address` anyOf change for customers.update in libs/supabaseAdmin.ts; after: that change is only the subschema title optional_fields_address becoming optional_fields_customer_address with an identical shape, so D4 drops it. migration.patch from the shard-6 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile skipped. The draft's title is [Needs review] (repair.keptProperties: trial_from_plan) although the run ended validated; fix/needs-review-outcome makes such runs end needs-review",
+      "reviewedAt": "2026-10-27",
+      "verdict": "unsure",
+      "checks": {
+        "rightReplacement": "yes for the documented changes: the card rename on the Checkout Session and the period reads through the generated helpers with items[0]. subscription_data.trial_from_plan is kept as ...{ trial_from_plan: true }, so the request is unchanged, but Stripe's API reference no longer lists it.",
+        "nothingUnrelated": "yes: the card rename, the trial_from_plan spread, the period reads and helpers, the version pin, the stripe dependency and type-only Extract<> narrowings.",
+        "pleaseCheck": "The draft asks for a test-mode Checkout Session on a price with a trial; customers.update still sends billing_details.address, whose shape did not change.",
+        "wouldMerge": "not yet: settled by one test-mode Checkout Session at 2026-09-30.endive; if Stripe rejects trial_from_plan or the subscription starts without the trial, send subscription_data.trial_period_days instead.",
+        "bothVersions": "yes: the generated helpers return the old field when the object has it and the item's field otherwise.",
+        "upgradeComplete": "yes: the only client's apiVersion moves to 2026-09-30.endive and stripe to ^23.0.0 in package.json and its lockfile."
+      }
     }
   ]
 }
