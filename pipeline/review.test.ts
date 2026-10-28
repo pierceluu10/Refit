@@ -428,6 +428,27 @@ it('marks a draft with an untraced read for review and keeps it out of the confi
   expect(body).not.toContain('still unmigrated');
 });
 
+it('lists untraced reads proven not to read a Stripe object without holding the draft', async () => {
+  const value = await report();
+  const site = {
+    file: 'src/plans.ts',
+    line: 4,
+    changeId: value.findings[0].changeId,
+    expression: '.price',
+    confidence: 'review' as const,
+    untraced: true as const,
+  };
+  value.validation.localReads = [
+    { ...site, proof: 'literal-config' },
+    { ...site, line: 9, proof: 'generated-type' },
+  ];
+  const artifacts = createReviewArtifacts(value);
+  expect(artifacts.manifest.title).not.toMatch(/^\[Needs review\] /);
+  expect(artifacts.files['pull-request.md']).toContain(
+    "- Untraced Reads Cleared: Refit proved these reads of removed field names do not read a Stripe object, so they were left unchanged and do not hold the draft for review: `src/plans.ts:4` reads `.price` (an object literal the repository writes), `src/plans.ts:9` reads `.price` (a type generated from the repository's own schema).",
+  );
+});
+
 it('says when npm installed the committed lockfile with --legacy-peer-deps', async () => {
   const value = await report();
   expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('legacy-peer-deps');
