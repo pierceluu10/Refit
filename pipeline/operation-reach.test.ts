@@ -99,7 +99,22 @@ const before = {
       },
       product: { type: 'object', properties: { id: { type: 'string' } } },
       price_list: { type: 'object', properties: { data: { type: 'array' } } },
-      subscription: { type: 'object', properties: { status: { type: 'string' } } },
+      subscription: {
+        type: 'object',
+        properties: {
+          status: { type: 'string' },
+          items: {
+            type: 'object',
+            properties: { data: { type: 'array', items: ref('subscription_item') } },
+          },
+        },
+      },
+      subscription_item: { type: 'object', properties: { price: ref('price') } },
+      price: {
+        type: 'object',
+        properties: { recurring: { anyOf: [ref('recurring')], nullable: true } },
+      },
+      recurring: { type: 'object', properties: { aggregate_usage: { type: 'string' } } },
       error: { type: 'object', properties: { error: ref('api_errors') } },
       api_errors: {
         type: 'object',
@@ -490,6 +505,13 @@ it('names the Stripe object that owns a changed response property', () => {
       'the response property `error/payment_intent/amount` became optional for the status `default`',
     ),
   ).toEqual({ schema: 'payment_intent', property: 'amount' });
+  // `items` names the subscription's own property here, not an array's element.
+  expect(
+    owner(
+      'removed the optional property `items/data/items/price/recurring/anyOf[subschema #1: Recurring]/aggregate_usage` from the response with the `200` status',
+      '/v1/subscriptions/{subscription_exposed_id}',
+    ),
+  ).toEqual({ schema: 'recurring', property: 'aggregate_usage' });
   // `line_items` is an inline list object: nothing names it, so reads cannot be traced against it.
   expect(
     owner('the response property `line_items/data` became optional for the status `200`'),

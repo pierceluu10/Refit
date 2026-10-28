@@ -564,8 +564,10 @@ export function responsePropertyOwner(
       node = resolve(members[Number(subschema[1]) - 1]);
       continue;
     }
-    if (segment === 'items') {
-      node = node.type === 'array' ? resolve(node.items) : undefined;
+    // `items` is an array's element unless the object has a property of that name
+    // (subscription.items).
+    if (segment === 'items' && node.type === 'array') {
+      node = resolve(node.items);
       continue;
     }
     // A nullable or expandable field (`anyOf: [string, $ref]`) whose path names no member reads
