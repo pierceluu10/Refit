@@ -126,6 +126,19 @@ interface Release {
 }
 
 // Only the `>=X[.Y[.Z]]` form stripe-node uses; any other range counts as unsatisfied.
+// The same major.minor as `target`, at or above its patch (23.0.1 for 23.0.0, never 23.1.0).
+export function samePatchLine(version: unknown, target: string) {
+  const actual = typeof version === 'string' ? /^(\d+)\.(\d+)\.(\d+)$/.exec(version) : null;
+  const wanted = /^(\d+)\.(\d+)\.(\d+)$/.exec(target);
+  return Boolean(
+    actual &&
+    wanted &&
+    actual[1] === wanted[1] &&
+    actual[2] === wanted[2] &&
+    Number(actual[3]) >= Number(wanted[3]),
+  );
+}
+
 function satisfiesMinimum(version: unknown, range: string) {
   const minimum = /^>=\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(range.trim());
   const actual = typeof version === 'string' ? /^(\d+)\.(\d+)\.(\d+)/.exec(version) : null;
@@ -480,21 +493,23 @@ async function resolvedPeerUpgrade(
     const entry = packages[`node_modules/${name}`];
     return isObject(entry) ? entry.version : undefined;
   };
+  // npm picks the newest patch of the caret range; a patch keeps the API version, a minor may not.
+  const locked = version('stripe');
   if (
-    version('stripe') !== target ||
+    !samePatchLine(locked, target) ||
     bump.raised.some(({ name, range }) => !satisfiesMinimum(version(name), range))
   )
     return { reason: `npm did not lock stripe ${target} and ${raised.join(', ')} in range.` };
   return {
     upgrade: {
       from,
-      to: target,
+      to: locked as string,
       files: [
         { path: 'package.json', before: manifestText, after: bump.text },
         { path: 'package-lock.json', before: lockText, after: resolved.lockfile },
       ],
       raised: bump.raised,
-      warning: `Upgrades stripe from ${from} to ${target} and ${raisedText(bump.raised, target)} (now ${bump.raised.map(({ name }) => `${name} ${version(name)}`).join(', ')}). npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${resolution.before}${Object.entries(
+      warning: `Upgrades stripe from ${from} to ${locked} and ${raisedText(bump.raised, target)} (now ${bump.raised.map(({ name }) => `${name} ${version(name)}`).join(', ')}). npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${resolution.before}${Object.entries(
         resolved.late,
       )
         .map(([name, pin]) => `, ${name} ${pin.spec} as of ${pin.published}`)
