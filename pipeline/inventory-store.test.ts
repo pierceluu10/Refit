@@ -177,7 +177,6 @@ it.skipIf(!DATABASE)(
     // Registering again only refreshes the sources.
     expect(await targets.register(inventory)).toEqual(['resend']);
     const [target] = await targets.read();
-    console.log(target);
     expect(target).toMatchObject({
       provider: 'resend',
       sources: { specification: watched.specification, documentation: watched.documentation },

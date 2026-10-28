@@ -27,7 +27,6 @@ it('keeps each source hash, records a failed source without stopping the others 
     captures: null,
   };
   const first = await captureWatchTarget(target);
-  console.log(first);
   expect(first.changed).toBe(false);
   expect(first.captures).toEqual([
     { kind: 'specification', url: 'https://example.com/openapi.json', hash: expect.any(String) },

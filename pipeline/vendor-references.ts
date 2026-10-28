@@ -73,10 +73,11 @@ function nameIn(line: string, name: string) {
 }
 
 // A hostname in a line, not as the start of a longer name: `.supabase.co` is in
-// `https://abc.supabase.co/rest` but not in `api.supabase.com`.
+// `https://abc.supabase.co/rest` but not in `api.supabase.com` or `api.supabase.co.evil.net`
+// (a dot that ends a sentence still counts).
 export function hostnameIn(line: string, hostname: string) {
   for (let at = line.indexOf(hostname); at >= 0; at = line.indexOf(hostname, at + 1))
-    if (!/[A-Za-z0-9-]/.test(line[at + hostname.length] ?? '')) return true;
+    if (!/^(?:[A-Za-z0-9-]|\.[A-Za-z0-9])/.test(line.slice(at + hostname.length))) return true;
   return false;
 }
 
