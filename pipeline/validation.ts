@@ -8,7 +8,11 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
-import { validateProviderOperationMappings } from './provider-operations.ts';
+import {
+  type BreakingOperationImpact,
+  countBreakingOperationUsages,
+  validateProviderOperationMappings,
+} from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import {
   apiVersionSourceBlocked,
@@ -56,6 +60,7 @@ import { codeDiff, PACKAGE_FILES, packageDiff } from './stripe-package-upgrade.t
 import {
   type OracleComparison,
   type TypeOracle,
+  localReach,
   localReceiverReads,
   typeOraclePasses,
   typeOracleReach,
@@ -161,6 +166,9 @@ interface CoverageAttempt {
   // Owner decision D2b: untraced reads the AI left unchanged that the type checker shows read the
   // repository's own objects, never a Stripe type; they no longer count as unresolved.
   localReads?: ReturnType<typeof unresolvedSites>;
+  // Owner decision D2b for contract changes: response changes whose only reach was untraced reads
+  // of the repository's own objects, with those reads; they no longer block.
+  localReach?: { change: string; reads: ReturnType<typeof unresolvedSites> }[];
 }
 // Contract changes named per traced call in a coverage target; the run report has the rest.
 const MAX_TARGET_CHANGES = 3;
@@ -2585,6 +2593,37 @@ export async function validateMigration(options: {
           unresolvedFindings: proposal.unresolvedFindings - local.length,
           unresolvedSites: left,
         };
+      }
+      // The same evidence for a response change whose only reach is untraced reads of its name.
+      const reach = localReach({
+        changes: report.specificationDiff.changes as Record<string, unknown>[],
+        impacts: report.operationImpacts,
+        before: beforeSpecification.document as Record<string, unknown>,
+        reads: (removals) =>
+          analyzeRepository(
+            { ...originalSources, files: candidateSources.files },
+            removals,
+            report.adapter,
+            beforeSpecification.schemas,
+          ).findings,
+        local: (found) => localReceiverReads(candidateSources, found),
+      });
+      if (reach.cleared.length) {
+        coverage.localReach = reach.cleared.map(({ change, reads }) => ({
+          change: `${String(change.operation).toUpperCase()} ${String(change.path)} ${String(change.text)}`,
+          reads: unresolvedSites(reads),
+        }));
+        // Calls traced only to cleared changes stop counting as unresolved, unless the D2 gate
+        // already took every traced call off (above).
+        const usages = (impacts: readonly BreakingOperationImpact[]) =>
+          countBreakingOperationUsages([...impacts]);
+        const fewer = coverage.gate?.passed
+          ? 0
+          : reach.impacts.length
+            ? Math.min(operationUsages, usages(report.operationImpacts) - usages(reach.impacts))
+            : operationUsages;
+        report = { ...report, operationImpacts: reach.impacts };
+        proposal = { ...proposal, unresolvedFindings: proposal.unresolvedFindings - fewer };
       }
     }
     const reviewTypeErrors = options.compareTypeErrors
