@@ -2,7 +2,7 @@ import { stages } from '../data';
 import { SplitFlap } from './SplitFlap';
 
 // One line of real artifact per stage, from the same illustrative Stripe change as the demo.
-const evidence: Record<(typeof stages)[number]['id'], string[]> = {
+export const evidence: Record<(typeof stages)[number]['id'], string[]> = {
   detect: ['PaymentIntent', '− charges', '+ latest_charge'],
   understand: ['payments.ts:9', 'charges.data[0]'],
   validate: ['✓ typecheck', '✓ lint', '✓ test'],

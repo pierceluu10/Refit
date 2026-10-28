@@ -15,39 +15,57 @@ export function Waitlist() {
       <div className="launch-top">
         <Header minimal />
         <main id="main-content">
-          <section className="launch-hero" id="waitlist">
-            <div className="launch-copy">
-              <div data-field-avoid>
-                <AsciiWordmark columns={44} word={false} className="launch-mark" />
-              </div>
-              <h1 data-field-avoid>Stop chasing API changelogs.</h1>
-              <p data-field-avoid>
-                When an API changes, Refit finds what breaks and drafts the fix as a pull request.
-              </p>
-              <div data-field-avoid>
-                <WaitlistForm />
-              </div>
-            </div>
-            <div className="launch-demo" data-field-avoid>
-              <div className="launch-frame">
-                <AgentDemo />
-              </div>
-            </div>
-          </section>
+          <LaunchHero />
         </main>
       </div>
-      <section className="launch-steps" aria-labelledby="steps-title">
-        <div className="launch-steps-heading" data-field-avoid>
-          <h2 id="steps-title">What Refit Agent does when an API moves.</h2>
-          <p>Breaking changes first. Anything ambiguous stops for a person.</p>
-        </div>
-        <Progression />
-      </section>
-      <section className="launch-close" aria-labelledby="close-title">
-        <h2 id="close-title">Be ready for the next breaking change.</h2>
-        <WaitlistForm />
-        <AsciiWordmark columns={150} glint className="launch-logo" />
-      </section>
+      <LaunchSteps />
+      <LaunchClose />
     </div>
+  );
+}
+
+export function LaunchHero() {
+  return (
+    <section className="launch-hero" id="waitlist">
+      <div className="launch-copy">
+        <div data-field-avoid>
+          <AsciiWordmark columns={44} word={false} className="launch-mark" />
+        </div>
+        <h1 data-field-avoid>Stop chasing API changelogs.</h1>
+        <p data-field-avoid>
+          When an API changes, Refit finds what breaks and drafts the fix as a pull request.
+        </p>
+        <div data-field-avoid>
+          <WaitlistForm />
+        </div>
+      </div>
+      <div className="launch-demo" data-field-avoid>
+        <div className="launch-frame">
+          <AgentDemo />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function LaunchSteps() {
+  return (
+    <section className="launch-steps" aria-labelledby="steps-title">
+      <div className="launch-steps-heading" data-field-avoid>
+        <h2 id="steps-title">What Refit Agent does when an API moves.</h2>
+        <p>Breaking changes first. Anything ambiguous stops for a person.</p>
+      </div>
+      <Progression />
+    </section>
+  );
+}
+
+export function LaunchClose() {
+  return (
+    <section className="launch-close" aria-labelledby="close-title">
+      <h2 id="close-title">Be ready for the next breaking change.</h2>
+      <WaitlistForm />
+      <AsciiWordmark columns={150} glint className="launch-logo" />
+    </section>
   );
 }
