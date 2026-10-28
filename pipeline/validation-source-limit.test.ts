@@ -29,7 +29,8 @@ async function validateWithMedia(mediaBytes: number) {
   await writeFile(join(repository, 'index.js'), 'module.exports = 1;\n');
   await writeFile(join(repository, 'public', 'uploads', 'field.jpg'), randomBytes(mediaBytes));
   await execute('git', ['init', '-q', repository]);
-  await execute('git', ['-C', repository, 'add', '.']);
+  // Random media does not compress; storing it keeps the large cases fast.
+  await execute('git', ['-C', repository, '-c', 'core.compression=0', 'add', '.']);
   await execute('git', [
     '-C',
     repository,
@@ -70,16 +71,24 @@ it.each([
   ['Shefaul-22/AgriFlow', 73],
   ['CRONANANI/EzanaFinance3', 54],
 ])(
-  'archives %s (%i MiB) on the 4g profile, which takes 256 MiB of source, and refuses it on 2g',
+  'archives %s (%i MiB) on the 2g profile, which takes 256 MiB of source, and refuses it on 1g',
   async (_repository, mebibytes) => {
-    vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '4g');
-    const passed = await validateWithMedia(mebibytes * MIB);
-    console.log(passed.status);
-    expect(passed.status).toBe('passed');
     vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '2g');
+    expect((await validateWithMedia(mebibytes * MIB)).status).toBe('passed');
+    vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '1g');
     await expect(validateWithMedia(mebibytes * MIB)).rejects.toThrow(
       'Committed source exceeds the 50 MiB validation archive limit. Stop committing build output, media or data files (or track them with Git LFS) so the committed tree fits.',
     );
   },
   60_000,
 );
+
+// Founders' decision (2026-10-27): the default 4g profile takes 512 MiB of source, past the old 256.
+it('archives 300 MiB of source on the 4g profile and refuses it on 2g', async () => {
+  vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '4g');
+  expect((await validateWithMedia(300 * MIB)).status).toBe('passed');
+  vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '2g');
+  await expect(validateWithMedia(300 * MIB)).rejects.toThrow(
+    'Committed source exceeds the 256 MiB validation archive limit.',
+  );
+}, 180_000);
