@@ -43,6 +43,7 @@ The build sandbox ran on the 15 rows where Refit's own preparation refused for a
 - **The other 10** (pnpm and Yarn rows, and one `npm ci` from a Dockerfile): the benchmark's stored message had been filled by proxy-agent warnings before the error. After the measured commit, `installFailure` puts the error lines first. That change touches messages only, not outcomes.
 
 Allowing well-known binary download hosts, or a native toolchain in the build image, would widen what the sandbox runs, so it needs an owner decision.
+
 ## Conflicting lockfiles chosen by rule (October 28)
 
 `feat/conflicting-lockfiles` (built on lane A's `feat/lockfile-resolution`) installs one of several committed lockfiles by rule and upgrades stripe in the chosen one when the others cannot follow ([Preparation failures](PREPARATION-FAILURES.md#conflicting-lockfiles-one-chosen-by-rule-october-28)). Every run is refit-bench `benchmark.yml`, no AI, compared with `node scripts/stripe-benchmark-compare.mjs <before>/results.json <after>/results.json --details`.
@@ -58,6 +59,25 @@ Allowing well-known binary download hosts, or a native toolchain in the build im
 - Not outcome changes: `LucasKlemke/doctor-reborn` now upgrades stripe and its own `@ts-expect-error` becomes unused, so its patch fails tsc and is not published (before, the pin moved on stripe 18 and passed); `passion-27/QuotesAI` now has the upgrade in its patch and still stops on its `link:` dependency; `vignesh-gupta/digibee-marketplace` (one `yarn.lock`, a byte-identical patch) timed out installing the candidate after 300 seconds; rerun locally in offline Docker at `17b831d8`, the same patch passes its type check (grade C).
 - heldout-30, run only after the above: 40624360669 (main `89f1c0ed`, 10 validated) → 40682647162 (`ce5755ac`, `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30 -f flags=--resolve-lockfiles`, **12**), none lost, 27 of 30 rows identical. `ItusiAI/Open-Magiviz` and `VishalRaut2106/HackMate_AI` install `package-lock.json` because their workflows install with npm and validate (labelled `correct`); `DarkInventor/QuotesAI` gains the stripe upgrade and still stops on its `link:` dependency. Nothing was tuned on this set.
 - Run-to-run noise in lockfile-less repositories, which this change does not touch: `Alfredoeb9/ele` and `minhthuong031103/RealEstateBrokerageMarket` lost their installs to SIGKILL on main and lane A and ran here, and `kondax-com/Bocker`'s baseline failed only in lane A's run.
+
+## AI repair where policy used to stop (October 28)
+
+Founder decision of 2026-10-28 ([AI repair](AI-REPAIR.md), agent Q). Subset `subsets/repair-policy.json`: 12 rows of past l2-push-249 AI runs (40624062726, 40624045392) whose repair stopped `review-required`, whose patch broke the build on rejected properties, call signatures or removed operations, or whose assessment the webhook or removed-parameter policy blocked, plus 2 controls. heldout-30 had no such row and stays held out. All runs: `benchmark.yml` at `--ref feat/stripe-test-mode-key`, `-f list=subsets/repair-policy.json -f offset=0 -f size=2 -f count=12 -f ai=true -f "flags=--resolve-lockfiles --webhook-checks --behaviour-tests --stripe-test-mode"`.
+
+- Before: 40758613932 (`96102693` = `bench/all-feats-2026-10-28` `bf81624d` plus the subset, `ai_budget=3`), AI spend $0.28.
+- After: 40764807844 (`1ed2b674`, `ai_budget=5`), AI spend $0.66. Earlier after runs on this branch: 40752646000 (`ac2a33d2`, $0.42) and 40759647632 (`2aa46eec`, $0.58; twitter-like hit an npm `ECONNRESET`).
+
+|                                                                 | Before | After                                 |
+| --------------------------------------------------------------- | -----: | ------------------------------------- |
+| Patches that break the build (`regression`)                     |      4 | 3                                     |
+| Repairs requested                                               |      3 | 6                                     |
+| Repairs accepted                                                |      0 | 1 (dubbl-org/dubbl, `[Needs review]`) |
+| Assessments blocked (assessment not requested by the benchmark) |      6 | 2 (contract review)                   |
+| Validated                                                       |      3 | 3                                     |
+
+- dubbl-org/dubbl: `review-required` with 0 repair requests (the upgraded types reject `stripeAccount`) to an AI repair that passes the type check (grade C). It moves `{ stripeAccount }` into the request-options argument of six retrieve calls; reviewed `correct` in `docs/benchmarks/fix-reviews.json`. It ships `[Needs review]` with "What the AI changed and why", never validated.
+- ReeceHarding/firebase-next.js-boilerplate: the `retrieveUpcoming` contract review stopped it before any model call; now 3 repairs run and the checks still fail (`retrieveUpcoming` untouched), so it stays a regression and is not published. One of its AI edits is wrong (`accounts.retrieve({})`), reviewed `wrong`; the checks caught it.
+- Unchanged: LouisMbc/twitter-like (the rule-lines guard, agent S), Panda2Chan/ai-asmr (repeated proposal on a second API-version pin, agent P), kondax-com/Bocker (its own flaky tests fail the baseline), and the 7 rows that already passed.
 
 ## A coding agent on the repositories Refit did not fix (October 21)
 
@@ -556,6 +576,7 @@ The deterministic repair asserts the narrower type at the site where a widened S
   - The patched type errors on l2-push-249 (79 on 12 rows in run 40591181316) are mostly removed fields, removed request parameters, arity changes, nullable widening and errors in JavaScript files. A type-only repair must not hide those.
   - Only Bocker shows the widened-enum shape (4 errors), beside 31 others.
 - **Not measured:** publication and the hosted worker.
+
 ## `payment_method_types` on its own API-version path (October 28)
 
 `claude/refit-payment-method-types-9b09ad` keeps the `allowed_payment_method_types` rename wherever the renamed call's own path is proven: its own request sends no version override (or a literal the patch moves), and every constructor of its client, through `const` aliases, pins a literal the patch moves or omits `apiVersion` and moves with the stripe-node upgrade. Before, any one untraced client or request anywhere in the repository dropped every rename. The founders' decision of 2026-10-27 and what still stops are in [STRIPE-PAYMENT-METHOD-TYPES.md](STRIPE-PAYMENT-METHOD-TYPES.md#founders-decision-2026-10-27-the-renames-own-api-version-path).
@@ -581,6 +602,7 @@ The deterministic repair asserts the narrower type at the site where a widened S
 - **Reviewed.** Every new or changed patch that validates, or is new, was applied to a clone at its pinned commit and read in full: warranty-watcher, drivetimetales and hackerai `correct`, Sasu8823 `correct-partial` ([fix-reviews.json](benchmarks/fix-reviews.json)).
 - **What still stops.** On l2-push-249 the larger blockers are unchanged: stripe-node upgrades refused by dependency preparation (18 rows) and pin moves that fail the repository's checks (9). Getters that return a module client (puneethkotha/Zapd, geallenboy/ai-saas-template) and unconfirmed clients still stop.
 - **Not measured:** AI patches, publication and the hosted worker.
+
 ## Runtime stand-ins and generated clients (October 28)
 
 Generated stripe-mock checks call exported functions around each finding, and most stopped before their Stripe call on a database, a Supabase table or a session (data: [`2026-10-28-runtime-blockers.json`](benchmarks/2026-10-28-runtime-blockers.json)). `feat/runtime-stand-ins` adds stand-ins in Refit's own harness only (a `@prisma/client` built from the committed schema, answers at the placeholder service URL, NextAuth v4 and Clerk sessions; never Stripe), and generates the Prisma client before every check, by default since the founder's decision of October 28 ([Dependencies](DEPENDENCIES.md#generated-clients)).
@@ -598,6 +620,7 @@ Generated stripe-mock checks call exported functions around each finding, and mo
 - **Stand-ins.** 17 of the 25 l2 rows whose generated check passes used a stand-in (`validation.generated.standIns`): Prisma 9, PostgREST 7, Clerk 9 (some rows several); 8 rows reach the PostgREST stand-in and still stop later. No generated check counted a regression. Generated checks never raise the grade above D, so grades are unchanged.
 - **Generated clients.** Type checks lose the missing-client errors in 71 of 73 l2 rows and change their error counts in 10 heldout rows, with no introduced error added; brandbite/brandbite's test baseline passes, and its draft stays `[Needs review]` for its other blockers.
 - **Not measured:** AI patches, publication, behaviour tests and the hosted worker.
+
 ## Dependency blocker census and the committed-source limit (October 27)
 
 A census of every blocker on every row of main `89f1c0ed`, and the committed-source limit raised to 512 MiB under `4g` and 256 MiB under `2g` (founders' decision, 2026-10-27). The table and how to read it are in [Dependency blockers](DEPENDENCY-BLOCKERS.md); the per-row census is `benchmarks/2026-10-27-blocker-census.json`.
@@ -619,6 +642,7 @@ A census of every blocker on every row of main `89f1c0ed`, and the committed-sou
 - **`2g`: 8 rows pass the source check.** Before, 8 of the 16 rows over 50 MiB were refused with the 50 MiB message; after, none. Shefaul-22/AgriFlow validates (C). mouhamedanflosse/digitalHome and shivamm-55/HippoSphere (C) and CRONANANI/EzanaFinance3 (D) pass their checks and stay `[Needs review]`. Traviseric/arxmint and Eziox-Development/eziox-web stop at lockfile integrity and lockfile drift, RaulRicco/CashBack's preparation fails, and SimplerDevelopment/SimplerDevelopment writes no manifest, as at `4g`. The four passing patches were read in full: AgriFlow, digitalHome and HippoSphere `correct`, EzanaFinance3 `unsure` (untraced reads in files the patch does not touch), in `benchmarks/fix-reviews.json`.
 - **Not repeated:** the AI runs after the change. The limit is checked before any patch is validated and stops nothing at `4g`, so the AI budget was kept.
 - **Not measured:** host memory while buffering a source tree near 512 MiB on the Fly worker, publication and the night set.
+
 ## Preparation inputs npm and pnpm accept (October 28)
 
 `feat/preparation-failures` accepts what npm and pnpm themselves accept in four lockfile and workspace shapes from the l2-push-249 triage ([preparation failures](PREPARATION-FAILURES.md#preparation-coverage-triage-2026-10-27)): an integrity that lists `sha1` beside a stronger hash, a lockfile record outside every `node_modules` directory, workspace negations after every positive pattern, and a pnpm workspace `bin` no importer links to.
@@ -631,6 +655,7 @@ A census of every blocker on every row of main `89f1c0ed`, and the committed-sou
 
 - **Runs.** Before, main at `6c6ff6a9`: l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `b884fe3e` (this branch with `6c6ff6a9` merged): l2-push-249 [40621391261](https://github.com/refit-dev/refit-bench/actions/runs/40621391261), heldout-30 [40621394549](https://github.com/refit-dev/refit-bench/actions/runs/40621394549).
 - **2 rows now prepare, none validates.** Shobhnik13/SynthAI passes both checks and keeps other stops; tomsoderlund/login-as-a-service's baseline fails. Small-Web-Co/tinypivot and inventashif/hackerai pass the fixed checks and stop on real lockfile drift and a Node 24 engine requirement. No patch newly validates.
+
 ## Documented-replacement rules (October 28)
 
 `feat/stripe-generated-rules` (#357) adds a reach rule for removed API operations, walks oasdiff `items` segments as array members where the schema is an array (so `Subscription.items` reads as a property), and adds the `request-enum-value` rule family with dahlia's three Checkout `ui_mode` successors ([rules](MINED-RULES.md#documented-replacement-rules-2026-10-28)).
