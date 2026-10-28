@@ -71,10 +71,14 @@ import {
   validateApiVersionPolicy,
   type ApiVersionPolicy,
 } from './api-version.ts';
-import { PipelineInputError, type SourceEdit } from './types.ts';
+import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
-import { addTypeEvidence, stripePackageDirectory } from './stripe-type-evidence.ts';
+import {
+  addTypeEvidence,
+  stripePackageDirectory,
+  typeProvenReads,
+} from './stripe-type-evidence.ts';
 import { typedStripeClients } from './type-clients.ts';
 import {
   HELPER_RULES,
@@ -174,6 +178,17 @@ async function runOpenApiPipeline(options: {
     before.document,
     after.document,
   );
+  // Founder decision (2026-10-28): reads TypeScript's checker proves read the change's Stripe type
+  // are analyzed again as confirmed, so the rules migrate them as they would a traced read.
+  const withTypeProof = <T extends { findings: Finding[] }>(
+    snapshot: Repository,
+    analyze: (proven?: ReturnType<typeof typeProvenReads>) => T,
+  ) => {
+    const analyzed = analyze();
+    if (provider.packageName !== STRIPE.packageName) return analyzed;
+    const proven = typeProvenReads(snapshot, changes, analyzed.findings, options.stripePackage);
+    return proven.length ? analyze(proven) : analyzed;
+  };
   const removed = findRemovedProperties(before.schemas, after.schemas, provider.id);
   const changes =
     provider.packageName === STRIPE.packageName
@@ -217,16 +232,23 @@ async function runOpenApiPipeline(options: {
     clientMethodCalls: _clientMethodCalls,
     renamePaths,
     ...analysis
-  } = analyzeRepository(
-    repository,
-    changes,
-    provider,
-    before.schemas,
-    replacements,
-    requestRenames,
-    moves,
-    parameterRemovals,
-    { invoicePreview, typeCheckedPeriodReads: options.typeCheckedPeriodReads, typedClients },
+  } = withTypeProof(repository, (typeProvenReads) =>
+    analyzeRepository(
+      repository,
+      changes,
+      provider,
+      before.schemas,
+      replacements,
+      requestRenames,
+      moves,
+      parameterRemovals,
+      {
+        invoicePreview,
+        typeCheckedPeriodReads: options.typeCheckedPeriodReads,
+        typedClients,
+        typeProvenReads,
+      },
+    ),
   );
   // Documented enum successors are request moves: they ride the pin and the stripe-node upgrade.
   const analyzedEdits = [
@@ -642,21 +664,24 @@ async function runOpenApiPipeline(options: {
     })),
   };
   const unresolvedFindings = patchedRepository
-    ? analyzeRepository(
-        patchedRepository,
-        changes,
-        replacementAnalysisAdapter(provider, replacements),
-        before.schemas,
-        replacements,
-        requestRenames,
-        moves,
-        parameterRemovals,
-        {
-          invoicePreview,
-          typedClients:
-            typed && typedStripeClients(patchedRepository, options.stripePackage).clients,
-        },
-        // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
+    ? withTypeProof(patchedRepository, (typeProvenReads) =>
+        analyzeRepository(
+          patchedRepository,
+          changes,
+          replacementAnalysisAdapter(provider, replacements),
+          before.schemas,
+          replacements,
+          requestRenames,
+          moves,
+          parameterRemovals,
+          {
+            invoicePreview,
+            typedClients:
+              typed && typedStripeClients(patchedRepository, options.stripePackage).clients,
+            typeProvenReads,
+          },
+          // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
+        ),
       ).findings
     : [];
   const reviews = migrationReviewReasons(reviewEvidence, true, true, useAi).map(

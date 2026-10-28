@@ -58,13 +58,35 @@ export function typedStripeClients(repository: Repository, explicitPackage?: str
 }
 
 function traceClients(repository: Repository, explicitPackage?: string): TypedClients {
+  const typed = typedPrograms(repository, explicitPackage);
+  if (!('programs' in typed)) return { clients: [], ...typed };
+  const clients: TypedClient[] = [];
+  for (const { program, sources } of typed.programs)
+    for (const [source, found] of programClients(program, sources, typed.inStripe))
+      clients.push(...found.map((client) => ({ file: typed.path(source), ...client })));
+  return { clients };
+}
+
+// The repository's source files, as the run holds them (a patched snapshot exists only in memory),
+// type-checked with the repository's stripe-node, else Refit's own: one program per tsconfig project.
+export function typedPrograms(
+  repository: Repository,
+  explicitPackage?: string,
+):
+  | { skipped?: 'too-large' | 'no-stripe-types' }
+  | {
+      stripe: string;
+      programs: { program: ts.Program; sources: ts.SourceFile[] }[];
+      inStripe: (node: ts.Node) => boolean;
+      path: (fileName: string) => string;
+    } {
   const files = repository.files.map((file) => file.path).filter((path) => SOURCE.test(path));
-  if (!files.length) return { clients: [] };
-  if (files.length > MAX_TYPED_FILES) return { clients: [], skipped: 'too-large' };
+  if (!files.length) return {};
+  if (files.length > MAX_TYPED_FILES) return { skipped: 'too-large' };
   const stripe =
     stripePackageDirectory(repository.root, explicitPackage) ??
     stripePackageDirectory(repository.root, BUNDLED_STRIPE);
-  if (!stripe) return { clients: [], skipped: 'no-stripe-types' };
+  if (!stripe) return { skipped: 'no-stripe-types' };
   const root = resolve(repository.root);
   const contents = new Map(repository.files.map((file) => [resolve(root, file.path), file]));
   // Module resolution asks for each directory first; the files may only exist in memory.
@@ -76,7 +98,7 @@ function traceClients(repository: Repository, explicitPackage?: string): TypedCl
   const inStripe = (node: ts.Node) =>
     stripeDirectories.some((directory) => node.getSourceFile().fileName.startsWith(directory));
   const entry = stripeTypesEntry(stripe);
-  const clients: TypedClient[] = [];
+  const programs: { program: ts.Program; sources: ts.SourceFile[] }[] = [];
   // Monorepos keep a tsconfig per package; each file is checked with its nearest project.
   const projects = new Map<string, string[]>();
   for (const path of contents.keys()) {
@@ -118,10 +140,28 @@ function traceClients(repository: Repository, explicitPackage?: string): TypedCl
     const sources = program
       .getSourceFiles()
       .filter((source) => own.has(source.fileName) && !source.isDeclarationFile);
-    for (const [source, found] of programClients(program, sources, inStripe))
-      clients.push(...found.map((client) => ({ file: contents.get(source)!.path, ...client })));
+    programs.push({ program, sources });
   }
-  return { clients };
+  return { stripe, programs, inStripe, path: (fileName) => contents.get(fileName)!.path };
+}
+
+// The values a function returns, or undefined where it may return without one.
+export function functionReturns(fn: ts.SignatureDeclaration): ts.Expression[] | undefined {
+  if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) return [fn.body];
+  const body = (fn as ts.FunctionLikeDeclaration).body;
+  if (!body) return undefined;
+  const values: ts.Expression[] = [];
+  let bare = false;
+  const walk = (node: ts.Node) => {
+    if (ts.isFunctionLike(node) || ts.isClassLike(node)) return;
+    if (ts.isReturnStatement(node)) {
+      if (node.expression) values.push(node.expression);
+      else bare = true;
+    }
+    ts.forEachChild(node, walk);
+  };
+  ts.forEachChild(body, walk);
+  return bare || !values.length ? undefined : values;
 }
 
 function strip(expression: ts.Expression): ts.Expression {
@@ -180,24 +220,6 @@ function programClients(
     const type = checker.getNonNullableType(checker.getTypeAtLocation(node));
     return isClientType(checker.getAwaitedType(type) ?? type);
   };
-  const functionReturns = (fn: ts.SignatureDeclaration): ts.Expression[] | undefined => {
-    if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) return [fn.body];
-    const body = (fn as ts.FunctionLikeDeclaration).body;
-    if (!body) return undefined;
-    const values: ts.Expression[] = [];
-    let bare = false;
-    const walk = (node: ts.Node) => {
-      if (ts.isFunctionLike(node) || ts.isClassLike(node)) return;
-      if (ts.isReturnStatement(node)) {
-        if (node.expression) values.push(node.expression);
-        else bare = true;
-      }
-      ts.forEachChild(node, walk);
-    };
-    ts.forEachChild(body, walk);
-    return bare || !values.length ? undefined : values;
-  };
-
   // Whether an expression the checker types as the Stripe client got that type honestly: from
   // stripe-node's constructor or a declaration, never through a cast or `any`.
   const memo = new Map<ts.Node, boolean>();
