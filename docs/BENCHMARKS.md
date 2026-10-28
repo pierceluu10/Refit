@@ -161,7 +161,7 @@ Behaviour tests against Stripe test mode ([Stripe test mode](STRIPE-TEST-MODE.md
 gh workflow run benchmark.yml -R refit-dev/refit-bench --ref feat/stripe-test-mode -f commit=<sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249 -f ai=true -f ai_budget=200 -f flags="--behaviour-tests --stripe-test-mode"
 ```
 
-Results: pending; compared with 40624353088 (main `89f1c0ed`, AI) by `scripts/stripe-benchmark-compare.mjs`, then heldout-30 against 40624369322.
+Results: pending; compared with 40624062726 (main `89f1c0ed`, AI) by `scripts/stripe-benchmark-compare.mjs`, then heldout-30 against 40624075884.
 
 ## Stripe
 
