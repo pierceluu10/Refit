@@ -195,6 +195,10 @@ it('inventories Stripe and OpenAI: packages, the pinned API version, deadlines a
   ]);
   expect(inventorySummary(inventory)).toEqual({
     providers: ['stripe', 'openai'],
+    vendors: [
+      { id: 'stripe', name: 'Stripe', status: 'agent-available', watched: true },
+      { id: 'openai', name: 'OpenAI', status: 'agent-available', watched: true },
+    ],
     deadlines: [{ id: 'openai-2026-10-23-gpt-4', date: '2026-10-23', live: 1 }],
     mentions: [],
     apiVersions: ['2024-06-20'],
@@ -211,13 +215,54 @@ it('inventories an empty repository as having nothing', async () => {
     NOW,
   );
   expect(inventory).toEqual({
-    formatVersion: 1,
+    formatVersion: 2,
     providers: [],
+    vendorScan: { files: 0, truncated: false },
     integrations: [],
     apiVersions: [],
     deadlines: { exposures: [], mentions: [] },
     ignores: { file: null, entries: [], error: null },
     models: [],
+  });
+});
+
+it('labels every detected vendor and says which are watched, from manifests of any language, env names and hosts', async () => {
+  const registry = await loadDeadlineRegistry(undefined, NOW);
+  const root = await repository({
+    // Stripe is configured; Twilio and Resend are named only outside npm.
+    'package.json': JSON.stringify({ dependencies: { stripe: '^16.0.0' } }),
+    '.refit.json': JSON.stringify({ formatVersion: 1, before: 'a.json', after: 'b.json' }),
+    'worker/requirements.txt': 'twilio==9.0.0\nrequests==2.32.0\n',
+    '.env.example': 'RESEND_API_KEY=\nAZURE_OPENAI_API_KEY=\n',
+    'jobs/sync.go': 'package jobs\nconst base = "https://api.mixpanel.com/track"\n',
+    // Neither a test file nor a lockfile counts.
+    'tests/test_billing.py': 'DEEPGRAM_API_KEY = "x"\n',
+    'Gemfile.lock': 'remote: https://api.mux.com\n',
+  });
+  const inventory = await scanInventory(root, registry, NOW);
+  const vendors = Object.fromEntries(
+    inventory.providers.map(({ id, status, watch, references }) => [
+      id,
+      { status, watched: watch.status, references },
+    ]),
+  );
+  expect(Object.keys(vendors).sort()).toEqual(['mixpanel', 'resend', 'stripe', 'twilio']);
+  expect(vendors.stripe).toMatchObject({ status: 'configured', watched: 'watched' });
+  expect(vendors.twilio).toMatchObject({ status: 'no-agent', watched: 'watched' });
+  // AZURE_OPENAI_API_KEY names another vendor, so OpenAI is not detected from it.
+  expect(vendors.resend).toEqual({
+    status: 'no-agent',
+    watched: 'watched',
+    references: [{ file: '.env.example', line: 1, kind: 'env', name: 'RESEND_API_KEY' }],
+  });
+  expect(vendors.mixpanel).toEqual({
+    status: 'no-agent',
+    watched: 'unwatched',
+    references: [{ file: 'jobs/sync.go', line: 2, kind: 'hostname', name: 'api.mixpanel.com' }],
+  });
+  expect(inventory.providers.find((provider) => provider.id === 'mixpanel')!.watch).toEqual({
+    status: 'unwatched',
+    reason: 'The vendor catalog has no OpenAPI document or changelog page for this vendor.',
   });
 });
 

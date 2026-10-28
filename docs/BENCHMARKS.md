@@ -435,15 +435,30 @@ Owner decision D4: a schema change that leaves the structure the same is not bre
 
 `feat/response-read-tracing` traces a response object through `at()`, `find()` and copies made with `filter()` or `slice()`, through a private helper's return value and through the parameters every call of it passes the same object, and reads a Subscription's `items` list as subscription items, so a change nested under them (`items/data/items/price/product`) has a named owner. A write to an untraced object and a value of a free-form map such as `metadata` no longer count as reads. Reads through a helper keep review confidence, except through a parameter whose declared type already names the Stripe object.
 
-| Set (no AI, default flags)        | Before: main | After: `17e30256` |
-| --------------------------------- | -----------: | ----------------: |
-| l2-push-249: production validated |           80 |                82 |
-| heldout-30: production validated  |            9 |                 9 |
+| Set (no AI, default flags)        | Before: main `6c6ff6a9` | After: `d5b75c9f` |
+| --------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated |                      84 |                86 |
+| heldout-30: production validated  |                      10 |                10 |
 
-- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `17e30256`: l2-push-249 [40582675661](https://github.com/refit-dev/refit-bench/actions/runs/40582675661), heldout-30 [40582680240](https://github.com/refit-dev/refit-bench/actions/runs/40582680240). Counts apply the needs-review fix above.
-- **A regression found and fixed.** The first heldout-30 run at `78e0c291` ([40554003990](https://github.com/refit-dev/refit-bench/actions/runs/40554003990)) moved VishalRaut2106/HackMate_AI's two `invoice.subscription` reads from confirmed to review: the helper parameter rule also covered `invoice: Stripe.Invoice`. `17e30256` keeps a declared Stripe type on its declared-type trace, with a test; the rerun matches main on 30 of 30 rows.
-- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on 14 removals of Product `features` nested under subscription items in customer responses, which the code never reads. Each `migration.patch` was applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json).
-- **What still stops.** 5 more l2-push-249 rows lose a contract-change stop but keep another (dependency preparation, API versions, webhook versions). aresjinwoo94-cpu/EliteVault gains 2 confirmed period reads in `scripts/sync-stripe-plan.mjs`, on a client already pinned at basil, so the patch correctly leaves them; its draft stays `[Needs review]`.
+- **Runs.** Before, main at `6c6ff6a9` (after the spec-noise and API-version merges): l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `d5b75c9f`: l2-push-249 [40619980162](https://github.com/refit-dev/refit-bench/actions/runs/40619980162), heldout-30 [40619983267](https://github.com/refit-dev/refit-bench/actions/runs/40619983267). `d5b75c9f` branches from `d9217cac`, before the API-version merge, so the rows whose only difference is an `api-version-untraced` or `webhook-api-version` stop (compasstio-ai, build-it, branded, mern-vsms, RealEstateBrokerageMarket) come from that merge, not this branch. heldout-30 matches main on 30 of 30 rows.
+- **Two regressions found and fixed.** The first heldout-30 run at `78e0c291` ([40554003990](https://github.com/refit-dev/refit-bench/actions/runs/40554003990)) moved VishalRaut2106/HackMate_AI's two `invoice.subscription` reads from confirmed to review: the helper parameter rule also covered `invoice: Stripe.Invoice`. `17e30256` keeps a declared Stripe type on its declared-type trace. The local suite then showed reads through a transparent wrapper and a helper with a declared Stripe return type downgraded to review (`nested-sdk.test.ts`, `stripe-types.test.ts`); `d5b75c9f` keeps those confirmed. Each has a test.
+- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on 14 removals of Product `features` nested under subscription items in customer responses, which the code never reads. Each `migration.patch` was applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json). Their results at `d5b75c9f` match `17e30256` in every compared field, diff included.
+- **What still stops.** Chivo1530/CHIVITO-AI-DEV loses its contract-change stop and gr8monk3ys/link-flame its source-evidence stop, but both keep a dependency-preparation stop. aresjinwoo94-cpu/EliteVault gains 2 confirmed period reads in `scripts/sync-stripe-plan.mjs`, on a client already pinned at basil, so the patch correctly leaves them; its draft stays `[Needs review]`. kondax-com/Bocker's baseline tests failed in this run (and in the preparation run) and passed on main with the same dependency archive: a flaky test in the repository, `[Needs review]` either way.
+- **Not measured:** AI patches, publication and the hosted worker.
+
+## API versions untraced only where the client escapes (October 27)
+
+An `apiVersion` pin was `api-version-untraced` whenever its client could escape anywhere Refit cannot see. `feat/api-version-tracing` narrows that doubt to clients that really reach unseen code: a client passed to an opaque helper, an unsafe class binding, a webhook event Refit cannot trace, or an alias in a file whose resolution is ambiguous. A client handed to an exported local helper whose parameter Refit reads (`listCharges(client: Stripe)`) keeps its pin traced; a rest parameter or `eval` still makes it unknown.
+
+| Set (no AI, default flags)                 | Before: main | After: `ae6127f7` |
+| ------------------------------------------ | -----------: | ----------------: |
+| l2-push-249: production validated          |           80 |                80 |
+| l2-push-249: rows with an untraced version |           19 |                16 |
+| heldout-30: production validated           |            9 |                 9 |
+
+- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `ae6127f7`: l2-push-249 [40553722899](https://github.com/refit-dev/refit-bench/actions/runs/40553722899), heldout-30 [40553727358](https://github.com/refit-dev/refit-bench/actions/runs/40553727358). Counts apply the needs-review fix above.
+- **3 rows lose the untraced-version stop, none validates.** Yosef-Ali/compasstio-ai, doganarif/build-it and alanagoyal/branded keep other blockers (contract changes, a removed request parameter, a kept API version). Only branded's patch changes: it now also upgrades stripe-node, read in full and reviewed `correct` for its two period reads; its draft stays `[Needs review]`.
+- **What still stops.** 16 l2-push-249 rows keep an untraced version, from clients passed to helpers Refit cannot read, class bindings, or ambiguous aliases. Webhook endpoint versions are unchanged by this lane, and failed pin-move errors on `api-version-kept` drafts are still not recorded.
 - **Not measured:** AI patches, publication and the hosted worker.
 
 ## Before and after the overnight merges (October 22)

@@ -1,0 +1,1147 @@
+{
+  "formatVersion": 1,
+  "commit": "22058f325e03a07abc089d879122fbe79e62bda7",
+  "labels": "docs/benchmarks/2026-10-27-vendor-detection-labels.json",
+  "scannedAt": "2026-10-28T02:16:20.486Z",
+  "scores": {
+    "all": {
+      "repositories": 26,
+      "truePositives": 77,
+      "falsePositives": 5,
+      "missedInCatalog": 14,
+      "labelledOutsideCatalog": 43,
+      "precision": 0.939,
+      "recallCatalogVendors": 0.846,
+      "recallAllVendors": 0.575
+    },
+    "heldOut": {
+      "repositories": 13,
+      "truePositives": 52,
+      "falsePositives": 3,
+      "missedInCatalog": 13,
+      "labelledOutsideCatalog": 35,
+      "precision": 0.945,
+      "recallCatalogVendors": 0.8,
+      "recallAllVendors": 0.52
+    },
+    "b": {
+      "repositories": 13,
+      "truePositives": 25,
+      "falsePositives": 2,
+      "missedInCatalog": 1,
+      "labelledOutsideCatalog": 8,
+      "precision": 0.926,
+      "recallCatalogVendors": 0.962,
+      "recallAllVendors": 0.735
+    }
+  },
+  "rows": [
+    {
+      "repository": "mcaupybugs/minimal-n8n",
+      "batch": "a",
+      "detected": [
+        "openai"
+      ],
+      "truePositives": [],
+      "falsePositives": [],
+      "missedInCatalog": [
+        "azure"
+      ],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 22,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai package.json"
+        ]
+      }
+    },
+    {
+      "repository": "LinkIt-Company/Linkit-Backend",
+      "batch": "a",
+      "detected": [
+        "openai",
+        "sentry"
+      ],
+      "truePositives": [
+        "openai",
+        "sentry"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [
+        "aws",
+        "discord"
+      ],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 216,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai package.json",
+          "env OPENAI_API_KEY src/infrastructure/ai/ai.service.ts:26"
+        ],
+        "sentry": [
+          "package @sentry/node package.json",
+          "env SENTRY_DSN src/app.config.ts:74"
+        ]
+      }
+    },
+    {
+      "repository": "MattB543/asheville-event-feed",
+      "batch": "a",
+      "detected": [
+        "openai",
+        "anthropic",
+        "gemini",
+        "github",
+        "postmark",
+        "supabase",
+        "openrouter",
+        "posthog"
+      ],
+      "truePositives": [
+        "anthropic",
+        "gemini",
+        "github",
+        "postmark",
+        "supabase",
+        "openrouter",
+        "posthog"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [
+        "azure",
+        "slack",
+        "meta-graph"
+      ],
+      "missedOutsideCatalog": [
+        "jina",
+        "clay",
+        "spotify",
+        "eventbrite",
+        "ticketmaster",
+        "google-apis",
+        "meetup",
+        "reddit"
+      ],
+      "vendorScan": {
+        "files": 749,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai package.json"
+        ],
+        "anthropic": [
+          "host api.anthropic.com lib/playlist/match.ts:75",
+          "env ANTHROPIC_API_KEY .env.example:66",
+          "env ANTHROPIC_API_KEY app/api/cron/playlist/route.ts:24",
+          "env ANTHROPIC_API_KEY lib/config/env.ts:88"
+        ],
+        "gemini": [
+          "package @google/generative-ai package.json",
+          "host generativelanguage.googleapis.com scripts/test-gemini-pro.ts:23",
+          "env GEMINI_API_KEY .env.example:24",
+          "env GEMINI_API_KEY lib/ai/embedding.ts:48"
+        ],
+        "github": [
+          "host api.github.com lib/matching/pipeline/github.ts:4"
+        ],
+        "postmark": [
+          "host api.postmarkapp.com lib/notifications/postmark.ts:33",
+          "host api.postmarkapp.com lib/notifications/postmark.ts:89"
+        ],
+        "supabase": [
+          "package @supabase/supabase-js package.json",
+          "package @supabase/ssr package.json",
+          "env NEXT_PUBLIC_SUPABASE_URL .env.example:83",
+          "env NEXT_PUBLIC_SUPABASE_URL lib/config/env.ts:36"
+        ],
+        "openrouter": [
+          "host openrouter.ai/api lib/ai/chat/model.ts:13",
+          "env OPENROUTER_API_KEY .env.example:34",
+          "env OPENROUTER_API_KEY app/api/chat/route.ts:61",
+          "env OPENROUTER_API_KEY app/api/chat/route.ts:90"
+        ],
+        "posthog": [
+          "package posthog-js package.json",
+          "host us.i.posthog.com next.config.ts:12"
+        ]
+      }
+    },
+    {
+      "repository": "Aimagine-life/Betsy",
+      "batch": "a",
+      "detected": [
+        "openai",
+        "gemini",
+        "github",
+        "slack",
+        "notion",
+        "openrouter"
+      ],
+      "truePositives": [
+        "gemini",
+        "github",
+        "notion",
+        "openrouter"
+      ],
+      "falsePositives": [
+        "slack"
+      ],
+      "missedInCatalog": [
+        "aws",
+        "cloudflare"
+      ],
+      "missedOutsideCatalog": [
+        "google-cloud",
+        "google-apis",
+        "fal",
+        "telegram",
+        "max",
+        "beget",
+        "tochka",
+        "vk",
+        "yandex",
+        "mail-ru",
+        "reddit",
+        "jina",
+        "skillsmp"
+      ],
+      "vendorScan": {
+        "files": 298,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai package.json"
+        ],
+        "gemini": [
+          "package @google/genai package.json",
+          "env GEMINI_API_KEY .env.example.multi:9",
+          "env GEMINI_API_KEY betsy-app/resources/docker-compose.template.yml:19",
+          "env GEMINI_API_KEY betsy-app/src/main/ssh-bootstrap.ts:217"
+        ],
+        "github": [
+          "host api.github.com src/core/tools/connect-service.ts:172",
+          "host api.github.com src/core/updates.ts:33",
+          "host api.github.com src/services/catalog.ts:73",
+          "host api.github.com test/tools/http.test.ts:31"
+        ],
+        "slack": [
+          "env SLACK_BOT_TOKEN src/multi/agents/mcp/builtin.ts:166",
+          "env SLACK_BOT_TOKEN src/multi/agents/mcp/builtin.ts:171"
+        ],
+        "notion": [
+          "host api.notion.com src/auth-relay/providers.ts:30",
+          "host api.notion.com src/auth-relay/providers.ts:31"
+        ],
+        "openrouter": [
+          "host openrouter.ai/api src/core/llm/providers/openrouter.ts:99",
+          "host openrouter.ai/api src/core/llm/providers/openrouter.ts:117",
+          "host openrouter.ai/api src/core/tools/image-gen.ts:33",
+          "host openrouter.ai/api src/server.ts:504"
+        ]
+      }
+    },
+    {
+      "repository": "ayuer/OptionFinder",
+      "batch": "a",
+      "detected": [
+        "openai",
+        "anthropic",
+        "gemini"
+      ],
+      "truePositives": [
+        "openai",
+        "anthropic",
+        "gemini"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [
+        "alibaba-dashscope"
+      ],
+      "vendorScan": {
+        "files": 29,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai package.json",
+          "host api.openai.com manifest.config.ts:33",
+          "host api.openai.com src/services/AIService.ts:105"
+        ],
+        "anthropic": [
+          "package @anthropic-ai/sdk package.json",
+          "host api.anthropic.com manifest.config.ts:34"
+        ],
+        "gemini": [
+          "host generativelanguage.googleapis.com manifest.config.ts:32",
+          "host generativelanguage.googleapis.com src/services/AIService.ts:97"
+        ]
+      }
+    },
+    {
+      "repository": "v-fidelusaleksander/prompt-action",
+      "batch": "a",
+      "detected": [
+        "openai"
+      ],
+      "truePositives": [],
+      "falsePositives": [],
+      "missedInCatalog": [
+        "github"
+      ],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 28,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai package.json"
+        ]
+      }
+    },
+    {
+      "repository": "hridaya423/conductor-tasks",
+      "batch": "a",
+      "detected": [
+        "openai",
+        "anthropic",
+        "gemini",
+        "mistral",
+        "groq",
+        "openrouter",
+        "xai",
+        "perplexity"
+      ],
+      "truePositives": [
+        "openai",
+        "anthropic",
+        "gemini",
+        "mistral",
+        "groq",
+        "openrouter",
+        "xai",
+        "perplexity"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 52,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai package.json",
+          "env OPENAI_API_KEY src/index.ts:400",
+          "env OPENAI_API_KEY src/llm/clientFactory.ts:40",
+          "env OPENAI_API_KEY src/llm/llmManager.ts:189"
+        ],
+        "anthropic": [
+          "package @anthropic-ai/sdk package.json",
+          "env ANTHROPIC_API_KEY src/index.ts:400",
+          "env ANTHROPIC_API_KEY src/llm/clientFactory.ts:39",
+          "env ANTHROPIC_API_KEY src/llm/llmManager.ts:183"
+        ],
+        "gemini": [
+          "package @google/generative-ai package.json",
+          "env GEMINI_API_KEY src/llm/llmManager.ts:222",
+          "env GEMINI_API_KEY src/llm/providers/gemini.ts:101",
+          "env GEMINI_API_KEY src/llm/providers/gemini.ts:104"
+        ],
+        "mistral": [
+          "package @mistralai/mistralai package.json",
+          "env MISTRAL_API_KEY src/llm/llmManager.ts:205",
+          "env MISTRAL_API_KEY src/llm/providers/mistral.ts:14",
+          "env MISTRAL_API_KEY src/llm/providers/mistral.ts:38"
+        ],
+        "groq": [
+          "package groq-sdk package.json",
+          "env GROQ_API_KEY src/llm/llmManager.ts:199",
+          "env GROQ_API_KEY src/llm/providers/groq.ts:68",
+          "env GROQ_API_KEY src/llm/providers/groq.ts:71"
+        ],
+        "openrouter": [
+          "host openrouter.ai/api src/llm/providers/openrouter.ts:13",
+          "env OPENROUTER_API_KEY src/llm/llmManager.ts:253",
+          "env OPENROUTER_API_KEY src/llm/providers/openrouter.ts:16",
+          "env OPENROUTER_API_KEY src/llm/providers/openrouter.ts:19"
+        ],
+        "xai": [
+          "env XAI_API_KEY src/llm/llmManager.ts:228",
+          "env XAI_API_KEY src/llm/providers/xai.ts:53",
+          "env XAI_API_KEY src/llm/providers/xai.ts:56"
+        ],
+        "perplexity": [
+          "host api.perplexity.ai src/llm/providers/perplexity.ts:15",
+          "host api.perplexity.ai src/llm/providers/perplexity.ts:81",
+          "env PERPLEXITY_API_KEY src/llm/llmManager.ts:243",
+          "env PERPLEXITY_API_KEY src/llm/providers/perplexity.ts:73"
+        ]
+      }
+    },
+    {
+      "repository": "ranxi2001/OfferPilot",
+      "batch": "a",
+      "detected": [
+        "openai",
+        "anthropic",
+        "deepseek"
+      ],
+      "truePositives": [
+        "openai",
+        "anthropic",
+        "deepseek"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [
+        "xiaomi-mimo"
+      ],
+      "vendorScan": {
+        "files": 188,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai package.json",
+          "host api.openai.com src/knowledge/embedding.ts:12",
+          "host api.openai.com src/realtime/tts.ts:54",
+          "env OPENAI_API_KEY .env.example:53"
+        ],
+        "anthropic": [
+          "package @anthropic-ai/sdk package.json",
+          "env ANTHROPIC_API_KEY .env.example:48",
+          "hostname api.anthropic.com .env.example:49",
+          "env ANTHROPIC_API_KEY docker-compose.yml:8"
+        ],
+        "deepseek": [
+          "host api.deepseek.com src/query-engine/providers/deepseek.ts:7",
+          "env DEEPSEEK_API_KEY .env.example:59",
+          "hostname api.deepseek.com .env.example:60",
+          "env DEEPSEEK_API_KEY docker-compose.yml:12"
+        ]
+      }
+    },
+    {
+      "repository": "seongsu-kang/tycono",
+      "batch": "a",
+      "detected": [
+        "anthropic"
+      ],
+      "truePositives": [
+        "anthropic"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 135,
+        "truncated": false
+      },
+      "evidence": {
+        "anthropic": [
+          "package @anthropic-ai/sdk package.json",
+          "package @anthropic-ai/sdk packages/server/package.json",
+          "package @anthropic-ai/sdk packages/server/src/api/package.json",
+          "env ANTHROPIC_API_KEY bin/auth-detect.ts:6"
+        ]
+      }
+    },
+    {
+      "repository": "backenly/backenly",
+      "batch": "a",
+      "detected": [
+        "stripe",
+        "openai",
+        "anthropic",
+        "meta-graph",
+        "github",
+        "twilio",
+        "sendgrid",
+        "resend",
+        "mailgun",
+        "slack",
+        "supabase",
+        "paddle",
+        "sentry",
+        "discord",
+        "replicate",
+        "neon",
+        "posthog",
+        "amplitude"
+      ],
+      "truePositives": [
+        "stripe",
+        "openai",
+        "anthropic",
+        "github",
+        "twilio",
+        "sendgrid",
+        "resend",
+        "paddle",
+        "sentry",
+        "discord",
+        "replicate",
+        "neon",
+        "posthog",
+        "amplitude"
+      ],
+      "falsePositives": [
+        "meta-graph"
+      ],
+      "missedInCatalog": [
+        "aws",
+        "cloudflare"
+      ],
+      "missedOutsideCatalog": [
+        "google-apis",
+        "backblaze",
+        "replit",
+        "stability-ai",
+        "runway",
+        "onesignal"
+      ],
+      "vendorScan": {
+        "files": 1568,
+        "truncated": false
+      },
+      "evidence": {
+        "stripe": [
+          "package stripe package.json",
+          "host api.stripe.com __tests__/security/outbound-guard.test.ts:157",
+          "host api.stripe.com __tests__/security/outbound-guard.test.ts:158",
+          "host api.stripe.com app/api/integrations/health/route.ts:42"
+        ],
+        "openai": [
+          "package openai package.json",
+          "host api.openai.com __tests__/security/integration-credential-egress.test.ts:23",
+          "host api.openai.com __tests__/security/integration-credential-egress.test.ts:28",
+          "host api.openai.com __tests__/security/integration-credential-egress.test.ts:33"
+        ],
+        "anthropic": [
+          "package @anthropic-ai/sdk package.json",
+          "host api.anthropic.com lib/integrations/key-verification.ts:120",
+          "host api.anthropic.com lib/services/ai-functions/integration-context.ts:403",
+          "host api.anthropic.com lib/services/ai-functions/integration-registry.ts:185"
+        ],
+        "meta-graph": [
+          "host graph.facebook.com server/routes/oauth.ts:277",
+          "host graph.facebook.com server/routes/oauth.ts:331"
+        ],
+        "github": [
+          "host api.github.com app/api/auth/github/callback/route.ts:90",
+          "host api.github.com app/api/auth/github/callback/route.ts:107",
+          "host api.github.com app/api/auth/platform-github/callback/route.ts:105",
+          "host api.github.com app/api/auth/platform-github/callback/route.ts:120"
+        ],
+        "twilio": [
+          "host api.twilio.com lib/services/ai-functions/integration-context.ts:328",
+          "env TWILIO_AUTH_TOKEN lib/ai/build-runtime/blueprint-injector.ts:64",
+          "env TWILIO_ACCOUNT_SID lib/ai/credential-reconciler.ts:59",
+          "env TWILIO_AUTH_TOKEN lib/ai/credential-reconciler.ts:59"
+        ],
+        "sendgrid": [
+          "host api.sendgrid.com app/api/integrations/health/route.ts:62",
+          "host api.sendgrid.com lib/integrations/key-verification.ts:124",
+          "host api.sendgrid.com lib/services/ai-functions/integration-context.ts:296",
+          "host api.sendgrid.com lib/services/ai-functions/integration-registry.ts:152"
+        ],
+        "resend": [
+          "host api.resend.com app/api/integrations/health/route.ts:52",
+          "host api.resend.com lib/integrations/email.executor.ts:99",
+          "host api.resend.com lib/integrations/key-verification.ts:122",
+          "host api.resend.com lib/services/ai-functions/integration-context.ts:281"
+        ],
+        "mailgun": [
+          "env MAILGUN_API_KEY lib/ai/brain/prompts.ts:108"
+        ],
+        "slack": [
+          "host hooks.slack.com/services lib/orchestration/intent-parser.ts:547"
+        ],
+        "supabase": [
+          "host .supabase.co app/api/projects/[id]/import/supabase/route.ts:30",
+          "host .supabase.co app/use-cases/data.ts:284",
+          "host .supabase.co packages/sdk/src/supabase-compat.ts:9"
+        ],
+        "paddle": [
+          "host api.paddle.com next.config.js:367",
+          "host sandbox-api.paddle.com next.config.js:367",
+          "host api.paddle.com next.config.js:389",
+          "host sandbox-api.paddle.com next.config.js:389"
+        ],
+        "sentry": [
+          "package @sentry/nextjs package.json",
+          "env SENTRY_DSN .env.example:323",
+          "env SENTRY_DSN lib/autonomous-guidance/index.ts:327"
+        ],
+        "discord": [
+          "host discord.com/api components/site/SiteShell.tsx:70",
+          "host discord.com/api scripts/discord/setup-discord.mjs:46",
+          "host discord.com/api server/routes/oauth.ts:51",
+          "host discord.com/api server/routes/oauth.ts:269"
+        ],
+        "replicate": [
+          "host api.replicate.com app/api/integrations/health/route.ts:112",
+          "host api.replicate.com lib/ai/integration-workflows.ts:448",
+          "host api.replicate.com lib/integrations/video-provider.executor.ts:49",
+          "host api.replicate.com lib/integrations/video-provider.executor.ts:59"
+        ],
+        "neon": [
+          "host console.neon.tech lib/db/isolated-database-manager.ts:146"
+        ],
+        "posthog": [
+          "host app.posthog.com components/hub/IntegrationsPanel.tsx:354",
+          "host us.i.posthog.com lib/services/ai-functions/integration-context.ts:590"
+        ],
+        "amplitude": [
+          "package @amplitude/analytics-browser package.json"
+        ]
+      }
+    },
+    {
+      "repository": "odota/core",
+      "batch": "a",
+      "detected": [
+        "stripe",
+        "github"
+      ],
+      "truePositives": [
+        "stripe",
+        "github"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [
+        "steam",
+        "google-cloud",
+        "stratz"
+      ],
+      "vendorScan": {
+        "files": 209,
+        "truncated": false
+      },
+      "evidence": {
+        "stripe": [
+          "package stripe package.json"
+        ],
+        "github": [
+          "host api.github.com dev/updateProtos.ts:9"
+        ]
+      }
+    },
+    {
+      "repository": "Miguel07Alm/text2question",
+      "batch": "a",
+      "detected": [
+        "stripe",
+        "nextauth",
+        "deepseek",
+        "upstash"
+      ],
+      "truePositives": [
+        "stripe",
+        "deepseek",
+        "upstash"
+      ],
+      "falsePositives": [
+        "nextauth"
+      ],
+      "missedInCatalog": [
+        "openai",
+        "gemini"
+      ],
+      "missedOutsideCatalog": [
+        "google-apis",
+        "simple-analytics"
+      ],
+      "vendorScan": {
+        "files": 64,
+        "truncated": false
+      },
+      "evidence": {
+        "stripe": [
+          "package stripe package.json",
+          "env STRIPE_WEBHOOK_SECRET src/app/api/stripe/webhook/route.ts:7",
+          "env STRIPE_WEBHOOK_SECRET src/app/api/stripe/webhook/route.ts:10",
+          "env STRIPE_WEBHOOK_SECRET src/app/api/stripe/webhook/route.ts:11"
+        ],
+        "nextauth": [
+          "package next-auth package.json"
+        ],
+        "deepseek": [
+          "package @ai-sdk/deepseek package.json"
+        ],
+        "upstash": [
+          "package @upstash/redis package.json",
+          "package @upstash/ratelimit package.json",
+          "env UPSTASH_REDIS_REST_URL src/lib/redis.ts:3",
+          "env UPSTASH_REDIS_REST_TOKEN src/lib/redis.ts:3"
+        ]
+      }
+    },
+    {
+      "repository": "PranjalTheCoder/Sommaire",
+      "batch": "a",
+      "detected": [
+        "stripe",
+        "openai",
+        "gemini",
+        "clerk",
+        "neon"
+      ],
+      "truePositives": [
+        "stripe",
+        "openai",
+        "gemini",
+        "clerk",
+        "neon"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [
+        "uploadthing"
+      ],
+      "vendorScan": {
+        "files": 61,
+        "truncated": false
+      },
+      "evidence": {
+        "stripe": [
+          "package stripe package.json",
+          "env STRIPE_SECRET_KEY app/api/payments/route.ts:8",
+          "env STRIPE_WEBHOOK_SECRET app/api/payments/route.ts:14"
+        ],
+        "openai": [
+          "env OPENAI_API_KEY lib/openai.ts:4",
+          "env OPENAI_API_KEY lib/openai.ts:8"
+        ],
+        "gemini": [
+          "package @google/generative-ai package.json",
+          "env GEMINI_API_KEY lib/gemini.ts:4",
+          "env GEMINI_API_KEY lib/gemini.ts:5",
+          "env GEMINI_API_KEY lib/gemini.ts:6"
+        ],
+        "clerk": [
+          "package @clerk/nextjs package.json"
+        ],
+        "neon": [
+          "package @neondatabase/serverless package.json"
+        ]
+      }
+    },
+    {
+      "repository": "ArhanAnsari/InspireGem",
+      "batch": "b",
+      "detected": [
+        "stripe",
+        "gemini",
+        "clerk",
+        "firebase",
+        "nextauth"
+      ],
+      "truePositives": [
+        "stripe",
+        "gemini",
+        "clerk",
+        "firebase"
+      ],
+      "falsePositives": [
+        "nextauth"
+      ],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 52,
+        "truncated": false
+      },
+      "evidence": {
+        "stripe": [
+          "package stripe package.json",
+          "env STRIPE_SECRET_KEY .env.example:24",
+          "env STRIPE_WEBHOOK_SECRET .env.example:25",
+          "env STRIPE_WEBHOOK_SECRET app/webhook/route.ts:17"
+        ],
+        "gemini": [
+          "package @google/generative-ai package.json",
+          "env GEMINI_API_KEY .env.example:28",
+          "env GEMINI_API_KEY app/api/generate/route.ts:7"
+        ],
+        "clerk": [
+          "package @clerk/nextjs package.json"
+        ],
+        "firebase": [
+          "package firebase package.json",
+          "package firebase-admin package.json"
+        ],
+        "nextauth": [
+          "package next-auth package.json"
+        ]
+      }
+    },
+    {
+      "repository": "buildFast10x/Nextjs-Boilerplate",
+      "batch": "b",
+      "detected": [
+        "stripe",
+        "resend",
+        "nextauth"
+      ],
+      "truePositives": [
+        "stripe",
+        "resend"
+      ],
+      "falsePositives": [
+        "nextauth"
+      ],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 87,
+        "truncated": false
+      },
+      "evidence": {
+        "stripe": [
+          "package stripe package.json"
+        ],
+        "resend": [
+          "package resend package.json"
+        ],
+        "nextauth": [
+          "package next-auth package.json"
+        ]
+      }
+    },
+    {
+      "repository": "IliasHad/shopify-app-template-remix-cloudflare-workers",
+      "batch": "b",
+      "detected": [
+        "shopify",
+        "cloudflare"
+      ],
+      "truePositives": [
+        "shopify",
+        "cloudflare"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [
+        "prisma-accelerate"
+      ],
+      "vendorScan": {
+        "files": 38,
+        "truncated": false
+      },
+      "evidence": {
+        "shopify": [
+          "package @shopify/shopify-app-remix package.json",
+          "env SHOPIFY_API_KEY app/routes/app.tsx:15",
+          "env SHOPIFY_API_KEY app/shopify.server.ts:13",
+          "env SHOPIFY_API_SECRET app/shopify.server.ts:14"
+        ],
+        "cloudflare": [
+          "env CLOUDFLARE_API_TOKEN .github/workflows/deploy.yml:22"
+        ]
+      }
+    },
+    {
+      "repository": "Yespo-CDP/yespo-shopify",
+      "batch": "b",
+      "detected": [
+        "shopify"
+      ],
+      "truePositives": [
+        "shopify"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [
+        "yespo"
+      ],
+      "vendorScan": {
+        "files": 255,
+        "truncated": false
+      },
+      "evidence": {
+        "shopify": [
+          "package @shopify/shopify-app-react-router package.json",
+          "env SHOPIFY_API_KEY .env.example:1",
+          "env SHOPIFY_API_SECRET .env.example:2",
+          "env SHOPIFY_API_KEY app/routes/app.tsx:19"
+        ]
+      }
+    },
+    {
+      "repository": "0reo/claude-with",
+      "batch": "b",
+      "detected": [],
+      "truePositives": [],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [
+        "minimax",
+        "zhipu",
+        "moonshot",
+        "nvidia"
+      ],
+      "vendorScan": {
+        "files": 26,
+        "truncated": false
+      },
+      "evidence": {}
+    },
+    {
+      "repository": "vipulgupta2048/sendgrid-python",
+      "batch": "b",
+      "detected": [
+        "sendgrid"
+      ],
+      "truePositives": [
+        "sendgrid"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 52,
+        "truncated": false
+      },
+      "evidence": {
+        "sendgrid": [
+          "env SENDGRID_API_KEY sendgrid/helpers/endpoints/ip/unassigned.py:32",
+          "env SENDGRID_API_KEY sendgrid/sendgrid.py:28",
+          "hostname api.sendgrid.com sendgrid/sendgrid.py:42",
+          "env SENDGRID_API_KEY sendgrid/sendgrid.py:50"
+        ]
+      }
+    },
+    {
+      "repository": "kordspace/sendgrid-sms",
+      "batch": "b",
+      "detected": [
+        "twilio"
+      ],
+      "truePositives": [
+        "twilio"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 2,
+        "truncated": false
+      },
+      "evidence": {
+        "twilio": [
+          "env TWILIO_AUTH_TOKEN environ.env:1",
+          "env TWILIO_ACCOUNT_SID twilioSMSCode.py:9",
+          "env TWILIO_AUTH_TOKEN twilioSMSCode.py:10"
+        ]
+      }
+    },
+    {
+      "repository": "004Ongoro/gitaid",
+      "batch": "b",
+      "detected": [
+        "gemini"
+      ],
+      "truePositives": [
+        "gemini"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 5,
+        "truncated": false
+      },
+      "evidence": {
+        "gemini": [
+          "package google.golang.org/genai go.mod"
+        ]
+      }
+    },
+    {
+      "repository": "Builder-Lawyers/builder-backend",
+      "batch": "b",
+      "detected": [
+        "stripe",
+        "openai",
+        "aws"
+      ],
+      "truePositives": [
+        "stripe",
+        "openai",
+        "aws"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 61,
+        "truncated": false
+      },
+      "evidence": {
+        "stripe": [
+          "package github.com/stripe/stripe-go/v82 go.mod"
+        ],
+        "openai": [
+          "package github.com/openai/openai-go go.mod"
+        ],
+        "aws": [
+          "package github.com/aws/aws-sdk-go-v2 go.mod",
+          "env AWS_ACCESS_KEY_ID .github/workflows/ci.yml:12",
+          "env AWS_SECRET_ACCESS_KEY .github/workflows/ci.yml:13"
+        ]
+      }
+    },
+    {
+      "repository": "0xdeafcafe/bloefish",
+      "batch": "b",
+      "detected": [
+        "openai"
+      ],
+      "truePositives": [
+        "openai"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [
+        "langwatch"
+      ],
+      "vendorScan": {
+        "files": 329,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package github.com/openai/openai-go go.mod"
+        ]
+      }
+    },
+    {
+      "repository": "Stefanija-Trpkovska/octo-stripe-gateway",
+      "batch": "b",
+      "detected": [
+        "stripe"
+      ],
+      "truePositives": [
+        "stripe"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 17,
+        "truncated": false
+      },
+      "evidence": {
+        "stripe": [
+          "package stripe octo_stripe_gateway.gemspec",
+          "env STRIPE_PUBLISHABLE_KEY lib/octo_stripe_gateway.rb:12",
+          "env STRIPE_WEBHOOK_SECRET lib/octo_stripe_gateway.rb:15"
+        ]
+      }
+    },
+    {
+      "repository": "vicentereig/dspy.rb",
+      "batch": "b",
+      "detected": [
+        "openai",
+        "anthropic",
+        "gemini",
+        "openrouter",
+        "langfuse",
+        "new-relic",
+        "exa"
+      ],
+      "truePositives": [
+        "openai",
+        "anthropic",
+        "gemini",
+        "openrouter",
+        "langfuse",
+        "new-relic",
+        "exa"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [
+        "huggingface"
+      ],
+      "missedOutsideCatalog": [
+        "plausible"
+      ],
+      "vendorScan": {
+        "files": 234,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package openai dspy-openai.gemspec",
+          "env OPENAI_API_KEY .env.sample:1",
+          "env OPENAI_API_KEY .github/workflows/ruby.yml:31",
+          "env OPENAI_API_KEY .github/workflows/ruby.yml:297"
+        ],
+        "anthropic": [
+          "package anthropic dspy-anthropic.gemspec",
+          "env ANTHROPIC_API_KEY .env.sample:2",
+          "env ANTHROPIC_API_KEY .github/workflows/ruby.yml:32",
+          "env ANTHROPIC_API_KEY .github/workflows/ruby.yml:298"
+        ],
+        "gemini": [
+          "package gemini-ai dspy-gemini.gemspec",
+          "env GEMINI_API_KEY .github/workflows/ruby.yml:33",
+          "env GEMINI_API_KEY .github/workflows/ruby.yml:299",
+          "env GEMINI_API_KEY docs/scripts/check_documentation_quality.rb:127"
+        ],
+        "openrouter": [
+          "env OPENROUTER_API_KEY .github/workflows/ruby.yml:300",
+          "hostname openrouter.ai/api lib/dspy/openai/lm/adapters/openrouter_adapter.rb:11"
+        ],
+        "langfuse": [
+          "env LANGFUSE_PUBLIC_KEY .env.sample:3",
+          "env LANGFUSE_SECRET_KEY .env.sample:4",
+          "hostname cloud.langfuse.com .env.sample:5",
+          "env LANGFUSE_PUBLIC_KEY .github/workflows/ruby.yml:34"
+        ],
+        "new-relic": [
+          "package newrelic_rpm Gemfile",
+          "env NEW_RELIC_LICENSE_KEY .env.sample:7"
+        ],
+        "exa": [
+          "env EXA_API_KEY .github/workflows/ruby.yml:301"
+        ]
+      }
+    },
+    {
+      "repository": "mjacobus/mj",
+      "batch": "b",
+      "detected": [
+        "openai"
+      ],
+      "truePositives": [
+        "openai"
+      ],
+      "falsePositives": [],
+      "missedInCatalog": [],
+      "missedOutsideCatalog": [],
+      "vendorScan": {
+        "files": 44,
+        "truncated": false
+      },
+      "evidence": {
+        "openai": [
+          "package ruby-openai mj.gemspec"
+        ]
+      }
+    }
+  ]
+}

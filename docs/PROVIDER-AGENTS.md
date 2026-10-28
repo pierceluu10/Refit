@@ -8,12 +8,14 @@ A provider agent is a reviewed adapter for one API provider: which SDK it covers
 refit agents --repository .
 ```
 
-Refit reads committed `package.json` declarations and the matching npm, pnpm or yarn lockfile versions. It also scans JavaScript and TypeScript source for raw API hostnames such as `api.stripe.com` or `graph.facebook.com`. No repository code runs and no provider is contacted. Each detected provider shows its evidence and one of three states:
+Refit reads committed `package.json` declarations and the matching npm, pnpm or yarn lockfile versions, and the manifests and lockfiles of other ecosystems (Python, Go, Ruby, PHP, Java, .NET). It scans JavaScript and TypeScript source for raw API hostnames such as `api.stripe.com` or `graph.facebook.com`, other source and configuration files for the same hostnames, and every source, configuration and env template file for vendor environment variable names such as `OPENAI_API_KEY`. No repository code runs and no provider is contacted. Besides the providers below, `data/vendor-catalog.json` adds 32 vendors Refit has no agent for and sources for the providers below (each package, hostname, variable name, OpenAPI document and changelog page with the page it was read from), so they are detected too. Each detected provider shows its evidence and one of four states:
 
 - **configured:** an integration in `.refit.json` already uses an adapter for this SDK.
 - **agent available:** Refit ships an agent; the line shows the `--add` command.
-- **report only:** Refit ships an agent, but the provider was found only in non-npm manifests (Python, Go, Ruby and the like). Those detections are listed and never added.
+- **report only:** Refit ships an agent, but the provider was found only outside npm manifests and JavaScript and TypeScript source (other ecosystems' manifests, environment variable names, hostnames in other languages). Those detections are listed and never added.
 - **no agent yet:** the provider is detected but Refit has no reviewed adapter for it.
+
+The hosted inventory records the same states for every repository the GitHub App is installed on, and makes each vendor with an OpenAPI document or changelog pages in the catalog a watch target ([Repository inventory](INVENTORY.md#vendor-detection)).
 
 | Provider       | Detected from                                                                                                                                                                                         | Agent                                                                                                                                                                                                                                                           |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

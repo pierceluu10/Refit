@@ -1115,6 +1115,25 @@ export function analyzeRepository(
     );
   };
   const initialUnsafe = new Set(escapingClients);
+  // A pin moves the version of every request its client sends, so it is untraced only where the
+  // client reaches code Refit cannot see: an exposed module, an export under alias doubt other than
+  // an alias that matches several scanned files (then only clients in those files), and helper
+  // flows whose argument may leave the helper (helperClients `opaque`).
+  const ambiguous = resolution.ambiguousOnly;
+  const versionUnsafe = new Set(
+    [...escapingClients].filter(
+      (binding) =>
+        exposedClients.has(binding) ||
+        !ambiguous ||
+        ambiguous.includes(binding.valueDeclaration!.getSourceFile().fileName),
+    ),
+  );
+  for (const binding of [
+    ...classBindings.unsafe,
+    ...helperBindings.opaque,
+    ...(webhooks?.unsafeEvents ?? []),
+  ])
+    versionUnsafe.add(binding);
   // Read confirmation ignores repository-wide alias doubt (imports that may resolve to unscanned
   // declaration files); the read itself is traced to a Stripe call or a Stripe.* type.
   const initialMutated = new Set(exposedClients);
@@ -2407,7 +2426,7 @@ export function analyzeRepository(
     apiVersionDeclarations: declaredApiVersions({
       nodes,
       mutationNodes,
-      initialUnsafe,
+      initialUnsafe: versionUnsafe,
       checker,
       provider,
       clients,
@@ -2431,7 +2450,7 @@ export function analyzeRepository(
       symbol,
       canonical,
       location,
-      references: clientReferences,
+      references: { ...clientReferences, localArgument: helperBindings.visibleArgument },
       literals: apiVersionLiterals,
     }),
     apiVersionLiterals,

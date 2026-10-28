@@ -59,6 +59,8 @@ import {
   registryDigest,
 } from './inventory.ts';
 import { openInventoryStore, type InventoryClaim } from './inventory-store.ts';
+import { captureWatchTarget, WATCH_INTERVAL_SECONDS } from './vendor-watch.ts';
+import { openWatchTargetStore } from './watch-target-store.ts';
 import {
   requestRescans,
   sendDeadlineAlerts,
@@ -161,6 +163,9 @@ export async function runHostedService(options: {
   // Off by default: keeps one report issue per inventoried repository, re-scanned like alerts.
   // Needs the App's Issues write permission.
   reports?: boolean;
+  // Off by default: captures each due vendor watch target's OpenAPI document and changelog pages
+  // once a day (REFIT_HOSTED_WATCH). Targets are registered from inventories either way.
+  watch?: boolean;
   // The deadline registry file, by default the bundled one.
   registry?: string | URL;
   now?: () => Date;
@@ -337,6 +342,7 @@ export async function runHostedService(options: {
   const inventories = openInventoryStore(options.database, options.tenancy.limits);
   const monitoring = openMonitoringStore(options.database);
   const reports = openReportStore(options.database);
+  const watchTargets = openWatchTargetStore(options.database);
   const now = () => options.now?.() ?? new Date();
   const approvals = openApprovalStore(options.database);
   const notifyFailures =
@@ -648,6 +654,10 @@ export async function runHostedService(options: {
         registry: registryDigest(registry),
         durationMs: Date.now() - started,
       });
+      if (recorded && result.outcome === 'complete') {
+        const registered = await watchTargets.register(result.inventory);
+        if (registered.length) progress(`Watch targets registered: ${registered.join(', ')}.`);
+      }
       progress(
         !recorded
           ? 'Repository removed or lease lost; the result was dropped.'
@@ -662,6 +672,18 @@ export async function runHostedService(options: {
       await inventories.finish(claimed, worker, { error: `${error.name}: ${error.message}` });
       progress(`${error.name}: ${error.message}`);
     }
+  };
+
+  // One due watch target per pass: its public sources are fetched, never a repository.
+  const captureDueTarget = async () => {
+    const target = await watchTargets.claimDue(WATCH_INTERVAL_SECONDS);
+    if (!target) return;
+    const { captures, changed } = await captureWatchTarget(target);
+    await watchTargets.record(target.provider, captures, changed);
+    const failed = captures.filter((capture) => 'error' in capture).length;
+    onProgress?.(
+      `[watch ${target.provider}] Captured ${captures.length - failed} of ${captures.length} sources${changed ? '; a source changed' : ''}.`,
+    );
   };
 
   const pages = hostedPages({
@@ -762,6 +784,7 @@ export async function runHostedService(options: {
               summary: inventory && inventorySummary(inventory),
             })),
             ...(repository === undefined && {
+              watch: { enabled: Boolean(options.watch), targets: await watchTargets.read() },
               monitoring: {
                 alerts: Boolean(options.alerts),
                 installations: await upcomingDeadlines(monitoring, now()),
@@ -927,6 +950,7 @@ export async function runHostedService(options: {
         }
         // A claim can also fail a job whose lease expired too often.
         await notifyFailures?.();
+        if (options.watch && !options.signal.aborted) await captureDueTarget();
         if (registry && options.alerts && !options.signal.aborted)
           await sendDeadlineAlerts({
             app: options.app,

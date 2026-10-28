@@ -73,6 +73,10 @@ export function createSourceImportResolver(
   const configuration = sourceConfigurationOptions(repository);
   const root = resolve(repository.root);
   let unsafe = configuration.unverified;
+  // Unverified for a reason other than an alias that matches several scanned files.
+  let opaque = configuration.unverified;
+  // The scanned files an ambiguous alias may load; its importer's bindings from it are unknown.
+  const ambiguous = new Set<string>();
   const warnings = new Set(configuration.warnings);
   const exclusions = (repository.excludedPaths ?? []).map((name) => resolve(root, name));
   function excludedPath(path: string) {
@@ -115,7 +119,7 @@ export function createSourceImportResolver(
         ))
     ) {
       configuration.options.set(file, null);
-      unsafe = true;
+      unsafe = opaque = true;
       warnings.add(
         'Source alias resolution requires valid single-wildcard paths and targets inside the scanned repository. Shared clients require review.',
       );
@@ -139,6 +143,7 @@ export function createSourceImportResolver(
       const matches = inside(target) ? sourceMatches(target, sources) : [];
       if (matches.length > 1) {
         unsafe = true;
+        for (const match of matches) ambiguous.add(match);
         warnings.add('Ambiguous source alias target; shared clients require review.');
         return;
       }
@@ -156,7 +161,7 @@ export function createSourceImportResolver(
       )
         return;
       if (!inside(target) || excluded(target)) {
-        unsafe = true;
+        unsafe = opaque = true;
         warnings.add(
           'Source alias import leaves the scanned source set or may resolve through an excluded path; shared clients require review.',
         );
@@ -190,6 +195,10 @@ export function createSourceImportResolver(
     },
     get unverified() {
       return unsafe;
+    },
+    // Whether the only doubt is aliases that match several scanned files, and which files.
+    get ambiguousOnly() {
+      return unsafe && !opaque ? ([...ambiguous] as readonly string[]) : undefined;
     },
     // Whether this file's own tsconfig or jsconfig could not be read, so a bare import such as
     // the SDK package may be an alias to something else.
