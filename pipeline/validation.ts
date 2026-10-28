@@ -142,8 +142,11 @@ import {
   ungradedEvidence,
 } from './check-selection.ts';
 import {
+  behaviourTestFeedback,
   behaviourTestSkip,
+  FEEDBACK_ROUNDS,
   writeBehaviourTests,
+  type BehaviourTestRecord,
   type BehaviourTestWriter,
 } from './behaviour-test-writer.ts';
 import { stripeOnlyImports, stripeOnlyProject } from './dependency-stripe-only.ts';
@@ -1421,7 +1424,15 @@ export async function runSandboxBehaviourTests(options: {
   };
   const versions = { original: version(contracts.original), patched: version(contracts.patched) };
   const tools = await sandboxInput(options.root, 'behaviour-');
-  await writeBehaviourHarness(tools, options.tests, changed, sources);
+  await writeBehaviourHarness(
+    tools,
+    options.tests,
+    changed,
+    sources,
+    await runtimeStandIns(
+      join(options.original.directory, options.sandbox?.packageDirectory ?? ''),
+    ),
+  );
   const call = providerCaller(adapter, keys, { runId });
   const changedSources = (['original', 'patched'] as const).flatMap((side) =>
     sources[side].files.filter((file) => file.path in changed[side]),
@@ -2910,58 +2921,93 @@ export async function validateMigration(options: {
             ? `Dependencies could not be prepared, and the changed Stripe code cannot run on stripe alone: ${stripeOnly?.record.reasons?.join(' ') ?? 'no candidate.'}`
             : undefined;
     // Written from the original code and the preflight scan, which ran before any patch existed.
-    const written =
+    const writerInput = {
+      repository: originalSources,
+      findings: preflight.findings,
+      changes: preflight.changes,
+      removals: requestRemovals,
+      before: beforeSpecification,
+      after: afterSpecification,
+      // Where the patch changes the original code, so the tests reach every changed line.
+      changedLines: candidateSources
+        ? changedStripeLines(originalSources, candidateSources, report.findings).original
+        : {},
+      target: options.providerSandbox ? ('test-environment' as const) : ('mock' as const),
+    };
+    let written =
       options.behaviourTestWriter && !options.behaviourTests
         ? behaviourBlocked
           ? { record: behaviourTestSkip(options.behaviourTestWriter, behaviourBlocked), files: [] }
           : await timed('behaviourTestWriter', () =>
-              writeBehaviourTests({
-                repository: originalSources,
-                findings: preflight.findings,
-                changes: preflight.changes,
-                removals: requestRemovals,
-                before: beforeSpecification,
-                after: afterSpecification,
-                // Where the patch changes the original code, so the tests reach every changed line.
-                changedLines: changedStripeLines(
-                  originalSources,
-                  candidateSources!,
-                  report.findings,
-                ).original,
-                ai: options.behaviourTestWriter!,
-              }),
+              writeBehaviourTests({ ...writerInput, ai: options.behaviourTestWriter! }),
             )
         : undefined;
+    const runBehaviour = (tests: BehaviourTest[]) =>
+      timed('behaviourTests', () =>
+        behaviourEvidence({
+          tests,
+          settings: options.generatedChecks,
+          image,
+          root,
+          original: {
+            directory: baselineDirectory,
+            contract: options.before,
+            repository: originalSources,
+            dependencies: stripeOnly?.dependencies?.original ?? dependencies,
+          },
+          patched: {
+            directory: candidateDirectory!,
+            contract: options.after,
+            repository: candidateSources!,
+            dependencies:
+              stripeOnly?.dependencies?.patched ?? candidateDependencies ?? dependencies,
+          },
+          findings: report.findings,
+          sandbox,
+          provider: options.providerSandbox,
+          onProgress: options.onProgress,
+          signal: options.signal,
+        }),
+      );
     const behaviourTests = options.behaviourTests ?? written?.files;
-    const behaviour =
-      behaviourTests?.length && !behaviourBlocked
-        ? await timed('behaviourTests', () =>
-            behaviourEvidence({
-              tests: behaviourTests,
-              settings: options.generatedChecks,
-              image,
-              root,
-              original: {
-                directory: baselineDirectory,
-                contract: options.before,
-                repository: originalSources,
-                dependencies: stripeOnly?.dependencies?.original ?? dependencies,
-              },
-              patched: {
-                directory: candidateDirectory!,
-                contract: options.after,
-                repository: candidateSources!,
-                dependencies:
-                  stripeOnly?.dependencies?.patched ?? candidateDependencies ?? dependencies,
-              },
-              findings: report.findings,
-              sandbox,
-              provider: options.providerSandbox,
-              onProgress: options.onProgress,
-              signal: options.signal,
-            }),
-          )
-        : undefined;
+    let behaviour =
+      behaviourTests?.length && !behaviourBlocked ? await runBehaviour(behaviourTests) : undefined;
+    // A generated test counts only once it passes on the original code and runs every changed line
+    // there, so the writer gets its files back with what they did on the original code, never the
+    // patched side, and writes them again. A round that writes nothing keeps the previous run.
+    for (let round = 1; written?.files.length && behaviour && round <= FEEDBACK_ROUNDS; round++) {
+      // Files exist only after a real request, never with a skip record.
+      const previous = written.record as BehaviourTestRecord;
+      const previousAttempt = behaviourTestFeedback(behaviour, written.files, round);
+      if (!previousAttempt) break;
+      const next = await timed('behaviourTestWriter', () =>
+        writeBehaviourTests({ ...writerInput, previousAttempt, ai: options.behaviourTestWriter! }),
+      );
+      // costUsd counts every request, feedback rounds included.
+      const record: BehaviourTestRecord = {
+        ...(next.files.length ? next.record : previous),
+        costUsd:
+          previous.costUsd === null && next.record.costUsd === null
+            ? null
+            : (previous.costUsd ?? 0) + (next.record.costUsd ?? 0),
+        feedback: [
+          ...(previous.feedback ?? []),
+          {
+            round,
+            status: next.record.status,
+            ...(next.record.reason ? { reason: next.record.reason } : {}),
+            costUsd: next.record.costUsd,
+            files: next.record.files.map((file) => file.path),
+          },
+        ],
+      };
+      if (!next.files.length) {
+        written = { record, files: written.files };
+        break;
+      }
+      written = { record, files: next.files };
+      behaviour = await runBehaviour(next.files);
+    }
     const signedEvents =
       options.signedEventChecks && !behaviourBlocked
         ? await timed('signedEvents', () =>
