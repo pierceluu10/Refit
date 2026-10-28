@@ -269,6 +269,18 @@ it('writes a bump pull request that names every traced call and the webhook chec
   );
 });
 
+it('says the upgrade alone moves the version when no client sets one', async () => {
+  upgrades();
+  const inputs = await fixture({
+    'lib/stripe.ts':
+      "import Stripe from 'stripe';\nexport const stripe = new Stripe(process.env.STRIPE_KEY!);\nexport const pay = () => stripe.checkout.sessions.create({ mode: 'payment' });\n",
+  });
+  const { files } = createReviewArtifacts(passed(await scan(inputs, true)), 'github');
+  expect(files['pull-request.md']).toContain(
+    `No client sets \`apiVersion\`, so the installed \`stripe\` decides the version: this patch upgrades it from \`22.6.2\` to \`23.0.0\` in the package manifest and lockfile, which sends ${TARGET}. The checks passed before and after the change.`,
+  );
+});
+
 it('ends a checked bump as version-bump and an unchecked one as the honest stop', async () => {
   const inputs = await fixture();
   const actual = (await vi.importActual<typeof import('./run.ts')>('./run.ts')).runPipeline;
