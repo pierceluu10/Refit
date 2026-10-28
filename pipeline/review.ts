@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
 import { digest, isObject, type AddedProperty } from './specifications.ts';
+import type { LockfileChoice } from './dependency-inputs.ts';
 import { CURRENCY_CODE_RULE, PASSING_REACH } from './operation-reach.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
@@ -685,8 +686,8 @@ export function createReviewArtifacts(
   const fromBunLock = [validation.environment, validation.patchedEnvironment].some(
     (environment) => typeof environment?.bunLockHash === 'string',
   );
-  const lockfileChoice = validation.environment?.lockfileChoice as
-    { lockfile: string; outOfSync: Record<string, string> } | undefined;
+  const lockfileChoice = validation.environment?.lockfileChoice as LockfileChoice | undefined;
+  const otherLockfiles = Object.entries(lockfileChoice?.others ?? {});
   type ResolvedLockfile = {
     reason: string;
     before: string;
@@ -1313,7 +1314,7 @@ export function createReviewArtifacts(
           : []),
         ...(lockfileChoice
           ? [
-              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...Object.keys(lockfileChoice.outOfSync)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, the only one in sync with \`package.json\`, and did not read ${Object.keys(lockfileChoice.outOfSync).length === 1 ? 'the other' : 'the others'}: ${Object.values(lockfileChoice.outOfSync).map(plainText).join(' ')} Delete the lockfile your package manager does not use.`,
+              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...otherLockfiles.map(([file]) => file)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, ${lockfileChoice.because}, and did not read ${otherLockfiles.length === 1 ? 'the other' : 'the others'}${otherLockfiles.every(([, note]) => note === 'not read') ? '.' : `: ${otherLockfiles.map(([, note]) => plainText(note)).join(' ')}`} Delete the lockfile your package manager does not use.`,
             ]
           : []),
         ...(resolvedLockfiles.length

@@ -454,7 +454,9 @@ it('says which of several committed lockfiles Refit installed and why it did not
     installation: {},
     lockfileChoice: {
       lockfile: 'pnpm-lock.yaml',
-      outOfSync: {
+      rule: 'in-sync',
+      because: 'the only one in sync with `package.json`',
+      others: {
         'package-lock.json':
           'package.json dependencies differ from the committed package-lock.json: jsdom is "^24.0.0" in package.json but missing in the lockfile.',
       },
@@ -462,6 +464,35 @@ it('says which of several committed lockfiles Refit installed and why it did not
   };
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
     '- Dependency Installation: the repository commits `pnpm-lock.yaml` and `package-lock.json`. Refit installed `pnpm-lock.yaml`, the only one in sync with `package.json`, and did not read the other: package.json dependencies differ from the committed package-lock.json: jsdom is "^24.0.0" in package.json but missing in the lockfile. Delete the lockfile your package manager does not use.',
+  );
+  // ensarokumus/tldr-app at 566f26e: both in sync, yarn.lock committed last.
+  value.validation.environment = {
+    installation: {},
+    lockfileChoice: {
+      lockfile: 'yarn.lock',
+      rule: 'newest',
+      because:
+        'the most recently committed lockfile in sync with `package.json` (last changed 2026-03-28T19:05:40+11:00)',
+      others: {
+        'package-lock.json': 'package-lock.json was last changed 2026-03-28T18:19:51+11:00.',
+      },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the repository commits `yarn.lock` and `package-lock.json`. Refit installed `yarn.lock`, the most recently committed lockfile in sync with `package.json` (last changed 2026-03-28T19:05:40+11:00), and did not read the other: package-lock.json was last changed 2026-03-28T18:19:51+11:00. Delete the lockfile your package manager does not use.',
+  );
+  // Ankit-Sharma1011/Quill at bdd4055 pins pnpm.
+  value.validation.environment = {
+    installation: {},
+    lockfileChoice: {
+      lockfile: 'pnpm-lock.yaml',
+      rule: 'package-manager',
+      because: 'the lockfile of the manager package.json pins (`"packageManager": "pnpm@11.1.2"`)',
+      others: { 'package-lock.json': 'not read' },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the repository commits `pnpm-lock.yaml` and `package-lock.json`. Refit installed `pnpm-lock.yaml`, the lockfile of the manager package.json pins (`"packageManager": "pnpm@11.1.2"`), and did not read the other. Delete the lockfile your package manager does not use.',
   );
 });
 
