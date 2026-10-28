@@ -321,7 +321,7 @@ function withPreparationStop(error: unknown) {
   return named;
 }
 
-// Preparation failures the repository owner fixes in the repository. Each pattern matches a
+// Preparation failures caused by the repository's inputs; each action says what Refit could not do. Each pattern matches a
 // message Refit or the package manager raises; anything else (Docker, network, sandbox) is not one.
 const REPOSITORY_DEPENDENCY_FAILURES = [
   {
@@ -329,7 +329,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
     pattern: /^The repository commits package\.json without a lockfile/,
     summary: 'the repository has no committed lockfile',
     action: () =>
-      'Commit a lockfile (for npm, run `npm install` and commit `package-lock.json`), then rerun your checks on this branch.',
+      'The repository commits no lockfile, so Refit could not install the exact dependencies it uses, and none of its checks ran on this patch.',
   },
   {
     reason: 'lockfile-out-of-sync',
@@ -337,7 +337,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       /differ from the committed (?:package-lock\.json|bun\.lock)|differs? from the (?:patch hash|overrides) pnpm-lock\.yaml records|^pnpm patches must be committed files whose SHA-256|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^pnpm importer (?:specifiers|declarations) differ from committed manifests|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
     summary: 'the committed lockfile is out of sync with package.json',
     action: (lockfile: string) =>
-      `Update \`${lockfile}\` so it matches \`package.json\` (run your package manager's install), commit it, then rerun your checks on this branch.`,
+      `\`${lockfile}\` does not match \`package.json\`, so Refit could not install it, and none of its checks ran on this patch.`,
   },
   {
     reason: 'lockfile-integrity',
@@ -345,28 +345,28 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       /^Every npm package requires a registry URL, version and SHA-256-or-stronger integrity|^package-lock\.json records .+ without a version, registry "resolved" URL and SHA-256-or-stronger "integrity"|^Every pnpm package needs a registry name\/version and SHA-256-or-stronger integrity|^Every yarn\.lock entry must resolve an exact version to a public registry tarball/,
     summary: 'lockfile entries have no registry integrity hash',
     action: (lockfile: string) =>
-      `Regenerate \`${lockfile}\` from the public npm registry so every entry records its tarball URL and integrity hash, commit it, then rerun your checks on this branch.`,
+      `\`${lockfile}\` records entries without a public registry tarball and integrity hash, so Refit could not verify or install them, and none of its checks ran on this patch.`,
   },
   {
     reason: 'peer-dependency-conflict',
     pattern: /^npm dependency preparation failed[\s\S]*\bERESOLVE\b/,
     summary: "npm rejects the committed lockfile's conflicting peer dependencies",
     action: (lockfile: string) =>
-      `Resolve the peer dependency conflict npm reports (\`npm ci\` fails with ERESOLVE even with \`--legacy-peer-deps\`), commit the updated \`${lockfile}\`, then rerun your checks on this branch.`,
+      `npm rejects the peer dependencies \`${lockfile}\` records (\`npm ci\` fails with ERESOLVE even with \`--legacy-peer-deps\`), so Refit could not install them, and none of its checks ran on this patch.`,
   },
   {
     reason: 'dependency-archive-limit',
     pattern: /^Dependency archive exceeds \d+ MiB/,
     summary: "the installed dependencies exceed Refit's validation sandbox limit",
     action: () =>
-      "Run your own tests and type check on this branch before merging; Refit's sandbox could not hold this dependency tree.",
+      "The installed dependencies exceed Refit's sandbox limit, so none of its checks ran on this patch.",
   },
 ] as const;
 export const OTHER_DEPENDENCY_FAILURE = {
   reason: 'preparation-failed',
   summary: 'Refit could not install them in its sandbox',
   action: () =>
-    'Install the dependencies and run your own tests and type check on this branch before merging; Refit ran none.',
+    'Refit could not install the dependencies in its sandbox, so none of its checks ran on this patch.',
 };
 
 // An absolute path in a refusal names the host or container layout, never the repository's files:
@@ -473,7 +473,7 @@ async function installDependencies(
         bytes += chunk.length;
         if (bytes > archiveBytes)
           throw new DependencyPreparationError(
-            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree.' : 'This exceeds the largest validation profile; use a custom validation image.'}`,
+            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree.' : 'This exceeds the largest validation profile; the sandbox cannot hold it.'}`,
           );
         hash.update(chunk);
         yield chunk;

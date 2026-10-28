@@ -16,6 +16,7 @@ import {
 } from './hosted-lifecycle.ts';
 import { migrateHostedSchema } from './hosted-migrations.ts';
 import { recordApprovalCommand } from './hosted-approval-store.ts';
+import { recordPullOutcome, recordReverts } from './pull-outcomes.ts';
 import {
   DEFAULT_TENANCY_LIMITS,
   installationRefusals,
@@ -271,6 +272,10 @@ export async function openHostedStore(
           running: stopped.running,
         };
       }
+      if (change.kind === 'pull_request_closed')
+        return { status: await recordPullOutcome(client, change), ...none };
+      if (change.kind === 'push' && change.reverts?.length)
+        await recordReverts(client, change.repository, change.reverts);
       if (change.kind !== 'installation' && change.kind !== 'repositories')
         // Hosted mode acts on no pull request; the local service suggests agents from them. A push
         // is accepted so monitoring can re-scan the repository.

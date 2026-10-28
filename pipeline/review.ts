@@ -1216,7 +1216,8 @@ export function createReviewArtifacts(
               ? `**Refit did not run any checks on this patch.** ${commandText(validation.baselineCommand)} passed on the original code, but ${dependency.failure.reason === OTHER_DEPENDENCY_FAILURE.reason ? 'Refit could not install the upgraded lockfile this patch writes in its sandbox' : `the upgraded lockfile this patch writes could not be installed because ${plainText(dependency.failure.summary)}`}, so the patched code was not built or tested. Nothing in this patch is verified.`
               : `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(dependency.failure.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
             `> ${plainText(dependency.failure.message.length > MAX_QUOTE ? `${dependency.failure.message.slice(0, MAX_QUOTE)}...` : dependency.failure.message)}`,
-            `**What to do:** ${dependency.failure.action} Don't merge until they pass.`,
+            // A stop names what Refit could not do, never a task (founder decision, 2026-10-28).
+            `**What Refit could not do:** ${dependency.failure.action}`,
           ]
         : []),
       ...(parameterGate
