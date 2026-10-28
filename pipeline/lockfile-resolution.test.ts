@@ -306,6 +306,25 @@ it('resolves only root npm projects with registry dependencies, as configured', 
       options,
     ),
   ).rejects.toThrow(/\.npmrc configures another registry or registry credentials/);
+  // A binary bun.lockb does not stop resolution; the .npmrc check shows it was reached.
+  await expect(
+    resolvedLockfileSnapshot(
+      await snapshot({
+        'package.json': manifest,
+        'bun.lockb': 'binary',
+        '.npmrc': 'registry=https://npm.acme.test/\n',
+      }),
+      'no-lockfile',
+      options,
+    ),
+  ).rejects.toThrow(/\.npmrc configures another registry or registry credentials/);
+  expect(
+    await resolvedLockfileSnapshot(
+      await snapshot({ 'package.json': manifest, 'bun.lock': '{}' }),
+      'no-lockfile',
+      options,
+    ),
+  ).toBeUndefined();
   expect(resolveNpmLockfile).not.toHaveBeenCalled();
 });
 
