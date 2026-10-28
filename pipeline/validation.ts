@@ -42,6 +42,7 @@ import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
+import { prepareEnvironment } from './repository-environment.ts';
 import { baselineStop } from './preparation-stops.ts';
 import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { baselineCheck } from './validation-baseline-cache.ts';
@@ -827,7 +828,7 @@ async function prepareCandidateDependencies(
     candidateDirectory,
   );
   const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
-  const prepared = await prepareDependencies({
+  const prepared = await prepareEnvironment({
     repository: candidateDirectory,
     image,
     packageDirectory: options.packageDirectory,
@@ -1430,7 +1431,7 @@ export async function validateMigration(options: {
     if (options.prepareDependencies)
       try {
         prepared = await timed('preparation', () =>
-          prepareDependencies({
+          prepareEnvironment({
             repository,
             image,
             packageDirectory,
@@ -2952,7 +2953,7 @@ export async function validateSourcePatch(options: {
     let environment: Record<string, unknown> | undefined;
     if (options.prepareDependencies) {
       dependencies = join(root, 'dependencies.tar');
-      const prepared = await prepareDependencies({
+      const prepared = await prepareEnvironment({
         repository: snapshot.directory,
         image,
         copyArchiveTo: dependencies,

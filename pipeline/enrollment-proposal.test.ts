@@ -50,8 +50,7 @@ async function reviewed(root: string) {
 const ASSUMED = (value: string, why: string, every = false) => ({
   id: 'api-version-assumed',
   detail: `Refit could not read ${every ? 'every' : 'which'} Stripe API version this code sends, so the configuration assumes ${value}, ${why}. Refit compares the ${value} contract with 2026-09-30.endive; if the code sends another version, what needs migrating can differ.`,
-  action:
-    'Confirm the version your code and Stripe account use before merging a draft, and set apiVersion in the code.',
+  action: 'Check the version the code and Stripe account use before merging a draft.',
 });
 
 // Ankit-Sharma1011/Quill src/lib/stripe.ts
@@ -227,7 +226,7 @@ exports.handler = async (event, context) => {
         detail:
           'This repository has no test script and no TypeScript type check, so Refit has nothing that shows a change still works.',
         action:
-          'Add a "test" script to package.json, or a tsconfig.json with typescript in devDependencies.',
+          'Refit has no test script or type check to run, so a draft is untested; check its changes before merging.',
       },
     ],
   });
@@ -282,7 +281,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
         detail:
           "Refit cannot tell which Stripe API version the client at lib/stripe.ts:7 uses: its apiVersion is process.env.STRIPE_API_VERSION || '2023-10-16', which Refit cannot trace to one version.",
         action:
-          "Write the apiVersion at lib/stripe.ts:7 as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).",
+          "Refit reads an apiVersion only as a string literal, such as new Stripe(secretKey, { apiVersion: '<your API version>' }); check the version the client at lib/stripe.ts:7 sends before merging a draft.",
       },
     ],
   });
@@ -334,7 +333,8 @@ it('stops on a file that imports stripe and does not parse, naming it with the o
         id: 'source-does-not-parse',
         detail:
           'src/billing.ts imports stripe but does not parse (Expression expected.), so Refit cannot read its Stripe calls or the API version it sends.',
-        action: 'Fix the syntax error in src/billing.ts and commit it.',
+        action:
+          'Refit cannot read the Stripe calls in src/billing.ts until it parses, so it stops here.',
       },
     ],
   });
@@ -428,7 +428,7 @@ export async function paymentMethods(c: any, customer: string) {
       {
         id: 'api-version-unreadable',
         detail: `Refit cannot tell which Stripe API version the client at ${sample.at} uses: ${sample.unread}.`,
-        action: `Write the apiVersion at ${sample.at} as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).`,
+        action: `Refit reads an apiVersion only as a string literal, such as new Stripe(secretKey, { apiVersion: '<your API version>' }); check the version the client at ${sample.at} sends before merging a draft.`,
       },
     ]);
   }
@@ -462,7 +462,7 @@ module.exports = { updatePayment };
       detail:
         'Refit cannot tell which Stripe API version the request at src/services/payment.service.js:7 uses: it passes updateObject, and Refit cannot tell whether that sets apiVersion.',
       action:
-        'If updateObject sets no apiVersion, commit a .refit.json that sets "apiVersion": "2022-11-15", the version your clients send (docs/REPOSITORY-SETUP.md).',
+        'If updateObject sets no apiVersion, the request sends 2022-11-15, the version the clients send; check this before merging a draft.',
     },
   ]);
   const source = 'the default of stripe-node 12.18.0, which the lockfile records';
@@ -533,14 +533,14 @@ void setup();
       detail:
         'Refit cannot tell which Stripe API version the request at tools/stripe-portal-setup.ts:13 uses: it passes params, and Refit cannot tell whether that sets apiVersion.',
       action:
-        'If params sets no apiVersion, commit a .refit.json that sets the version your clients send (docs/REPOSITORY-SETUP.md).',
+        'If params sets no apiVersion, the request sends the version the clients send; check this before merging a draft.',
     },
     {
       id: 'api-version-several',
       detail:
         "This repository sends more than one Stripe API version (2026-03-25.dahlia at src/server/api/routers/billing.ts:5; stripe-node 23.0.0's default 2026-09-30.endive at src/lib/stripe.ts:5 and tools/stripe-portal-setup.ts:4), and Refit moves one version at a time.",
       action:
-        'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
+        'Refit moves one API version at a time, so it cannot move these clients and requests together.',
     },
   ]);
   expect(await reviewed(root)).toMatchObject({
@@ -568,7 +568,7 @@ export function createCustomer(email: string, version: string) {
       detail:
         'Refit cannot tell which Stripe API version the request at src/customers.ts:4 uses: it sets apiVersion: version, which Refit cannot trace to one version.',
       action:
-        "Write the request's apiVersion at src/customers.ts:4 as a string literal, or remove it so the request uses the client's version, or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).",
+        "Refit cannot read the request's apiVersion at src/customers.ts:4 as one version; check which version that request sends before merging a draft.",
     },
   ]);
   expect(await reviewed(root)).toEqual({
@@ -599,7 +599,7 @@ export async function createProduct(access_token, name) {
       detail:
         'This repository sends more than one Stripe API version (2023-10-16 at lib/stripe.js:4; 2026-04-22.dahlia at src/lib/stripe.ts:3), and Refit moves one version at a time.',
       action:
-        'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
+        'Refit moves one API version at a time, so it cannot move these clients and requests together.',
     },
   ]);
   const { proposal } = await proposeStripeConfiguration(root, { allowUntested: true });
@@ -630,7 +630,7 @@ it('stops without a lockfile', async () => {
       detail:
         'Refit installs dependencies only from a committed lockfile, and this repository has none at its root.',
       action:
-        'Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+        'Without a committed lockfile Refit cannot install dependencies, so it cannot run the checks on a draft.',
     },
   ]);
 });
@@ -655,7 +655,7 @@ it('proposes a configuration without a lockfile or checks only when asked, keepi
     command: ['npm', 'test'],
   });
   expect(proposalSummary(untested.proposal!)).toBe(
-    'No .refit.json is committed, so Refit generated one: Stripe API version 2026-04-22.dahlia (set at src/lib/stripe.ts:3), moving to 2026-09-30.endive, checked by the test script in package.json, run with npm. No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them. Each draft Refit opens with it is titled [Needs review]: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+    'No .refit.json is committed, so Refit generated one: Stripe API version 2026-04-22.dahlia (set at src/lib/stripe.ts:3), moving to 2026-09-30.endive, checked by the test script in package.json, run with npm. No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them. Each draft Refit opens with it is titled [Needs review]: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Without a committed lockfile Refit cannot install dependencies, so it cannot run the checks on a draft.',
   );
 
   // No test script, and a client only require() loads, which no type check can cover.
@@ -769,8 +769,7 @@ export const stripeApi = new Stripe(
         id: 'workspace-package',
         detail:
           'stripe is declared in apps/web/package.json, not in the root package.json, and Refit does not yet generate a configuration that checks a workspace package from the root.',
-        action:
-          "Commit a .refit.json whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).",
+        action: "Refit cannot run that package's tests from the root, so it stops here.",
       },
     ],
   });
@@ -825,7 +824,7 @@ export const createStripeLink = async ({ stripeApiKey }: { stripeApiKey: string 
       detail:
         "This repository sends more than one Stripe API version (stripe-node 14.25.0's default 2023-10-16 at lib/stripe.js:1; stripe-node 17.3.1's default 2024-10-28.acacia at packages/billing/index.js:1), and Refit moves one version at a time.",
       action:
-        'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
+        'Refit moves one API version at a time, so it cannot move these clients and requests together.',
     },
   ]);
 });
@@ -844,7 +843,7 @@ it('stops on a project the root lockfile does not install, or with no root packa
       detail:
         'stripe is declared in serverless/payment/checkStripeSession/package.json and serverless/payment/createStripeSession/package.json, which the root lockfile does not install, so Refit cannot prepare those projects.',
       action:
-        'Refit installs and checks only from the root package.json and its lockfile: make those projects a workspace of the root and commit the lockfile, or commit a .refit.json with a custom image (docs/DEPENDENCIES.md).',
+        'Refit installs and checks only from the root package.json and its lockfile, so it cannot prepare or check those projects.',
     },
   ]);
   // bolg55/fastify_starter: fastify/ and frontend/ are separate projects, with no root manifest.
@@ -858,7 +857,7 @@ it('stops on a project the root lockfile does not install, or with no root packa
       detail:
         'stripe is declared in fastify/package.json, and this repository has no package.json at its root.',
       action:
-        'Refit installs and checks only from the root package.json and its lockfile: make that project a workspace of the root and commit the lockfile, or commit a .refit.json with a custom image (docs/DEPENDENCIES.md).',
+        'Refit installs and checks only from the root package.json and its lockfile, so it cannot prepare or check that project.',
     },
   ]);
 });
@@ -908,7 +907,8 @@ exports.customers = functions.https.onRequest(async (request, response) => {
       id: 'stripe-not-locked',
       detail:
         'The Stripe client at extras/functions/index.js:6 sets no apiVersion, and Refit reads only the root lockfile, which does not install extras/functions/package.json, so it cannot tell which stripe-node release sends the default.',
-      action: 'Set apiVersion at extras/functions/index.js:6.',
+      action:
+        'Refit cannot tell which API version the client at extras/functions/index.js:6 sends; check it before merging a draft.',
     },
   ]);
   // The root lockfile does not install that client, so its default is not assumed.
@@ -1134,7 +1134,7 @@ export function getStripe(): Stripe {
       detail:
         "The Stripe client at src/lib/stripe.ts:13 sets no apiVersion, so it sends the API version stripe-node 21.0.1 pins, and Refit's table of stripe-node releases does not record which one that is.",
       action:
-        'Set apiVersion at src/lib/stripe.ts:13 to the version stripe-node 21.0.1 pins (its changelog names it), or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).',
+        'Refit cannot tell which version stripe-node 21.0.1 pins for the client at src/lib/stripe.ts:13 (its changelog names it); check it before merging a draft.',
     },
   ]);
   const oldest = {
@@ -1163,7 +1163,7 @@ const stripe = gateway(process.env.STRIPE_KEY);
       detail:
         "The Stripe client at pages/api/intent/[plan].js:6 sets no apiVersion, and Refit does not know which version stripe-node 11.10.0 sends by default, so requests may use your Stripe account's default version.",
       action:
-        'Set apiVersion at pages/api/intent/[plan].js:6 to the version your account uses, or commit a .refit.json that sets it (docs/REPOSITORY-SETUP.md).',
+        "Refit cannot tell which version the client at pages/api/intent/[plan].js:6 sends, which may be the Stripe account's default; check it before merging a draft.",
     },
   ]);
   expect(await reviewed(account)).toEqual(oldest);

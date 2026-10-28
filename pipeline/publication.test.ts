@@ -764,7 +764,7 @@ it('publishes an untested patch as [Needs review] only with --publish-unresolved
   );
   expect(request.body.body).toContain('the committed lockfile is out of sync with package.json');
   expect(request.body.body).toContain(
-    "**What to do:** Update `package-lock.json` so it matches `package.json` (run your package manager's install), commit it, then rerun your checks on this branch. Don't merge until they pass.",
+    '**What Refit could not do:** `package-lock.json` does not match `package.json`, so Refit could not install it, and none of its checks ran on this patch.',
   );
   expect(request.body.body).toContain(
     'Not run: dependency preparation failed (`lockfile-out-of-sync`)',
