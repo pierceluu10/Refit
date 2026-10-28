@@ -103,6 +103,14 @@ const SOURCE_EVIDENCE = [
 // Runtime dependencies a repository's own test needs before it reaches Stripe code (agent 2).
 const RUNTIME =
   /process\.env\.\w+|environment variable|ECONNREFUSED|ENOTFOUND|getaddrinfo|DATABASE_URL|MongoServerError|MongooseServerSelectionError|supabaseUrl is required|PrismaClientInitializationError/;
+// Why a repository's own check fails on the original code, where the output says so.
+const BASELINE_CAUSES = [
+  [
+    /Could not locate the bindings file|native-build-required|node-gyp rebuild/,
+    'native module not built',
+  ],
+  [/sh: [\w.-]+: not found|command not found/, 'check needs a tool the image lacks'],
+];
 // oasdiff ids of a change that takes something away; agent 3 gives the documented replacement.
 const REMOVAL = /removed/;
 const LEAF_READ = /: \S+:\d+ reads `[^`]+`\.$/;
@@ -210,7 +218,11 @@ export function blockerRules(entry, row, report, blockers) {
           evidence: evidence === 'not recorded' && plain ? plain.slice(-300) : evidence,
           ...(RUNTIME.test(output)
             ? fixable('ceiling-2')
-            : fixable('none', "repository's own check fails on the original code")),
+            : fixable(
+                'none',
+                BASELINE_CAUSES.find(([pattern]) => pattern.test(plain))?.[1] ??
+                  "repository's own check fails on the original code",
+              )),
         },
       ];
     }

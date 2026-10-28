@@ -172,6 +172,9 @@ it('separates runtime stand-ins from a repository test that fails on its own', (
     cause: "repository's own check fails on the original code",
   });
   expect(own.evidence).toContain('expected 400 to be 200');
+  expect(
+    baseline('native-build-required Error: Could not locate the bindings file. Tried:').cause,
+  ).toBe('native module not built');
 });
 
 it('reads upgrade fallout from a failing patched type check', () => {
