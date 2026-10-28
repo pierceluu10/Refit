@@ -431,6 +431,21 @@ Owner decision D4: a schema change that leaves the structure the same is not bre
 - **What still stops.** 86 l2-push-249 rows keep a contract-change stop, most beside another blocker (removed request parameters, kept or untraced API versions, webhook versions). Addisu87/digital-marketplace failed dependency preparation on a registry 502 in the after run (`needs-review` before and after).
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## Response reads through copies, helpers and nested owners (October 27)
+
+`feat/response-read-tracing` traces a response object through `at()`, `find()` and copies made with `filter()` or `slice()`, through a private helper's return value and through the parameters every call of it passes the same object, and reads a Subscription's `items` list as subscription items, so a change nested under them (`items/data/items/price/product`) has a named owner. A write to an untraced object and a value of a free-form map such as `metadata` no longer count as reads. Reads through a helper keep review confidence, except through a parameter whose declared type already names the Stripe object.
+
+| Set (no AI, default flags)        | Before: main | After: `17e30256` |
+| --------------------------------- | -----------: | ----------------: |
+| l2-push-249: production validated |           80 |                82 |
+| heldout-30: production validated  |            9 |                 9 |
+
+- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `17e30256`: l2-push-249 [40582675661](https://github.com/refit-dev/refit-bench/actions/runs/40582675661), heldout-30 [40582680240](https://github.com/refit-dev/refit-bench/actions/runs/40582680240). Counts apply the needs-review fix above.
+- **A regression found and fixed.** The first heldout-30 run at `78e0c291` ([40554003990](https://github.com/refit-dev/refit-bench/actions/runs/40554003990)) moved VishalRaut2106/HackMate_AI's two `invoice.subscription` reads from confirmed to review: the helper parameter rule also covered `invoice: Stripe.Invoice`. `17e30256` keeps a declared Stripe type on its declared-type trace, with a test; the rerun matches main on 30 of 30 rows.
+- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on 14 removals of Product `features` nested under subscription items in customer responses, which the code never reads. Each `migration.patch` was applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json).
+- **What still stops.** 5 more l2-push-249 rows lose a contract-change stop but keep another (dependency preparation, API versions, webhook versions). aresjinwoo94-cpu/EliteVault gains 2 confirmed period reads in `scripts/sync-stripe-plan.mjs`, on a client already pinned at basil, so the patch correctly leaves them; its draft stays `[Needs review]`.
+- **Not measured:** AI patches, publication and the hosted worker.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).

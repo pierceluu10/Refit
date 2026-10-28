@@ -17179,6 +17179,148 @@
           "reason": "Part of the list name l2-push-249, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated |           80 |                82 |",
+      "values": [
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        },
+        {
+          "says": "82",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated  |            9 |                 9 |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `17e30256`: l2-push-249 [40582675661](https://github.com/refit-dev/refit-bench/actions/runs/40582675661), heldout-30 [40582680240](https://github.com/refit-dev/refit-bench/actions/runs/40582680240). Counts apply the needs-review fix above.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40448715209",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40448718890",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40582675661",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40582680240",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **A regression found and fixed.** The first heldout-30 run at `78e0c291` ([40554003990](https://github.com/refit-dev/refit-bench/actions/runs/40554003990)) moved VishalRaut2106/HackMate_AI's two `invoice.subscription` reads from confirmed to review: the helper parameter rule also covered `invoice: Stripe.Invoice`. `17e30256` keeps a declared Stripe type on its declared-type trace, with a test; the rerun matches main on 30 of 30 rows.",
+      "values": [
+        {
+          "says": "30",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40554003990",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on 14 removals of Product `features` nested under subscription items in customer responses, which the code never reads. Each `migration.patch` was applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json).",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        },
+        {
+          "says": "14",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** 5 more l2-push-249 rows lose a contract-change stop but keep another (dependency preparation, API versions, webhook versions). aresjinwoo94-cpu/EliteVault gains 2 confirmed period reads in `scripts/sync-stripe-plan.mjs`, on a client already pinned at basil, so the patch correctly leaves them; its draft stays `[Needs review]`.",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40554003990, 40582675661 and 40582680240, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
     }
   ]
 }

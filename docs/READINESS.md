@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 27 checkpoint: response reads through copies, helpers and nested owners (unreleased, after 0.39.0)
+
+The analyzer (`pipeline/analyzer.ts`) traces response objects through `at`/`find` and `filter`/`slice` copies, through private helpers' returns and the parameters every call passes the same object (review confidence, unless the parameter's declared type names the Stripe object), and a Subscription's `items` list (`pipeline/operation-reach.ts`). Writes to untraced objects and values of free-form string maps are not reads. On refit-bench without AI, l2-push-249 goes from 80 to 82 validated and heldout-30 stays at 9 ([benchmarks](BENCHMARKS.md#response-reads-through-copies-helpers-and-nested-owners-october-27)). Tests: `pipeline/stripe-list-traces.test.ts`, `pipeline/operation-reach.test.ts`.
+
 ## October 27 checkpoint: structurally equivalent schema changes are compatible (unreleased, after 0.39.0)
 
 Owner decision D4: `pipeline/schema-equivalence.ts` marks an oasdiff change compatible when the schemas on both sides have the same structure, such as a renamed subschema with the same shape or a format-only annotation, for any OpenAPI provider ([schema equivalence](SCHEMA-EQUIVALENCE.md)). On refit-bench without AI, l2-push-249 goes from 80 to 84 validated and heldout-30 from 9 to 10; rows with a contract-change stop on l2-push-249 fall from 97 to 86 ([benchmarks](BENCHMARKS.md#structurally-equivalent-schema-changes-october-27)). Tests: `pipeline/schema-equivalence.test.ts`.
