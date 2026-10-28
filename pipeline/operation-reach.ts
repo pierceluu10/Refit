@@ -564,6 +564,9 @@ export function responsePropertyOwner(
   };
   let node = resolve(isObject(media) ? media.schema : undefined);
   const segments = match[1].split('/');
+  // Named properties the code must read on the way to the changed one. stripe-node unwraps an
+  // error body's top level into the thrown error and iterates a list page's root array itself.
+  const links: { schema: string; property: string }[] = [];
   for (const [index, segment] of segments.entries()) {
     if (!node) return undefined;
     const subschema = segment.match(SUBSCHEMA);
@@ -586,7 +589,15 @@ export function responsePropertyOwner(
     }
     const properties = isObject(node.properties) ? node.properties : {};
     if (index === segments.length - 1)
-      return owner && segment in properties ? { schema: owner, property: segment } : undefined;
+      return owner && segment in properties
+        ? { schema: owner, property: segment, links }
+        : undefined;
+    const envelope =
+      index === 0 &&
+      (!/^2/.test(match[2]) ||
+        (isObject(properties[segment]) && properties[segment].type === 'array'));
+    if (owner && segment in properties && !envelope)
+      links.push({ schema: owner, property: segment });
     node = resolve(properties[segment]);
   }
   return undefined;
@@ -933,7 +944,10 @@ function methodOffset(content: string, call: MappedSdkCall) {
 // Annotates each oasdiff change with its reach. Response changes are traced like removed fields:
 // the analyzer looks for reads of the changed property on the object schema that owns it.
 export function annotateReach(changes: Record<string, unknown>[], context: ReachContext) {
-  const owners = new Map<Record<string, unknown>, { schema: string; property: string }>();
+  const owners = new Map<
+    Record<string, unknown>,
+    { schema: string; property: string; links: { schema: string; property: string }[] }
+  >();
   for (const change of changes) {
     if (change.reach || !String(change.id).startsWith('response-') || COMPATIBLE[String(change.id)])
       continue;
@@ -942,13 +956,14 @@ export function annotateReach(changes: Record<string, unknown>[], context: Reach
     if (owner) owners.set(change, owner);
   }
   const removals = new Map<string, Removal>();
-  for (const { schema, property } of owners.values())
-    removals.set(`reach:${schema}.${property}`, {
-      id: `reach:${schema}.${property}`,
-      schema,
-      property,
-      pointer: `/components/schemas/${schema}/properties/${property}`,
-    });
+  for (const owner of owners.values())
+    for (const { schema, property } of [owner, ...owner.links])
+      removals.set(`reach:${schema}.${property}`, {
+        id: `reach:${schema}.${property}`,
+        schema,
+        property,
+        pointer: `/components/schemas/${schema}/properties/${property}`,
+      });
   const findings = removals.size ? context.readFindings([...removals.values()]) : [];
   for (const change of changes) {
     // D4 lists a format-only `currency` change as compatible, unless a traced call visibly sends a
@@ -974,13 +989,15 @@ export function annotateReach(changes: Record<string, unknown>[], context: Reach
       reach = requestReach(change, context);
     else if (id.startsWith('response-')) {
       const owner = owners.get(change);
-      const reads = owner
-        ? findings.filter(
-            (finding) =>
-              finding.changeId === `reach:${owner.schema}.${owner.property}` &&
-              !TEST_PATH.test(finding.file),
-          )
-        : [];
+      const readsOf = (link: { schema: string; property: string }) =>
+        findings.filter(
+          (finding) =>
+            finding.changeId === `reach:${link.schema}.${link.property}` &&
+            !TEST_PATH.test(finding.file),
+        );
+      const reads = owner ? readsOf(owner) : [];
+      // Code that never reads a property on the path cannot reach what changed below it.
+      const unread = owner?.links.find((link) => !readsOf(link).length);
       const confirmed = reads.find((finding) => finding.confidence === 'confirmed');
       reach = !owner
         ? {
@@ -996,20 +1013,25 @@ export function annotateReach(changes: Record<string, unknown>[], context: Reach
               reach: 'handled',
               reachReason: `Refit's removed-field analysis covers \`${owner.schema}.${owner.property}\`; its findings decide this removal.`,
             }
-          : confirmed
+          : unread
             ? {
-                reach: 'reached',
-                reachReason: `${confirmed.file}:${confirmed.line} reads \`${owner.schema}.${owner.property}\`.`,
+                reach: 'unused',
+                reachReason: `No code reads \`${unread.schema}.${unread.property}\`, the only way to \`${owner.schema}.${owner.property}\` in this response.`,
               }
-            : reads.length
+            : confirmed
               ? {
-                  reach: 'unknown',
-                  reachReason: `${reads[0].file}:${reads[0].line} reads \`${owner.property}\` on an object Refit cannot trace.`,
+                  reach: 'reached',
+                  reachReason: `${confirmed.file}:${confirmed.line} reads \`${owner.schema}.${owner.property}\`.`,
                 }
-              : {
-                  reach: 'unused',
-                  reachReason: `No code reads \`${owner.schema}.${owner.property}\`.`,
-                };
+              : reads.length
+                ? {
+                    reach: 'unknown',
+                    reachReason: `${reads[0].file}:${reads[0].line} reads \`${owner.property}\` on an object Refit cannot trace.`,
+                  }
+                : {
+                    reach: 'unused',
+                    reachReason: `No code reads \`${owner.schema}.${owner.property}\`.`,
+                  };
     } else if (REMOVED_OPERATIONS.has(id)) reach = operationReach(change, context);
     else
       reach = { reach: 'unknown', reachReason: `Refit has no reach rule for \`${id}\` changes.` };
