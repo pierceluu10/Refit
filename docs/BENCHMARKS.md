@@ -414,6 +414,23 @@ A run without publication ended `validated` whenever every gate passed, even whe
 - **What still stops.** D2b cleared reads on 7 l2-push-249 rows; 3 still stop on contract changes or submodules. No AI patch passed the D2 gate: the one kept AI patch changed code outside the traced sites and the type oracle did not pass for it, so it stays `[Needs review]`. CRONANANI/EzanaFinance3 hit the 20-minute runner limit in the after run (`needs-review` before). AI spend was $1.01 on l2-push-249 (main: $0.66) and $0.13 on heldout-30 (main: $0.03).
 - **Not measured:** publication and the hosted worker.
 
+## Structurally equivalent schema changes (October 27)
+
+Owner decision D4: a schema change that leaves the structure the same is not breaking, for any OpenAPI provider. `feat/spec-noise-filter` (`pipeline/schema-equivalence.ts`, [schema equivalence](SCHEMA-EQUIVALENCE.md)) marks such oasdiff changes compatible: a renamed subschema with the same shape, and format-only annotations. On Stripe's 2023-10-16 and endive specifications the two suspects are both of that kind: the `address` request property's subschema title `optional_fields_address` becomes `optional_fields_customer_address` with an identical object, and request `currency` properties gain `format: currency` with the same description.
+
+| Set (no AI, default flags)        | Before: main | After: `3b5cb244` |
+| --------------------------------- | -----------: | ----------------: |
+| l2-push-249: production validated |           80 |                84 |
+| l2-push-249: contract-change stop |           97 |                86 |
+| heldout-30: production validated  |            9 |                10 |
+
+- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `3b5cb244`: l2-push-249 [40552957597](https://github.com/refit-dev/refit-bench/actions/runs/40552957597), heldout-30 [40552966689](https://github.com/refit-dev/refit-bench/actions/runs/40552966689). Counts apply the needs-review fix above.
+- **Stops cleared.** On l2-push-249 the contract diffs lose 191 entries: 24 `address` subschema renames and 167 `currency` format annotations. On heldout-30 they lose 17. No patch diff changed.
+- **5 repositories newly validate, none lost.** siavashsk/spotify-clone, psykat1116/Spotify, Emmah-oo/spotify-clone and Neddie28/Spotify-Clone on l2-push-249, nishchay-veer/tunehub-next on heldout-30: each stopped only on the `address` change that `customers.update` sends from `billing_details`. Each `migration.patch` was applied to a clone and read in full: 5 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json).
+- **4 rows freed but not counted.** kpirabaharan/Spotify-Clone, adityayaduvanshi/Full-Stack-Music-Web-App, afdon/music-app and AlefeSk8/Spotify-Clone-Next.js ended `validated` in the run, but their drafts keep `subscription_data.trial_from_plan` and are `[Needs review]`; reviewed again as `unsure`, as on October 24, until a test-mode Checkout Session settles it.
+- **What still stops.** 86 l2-push-249 rows keep a contract-change stop, most beside another blocker (removed request parameters, kept or untraced API versions, webhook versions). Addisu87/digital-marketplace failed dependency preparation on a registry 502 in the after run (`needs-review` before and after).
+- **Not measured:** AI patches, publication and the hosted worker.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).

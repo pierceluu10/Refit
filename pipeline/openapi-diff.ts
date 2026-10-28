@@ -7,6 +7,7 @@ import type { ProviderAdapter } from './providers.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import { isRemovedOperationChange } from './openapi-operations.ts';
 import { PASSING_REACH, RESPONSE_REMOVALS } from './operation-reach.ts';
+import { equivalentChange } from './schema-equivalence.ts';
 import { PipelineInputError } from './types.ts';
 import type { Removal, Finding, Location } from './types.ts';
 import {
@@ -231,6 +232,12 @@ export async function compareOpenApi(
         ...change,
         ...responseRemovalLocation(change, before),
         ...expansionLocation(change, before),
+        // D4: a change whose schema accepts the same values in both contracts is compatible.
+        ...equivalentChange(
+          change,
+          before as Record<string, unknown>,
+          after as Record<string, unknown>,
+        ),
         ...(options.openResponseEnums &&
           change.id === RESPONSE_ENUM_ADDITION && {
             reach: 'compatible',
@@ -238,7 +245,7 @@ export async function compareOpenApi(
               'Stripe can add values to an open response enum without a version change (https://docs.stripe.com/api/versioning#enums). A new value blocks only where traced code switches over or compares the field.',
           }),
       })),
-      coverage: `Breaking contract changes reported by oasdiff (levels 2 and 3, plus removed fields and operations); ${changes.length - kept.length} other entries are not listed.${options.openResponseEnums ? ' Stripe response enum additions are listed as compatible; they block only where traced code switches over or compares the field.' : ''} Documentation-only edits are not classified as code migrations. Mapping to application code remains bounded by the selected adapter and analyzer.`,
+      coverage: `Breaking contract changes reported by oasdiff (levels 2 and 3, plus removed fields and operations); ${changes.length - kept.length} other entries are not listed.${options.openResponseEnums ? ' Stripe response enum additions are listed as compatible; they block only where traced code switches over or compares the field.' : ''} Subschema and format changes whose schema accepts the same values in both contracts are listed as compatible. Documentation-only edits are not classified as code migrations. Mapping to application code remains bounded by the selected adapter and analyzer.`,
     };
   } catch (cause) {
     if (cause instanceof PipelineInputError) throw cause;

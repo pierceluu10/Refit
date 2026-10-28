@@ -16993,6 +16993,192 @@
           "reason": "Part of the list name heldout-30, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated |           80 |                84 |",
+      "values": [
+        {
+          "says": "80",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: contract-change stop |           97 |                86 |",
+      "values": [
+        {
+          "says": "97",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "86",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated  |            9 |                10 |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: l2-push-249 [40448715209](https://github.com/refit-dev/refit-bench/actions/runs/40448715209), heldout-30 [40448718890](https://github.com/refit-dev/refit-bench/actions/runs/40448718890). After, at `3b5cb244`: l2-push-249 [40552957597](https://github.com/refit-dev/refit-bench/actions/runs/40552957597), heldout-30 [40552966689](https://github.com/refit-dev/refit-bench/actions/runs/40552966689). Counts apply the needs-review fix above.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40448715209",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40448718890",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40552957597",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40552966689",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Stops cleared.** On l2-push-249 the contract diffs lose 191 entries: 24 `address` subschema renames and 167 `currency` format annotations. On heldout-30 they lose 17. No patch diff changed.",
+      "values": [
+        {
+          "says": "191",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "24",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "167",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "17",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **5 repositories newly validate, none lost.** siavashsk/spotify-clone, psykat1116/Spotify, Emmah-oo/spotify-clone and Neddie28/Spotify-Clone on l2-push-249, nishchay-veer/tunehub-next on heldout-30: each stopped only on the `address` change that `customers.update` sends from `billing_details`. Each `migration.patch` was applied to a clone and read in full: 5 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json).",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **4 rows freed but not counted.** kpirabaharan/Spotify-Clone, adityayaduvanshi/Full-Stack-Music-Web-App, afdon/music-app and AlefeSk8/Spotify-Clone-Next.js ended `validated` in the run, but their drafts keep `subscription_data.trial_from_plan` and are `[Needs review]`; reviewed again as `unsure`, as on October 24, until a test-mode Checkout Session settles it.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** 86 l2-push-249 rows keep a contract-change stop, most beside another blocker (removed request parameters, kept or untraced API versions, webhook versions). Addisu87/digital-marketplace failed dependency preparation on a registry 502 in the after run (`needs-review` before and after).",
+      "values": [
+        {
+          "says": "86",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        },
+        {
+          "says": "502",
+          "notCheckable": "From the merged results of refit-bench runs 40448715209, 40448718890, 40552957597 and 40552966689, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
     }
   ]
 }
