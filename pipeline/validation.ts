@@ -2000,7 +2000,7 @@ export async function validateMigration(options: {
       (!initialReport.patch.diff && (baseline.status === 'passed' || dependencyFailure))
     )
       throw new PipelineInputError(
-        'No supported patch proposal is available for this committed revision.',
+        `No supported patch proposal is available for this committed revision.${options.versionBump && 'reason' in initialReport.patch ? ` ${initialReport.patch.reason}` : ''}`,
       );
     // A type-checked period-read restore below may replace it with a new proposal.
     let report: ProposedReport = initialReport;

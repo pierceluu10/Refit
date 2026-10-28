@@ -45,6 +45,7 @@ import type { ReadinessCheck } from './readiness.ts';
 import { PASSING_REACH } from './operation-reach.ts';
 import { readRepository } from './repository.ts';
 import { measureCoverage } from './sdk-coverage.ts';
+import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
 // Both hold the full contract diff, which dominates their size; see COMPRESSED_SUFFIX.
@@ -176,9 +177,11 @@ export async function versionBumpBlock(
   const untraced = sites.filter((site) => !site.traced).length;
   if (untraced)
     return `${untraced} of ${sites.length} detected Stripe calls ${untraced === 1 ? 'is' : 'are'} untraced and might use something the version changed.`;
-  // The contract diff sees a call only through an operation mapped to the OpenAPI document.
+  // The contract diff sees a call only through an operation mapped to the OpenAPI document. A
+  // webhook signature check sends no request, and the bump leaves the endpoint's version alone.
   const unmapped = scan.sdkCalls.filter(
     (call) =>
+      !stripeWebhookConstructor(call) &&
       !scan.adapter.operations.some(
         (operation) =>
           operation.resource === call.resource &&
@@ -569,6 +572,14 @@ export async function runWorkflow(options: {
       );
     // The draft's own title says [Needs review] (kept untyped properties, a grade-D check, advisory
     // type errors): the run is not a validated fix even though every gate passed.
+    // A passing bump counts as validated, since every edit is deterministic; its draft keeps the
+    // [Needs review] title an evidence grade of D gives it.
+    if (!publication && versionBump && report.patch.generator === 'deterministic')
+      return await finish(
+        'version-bump',
+        `Baseline and patched checks passed for the version bump${needsReview ? ', and its draft is [Needs review] for its evidence' : ''}. Review artifacts are ready; publication was not requested.`,
+        runId,
+      );
     if (!publication && needsReview)
       return await finish(
         'needs-review',
@@ -577,7 +588,7 @@ export async function runWorkflow(options: {
       );
     if (!publication)
       return await finish(
-        versionBump && report.patch.generator === 'deterministic' ? 'version-bump' : 'validated',
+        'validated',
         'Baseline and patched checks passed. Review artifacts are ready; publication was not requested.',
         runId,
       );

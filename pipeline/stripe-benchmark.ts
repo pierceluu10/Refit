@@ -238,7 +238,11 @@ export async function workflowScan(
         proposalReviewReason(scan, aiPatch));
     if (!stop?.startsWith(NO_USAGE_REASON)) return { stop, patch: scan.patch };
     const block = await versionBumpBlock(scan, inputs.repository);
-    return { stop: block ? stop : undefined, patch: scan.patch, versionBump: block ?? 'eligible' };
+    return {
+      stop: block ? `${stop} Refit opened no version bump: ${block}` : undefined,
+      patch: scan.patch,
+      versionBump: block ?? 'eligible',
+    };
   } catch (error) {
     return {
       stop: undefined,

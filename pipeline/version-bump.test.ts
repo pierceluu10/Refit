@@ -179,6 +179,20 @@ it('allows a bump only when every Stripe call is traced, mapped and unaffected',
   ).toBe('Refit found 1 usage to review.');
 });
 
+it('does not need a contract operation for a webhook signature check', async () => {
+  const inputs = await fixture({
+    'lib/stripe.ts': client(`'${BEFORE}'`),
+    'app/webhook.ts':
+      "import { stripe } from '../lib/stripe';\nexport const POST = (body: string, signature: string) => stripe.webhooks.constructEvent(body, signature, 'whsec');\n",
+  });
+  const report = withDiff(await scan(inputs));
+  expect(report.sdkCalls.map((call) => `${call.resource}.${call.method}`).sort()).toEqual([
+    'checkout.sessions.create',
+    'webhooks.constructEvent',
+  ]);
+  expect(await versionBumpBlock(report, inputs.repository)).toBeUndefined();
+});
+
 it('refuses a bump when a call is untraced, unmapped or a file or version is unknown', async () => {
   const untraced = await fixture({
     'lib/stripe.ts': client(`'${BEFORE}'`),
@@ -269,6 +283,25 @@ it('ends a checked bump as version-bump and an unchecked one as the honest stop'
     allowUnresolved: true,
   });
   expect(checked.manifest).toMatchObject({ status: 'version-bump', stage: 'validation' });
+  // An evidence grade of D keeps the draft's [Needs review] title, not the outcome.
+  const graded = passed(bump);
+  Object.assign(graded.validation, {
+    grade: {
+      letter: 'D',
+      level: 'none',
+      reason: 'The patch changes no source file a check could reach.',
+    },
+  });
+  vi.mocked(validateMigration).mockResolvedValueOnce(graded);
+  const ungraded = await runWorkflow({
+    ...inputs,
+    output: `${inputs.output}-graded`,
+    image: 'node:22-alpine',
+    command: ['npm', 'test'],
+    allowUnresolved: true,
+  });
+  expect(ungraded.manifest).toMatchObject({ status: 'version-bump' });
+  expect(ungraded.manifest.reason).toContain('its draft is [Needs review] for its evidence');
   expect(vi.mocked(validateMigration).mock.calls[0][0]).toMatchObject({ versionBump: true });
 
   vi.mocked(validateMigration).mockResolvedValueOnce(passed(bump, 'regression'));
@@ -285,7 +318,7 @@ it('ends a checked bump as version-bump and an unchecked one as the honest stop'
     /nothing was published\. Validation returned regression\.$/,
   );
   // Only the retry without the move would run for a migration; a bump has nothing to retry.
-  expect(validateMigration).toHaveBeenCalledTimes(2);
+  expect(validateMigration).toHaveBeenCalledTimes(3);
   expect(publishDraft).not.toHaveBeenCalled();
   expect(await readFile(join(`${inputs.output}-failed`, 'manifest.json'), 'utf8')).toContain(
     '"status": "needs-review"',
