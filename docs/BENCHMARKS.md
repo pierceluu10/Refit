@@ -60,6 +60,25 @@ Allowing well-known binary download hosts, or a native toolchain in the build im
 - heldout-30, run only after the above: 40624360669 (main `89f1c0ed`, 10 validated) → 40682647162 (`ce5755ac`, `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30 -f flags=--resolve-lockfiles`, **12**), none lost, 27 of 30 rows identical. `ItusiAI/Open-Magiviz` and `VishalRaut2106/HackMate_AI` install `package-lock.json` because their workflows install with npm and validate (labelled `correct`); `DarkInventor/QuotesAI` gains the stripe upgrade and still stops on its `link:` dependency. Nothing was tuned on this set.
 - Run-to-run noise in lockfile-less repositories, which this change does not touch: `Alfredoeb9/ele` and `minhthuong031103/RealEstateBrokerageMarket` lost their installs to SIGKILL on main and lane A and ran here, and `kondax-com/Bocker`'s baseline failed only in lane A's run.
 
+## AI repair where policy used to stop (October 28)
+
+Founder decision of 2026-10-28 ([AI repair](AI-REPAIR.md), agent Q). Subset `subsets/repair-policy.json`: 12 rows of past l2-push-249 AI runs (40624062726, 40624045392) whose repair stopped `review-required`, whose patch broke the build on rejected properties, call signatures or removed operations, or whose assessment the webhook or removed-parameter policy blocked, plus 2 controls. heldout-30 had no such row and stays held out. All runs: `benchmark.yml` at `--ref feat/stripe-test-mode-key`, `-f list=subsets/repair-policy.json -f offset=0 -f size=2 -f count=12 -f ai=true -f "flags=--resolve-lockfiles --webhook-checks --behaviour-tests --stripe-test-mode"`.
+
+- Before: 40758613932 (`96102693` = `bench/all-feats-2026-10-28` `bf81624d` plus the subset, `ai_budget=3`), AI spend $0.28.
+- After: 40764807844 (`1ed2b674`, `ai_budget=5`), AI spend $0.66. Earlier after runs on this branch: 40752646000 (`ac2a33d2`, $0.42) and 40759647632 (`2aa46eec`, $0.58; twitter-like hit an npm `ECONNRESET`).
+
+|                                                                 | Before | After                                 |
+| --------------------------------------------------------------- | -----: | ------------------------------------- |
+| Patches that break the build (`regression`)                     |      4 | 3                                     |
+| Repairs requested                                               |      3 | 6                                     |
+| Repairs accepted                                                |      0 | 1 (dubbl-org/dubbl, `[Needs review]`) |
+| Assessments blocked (assessment not requested by the benchmark) |      6 | 2 (contract review)                   |
+| Validated                                                       |      3 | 3                                     |
+
+- dubbl-org/dubbl: `review-required` with 0 repair requests (the upgraded types reject `stripeAccount`) to an AI repair that passes the type check (grade C). It moves `{ stripeAccount }` into the request-options argument of six retrieve calls; reviewed `correct` in `docs/benchmarks/fix-reviews.json`. It ships `[Needs review]` with "What the AI changed and why", never validated.
+- ReeceHarding/firebase-next.js-boilerplate: the `retrieveUpcoming` contract review stopped it before any model call; now 3 repairs run and the checks still fail (`retrieveUpcoming` untouched), so it stays a regression and is not published. One of its AI edits is wrong (`accounts.retrieve({})`), reviewed `wrong`; the checks caught it.
+- Unchanged: LouisMbc/twitter-like (the rule-lines guard, agent S), Panda2Chan/ai-asmr (repeated proposal on a second API-version pin, agent P), kondax-com/Bocker (its own flaky tests fail the baseline), and the 7 rows that already passed.
+
 ## A coding agent on the repositories Refit did not fix (October 21)
 
 Question: where Refit stopped, does a model-driven agent fix the break instead? The comparison took every affected Stripe repository that Refit did not validate on the October 20 rerun: 21 from the active-teams set, 10 original and 9 held out, 40 in all. On each pinned checkout, OpenAI's Codex CLI (`gpt-5.6-sol`, sandboxed with no network) was told to "upgrade to 2026-09-30.endive". It was given the contract diff Refit computed and the matching Stripe changelog pages. Every patch then went through Refit's own offline validation, with Refit's stripe-node upgrade added and the agent's package-file edits reverted. Every patch that passed was read in full. [Per-repository results and diffs](benchmarks/2026-10-21-agent-comparison-results.json); the harness is [`agent-comparison-cli.ts`](../pipeline/agent-comparison-cli.ts).

@@ -1,5 +1,5 @@
 import { REASONING_EFFORTS, requestStructuredOutput, type ReasoningEffort } from './openai.ts';
-import { migrationReviewReason } from './migration-review.ts';
+import { assessmentReviewReason } from './migration-review.ts';
 import { digest, parseObject } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type Repository } from './types.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
@@ -151,7 +151,7 @@ function parseAssessment(content: string, evidence: Evidence) {
 }
 
 export async function assessMigration(evidence: Evidence, options: AiOptions) {
-  const reviewReason = migrationReviewReason(evidence);
+  const reviewReason = assessmentReviewReason(evidence);
   if (reviewReason) throw new PipelineInputError(reviewReason);
   const { content, ...metadata } = await requestStructuredOutput(
     {

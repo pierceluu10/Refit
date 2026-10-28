@@ -1265,6 +1265,8 @@ export function createReviewArtifacts(
         : `**Not run: dependency preparation failed (${code(dependency.failure.reason)}); this patch is untested.**`
       : failedChecks(validation);
   const aiLines = gated(reviews, 'ai-patch') ? aiWrittenLines(patch, Boolean(upgrade)) : [];
+  const explanations = ('explanations' in patch && patch.explanations) || [];
+  const policies = validation.repair?.policies ?? [];
   // Every reason this draft needs review, each with what to check and where (owner decision 1).
   const reasonList = (siteLimit: number) =>
     (reviews ?? []).map((entry) => {
@@ -1296,6 +1298,19 @@ export function createReviewArtifacts(
             '## Why this needs review',
             `Refit opened this draft for review instead of stopping (owner decision 1). **Don't merge until you have checked each item.**${aiLines.length ? ' The AI-written lines are listed with the AI item.' : ''}`,
             reasonList(siteLimit).join('\n'),
+          ]
+        : []),
+      // Founder decision (2026-10-28): each edit of an AI repair where a policy used to stop.
+      ...(explanations.length
+        ? [
+            '## What the AI changed and why',
+            `The patch broke the build, and AI repaired it where Refit used to stop for review (founder decision, 2026-10-28). **Check each edit and its source before merging.**${policies.length ? ` Without that decision, Refit would have stopped here: ${policies.map(plainText).join(' ')}` : ''}`,
+            explanations
+              .map(
+                (note) =>
+                  `- ${code(`${note.file}:${note.line}`)} Build error: ${code(note.error.length > MAX_QUOTE ? `${note.error.slice(0, MAX_QUOTE)}...` : note.error)} Change: ${plainText(note.why)} Source: ${/^https:\/\/\S+$/.test(note.source) ? note.source : '**none: no documentation page backs this edit.**'}`,
+              )
+              .join('\n'),
           ]
         : []),
       ...(dependency
