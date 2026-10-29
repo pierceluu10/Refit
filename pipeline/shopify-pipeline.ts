@@ -467,15 +467,18 @@ function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
         status: 'literal' as const,
         reason: `${entry.kind === 'enum' ? 'ApiVersion enum' : entry.kind === 'url' ? 'Admin API URL' : 'apiVersion string'} ${entry.text}`,
       })),
-    ...scan.unresolvedVersions.map((entry) => ({
-      file: entry.file,
-      line: entry.line,
-      column: entry.column,
-      kind: 'constructor' as const,
-      value: null,
-      status: 'unknown' as const,
-      reason: entry.reason,
-    })),
+    // Notes (an environment variable with no default, `unstable`) are left as they are.
+    ...scan.unresolvedVersions
+      .filter((entry) => !entry.note)
+      .map((entry) => ({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        kind: 'constructor' as const,
+        value: null,
+        status: 'unknown' as const,
+        reason: entry.reason,
+      })),
   ];
 }
 
@@ -507,6 +510,16 @@ function sdkUpgradeNotes(packages: { name: string; from: string | null; to: stri
     ...(crossed(13)
       ? [
           '@shopify/shopify-api 13 removed API versions 2022-10 to 2024-07 (0bb7837) and made WebhookFields a union keyed on webhookType (1eb863d); 13.1.0 signs OAuth and session cookies with a derived key, so merchants may need to sign in again.',
+        ]
+      : []),
+    ...(packages.some((entry) => entry.name === 'prisma')
+      ? [
+          `Prisma upgraded because session storage requires it: ${packages
+            .filter((entry) => entry.name === 'prisma' || entry.name === '@prisma/client')
+            .map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`)
+            .join(
+              ', ',
+            )}. Refit checked the schema against Prisma 6's documented breaking changes and changed no migration or model; run prisma generate and your migrations as usual.`,
         ]
       : []),
     ...(prismaCrossed
@@ -563,7 +576,15 @@ function versionFindings(
     ...new Set(pinned.map((value) => (value < versions.before ? versions.before : value))),
   ];
   const declared = pinned.length > 1 ? served : pinned;
-  for (const entry of scan.unresolvedVersions)
+  for (const entry of scan.unresolvedVersions.filter((entry) => entry.note))
+    findings.push({
+      ...entry,
+      changeId: SHOPIFY_VERSION_RULE,
+      expression: entry.note === 'unstable' ? 'unstable' : 'apiVersion',
+      confidence: 'review',
+      reason: entry.reason,
+    });
+  for (const entry of scan.unresolvedVersions.filter((entry) => !entry.note))
     findings.push(
       entry.latest && latest && upgradedRelease
         ? {
@@ -645,7 +666,7 @@ function versionFindings(
     };
     findings.push(missing ? sdkBound(finding) : finding);
   }
-  if (!runtime.length && scan.adminCalls && !scan.unresolvedVersions.length)
+  if (!runtime.length && scan.adminCalls && !scan.unresolvedVersions.some((entry) => !entry.note))
     findings.push({
       file: scan.shopifyFiles[0] ?? 'package.json',
       line: 1,
@@ -1080,9 +1101,12 @@ async function shopifyRun(options: ShopifyRunOptions) {
                     ]
                   : []),
                 ...variableNotes,
+                ...scan.unresolvedVersions
+                  .filter((entry) => entry.note)
+                  .map((entry) => `${entry.file}:${entry.line}: ${entry.reason}`),
                 ...environmentPins.map(
                   (entry) =>
-                    `${entry.file}:${entry.line} moves the default Admin API version; the environment variable ${entry.envFallback} overrides it where it is set.`,
+                    `${entry.file}:${entry.line} moves the default Admin API version; ${/^[A-Z0-9_]+$/.test(entry.envFallback!) ? `the environment variable ${entry.envFallback}` : `\`${entry.envFallback}\``} overrides it where it is set.`,
                 ),
                 ...(storefront.length
                   ? [

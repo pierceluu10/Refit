@@ -714,3 +714,43 @@ it('never moves a lockless declaration backwards and leaves one that already all
     upgrade: { primary: REMIX, to: '4.1.1', lockless: true, files: [] },
   });
 });
+
+it('moves prisma with the session storage that needs it, and stops on Prisma 6 schema changes', async () => {
+  registry({
+    ...RELEASES,
+    [PRISMA_STORAGE]: {
+      '5.0.2': { peerDependencies: { [API]: '^11.0.0', prisma: '^5.0.0' } },
+      '7.0.0': {
+        peerDependencies: { [API]: '^12.0.0', prisma: '^6.15.0', '@prisma/client': '^6.15.0' },
+      },
+    },
+    prisma: { '5.22.0': {}, '6.15.0': {}, '6.19.0': {}, '7.0.0': {} },
+    '@prisma/client': { '5.22.0': {}, '6.19.0': {}, '7.0.0': {} },
+  });
+  const manifest = {
+    name: 'app',
+    dependencies: {
+      [REMIX]: '^3.4.0',
+      [PRISMA_STORAGE]: '^5.0.2',
+      '@prisma/client': '^5.22.0',
+      prisma: '^5.22.0',
+    },
+  };
+  const schema = (fields: string) =>
+    `datasource db {\n  provider = "sqlite"\n  url = "file:dev.sqlite"\n}\nmodel Session {\n  id String @id\n${fields}}\n`;
+  const root = await directory({
+    'package.json': `${JSON.stringify(manifest, null, 2)}\n`,
+    'prisma/schema.prisma': schema('  shop String\n'),
+  });
+  const result = await shopifySdkUpgrade(root, 'April26');
+  expect(result).toMatchObject({ upgrade: { primary: REMIX, to: '4.1.1', lockless: true } });
+  const after = 'upgrade' in result ? result.upgrade.files[0].after : '';
+  expect(after).toContain('"prisma": "^6.19.0"');
+  expect(after).toContain('"@prisma/client": "^6.19.0"');
+  expect(after).toContain(`"${PRISMA_STORAGE}": "^7.0.0"`);
+  await writeFile(join(root, 'prisma/schema.prisma'), schema('  data Bytes\n'));
+  expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
+    reason:
+      'Prisma 6 returns Bytes fields as Uint8Array instead of Buffer, and the schema has a Bytes field.',
+  });
+});
