@@ -411,7 +411,7 @@ it('names the unsupported pnpm setting and where it is set', () => {
     packageExtensions: { stripe: { dependencies: { qs: '6.11.0' } } },
   };
   expect(() => validate(sample)).toThrow(
-    'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "packageExtensions".',
+    'Unsupported pnpm settings need the repository install; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "packageExtensions".',
   );
 });
 it('accepts committed patches and overrides only as pnpm-lock.yaml records them', () => {

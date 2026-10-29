@@ -18839,6 +18839,111 @@
           "reason": "Part of the list name l2-push-249, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "PR #364, under the founder decision of 2026-10-28 ([customer environment](CUSTOMER-ENVIRONMENT.md)). The runs were on refit-bench, no AI, `subsets/l2-push-249.json`, offset 0, size 25, count 249, compared with `scripts/stripe-benchmark-compare.mjs`.",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Before:** main `89f1c0ed59809eedfd247526f7f1a770af7447d6`, run 40624045392.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **After:** `6d6ecd9130ccf3de6ddd74875fae0751a099235e`, run 40639926011.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40639926011",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "All 12 jobs passed in both runs, and both runs report 249 repositories. **Outcome changes: 0.** The same outcome holds for 249 of 249 repositories.",
+      "values": [
+        {
+          "says": "12",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "The build sandbox ran on the 15 rows where Refit's own preparation refused for a reason it may fall back on. All 15 installs failed, so nothing was newly validated and no `migration.patch` needed a label in `docs/benchmarks/fix-reviews.json`. These rows stay untested, as before. Their causes, read from the results and reproduced locally for three of them:",
+      "values": [
+        {
+          "says": "15",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "15",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **A lockfile Refit's default pnpm 10 refuses, with no `packageManager` pin:** Miguel07Alm/text2question, an `ERR_PNPM_INVALID_DEPENDENCY_NAME` alias `react@latest`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "10",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **The other 10** (pnpm and Yarn rows, and one `npm ci` from a Dockerfile): the benchmark's stored message had been filled by proxy-agent warnings before the error. After the measured commit, `installFailure` puts the error lines first. That change touches messages only, not outcomes.",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
     }
   ]
 }

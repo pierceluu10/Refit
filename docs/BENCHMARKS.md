@@ -26,6 +26,24 @@ Every number here comes from real public repositories, frozen before the run tha
 - **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
 - **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
 
+## Refit builds the environment from the repository's own install (October 28)
+
+PR #364, under the founder decision of 2026-10-28 ([customer environment](CUSTOMER-ENVIRONMENT.md)). The runs were on refit-bench, no AI, `subsets/l2-push-249.json`, offset 0, size 25, count 249, compared with `scripts/stripe-benchmark-compare.mjs`.
+
+- **Before:** main `89f1c0ed59809eedfd247526f7f1a770af7447d6`, run 40624045392.
+- **After:** `6d6ecd9130ccf3de6ddd74875fae0751a099235e`, run 40639926011.
+
+All 12 jobs passed in both runs, and both runs report 249 repositories. **Outcome changes: 0.** The same outcome holds for 249 of 249 repositories.
+
+The build sandbox ran on the 15 rows where Refit's own preparation refused for a reason it may fall back on. All 15 installs failed, so nothing was newly validated and no `migration.patch` needed a label in `docs/benchmarks/fix-reviews.json`. These rows stay untested, as before. Their causes, read from the results and reproduced locally for three of them:
+
+- **Install scripts that download from hosts no committed file names, so the proxy refused them:** Prisma (`binaries.prisma.sh`) in TN0123/Schematic and yuens1002/artisan-roast, and the Supabase CLI (`release-assets.githubusercontent.com`) in cesarolvr/journeylog-app.
+- **A native build with no Python in the image:** `better-sqlite3` in inventashif/hackerai.
+- **A lockfile Refit's default pnpm 10 refuses, with no `packageManager` pin:** Miguel07Alm/text2question, an `ERR_PNPM_INVALID_DEPENDENCY_NAME` alias `react@latest`.
+- **The other 10** (pnpm and Yarn rows, and one `npm ci` from a Dockerfile): the benchmark's stored message had been filled by proxy-agent warnings before the error. After the measured commit, `installFailure` puts the error lines first. That change touches messages only, not outcomes.
+
+Allowing well-known binary download hosts, or a native toolchain in the build image, would widen what the sandbox runs, so it needs an owner decision.
+
 ## A coding agent on the repositories Refit did not fix (October 21)
 
 Question: where Refit stopped, does a model-driven agent fix the break instead? The comparison took every affected Stripe repository that Refit did not validate on the October 20 rerun: 21 from the active-teams set, 10 original and 9 held out, 40 in all. On each pinned checkout, OpenAI's Codex CLI (`gpt-5.6-sol`, sandboxed with no network) was told to "upgrade to 2026-09-30.endive". It was given the contract diff Refit computed and the matching Stripe changelog pages. Every patch then went through Refit's own offline validation, with Refit's stripe-node upgrade added and the agent's package-file edits reverted. Every patch that passed was read in full. [Per-repository results and diffs](benchmarks/2026-10-21-agent-comparison-results.json); the harness is [`agent-comparison-cli.ts`](../pipeline/agent-comparison-cli.ts).

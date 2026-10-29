@@ -15,7 +15,7 @@ refit enroll --repository ~/Repos/refit-billing-demo \
   --github pierceluu10/refit-billing-demo --base main
 ```
 
-This requires the reviewed configuration to exist in that checkout. The command prints the workflow settings, input files, reviewed commit and a full fingerprint. It does not execute the app, contact GitHub, install dependencies or request AI. `--json` produces a review record for automation or archiving. Review the commands, image, version pin, baseline and adapter files before approval. A fingerprint identifies the exact reviewed bytes; it does not establish their safety or migration semantics.
+This requires the reviewed configuration to exist in that checkout. The command prints the workflow settings, input files, reviewed commit and a full fingerprint. It does not execute the app, contact GitHub, install dependencies or request AI. `--json` produces a review record for automation or archiving. Review the commands, image, version pin, baseline and adapter files before approval. A fingerprint identifies the exact reviewed bytes; it does not establish their safety or migration semantics. A customer needs no setting of their own for dependencies: where Refit cannot prepare them itself, it runs the repository's own install in its build sandbox, and otherwise its customer-CI workflow pull request is the only thing it asks them to approve ([customer environment](CUSTOMER-ENVIRONMENT.md)).
 
 ## A repository with no `.refit.json`
 
