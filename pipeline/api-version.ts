@@ -18,6 +18,9 @@ export interface ApiVersionDeclaration extends Location {
   endpoint?: true;
   // An untraced client's literal pin the patch moves to the target: the version it sent.
   moved?: string;
+  // A literal pin on a client Refit cannot trace, in a repository where every version option is a
+  // literal: wherever the client goes it sends this pin, which the version move updates.
+  untracedPin?: true;
   // The version is read from this deployment environment variable; `value` is its repository default.
   environment?: string;
 }

@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import ts from 'typescript-compiler';
 import { componentReference, isObject } from './specifications.ts';
 import { TEST_PATH } from './source-paths.ts';
@@ -72,6 +73,7 @@ interface CallBody {
   file: string;
   // `unknown` when Refit cannot find the traced call again.
   body: ts.Expression | undefined | 'unknown';
+  call?: ts.CallExpression;
 }
 
 // Reading a request stops after this many steps through names, calls and spreads.
@@ -515,11 +517,19 @@ function callBodies(repository: Repository, calls: MappedSdkCall[], argumentInde
     }
     const source = ts.createSourceFile(path, file.content, ts.ScriptTarget.Latest, true);
     const wanted = new Set(located.map((call) => `${call.line}:${call.column}`));
+    const methods = new Map(
+      located.map((call) => [`${call.line}:${call.column}`, call.method.split('.').at(-1)]),
+    );
     const visit = (node: ts.Node) => {
       if (ts.isCallExpression(node)) {
         const position = source.getLineAndCharacterOfPosition(node.getStart());
-        if (wanted.delete(`${position.line + 1}:${position.character + 1}`))
-          bodies.push({ file: path, body: node.arguments[argumentIndex] });
+        const key = `${position.line + 1}:${position.character + 1}`;
+        // `stripe.accounts.retrieve().catch(…)` starts where the SDK call does: match its method.
+        const method = ts.isPropertyAccessExpression(node.expression)
+          ? node.expression.name.text
+          : undefined;
+        if (method === methods.get(key) && wanted.delete(key))
+          bodies.push({ file: path, body: node.arguments[argumentIndex], call: node });
       }
       ts.forEachChild(node, visit);
     };
@@ -532,6 +542,18 @@ function callBodies(repository: Repository, calls: MappedSdkCall[], argumentInde
 
 // The component schema and property a response property path names, walking the operation's
 // response in the before contract. Inline objects have no component to trace reads against.
+// A component schema's property definition, or undefined.
+function componentProperty(document: Record<string, unknown>, schema: string, property: string) {
+  const schemas =
+    isObject(document.components) && isObject(document.components.schemas)
+      ? document.components.schemas
+      : {};
+  const definition = schemas[schema];
+  return isObject(definition) && isObject(definition.properties)
+    ? definition.properties[property]
+    : undefined;
+}
+
 export function responsePropertyOwner(
   change: Record<string, unknown>,
   before: Record<string, unknown>,
@@ -610,6 +632,8 @@ export function responsePropertyOwner(
 export interface ReachContext {
   repository: Repository;
   before: Record<string, unknown>;
+  // The target contract, where a response change is checked against the object schema itself.
+  after?: Record<string, unknown>;
   calls: MappedSdkCall[];
   mappings: ProviderOperationMapping[];
   // Likely SDK call sites the analyzer did not trace, as `resource.method` expressions.
@@ -735,6 +759,51 @@ export function requestOptionEdits(
   }
   return [...edits.values()];
 }
+
+// stripe-node 23 declares `retrieve(id: string | null, params?, options?)` on accounts, so a
+// `retrieve()` with no argument no longer type-checks (TS2554). No stripe-node CHANGELOG entry or
+// migration guide states it; the evidence is stripe-node 23.0.0's own declarations and resource:
+// `retrieve` is documented "Pass `null` as the account id to retrieve details about your own
+// account" and, given no string id, requests `GET /v1/account`, as `retrieveCurrent(params,
+// options)` always does (cjs/resources/Accounts.js and Accounts.d.ts, read 2026-10-28). The call
+// becomes `retrieveCurrent()`, the same request; it rides the stripe-node upgrade like the
+// request-options rule. Any argument, an optional call and test files are left alone.
+export const ACCOUNT_RETRIEVE_CURRENT_RULE = 'stripe-account-retrieve-current';
+export function accountRetrieveCurrentEdits(context: Pick<ReachContext, 'repository' | 'calls'>) {
+  const calls = context.calls.filter(
+    (call) => call.method === 'accounts.retrieve' && !TEST_PATH.test(call.file),
+  );
+  const edits: SourceEdit[] = [];
+  for (const { file, call } of callBodies(context.repository, calls, 0)) {
+    const callee = call?.expression;
+    if (
+      !call ||
+      call.arguments.length ||
+      call.questionDotToken ||
+      !callee ||
+      !ts.isPropertyAccessExpression(callee) ||
+      callee.questionDotToken ||
+      callee.name.text !== 'retrieve'
+    )
+      continue;
+    edits.push({
+      file,
+      start: callee.name.getStart(),
+      end: callee.name.getEnd(),
+      replacement: 'retrieveCurrent',
+      changeId: ACCOUNT_RETRIEVE_CURRENT_RULE,
+      rule: ACCOUNT_RETRIEVE_CURRENT_RULE,
+    });
+  }
+  return edits;
+}
+
+// Edits that only follow stripe-node's signatures: they ride the other rule edits or the version
+// bump and the upgrade, never make a patch alone.
+export const SDK_SIGNATURE_RULES = new Set<string>([
+  REQUEST_OPTIONS_RULE,
+  ACCOUNT_RETRIEVE_CURRENT_RULE,
+]);
 
 // Rule-table enum successors (the `request-enum-value` family): a removed enum value written as a
 // literal in a traced call's own request becomes the value Stripe documents in its place, such as
@@ -1032,14 +1101,20 @@ function requestReach(
 // rule edit rewrites each call's method (invoices.retrieveUpcoming becomes createPreview,
 // stripe-invoice-preview.ts). An untraced call that may name it, or the path written in source
 // (a raw HTTP request), keeps it unknown.
-function operationReach(change: Record<string, unknown>, context: ReachContext): ChangeReach {
+// Whether any code may call the change's operation: an untraced call that may request it, a raw
+// request to its path, or a traced call. A reach where none can, else the traced calls.
+function operationUse(
+  change: Record<string, unknown>,
+  context: ReachContext,
+  removed: string,
+): ChangeReach | MappedSdkCall[] {
   const mapping = changeMapping(change, context.mappings);
   const operation = mapping ? `${mapping.resource}.${mapping.method}` : String(change.path);
   const untraced = untracedRequester(change, mapping, context);
   if (untraced)
     return {
       reach: 'unknown',
-      reachReason: `The untraced call \`${untraced}\` may request the removed \`${operation}\`.`,
+      reachReason: `The untraced call \`${untraced}\` may request the ${removed}\`${operation}\`.`,
     };
   // `/v1/invoices/{invoice}/pay` matches `invoices/${id}/pay` and `invoices/' + id + '/pay` on
   // one line.
@@ -1056,7 +1131,7 @@ function operationReach(change: Record<string, unknown>, context: ReachContext):
   if (raw)
     return {
       reach: 'unknown',
-      reachReason: `${raw.path} writes the removed path \`${change.path}\`, which Refit cannot trace.`,
+      reachReason: `${raw.path} writes the ${removed}path \`${change.path}\`, which Refit cannot trace.`,
     };
   const calls = mapping
     ? context.calls.filter(
@@ -1066,8 +1141,17 @@ function operationReach(change: Record<string, unknown>, context: ReachContext):
   if (!calls.length)
     return {
       reach: 'unused',
-      reachReason: `No traced call requests the removed \`${operation}\`.`,
+      reachReason: `No traced call requests the ${removed}\`${operation}\`.`,
     };
+  return calls;
+}
+
+function operationReach(change: Record<string, unknown>, context: ReachContext): ChangeReach {
+  const use = operationUse(change, context, 'removed ');
+  if (!Array.isArray(use)) return use;
+  const calls = use;
+  const mapping = changeMapping(change, context.mappings);
+  const operation = mapping ? `${mapping.resource}.${mapping.method}` : String(change.path);
   for (const call of calls) {
     const file = context.repository.files.find((entry) => entry.path === call.file);
     const offset = file && methodOffset(file.content, call);
@@ -1156,43 +1240,68 @@ export function annotateReach(changes: Record<string, unknown>[], context: Reach
             finding.changeId === `reach:${link.schema}.${link.property}` &&
             !TEST_PATH.test(finding.file),
         );
+      // A change to one operation's response, not to the object schema it returns (the property is
+      // the same on the component in both contracts, as when cancel_action's response became an
+      // `anyOf`), reaches only code that calls that operation.
+      const now =
+        owner && context.after && componentProperty(context.after, owner.schema, owner.property);
+      const unchanged =
+        now !== undefined &&
+        // A removal from this response while the object keeps the property, or any other change
+        // where the object's property is the same in both contracts.
+        (RESPONSE_REMOVALS.has(id) ||
+          isDeepStrictEqual(
+            componentProperty(context.before, owner!.schema, owner!.property),
+            now,
+          ));
+      // A change with no named owner is to the response body itself, which only that operation returns.
+      const use = unchanged || !owner ? operationUse(change, context, '') : undefined;
       const reads = owner ? readsOf(owner) : [];
       // Code that never reads a property on the path cannot reach what changed below it.
       const unread = owner?.links.find((link) => !readsOf(link).length);
       const confirmed = reads.find((finding) => finding.confidence === 'confirmed');
-      reach = !owner
-        ? {
-            reach: 'unknown',
-            reachReason:
-              'The changed response property is not a property of a named Stripe object.',
-          }
-        : RESPONSE_REMOVALS.has(id) &&
-            context.removals.some(
-              (removal) => removal.schema === owner.schema && removal.property === owner.property,
-            )
+      reach =
+        use && !Array.isArray(use) && use.reach === 'unused'
           ? {
-              reach: 'handled',
-              reachReason: `Refit's removed-field analysis covers \`${owner.schema}.${owner.property}\`; its findings decide this removal.`,
+              reach: 'unused',
+              reachReason: owner
+                ? `${use.reachReason} Only that operation's response changed; \`${owner.schema}\` still has \`${owner.property}\`.`
+                : `${use.reachReason} The change is to that operation's response body.`,
             }
-          : unread
+          : !owner
             ? {
-                reach: 'unused',
-                reachReason: `No code reads \`${unread.schema}.${unread.property}\`, the only way to \`${owner.schema}.${owner.property}\` in this response.`,
+                reach: 'unknown',
+                reachReason:
+                  'The changed response property is not a property of a named Stripe object.',
               }
-            : confirmed
+            : RESPONSE_REMOVALS.has(id) &&
+                context.removals.some(
+                  (removal) =>
+                    removal.schema === owner.schema && removal.property === owner.property,
+                )
               ? {
-                  reach: 'reached',
-                  reachReason: `${confirmed.file}:${confirmed.line} reads \`${owner.schema}.${owner.property}\`.`,
+                  reach: 'handled',
+                  reachReason: `Refit's removed-field analysis covers \`${owner.schema}.${owner.property}\`; its findings decide this removal.`,
                 }
-              : reads.length
+              : unread
                 ? {
-                    reach: 'unknown',
-                    reachReason: `${reads[0].file}:${reads[0].line} reads \`${owner.property}\` on an object Refit cannot trace.`,
-                  }
-                : {
                     reach: 'unused',
-                    reachReason: `No code reads \`${owner.schema}.${owner.property}\`.`,
-                  };
+                    reachReason: `No code reads \`${unread.schema}.${unread.property}\`, the only way to \`${owner.schema}.${owner.property}\` in this response.`,
+                  }
+                : confirmed
+                  ? {
+                      reach: 'reached',
+                      reachReason: `${confirmed.file}:${confirmed.line} reads \`${owner.schema}.${owner.property}\`.`,
+                    }
+                  : reads.length
+                    ? {
+                        reach: 'unknown',
+                        reachReason: `${reads[0].file}:${reads[0].line} reads \`${owner.property}\` on an object Refit cannot trace.`,
+                      }
+                    : {
+                        reach: 'unused',
+                        reachReason: `No code reads \`${owner.schema}.${owner.property}\`.`,
+                      };
     } else if (REMOVED_OPERATIONS.has(id)) reach = operationReach(change, context);
     else
       reach = { reach: 'unknown', reachReason: `Refit has no reach rule for \`${id}\` changes.` };
