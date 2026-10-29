@@ -21,7 +21,7 @@ import {
   quotedSources,
   type ScanBundle,
 } from './ai-fallback.ts';
-import { exposureSites, loadSourceContext } from './ai-fallback-run.ts';
+import { exposureSites, fallbackCommand, loadSourceContext } from './ai-fallback-run.ts';
 import { missRecords } from './ai-misses.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { runModelFixes } from './model-fixes.ts';
@@ -453,13 +453,7 @@ async function main() {
     const manifest = JSON.parse(
       await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
     );
-    const scripts = manifest.scripts ?? {};
-    const command =
-      typeof scripts.test === 'string' && !/no test specified/.test(scripts.test)
-        ? ['npm', 'test']
-        : typeof scripts.build === 'string'
-          ? ['npm', 'run', 'build']
-          : undefined;
+    const command = fallbackCommand(manifest)?.command;
     return {
       command,
       prepareDependencies: LOCKFILES.some((name) => existsSync(join(directory, name))),

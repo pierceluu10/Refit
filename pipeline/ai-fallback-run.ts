@@ -194,26 +194,15 @@ function dependenciesChanged(before: string, after: string) {
   }
 }
 
-// The checks the fallback validates with: the repository's tests, build and type check, whichever
-// it has, chained so all must pass on the original code and on the patch.
-export function fallbackCommand(manifest: Record<string, unknown>, hasTsconfig: boolean) {
+// The checks a fix must pass are the repository's own, chosen as the rule lanes choose them
+// (`refit ai-migrations --validate` and the benchmark's model fixes): its test script when it has
+// a real one, else its build script. Refit never adds a check of its own.
+export function fallbackCommand(manifest: Record<string, unknown>) {
   const scripts = (manifest.scripts ?? {}) as Record<string, unknown>;
-  const dependencies = {
-    ...((manifest.dependencies ?? {}) as Record<string, unknown>),
-    ...((manifest.devDependencies ?? {}) as Record<string, unknown>),
-  };
-  const parts: string[] = [];
   if (typeof scripts.test === 'string' && !/no test specified/.test(scripts.test))
-    parts.push('npm test');
-  if (typeof scripts.build === 'string') parts.push('npm run build');
-  const typeCheck = hasTsconfig && 'typescript' in dependencies;
-  if (typeCheck && !/\btsc\b/.test(String(scripts.build ?? '')))
-    parts.push('npx --no-install tsc --noEmit');
-  if (!parts.length) return null;
-  return {
-    command: parts.length === 1 ? parts[0].split(' ') : ['sh', '-c', parts.join(' && ')],
-    compareTypeErrors: typeCheck,
-  };
+    return { command: ['npm', 'test'] };
+  if (typeof scripts.build === 'string') return { command: ['npm', 'run', 'build'] };
+  return null;
 }
 
 export async function runFallbackOnRepository(options: {
@@ -291,7 +280,7 @@ export async function runFallbackOnRepository(options: {
   const lockfiles = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].filter((name) =>
     existsSync(join(directory, name)),
   );
-  const checks = fallbackCommand(manifest, existsSync(join(directory, 'tsconfig.json')));
+  const checks = fallbackCommand(manifest);
   // The manifest the patch leaves, for the request proof's SDK release.
   let patchedManifest = JSON.stringify(manifest);
 
@@ -362,7 +351,7 @@ export async function runFallbackOnRepository(options: {
           return {
             status: 'no-checks',
             command: ['none'],
-            reason: 'The repository has no test, build or type check.',
+            reason: 'The repository has no test or build script.',
           };
         // A patch validation refuses (one that changes no committed file, a failed preparation) fails
         // the checks gate; it must not end the fallback, whose answer and cost are already in hand.
@@ -372,7 +361,6 @@ export async function runFallbackOnRepository(options: {
             repository: directory,
             image: options.image,
             command: checks.command,
-            compareTypeErrors: checks.compareTypeErrors,
             prepareDependencies: lockfiles.length > 0,
             propose: async () => patch,
             onProgress: options.onProgress,

@@ -29,7 +29,15 @@ export class UnusableAiResponse extends PipelineInputError {
 }
 
 export async function requestStructuredOutput(
-  request: { evidence: unknown; instructions: string; name: string; schema: object },
+  request: {
+    evidence: unknown;
+    instructions: string;
+    name: string;
+    schema: object;
+    // How much the model reasons before answering; reasoning tokens count against the output
+    // limit, so a lower effort leaves more of it for the answer. Unset uses the model's default.
+    reasoningEffort?: 'low' | 'medium' | 'high';
+  },
   options: AiOptions,
 ) {
   if (!options.apiKey.trim() || !options.model.trim())
@@ -46,6 +54,7 @@ export async function requestStructuredOutput(
     instructions: request.instructions,
     input: [{ role: 'user', content: input }],
     max_output_tokens: MAX_OUTPUT_TOKENS,
+    ...(request.reasoningEffort ? { reasoning: { effort: request.reasoningEffort } } : {}),
     text: {
       format: { type: 'json_schema', name: request.name, strict: true, schema: request.schema },
     },

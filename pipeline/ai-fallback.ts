@@ -433,7 +433,7 @@ export const INSTRUCTIONS = `You fix a repository that Refit, a deterministic AP
 The input lists every open item Refit found ("items"): what changed at the provider, the file, line and code, and why Refit stopped. "sources" quotes the provider's own pages for each change. "targets" lists, per item, the replacement models the provider names and the SDK major from Refit's registry; when the provider names several, pick the one that fits the code. "partial" is the patch Refit itself proposed, if any, and what happened to it. "files" holds the repository files that matter, whole; "omitted" names files that did not fit.
 Fix the repository so that every item is resolved and the code still works. You have full freedom to edit: any file shown, new files, call shapes, response handling, helpers, configuration, and dependency versions in the manifest (Refit re-resolves an npm lockfile for you). Go as far as the fix needs.
 What happens to your patch: Refit installs dependencies from the lockfile, runs the repository's build, type check and tests before and after, rescans the patched code with its own engines, sends the smallest real request with each new call shape and model and parses the response, and checks the diff for secrets and for model IDs: a model ID passes only when it is already in the code or in "targets". A patch that fails a check is shown to a person as a suggestion, so a partial or imperfect attempt still helps; a patch that passes is proposed as a draft a person reviews.
-For an item you could not fix, say what is missing in "unresolved". Return changes as "edits" (an exact snippet of the original file in "old", copied character for character and occurring once, and its replacement in "new") and use "files" only for new files or files you rewrite whole. List every provider call you wrote or changed in "calls" (its path such as responses.create, messages.create or models.generateContent, and whether it streams, uses tools or asks for JSON), and a short note per item in "notes". In "patterns", describe for each item, in one sentence with no repository, file or identifier names, the general code pattern that kept Refit from fixing it.`;
+For an item you could not fix, say what is missing in "unresolved". Return only what changes: put each change in "edits" (the smallest exact snippet of the original file in "old", copied character for character and occurring once, and its replacement in "new"), and use "files" only for new files. Never return an unchanged file or an unchanged part of one. List every provider call you wrote or changed in "calls" (its path such as responses.create, messages.create or models.generateContent, and whether it streams, uses tools or asks for JSON), and a short note per item in "notes". In "patterns", describe for each item, in one sentence with no repository, file or identifier names, the general code pattern that kept Refit from fixing it.`;
 
 export const SCHEMA = {
   type: 'object',
@@ -786,7 +786,8 @@ export function scopeGate(
     const name = file.path.split('/').at(-1)!;
     if (LOCKFILES.has(name))
       return fail(`The patch edits ${file.path}; only Refit may re-resolve a lockfile.`);
-    if (TEST_PATH.test(file.path))
+    // A new test can only add checks; editing an existing one can make the checks prove nothing.
+    if (TEST_PATH.test(file.path) && file.before !== null)
       return fail(`The patch changes the test file ${file.path}, so passing tests prove nothing.`);
     if (CHECK_CONFIG.test(file.path))
       return fail(`The patch changes ${file.path}, which decides what the checks run.`);
@@ -979,7 +980,15 @@ export async function runAiFallback(options: {
   let answer: Awaited<ReturnType<typeof request>>;
   try {
     answer = await request(
-      { name: 'refit_ai_fallback', instructions: INSTRUCTIONS, schema: SCHEMA, evidence: input },
+      {
+        name: 'refit_ai_fallback',
+        instructions: INSTRUCTIONS,
+        schema: SCHEMA,
+        evidence: input,
+        // At the default effort, 4 of 22 openai-dev-30 answers (run 40933274074) spent the whole
+        // output limit reasoning and returned nothing.
+        reasoningEffort: 'medium',
+      },
       options.ai,
     );
   } catch (error) {

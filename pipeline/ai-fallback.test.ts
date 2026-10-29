@@ -465,6 +465,10 @@ describe('gates', () => {
       scopeGate([change('package.json', manifest, manifest.replace('vitest', 'true'))], context)
         .detail,
     ).toContain('changes the scripts');
+    // A new test file only adds checks.
+    expect(
+      scopeGate([change('tests/test_ask.py', null, 'def test_x():\n    pass\n')], context).status,
+    ).toBe('passed');
     for (const [path, words] of [
       ['src/ask.test.ts', 'test file'],
       ['tests/test_ask.py', 'test file'],
@@ -583,25 +587,17 @@ describe('request proof environment', () => {
 });
 
 describe('checks command', () => {
-  it('chains tests, build and type check', () => {
+  it("is the repository's own test script, else its build, as the rule lanes choose", () => {
     expect(
-      fallbackCommand(
-        {
-          scripts: { test: 'vitest run', build: 'vite build' },
-          devDependencies: { typescript: '5' },
-        },
-        true,
-      ),
-    ).toEqual({
-      command: ['sh', '-c', 'npm test && npm run build && npx --no-install tsc --noEmit'],
-      compareTypeErrors: true,
+      fallbackCommand({
+        scripts: { test: 'vitest run', build: 'vite build' },
+        devDependencies: { typescript: '5' },
+      }),
+    ).toEqual({ command: ['npm', 'test'] });
+    expect(fallbackCommand({ scripts: { build: 'tsc -b' } })).toEqual({
+      command: ['npm', 'run', 'build'],
     });
-    expect(
-      fallbackCommand({ scripts: { build: 'tsc -b' }, devDependencies: { typescript: '5' } }, true),
-    ).toEqual({ command: ['npm', 'run', 'build'], compareTypeErrors: true });
-    expect(fallbackCommand({ scripts: { test: 'echo "Error: no test specified"' } }, false)).toBe(
-      null,
-    );
+    expect(fallbackCommand({ scripts: { test: 'echo "Error: no test specified"' } })).toBe(null);
   });
 });
 
