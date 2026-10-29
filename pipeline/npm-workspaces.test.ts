@@ -187,3 +187,16 @@ it('requires unique names and incorporates a script-only workspace manifest chan
   original.workspaces.set('packages/duplicate', JSON.stringify(workspace));
   expect(() => validate(original)).toThrow(/unique/);
 });
+
+it('accepts an empty workspaces list, which npm leaves out of the root lockfile record', () => {
+  const root = { name: 'app', private: true, workspaces: [], dependencies: { stripe: '10.17.0' } };
+  const { workspaces, ...recorded } = root;
+  expect(workspaces).toEqual([]);
+  const lock = {
+    lockfileVersion: 3,
+    packages: { '': recorded, 'node_modules/stripe': record },
+  };
+  expect(validateNpmLock(JSON.stringify(root), JSON.stringify(lock), new Map())).toMatchObject({
+    packages: 1,
+  });
+});
