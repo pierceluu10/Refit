@@ -213,7 +213,7 @@ const INFRASTRUCTURE =
 
 // Why the fallback's checks gate failed, by cause: a check-infrastructure gap or a real failure.
 export function checkFailureCause(detail: string) {
-  if (/baseline-failed|Baseline failed/.test(detail))
+  if (/baseline-failed|Baseline failed|passed on the original code/.test(detail))
     return 'the checks already fail on the original code';
   if (/re-resolves only/.test(detail))
     return 'dependency change in a repository with a pnpm or Yarn lockfile, or several lockfiles';

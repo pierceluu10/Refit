@@ -210,6 +210,11 @@ describe('miss records and rule candidates', () => {
       ),
     ).toContain('pnpm or Yarn');
     expect(checkFailureCause('`npm test` before and after in offline Docker: failed.')).toBe(null);
+    expect(
+      checkFailureCause(
+        'Neither the tests nor the type check passed on the original code, so no check shows the patch works.',
+      ),
+    ).toBe('the checks already fail on the original code');
   });
 
   it('withholds a group no saved quote backs', () => {
