@@ -25,6 +25,7 @@ export const PREPARATION_GROUPS = [
     'lockfile-out-of-sync',
     /differ from the committed package-lock\.json|importer specifiers differ from committed manifests|overrides differ from the overrides pnpm-lock\.yaml records|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|ERR_PNPM_LOCKFILE_CONFIG_MISMATCH/,
   ],
+  ['git-dependency', / from Git \(/],
   [
     'non-registry-source',
     /supports public npm registry dependencies only|must use public registry|Package tarballs must use public registry|reads a bun\.lock only when every package is a public registry package|codeload\.github\.com|\bgit\+|github:/,
