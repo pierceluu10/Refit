@@ -59,6 +59,10 @@ import {
   verifyShopifyAlert,
   verifyShopifyRule,
 } from './shopify-rules.ts';
+import {
+  checkShopifyRestContract,
+  loadShopifyRestVersionContract,
+} from './shopify-rest-contract.ts';
 import { pinnedShopifyDiff, shopifyDiffFile } from './shopify-schema-diff.ts';
 import { pinnedShopifyVersions, SHOPIFY_APIS } from './shopify-schemas.ts';
 import { PipelineInputError } from './types.ts';
@@ -100,7 +104,7 @@ page (docs/benchmarks/stripe-changelog/pages) verbatim, its oasdiff entry must b
 between the table's two pinned contracts and be the change the rule answers, and the rule must
 agree with both contracts. Contracts missing from --contracts are downloaded at their pinned
 stripe/openapi commit and checked against data/stripe-openapi-versions.json. Needs oasdiff.
-It then checks data/rules/shopify and data/shopify-alerts.json against the saved Shopify pages
+It then checks data/shopify-rest-contract.json (its digests, sources and npm tarball integrity), data/rules/shopify and data/shopify-alerts.json against the saved Shopify pages
 (docs/benchmarks/shopify-changelog/pages) and the pinned schemas (data/shopify-schema-versions.json),
 checks that data/shopify-schema-diffs is what those schemas give, and prints how many breaking and
 deprecated schema changes a rule or an alert answers; --coverage writes every change with its state.
@@ -182,6 +186,35 @@ async function checkShopify() {
       throw new PipelineInputError(`npm returned HTTP ${response.status} for ${name}.`);
     return Object.keys(((await response.json()) as { versions: object }).versions);
   };
+  // The versioned REST contract: its digests and sources, and each SDK tarball's integrity as the
+  // registry states it today.
+  const restContract = loadShopifyRestVersionContract();
+  const restProblems = checkShopifyRestContract(restContract);
+  for (const source of restContract.sources.sdk) {
+    const response = await fetch(
+      `https://registry.npmjs.org/${source.package.replace('/', '%2F')}`,
+      {
+        signal: AbortSignal.timeout(60_000),
+      },
+    );
+    if (!response.ok)
+      throw new PipelineInputError(`npm returned HTTP ${response.status} for ${source.package}.`);
+    const dist = (
+      (await response.json()) as {
+        versions: Record<string, { dist?: { tarball?: string; integrity?: string } }>;
+      }
+    ).versions[source.release]?.dist;
+    if (dist?.integrity !== source.integrity || dist?.tarball !== source.tarball)
+      restProblems.push(
+        `${source.package}@${source.release} is recorded as ${source.tarball} (${source.integrity}); the registry has ${dist?.tarball} (${dist?.integrity}).`,
+      );
+  }
+  for (const problem of restProblems) console.log(`FAIL shopify rest-contract ${problem}`);
+  if (restProblems.length)
+    throw new PipelineInputError('data/shopify-rest-contract.json does not match its sources.');
+  console.log(
+    `ok   shopify rest-contract ${Object.keys(restContract.versions).length} versions, ${Object.keys(restContract.resources).length} resources from ${restContract.sources.sdk.map((source) => `${source.package}@${source.release}`).join(', ')} and shopify.dev ${restContract.sources.docs.map((docs) => docs.version).join(', ')}`,
+  );
   const tables = loadShopifyRuleTables();
   const alerts = loadShopifyAlerts();
   let failures = 0;

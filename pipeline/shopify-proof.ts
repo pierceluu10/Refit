@@ -35,6 +35,7 @@ import {
   shopifyTestStore,
   type ShopifyLiveProof,
 } from './shopify-live-proof.ts';
+import { proveShopifyRest } from './shopify-rest-contract.ts';
 import type { Repository } from './types.ts';
 
 type GraphqlFile = { path: string; content: string };
@@ -391,6 +392,25 @@ export function shopifySchemaProof(options: {
       status: 'failed',
       reason: `${failures.length === 1 ? 'A Shopify GraphQL document does' : `${failures.length} Shopify GraphQL document errors do`} not hold on Admin API ${options.after.version}, first ${failures[0].file}:${failures[0].line}: ${failures[0].text}.`,
     };
+  // REST calls count only when the versioned REST contract proves each one (shopify-rest-contract.ts).
+  const rest = patched.rest.length
+    ? proveShopifyRest(options.patched, patched, {
+        before: options.before.version,
+        after: options.after.version,
+      })
+    : [];
+  const restUnproven = rest.filter((item) => item.proof.status !== 'proven');
+  const restProven = rest.length
+    ? ` Every REST Admin call (${rest.length}) uses only endpoints, parameters, body keys and response fields the ${options.before.version} REST contract lists and ${options.after.version} keeps unchanged.`
+    : '';
+  if (restUnproven.length) {
+    const first = restUnproven[0];
+    return {
+      ...base,
+      status: 'unproven',
+      reason: `Refit cannot prove ${restUnproven.length === 1 ? 'a REST Admin call' : `${restUnproven.length} REST Admin calls`} against the ${options.before.version} and ${options.after.version} REST contracts, first ${first.entry.file}:${first.entry.line}: ${(first.proof as { reason: string }).reason}`,
+    };
+  }
   if (unreadable.length)
     return {
       ...base,
@@ -402,14 +422,15 @@ export function shopifySchemaProof(options: {
   if (
     !checkedPatched &&
     !patched.adminCalls &&
-    !patched.rest.length &&
     !patched.documents.some((document) => !document.api) &&
     !options.patched.files.some((file) => CODE_WEBHOOKS.test(file.content))
   )
     return {
       ...base,
       status: 'proven',
-      reason: `The code sends no Admin API request: Refit found no Admin GraphQL call or document, no REST call and no webhook subscription registered in code, so nothing it sends depends on the version moving to ${options.after.version}.${codegen ? ` ${codegen.reason}` : ''}`,
+      reason: rest.length
+        ? `The code sends no Admin GraphQL request and registers no webhook subscription in code.${restProven}${codegen ? ` ${codegen.reason}` : ''}`
+        : `The code sends no Admin API request: Refit found no Admin GraphQL call or document, no REST call and no webhook subscription registered in code, so nothing it sends depends on the version moving to ${options.after.version}.${codegen ? ` ${codegen.reason}` : ''}`,
     };
   if (!checkedPatched)
     return {
@@ -421,7 +442,7 @@ export function shopifySchemaProof(options: {
   return {
     ...base,
     status: 'proven',
-    reason: `Every traced Shopify GraphQL document (${checkedPatched}${reconstructed.length ? `, ${reconstructed.length} read by AI from code Refit could not read and checked to name only what that code writes` : ''}) validates against the Admin API ${options.after.version} schema with graphql-js, and no selected field or variable input type changes between ${options.before.version} and ${options.after.version}.${codegen ? ` ${codegen.reason}` : ''}`,
+    reason: `Every traced Shopify GraphQL document (${checkedPatched}${reconstructed.length ? `, ${reconstructed.length} read by AI from code Refit could not read and checked to name only what that code writes` : ''}) validates against the Admin API ${options.after.version} schema with graphql-js, and no selected field or variable input type changes between ${options.before.version} and ${options.after.version}.${restProven}${codegen ? ` ${codegen.reason}` : ''}`,
   };
 }
 
