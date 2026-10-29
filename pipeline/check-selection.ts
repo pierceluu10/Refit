@@ -643,6 +643,10 @@ export async function gradeEvidence(options: {
   packageDirectory?: string;
   // The chain's test script found no test files (testsFoundNone), so only its type check counts.
   testsFoundNone?: boolean;
+  // Webhook handler files signed events of both API versions ran on both sides with every changed
+  // line run and the same behaviour (signed-events.ts). Offline evidence, like a type check: it can
+  // make a file count for grade C, never B or A (founder decision, Otabek, 2026-10-28).
+  signedEvents?: readonly string[];
 }): Promise<EvidenceGrade> {
   if (options.behaviour?.passed && options.behaviour.coversEveryChangedLine)
     return { letter: 'A', level: 'behaviour-tests', reason: options.behaviour.reason };
@@ -701,9 +705,11 @@ export async function gradeEvidence(options: {
     ? reach(graph, listed.length ? listed : testFiles(options.repository).filter(check.inside))
     : new Set<string>();
   const typed = kinds.has('typecheck') ? typeChecked() : new Set<string>();
+  const signed = new Set(options.signedEvents ?? []);
   const reached = changed.filter((path) => tested.has(path));
   const untested = changed.filter((path) => !tested.has(path));
-  const unchecked = untested.filter((path) => !typed.has(path));
+  const unchecked = untested.filter((path) => !typed.has(path) && !signed.has(path));
+  const signedOnly = untested.filter((path) => !typed.has(path) && signed.has(path));
   if (changed.length && !untested.length)
     return {
       letter: 'B',
@@ -721,7 +727,15 @@ export async function gradeEvidence(options: {
             : reached.length
               ? `The tests reach ${list(reached)} but not ${list(untested)}. `
               : 'The tests pass but reach none of the changed files. '
-        }tsc type-checks ${list(untested)}; no test ran that code.`,
+        }${
+          signedOnly.length < untested.length
+            ? `tsc type-checks ${list(untested.filter((path) => !signedOnly.includes(path)))}; no test ran that code.`
+            : ''
+        }${signedOnly.length < untested.length && signedOnly.length ? ' ' : ''}${
+          signedOnly.length
+            ? `Signed webhook events of both API versions ran every changed line of ${list(signedOnly)} on the original and the patched code, and the patched handler behaved the same way on both.`
+            : ''
+        }`,
       ),
     };
   // Only functions that ran on both sides count; an unavailable generated check adds nothing.

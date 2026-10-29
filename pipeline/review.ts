@@ -624,12 +624,21 @@ export function createReviewArtifacts(
           message: string;
         }[])
       : [];
+  // Webhook events both the original and the patched code handle differently in the new API
+  // version (signed-events.ts): the patch did not cause it, and did not fix it.
+  const unresolvedEvents =
+    'signedEvents' in validation &&
+    validation.signedEvents &&
+    'unresolved' in validation.signedEvents
+      ? (validation.signedEvents.unresolved as { id: string; error: string }[])
+      : [];
   const needsReview = Boolean(
     reviews?.length ||
     patch.unresolvedFindings ||
     keptProperties.length ||
     unchecked ||
-    advisoryTypeErrors.length,
+    advisoryTypeErrors.length ||
+    unresolvedEvents.length,
   );
   const prefix = needsReview ? NEEDS_REVIEW_PREFIX : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
@@ -896,6 +905,13 @@ export function createReviewArtifacts(
                 `${code(`${error.file}:${error.line}`)} ${error.code} ${plainText(error.message)}`,
             )
             .join('; ')}.`,
+        ]
+      : []),
+    ...(unresolvedEvents.length
+      ? [
+          `**Webhook events of the new API version.** Refit sent signed test events of both versions to your webhook handler, offline. The original and the patched code both handle ${unresolvedEvents.length === 1 ? 'this event' : 'these events'} differently when ${unresolvedEvents.length === 1 ? 'it arrives' : 'they arrive'} in the new version, so the handler is not ready for an endpoint on that version: ${unresolvedEvents
+            .map((event) => `${code(event.id)} (${plainText(event.error)})`)
+            .join('; ')}. The webhook endpoint's own version is unchanged.`,
         ]
       : []),
     ...(shopify?.deprecated ?? []).map(

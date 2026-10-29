@@ -18597,6 +18597,248 @@
         }
       ],
       "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: grade changes | | 0 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: grade changes | | 0 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: l2-push-249 [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) (the brief's 40624345477 was cancelled in the queue; this run is the same main commit), heldout-30 [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669). After, at `9f8936a7` with `-f flags=--webhook-checks`: l2-push-249 [40639445000](https://github.com/refit-dev/refit-bench/actions/runs/40639445000) (`-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`), heldout-30 [40700945574](https://github.com/refit-dev/refit-bench/actions/runs/40700945574) (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`). Compared with `scripts/stripe-benchmark-compare.mjs`: 0 outcome changes on either set. Again at `09029e5f`, after the cross-mock boolean fix below: heldout-30 [40703117794](https://github.com/refit-dev/refit-bench/actions/runs/40703117794) (0 outcome, grade or patch changes; inboxradarai's event now passes) and l2-push-249 [40703112108](https://github.com/refit-dev/refit-bench/actions/runs/40703112108), whose shards 3 and 9 were cancelled with every other queued refit-bench run at 17:11Z: its 236 rows have 0 outcome, grade or patch changes against main (81 validated of those rows before and after). None of the 13 missing rows had an unresolved event at `9f8936a7`, and the fix can only turn an unresolved event into a passed one, so their `9f8936a7` results stand.",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "17",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "236",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "81",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "13",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624345477",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40639445000",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40700945574",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40703117794",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40703112108",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **No grade rises.** The check covered handler files on 55 l2-push-249 rows and 8 heldout-30 rows, but every one was already type-checked (grade C, or B from tests), and signed events never give more than C. Where they could matter, the D rows, 53 l2-push-249 rows and 7 heldout-30 rows could not prepare their dependencies, so the handler cannot load.",
+      "values": [
+        {
+          "says": "55",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "53",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Nothing lost, no new review labels.** No patch validates newly, so `docs/benchmarks/fix-reviews.json` is unchanged. The one patch that differs on l2-push-249, kondax-com/Bocker, follows its own flaky baseline: its tests failed on the original code in 40553722899, 40638303426, 40638306398 and this run, and passed only in 40624045392. Neither run validates it.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40553722899",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40638303426",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40638306398",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Unresolved events, all on rows already `[Needs review]`.** createdbymax/Loopletter-Open-source-email-marketing-platform reads `invoice.payment_intent` on `invoice.paid`, which the new version drops (the patch leaves it). 4NDR3S-01/TuSuerteEC fetches `PaymentIntent.invoice`, which the new version drops. raumildhandhukia/inboxradarai's `cancel_at_period_end` and Loopletter's `billing_thresholds` came from a subscription each side retrieved from its own version's mock, not from the patch; booleans no longer differ across sides since `09029e5f`, and `billing_thresholds` (null against an object) still does.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "01",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What stays out of reach.** On l2-push-249: 98 rows have no handler the patch affects that the harness can call (Pages Router, Express and Convex handlers, secrets from a validated `env` object), 53 cannot prepare dependencies, and 9 fail their patched checks before the signed events run. 0 regressions on either set.",
+      "values": [
+        {
+          "says": "98",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "53",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
     }
   ]
 }
