@@ -1,5 +1,13 @@
 import type { DeadlineRegistry } from './deadline-registry.ts';
+import { modelAlerts, type ModelAlert } from './model-alerts.ts';
 import type { ModelParameterTable } from './model-parameters.ts';
+import {
+  EMPTY_REQUEST_PROOFS,
+  loadRequestProofs,
+  requestProof,
+  type RequestProof,
+  type RequestProofTable,
+} from './model-request-proofs.ts';
 import { digest } from './specifications.ts';
 import {
   proposeModelReplacements,
@@ -73,12 +81,36 @@ function fixKey(replacements: ModelReplacement[]) {
 const noOpChecked = (validation: { command: string[] }) =>
   validation.command.join(' ') === NO_OP_CHECK;
 
+// Each replacement target and call family with its request-level proof, or the exact reason it has
+// none. A draft with any unproven target is `[Needs review]`.
+export function requestEvidence(replacements: ModelReplacement[], proofs: RequestProofTable) {
+  const seen = new Map<
+    string,
+    { provider: string; to: string; call: string; proof?: RequestProof; pending?: string }
+  >();
+  for (const item of replacements) {
+    const found = requestProof(proofs, item.provider, item.to, item.call);
+    const key = `${item.provider}\t${item.to}\t${'proof' in found ? found.proof.api : found.pending}`;
+    if (!seen.has(key))
+      seen.set(key, {
+        provider: item.provider,
+        to: item.to,
+        call: item.call,
+        ...('proof' in found ? { proof: found.proof } : { pending: found.pending }),
+      });
+  }
+  return [...seen.values()];
+}
+
 // The draft pull request description: what changed and why, what was checked and what was not,
 // and what stays for a person to review.
 export function modelFixBody(options: {
   replacements: ModelReplacement[];
   stops: ModelReplacementStop[];
   registry: DeadlineRegistry;
+  // Embedding, fine-tuned and configuration uses Refit found and never changes.
+  alerts?: ModelAlert[];
+  proofs?: RequestProofTable;
   validation: {
     revision: string;
     image: string;
@@ -95,15 +127,22 @@ export function modelFixBody(options: {
     count > 0 ? [`- and ${count} more; ${where}.`] : [];
   const noOp = noOpChecked(validation);
   const existing = existingTypeErrors(validation);
+  const alerts = options.alerts ?? [];
+  const evidence = requestEvidence(replacements, options.proofs ?? EMPTY_REQUEST_PROOFS);
+  const unproven = evidence.filter((item) => item.pending);
   const render = (rowLimit: number, stopLimit: number) => {
     const lines = [
-      ...(noOp
+      ...(noOp || unproven.length
         ? [
             '## Why this needs review',
             '',
             "Refit opened this draft for review (owner decision 1). **Don't merge until you have checked each item.**",
             '',
-            `- ${NO_OP_REVIEW.reason} **Check:** ${NO_OP_REVIEW.check}`,
+            ...(noOp ? [`- ${NO_OP_REVIEW.reason} **Check:** ${NO_OP_REVIEW.check}`] : []),
+            ...unproven.map(
+              (item) =>
+                `- No request-level proof for ${code(item.to)}: ${item.pending} **Check:** send one request to ${code(item.to)} with this call's parameters and confirm the provider accepts it.`,
+            ),
             '',
           ]
         : []),
@@ -128,6 +167,25 @@ export function modelFixBody(options: {
     if (replacements.some((item) => item.via.length > 1))
       lines.push(
         'Where the registry replacement retires too, Refit followed the registry to a model that does not.',
+        '',
+      );
+    lines.push(
+      '## Outputs may differ',
+      '',
+      "The replacement is a different model, so answers, formatting, length, tool use and refusals can differ from the retired model's on the same prompt. Refit does not claim the change behaves the same. Check output quality on your own prompts before merging.",
+      '',
+    );
+    if (evidence.length)
+      lines.push(
+        '## Request proof',
+        '',
+        'Refit sent the smallest request each replacement accepts with its own test key in refit-bench Actions, never yours. It shows the provider serves the model and its response parses; it does not show the model answers your prompts well.',
+        '',
+        ...evidence.map((item) =>
+          item.proof
+            ? `- ${code(item.to)} ${code(item.proof.api)}: accepted with ${item.proof.parameters.length ? item.proof.parameters.map(code).join(', ') : 'no other parameters'}; ${Object.keys(item.proof.checks).join(', ')} passed ([run](${item.proof.run}), ${item.proof.date}).`
+            : `- ${code(item.to)}: not proven. ${item.pending}`,
+        ),
         '',
       );
     lines.push(
@@ -171,6 +229,21 @@ export function modelFixBody(options: {
               `- ${code(`${item.at.file}:${item.at.line}`)} ${code(item.model)}: ${item.reason}`,
           ),
         ...more(stops.length - stopLimit, 'Refit records every use in its result'),
+      );
+    if (alerts.length)
+      lines.push(
+        '',
+        '## Alert only',
+        '',
+        'Refit found these retiring models and never changes them automatically:',
+        '',
+        ...alerts
+          .slice(0, stopLimit)
+          .map(
+            (item) =>
+              `- ${code(`${item.file}:${item.line}`)} ${code(item.model)} (${item.kind}): ${item.reason}${item.quote ? ` The provider's page: "${item.quote}"` : ''}`,
+          ),
+        ...more(alerts.length - stopLimit, 'Refit records every alert in its result'),
       );
     if (validation.patched.status !== 'passed')
       lines.push(
@@ -245,6 +318,8 @@ export async function runModelFixes(options: {
   repository: string;
   registry: DeadlineRegistry;
   parameters?: ModelParameterTable;
+  // Request-level proofs for replacement models; a draft with an unproven one is [Needs review].
+  proofs?: RequestProofTable;
   now: Date;
   checks: ModelFixChecks;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -255,6 +330,7 @@ export async function runModelFixes(options: {
   onProgress?: (message: string) => void;
 }): Promise<ModelFixResult> {
   let proposal: Awaited<ReturnType<typeof proposeModelReplacements>> | undefined;
+  let alerts: ModelAlert[] = [];
   const validation = await validateSourcePatch({
     repository: options.repository,
     ...options.checks,
@@ -264,6 +340,7 @@ export async function runModelFixes(options: {
       proposal = await proposeModelReplacements(directory, options.registry, options.now, {
         parameters: options.parameters,
       });
+      alerts = (await modelAlerts(directory, options.registry, options.now)).alerts;
       return proposal.patch;
     },
     skip: (revision) => {
@@ -315,12 +392,22 @@ export async function runModelFixes(options: {
       'Baseline and patched checks passed; draft publication is not enabled.',
     );
   const checked = { ...validation, compareTypeErrors: options.checks.compareTypeErrors };
+  const proofs = options.proofs ?? (await loadRequestProofs());
+  const review =
+    noOpChecked(validation) || requestEvidence(replacements, proofs).some((item) => item.pending);
   const published = await publishFiles(options.publication, {
     revision: validation.revision,
     key: `model-fixes:${validation.revision}:${fixKey(replacements)}`,
     files: validation.publicationFiles,
-    title: `${noOpChecked(validation) ? NEEDS_REVIEW_PREFIX : ''}${modelFixTitle(replacements)}`,
-    body: modelFixBody({ replacements, stops, registry: options.registry, validation: checked }),
+    title: `${review ? NEEDS_REVIEW_PREFIX : ''}${modelFixTitle(replacements)}`,
+    body: modelFixBody({
+      replacements,
+      stops,
+      registry: options.registry,
+      validation: checked,
+      alerts,
+      proofs,
+    }),
     message: modelFixMessage({
       replacements,
       stops,
