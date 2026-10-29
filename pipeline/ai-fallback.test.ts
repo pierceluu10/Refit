@@ -498,6 +498,17 @@ describe('gates', () => {
     expect(fresh.detail).toContain('1 new ones');
   });
 
+  it('request proof: finds Gemini calls the patch writes', () => {
+    const before = "const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });\n";
+    const after =
+      "const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents });\n";
+    expect(
+      writtenCalls({ files: [], calls: [], notes: [], unresolved: [], patterns: [] }, [
+        change('src/gemini.ts', before, after),
+      ]).map((call) => call.call),
+    ).toEqual(['models.generateContent']);
+  });
+
   it('request proof: proves every call the patch writes, reported or not', () => {
     const calls = writtenCalls({ files: [], calls: [], notes: [], unresolved: [], patterns: [] }, [
       change('src/ask.ts', LEGACY, FIXED),
@@ -583,6 +594,14 @@ describe('request proof environment', () => {
         .REFIT_PROOF_OPENAI_MODEL,
     ).toBe('gpt-5.6-luna');
     expect(proofEnvironment('anthropic', null, env).REFIT_PROOF_ANTHROPIC_MODEL).toBe(undefined);
+    // Anthropic and Gemini proofs send their target with their own provider's key and SDK.
+    expect(
+      proofEnvironment('anthropic', 'claude-sonnet-5-5', env).REFIT_PROOF_ANTHROPIC_MODEL,
+    ).toBe('claude-sonnet-5-5');
+    expect(proofEnvironment('gemini', 'gemini-2.5-flash', env).REFIT_PROOF_GEMINI_MODEL).toBe(
+      'gemini-2.5-flash',
+    );
+    expect(proofEnvironment('gemini', null, env).REFIT_PROOF_OPENAI_MODEL).toBe(undefined);
   });
 });
 
