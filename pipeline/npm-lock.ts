@@ -190,13 +190,15 @@ export function validateNpmLock(
             : `It records ${Object.keys(lock.packages).length} packages.`
       }`,
     );
+  const nonEmpty = (value: unknown) => (Array.isArray(value) && !value.length ? undefined : value);
   const directories = npmWorkspaceDirectories(
     manifest,
     [...workspaceContents.keys()].map((directory) => `${directory}/package.json`),
   );
   if (
     directories.length !== workspaceContents.size ||
-    JSON.stringify(manifest.workspaces) !== JSON.stringify(lock.packages[''].workspaces)
+    // npm records no root `workspaces` for an empty list, and `npm ci` accepts that lockfile.
+    JSON.stringify(nonEmpty(manifest.workspaces)) !== JSON.stringify(lock.packages[''].workspaces)
   )
     throw new PipelineInputError(
       'Workspaces must match the committed root lockfile and selected workspace manifests.',
