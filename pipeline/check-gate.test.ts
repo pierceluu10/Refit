@@ -126,3 +126,31 @@ it("chooses the repository's own test, build and type check", () => {
     ),
   ).toEqual([]);
 });
+
+it('compares tests that ran to their summary but were stopped at the time limit on both sides', () => {
+  const stopped = (name: string) => ({
+    ...mocha(name),
+    status: 'error' as const,
+    exitCode: null,
+    error: 'Check exceeded 120 seconds; the container was stopped.',
+  });
+  expect(
+    checkGate([{ name: 'tests', baseline: stopped('before'), patched: stopped('before') }]),
+  ).toMatchObject({ status: 'passed', checks: [{ outcome: 'kept', counted: true }] });
+  expect(
+    checkGate([{ name: 'tests', baseline: stopped('before'), patched: stopped('regressed') }]),
+  ).toMatchObject({ status: 'regression' });
+  // Stopped on one side only, or without a readable summary, stays an error.
+  expect(
+    checkGate([{ name: 'tests', baseline: mocha('before'), patched: stopped('before') }]),
+  ).toMatchObject({ status: 'error' });
+  expect(
+    checkGate([
+      {
+        name: 'tests',
+        baseline: { ...stopped('before'), stdout: 'npm test' },
+        patched: { ...stopped('before'), stdout: 'npm test' },
+      },
+    ]),
+  ).toMatchObject({ status: 'error' });
+});

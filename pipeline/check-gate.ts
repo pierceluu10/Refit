@@ -58,7 +58,11 @@ interface Run {
   exitCode: number | null;
   stdout: string;
   stderr: string;
+  error?: string;
 }
+
+// A check stopped at its time limit (validation.ts containerCheck).
+const STOPPED = /^Check exceeded \d+ seconds; the container was stopped\.$/;
 
 export interface GatedCheck {
   name: CheckName;
@@ -79,6 +83,24 @@ export interface CheckGate {
 }
 
 function gateOne(name: CheckName, baseline: Run, patched: Run): GatedCheck {
+  // A test runner that printed its full summary and then kept the process alive (an open handle)
+  // is stopped at the time limit on both sides; its tests still ran, so they are compared.
+  if (
+    name === 'tests' &&
+    [baseline, patched].every((run) => run.status === 'error' && STOPPED.test(run.error ?? ''))
+  ) {
+    const tests = compareBaselineTests(baseline, patched, true);
+    if (tests.status !== 'unreadable')
+      return tests.status === 'kept'
+        ? {
+            name,
+            outcome: 'kept',
+            counted: true,
+            reason: `The tests did not exit after their summary and were stopped on both sides; ${tests.alreadyFailing.length ? `${tests.alreadyFailing.length} already failed on the original code, and ` : ''}every test that passed there passes on the patch.`,
+            tests,
+          }
+        : { name, outcome: 'regressed', counted: true, reason: tests.reason, tests };
+  }
   if (baseline.status === 'error' || patched.status === 'error' || patched.status === 'not-run')
     return {
       name,

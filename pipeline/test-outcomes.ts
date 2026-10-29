@@ -106,10 +106,18 @@ export type BaselineTests =
 export function compareBaselineTests(
   baseline: { stdout: string; stderr: string },
   patched: { stdout: string; stderr: string },
+  // Both runs were stopped after their runner printed a full summary (check-gate.ts): with no
+  // test failing before, every test must still pass.
+  stoppedAfterSummary = false,
 ): BaselineTests {
   const before = testOutcomes(baseline);
   const after = testOutcomes(patched);
-  if (!before || !after || before.runner !== after.runner || !before.failed.size)
+  if (
+    !before ||
+    !after ||
+    before.runner !== after.runner ||
+    (!before.failed.size && !stoppedAfterSummary)
+  )
     return {
       status: 'unreadable',
       reason: 'Refit could not read which tests failed on both the original code and the patch.',
