@@ -34,3 +34,21 @@ it('reads KEY=value lines from the AI env file and ignores the rest', () => {
     REFIT_AI_BUDGET_USD: '1',
   });
 });
+
+it('names timeouts, memory and native crashes instead of the last stack line', async () => {
+  const { errorSummary } = await import('./ai-provider-benchmark-cli.ts');
+  expect(errorSummary({ killed: true, signal: 'SIGKILL' })).toBe(
+    'timed out (killed after the scan limit)',
+  );
+  expect(
+    errorSummary({
+      stderr: 'FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory',
+    }),
+  ).toBe('Node ran out of memory');
+  expect(
+    errorSummary({ stderr: ' 1: 0xabc node::Abort\n55: 0x18f932b98 start [/usr/lib/dyld]' }),
+  ).toBe('Node crashed (native stack, no message)');
+  expect(
+    errorSummary({ stderr: 'refit deadlines: a.js: Unterminated template literal.\n    at x' }),
+  ).toBe('refit deadlines: a.js: Unterminated template literal.');
+});

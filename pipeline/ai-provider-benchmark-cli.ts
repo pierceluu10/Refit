@@ -75,6 +75,26 @@ export function outcomeOf(row: {
   return 'no-checks';
 }
 
+// One line for a failed Refit command: a timeout or a crash by name, else Refit's own last error
+// line. A Node crash prints a native stack whose last line names no cause.
+export function errorSummary(error: unknown) {
+  const failure = error as { killed?: boolean; signal?: string; stderr?: string; message?: string };
+  if (failure?.killed || failure?.signal === 'SIGKILL')
+    return 'timed out (killed after the scan limit)';
+  const text = String(failure?.stderr || failure?.message || error);
+  if (/heap out of memory|Allocation failed/i.test(text)) return 'Node ran out of memory';
+  const lines = text
+    .trim()
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const cause = lines.find((line) => /^(?:refit [\w-]+:|Error:|TypeError:|RangeError:)/.test(line));
+  if (cause) return cause.slice(0, 500);
+  if (lines.some((line) => /^\d+: 0x[0-9a-f]+ /.test(line)))
+    return 'Node crashed (native stack, no message)';
+  return (lines.at(-1) ?? 'unknown error').slice(0, 500);
+}
+
 // KEY=value lines, for the AI env file the benchmark workflow writes. Never logged.
 export function parseEnvFile(text: string) {
   const values: Record<string, string> = {};
@@ -385,13 +405,9 @@ async function main() {
         lanes,
       });
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? (error as { stderr?: string }).stderr || error.message
-          : String(error);
       row = {
         ...base,
-        error: String(message).trim().split('\n').at(-1)?.slice(0, 500),
+        error: errorSummary(error),
         outcome: 'error',
       };
     }
