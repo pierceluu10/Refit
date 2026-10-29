@@ -61,6 +61,13 @@ it('retains immutable input identity and does not treat root lifecycle scripts a
     workspaceConfigHash: expect.stringMatching(/^[a-f0-9]{64}$/),
   });
 });
+it('ignores package.json workspaces, as pnpm does, and still matches the importers to pnpm-workspace.yaml', () => {
+  const sample = scenario();
+  sample.manifest.workspaces = ['extensions/*'];
+  expect(validate(sample)).toMatchObject({ manager: 'pnpm', packages: 1 });
+  sample.lock.importers['extensions/a'] = {};
+  expect(() => validate(sample)).toThrow(/importers/);
+});
 it('validates explicit workspace links and default/named catalog constraints', () => {
   const sample = scenario();
   delete sample.manifest.dependencies;
