@@ -23,7 +23,7 @@ const comparison = {
     ],
   },
   stats: [
-    { value: '0', label: 'silent behaviour changes', detail: 'against 7 of 8 agent patches' },
+    { value: '0', label: 'silent behaviour changes', detail: 'against 8 of 8 agent patches' },
     { value: '381 / 381', label: 'repeat runs identical', detail: 'same input, same pull request' },
   ],
 };
