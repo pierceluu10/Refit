@@ -676,6 +676,8 @@
   width: 100%;
   height: calc(100% + 120px);
   mask-image: linear-gradient(#000 75%, transparent);
+  /* The stage's perspective makes it a stacking context, so the plane paints over the form. */
+  pointer-events: none;
 }
 .launch-horizon-tilt {
   width: min(960px, 100% - 48px);
@@ -748,7 +750,7 @@
   margin: 64px auto 0;
 }
 .launch-race {
-  padding: 28px 28px 24px;
+  padding: 28px;
   border: 1px solid var(--border);
   border-radius: 20px;
   background: #fff;
@@ -770,7 +772,7 @@
 .launch-race dl {
   display: grid;
   gap: 18px;
-  margin: 32px 0 24px;
+  margin: 32px 0 0;
 }
 .launch-race-row {
   display: grid;
@@ -824,11 +826,6 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-.launch-race > p {
-  max-width: 52ch;
-  color: var(--muted);
-  font-size: 14px;
-}
 .launch-versus-band {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 0.7fr));
@@ -868,19 +865,6 @@
 .launch-versus-stat span:first-of-type {
   color: var(--ink);
   font-size: 14px;
-}
-
-.launch-footnote {
-  width: var(--page);
-  margin: 24px auto 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-.launch-footnote a {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--blue);
 }
 
 /* 3D stack ------------------------------------------------------------------------------------- */
@@ -1085,7 +1069,7 @@
     bottom: 50px;
   }
   .launch-race {
-    padding: 22px 20px 20px;
+    padding: 22px 20px;
   }
   .launch-race-row {
     grid-template-columns: minmax(0, 1fr);

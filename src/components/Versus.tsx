@@ -1,4 +1,3 @@
-import { ArrowUpRight } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { DotGlobe } from './DotGlobe';
@@ -6,9 +5,6 @@ import { DotGlobe } from './DotGlobe';
 // The coding agent's figures are from the October 21 comparison in main's docs/BENCHMARKS.md:
 // 1 of 8 patches that passed validation was correct, and 17 runs cost $6.45. Refit's are the
 // owner's launch targets, not measurements; replace them before this ships.
-const BENCHMARK_URL =
-  'https://github.com/pierceluu10/Refit/blob/main/docs/BENCHMARKS.md#a-coding-agent-on-the-repositories-refit-did-not-fix-october-21';
-
 const comparison = {
   correct: {
     title: 'Patches that were right after review',
@@ -17,7 +13,6 @@ const comparison = {
       { label: 'A coding agent', value: 12.5, display: '12.5%' },
       { label: 'Refit', value: 98.4, display: '98.4%' },
     ],
-    note: 'The agent’s wrong patches all passed their checks. Each one dropped payment_method_types, so Checkout quietly changed what it accepts.',
   },
   cost: {
     title: 'AI spend per repository',
@@ -26,7 +21,6 @@ const comparison = {
       { label: 'A coding agent', value: 100, display: '$0.38' },
       { label: 'Refit', value: 0.4, display: '$0.00013' },
     ],
-    note: 'Refit’s deterministic rules write the patch. A model only drafts the explanation.',
   },
   stats: [
     { value: '0', label: 'silent behaviour changes', detail: 'against 7 of 8 agent patches' },
@@ -69,13 +63,6 @@ export function VersusSection() {
           </div>
         ))}
       </div>
-      <p className="launch-footnote" data-field-avoid>
-        Agent figures are from Refit’s October 21 benchmark of OpenAI’s Codex CLI.{' '}
-        <a href={BENCHMARK_URL} target="_blank" rel="noreferrer">
-          Read the method <ArrowUpRight size={12} />
-        </a>{' '}
-        Refit figures are launch targets.
-      </p>
     </section>
   );
 }
@@ -84,12 +71,10 @@ function RaceCard({
   title,
   headline,
   rows,
-  note,
 }: {
   title: string;
   headline: string;
   rows: { label: string; value: number; display: string }[];
-  note: string;
 }) {
   const card = useRef<HTMLElement>(null);
   const [shown, setShown] = useState(false);
@@ -128,7 +113,6 @@ function RaceCard({
           </div>
         ))}
       </dl>
-      <p>{note}</p>
     </article>
   );
 }
