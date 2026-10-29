@@ -90,6 +90,39 @@
       }
     },
     {
+      "rule": "gemini-swap-safety",
+      "family": "gemini-swap-safety",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "config: { safetySettings: [ { category: \"HARM_CATEGORY_HARASSMENT\", threshold: \"BLOCK_ONLY_HIGH\", }, ], },",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`safetySettings` on the model become `config.safetySettings` on each call, with HarmCategory and HarmBlockThreshold members written as their names.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-swap-chat",
+      "family": "gemini-swap-chat",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "const response1 = await chat.sendMessage({ message: \"I have 2 dogs in my house.\", });",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`model.startChat({ history })` becomes `ai.chats.create({ model, history })` and `chat.sendMessage(text)` becomes `chat.sendMessage({ message: text })`.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-swap-count",
+      "family": "gemini-swap-count",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "const countTokensResponse = await ai.models.countTokens({ model: \"gemini-3.8-flash\", contents: prompt, });",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`model.countTokens(prompt)` becomes `ai.models.countTokens({ model, contents: prompt })`; `totalTokens` keeps its name.",
+      "data": {}
+    },
+    {
       "rule": "gemini-generative-ai-js",
       "family": "sdk-swap",
       "status": "report",

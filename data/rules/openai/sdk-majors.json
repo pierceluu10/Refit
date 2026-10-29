@@ -21,6 +21,13 @@
       "file": "docs/ai-docs/pages/openai-node-changelog-6.0.0.md",
       "capturedAt": "2026-10-29",
       "excerpt": "the 6.0.0 section"
+    },
+    "openai-node-readme": {
+      "url": "https://github.com/openai/openai-node/blob/master/README.md",
+      "raw": "https://raw.githubusercontent.com/openai/openai-node/master/README.md",
+      "file": "docs/ai-docs/pages/openai-node-readme-file-uploads.md",
+      "capturedAt": "2026-10-29",
+      "excerpt": "the File uploads section"
     }
   },
   "rules": [
@@ -922,6 +929,19 @@
       "checkedAt": "2026-10-29",
       "origin": "docs",
       "summary": "`fileFromPath(path)` with one argument becomes `createReadStream(path)` from node:fs.",
+      "data": {
+        "fromMajor": 4
+      }
+    },
+    {
+      "rule": "openai-node-v5-file-from-path-named",
+      "family": "file-named",
+      "status": "auto",
+      "page": "openai-node-readme",
+      "quote": "// `toFile()` creates a web File, so it must buffer stream inputs before sending them.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`fileFromPath(path, name[, options])` becomes `toFile(createReadStream(path), name[, options])`: the same named web File, built from a Node stream.",
       "data": {
         "fromMajor": 4
       }

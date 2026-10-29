@@ -1173,6 +1173,7 @@ function openAiV4Files(context: Context, fromMajor: number) {
 }
 
 const FILE_STREAM = 'openai-node-v5-file-from-path-stream';
+const FILE_NAMED = 'openai-node-v5-file-from-path-named';
 
 // `OpenAI.fileFromPath(p)` or an imported `fileFromPath(p)`, with one argument, becomes
 // `createReadStream(p)` from node:fs, as the v5 guide shows; the import is added in the file's
@@ -1237,6 +1238,8 @@ function fileFromPathStreams(
   const handled = new Set<ts.Node>();
   if (!context.rules.has(FILE_STREAM) || !content.includes('fileFromPath')) return handled;
   const calls: ts.CallExpression[] = [];
+  const named: ts.CallExpression[] = [];
+  const bindings: ts.BindingElement[] = [];
   let other = false;
   const specifiers: ts.ImportSpecifier[] = [];
   const visit = (node: ts.Node) => {
@@ -1253,10 +1256,32 @@ function fileFromPathStreams(
         name.text === 'fileFromPath' &&
         fromOpenAi(name, names)
       ) {
+        const [, second] = node.arguments;
         if (node.arguments.length === 1) calls.push(node);
+        // `(path, name[, options])`: a name that is not an options object.
+        else if (
+          context.rules.has(FILE_NAMED) &&
+          node.arguments.length <= 3 &&
+          second &&
+          !ts.isObjectLiteralExpression(unwrap(second))
+        )
+          named.push(node);
         else other = true;
       }
     }
+    // `const { fileFromPath } = require('openai')`
+    if (
+      ts.isBindingElement(node) &&
+      !node.propertyName &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === 'fileFromPath' &&
+      ts.isVariableDeclaration(node.parent.parent) &&
+      node.parent.parent.initializer &&
+      ts.isCallExpression(node.parent.parent.initializer) &&
+      ts.isStringLiteral(node.parent.parent.initializer.arguments[0] ?? node) &&
+      /^openai(?:\/|$)/.test((node.parent.parent.initializer.arguments[0] as ts.StringLiteral).text)
+    )
+      bindings.push(node);
     if (
       ts.isImportSpecifier(node) &&
       node.name.text === 'fileFromPath' &&
@@ -1269,7 +1294,15 @@ function fileFromPathStreams(
   };
   visit(source);
   const mentions = (content.match(/\bfileFromPath\b/g) ?? []).length;
-  if (other || !calls.length || mentions !== calls.length + specifiers.length) return handled;
+  if (
+    other ||
+    !(calls.length + named.length) ||
+    mentions !== calls.length + named.length + specifiers.length + bindings.length
+  )
+    return handled;
+  const toFileBound = /\btoFile\b/.test(content);
+  const toFileFromOpenAi = names.has('toFile');
+  if (named.length && toFileBound && !toFileFromOpenAi) return handled;
   const bound = /\bcreateReadStream\b/.test(content);
   const fromFs =
     /import\s*\{[^}]*\bcreateReadStream\b[^}]*\}\s*from\s*['"](?:node:)?fs['"]|\{[^}]*\bcreateReadStream\b[^}]*\}\s*=\s*require\(\s*['"](?:node:)?fs['"]\s*\)/.test(
@@ -1280,6 +1313,39 @@ function fileFromPathStreams(
     const callee = call.expression;
     edit(context, file, callee.getStart(), callee.getEnd(), 'createReadStream', FILE_STREAM);
     handled.add(ts.isPropertyAccessExpression(callee) ? callee.name : callee);
+  }
+  for (const call of named) {
+    const [path, ...rest] = call.arguments;
+    edit(
+      context,
+      file,
+      call.getStart(),
+      call.getEnd(),
+      `toFile(createReadStream(${path.getText(source)}), ${rest.map((item) => item.getText(source)).join(', ')})`,
+      FILE_NAMED,
+    );
+    const callee = call.expression;
+    handled.add(ts.isPropertyAccessExpression(callee) ? callee.name : callee);
+  }
+  for (const binding of bindings) {
+    handled.add(binding.name);
+    const pattern = binding.parent;
+    const statement = pattern.parent.parent.parent;
+    if (pattern.elements.length === 1 && ts.isVariableStatement(statement)) {
+      const range = statementRange(statement, content);
+      edit(context, file, range.start, range.end, '', FILE_STREAM);
+    } else {
+      const index = pattern.elements.indexOf(binding);
+      const end =
+        index < pattern.elements.length - 1
+          ? pattern.elements[index + 1].getStart()
+          : binding.getEnd();
+      const start =
+        index < pattern.elements.length - 1
+          ? binding.getStart()
+          : pattern.elements[index - 1].getEnd();
+      edit(context, file, start, end, '', FILE_STREAM);
+    }
   }
   for (const specifier of specifiers) {
     handled.add(specifier.name);
@@ -1309,23 +1375,27 @@ function fileFromPathStreams(
       edit(context, file, start, end, '', FILE_STREAM);
     }
   }
-  if (!fromFs) {
-    const esm = source.statements.some(ts.isImportDeclaration);
+  // One insertion, so the added imports keep a fixed order.
+  const esm = source.statements.some(ts.isImportDeclaration);
+  const header = [
+    ...(fromFs
+      ? []
+      : [
+          esm
+            ? "import { createReadStream } from 'node:fs';"
+            : "const { createReadStream } = require('node:fs');",
+        ]),
+    ...(named.length && !toFileFromOpenAi
+      ? [esm ? "import { toFile } from 'openai';" : "const { toFile } = require('openai');"]
+      : []),
+  ];
+  if (header.length) {
     const first = source.statements.find(
       (statement) =>
         !ts.isExpressionStatement(statement) || !ts.isStringLiteral(statement.expression),
     );
     const at = first ? first.getStart() : content.length;
-    edit(
-      context,
-      file,
-      at,
-      at,
-      esm
-        ? "import { createReadStream } from 'node:fs';\n"
-        : "const { createReadStream } = require('node:fs');\n",
-      FILE_STREAM,
-    );
+    edit(context, file, at, at, `${header.join('\n')}\n`, named.length ? FILE_NAMED : FILE_STREAM);
   }
   return handled;
 }
@@ -1953,6 +2023,8 @@ export async function proposeAnthropicSdkMajor(
 }
 
 const GEMINI_OLD = '@google/generative-ai';
+// The client, and the enums the safety-settings mapping turns into strings.
+const GEMINI_IMPORTS = new Set(['GoogleGenerativeAI', 'HarmCategory', 'HarmBlockThreshold']);
 
 // @google/generative-ai → @google/genai (owner decision of 2026-10-29: Gemini edits with a quoted
 // source and request-level proof). Only the guide's one-to-one shapes are rewritten: the client,
@@ -2069,9 +2141,8 @@ function geminiFile(
         node.moduleSpecifier.text !== GEMINI_OLD ||
         node.importClause?.name ||
         !names ||
-        names.length !== 1 ||
-        names[0].propertyName ||
-        names[0].name.text !== 'GoogleGenerativeAI'
+        names.some((item) => item.propertyName || !GEMINI_IMPORTS.has(item.name.text)) ||
+        !names.some((item) => item.name.text === 'GoogleGenerativeAI')
       )
         block(
           file,
@@ -2216,8 +2287,51 @@ function geminiFile(
       )
         ? configProperty.initializer
         : undefined;
+    // `safetySettings` of `{ category: HarmCategory.X, threshold: HarmBlockThreshold.Y }` become
+    // `config.safetySettings` with the members' names as strings, as the guide shows.
+    const safetyProperty = named('safetySettings');
+    const enumText = (value: ts.Expression, enumName: string) => {
+      const inner = unwrap(value);
+      if (ts.isStringLiteralLike(inner)) return inner.getText(source);
+      return ts.isPropertyAccessExpression(inner) &&
+        ts.isIdentifier(inner.expression) &&
+        inner.expression.text === enumName &&
+        /^[A-Z_]+$/.test(inner.name.text)
+        ? JSON.stringify(inner.name.text)
+        : undefined;
+    };
+    const safetyText = (() => {
+      if (!safetyProperty) return '';
+      if (
+        !ts.isPropertyAssignment(safetyProperty) ||
+        !ts.isArrayLiteralExpression(safetyProperty.initializer)
+      )
+        return undefined;
+      const items = safetyProperty.initializer.elements.map((element) => {
+        if (!ts.isObjectLiteralExpression(element) || element.properties.length !== 2)
+          return undefined;
+        const value = (key: string) => {
+          const property = element.properties.find((item) => literalKey(item) === key);
+          return property && ts.isPropertyAssignment(property) ? property.initializer : undefined;
+        };
+        const category = value('category') && enumText(value('category')!, 'HarmCategory');
+        const threshold = value('threshold') && enumText(value('threshold')!, 'HarmBlockThreshold');
+        return category && threshold
+          ? `{ category: ${category}, threshold: ${threshold} }`
+          : undefined;
+      });
+      return items.every(Boolean) ? `safetySettings: [${items.join(', ')}]` : undefined;
+    })();
+    const configText = [
+      ...(configValue ? configValue.properties.map((property) => property.getText(source)) : []),
+      ...(safetyText ? [safetyText] : []),
+    ];
+    const config = configText.length ? `, config: { ${configText.join(', ')} }` : '';
     const extra =
-      (properties?.length ?? 0) - Number(Boolean(modelProperty)) - Number(Boolean(configProperty));
+      (properties?.length ?? 0) -
+      Number(Boolean(modelProperty)) -
+      Number(Boolean(configProperty)) -
+      Number(Boolean(safetyProperty));
     const model = constName(call);
     // The model is read again at each call, so it must not change in between.
     const stable =
@@ -2238,7 +2352,8 @@ function geminiFile(
       !stable ||
       !model ||
       extra !== 0 ||
-      (configProperty && !configValue)
+      (configProperty && !configValue) ||
+      safetyText === undefined
     ) {
       block(
         file,
@@ -2252,6 +2367,20 @@ function geminiFile(
     for (const modelUse of uses) {
       const method = modelUse.parent;
       const generate = method?.parent;
+      if (
+        ts.isPropertyAccessExpression(method) &&
+        generate &&
+        ts.isCallExpression(generate) &&
+        generate.expression === method &&
+        ['startChat', 'countTokens'].includes(method.name.text)
+      ) {
+        const handled =
+          method.name.text === 'startChat'
+            ? geminiChat(generate, client, modelValue, config, rewrites)
+            : geminiCount(generate, client, modelValue, rewrites);
+        if (!handled) return;
+        continue;
+      }
       if (
         !ts.isPropertyAccessExpression(method) ||
         !['generateContent', 'generateContentStream'].includes(method.name.text) ||
@@ -2311,22 +2440,194 @@ function geminiFile(
           file,
           generate.getStart(),
           generate.getEnd(),
-          `${client}.models.${method.name.text}({ model: ${modelText.text}, contents: ${prompt.getText(source)}${configValue ? `, config: ${configValue.getText(source)}` : ''} })`,
+          `${client}.models.${method.name.text}({ model: ${modelText.text}, contents: ${prompt.getText(source)}${config} })`,
           stream ? 'gemini-swap-stream' : 'gemini-swap-generate',
         );
         for (const read of reads.edits)
           edit(context, file, read.start, read.end, read.text, 'gemini-swap-text');
-        if (configValue) context.used.add('gemini-swap-config');
+
         if (!context.calls.some((item) => item.call === `models.${method.name.text}`))
           context.calls.push({ call: `models.${method.name.text}`, stream });
       });
     }
     for (const rewrite of rewrites) rewrite();
+    if (configValue) context.used.add('gemini-swap-config');
+    if (safetyText) context.used.add('gemini-swap-safety');
     const statement = model.parent.parent.parent;
     if (ts.isVariableStatement(statement) && statement.declarationList.declarations.length === 1) {
       const range = statementRange(statement, content);
       edit(context, file, range.start, range.end, '', 'gemini-swap-generate');
     } else block(file, line(call), 'The model declaration shares its statement with others.');
+  };
+  const promptOk = (prompt: ts.Expression) =>
+    ts.isStringLiteralLike(prompt) ||
+    ts.isTemplateExpression(prompt) ||
+    ts.isArrayLiteralExpression(prompt) ||
+    (ts.isIdentifier(prompt) &&
+      (() => {
+        const declaration = symbolOf(prompt)?.valueDeclaration;
+        const initializer =
+          declaration && ts.isVariableDeclaration(declaration)
+            ? declaration.initializer
+            : undefined;
+        return Boolean(
+          initializer &&
+          (ts.isStringLiteralLike(initializer) ||
+            ts.isTemplateExpression(initializer) ||
+            ts.isArrayLiteralExpression(initializer)),
+        );
+      })());
+  // `model.startChat({ history })` → `ai.chats.create({ model, history })`, and each
+  // `chat.sendMessage(text)` → `chat.sendMessage({ message: text })` (the guide's chat example).
+  const geminiChat = (
+    start: ts.CallExpression,
+    client: string,
+    modelValue: ts.Expression,
+    config: string,
+    rewrites: (() => void)[],
+  ) => {
+    const [options] = start.arguments;
+    const history =
+      options && ts.isObjectLiteralExpression(options)
+        ? options.properties.length === 1 &&
+          literalKey(options.properties[0]) === 'history' &&
+          ts.isPropertyAssignment(options.properties[0])
+          ? options.properties[0].initializer
+          : null
+        : undefined;
+    const chat = constName(
+      start.parent && ts.isAwaitExpression(start.parent) ? start.parent : start,
+    );
+    if (
+      start.arguments.length > 1 ||
+      history === null ||
+      (options && history === undefined) ||
+      !chat
+    ) {
+      block(
+        file,
+        line(start),
+        'startChat takes options beyond `history`, or the chat is not one `const`; the guide maps only those.',
+      );
+      return false;
+    }
+    const sends: {
+      call: ts.CallExpression;
+      edits: { start: number; end: number; text: string }[];
+    }[] = [];
+    for (const use of usesOf(chat)) {
+      const access = use.parent;
+      const send = access?.parent;
+      if (
+        !ts.isPropertyAccessExpression(access) ||
+        access.name.text !== 'sendMessage' ||
+        !send ||
+        !ts.isCallExpression(send) ||
+        send.expression !== access ||
+        send.arguments.length !== 1 ||
+        !promptOk(send.arguments[0])
+      ) {
+        block(
+          file,
+          line(use),
+          `The chat \`${chat.text}\` is used other than for one-argument sendMessage of a string, template or array (sendMessageStream and history reads have other shapes).`,
+        );
+        return false;
+      }
+      const reads = geminiResultReads(send, false);
+      if ('reason' in reads) {
+        block(file, line(send), reads.reason);
+        return false;
+      }
+      sends.push({ call: send, edits: reads.edits });
+    }
+    const modelText = geminiModel(context, file, line(start), modelValue, source, symbolOf);
+    if ('reason' in modelText) {
+      block(file, line(start), modelText.reason);
+      return false;
+    }
+    rewrites.push(() => {
+      edit(
+        context,
+        file,
+        start.getStart(),
+        start.getEnd(),
+        `${client}.chats.create({ model: ${modelText.text}${history ? `, history: ${history.getText(source)}` : ''}${config} })`,
+        'gemini-swap-chat',
+      );
+      for (const send of sends) {
+        const [message] = send.call.arguments;
+        edit(
+          context,
+          file,
+          message.getStart(),
+          message.getEnd(),
+          `{ message: ${message.getText(source)} }`,
+          'gemini-swap-chat',
+        );
+        for (const read of send.edits)
+          edit(context, file, read.start, read.end, read.text, 'gemini-swap-text');
+      }
+      if (!context.calls.some((item) => item.call === 'chats.sendMessage'))
+        context.calls.push({ call: 'chats.sendMessage' });
+    });
+    return true;
+  };
+  // `model.countTokens(prompt)` → `ai.models.countTokens({ model, contents: prompt })`; the result's
+  // `totalTokens` keeps its name.
+  const geminiCount = (
+    count: ts.CallExpression,
+    client: string,
+    modelValue: ts.Expression,
+    rewrites: (() => void)[],
+  ) => {
+    if (count.arguments.length !== 1 || !promptOk(count.arguments[0])) {
+      block(
+        file,
+        line(count),
+        'countTokens takes something other than one string, template or array.',
+      );
+      return false;
+    }
+    let outer: ts.Node = count;
+    while (ts.isParenthesizedExpression(outer.parent)) outer = outer.parent;
+    const awaited = ts.isAwaitExpression(outer.parent) ? outer.parent : undefined;
+    let holder: ts.Node | undefined = awaited;
+    while (holder && ts.isParenthesizedExpression(holder.parent)) holder = holder.parent;
+    const inlineRead =
+      holder &&
+      ts.isPropertyAccessExpression(holder.parent) &&
+      holder.parent.name.text === 'totalTokens';
+    const result = awaited && constName(awaited);
+    const readsOk =
+      inlineRead ||
+      (result &&
+        usesOf(result).every(
+          (use) =>
+            ts.isPropertyAccessExpression(use.parent) && use.parent.name.text === 'totalTokens',
+        ));
+    if (!readsOk) {
+      block(file, line(count), 'The countTokens result is read other than as `totalTokens`.');
+      return false;
+    }
+    const modelText = geminiModel(context, file, line(count), modelValue, source, symbolOf);
+    if ('reason' in modelText) {
+      block(file, line(count), modelText.reason);
+      return false;
+    }
+    rewrites.push(() => {
+      edit(
+        context,
+        file,
+        count.getStart(),
+        count.getEnd(),
+        `${client}.models.countTokens({ model: ${modelText.text}, contents: ${count.arguments[0].getText(source)} })`,
+        'gemini-swap-count',
+      );
+      if (!context.calls.some((item) => item.call === 'models.countTokens'))
+        context.calls.push({ call: 'models.countTokens' });
+    });
+    return true;
   };
   // `result.response.text()` → `result.text`; for a stream, `for await (const c of result.stream)`
   // → `of result` and `c.text()` → `c.text`.
@@ -2475,7 +2776,8 @@ function geminiFile(
     literals(source);
   }
   // Anything left of the old SDK in this file blocks.
-  const leftovers = /\bGoogleGenerativeAI\b|getGenerativeModel\(/g;
+  const leftovers =
+    /\bGoogleGenerativeAI\b|getGenerativeModel\(|\bHarmCategory\b|\bHarmBlockThreshold\b/g;
   for (const match of content.matchAll(leftovers)) {
     const position = match.index!;
     const covered = context.edits.some(

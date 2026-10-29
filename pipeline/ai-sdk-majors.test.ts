@@ -339,11 +339,14 @@ const client = new OpenAI();
 export const upload = async (p: string) => client.files.create({ file: await createReadStream(p), purpose: 'assistants' });
 export const other = async (p: string) => client.files.create({ file: await createReadStream(p), purpose: 'batch' });
 `);
-    // A second argument (the file name) has no mapped form.
-    expect(
-      proposal.stops.filter((item) => item.file === 'up.js').map((item) => item.rule),
-    ).toContain('openai-node-v5-file-from-path');
-    expect(proposal.stops.some((item) => item.file === 'up.ts')).toBe(false);
+    // A file name maps to toFile over a stream (the README's documented form); CommonJS too.
+    expect(changed['up.js']).toBe(`const { createReadStream } = require('node:fs');
+const { toFile } = require('openai');
+const { OpenAI } = require('openai');
+const client = new OpenAI();
+module.exports = async (p) => client.files.create({ file: await toFile(createReadStream(p), 'name.txt'), purpose: 'batch' });
+`);
+    expect(proposal.stops).toEqual([]);
   });
 
   it("leaves a fileFromPath that is not the SDK's alone", async () => {
@@ -365,7 +368,7 @@ export const up = async (p: string) => client.files.create({ file: await fileFro
       'a.ts': `import OpenAI from 'openai';
 import { Agent } from 'http';
 const client = new OpenAI({ httpAgent: new Agent() });
-export const file = OpenAI.fileFromPath('x', 'name');
+export const file = OpenAI.fileFromPath('x', { type: 'text/plain' });
 export const run = () => client.beta.chat.completions.runFunctions({ model: 'x', messages: [], functions: [] });
 `,
     });
@@ -832,6 +835,45 @@ module.exports = { ask };
     });
   });
 
+  it('maps safety settings, chat and countTokens as the guide shows', async () => {
+    const { proposal, changed } = await gemini({
+      'chat.ts': `import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+const genAI = new GoogleGenerativeAI(process.env.KEY!);
+const model = genAI.getGenerativeModel({
+  model: "gemini-3.8-flash",
+  safetySettings: [{ category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE }],
+});
+export async function talk(text: string) {
+  const chat = model.startChat({ history: [{ role: "user", parts: [{ text: "Hello" }] }] });
+  const result = await chat.sendMessage(\`Q: \${text}\`);
+  return result.response.text();
+}
+export async function size(text: string) {
+  const p = \`\${text}\`;
+  const counted = await model.countTokens(p);
+  return counted.totalTokens;
+}
+`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(changed['chat.ts']).toBe(`import { GoogleGenAI } from "@google/genai";
+const genAI = new GoogleGenAI({ apiKey: process.env.KEY! });
+export async function talk(text: string) {
+  const chat = genAI.chats.create({ model: "gemini-3.8-flash", history: [{ role: "user", parts: [{ text: "Hello" }] }], config: { safetySettings: [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" }] } });
+  const result = await chat.sendMessage({ message: \`Q: \${text}\` });
+  return result.text;
+}
+export async function size(text: string) {
+  const p = \`\${text}\`;
+  const counted = await genAI.models.countTokens({ model: "gemini-3.8-flash", contents: p });
+  return counted.totalTokens;
+}
+`);
+    expect(proposal.rules.map((rule) => rule.rule)).toEqual(
+      expect.arrayContaining(['gemini-swap-safety', 'gemini-swap-chat', 'gemini-swap-count']),
+    );
+  });
+
   it('keeps blocking on systemInstruction, safetySettings and other config keys', async () => {
     const { proposal } = await gemini({
       'a.ts': `import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -854,7 +896,7 @@ module.exports = {
   tuned: () => tuned.generateContent("x"),
 };
 `,
-      'b.ts': `import { GoogleGenerativeAI, HarmCategory } from "@google/generative-ai";
+      'b.ts': `import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 export const c = new GoogleGenerativeAI("k");
 `,
       'c.ts': `import { GoogleGenerativeAI } from "@google/generative-ai";
