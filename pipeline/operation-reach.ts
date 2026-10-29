@@ -514,10 +514,18 @@ function callBodies(repository: Repository, calls: MappedSdkCall[], argumentInde
     }
     const source = ts.createSourceFile(path, file.content, ts.ScriptTarget.Latest, true);
     const wanted = new Set(located.map((call) => `${call.line}:${call.column}`));
+    const methods = new Map(
+      located.map((call) => [`${call.line}:${call.column}`, call.method.split('.').at(-1)]),
+    );
     const visit = (node: ts.Node) => {
       if (ts.isCallExpression(node)) {
         const position = source.getLineAndCharacterOfPosition(node.getStart());
-        if (wanted.delete(`${position.line + 1}:${position.character + 1}`))
+        const key = `${position.line + 1}:${position.character + 1}`;
+        // `stripe.accounts.retrieve().catch(…)` starts where the SDK call does: match its method.
+        const method = ts.isPropertyAccessExpression(node.expression)
+          ? node.expression.name.text
+          : undefined;
+        if (method === methods.get(key) && wanted.delete(key))
           bodies.push({ file: path, body: node.arguments[argumentIndex], call: node });
       }
       ts.forEachChild(node, visit);

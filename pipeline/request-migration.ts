@@ -172,6 +172,38 @@ export function paymentMethodRule(
     : undefined;
 }
 
+// An object only turned into text: an argument of `JSON.stringify` or `console.*`, directly or as
+// what a `.map` callback returns into such an argument. Text sends no request, so the key in it is
+// output, such as `{ payment_method_types: pi.payment_method_types }` logged from a response.
+function printedOnly(object: ts.Expression): boolean {
+  let value: ts.Node = object;
+  for (;;) {
+    while (ts.isParenthesizedExpression(value.parent)) value = value.parent;
+    const parent = value.parent;
+    if (ts.isArrowFunction(parent) && parent.body === value) {
+      const call = parent.parent;
+      if (
+        !ts.isCallExpression(call) ||
+        call.arguments[0] !== parent ||
+        !ts.isPropertyAccessExpression(call.expression) ||
+        call.expression.name.text !== 'map'
+      )
+        return false;
+      value = call;
+      continue;
+    }
+    if (!ts.isCallExpression(parent) || !parent.arguments.includes(value as ts.Expression))
+      return false;
+    const callee = parent.expression;
+    return (
+      ts.isPropertyAccessExpression(callee) &&
+      ts.isIdentifier(callee.expression) &&
+      ((callee.expression.text === 'JSON' && callee.name.text === 'stringify') ||
+        callee.expression.text === 'console')
+    );
+  }
+}
+
 // Object-literal keys spelling the removed `payment_method_types` outside every traced SDK call
 // body. A body built in a variable, assembled by a wrapper or sent by an untraced client still
 // sends it once the pin moves, so each one stops for review (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
@@ -297,6 +329,7 @@ export function untracedRemovedParameters(
       TEST_PATH.test(file(node))
     )
       continue;
+    if (printedOnly(node.parent)) continue;
     const calls = localCalls(node.parent, removal.parameter);
     // Only SDK calls that still accept the parameter, such as `stripe.paymentLinks.create(params)`.
     if (calls?.every((call) => !removalFor(removal.parameter, call))) continue;

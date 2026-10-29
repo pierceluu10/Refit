@@ -387,8 +387,19 @@ async function runOpenApiPipeline(options: {
   // Every client that may send the renamed field must reach the target version: a dynamic or
   // unresolved pin can keep one on the version that rejects allowed_payment_method_types. A
   // client without the option moves with the stripe-node upgrade.
+  // An untraced client's own literal pin moves with versionEdits too (declared-api-versions.ts).
+  const movedUntraced = (entry: (typeof apiVersionDeclarations)[number]) =>
+    Boolean(entry.untracedPin) &&
+    apiVersionLiterals.some(
+      (literal) =>
+        apiVersionDeclarations[literal.declaration ?? -1] === entry &&
+        versionEdits.some((edit) => edit.file === literal.file && edit.start === literal.start),
+    );
   const everyPinMoves = apiVersionDeclarations.every(
-    (entry) => entry.status !== 'unknown' || (entry.kind === 'constructor' && entry.absent),
+    (entry) =>
+      entry.status !== 'unknown' ||
+      (entry.kind === 'constructor' && entry.absent) ||
+      movedUntraced(entry),
   );
   // A deployment environment variable can override a moved default, so request edits that need
   // the target version do not ride on it; the version move itself does.

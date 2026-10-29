@@ -36,8 +36,9 @@ it('renames only a traced, argument-free accounts.retrieve call', () => {
     'const c = await stripe.accounts.retrieve(null);',
     'const d = await stripe.accounts?.retrieve?.();',
     'const e = await other.accounts.retrieve();',
+    'const f = await stripe.accounts.retrieve().catch(() => null);',
   ].join('\n');
-  const traced = [1, 2, 3, 4].map((line) => ({
+  const traced = [1, 2, 3, 4, 6].map((line) => ({
     line,
     column: 17,
     method: 'accounts.retrieve',
@@ -48,6 +49,7 @@ it('renames only a traced, argument-free accounts.retrieve call', () => {
     'const c = await stripe.accounts.retrieve(null);',
     'const d = await stripe.accounts?.retrieve?.();',
     'const e = await other.accounts.retrieve();',
+    'const f = await stripe.accounts.retrieveCurrent().catch(() => null);',
   ]);
 });
 

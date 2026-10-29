@@ -536,15 +536,16 @@ export function analyzeRepository(
   const typedClients = new Map(
     (options.typedClients ?? []).map((client) => [
       `${client.file}\0${client.start}\0${client.end}`,
-      client.source,
+      client,
     ]),
   );
-  const typedClient = (node: ts.Node) =>
+  const typedEntry = (node: ts.Node) =>
     typedClients.size
       ? typedClients.get(
           `${locations.get(node.getSourceFile().fileName)}\0${node.getStart()}\0${node.end}`,
         )
       : undefined;
+  const typedClient = (node: ts.Node) => typedEntry(node)?.source;
   function sdkAccess(expression: ts.Expression) {
     const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
     let current = expression;
@@ -1291,6 +1292,18 @@ export function analyzeRepository(
     clientReferences,
     false,
   );
+  // Whether a request on this call reaches Stripe as written: a client that never escapes, or
+  // (founder decision 2026-10-28, type evidence counts) one TypeScript's checker types as
+  // stripe-node's client without a cast, in a program where nothing writes to a client or resource
+  // object, and that is not itself reassigned or mutated: wherever it went, it is a stripe-node
+  // client running stripe-node's own methods.
+  function requestClient(call: { client: ts.Expression; optional: boolean }) {
+    const binding = clientBinding(call.client)!;
+    return (
+      !call.optional &&
+      (!unsafe.has(binding) || Boolean(typedEntry(call.client)?.sealed && !mutated.has(binding)))
+    );
+  }
   function helperEvidence(expression: ts.Expression, uncertain = unsafe) {
     const flow = helperBindings.client(expression);
     return flow && uncertain.has(flow.binding)
@@ -1323,8 +1336,7 @@ export function analyzeRepository(
           ...location(hit.node),
           changeId: hit.removal.id,
           expression: `${call.resource}.${call.method} expand '${hit.path}'`,
-          confidence:
-            !unsafe.has(clientBinding(call.client)!) && !call.optional ? 'confirmed' : 'review',
+          confidence: requestClient(call) ? 'confirmed' : 'review',
           ...helperEvidence(call.client),
           reason: removedExpandReason(hit),
         });
@@ -1333,8 +1345,7 @@ export function analyzeRepository(
     )) {
       const edit = requestPropertyEdit(node, rule);
       if (edit.status === 'unaffected') continue;
-      const confirmed =
-        edit.status === 'editable' && !unsafe.has(clientBinding(call.client)!) && !call.optional;
+      const confirmed = edit.status === 'editable' && requestClient(call);
       findings.push({
         ...location(node),
         changeId: rule.id,
@@ -1370,7 +1381,7 @@ export function analyzeRepository(
     )) {
       const property = removedParameterProperty(node, removal);
       if (!property) continue;
-      const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
+      const confirmed = requestClient(call);
       // Only the exact literal `['card']` has a reviewed replacement, and, where the repository
       // opted in, a literal list of `card` plus other distinct methods, or any other value
       // expression that names no in-person method (request-migration.ts). run.ts keeps the edit
@@ -1437,7 +1448,7 @@ export function analyzeRepository(
       call.method === 'retrieveUpcoming' &&
       ts.isPropertyAccessExpression(node.expression)
     ) {
-      const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
+      const confirmed = requestClient(call);
       const planned = confirmed ? invoicePreviewEdits(node, options.invoicePreview) : undefined;
       if (Array.isArray(planned))
         for (const edit of planned)
@@ -1473,7 +1484,7 @@ export function analyzeRepository(
         call && {
           resource: call.resource,
           method: call.method,
-          confirmed: !unsafe.has(clientBinding(call.client)!) && !call.optional,
+          confirmed: requestClient(call),
         }
       );
     },
@@ -1518,7 +1529,7 @@ export function analyzeRepository(
     if (!replacement) continue;
     const method = node.expression;
     const call = sdkCall(node)!;
-    const confirmed = !unsafe.has(clientBinding(call.client)!) && !call.optional;
+    const confirmed = requestClient(call);
     findings.push({
       ...location(node),
       changeId: replacement.id,
