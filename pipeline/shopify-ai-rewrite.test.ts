@@ -180,3 +180,14 @@ it('refuses a reconstruction that invents a name, breaks on either version or is
   });
   expect(await reconstruct('')).toMatchObject({ status: 'refused' });
 });
+
+it('refuses a rewrite that hides an error behind a selection that never runs', () => {
+  expect(
+    rewriteProblem(
+      ORIGINAL,
+      'query Product($id: ID!) { product(id: $id) { id legacyId: numericId title } shop: product(id: $id) @skip(if: true) { id } }',
+      before,
+      after,
+    ),
+  ).toContain('never runs');
+});

@@ -62,6 +62,10 @@ When the move to the target stops only because the SDK the app has (or can be up
 
 With `--ai-patch`, a document that breaks only on the target and that no rule fixes is sent to the model with its errors and the target types it touches (`pipeline/shopify-ai-rewrite.ts`, AI use 4). The rewrite is kept only when Refit checks deterministically that it parses and validates on the target schema, keeps every operation, operation name and variable definition, and returns every response path of the original with the same type (a nullable value may become non-null). The patch's generator is then `openai`, the draft is `[Needs review]` with the AI-written lines listed, and each attempt, its model and cost are recorded under `shopify.ai`. Only a document read from one literal or one `.graphql` file is rewritten.
 
+With `--ai-patch`, an Admin call whose document Refit cannot read statically (built at runtime, passed through a table or function) is sent to the model with its file and the files that file imports (AI use 5, `aiReconstructDocument`). The model returns the document the call sends; Refit keeps it only when every operation, field, argument, alias, fragment and variable name in it is written in that code, and graphql-js validates it on both the before and the target schema. A kept reconstruction no longer stops the version move: it is recorded under `shopify.reconstructed`, quoted in the draft for the reviewer to confirm, and validated again by the schema proof at the call's line in the patched code. A refused one keeps the `shopify-graphql:unreadable` stop with the reason.
+
+AI repair works on Shopify patches as on Stripe ones ([AI repair](AI-REPAIR.md)): when an SDK upgrade breaks the build, the model gets Shopify instructions and, on a repeated proposal, the installed `@shopify/*` declarations the tsc errors name.
+
 A field rename is not inferred from a deprecation notice. Of the 401 fields deprecated in `2026-01`, 23 name a same-typed replacement that still exists in `2026-10`, but same type does not mean same value: `ShopifyPaymentsPayout.gross` points to `net`.
 
 ## Add the agent

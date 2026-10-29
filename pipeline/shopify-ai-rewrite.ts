@@ -96,6 +96,18 @@ const operations = (ast: DocumentNode) =>
     )
     .sort();
 
+const deadSelections = (ast: DocumentNode) => {
+  let count = 0;
+  visit(ast, {
+    Directive(node) {
+      const condition = node.arguments?.find((argument) => argument.name.value === 'if')?.value;
+      if (condition?.kind === 'BooleanValue' && condition.value === (node.name.value === 'skip'))
+        count++;
+    },
+  });
+  return count;
+};
+
 // Why a rewrite is not acceptable, or undefined when every check passes.
 export function rewriteProblem(
   original: string,
@@ -116,6 +128,9 @@ export function rewriteProblem(
   if (!proof) return 'The rewrite spreads a fragment it does not define.';
   if (proof.length) return `The rewrite fails the schema proof on the target: ${proof[0]}`;
   const originalAst = parse(original);
+  // A selection that never runs (`@skip(if: true)`) only hides an error, such as an unused variable.
+  if (deadSelections(ast) > deadSelections(originalAst))
+    return 'The rewrite adds a selection that never runs (@skip(if: true) or @include(if: false)).';
   if (operations(originalAst).join('\n') !== operations(ast).join('\n'))
     return 'The rewrite changes an operation, its name or its variables.';
   const was = responseShape(originalAst, before);

@@ -14,7 +14,7 @@ Shopify publishes a GraphQL schema for each Admin API version. Every document th
   - a selected field whose type changes (a nullable output that becomes non-null is allowed);
   - a variable whose input type loses a field, changes a field's type, gains a required field with no default, or loses an enum value. Variables are not checked by GraphQL validation, so this is checked separately.
 - **Codegen.** Where the repository generates types (`.graphqlrc.*` or a `codegen` config naming `@shopify/api-codegen-preset` or `@graphql-codegen/`), the committed types count for the target only if nothing the documents use differs between the versions. That covers selected fields, variable input types, enum values and union members. Refit cannot regenerate the types offline. Where an enum or union the documents select gains members, the type check ran on stale types, so the proof is `unproven`.
-- The proof is `failed` when any patched document fails. It is `unproven` when the code sends a document Refit cannot read (built at runtime, or a fragment it cannot inline), when there is no document to check, or when codegen types are stale.
+- The proof is `failed` when any patched document fails. It is `unproven` when the code sends a document Refit cannot read (built at runtime, or a fragment it cannot inline) and no kept AI reconstruction exists for that call ([Shopify](SHOPIFY.md)), when there is no document to check, or when codegen types are stale.
 
 ## Live proof (optional)
 
