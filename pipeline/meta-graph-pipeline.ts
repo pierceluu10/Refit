@@ -1,16 +1,22 @@
 import { open, readFile } from 'node:fs/promises';
 import type { ApiVersionEvidence, ApiVersionPolicy } from './api-version.ts';
-import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { daysUntil, loadDeadlineRegistry, type DeadlineRegistry } from './deadline-registry.ts';
 import { META_SDK } from './deadline-exposure.ts';
-import { scanGraphCalls } from './meta-graph-calls.ts';
+import { scanGraphCalls, type GraphCall } from './meta-graph-calls.ts';
 import {
   checkMetaGraphChanges,
   compareVersions,
   DEFAULT_META_GRAPH_CHANGES,
+  type MetaGraphChange,
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
 import { loadMetaPlatformAlerts, planMetaGraphFixes } from './meta-graph-fixes.ts';
-import { META_GRAPH_VERSION_RULE } from './meta-graph-moves.ts';
+import {
+  changesUsedBy,
+  fieldNames,
+  META_GRAPH_VERSION_RULE,
+  type VersionMoveStop,
+} from './meta-graph-moves.ts';
 import { loadMetaGraphRules } from './meta-graph-rule-edits.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
@@ -99,6 +105,57 @@ export function isMetaGraphSnapshot(snapshot: { document: Record<string, unknown
   return typeof snapshot.document.metaGraphChanges === 'string';
 }
 
+// Versions Meta no longer serves on the day of the run: those the deadline registry dates on or
+// before it, and every version older than the oldest it lists, which retired earlier.
+function retiredVersions(registry: DeadlineRegistry, now: Date) {
+  const entries = registry.deadlines.filter((entry) => entry.provider === META_GRAPH.id);
+  const listed = entries.flatMap((entry) => entry.versions).filter((v) => VERSION.test(v));
+  const oldest = listed.sort(compareVersions)[0];
+  const past = new Set(
+    entries.filter((entry) => daysUntil(entry.date, now) <= 0).flatMap((entry) => entry.versions),
+  );
+  return (version: string) =>
+    past.has(version) || (oldest !== undefined && compareVersions(version, oldest) < 0);
+}
+
+// Whether the table ties a change to the request itself, rather than matching it for caution: a
+// field, metric, parameter or edge the request names, or a literal path it calls. A change on a
+// node type written as a placeholder (`/{custom-audience-id}`) matches any opaque ID, and a field
+// change counted against a GET's default fields may not reach the node read, so neither is
+// definite.
+function definiteUse(call: GraphCall, change: MetaGraphChange) {
+  if (change.kind.startsWith('field-')) return fieldNames(call.fields ?? []).has(change.name ?? '');
+  if (change.path !== null) {
+    const segments = change.path.split('/').filter(Boolean);
+    return !(segments.length === 1 && segments[0].includes('{'));
+  }
+  return true;
+}
+
+// Why a request the patch leaves on its version is a real Meta problem, or undefined when its stop
+// is caution only: its version is retired, it definitely uses a change between its version and the
+// target, or a documented rule names something it sends.
+function realStop(
+  call: GraphCall | undefined,
+  stop: VersionMoveStop,
+  target: string,
+  changes: MetaGraphChanges,
+  retired: (version: string) => boolean,
+) {
+  if (stop.from && retired(stop.from)) return 'retired' as const;
+  if (stop.reasons.some((reason) => / rule .* documents /.test(reason))) return 'rule' as const;
+  if (!call || !stop.from) return undefined;
+  const crossed = changes.changes.filter(
+    (change) =>
+      change.version !== null &&
+      compareVersions(change.version, stop.from!) > 0 &&
+      compareVersions(change.version, target) <= 0,
+  );
+  return changesUsedBy(call, crossed).some((change) => definiteUse(call, change))
+    ? ('change' as const)
+    : undefined;
+}
+
 // A Meta snapshot as readSpecification returns it.
 interface Snapshot {
   hash: string;
@@ -125,17 +182,22 @@ export async function runMetaGraphPipeline(options: {
   const changes = changeTable(options.after.document.metaGraphChanges, 'the after snapshot');
   const repository = await readRepository(options.repository, META_SDK);
   const scan = await scanGraphCalls(options.repository, { repository });
+  const registry = await loadDeadlineRegistry(undefined, now);
   const plan = await planMetaGraphFixes(options.repository, target, {
     changes,
-    registry: await loadDeadlineRegistry(undefined, now),
+    registry,
     rules: await loadMetaGraphRules(changes),
     alerts: await loadMetaPlatformAlerts(),
     now,
   });
   const { proposal } = plan;
   const findings: Finding[] = [];
-  // Each moved request is migrated by the move; each stopped one is listed for review with every
-  // reason, and so is each use of a product that needs a migration.
+  // Each moved request is migrated by the move. A request the patch leaves on its version is a
+  // finding when Refit found a real Meta problem there (realStop); a stop that is caution only,
+  // on a version Meta still serves, is listed as a note, since the patch neither touches nor
+  // worsens that line (docs/PROOF-BASED-VALIDATION.md). Product migrations are findings.
+  const retired = retiredVersions(registry, now);
+  const cautions: string[] = [];
   for (const move of proposal.moves)
     for (const request of move.requests)
       findings.push({
@@ -150,7 +212,17 @@ export async function runMetaGraphPipeline(options: {
   for (const stop of proposal.stops) {
     // A pin already past the target needs nothing.
     if (stop.from && compareVersions(stop.from, target) > 0) continue;
-    for (const request of stop.requests)
+    for (const request of stop.requests) {
+      const call = scan.calls.find(
+        (item) => item.file === request.file && item.line === request.line,
+      );
+      const real = realStop(call, stop, target, changes, retired);
+      if (!real) {
+        cautions.push(
+          `${where(request.file, request.line)} ${request.method ?? 'request'} ${request.path ?? 'unknown path'} stays on ${stop.from ?? 'its version'}: ${stop.reasons.join(' ')}`,
+        );
+        continue;
+      }
       findings.push({
         file: request.file,
         line: request.line,
@@ -158,8 +230,9 @@ export async function runMetaGraphPipeline(options: {
         changeId: `${META_GRAPH_VERSION_RULE}:review`,
         expression: `${request.method ?? 'request'} ${request.path ?? 'unknown path'}`,
         confidence: 'review',
-        reason: `${stop.from ? `Stays on ${stop.from}${stop.file ? ` (${where(stop.file, stop.line!)})` : ''}` : 'Not moved'}: ${stop.reasons.join(' ')}`,
+        reason: `${stop.from ? `Stays on ${stop.from}${stop.file ? ` (${where(stop.file, stop.line!)})` : ''}` : 'Not moved'}${real === 'retired' ? `, which Meta no longer serves` : ''}: ${stop.reasons.join(' ')}`,
       });
+    }
   }
   for (const migration of plan.migrations)
     for (const use of migration.uses)
@@ -251,6 +324,10 @@ export async function runMetaGraphPipeline(options: {
           warnings: [
             'Requests through WhatsApp, Messenger, the business SDK, project helpers or options built at runtime stay on their version; each is listed for review.',
             ...alerts,
+            ...cautions.map(
+              (note) =>
+                `Left on its version, with no Meta problem found there (not counted as unresolved): ${note}`,
+            ),
             'Patch contains source code. Review it for sensitive content before sharing.',
           ],
         };

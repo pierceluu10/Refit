@@ -75,6 +75,33 @@ describe('the Meta Graph pipeline', () => {
     expect(report.findings[1].reason).toContain('WhatsApp Business Platform');
   });
 
+  it('counts only real problems as unresolved, and lists caution-only stops as notes', async () => {
+    const report = (await run({
+      'post.js': `export const post = (page, token) =>
+  fetch(\`https://graph.facebook.com/v23.0/\${page}/photos\`, {
+    method: 'POST',
+    body: JSON.stringify({ url: 'https://example.com/a.png', access_token: token }),
+  });`,
+      'send.js': `export const send = (phone, to) =>
+  fetch(\`https://graph.facebook.com/v23.0/\${phone}/messages\`, {
+    method: 'POST',
+    body: JSON.stringify({ messaging_product: 'whatsapp', to }),
+  });
+export const me = () => fetch('https://graph.facebook.com/me?fields=id');`,
+    })) as unknown as {
+      findings: { file: string; confidence: string }[];
+      patch: { status: string; unresolvedFindings: number; warnings: string[] };
+    };
+    expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
+    expect(report.findings.filter((finding) => finding.confidence === 'review')).toEqual([]);
+    expect(
+      report.patch.warnings.filter((warning) => warning.startsWith('Left on its version')),
+    ).toEqual([
+      expect.stringContaining('send.js:6 GET /me stays on its version'),
+      expect.stringContaining('send.js:2 POST /{phone}/messages stays on v23.0'),
+    ]);
+  });
+
   it('proposes no patch when nothing can move, and says why', async () => {
     const report = await run({
       'send.js': `export const send = (phone, to) =>
