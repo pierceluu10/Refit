@@ -21,6 +21,7 @@ import {
   publishDraft,
   type publicationConfiguration,
   publicationWaiver,
+  baselineFailedProven,
   proofLevel,
   aiPatchProven,
   aiPatchValidated,
@@ -546,14 +547,15 @@ export async function runWorkflow(options: {
     runId = report.runId;
     validation = report.validation.status;
     // AI repair may fix a bump that breaks the build; it then ships as [Needs review] like any AI
-    // patch (founder decision, 2026-10-28). A bump with failing or no checks, or new advisory type
+    // patch (founder decision, 2026-10-28). A bump with failing or no checks (tests that already failed
+    // and gained no failure, with A to C proof, are not failing), or new advisory type
     // errors, publishes nothing.
     const advisory =
       'advisoryTypeErrors' in report.validation &&
       Array.isArray(report.validation.advisoryTypeErrors)
         ? report.validation.advisoryTypeErrors.length
         : 0;
-    if (versionBump && report.validation.status !== 'passed')
+    if (versionBump && report.validation.status !== 'passed' && !baselineFailedProven(report))
       return await bumpStop(`Validation returned ${report.validation.status}.`);
     if (versionBump && advisory)
       return await bumpStop(
