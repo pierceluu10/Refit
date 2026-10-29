@@ -10,6 +10,7 @@ import {
 } from './meta-graph-changes.ts';
 import { proposeVersionMoves, type VersionMoveProposal } from './meta-graph-moves.ts';
 import { loadMetaGraphRules } from './meta-graph-rules.ts';
+import { metaGraphSnapshot } from './meta-graph-pipeline.ts';
 import {
   loadMetaPlatformAlerts,
   planMetaGraphFixes,
@@ -23,9 +24,11 @@ const USAGE = `Usage: refit meta-graph [--repository <root>] [--json]
        refit meta-graph --propose-version-moves --target <version> [--repository <root>] [--output <patch>] [--changes <path>] [--json]
        refit meta-graph --fix --target <version> [--repository <root>] [--output <patch>] [--changes <path>] [--rules <dir>] [--alerts <path>] [--json]
        refit meta-graph --check-changes [--changes <path>] [--json]
+       refit meta-graph --snapshot <version> --output <new-snapshot.json> [--changes <path>]
 Lists the Meta Graph API requests a repository makes: raw graph.facebook.com calls through fetch, axios and helpers, and facebook-nodejs-business-sdk resource-class calls. Each shows file:line, the pinned version, the path and edge, and the requested fields and metrics where they are written literally. Values built at runtime are marked unknown, with the reason.
 --propose-version-moves proposes moving each pinned Graph API version to --target only where every request through it is fully known and every changelog crossed is reviewed and lists nothing those requests use; every other pin stops for review with the exact reasons. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
 --fix adds the documented rules in data/rules/meta-graph to those moves (a field or metric renamed in a literal list moves with the version; every other rule, and any rule marked for review, stops the move with its source), lists product migrations that need a person with Meta's documented plan (Instagram Basic Display), and lists dated alerts for permission, product and policy changes from data/meta-platform-alerts.json, which never edit code. It prints the patch, or writes it to --output; it never applies, validates or publishes it.
+--snapshot writes a refit run contract: the Graph API version and the reviewed change table, pinned by its hash. Use one at the version the code pins as --before and one at the target as --after.
 --check-changes validates the reviewed per-version change list in data/meta-graph-changes.json, lists versions whose changelog was not read, and versions the deadline registry has that the list does not. It exits 1 on any error.
 Review only: nothing is changed, installed, run or sent to Meta.`;
 
@@ -39,6 +42,7 @@ try {
       output: { type: 'string' },
       changes: { type: 'string' },
       fix: { type: 'boolean' },
+      snapshot: { type: 'string' },
       rules: { type: 'string' },
       alerts: { type: 'string' },
       json: { type: 'boolean' },
@@ -47,7 +51,15 @@ try {
   });
   if (values.help) console.log(USAGE);
   else if (values['check-changes']) await checkChanges(values.changes, values.json);
-  else if (values.fix)
+  else if (values.snapshot !== undefined) {
+    if (!values.output) throw new TypeError('--snapshot requires --output.');
+    const snapshot = await metaGraphSnapshot(
+      values.snapshot,
+      values.changes ? resolve(values.changes) : undefined,
+    );
+    await writeFile(resolve(values.output), `${JSON.stringify(snapshot)}\n`, { flag: 'wx' });
+    console.log(`Wrote ${terminalText(resolve(values.output))} (${snapshot.version}).`);
+  } else if (values.fix)
     await fix(
       resolve(values.repository ?? '.'),
       values.target,

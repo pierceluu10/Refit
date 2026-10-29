@@ -157,7 +157,11 @@ export function applyRules(
       if ('reason' in result) outcome.reasons.push(`${where}: ${cite}: ${result.reason}`);
       else
         outcome.edits.push(
-          ...result.edits.map((edit) => ({ ...edit, changeId: `meta-graph-rule-${rule.rule}` })),
+          ...result.edits.map((edit) => ({
+            ...edit,
+            changeId: `meta-graph-rule-${rule.rule}`,
+            rule: rule.rule,
+          })),
         );
       continue;
     }

@@ -30,6 +30,7 @@ import { PipelineInputError, type Repository, type SourceEdit } from './types.ts
 const VERSION = /^v\d+\.\d+$/;
 const HOST_PREFIX = /graph\.(?:facebook|instagram)\.com\/$/;
 const MAX_ALIAS_DEPTH = 3;
+export const META_GRAPH_VERSION_RULE = 'meta-graph-api-version';
 
 export interface VersionMoveRequest {
   file: string;
@@ -70,6 +71,8 @@ export interface VersionMoveProposal {
   current: VersionMoveRequest[];
   // A unified diff of every move; null when there is none. Never applied by Refit.
   patch: string | null;
+  // The edits the patch is made of: version pins and the rule edits that move with them.
+  edits: SourceEdit[];
 }
 
 function request(call: GraphCall): VersionMoveRequest {
@@ -558,6 +561,7 @@ export async function proposeVersionMoves(
       end: edit.end,
       replacement: target,
       changeId: `meta-graph-version-${from}-${target}`,
+      rule: META_GRAPH_VERSION_RULE,
     });
   }
   const byLocation = (a: { file: string | null; line: number | null }, b: typeof a) =>
@@ -568,5 +572,6 @@ export async function proposeVersionMoves(
     stops: stops.sort(byLocation),
     current,
     patch: edits.length ? renderPatch(repository, edits) : null,
+    edits,
   };
 }
