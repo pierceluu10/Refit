@@ -16,6 +16,7 @@ import { AI_RULE_KINDS, checkAiRuleTables, loadAiRuleTables, type AiRuleKind } f
 import { loadSdkProofTable, proveSdkTable } from './sdk-request-proofs.ts';
 import type { SdkMajorProposal } from './ai-sdk-majors.ts';
 import { aiBudgetConfiguration } from './ai-budget.ts';
+import { FALLBACK_MODEL } from './ai-fallback.ts';
 import { runFallbackOnRepository } from './ai-fallback-run.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 import { readBoundedResponse } from './network.ts';
@@ -169,7 +170,8 @@ try {
       row: JSON.parse(await readFile(values.row, 'utf8')),
       ai: {
         apiKey: key,
-        model: process.env.OPENAI_MODEL?.trim() || 'gpt-5.6-luna',
+        // Never OPENAI_MODEL: the fallback's own calls use one model (FALLBACK_MODEL).
+        model: FALLBACK_MODEL,
         budget: aiBudgetConfiguration(process.env),
       },
       image: values.image!,

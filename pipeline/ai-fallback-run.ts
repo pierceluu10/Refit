@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import {
+  FALLBACK_MODEL,
   fallbackInput,
   modelLiterals,
   openItems,
@@ -403,7 +404,7 @@ export async function runFallbackOnRepository(options: {
 
 // The environment one proof runs with: a target model the patch writes is the model sent, so a
 // model Refit's key cannot use stays unproven. With no target, an OpenAI call shape is sent with
-// the run's own OPENAI_MODEL unless a proof model is set, since the key may serve only that one.
+// the fallback's own model (FALLBACK_MODEL) unless a proof model is set: no other model is used.
 export function proofEnvironment(
   provider: ProofProvider,
   model: string | null,
@@ -411,8 +412,8 @@ export function proofEnvironment(
 ): NodeJS.ProcessEnv {
   const name = PROOF_MODEL_ENV[provider];
   if (model) return { ...environment, [name]: model };
-  if (provider === 'openai' && !environment[name]?.trim() && environment.OPENAI_MODEL?.trim())
-    return { ...environment, [name]: environment.OPENAI_MODEL };
+  if (provider === 'openai' && !environment[name]?.trim())
+    return { ...environment, [name]: FALLBACK_MODEL };
   return environment;
 }
 

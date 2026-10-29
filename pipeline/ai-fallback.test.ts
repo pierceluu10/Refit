@@ -574,8 +574,8 @@ describe('edits', () => {
 });
 
 describe('request proof environment', () => {
-  it("sends a target model itself, and otherwise the run's OpenAI model", () => {
-    const env = { OPENAI_MODEL: 'gpt-6.1-sol' };
+  it("sends a target model itself, and otherwise the fallback's own model", () => {
+    const env = { OPENAI_MODEL: 'gpt-5.6-luna' };
     expect(proofEnvironment('openai', 'gpt-4o', env).REFIT_PROOF_OPENAI_MODEL).toBe('gpt-4o');
     expect(proofEnvironment('openai', null, env).REFIT_PROOF_OPENAI_MODEL).toBe('gpt-6.1-sol');
     expect(
@@ -796,6 +796,18 @@ describe('runAiFallback', () => {
     expect(other.status).toBe('no-attempt');
   });
 
+  it('refuses any model but the fallback model', async () => {
+    await expect(
+      runAiFallback({
+        input,
+        ai: { apiKey: 'k', model: 'gpt-5.6-luna' },
+        repositoryModels: new Set(),
+        exists: async () => false,
+        dependencies: dependencies(),
+      }),
+    ).rejects.toThrow('The AI fallback runs only on gpt-6.1-sol, not gpt-5.6-luna.');
+  });
+
   it('does not call the AI when nothing is open or no file fits', async () => {
     let called = false;
     const request = (async () => {
@@ -803,7 +815,7 @@ describe('runAiFallback', () => {
     }) as never;
     const empty = await runAiFallback({
       input: { ...input, items: [] },
-      ai: { apiKey: 'k', model: 'm' },
+      ai: { apiKey: 'k', model: 'gpt-6.1-sol' },
       repositoryModels: new Set(),
       exists: async () => false,
       dependencies: { ...dependencies(), request },
@@ -811,7 +823,7 @@ describe('runAiFallback', () => {
     expect(empty.status).toBe('no-attempt');
     const unfit = await runAiFallback({
       input: { ...input, files: [], omitted: ['src/ask.ts'] },
-      ai: { apiKey: 'k', model: 'm' },
+      ai: { apiKey: 'k', model: 'gpt-6.1-sol' },
       repositoryModels: new Set(),
       exists: async () => false,
       dependencies: { ...dependencies(), request },

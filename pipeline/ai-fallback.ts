@@ -9,6 +9,7 @@ import { changedOldLines } from './ai-surface-lane.ts';
 import type { DeadlineEntry } from './deadline-registry.ts';
 import { UnusableAiResponse, requestStructuredOutput } from './openai.ts';
 import { NO_OP_CHECK } from './review.ts';
+import { PipelineInputError } from './types.ts';
 import { loadParser, parseWithin } from './tree-sitter.ts';
 
 // The AI fallback (owner decision, Furqan, 2026-10-29): whenever Refit's deterministic engines
@@ -18,6 +19,10 @@ import { loadParser, parseWithin } from './tree-sitter.ts';
 // wrong fix out is what happens after. Its patch becomes a proposed fix only when every gate below
 // passes. Otherwise the row stays [Needs review] with the attempt attached as a suggestion, never
 // as a claimed fix, and Refit never says the AI's code is equivalent to the old code.
+
+// The only model the fallback's own calls use (owner rule, Furqan, 2026-10-29). Other models
+// appear only as a registry replacement inside a patch and in that patch's request proof.
+export const FALLBACK_MODEL = 'gpt-6.1-sol';
 
 export type ChangeType =
   | 'retired-model'
@@ -957,6 +962,10 @@ export async function runAiFallback(options: {
   dependencies: FallbackDependencies;
 }): Promise<FallbackResult> {
   const { input } = options;
+  if (options.ai.model !== FALLBACK_MODEL)
+    throw new PipelineInputError(
+      `The AI fallback runs only on ${FALLBACK_MODEL}, not ${options.ai.model}.`,
+    );
   const empty = {
     items: input.items.length,
     gates: [] as Gate[],
