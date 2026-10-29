@@ -1,5 +1,32 @@
 # AI-provider benchmark results
 
+## October 29, final: after-7 (last scan-only pass before Actions)
+
+This is the same scan-only harness (no validation, no AI) on `bench/ai-provider-after-7` (`bf702822`): ai-models #402 `8b0f6fb6`, #403 `df0b070b`, #404 `c5dd595f` and #406 `3d615602`, and `feat/ai-gemini-swap` `f14dd20b`, ai-surfaces' final head. That head adds two mappings the owner approved: companion platform packages move to v1 with the Anthropic SDK, and openai v3 `Configuration` `organization` and `basePath` map to v4 client options. Rows: `ai-provider-results/2026-10-29-*-after7-scan.json`. This is the engine the Actions passes will measure.
+
+|                                                   | openai-100   | anthropic-100 | gemini-30  |
+| ------------------------------------------------- | ------------ | ------------- | ---------- |
+| Fix proposed (before → after-7)                   | 8 → **19**   | 10 → **12**   | 0 → **2**  |
+| SDK upgrade available, not required               | 0            | **3**         | 0          |
+| Needs review / Python detection only / unaffected | 40 / 24 / 14 | 29 / 16 / 33  | 14 / 7 / 6 |
+| Error / infrastructure                            | 3 / 0        | 6 / **1**     | 1 / 0      |
+| Affected, without optional upgrades               | 83           | 57            | 23         |
+| **Upper bound: proposed / affected**              | **23%**      | **21%**       | **9%**     |
+| Upper bound: proposed / affected JS/TS            | 32%          | 29%           | 12%        |
+
+- **OpenAI +1 from after-6.** One row's v3 → v6 migration now maps its `Configuration` options and has no stop left (3 → 4 edits). `openai-node-v4-client` stops fall from 6 to 2, and rows with a blocking migration stop from 10 to 7. `v5-web-response` (7) is now the largest OpenAI blocker. Those are reads of the raw response's headers, which are real stops.
+- **Anthropic is unchanged in rows.** The 7 `anthropic-ts-companions` stops are now 7 `anthropic-ts-platform-credentials` stops on the same rows: those platform clients pass a credential option that v1 rejects. Sampling stays at 36 blocking (unknown bodies) and 32 optional. No Anthropic SDK migration produces edits.
+- **One new infrastructure row (Anthropic, Python).** A detection-only row could not be fetched this run ("unable to access" from GitHub). Per the integrity rules it stays in the denominator as a failure. A clone failure is not a Refit result, so the Actions pass will show whether it persists.
+- **Gemini is unchanged** (12 rows blocked by `gemini-swap-target`).
+- **The sampled fixes are unchanged:** 14 correct, 1 partial (not fixable from a provider source), 0 wrong. **Alerts are unchanged. AI cost: $0.**
+
+**Against the 90% target: not reachable on this engine.** Even if every proposed fix validates and passes request proof, the bound is 23% / 21% / 9% of affected rows. What holds the rest, in rows (from the stop counts above):
+
+- OpenAI: legacy Completions and Assistants (the AI lane is not measured until Actions), custom-endpoint and base-URL stops (held for Furqan), and `v5-web-response`.
+- Anthropic: sampling on bodies Refit cannot read, Text Completions removal, and platform credentials.
+- Gemini: unmapped swap forms.
+- All three: affected Python rows, which are detection only.
+
 ## October 29, night: after-6 re-run (ai-surfaces' stable head)
 
 This is the same scan-only harness (no validation, no AI) on `bench/ai-provider-after-6` (`9a3b3372`). It holds the same ai-models heads as after-4 and `feat/ai-gemini-swap` `ec1a22bc`, which ai-surfaces named as its stable head for the night. Rows: `ai-provider-results/2026-10-29-*-after6-scan.json`.
