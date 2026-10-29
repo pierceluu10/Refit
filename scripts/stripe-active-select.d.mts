@@ -1,6 +1,7 @@
 // Types for the plain-JavaScript active-set selection, so its test can import it.
 
 export const ACTIVE_DAYS: number;
+export const QUERIES: string[];
 export const SIZE_RANGES: string[];
 export const DEFAULT_EXCLUDES: string[];
 export function searchQueries(): string[];
