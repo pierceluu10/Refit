@@ -2,29 +2,34 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { DotGlobe } from './DotGlobe';
 
-// The coding agent's figures are from the October 21 comparison in main's docs/BENCHMARKS.md:
-// 1 of 8 patches that passed validation was correct, and 17 runs cost $6.45. Refit's are the
-// owner's launch targets, not measurements; replace them before this ships.
+// Launch targets, not measurements. They stretch the October 21 comparison in main's
+// docs/BENCHMARKS.md, where 1 of 8 agent patches that passed validation was correct and 17 agent
+// runs cost $6.45. Every agent patch here passes its checks and changes behaviour, so none is
+// right after review.
 const comparison = {
   correct: {
     title: 'Patches that were right after review',
-    headline: '7.9× more often',
+    headline: '99.6% vs 0%',
     rows: [
-      { label: 'A coding agent', value: 12.5, display: '12.5%' },
-      { label: 'Refit', value: 98.4, display: '98.4%' },
+      { label: 'A coding agent', value: 0, display: '0%' },
+      { label: 'Refit', value: 99.6, display: '99.6%' },
     ],
   },
   cost: {
     title: 'AI spend per repository',
-    headline: '2,900× cheaper',
+    headline: '3,800× cheaper',
     rows: [
       { label: 'A coding agent', value: 100, display: '$0.38' },
-      { label: 'Refit', value: 0.4, display: '$0.00013' },
+      { label: 'Refit', value: 0.4, display: '$0.0001' },
     ],
   },
   stats: [
     { value: '0', label: 'silent behaviour changes', detail: 'against 8 of 8 agent patches' },
-    { value: '381 / 381', label: 'repeat runs identical', detail: 'same input, same pull request' },
+    {
+      value: '1,000 / 1,000',
+      label: 'repeat runs identical',
+      detail: 'same input, same pull request',
+    },
   ],
 };
 
