@@ -1,0 +1,114 @@
+{
+  "formatVersion": 1,
+  "provider": "gemini",
+  "kind": "sdk-major",
+  "pages": {
+    "migrate": {
+      "url": "https://ai.google.dev/gemini-api/docs/migrate",
+      "file": "docs/ai-docs/pages/gemini-migrate.md",
+      "capturedAt": "2026-10-29",
+      "raw": "https://ai.google.dev/gemini-api/docs/migrate.md.txt"
+    }
+  },
+  "rules": [
+    {
+      "rule": "gemini-swap-target",
+      "family": "gemini-swap-target",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "import { GoogleGenAI } from \"@google/genai\";",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Replaces @google/generative-ai with the newest @google/genai 2.x release.",
+      "data": {
+        "package": "@google/genai",
+        "replaces": "@google/generative-ai",
+        "targetMajor": 2,
+        "surface": "data/sdk-surfaces/google-genai-2.json"
+      }
+    },
+    {
+      "rule": "gemini-swap-client",
+      "family": "gemini-swap-client",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "const ai = new GoogleGenAI({apiKey: \"GEMINI_API_KEY\"});",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`new GoogleGenerativeAI(key)` becomes `new GoogleGenAI({ apiKey: key })`.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-swap-generate",
+      "family": "gemini-swap-generate",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "const response = await ai.models.generateContent({ model: \"gemini-3.8-flash\", contents: \"Tell me a story in 300 words.\", });",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`genAI.getGenerativeModel({ model }).generateContent(prompt)` becomes `ai.models.generateContent({ model, contents: prompt })`; only a model option and a string or array prompt are mapped.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-swap-stream",
+      "family": "gemini-swap-stream",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "const response = await ai.models.generateContentStream({ model: \"gemini-3.8-flash\", contents: \"Write a story about a magic backpack.\", });",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`generateContentStream(prompt)` becomes `ai.models.generateContentStream({ model, contents })`, iterated directly instead of through `.stream`.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-swap-text",
+      "family": "gemini-swap-text",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "console.log(response.text);",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`result.response.text()` becomes `result.text`, and a stream chunk's `chunk.text()` becomes `chunk.text`.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-generative-ai-js",
+      "family": "sdk-swap",
+      "status": "report",
+      "page": "migrate",
+      "quote": "import { GoogleGenerativeAI } from \"@google/generative-ai\";",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Uses @google/generative-ai, which Google no longer supports; @google/genai replaces it with another client (`ai.models.generateContent`) and response shape (`response.text` is a property). The swap is an owner decision for Gemini, so Refit lists it.",
+      "data": {
+        "breaking": false,
+        "match": {
+          "imports": [
+            "@google/generative-ai",
+            "@google/generative-ai/server"
+          ]
+        }
+      }
+    },
+    {
+      "rule": "gemini-generativeai-python",
+      "family": "sdk-swap",
+      "status": "report",
+      "page": "migrate",
+      "quote": "import google.generativeai as genai",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Python uses google-generativeai, the legacy library; google-genai replaces it. Python and Gemini are report only.",
+      "data": {
+        "breaking": false,
+        "match": {
+          "python": [
+            "^\\s*import google\\.generativeai\\b",
+            "^\\s*from google import generativeai\\b",
+            "^\\s*from google\\.generativeai\\b"
+          ]
+        }
+      }
+    }
+  ]
+}
