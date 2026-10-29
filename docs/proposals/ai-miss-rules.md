@@ -7,9 +7,10 @@ These are proposals, not rules. A person turns each one into an engine rule with
 | Status | Groups | Meaning |
 |---|---:|---|
 | rule-candidate | 0 | Two or more repositories, a quoted source and a validated AI fix as the first fixture |
-| needs-fix-example | 9 | Two or more repositories and a quoted source; no fix passed every gate yet |
-| single-repository | 24 | Withheld (D5) until a second repository shows the pattern |
+| needs-fix-example | 8 | Two or more repositories and a quoted source; no fix passed every gate yet |
+| single-repository | 23 | Withheld (D5) until a second repository shows the pattern |
 | no-quoted-source | 0 | Withheld: no saved provider quote backs the change |
+| infrastructure | 2 | Not a rule gap: Refit's checks could not run or judge the fix |
 
 ## `openai-retired-model-model-stop-ff928ba9` (needs-fix-example)
 
@@ -93,23 +94,6 @@ These are proposals, not rules. A person turns each one into an engine rule with
 >
 > https://developers.openai.com/api/docs/deprecations
 
-## `openai-retired-model-model-fix-failed-087c8dbb` (needs-fix-example)
-
-- **Provider / change type / engine stop:** openai / retired-model / model-fix-failed
-- **Pattern Refit missed:** Refit proposed <model> → <model>; its checks returned validation-failed: Validation returned baseline-failed; publication was not attempted..
-- **Repositories / sites:** 3 / 3; AI attempted 3, validated 0 ($0.1368)
-- **Registry and rule refs:** `openai-2026-10-23-gpt-3-5-turbo`, `openai-2027-01-14-gpt-4o-2024-08-06`
-- **Code shape:** `<id>-4<id>-<n>-<n>-<n> → <id>-<n>-<id>`
-- **Code shape:** `<id>-<n>-<id> → <id>-<n>-<id>`
-
-> | January 14, 2027 | GPT-4o (`gpt-4o-2024-08-06`, `gpt-4o-2024-11-20`) | `gpt-6-luna`            |
->
-> https://developers.openai.com/api/docs/deprecations
-
-> | October 23, 2026 | `gpt-3.5-turbo-0125` \| `gpt-3.5-turbo`, `gpt-3.5-turbo-completions`   | `gpt-5.6-terra`                                   |
->
-> https://developers.openai.com/api/docs/deprecations
-
 ## `openai-parameter-change-model-unresolved-13b0af79` (needs-fix-example)
 
 - **Provider / change type / engine stop:** openai / parameter-change / model-unresolved
@@ -155,6 +139,17 @@ These are proposals, not rules. A person turns each one into an engine rule with
 >
 > https://developers.openai.com/api/docs/deprecations
 
+## Check-infrastructure gaps (not rule candidates)
+
+These are places where Refit's own validation could not run or judge a fix, so no rule would help. They belong to the check and preparation work, not to rules.
+
+- Engine stop `model-fix-failed` on 3 repositories (3 sites): Refit proposed <model> → <model>; its checks returned validation-failed: Validation returned baseline-failed; publication was not attempted..
+- Engine stop `sdk-major` on 1 repository (1 site): No patch: npm could not re-resolve <file> with openai ^<n>: npm could not resolve a lockfile as of <n>-<n>-23T03:<n>:<n>-<n>:<n> (<n>). npm error code ETARGET npm error notarget No matching version found for openai@^<n> …
+- AI attempts whose checks gate failed because of dependency change in a repository with a pnpm or Yarn lockfile, or several lockfiles: 2
+- AI attempts whose checks gate failed because of the checks already fail on the original code: 1
+- AI attempts whose checks gate failed because of npm could not re-resolve the lockfile: 1
+- AI attempts whose checks gate failed because of no offline Python install-and-test runner: 1
+
 ## Withheld groups
 
 | Group | Status | Change type | Pattern | Sites |
@@ -172,7 +167,6 @@ These are proposals, not rules. A person turns each one into an engine rule with
 | `openai-old-sdk-major-sdk-major-1062a14e` | single-repository | old-sdk-major | <code> ends like a method openai v5 renamed or removed (openai-node-v5-files-del), and Refit could not trace its receiver to the client. | 1 |
 | `openai-old-sdk-major-sdk-major-3435ff96` | single-repository | old-sdk-major | No patch: Upgrading openai changes node_modules/@cfworker/json-schema, node_modules/@langchain/core/node_modules/ansi-styles, node_modules/@langchain/core/node_ | 1 |
 | `openai-old-sdk-major-sdk-major-4dffb697` | single-repository | old-sdk-major | No patch: The openai upgrade does not cover npm workspaces. | 1 |
-| `openai-old-sdk-major-sdk-major-66211b23` | single-repository | old-sdk-major | No patch: npm could not re-resolve <file> with openai ^<n>: npm could not resolve a lockfile as of <n>-<n>-23T03:<n>:<n>-<n>:<n> (<n>). npm error code ETARGET n | 1 |
 | `openai-old-sdk-major-sdk-major-817e2913` | single-repository | old-sdk-major | No patch: Upgrading openai changes node_modules/@types/node, node_modules/ms, node_modules/undici-types, node_modules/zod in <file>, outside openai and the pack | 1 |
 | `openai-old-sdk-major-sdk-major-868500a0` | single-repository | old-sdk-major | No patch: The openai upgrade re-resolves only npm's <file>; this project commits yarn.lock, whose manager cannot resolve as of a date. | 1 |
 | `openai-old-sdk-major-sdk-major-a56367b7` | single-repository | old-sdk-major | <code> ends like a method openai v5 renamed or removed (openai-node-v5-beta-threads-del), and Refit could not trace its receiver to the client. | 1 |

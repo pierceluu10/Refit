@@ -166,7 +166,10 @@ export type CandidateStatus =
   // Withheld: one repository only (D5: no rule for one repository).
   | 'single-repository'
   // Withheld: no saved quote from the provider backs the change.
-  | 'no-quoted-source';
+  | 'no-quoted-source'
+  // Not a rule gap: Refit's own checks could not run or judge the fix (a failing baseline,
+  // preparation or lockfile). Listed as infrastructure work, never as a rule.
+  | 'infrastructure';
 
 export interface RuleCandidate {
   formatVersion: 1;
@@ -201,7 +204,25 @@ const STATUS_ORDER: CandidateStatus[] = [
   'needs-fix-example',
   'single-repository',
   'no-quoted-source',
+  'infrastructure',
 ];
+
+// Stops that say Refit's checks could not decide, not that a pattern was missed.
+const INFRASTRUCTURE =
+  /baseline-failed|baseline failed|could not (?:run|prepare|install|resolve)|lockfile|preparation|no test or build/i;
+
+// Why the fallback's checks gate failed, by cause: a check-infrastructure gap or a real failure.
+export function checkFailureCause(detail: string) {
+  if (/baseline-failed|Baseline failed/.test(detail))
+    return 'the checks already fail on the original code';
+  if (/re-resolves only/.test(detail))
+    return 'dependency change in a repository with a pnpm or Yarn lockfile, or several lockfiles';
+  if (/could not re-resolve the lockfile/.test(detail))
+    return 'npm could not re-resolve the lockfile';
+  if (/no offline Python/.test(detail)) return 'no offline Python install-and-test runner';
+  if (/no test, build or type check|No check runs/.test(detail)) return 'no check to run';
+  return null;
+}
 
 // The pattern as a regular expression over stop reasons: literal text, each placeholder any run of
 // characters.
@@ -231,8 +252,9 @@ export function ruleCandidates(records: MissRecord[]): RuleCandidate[] {
           quote: record.source.quote,
         });
     const validated = group.filter((record) => record.ai.status === 'validated');
-    const status: CandidateStatus =
-      repositories.size < 2
+    const status: CandidateStatus = INFRASTRUCTURE.test(first.pattern)
+      ? 'infrastructure'
+      : repositories.size < 2
         ? 'single-repository'
         : !sources.size
           ? 'no-quoted-source'
@@ -293,7 +315,15 @@ const table = (text: string) => text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 export function renderProposal(
   candidates: RuleCandidate[],
-  meta: { lists: string[]; runs: string[]; commit: string; records: number; date: string },
+  meta: {
+    lists: string[];
+    runs: string[];
+    commit: string;
+    records: number;
+    date: string;
+    // Fallback attempts whose checks gate failed for a check-infrastructure cause, by cause.
+    infrastructure?: Record<string, number>;
+  },
 ) {
   const proposed = candidates.filter((item) =>
     ['rule-candidate', 'needs-fix-example'].includes(item.status),
@@ -313,6 +343,7 @@ export function renderProposal(
     `| needs-fix-example | ${count('needs-fix-example')} | Two or more repositories and a quoted source; no fix passed every gate yet |`,
     `| single-repository | ${count('single-repository')} | Withheld (D5) until a second repository shows the pattern |`,
     `| no-quoted-source | ${count('no-quoted-source')} | Withheld: no saved provider quote backs the change |`,
+    `| infrastructure | ${count('infrastructure')} | Not a rule gap: Refit's checks could not run or judge the fix |`,
     '',
   ];
   for (const item of proposed) {
@@ -331,7 +362,26 @@ export function renderProposal(
         .flatMap((source) => [`> ${source.quote.replace(/\n/g, ' ')}`, `>`, `> ${source.url}`, '']),
     );
   }
-  const withheld = candidates.filter((item) => !proposed.includes(item));
+  const infrastructure = candidates.filter((item) => item.status === 'infrastructure');
+  const causes = Object.entries(meta.infrastructure ?? {}).sort((a, b) => b[1] - a[1]);
+  if (infrastructure.length || causes.length)
+    lines.push(
+      '## Check-infrastructure gaps (not rule candidates)',
+      '',
+      "These are places where Refit's own validation could not run or judge a fix, so no rule would help. They belong to the check and preparation work, not to rules.",
+      '',
+      ...infrastructure.map(
+        (item) =>
+          `- Engine stop \`${item.kind}\` on ${item.repositories} ${item.repositories === 1 ? 'repository' : 'repositories'} (${item.sites} ${item.sites === 1 ? 'site' : 'sites'}): ${table(item.pattern.length > 220 ? `${item.pattern.slice(0, 220)}…` : item.pattern)}`,
+      ),
+      ...causes.map(
+        ([cause, count]) => `- AI attempts whose checks gate failed because of ${cause}: ${count}`,
+      ),
+      '',
+    );
+  const withheld = candidates.filter(
+    (item) => !proposed.includes(item) && item.status !== 'infrastructure',
+  );
   if (withheld.length) {
     lines.push(
       '## Withheld groups',
