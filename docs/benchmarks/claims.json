@@ -17527,6 +17527,330 @@
         }
       ],
       "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "A census of every blocker on every row of main `89f1c0ed`, and the committed-source limit raised to 512 MiB under `4g` and 256 MiB under `2g` (founders' decision, 2026-10-27). The table and how to read it are in [Dependency blockers](DEPENDENCY-BLOCKERS.md); the per-row census is `benchmarks/2026-10-27-blocker-census.json`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "512",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "256",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249, no AI | [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) | main `89f1c0ed` | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249, AI ($200 cap) | [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726) | main `89f1c0ed` | 88 |",
+      "values": [
+        {
+          "says": "88",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "$200",
+          "reason": "The run's configured AI budget cap, not a measurement."
+        },
+        {
+          "token": "40624062726",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30, no AI | [40624069371](https://github.com/refit-dev/refit-bench/actions/runs/40624069371) | main `89f1c0ed` | 10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624069371",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30, AI ($30 cap) | [40624075884](https://github.com/refit-dev/refit-bench/actions/runs/40624075884) | main `89f1c0ed` | 11 |",
+      "values": [
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "$30",
+          "reason": "The run's configured AI budget cap, not a measurement."
+        },
+        {
+          "token": "40624075884",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249, no AI, after | [40625964049](https://github.com/refit-dev/refit-bench/actions/runs/40625964049) | `2d6f499c` | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40625964049",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30, no AI, after | [40625971542](https://github.com/refit-dev/refit-bench/actions/runs/40625971542) | `2d6f499c` | 10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40625971542",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| source-limit-50 (16), `2g`, before | [40625949948](https://github.com/refit-dev/refit-bench/actions/runs/40625949948) | `fffa3ad5` | 0 |",
+      "values": [
+        {
+          "says": "16",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "Part of the list name source-limit-50, not a measurement."
+        },
+        {
+          "token": "40625949948",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| source-limit-50 (16), `2g`, after | [40625956831](https://github.com/refit-dev/refit-bench/actions/runs/40625956831) | `2d6f499c` | 1 |",
+      "values": [
+        {
+          "says": "16",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "Part of the list name source-limit-50, not a measurement."
+        },
+        {
+          "token": "40625956831",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Commands.** `gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<full sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249` (and `-f ai=true -f ai_budget=200`); heldout-30 with `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30` (and `-f ai=true -f ai_budget=30`); the subset with `-f list=subsets/source-limit-50.json -f offset=0 -f size=2 -f count=16 -f flags=\"--validation-workspace 2g\"`. The census: `node scripts/validation-funnel.mjs <merged>/results.json --all-blockers --artifacts <download dir> --json`; comparisons with `scripts/stripe-benchmark-compare.mjs`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Baseline ids.** The l2-push-249 no-AI baseline is [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), an identical run at the same commit: the one this lane dispatched (40624056119) was cancelled with other duplicates to clear the queue.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624056119",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **`4g`: no change.** 0 outcome changes on 249 and 30 rows. Every heldout-30 patch is byte-identical, and 233 of 234 l2-push-249 patches; kondax-com/Bocker's own tests are flaky (a regression in [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), a baseline failure in [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726) at the same commit), and its patch differs only in where the period helper is written. At `4g` the old 256 MiB limit stopped none of the 597 tuned repositories (the largest tree is 155.5 MiB).",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "233",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "234",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "597",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "155.5",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624062726",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "256",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **`2g`: 8 rows pass the source check.** Before, 8 of the 16 rows over 50 MiB were refused with the 50 MiB message; after, none. Shefaul-22/AgriFlow validates (C). mouhamedanflosse/digitalHome and shivamm-55/HippoSphere (C) and CRONANANI/EzanaFinance3 (D) pass their checks and stay `[Needs review]`. Traviseric/arxmint and Eziox-Development/eziox-web stop at lockfile integrity and lockfile drift, RaulRicco/CashBack's preparation fails, and SimplerDevelopment/SimplerDevelopment writes no manifest, as at `4g`. The four passing patches were read in full: AgriFlow, digitalHome and HippoSphere `correct`, EzanaFinance3 `unsure` (untraced reads in files the patch does not touch), in `benchmarks/fix-reviews.json`.",
+      "values": [
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "16",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "22",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "55",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "50",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Not measured:** host memory while buffering a source tree near 512 MiB on the Fly worker, publication and the night set.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "512",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
     }
   ]
 }
