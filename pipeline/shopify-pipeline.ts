@@ -31,9 +31,11 @@ import {
 import {
   loadShopifyDocumentRules,
   rewriteDocument,
+  variableRules,
   type DocumentEdit,
   type ShopifyDocumentRule,
 } from './shopify-document-rules.ts';
+import { documentProof } from './shopify-proof.ts';
 import { shopifySchema } from './shopify-schemas.ts';
 import { aiRewriteDocument, type ShopifyAiRewrite } from './shopify-ai-rewrite.ts';
 import { SHOPIFY_SDK_RULE, shopifySdkSourceChanges } from './shopify-sdk-source.ts';
@@ -382,6 +384,8 @@ function typeChanges(
   before: GraphQLSchema,
   after: GraphQLSchema,
   versions: { before: string; after: string },
+  // The text the schema proof checks: the document as it will be sent.
+  sent = document.text,
 ): DocumentResult {
   const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
   const located = (offsetInDocument: number) => documentLocation(document, offsetInDocument);
@@ -418,6 +422,24 @@ function typeChanges(
         },
       }),
     );
+  }
+  // What the schema proof sees beyond selected fields (pipeline/shopify-proof.ts): a variable whose
+  // input type loses a field or enum value, or gains a required field. The code's runtime values
+  // may still send what was removed.
+  const reported = new Set(findings.map((finding) => finding.changeId));
+  for (const change of documentProof(sent, after, before) ?? []) {
+    const field = /^(\w+\.\w+) changes from /.exec(change)?.[1];
+    if (field && reported.has(`shopify-graphql-type:${field}`)) continue;
+    findings.push({
+      file: document.file,
+      line: document.line,
+      column: document.column,
+      changeId: `shopify-graphql-input:${digest(change).slice(0, 12)}`,
+      expression: change,
+      confidence,
+      reason: `Valid on ${versions.before} and ${versions.after}, but ${change}, and the code's variables may still send it.`,
+      contractReview: `A Shopify GraphQL document's variables reach an input change on Admin API ${versions.after} (${change}); Refit cannot see the values the code sends.`,
+    });
   }
   return { findings, deprecated: [...new Set(deprecated)] };
 }
@@ -627,7 +649,12 @@ function rewriteBreakingDocument(
   if (
     !result.findings.length ||
     result.otherApi ||
-    !result.findings.every((finding) => finding.reason.startsWith('Valid on'))
+    // Breaks the target brings, and breaks of documents that already fail on the oldest supported
+    // version, which Shopify serves today: a rule's rewrite must hold on the target either way.
+    !result.findings.every(
+      (finding) =>
+        finding.reason.startsWith('Valid on') || finding.reason.startsWith('This document already'),
+    )
   )
     return undefined;
   const rewrite = rewriteDocument(document.text, before, after, rules);
@@ -636,7 +663,7 @@ function rewriteBreakingDocument(
   const edits = rewrite.edits.map((edit) => sourceEdit(document, edit));
   if (edits.some((edit) => !edit))
     return { refusal: 'An edit falls on an escaped string the source spells differently.' };
-  const types = typeChanges(parse(document.text), document, before, after, versions);
+  const types = typeChanges(parse(document.text), document, before, after, versions, rewrite.text);
   if (types.findings.length)
     return { refusal: 'A selected field that the rules leave changes type on the target.' };
   const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
@@ -762,6 +789,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
   const rules = loadShopifyDocumentRules(versions.after);
   const documentEdits = new Map<string, SourceEdit>();
   const aiEdits: SourceEdit[] = [];
+  const variableNotes = new Set<string>();
   const aiAttempts: (ShopifyAiRewrite & { file: string; line: number })[] = [];
   const pool = fragmentPool(scan.documents);
   for (const original of scan.documents) {
@@ -770,6 +798,14 @@ async function shopifyRun(options: ShopifyRunOptions) {
       continue;
     }
     const document = withFragments(original, pool);
+    try {
+      for (const rule of variableRules(document.text, rules))
+        variableNotes.add(
+          `${document.file}:${document.line} sends ${rule.type} through a variable; Shopify rule ${rule.rule} (${rule.type}.${rule.member} → ${rule.replacement}) edits only values written in the document, so check what the code sends.`,
+        );
+    } catch {
+      // A document that does not parse is reported by checkDocument.
+    }
     let result = checkDocument(document, before, after, versions);
     const rewritten = rules.length
       ? rewriteBreakingDocument(document, result, before, after, versions, rules)
@@ -788,7 +824,11 @@ async function shopifyRun(options: ShopifyRunOptions) {
       !(rewritten && 'edits' in rewritten) &&
       result.findings.length &&
       !result.otherApi &&
-      result.findings.every((finding) => finding.reason.startsWith('Valid on')) &&
+      result.findings.every(
+        (finding) =>
+          finding.reason.startsWith('Valid on') &&
+          !finding.changeId.startsWith('shopify-graphql-input:'),
+      ) &&
       segment.sourceText.slice(segment.sourceStart, segment.sourceStart + document.text.length) ===
         document.text
     ) {
@@ -1006,6 +1046,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
                       `${scan.documents.filter((document) => !document.traced).length} #graphql documents were not traced to an Admin call; they were checked against both contracts anyway.`,
                     ]
                   : []),
+                ...variableNotes,
                 ...environmentPins.map(
                   (entry) =>
                     `${entry.file}:${entry.line} moves the default Admin API version; the environment variable ${entry.envFallback} overrides it where it is set.`,
