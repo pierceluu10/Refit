@@ -259,6 +259,8 @@ it('moves an endpoint constant that sends the compared version, and says so', as
   );
   const reviews = publicationWaiver(passed(reviewed), true) ?? [];
   expect(reviews.map(({ gate }) => gate)).not.toContain('api-version-untraced');
+  const { files: draft } = createReviewArtifacts(passed(reviewed), 'github', undefined, reviews);
+  expect(draft['pull-request.md']).toContain('endpoints this code creates after the patch receive');
 });
 
 // Two shapes of a run whose only finding is a removed parameter with no reviewed replacement (an
