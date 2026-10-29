@@ -393,6 +393,21 @@ export async function runFallbackOnRepository(options: {
   return { items, fallback, misses: missRecords({ ...row, provider }, items, sources, fallback) };
 }
 
+// The environment one proof runs with: a target model the patch writes is the model sent, so a
+// model Refit's key cannot use stays unproven. With no target, an OpenAI call shape is sent with
+// the run's own OPENAI_MODEL unless a proof model is set, since the key may serve only that one.
+export function proofEnvironment(
+  provider: ProofProvider,
+  model: string | null,
+  environment: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  const name = PROOF_MODEL_ENV[provider];
+  if (model) return { ...environment, [name]: model };
+  if (provider === 'openai' && !environment[name]?.trim() && environment.OPENAI_MODEL?.trim())
+    return { ...environment, [name]: environment.OPENAI_MODEL };
+  return environment;
+}
+
 // Each written call shape once with the SDK release the patched manifest declares, and once per
 // target model the patch writes (that model sent with the smallest request of each call).
 async function proveFallback(options: {
@@ -452,9 +467,7 @@ async function proveFallback(options: {
           provider: options.provider,
           calls,
           sdkDirectory,
-          env: model
-            ? { ...options.environment, [PROOF_MODEL_ENV[options.provider]]: model }
-            : options.environment,
+          env: proofEnvironment(options.provider, model, options.environment),
         }),
       );
     const all = runs.flatMap((run) => run.calls);
