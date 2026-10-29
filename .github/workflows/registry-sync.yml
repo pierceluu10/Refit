@@ -53,12 +53,13 @@ jobs:
           cat "$RUNNER_TEMP/sync.txt"
           echo "failed=${failed# }" >> "$GITHUB_OUTPUT"
       - run: npm run deadlines:check
+      - run: npm run deadlines:check-sources
       - name: Open or update the pull request
         env:
           GH_TOKEN: ${{ github.token }}
           FAILED: ${{ steps.sync.outputs.failed }}
         run: |
-          if git diff --quiet -- data/deadlines.json; then
+          if git diff --quiet -- data/deadlines.json docs/benchmarks/deprecation-pages; then
             echo 'The registry already matches every page that was read.'
             exit 0
           fi
@@ -75,7 +76,7 @@ jobs:
           git config user.name "$BOT_NAME"
           git config user.email "$BOT_EMAIL"
           git switch -q -C "$BRANCH"
-          git commit -q -m "$TITLE" -- data/deadlines.json
+          git add docs/benchmarks/deprecation-pages && git commit -q -m "$TITLE" -- data/deadlines.json docs/benchmarks/deprecation-pages
           git push -q --force origin "$BRANCH"
           {
             cat <<'BODY'
