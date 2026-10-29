@@ -1,3 +1,5 @@
+import { INSTALLER_CACHE } from './docker-sandbox.ts';
+
 // Installs the pinned package-manager tool through npm, so npm verifies its registry integrity,
 // and reports the version and integrity it installed.
 const VERIFY_MANAGER = `
@@ -42,9 +44,11 @@ export const PNPM_INSTALL_COMMAND =
   'mkdir -p node_modules; mv /workspace/.refit-tools node_modules/.refit-tools; ';
 
 // Yarn 1 reads rc files from HOME and the project; the installer has no project rc files and a
-// private HOME, and --no-default-rc skips the remaining defaults.
+// private HOME, and --no-default-rc skips the remaining defaults. Its cache holds every package
+// unpacked a second time, so it lives on the installer cache mount (docker-sandbox.ts), not in the
+// workspace.
 export const YARN_INSTALL_COMMAND =
-  'export COREPACK_ENABLE_NETWORK=0 CI=true HOME=/workspace/.home YARN_CACHE_FOLDER=/workspace/.yarn-cache; ' +
+  `export COREPACK_ENABLE_NETWORK=0 CI=true HOME=/workspace/.home YARN_CACHE_FOLDER=${INSTALLER_CACHE}/yarn; ` +
   installTool('yarn', 'yarn', 'YARN') +
   '"$refit_tool" install --frozen-lockfile --ignore-scripts --non-interactive --production=false ' +
   '--no-default-rc --network-timeout 60000 >&2; ' +
@@ -57,7 +61,7 @@ export const YARN_BERRY_INSTALL_COMMAND =
   'mkdir -p /workspace/.yarn-tmp; export TMPDIR=/workspace/.yarn-tmp ' +
   'COREPACK_ENABLE_NETWORK=0 CI=true HOME=/workspace/.home YARN_IGNORE_PATH=1 ' +
   'YARN_NODE_LINKER=node-modules YARN_ENABLE_SCRIPTS=0 YARN_ENABLE_TELEMETRY=0 ' +
-  'YARN_ENABLE_GLOBAL_CACHE=0 YARN_CACHE_FOLDER=/workspace/.yarn-cache ' +
+  `YARN_ENABLE_GLOBAL_CACHE=0 YARN_CACHE_FOLDER=${INSTALLER_CACHE}/yarn ` +
   'YARN_NPM_REGISTRY_SERVER=https://registry.npmjs.org YARN_ENABLE_IMMUTABLE_INSTALLS=1; ' +
   installTool('@yarnpkg/cli-dist', 'yarn', 'YARN') +
   '"$refit_tool" install --immutable --mode=skip-build >&2; ' +
