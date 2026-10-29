@@ -2,7 +2,7 @@
 
 Refit's Shopify engine is built like Stripe's: pinned, versioned contracts, deterministic diffs between them, and migration rules that quote Shopify's own changelog or migration guides and must agree with the diff. This page covers the contract and rule layer (catalogue rows 1–8 and AI use #1 in the Shopify engine plan). Tracing documents to clients and editing them is in [Shopify Admin API](SHOPIFY.md).
 
-Every rule is **review-only**. No Shopify rule edits code yet: owner decision D3 makes a rule `auto` only after a benchmark run shows zero wrong patches, and no Shopify benchmark has run on these rules.
+**Automatic rules (founder decision, 2026-10-29, relayed by the coordinating session: "proof decides, not caution").** For Shopify this replaces D3's benchmark requirement. A rule may be `auto` when (a) the schema diff confirms the change, (b) the edited document validates on the target schema before a patch is kept (the applier in `pipeline/shopify-document-rules.ts` and SH4's proof), and (c) the response keys the code reads are unchanged. Only two families can promise (c), and `refit rules check` refuses `auto` on any other: `graphql-rename` within one owner (a field selected under an alias of its old name, an argument of the same field, an input field or enum value of the same type) and `graphql-argument-drop`. Moves to another type, REST rewrites, webhook topics and package rewrites change what the code reads or calls, so they stay review-only. An `auto` rule names the decision in `decision`. No Shopify benchmark has run on these rules.
 
 ## Pinned schemas
 
@@ -68,15 +68,26 @@ refit rules mine-shopify --output <new-directory> --write
 
 reads `https://shopify.dev/changelog/feed.xml` (entries since 2024-10-30), keeps the entries tagged with an API area Refit reads (Admin GraphQL, Storefront, Customer Account, webhooks, REST Admin, App Bridge, Polaris, Hydrogen, Shopify CLI, metafields) and a change tag (Action Required, Breaking API Change, Deprecation announcement, Update), saves each entry's Markdown page and asks OpenAI for candidate rules and alerts with the schema changes the entry mentions (`pipeline/shopify-changelog-mining.ts`). Code derives the diff entry and the table, and verifies each candidate as `rules check` does. A rule candidate that fails becomes an alert when its quote verifies; a candidate whose quote is not on the page is refused. `results.json` records every candidate with its outcome, `audit.json` every model answer. It needs `OPENAI_API_KEY` and `OPENAI_MODEL` and spends at most `REFIT_AI_BUDGET_USD`.
 
+## Mining runs
+
+Both ran on refit-bench Actions (`rules.yml` with `provider: shopify`, branch `feat/shopify-rule-mining`) with `gpt-6.1-sol`; results are in `docs/benchmarks/shopify-changelog/mining/`, audits in the run artifacts.
+
+| Run         | Refit commit | Entries | Candidates | Rules kept | Reproduced hand-written | Alerts | Refused | Cost  |
+| ----------- | ------------ | ------- | ---------- | ---------- | ----------------------- | ------ | ------- | ----- |
+| 40834224466 | `cb301975`   | 227     | 233        | 20         | 10                      | 182    | 21      | $1.58 |
+| 40835715958 | `8fdb317f`   | 14      | 23         | 0          | 2                       | 16     | 5       | $0.12 |
+
+The first run sent six entries at a time and 14 failed on the budget ledger's lock; mining is sequential since, and the second run mined those 14 with `--entry`. Most refusals name a coordinate in no pinned schema (members removed before Admin 2025-01, and the Customer Account API, which is not pinned).
+
 ## Coverage
 
 `refit rules check --provider shopify --coverage <file>` prints and writes, for every breaking or deprecated change in every pinned diff, whether a rule answers it, an alert covers it, or neither.
 
-On 2026-10-29, before the AI mining run, with 27 hand-written rules and 40 hand-written alerts:
+On 2026-10-29, after the AI mining runs, with 67 rules (44 `auto`) and 238 alerts:
 
 | Diff                         | Breaking: rule | Breaking: alert-only | Breaking: unmapped | Deprecated: rule | Deprecated: alert-only | Deprecated: unmapped |
 | ---------------------------- | -------------- | -------------------- | ------------------ | ---------------- | ---------------------- | -------------------- |
-| admin 2025-01 → 2026-01      | 1              | 57                   | 4                  | 2                | 32                     | 149                  |
+| admin 2025-01 → 2026-01      | 41             | 17                   | 4                  | 2                | 59                     | 122                  |
 | admin 2026-01 → 2026-04      | 3              | 13                   | 5                  | 0                | 0                      | 0                    |
 | admin 2026-04 → 2026-07      | 0              | 10                   | 0                  | 0                | 6                      | 0                    |
 | admin 2026-07 → 2026-10      | 0              | 28                   | 0                  | 0                | 8                      | 1                    |
@@ -85,7 +96,12 @@ On 2026-10-29, before the AI mining run, with 27 hand-written rules and 40 hand-
 | storefront 2025-07 → 2025-10 | 0              | 0                    | 0                  | 0                | 0                      | 1                    |
 | storefront 2025-10 → 2026-01 | 0              | 1                    | 0                  | 0                | 5                      | 4                    |
 | storefront 2026-07 → 2026-10 | 0              | 0                    | 1                  | 0                | 0                      | 2                    |
-| **Total**                    | **4**          | **111**              | **10**             | **2**            | **56**                 | **159**              |
+| **Total**                    | **44**         | **71**               | **10**             | **2**            | **83**                 | **132**              |
+
+The rules:
+
+- `auto` (44): 40 removed `RELEVANCE` sort keys become `ID`, because Shopify's entry says each "acted as a basic `ID` sort" (20 mined, 20 added by hand with the same quote after the model reached its 20-item limit); `Shop.billingAddress` → `Shop.shopAddress` ("identical structure and values"); `InventoryQuantityInput.compareQuantity` → `changeFromQuantity`; and `permitsSkuSharing` dropped where it is `true` on `fulfillmentServiceCreate` and `fulfillmentServiceUpdate`.
+- review-only (23): 9 `Shop` connections moved to `QueryRoot` and 14 REST endpoints mapped to GraphQL root fields.
 
 The table counts diff entries only. 22 more rules answer changes older than every pin: 8 `Shop` connections moved to `QueryRoot` (removed by 2025-01) and 14 REST product, variant and image endpoints mapped to GraphQL root fields by Shopify's REST reference pages.
 
@@ -96,4 +112,5 @@ What has no rule yet:
 - **Product model (row 4):** the migration guide `docs/apps/build/graphql/migrate/new-product-model` now redirects to a general products page with no mapping, so the product model has only its REST mappings and alerts.
 - **Webhook topics (row 6):** no `WebhookSubscriptionTopic` value is removed or deprecated in any pinned diff.
 - **Package majors (row 7):** no shopify.dev page quotes an SDK call rewrite; the package changelogs on GitHub are not saved pages yet.
-- `InventoryQuantityInput.compareQuantity` → `changeFromQuantity` is a rule, but an input that also sends `ignoreCompareQuantity: true` needs `changeFromQuantity: null` instead; the rule's warning says so, and whatever applies it must stop on that case.
+- `InventoryQuantityInput.compareQuantity` → `changeFromQuantity` is `auto`, but an input that also sends `ignoreCompareQuantity: true` needs `changeFromQuantity: null` instead. Such a document still sends `ignoreCompareQuantity`, which 2026-04 removed, so it fails validation on the target schema and no patch is kept.
+- An enum value passed through a GraphQL variable is a runtime value: the applier edits only literals, and schema validation cannot see a variable's value, so a `RELEVANCE` sent as a variable is not fixed or proven.

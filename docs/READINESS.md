@@ -2,7 +2,7 @@
 
 ## October 29 checkpoint: Shopify pinned schemas, diffs and rules (unreleased, after 0.39.0)
 
-Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2025-10, 2026-01 to 2026-10) schemas are pinned by SHA-256 with their source and saved in the repository. Deterministic diffs between consecutive pins are committed and checked by `refit rules check`. 27 hand-written rules and 40 alerts quote Shopify's changelog and REST reference verbatim and agree with the diffs; all are review-only and none edits code yet. `refit rules mine-shopify` proposes more from the changelog with OpenAI and keeps only verified ones. Coverage and limits: [Shopify contracts and rules](SHOPIFY-RULES.md).
+Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2025-10, 2026-01 to 2026-10) schemas are pinned by SHA-256 with their source and saved in the repository. Deterministic diffs between consecutive pins are committed and checked by `refit rules check`. 67 rules and 238 alerts quote Shopify's changelog and REST reference verbatim and agree with the diffs; `refit rules mine-shopify` mined 20 of the rules and 198 of the alerts on refit-bench Actions ($1.70). Under the founder's "proof decides" decision of 2026-10-29, 44 rules are `auto` (renames within one type and argument drops, which keep every response key; each edited document must validate on the target schema), and the rest are review-only. No Shopify benchmark has run on them. Coverage and limits: [Shopify contracts and rules](SHOPIFY-RULES.md).
 
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 

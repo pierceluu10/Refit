@@ -99,7 +99,9 @@
     {
       "id": "shopify-draft-order-warning-price-rule-removed",
       "api": "admin",
-      "coordinates": ["DraftOrderDiscountNotAppliedWarning.priceRule"],
+      "coordinates": [
+        "DraftOrderDiscountNotAppliedWarning.priceRule"
+      ],
       "summary": "DraftOrderDiscountNotAppliedWarning.priceRule is removed in 2026-10; select discountTitle and discountCode on the warning instead. The replacement is two scalar fields, not the PriceRule object.",
       "deadline": {
         "version": "2026-10"
@@ -112,7 +114,9 @@
     {
       "id": "shopify-price-rule-types-removed",
       "api": "admin",
-      "coordinates": ["PriceRule*"],
+      "coordinates": [
+        "PriceRule*"
+      ],
       "summary": "Removing DraftOrderDiscountNotAppliedWarning.priceRule removes the PriceRule object and its related types from the 2026-10 schema; fragments and variables that name them stop validating.",
       "deadline": {
         "version": "2026-10"
@@ -125,7 +129,9 @@
     {
       "id": "shopify-fulfillment-service-permits-sku-sharing-removed",
       "api": "admin",
-      "coordinates": ["FulfillmentService.permitsSkuSharing"],
+      "coordinates": [
+        "FulfillmentService.permitsSkuSharing"
+      ],
       "summary": "FulfillmentService.permitsSkuSharing is removed in 2026-04 and SKU sharing is on for every fulfillment service; remove reads of the field and logic that assumed a single stocking location.",
       "deadline": {
         "version": "2026-04"
@@ -138,7 +144,9 @@
     {
       "id": "shopify-ignore-compare-quantity-removed",
       "api": "admin",
-      "coordinates": ["InventorySetQuantitiesInput.ignoreCompareQuantity"],
+      "coordinates": [
+        "InventorySetQuantitiesInput.ignoreCompareQuantity"
+      ],
       "summary": "ignoreCompareQuantity is removed in 2026-04; an input that sent ignoreCompareQuantity: true opts out of the check by sending changeFromQuantity: null on each quantity instead.",
       "deadline": {
         "version": "2026-04"
@@ -168,7 +176,9 @@
     {
       "id": "shopify-fulfillment-order-cancel-user-errors",
       "api": "admin",
-      "coordinates": ["FulfillmentOrderCancelPayload.userErrors"],
+      "coordinates": [
+        "FulfillmentOrderCancelPayload.userErrors"
+      ],
       "summary": "fulfillmentOrderCancel userErrors change type to FulfillmentOrderCancelError with a code field; fragments on UserError there need updating.",
       "deadline": {
         "version": "2026-04"
@@ -181,7 +191,9 @@
     {
       "id": "shopify-fulfillment-order-move-user-errors",
       "api": "admin",
-      "coordinates": ["FulfillmentOrderMovePayload.userErrors"],
+      "coordinates": [
+        "FulfillmentOrderMovePayload.userErrors"
+      ],
       "summary": "fulfillmentOrderMove userErrors change type to a specific error type with a code field; fragments on UserError there need updating.",
       "deadline": {
         "version": "2026-04"
@@ -194,7 +206,9 @@
     {
       "id": "shopify-collection-reorder-products-user-errors",
       "api": "admin",
-      "coordinates": ["CollectionReorderProductsPayload.userErrors"],
+      "coordinates": [
+        "CollectionReorderProductsPayload.userErrors"
+      ],
       "summary": "collectionReorderProducts userErrors change type to CollectionReorderProductsUserError, which adds a code field; fragments on UserError there need updating.",
       "deadline": {
         "version": "2025-10"
@@ -328,7 +342,10 @@
     {
       "id": "shopify-cumulative-marketing-engagements-deprecated",
       "api": "admin",
-      "coordinates": ["MarketingEngagementInput.isCumulative", "MarketingEngagement.isCumulative"],
+      "coordinates": [
+        "MarketingEngagementInput.isCumulative",
+        "MarketingEngagement.isCumulative"
+      ],
       "summary": "Cumulative marketing engagements are deprecated and isCumulative defaults to false; integrations must send daily, non-cumulative metrics.",
       "deadline": {
         "version": "2026-07"
@@ -360,7 +377,9 @@
     {
       "id": "shopify-gift-card-initial-value-deprecated",
       "api": "admin",
-      "coordinates": ["GiftCardCreateInput.initialValue"],
+      "coordinates": [
+        "GiftCardCreateInput.initialValue"
+      ],
       "summary": "GiftCardCreateInput.initialValue is deprecated for initialAmount, which is a MoneyInput rather than a Decimal, so the value must be rewritten with its currency.",
       "deadline": {
         "version": "2026-07"
@@ -391,7 +410,9 @@
     {
       "id": "shopify-order-transaction-authorization-code-deprecated",
       "api": "admin",
-      "coordinates": ["OrderTransaction.authorizationCode"],
+      "coordinates": [
+        "OrderTransaction.authorizationCode"
+      ],
       "summary": "OrderTransaction.authorizationCode is deprecated for paymentId, which returns a Shopify identifier rather than the provider value, so stored values and reconciliation must change too.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/deprecation-of-ordertransaction-authorizationcode-in-favor-of-ordertransactionpaymentid",
@@ -402,7 +423,9 @@
     {
       "id": "shopify-inventory-item-variant-deprecated",
       "api": "admin",
-      "coordinates": ["InventoryItem.variant"],
+      "coordinates": [
+        "InventoryItem.variant"
+      ],
       "summary": "InventoryItem.variant is deprecated for the variants connection, so selections need first:, edges or nodes rather than a rename.",
       "deadline": {
         "version": "2026-01"
@@ -436,7 +459,10 @@
     {
       "id": "shopify-metaobject-admin-access-private-public-read",
       "api": "admin",
-      "coordinates": ["MetaobjectAdminAccess.PRIVATE", "MetaobjectAdminAccess.PUBLIC_READ"],
+      "coordinates": [
+        "MetaobjectAdminAccess.PRIVATE",
+        "MetaobjectAdminAccess.PUBLIC_READ"
+      ],
       "summary": "MetaobjectAdminAccess PRIVATE and PUBLIC_READ are deprecated and never returned; code that sends or compares them should stop.",
       "deadline": {
         "version": "2027-01"
@@ -465,7 +491,10 @@
     {
       "id": "shopify-return-refund-to-return-process",
       "api": "admin",
-      "coordinates": ["Mutation.returnRefund", "Return.suggestedRefund"],
+      "coordinates": [
+        "Mutation.returnRefund",
+        "Return.suggestedRefund"
+      ],
       "summary": "returnRefund and Return.suggestedRefund are deprecated for returnProcess and suggestedFinancialOutcome, which combine disposition and refunds in one call with a different input.",
       "deadline": {
         "version": "2025-07"
@@ -478,7 +507,9 @@
     {
       "id": "shopify-fee-sale-fee-nullable",
       "api": "admin",
-      "coordinates": ["FeeSale.fee"],
+      "coordinates": [
+        "FeeSale.fee"
+      ],
       "summary": "FeeSale.fee is nullable from 2025-07 when the fee was deleted; code that reads it must handle null.",
       "deadline": {
         "version": "2025-07"
@@ -510,7 +541,9 @@
     {
       "id": "shopify-order-cancel-refund-to-refund-method",
       "api": "admin",
-      "coordinates": ["Mutation.orderCancel(refund:)"],
+      "coordinates": [
+        "Mutation.orderCancel(refund:)"
+      ],
       "summary": "orderCancel(refund:) is deprecated for refundMethod.originalPaymentMethodsRefund, a nested input rather than a renamed argument.",
       "deadline": {
         "version": "2025-07"
@@ -523,7 +556,9 @@
     {
       "id": "shopify-shop-plan-display-name-deprecated",
       "api": "admin",
-      "coordinates": ["ShopPlan.displayName"],
+      "coordinates": [
+        "ShopPlan.displayName"
+      ],
       "summary": "ShopPlan.displayName is deprecated for publicDisplayName, which returns a standardized set of names (Shopify is now Grow), so values differ.",
       "deadline": {
         "version": "2025-07"
@@ -607,7 +642,9 @@
     {
       "id": "shopify-market-currency-settings-nullable",
       "api": "admin",
-      "coordinates": ["Market.currencySettings"],
+      "coordinates": [
+        "Market.currencySettings"
+      ],
       "summary": "Market.currencySettings is nullable from 2025-04; null means the settings are inherited from the parent market, so readers must handle null.",
       "deadline": {
         "version": "2025-04"
@@ -620,7 +657,9 @@
     {
       "id": "shopify-market-web-presence-market-deprecated",
       "api": "admin",
-      "coordinates": ["MarketWebPresence.market"],
+      "coordinates": [
+        "MarketWebPresence.market"
+      ],
       "summary": "MarketWebPresence.market is deprecated and nullable because a web presence can belong to several markets or none; the markets connection replaces it, a list rather than a rename.",
       "deadline": {
         "version": "2025-04"
@@ -633,7 +672,9 @@
     {
       "id": "shopify-storefront-selling-plan-adjustment-percentage-float",
       "api": "storefront",
-      "coordinates": ["SellingPlanPercentagePriceAdjustment.adjustmentPercentage"],
+      "coordinates": [
+        "SellingPlanPercentagePriceAdjustment.adjustmentPercentage"
+      ],
       "summary": "SellingPlanPercentagePriceAdjustment.adjustmentPercentage changes from Int to Float in 2025-01; code that assumes an integer percentage must accept fractions.",
       "deadline": {
         "version": "2025-01"
@@ -646,7 +687,9 @@
     {
       "id": "shopify-storefront-cart-discount-codes-required",
       "api": "storefront",
-      "coordinates": ["Mutation.cartDiscountCodesUpdate(discountCodes:)"],
+      "coordinates": [
+        "Mutation.cartDiscountCodesUpdate(discountCodes:)"
+      ],
       "summary": "cartDiscountCodesUpdate requires the discountCodes argument from 2026-01; calls without it, which never changed the cart, now fail validation.",
       "deadline": {
         "version": "2026-01"
@@ -749,7 +792,9 @@
     {
       "id": "shopify-alert-first-sign-ins-to-new-customer-accounts-now-set-customer-state-and-send-customers-enable-customer-state",
       "api": "admin",
-      "coordinates": ["Customer.state"],
+      "coordinates": [
+        "Customer.state"
+      ],
       "summary": "First sign-ins now set Customer.state to ENABLED and trigger customers/enable and customers/update webhooks; review state-based and webhook-driven welcome, loyalty, and synchronization logic for these newly qualifying customers.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/first-sign-ins-to-new-customer-accounts-now-set-customer-state-and-send-customers-enable",
@@ -764,7 +809,9 @@
     {
       "id": "shopify-alert-first-sign-ins-to-new-customer-accounts-now-set-customer-state-and-send-customers-enable-customer-state-2",
       "api": "admin",
-      "coordinates": ["Customer.state"],
+      "coordinates": [
+        "Customer.state"
+      ],
       "summary": "A one-time update enabled previously signed-in customers without webhooks or consistently changing updated_at, so reconcile using Customer.state rather than relying only on webhook delivery or timestamp-based synchronization.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/first-sign-ins-to-new-customer-accounts-now-set-customer-state-and-send-customers-enable",
@@ -779,7 +826,9 @@
     {
       "id": "shopify-alert-exclusive-timestamp-filters-queryroot-orders-query",
       "api": "admin",
-      "coordinates": ["QueryRoot.orders(query:)"],
+      "coordinates": [
+        "QueryRoot.orders(query:)"
+      ],
       "summary": "Exclusive `>` timestamp bounds without fractional seconds in Admin GraphQL connection query arguments now exclude the entire specified second; review incremental sync queries and, if same-second records must not be missed, use `>=` and deduplicate by `id`.",
       "deadline": {
         "version": "2026-10"
@@ -843,7 +892,9 @@
     {
       "id": "shopify-alert-discounts-can-now-be-included-in-rollouts-discount",
       "api": "admin",
-      "coordinates": ["Discount*"],
+      "coordinates": [
+        "Discount*"
+      ],
       "summary": "Rollout-managed discounts can have availability and buyer reach that native dates alone do not describe; request read_rollouts access and combine Discount.rollouts schedules, effective allocation, activation or expiration changes, and sales-channel restrictions with existing discount data.",
       "deadline": {
         "version": "2026-10"
@@ -860,7 +911,9 @@
     {
       "id": "shopify-alert-discounts-can-now-be-included-in-rollouts-discount-2",
       "api": "admin",
-      "coordinates": ["Discount*"],
+      "coordinates": [
+        "Discount*"
+      ],
       "summary": "Admin GraphQL versions before 2026-10 filter out some Rollout-managed discounts; upgrade to 2026-10 or later and account for Rollout availability to avoid incomplete discount results.",
       "deadline": {
         "version": "2026-10"
@@ -899,7 +952,9 @@
     {
       "id": "shopify-alert-sms-marketing-consent-now-available-on-the-customerphonenumber-object-customerphonenumber",
       "api": "admin",
-      "coordinates": ["CustomerPhoneNumber*"],
+      "coordinates": [
+        "CustomerPhoneNumber*"
+      ],
       "summary": "The flat SMS marketing consent fields on CustomerPhoneNumber are deprecated; plan to migrate queries to the structured smsMarketingConsent field.",
       "deadline": {
         "version": "2026-10"
@@ -1089,7 +1144,9 @@
     {
       "id": "shopify-alert-dynamic-complexity-cost-for-metafieldsset-mutation-mutation-metafieldsset",
       "api": "admin",
-      "coordinates": ["Mutation.metafieldsSet"],
+      "coordinates": [
+        "Mutation.metafieldsSet"
+      ],
       "summary": "Dynamic costing for metafieldsSet can exhaust rate limits faster; group writes by owner, monitor response costs, and back off and retry on THROTTLED errors.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/dynamic-complexity-cost-for-metafieldsset-mutation",
@@ -1104,7 +1161,9 @@
     {
       "id": "shopify-alert-product-variant-barcode-is-being-replaced-by-barcodes-productvariant-barcode",
       "api": "admin",
-      "coordinates": ["ProductVariant.barcode"],
+      "coordinates": [
+        "ProductVariant.barcode"
+      ],
       "summary": "Reads of deprecated ProductVariant.barcode silently omit additional barcodes; migrate identifier-sync reads to the barcodes connection and handle multiple results.",
       "deadline": {
         "version": "2026-10"
@@ -1142,7 +1201,10 @@
     {
       "id": "shopify-alert-product-variant-barcode-is-being-replaced-by-barcodes-queryroot-products-query",
       "api": "admin",
-      "coordinates": ["QueryRoot.products(query:)", "QueryRoot.productVariants(query:)"],
+      "coordinates": [
+        "QueryRoot.products(query:)",
+        "QueryRoot.productVariants(query:)"
+      ],
       "summary": "Barcode filters on products and productVariants now match any barcode on a variant; review assumptions that search results match only the legacy first barcode.",
       "deadline": {
         "version": "2026-10"
@@ -1174,7 +1236,10 @@
     {
       "id": "shopify-alert-online-store-script-tags-deprecation-mutation-scripttagcreate",
       "api": "admin",
-      "coordinates": ["Mutation.scriptTagCreate", "Mutation.scriptTagUpdate"],
+      "coordinates": [
+        "Mutation.scriptTagCreate",
+        "Mutation.scriptTagUpdate"
+      ],
       "summary": "Starting October 1, 2026, script tag creation and updates fail through GraphQL Admin mutations and REST Admin POST/PUT requests across all API versions; migrate to app embed blocks or web pixels as appropriate.",
       "deadline": {
         "date": "2026-10-01"
@@ -1223,7 +1288,9 @@
     {
       "id": "shopify-alert-draft-order-and-transfer-shipment-inventory-is-moving-from-reserved-to-committed-inventorylevel-quantities",
       "api": "admin",
-      "coordinates": ["InventoryLevel.quantities"],
+      "coordinates": [
+        "InventoryLevel.quantities"
+      ],
       "summary": "Active draft-order and open transfer/shipment holds move from reserved to committed quantities, so update inventory interpretation and reporting without assuming committed identifies only these holds.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/draft-order-and-transfer-shipment-inventory-is-moving-from-reserved-to-committed",
@@ -1297,7 +1364,10 @@
     {
       "id": "shopify-alert-orderdisplayfulfillmentstatus-now-returns-fulfillmentnotrequired-order-displayfulfillmentstatus",
       "api": "admin",
-      "coordinates": ["Order.displayFulfillmentStatus", "OrderDisplayFulfillmentStatus"],
+      "coordinates": [
+        "Order.displayFulfillmentStatus",
+        "OrderDisplayFulfillmentStatus"
+      ],
       "summary": "Orders with no remaining fulfillable items now report FULFILLMENT_NOT_REQUIRED instead of UNFULFILLED; update enum handling and UNFULFILLED-based branches or filters when adopting 2026-10.",
       "deadline": {
         "version": "2026-10"
@@ -1331,7 +1401,9 @@
     {
       "id": "shopify-alert-market-driven-shipping-now-available-in-feature-preview-deliveryprofile",
       "api": "admin",
-      "coordinates": ["DeliveryProfile*"],
+      "coordinates": [
+        "DeliveryProfile*"
+      ],
       "summary": "Migrate merchant shipping configuration integrations from the delivery profile API to the Markets API before rollout reaches affected merchants, beginning October 1, 2026 and completing July 1, 2027; app-owned delivery profiles remain on the delivery profile API.",
       "deadline": {
         "version": "2026-07",
@@ -1349,7 +1421,9 @@
     {
       "id": "shopify-alert-deprecation-of-cumulative-marketing-engagements-marketingengagementinput-iscumulative",
       "api": "admin",
-      "coordinates": ["MarketingEngagementInput.isCumulative"],
+      "coordinates": [
+        "MarketingEngagementInput.isCumulative"
+      ],
       "summary": "Cumulative marketing engagements are deprecated and `isCumulative` defaults to `false`; update integrations to send non-cumulative metrics aggregated for each day.",
       "deadline": {
         "version": "2026-07"
@@ -1366,7 +1440,9 @@
     {
       "id": "shopify-alert-carrier-services-will-no-longer-be-automatically-added-to-the-default-shipping-profile-mutation-carrierservicecreate",
       "api": "admin",
-      "coordinates": ["Mutation.carrierServiceCreate"],
+      "coordinates": [
+        "Mutation.carrierServiceCreate"
+      ],
       "summary": "Creating a carrier service with GraphQL carrierServiceCreate or REST POST /admin/api/{version}/carrier_services.json no longer automatically adds its rates to the General shipping profile; explicitly configure carrier-calculated rates through shipping profile APIs or direct merchants to add them in Shopify admin.",
       "deadline": {
         "version": "2026-10"
@@ -1383,7 +1459,10 @@
     {
       "id": "shopify-alert-remove-pricerule-from-draft-order-discount-warning-draftorderdiscountnotappliedwarning-pricerule",
       "api": "admin",
-      "coordinates": ["DraftOrderDiscountNotAppliedWarning.priceRule", "PriceRule*"],
+      "coordinates": [
+        "DraftOrderDiscountNotAppliedWarning.priceRule",
+        "PriceRule*"
+      ],
       "summary": "Queries selecting DraftOrderDiscountNotAppliedWarning.priceRule or referencing removed PriceRule types break in 2026-10; select discountTitle and discountCode directly and remove references to the legacy types.",
       "deadline": {
         "version": "2026-10"
@@ -1446,7 +1525,10 @@
     {
       "id": "shopify-alert-gift-card-local-currency-support-giftcardcreateinput-initialvalue",
       "api": "admin",
-      "coordinates": ["GiftCardCreateInput.initialValue", "GiftCardCreateInput.initialAmount"],
+      "coordinates": [
+        "GiftCardCreateInput.initialValue",
+        "GiftCardCreateInput.initialAmount"
+      ],
       "summary": "Gift card creation deprecates GiftCardCreateInput.initialValue; migrate to initialAmount with both an amount and currency before upgrading to 2026-07.",
       "deadline": {
         "version": "2026-07"
@@ -1480,7 +1562,10 @@
     {
       "id": "shopify-alert-removing-deprecated-private-and-publicread-enums-on-metaobject-definitions-metaobjectadminaccess-private",
       "api": "admin",
-      "coordinates": ["MetaobjectAdminAccess.PRIVATE", "MetaobjectAdminAccess.PUBLIC_READ"],
+      "coordinates": [
+        "MetaobjectAdminAccess.PRIVATE",
+        "MetaobjectAdminAccess.PUBLIC_READ"
+      ],
       "summary": "MetaobjectAdminAccess.PRIVATE and MetaobjectAdminAccess.PUBLIC_READ are removed in API version 2027-01; remove obsolete references and review any access-handling logic that uses them.",
       "deadline": {
         "version": "2027-01"
@@ -1497,7 +1582,9 @@
     {
       "id": "shopify-alert-ship-and-pickup-in-one-order-feature-preview-cart-deliverygroups",
       "api": "storefront",
-      "coordinates": ["Cart.deliveryGroups"],
+      "coordinates": [
+        "Cart.deliveryGroups"
+      ],
       "summary": "Checkouts can now contain multiple delivery groups for shipping and pickup, so remove single-delivery-group assumptions and test mixed-method carts in feature preview.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/ship-and-pickup-in-one-order-feature-preview",
@@ -1512,7 +1599,10 @@
     {
       "id": "shopify-alert-ship-and-pickup-in-one-order-feature-preview-order-fulfillmentorders",
       "api": "admin",
-      "coordinates": ["Order.fulfillmentOrders", "FulfillmentOrder.deliveryMethod"],
+      "coordinates": [
+        "Order.fulfillmentOrders",
+        "FulfillmentOrder.deliveryMethod"
+      ],
       "summary": "Orders can now mix shipping and pickup fulfillment orders, so inspect each fulfillment order's delivery method and update routing and calculations instead of assuming one method per order.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/ship-and-pickup-in-one-order-feature-preview",
@@ -1547,7 +1637,9 @@
     {
       "id": "shopify-alert-totalunsettledset-calculation-fixed-for-pending-captures-ordertransaction-totalunsettledset",
       "api": "admin",
-      "coordinates": ["OrderTransaction.totalUnsettledSet"],
+      "coordinates": [
+        "OrderTransaction.totalUnsettledSet"
+      ],
       "summary": "For multi-capturable orders with pending captures, OrderTransaction.totalUnsettledSet no longer double-counts pending capture amounts across all API versions; review calculations and tests that relied on the inflated value, although existing queries need no changes.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/totalunsettledset-calculation-fixed-for-pending-captures",
@@ -1562,7 +1654,9 @@
     {
       "id": "shopify-alert-inventoryactivate-now-preserves-available-quantity-mutation-inventoryactivate",
       "api": "admin",
-      "coordinates": ["Mutation.inventoryActivate"],
+      "coordinates": [
+        "Mutation.inventoryActivate"
+      ],
       "summary": "Calling inventoryActivate without available or onHand now preserves pre-activation quantities instead of resetting them to zero; review reset-dependent logic and explicitly set quantities where needed.",
       "deadline": {
         "version": "2026-04"
@@ -1630,7 +1724,9 @@
     {
       "id": "shopify-alert-new-discount-fields-in-the-storefront-cart-graphql-api-cart-discountallocations",
       "api": "storefront",
-      "coordinates": ["Cart.discountAllocations"],
+      "coordinates": [
+        "Cart.discountAllocations"
+      ],
       "summary": "Cart.discountAllocations is deprecated; migrate allocation queries to cart lines with lineLevelOnly: false and delivery groups, or use Cart.discountApplications when reading discount applications rather than allocations.",
       "deadline": {
         "version": "2026-07"
@@ -1669,7 +1765,9 @@
     {
       "id": "shopify-alert-fulfillment-order-cancel-error-codes-fulfillmentordercancelpayload-usererrors",
       "api": "admin",
-      "coordinates": ["FulfillmentOrderCancelPayload.userErrors"],
+      "coordinates": [
+        "FulfillmentOrderCancelPayload.userErrors"
+      ],
       "summary": "The fulfillmentOrderCancel mutation returns a mutation-specific error type instead of generic user errors; update error type references and fragments to match the new response type.",
       "deadline": {
         "version": "2026-04"
@@ -1686,7 +1784,9 @@
     {
       "id": "shopify-alert-fulfillment-order-cancel-error-codes-mutation-fulfillmentordercancel",
       "api": "admin",
-      "coordinates": ["Mutation.fulfillmentOrderCancel"],
+      "coordinates": [
+        "Mutation.fulfillmentOrderCancel"
+      ],
       "summary": "Cancelling fulfillment orders with reported progress is now restricted; update cancellation flows to handle rejections and inspect the returned error codes.",
       "deadline": {
         "version": "2026-04"
@@ -1725,7 +1825,9 @@
     {
       "id": "shopify-alert-fulfillment-order-move-mutation-error-codes-fulfillmentordermovepayload-usererrors",
       "api": "admin",
-      "coordinates": ["FulfillmentOrderMovePayload.userErrors"],
+      "coordinates": [
+        "FulfillmentOrderMovePayload.userErrors"
+      ],
       "summary": "The fulfillmentOrderMove user-error response changes type; update typed response handling and any fragments targeting the generic UserError type.",
       "deadline": {
         "version": "2026-04"
@@ -1742,7 +1844,9 @@
     {
       "id": "shopify-alert-fulfillment-order-move-mutation-error-codes-mutation-fulfillmentordermove",
       "api": "admin",
-      "coordinates": ["Mutation.fulfillmentOrderMove"],
+      "coordinates": [
+        "Mutation.fulfillmentOrderMove"
+      ],
       "summary": "Moving fulfillment orders with reported progress is now restricted; handle failed fulfillmentOrderMove calls using the enhanced user-error response.",
       "deadline": {
         "version": "2026-04"
@@ -1808,7 +1912,9 @@
     {
       "id": "shopify-alert-inventorysetscheduledchanges-mutation-is-being-removed-with-no-replacement-mutation-inventorysetscheduledchanges",
       "api": "admin",
-      "coordinates": ["Mutation.inventorySetScheduledChanges"],
+      "coordinates": [
+        "Mutation.inventorySetScheduledChanges"
+      ],
       "summary": "The inventorySetScheduledChanges mutation is removed in API version 2026-07 with no replacement; remove calls and redesign any scheduled inventory workflows.",
       "deadline": {
         "version": "2026-07"
@@ -1951,7 +2057,9 @@
     {
       "id": "shopify-alert-new-payment-error-codes-added-to-subscriptions-apis-subscriptionbillingattempterrorcode",
       "api": "admin",
-      "coordinates": ["SubscriptionBillingAttemptErrorCode*"],
+      "coordinates": [
+        "SubscriptionBillingAttemptErrorCode*"
+      ],
       "summary": "Subscription billing failures are being reclassified into more specific error codes in 2026-04 and unstable; review error handling and retry logic rather than treating the mapping table as one-to-one renames.",
       "deadline": {
         "version": "2026-04"
@@ -1968,7 +2076,9 @@
     {
       "id": "shopify-alert-new-payment-error-codes-added-to-subscriptions-apis-subscriptionbillingattempterrorcode-2",
       "api": "admin",
-      "coordinates": ["SubscriptionBillingAttemptErrorCode*"],
+      "coordinates": [
+        "SubscriptionBillingAttemptErrorCode*"
+      ],
       "summary": "Subscription billing attempts on 2026-01 and earlier can return different existing error codes for the same failures; review code-specific handling, retry policies, and monitoring assumptions.",
       "deadline": {
         "version": "2026-04"
@@ -1985,7 +2095,9 @@
     {
       "id": "shopify-alert-discouraging-use-of-receiptjson-on-ordertransaction-in-the-graphql-admin-api-ordertransaction-receiptjson",
       "api": "admin",
-      "coordinates": ["OrderTransaction.receiptJson"],
+      "coordinates": [
+        "OrderTransaction.receiptJson"
+      ],
       "summary": "Parsing OrderTransaction.receiptJson can break without a breaking API change; migrate dependencies to stable typed fields or retrieve necessary provider-specific details directly from the payment provider.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/discouraging-use-of-receiptjson-on-ordertransaction-in-the-graphql-admin-api",
@@ -2000,7 +2112,9 @@
     {
       "id": "shopify-alert-events-data-now-limited-to-one-year-retention-event",
       "api": "admin",
-      "coordinates": ["Event"],
+      "coordinates": [
+        "Event"
+      ],
       "summary": "Admin GraphQL Event data and REST events data older than one year are no longer accessible; update code that depends on older events.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/events-data-now-limited-to-one-year-retention",
@@ -2035,7 +2149,9 @@
     {
       "id": "shopify-alert-deprecate-deliveryshippingoriginassign-mutation-mutation-deliveryshippingoriginassign",
       "api": "admin",
-      "coordinates": ["Mutation.deliveryShippingOriginAssign"],
+      "coordinates": [
+        "Mutation.deliveryShippingOriginAssign"
+      ],
       "summary": "The deliveryShippingOriginAssign mutation is deprecated and slated for removal in a future API version; stop using it and evaluate supported alternatives for assigning shipping origins.",
       "deadline": {
         "version": "2026-04"
@@ -2113,7 +2229,10 @@
     {
       "id": "shopify-alert-storefront-api-now-returns-errors-when-adding-a-gift-card-to-a-cart-with-missing-or-invalid-recipient-details-mutation-cartcreate",
       "api": "storefront",
-      "coordinates": ["Mutation.cartCreate", "Mutation.cartLinesAdd"],
+      "coordinates": [
+        "Mutation.cartCreate",
+        "Mutation.cartLinesAdd"
+      ],
       "summary": "When gift card recipient details are missing or invalid, cartCreate and cartLinesAdd now return GIFT_CARD_RECIPIENT_INVALID instead of empty userErrors; handle this error and surface recipient validation feedback to the client.",
       "deadline": {
         "version": "2026-01"
@@ -2130,7 +2249,10 @@
     {
       "id": "shopify-alert-deprecation-of-ordertransaction-authorizationcode-in-favor-of-ordertransactionpaymentid-ordertransaction-authorizationcode",
       "api": "admin",
-      "coordinates": ["OrderTransaction.authorizationCode", "OrderTransaction.paymentId"],
+      "coordinates": [
+        "OrderTransaction.authorizationCode",
+        "OrderTransaction.paymentId"
+      ],
       "summary": "OrderTransaction.authorizationCode is deprecated; migrate to paymentId only after updating storage and reconciliation to handle Shopify-specific identifiers instead of provider-specific authorization codes.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/deprecation-of-ordertransaction-authorizationcode-in-favor-of-ordertransactionpaymentid",
@@ -2184,7 +2306,9 @@
     {
       "id": "shopify-alert-concurrency-protection-features-mutation-inventorysetquantities",
       "api": "admin",
-      "coordinates": ["Mutation.inventorySetQuantities"],
+      "coordinates": [
+        "Mutation.inventorySetQuantities"
+      ],
       "summary": "`inventorySetQuantities` will require `changeFromQuantity` with an explicit opt-out and remove the old compare-and-swap fields; update requests to the new concurrency contract.",
       "deadline": {
         "version": "2026-01"
@@ -2299,7 +2423,10 @@
     {
       "id": "shopify-alert-inventory-item-variant-field-deprecation-inventoryitem-variant",
       "api": "admin",
-      "coordinates": ["InventoryItem.variant", "InventoryItem.variants"],
+      "coordinates": [
+        "InventoryItem.variant",
+        "InventoryItem.variants"
+      ],
       "summary": "InventoryItem.variant is deprecated and will be removed in a future API version; migrate queries and response handling to the paginated InventoryItem.variants connection.",
       "deadline": {
         "version": "2026-01"
@@ -2333,7 +2460,9 @@
     {
       "id": "shopify-alert-the-cartdiscountcodeupdate-mutation-now-requires-the-discountcodes-field-mutation-cartdiscountcodesupdate-discountcodes",
       "api": "storefront",
-      "coordinates": ["Mutation.cartDiscountCodesUpdate(discountCodes:)"],
+      "coordinates": [
+        "Mutation.cartDiscountCodesUpdate(discountCodes:)"
+      ],
       "summary": "Calls to cartDiscountCodesUpdate that omit discountCodes or pass null will fail; supply an explicit non-null list of discount codes.",
       "deadline": {
         "version": "2026-01"
@@ -2350,7 +2479,9 @@
     {
       "id": "shopify-alert-bulk-operations-group-objects-default-changed-to-false-mutation-bulkoperationrunquery-groupobjects",
       "api": "admin",
-      "coordinates": ["Mutation.bulkOperationRunQuery(groupObjects:)"],
+      "coordinates": [
+        "Mutation.bulkOperationRunQuery(groupObjects:)"
+      ],
       "summary": "Bulk queries that omit groupObjects now produce ungrouped output by default; explicitly set groupObjects: true if your application depends on grouped output.",
       "deadline": {
         "version": "2026-01"
@@ -2367,7 +2498,9 @@
     {
       "id": "shopify-alert-bulk-operations-group-objects-default-changed-to-false-mutation-bulkoperationrunmutation-groupobjects",
       "api": "admin",
-      "coordinates": ["Mutation.bulkOperationRunMutation(groupObjects:)"],
+      "coordinates": [
+        "Mutation.bulkOperationRunMutation(groupObjects:)"
+      ],
       "summary": "The bulk mutation groupObjects argument is deprecated and does not affect output ordering; remove it from bulkOperationRunMutation calls.",
       "deadline": {
         "version": "2026-01"
@@ -2471,7 +2604,9 @@
     {
       "id": "shopify-alert-subscription-contract-shipping-requirements-now-sync-with-product-variants-mutation-subscriptionbillingattemptcreate-2",
       "api": "admin",
-      "coordinates": ["Mutation.subscriptionBillingAttemptCreate"],
+      "coordinates": [
+        "Mutation.subscriptionBillingAttemptCreate"
+      ],
       "summary": "Orders created by subscription billing attempts no longer include a delivery line when no contract lines require shipping; handle missing delivery lines and revised shipping charges and totals.",
       "deadline": {
         "version": "2025-10"
@@ -2525,7 +2660,9 @@
     {
       "id": "shopify-alert-enhanced-api-stability-with-rate-limiting-for-remote-payment-method-creation-mutation-customerpaymentmethodremotecreate",
       "api": "admin",
-      "coordinates": ["Mutation.customerPaymentMethodRemoteCreate"],
+      "coordinates": [
+        "Mutation.customerPaymentMethodRemoteCreate"
+      ],
       "summary": "Requests to customerPaymentMethodRemoteCreate can now be rate limited; handle throttling and retry requests with backoff.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/enhanced-api-stability-with-rate-limiting-for-remote-payment-method-creation",
@@ -2540,7 +2677,9 @@
     {
       "id": "shopify-alert-setting-permitsskusharing-argument-to-false-when-creating-a-fulfillment-service-returns-an-error-mutation-fulfillmentservicecreate-permitsskusharing",
       "api": "admin",
-      "coordinates": ["Mutation.fulfillmentServiceCreate(permitsSkuSharing:)"],
+      "coordinates": [
+        "Mutation.fulfillmentServiceCreate(permitsSkuSharing:)"
+      ],
       "summary": "Creating a fulfillment service with permitsSkuSharing set to false now fails in both GraphQL and REST; send true or omit the parameter, allowing the new service to share SKUs with other locations.",
       "deadline": {
         "version": "2025-10"
@@ -2557,7 +2696,9 @@
     {
       "id": "shopify-alert-collectionreorderproducts-operation-usererrors-now-includes-code-field-collectionreorderproductspayload-usererrors",
       "api": "admin",
-      "coordinates": ["CollectionReorderProductsPayload.userErrors"],
+      "coordinates": [
+        "CollectionReorderProductsPayload.userErrors"
+      ],
       "summary": "CollectionReorderProductsPayload.userErrors changes from [UserError!]! to [CollectionReorderProductsUserError!]!; update typed error handling and fragments that depend on UserError.",
       "deadline": {
         "version": "2025-10"
@@ -2600,7 +2741,9 @@
     {
       "id": "shopify-alert-discount-eligibility-management-discountautomatic",
       "api": "admin",
-      "coordinates": ["DiscountAutomatic*"],
+      "coordinates": [
+        "DiscountAutomatic*"
+      ],
       "summary": "Queries on API versions older than 2025-10 omit automatic discounts restricted to customers or customer segments; upgrade to 2025-10 or later to retrieve those discounts.",
       "deadline": {
         "version": "2025-10"
@@ -2635,7 +2778,9 @@
     {
       "id": "shopify-alert-the-cartdeliveryaddressesupdate-mutation-now-supports-removing-all-addresses-from-a-cart-mutation-cartdeliveryaddressesupdate-addresses",
       "api": "storefront",
-      "coordinates": ["Mutation.cartDeliveryAddressesUpdate(addresses:)"],
+      "coordinates": [
+        "Mutation.cartDeliveryAddressesUpdate(addresses:)"
+      ],
       "summary": "Starting with Storefront API 2025-10, passing an empty addresses array to cartDeliveryAddressesUpdate clears all cart addresses; update callers that do not intend to clear them.",
       "deadline": {
         "version": "2025-10"
@@ -2669,7 +2814,9 @@
     {
       "id": "shopify-alert-deprecation-of-tax-code-field-productvariant-taxcode",
       "api": "admin",
-      "coordinates": ["ProductVariant.taxCode"],
+      "coordinates": [
+        "ProductVariant.taxCode"
+      ],
       "summary": "ProductVariant.taxCode is deprecated and will be removed in future API versions; remove its use from queries and mutations and update tax calculations or reporting that depend on it.",
       "deadline": {
         "version": "2025-10"
@@ -2686,7 +2833,9 @@
     {
       "id": "shopify-alert-ordercancel-mutation-now-supports-refunds-to-store-credit-mutation-ordercancel-refund",
       "api": "admin",
-      "coordinates": ["Mutation.orderCancel(refund:)"],
+      "coordinates": [
+        "Mutation.orderCancel(refund:)"
+      ],
       "summary": "The orderCancel refund argument is deprecated; migrate to refundMethod.originalPaymentMethodsRefund to continue refunding original payment methods.",
       "deadline": {
         "version": "2025-07"
@@ -2703,7 +2852,9 @@
     {
       "id": "shopify-alert-new-field-for-discount-classes-on-draftorderplatformdiscount-draftorderplatformdiscount-discountclass",
       "api": "admin",
-      "coordinates": ["DraftOrderPlatformDiscount.discountClass"],
+      "coordinates": [
+        "DraftOrderPlatformDiscount.discountClass"
+      ],
       "summary": "DraftOrderPlatformDiscount.discountClass is deprecated; migrate to discountClasses and adapt consumers to handle multiple classes, continuing to use presentationLevel to determine the discount's specific impact on a draft order.",
       "deadline": {
         "version": "2025-07"
@@ -2801,7 +2952,10 @@
     {
       "id": "shopify-alert-product-create-serves-input-errors-as-user-errors-mutation-productcreate",
       "api": "admin",
-      "coordinates": ["Mutation.productCreate", "ProductCreatePayload.userErrors"],
+      "coordinates": [
+        "Mutation.productCreate",
+        "ProductCreatePayload.userErrors"
+      ],
       "summary": "Update productCreate error handling to inspect payload userErrors for multiple options linked to the same metafield, links to already-linked metafields, linkedMetafieldValue on unlinked options, and simultaneous options and optionValues.",
       "deadline": {
         "version": "2025-07"
@@ -2818,7 +2972,9 @@
     {
       "id": "shopify-alert-amazonpay-and-facebookpay-enumerated-in-digitalwallets-cardpaymentdetails-wallet",
       "api": "admin",
-      "coordinates": ["CardPaymentDetails.wallet"],
+      "coordinates": [
+        "CardPaymentDetails.wallet"
+      ],
       "summary": "CardPaymentDetails.wallet now returns AMAZON_PAY or FACEBOOK_PAY for transactions that previously returned null; update wallet-handling logic to accept these values across all API versions.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/amazonpay-and-facebookpay-enumerated-in-digitalwallets",
@@ -2869,7 +3025,11 @@
     {
       "id": "shopify-alert-deprecation-of-legacy-return-apis-and-improvements-to-return-management-mutation-refundcreate",
       "api": "admin",
-      "coordinates": ["Mutation.refundCreate", "Mutation.returnRefund", "Return.suggestedRefund"],
+      "coordinates": [
+        "Mutation.refundCreate",
+        "Mutation.returnRefund",
+        "Return.suggestedRefund"
+      ],
       "summary": "Legacy return-refund workflows using refundCreate, returnRefund, or Return.suggestedRefund are deprecated; migrate to returnProcess and Return.suggestedFinancialOutcome with the necessary input and selection changes.",
       "deadline": {
         "version": "2025-07"
@@ -2978,7 +3138,9 @@
     {
       "id": "shopify-alert-deprecation-of-draftordercreatemerchantcheckout-mutation-mutation-draftordercreatemerchantcheckout",
       "api": "admin",
-      "coordinates": ["Mutation.draftOrderCreateMerchantCheckout"],
+      "coordinates": [
+        "Mutation.draftOrderCreateMerchantCheckout"
+      ],
       "summary": "The draftOrderCreateMerchantCheckout mutation is deprecated; migrate to draftOrderComplete after reviewing its inputs, outputs, and behavior.",
       "deadline": {
         "version": "2025-07"
@@ -3016,7 +3178,9 @@
     {
       "id": "shopify-alert-new-arguments-added-to-statuspageurl-field-on-order-object-order-statuspageurl",
       "api": "admin",
-      "coordinates": ["Order.statusPageUrl"],
+      "coordinates": [
+        "Order.statusPageUrl"
+      ],
       "summary": "After August 1, 2025, Order.statusPageUrl defaults to capability-token URLs with limited uses, expiration, and longer URLs; review URL storage and delivery assumptions and specify notification_usage and audience for the intended use case.",
       "deadline": {
         "date": "2025-08-01"
@@ -3054,7 +3218,10 @@
     {
       "id": "shopify-alert-a-single-line-items-quantity-can-now-be-allocated-across-multiple-fulfillment-locations-order-fulfillmentorders",
       "api": "admin",
-      "coordinates": ["Order.fulfillmentOrders", "FulfillmentOrder.lineItems"],
+      "coordinates": [
+        "Order.fulfillmentOrders",
+        "FulfillmentOrder.lineItems"
+      ],
       "summary": "A line item's quantity can now be split across multiple fulfillment locations, so GraphQL and REST integrations must account for all fulfillment orders for an inventory item rather than assuming there is only one.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/a-single-line-items-quantity-can-now-be-allocated-across-multiple-fulfillment-locations",
@@ -3116,7 +3283,11 @@
     {
       "id": "shopify-alert-retail-exchanges-now-use-the-shopify-exchanges-implementation-order-agreements",
       "api": "admin",
-      "coordinates": ["Order.agreements", "ReturnAgreement.sales", "OrderEditAgreement.sales"],
+      "coordinates": [
+        "Order.agreements",
+        "ReturnAgreement.sales",
+        "OrderEditAgreement.sales"
+      ],
       "summary": "Retail exchanges now consolidate Return and Order Edit sales into one Return agreement, so update integrations that expect separate sales agreements.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/retail-exchanges-now-use-the-shopify-exchanges-implementation",
@@ -3146,7 +3317,9 @@
     {
       "id": "shopify-alert-retail-exchanges-now-use-the-shopify-exchanges-implementation-order-exchangev2s",
       "api": "admin",
-      "coordinates": ["Order.exchangeV2s"],
+      "coordinates": [
+        "Order.exchangeV2s"
+      ],
       "summary": "Order.exchangeV2s now includes exchanges created in Admin or through returnCreate, so use the include_mirrored_exchanges query filter if your integration must exclude them.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/retail-exchanges-now-use-the-shopify-exchanges-implementation",
@@ -3161,7 +3334,10 @@
     {
       "id": "shopify-alert-retail-exchanges-now-use-the-shopify-exchanges-implementation-order-exchangev2s-2",
       "api": "admin",
-      "coordinates": ["Order.exchangeV2s", "ExchangeV2*"],
+      "coordinates": [
+        "Order.exchangeV2s",
+        "ExchangeV2*"
+      ],
       "summary": "ExchangeV2 APIs are deprecated and planned for removal after a one-year deprecation period, so migrate integrations to the Shopify Exchange Platform.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/retail-exchanges-now-use-the-shopify-exchanges-implementation",
@@ -3176,7 +3352,9 @@
     {
       "id": "shopify-alert-feesale-fee-field-is-nullable-as-of-2025-07-feesale-fee",
       "api": "admin",
-      "coordinates": ["FeeSale.fee"],
+      "coordinates": [
+        "FeeSale.fee"
+      ],
       "summary": "FeeSale.fee can return null for a deleted fee starting in 2025-07; update consumers to handle null before accessing fee data.",
       "deadline": {
         "version": "2025-07"
@@ -3193,7 +3371,9 @@
     {
       "id": "shopify-alert-checkout-apis-will-be-shut-down-april-1-2025-mutation-checkout",
       "api": "storefront",
-      "coordinates": ["Mutation.checkout*"],
+      "coordinates": [
+        "Mutation.checkout*"
+      ],
       "summary": "Storefront Checkout mutations stop working on April 1, 2025; migrate affected apps to the Storefront Cart API before that date.",
       "deadline": {
         "version": "2025-04",
@@ -3246,7 +3426,10 @@
     {
       "id": "shopify-alert-reserved-prefix-protection-for-metafields-and-metaobjects-metafielddefinitioninput-namespace",
       "api": "admin",
-      "coordinates": ["MetafieldDefinitionInput.namespace", "MetaobjectDefinitionCreateInput.type"],
+      "coordinates": [
+        "MetafieldDefinitionInput.namespace",
+        "MetaobjectDefinitionCreateInput.type"
+      ],
       "summary": "New metafield and metaobject definitions can no longer use namespaces or types containing `--`; update creation code and configuration to avoid that sequence, while leaving existing definitions unchanged.",
       "deadline": {
         "version": "2025-04",
@@ -3297,7 +3480,9 @@
     {
       "id": "shopify-alert-new-catalog-apis-marketcatalog-markets",
       "api": "admin",
-      "coordinates": ["MarketCatalog.markets"],
+      "coordinates": [
+        "MarketCatalog.markets"
+      ],
       "summary": "A catalog can now belong to multiple markets, so update code consuming MarketCatalog.markets to handle multiple entries rather than assuming a single market.",
       "deadline": {
         "version": "2025-04"
@@ -3314,7 +3499,9 @@
     {
       "id": "shopify-alert-new-catalog-apis-queryroot-markets",
       "api": "admin",
-      "coordinates": ["QueryRoot.markets"],
+      "coordinates": [
+        "QueryRoot.markets"
+      ],
       "summary": "Markets can now include company-location conditions, so add type: REGION to QueryRoot.markets queries that must retain region-only behavior.",
       "deadline": {
         "version": "2025-04"
@@ -3352,7 +3539,10 @@
     {
       "id": "shopify-alert-continuous-cart-authentication-cart-checkouturl",
       "api": "storefront",
-      "coordinates": ["Cart.checkoutUrl", "CartBuyerIdentityInput.customerAccessToken"],
+      "coordinates": [
+        "Cart.checkoutUrl",
+        "CartBuyerIdentityInput.customerAccessToken"
+      ],
       "summary": "Continuous cart authentication changes authenticated checkout handling: request Cart.checkoutUrl when the buyer is ready to check out, supply customerAccessToken in the cart buyer identity, and include the buyer IP address in server-side requests.",
       "deadline": {},
       "source": "https://shopify.dev/changelog/posts/continuous-cart-authentication",
@@ -3382,7 +3572,9 @@
     {
       "id": "shopify-alert-new-markets-apis-marketregioncreateinput",
       "api": "admin",
-      "coordinates": ["MarketRegionCreateInput"],
+      "coordinates": [
+        "MarketRegionCreateInput"
+      ],
       "summary": "Primary-market region workflows must migrate to the shop-wide backup-region model using backupRegionUpdate and BackupRegionUpdateInput.",
       "deadline": {
         "version": "2025-04"
@@ -3399,7 +3591,9 @@
     {
       "id": "shopify-alert-new-markets-apis-market-currencysettings",
       "api": "admin",
-      "coordinates": ["Market.currencySettings"],
+      "coordinates": [
+        "Market.currencySettings"
+      ],
       "summary": "Market.currencySettings can now be null when settings are inherited from the parent market, so callers must handle null instead of assuming settings are always present.",
       "deadline": {
         "version": "2025-04"
@@ -3416,7 +3610,9 @@
     {
       "id": "shopify-alert-new-markets-apis-marketwebpresence-market",
       "api": "admin",
-      "coordinates": ["MarketWebPresence.market"],
+      "coordinates": [
+        "MarketWebPresence.market"
+      ],
       "summary": "Web presences can have zero or multiple markets, so callers must handle an absent singular market and migrate deprecated MarketWebPresence.market usage to the markets connection.",
       "deadline": {
         "version": "2025-04"
@@ -3433,7 +3629,10 @@
     {
       "id": "shopify-alert-new-markets-apis-product-contextualpricing",
       "api": "admin",
-      "coordinates": ["Product.contextualPricing", "ProductVariant.contextualPricing"],
+      "coordinates": [
+        "Product.contextualPricing",
+        "ProductVariant.contextualPricing"
+      ],
       "summary": "Product and product-variant contextual pricing no longer considers draft markets, so callers must update pricing expectations and ensure markets intended to affect prices are active.",
       "deadline": {
         "version": "2025-04"
@@ -3504,7 +3703,10 @@
     {
       "id": "shopify-alert-fulfillment-hold-access-update-for-node-queries-queryroot-node",
       "api": "admin",
-      "coordinates": ["QueryRoot.node", "QueryRoot.nodes"],
+      "coordinates": [
+        "QueryRoot.node",
+        "QueryRoot.nodes"
+      ],
       "summary": "Fetching fulfillment holds through node or nodes returns null for holds on inaccessible fulfillment orders; request the appropriate fulfillment-order access scopes before migrating to 2025-01 and handle null results.",
       "deadline": {
         "version": "2025-01"
@@ -3593,7 +3795,9 @@
     {
       "id": "shopify-alert-change-to-fulfillmentordersortkeys-fulfillmentordersortkeys-relevance",
       "api": "admin",
-      "coordinates": ["FulfillmentOrderSortKeys.RELEVANCE"],
+      "coordinates": [
+        "FulfillmentOrderSortKeys.RELEVANCE"
+      ],
       "summary": "FulfillmentOrderSortKeys.RELEVANCE is no longer valid; update affected queries and variables to use a supported sort key appropriate to the intended ordering.",
       "deadline": {
         "version": "2025-01"
@@ -3610,7 +3814,9 @@
     {
       "id": "shopify-alert-apply-multiple-holds-to-a-single-fulfillment-order-fulfillmentorder-fulfillmentholds",
       "api": "admin",
-      "coordinates": ["FulfillmentOrder.fulfillmentHolds"],
+      "coordinates": [
+        "FulfillmentOrder.fulfillmentHolds"
+      ],
       "summary": "FulfillmentOrder.fulfillmentHolds now returns all active holds, so update code that assumes a fulfillment order has at most one hold.",
       "deadline": {
         "version": "2025-01"
@@ -3648,7 +3854,10 @@
     {
       "id": "shopify-alert-apply-multiple-holds-to-a-single-fulfillment-order-fulfillmentorder-supportedactions",
       "api": "admin",
-      "coordinates": ["FulfillmentOrder.supportedActions", "FulfillmentOrderAction.HOLD"],
+      "coordinates": [
+        "FulfillmentOrder.supportedActions",
+        "FulfillmentOrderAction.HOLD"
+      ],
       "summary": "supportedActions can now include HOLD for an already-held fulfillment order, so do not treat that action as evidence that the order is not on hold.",
       "deadline": {
         "version": "2025-01"
@@ -3781,7 +3990,9 @@
     {
       "id": "shopify-alert-deprecate-subscriptionmailingaddress-in-favour-of-mailingaddress-subscriptionmailingaddress",
       "api": "admin",
-      "coordinates": ["SubscriptionMailingAddress"],
+      "coordinates": [
+        "SubscriptionMailingAddress"
+      ],
       "summary": "SubscriptionMailingAddress is deprecated in Admin API 2025-07; update affected queries, fragments and generated types to use MailingAddress.",
       "deadline": {
         "version": "2025-07"
@@ -3798,7 +4009,9 @@
     {
       "id": "shopify-alert-changes-to-scripttag-displayscope-field-on-admin-graphql-api-scripttaginput-displayscope",
       "api": "admin",
-      "coordinates": ["ScriptTagInput.displayScope"],
+      "coordinates": [
+        "ScriptTagInput.displayScope"
+      ],
       "summary": "Only ONLINE_STORE is accepted for ScriptTagInput.displayScope, and scriptTagCreate defaults to ONLINE_STORE when it is omitted; update callers that use other values or rely on the previous default.",
       "deadline": {
         "version": "2025-01"
@@ -3833,7 +4046,10 @@
     {
       "id": "shopify-alert-deprecation-notice-calculatedorder-for-committed-order-edits-calculatedorder",
       "api": "admin",
-      "coordinates": ["CalculatedOrder", "CalculatedOrder.committed"],
+      "coordinates": [
+        "CalculatedOrder",
+        "CalculatedOrder.committed"
+      ],
       "summary": "Stop relying on CalculatedOrder for committed order edits or its deprecated committed field; use Order for current state and Order.agreements for past changes, while retaining CalculatedOrder for uncommitted edits.",
       "deadline": {
         "version": "2025-04",
@@ -3851,7 +4067,10 @@
     {
       "id": "shopify-alert-simplifying-how-metafield-and-metaobject-permissions-work-metafieldadminaccess-private",
       "api": "admin",
-      "coordinates": ["MetafieldAdminAccess.PRIVATE", "MetaobjectAdminAccess.PRIVATE"],
+      "coordinates": [
+        "MetafieldAdminAccess.PRIVATE",
+        "MetaobjectAdminAccess.PRIVATE"
+      ],
       "summary": "Across all API versions, PRIVATE permissions are removed and existing app-reserved data becomes merchant-readable, while all metafields and metaobjects become accessible in Liquid; review privacy assumptions and update permission handling.",
       "deadline": {
         "version": "2025-01"
@@ -3902,6 +4121,294 @@
       "generatedBy": {
         "model": "gpt-6.1-sol",
         "responseId": "resp_03b7646b0618add0016ae2f4b6b4cc87d08070894231b3ec85"
+      }
+    },
+    {
+      "id": "shopify-alert-discounts-allocator-function-api-developer-preview-has-ended-change",
+      "api": "admin",
+      "coordinates": [],
+      "summary": "Discounts Allocator Functions no longer run, and retaining purchase.discounts-allocator.run blocks deployment of the entire app; remove that extension from app configuration and redeploy.",
+      "deadline": {},
+      "source": "https://shopify.dev/changelog/posts/discounts-allocator-function-api-developer-preview-has-ended",
+      "quote": "Until you remove it, `shopify app deploy` fails for the entire app, including changes to your other extensions, with `API not found for target: purchase.discounts-allocator.run`.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0e56c22649e713d7016ae2f5d9354487d0b4f03117a3258476"
+      }
+    },
+    {
+      "id": "shopify-alert-returns-processing-api-mutation-returnrefund",
+      "api": "admin",
+      "coordinates": [
+        "Mutation.returnRefund",
+        "Mutation.refundCreate"
+      ],
+      "summary": "Legacy refund mutations are deprecated for return processing; migrate return-related refund and exchange workflows to returnProcess rather than simply renaming calls.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/returns-processing-api",
+      "quote": "* The [`returnRefund`](https://shopify.dev/docs/api/admin-graphql/2025-07/mutations/returnRefund) mutation is deprecated and replaced by the new [`returnProcess`](https://shopify.dev/docs/api/admin-graphql/2025-07/mutations/returnProcess) mutation. The [`returnProcess`](https://shopify.dev/docs/api/admin-graphql/2025-07/mutations/returnProcess) mutation streamlines return lifecycle management by combining disposition decisions and financial processing into a single call.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0dbdd79f192a95c9016ae2f5f86ad887d0b6c82ce4de390454"
+      }
+    },
+    {
+      "id": "shopify-alert-returns-processing-api-mutation-returncreate",
+      "api": "admin",
+      "coordinates": [
+        "Mutation.returnCreate",
+        "Mutation.returnApproveRequest",
+        "Mutation.returnProcess"
+      ],
+      "summary": "Exchange fulfillment orders are created only when exchange line items are processed; update return-creation and approval workflows to call returnProcess before expecting those orders.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/returns-processing-api",
+      "quote": "* Exchange fulfillment orders are now created only when exchange line items are processed, ensuring accuracy.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0dbdd79f192a95c9016ae2f5f86ad887d0b6c82ce4de390454"
+      }
+    },
+    {
+      "id": "shopify-alert-returns-processing-api-fulfillmentholdreason-awaiting-payment",
+      "api": "admin",
+      "coordinates": [
+        "FulfillmentHoldReason.AWAITING_PAYMENT"
+      ],
+      "summary": "Only exchanges with a net balance payable by the buyer receive an AWAITING_PAYMENT hold; update logic that assumes all exchanges receive that hold.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/returns-processing-api",
+      "quote": "* Only exchanges with a net payable balance due by the buyer are placed on hold with `AWAITING_PAYMENT` hold reason.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0dbdd79f192a95c9016ae2f5f86ad887d0b6c82ce4de390454"
+      }
+    },
+    {
+      "id": "shopify-alert-unit-pricing-api-update-unitpricemeasurementmeasuredunit",
+      "api": "admin",
+      "coordinates": [
+        "UnitPriceMeasurementMeasuredUnit"
+      ],
+      "summary": "Older API versions return null for imperial units and counts in unit pricing; update unit-pricing requests to API version 2025-07 and handle the new units.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/unit-pricing-api-update",
+      "quote": "Otherwise, the API will return the price value but return `null` imperial units and counts.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0887865721f34c5c016ae2f60c0c7487d0aa3851656c56b04e"
+      }
+    },
+    {
+      "id": "shopify-alert-unit-pricing-api-update-unitpricemeasurementmeasuredunit-2",
+      "api": "storefront",
+      "coordinates": [
+        "UnitPriceMeasurementMeasuredUnit"
+      ],
+      "summary": "Older API versions return null for imperial units and counts in unit pricing; update unit-pricing requests to API version 2025-07 and handle the new units.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/unit-pricing-api-update",
+      "quote": "Otherwise, the API will return the price value but return `null` imperial units and counts.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0887865721f34c5c016ae2f60c0c7487d0aa3851656c56b04e"
+      }
+    },
+    {
+      "id": "shopify-alert-minimum-requirement-is-now-optional-on-automatic-discounts-discountautomaticbasic-minimumrequirement",
+      "api": "admin",
+      "coordinates": [
+        "DiscountAutomaticBasic.minimumRequirement",
+        "DiscountAutomaticFreeShipping.minimumRequirement"
+      ],
+      "summary": "Automatic discount minimum requirements can now be null; handle null values when reading DiscountAutomaticBasic.minimumRequirement and DiscountAutomaticFreeShipping.minimumRequirement.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/minimum-requirement-is-now-optional-on-automatic-discounts",
+      "quote": "As of version 2025-01, the `minimumRequirement` field for both [DiscountAutomaticBasic](https://shopify.dev/docs/api/admin-graphql/2025-01/objects/DiscountAutomaticBasic#field-minimumrequirement) and [DiscountAutomaticFreeShipping](https://shopify.dev/docs/api/admin-graphql/2025-01/objects/DiscountAutomaticFreeShipping#field-minimumrequirement) will become nullable.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_04d249d6c41ec518016ae2f61634ac87d09745d162ea33be9e"
+      }
+    },
+    {
+      "id": "shopify-alert-reversefulfillmentorder-order-field-is-nullable-as-of-2025-01-reversefulfillmentorder-order",
+      "api": "admin",
+      "coordinates": [
+        "ReverseFulfillmentOrder.order"
+      ],
+      "summary": "ReverseFulfillmentOrder.order can now return null instead of a GraphQL error when the order is unavailable; handle null before accessing order fields.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/reversefulfillmentorder-order-field-is-nullable-as-of-2025-01",
+      "quote": "As of **2025-01**, `ReverseFulfillmentOrder.order` field is nullable.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_090f1cb5d6873557016ae2f61fdac887d0bbda39525ee38704"
+      }
+    },
+    {
+      "id": "shopify-alert-graphql-over-http-change",
+      "api": "admin",
+      "coordinates": [],
+      "summary": "Requests must use a spec-compliant JSON body and Content-Type: application/json; replace legacy application/graphql bodies and missing or unsupported content types to avoid HTTP 415 responses.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/graphql-over-http",
+      "quote": "* The `Content-Type` header *must* specify `application/json`. The legacy `application/graphql` request format is no longer supported. Requests with no supported content type will receive a `415 Unsupported Media Type` response.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0ff8e4cfcce63159016ae2f6264c9087d0a1cd1fbd3a89c55d"
+      }
+    },
+    {
+      "id": "shopify-alert-graphql-over-http-change-2",
+      "api": "customer-account",
+      "coordinates": [],
+      "summary": "Requests must use a spec-compliant JSON body and Content-Type: application/json; replace legacy application/graphql bodies and missing or unsupported content types to avoid HTTP 415 responses.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/graphql-over-http",
+      "quote": "* The `Content-Type` header *must* specify `application/json`. The legacy `application/graphql` request format is no longer supported. Requests with no supported content type will receive a `415 Unsupported Media Type` response.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0ff8e4cfcce63159016ae2f6264c9087d0a1cd1fbd3a89c55d"
+      }
+    },
+    {
+      "id": "shopify-alert-graphql-over-http-change-3",
+      "api": "admin",
+      "coordinates": [],
+      "summary": "Requests with no supported Accept media type now receive HTTP 406; send an Accept header supporting application/json or application/graphql-response+json.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/graphql-over-http",
+      "quote": "* The `Accept` header now supports `application/graphql-response+json` and/or `application/json` response formats. Requests with no supported accept types will receive a `406 Not Acceptable` response.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0ff8e4cfcce63159016ae2f6264c9087d0a1cd1fbd3a89c55d"
+      }
+    },
+    {
+      "id": "shopify-alert-graphql-over-http-change-4",
+      "api": "customer-account",
+      "coordinates": [],
+      "summary": "Requests with no supported Accept media type now receive HTTP 406; send an Accept header supporting application/json or application/graphql-response+json.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/graphql-over-http",
+      "quote": "* The `Accept` header now supports `application/graphql-response+json` and/or `application/json` response formats. Requests with no supported accept types will receive a `406 Not Acceptable` response.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0ff8e4cfcce63159016ae2f6264c9087d0a1cd1fbd3a89c55d"
+      }
+    },
+    {
+      "id": "shopify-alert-graphql-over-http-change-5",
+      "api": "admin",
+      "coordinates": [],
+      "summary": "On /graphql, Accept: */* now selects application/graphql-response+json, which returns HTTP 400 for static validation failures instead of HTTP 200; update response handling or explicitly request application/json to retain the previous format.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/graphql-over-http",
+      "quote": "* Accepting `*/*` will default to a `application/graphql-response+json` response.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0ff8e4cfcce63159016ae2f6264c9087d0a1cd1fbd3a89c55d"
+      }
+    },
+    {
+      "id": "shopify-alert-graphql-over-http-change-6",
+      "api": "customer-account",
+      "coordinates": [],
+      "summary": "On /graphql, Accept: */* now selects application/graphql-response+json, which returns HTTP 400 for static validation failures instead of HTTP 200; update response handling or explicitly request application/json to retain the previous format.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/graphql-over-http",
+      "quote": "* Accepting `*/*` will default to a `application/graphql-response+json` response.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0ff8e4cfcce63159016ae2f6264c9087d0a1cd1fbd3a89c55d"
+      }
+    },
+    {
+      "id": "shopify-alert-content-type-application-graphql-is-deprecated-change",
+      "api": "admin",
+      "coordinates": [],
+      "summary": "Admin GraphQL requests using application/graphql are rejected in API versions 2025-01 and later; use Content-Type: application/json and a GraphQL-over-HTTP JSON-encoded request body.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/content-type-application-graphql-is-deprecated",
+      "quote": "The `Content-Type: application/graphql` request format is deprecated and will no longer be accepted as of 2025-01 schema versions.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_03274c6b6618dafd016ae2f63bcf5887d0a90d1bfc4b6c8431"
+      }
+    },
+    {
+      "id": "shopify-alert-content-type-application-graphql-is-deprecated-change-2",
+      "api": "customer-account",
+      "coordinates": [],
+      "summary": "Customer Account API requests using application/graphql are rejected in API versions 2025-01 and later; use Content-Type: application/json and a GraphQL-over-HTTP JSON-encoded request body.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/content-type-application-graphql-is-deprecated",
+      "quote": "The `Content-Type: application/graphql` request format is deprecated and will no longer be accepted as of 2025-01 schema versions.",
+      "checkedAt": "2026-10-29",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_03274c6b6618dafd016ae2f63bcf5887d0a90d1bfc4b6c8431"
       }
     }
   ]

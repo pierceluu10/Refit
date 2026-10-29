@@ -9,7 +9,7 @@
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -24,13 +24,14 @@
         "id": "enum-value-removed",
         "operationId": "AdjustmentsSortKeys.RELEVANCE",
         "text": "AdjustmentsSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -45,13 +46,14 @@
         "id": "enum-value-removed",
         "operationId": "AppInstallationSortKeys.RELEVANCE",
         "text": "AppInstallationSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -66,13 +68,14 @@
         "id": "enum-value-removed",
         "operationId": "AppRevenueAttributionRecordSortKeys.RELEVANCE",
         "text": "AppRevenueAttributionRecordSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -87,13 +90,14 @@
         "id": "enum-value-removed",
         "operationId": "AppSubscriptionSortKeys.RELEVANCE",
         "text": "AppSubscriptionSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -108,13 +112,14 @@
         "id": "enum-value-removed",
         "operationId": "AppTransactionSortKeys.RELEVANCE",
         "text": "AppTransactionSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -129,13 +134,14 @@
         "id": "enum-value-removed",
         "operationId": "AppUsageRecordSortKeys.RELEVANCE",
         "text": "AppUsageRecordSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -150,13 +156,14 @@
         "id": "enum-value-removed",
         "operationId": "ArticleSortKeys.RELEVANCE",
         "text": "ArticleSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -171,13 +178,14 @@
         "id": "enum-value-removed",
         "operationId": "AutomaticDiscountSortKeys.RELEVANCE",
         "text": "AutomaticDiscountSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -192,13 +200,14 @@
         "id": "enum-value-removed",
         "operationId": "BalanceTransactionSortKeys.RELEVANCE",
         "text": "BalanceTransactionSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -213,13 +222,14 @@
         "id": "enum-value-removed",
         "operationId": "BlogSortKeys.RELEVANCE",
         "text": "BlogSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -234,13 +244,14 @@
         "id": "enum-value-removed",
         "operationId": "CarrierServiceSortKeys.RELEVANCE",
         "text": "CarrierServiceSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -255,13 +266,14 @@
         "id": "enum-value-removed",
         "operationId": "CashTrackingSessionTransactionsSortKeys.RELEVANCE",
         "text": "CashTrackingSessionTransactionsSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -276,13 +288,14 @@
         "id": "enum-value-removed",
         "operationId": "CashTrackingSessionsSortKeys.RELEVANCE",
         "text": "CashTrackingSessionsSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -297,13 +310,14 @@
         "id": "enum-value-removed",
         "operationId": "CheckoutProfileSortKeys.RELEVANCE",
         "text": "CheckoutProfileSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -318,13 +332,14 @@
         "id": "enum-value-removed",
         "operationId": "CommentSortKeys.RELEVANCE",
         "text": "CommentSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -339,13 +354,14 @@
         "id": "enum-value-removed",
         "operationId": "CompanyContactRoleAssignmentSortKeys.RELEVANCE",
         "text": "CompanyContactRoleAssignmentSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -360,13 +376,14 @@
         "id": "enum-value-removed",
         "operationId": "CompanyContactRoleSortKeys.RELEVANCE",
         "text": "CompanyContactRoleSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -381,13 +398,14 @@
         "id": "enum-value-removed",
         "operationId": "CompanyLocationStaffMemberAssignmentSortKeys.RELEVANCE",
         "text": "CompanyLocationStaffMemberAssignmentSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -402,13 +420,14 @@
         "id": "enum-value-removed",
         "operationId": "CompanySortKeys.RELEVANCE",
         "text": "CompanySortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     },
     {
       "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
       "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "generated",
       "generatedBy": {
         "model": "gpt-6.1-sol",
@@ -423,7 +442,8 @@
         "id": "enum-value-removed",
         "operationId": "CustomerSavedSearchSortKeys.RELEVANCE",
         "text": "CustomerSavedSearchSortKeys.RELEVANCE was removed."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     }
   ]
 }
