@@ -18,6 +18,8 @@ Where a fix has proof, no cautious rule may hold it back. That covers AI-written
 | C     | The type check covers every changed Stripe line, with no new errors and no new test failures                                | validated    |
 | D     | Nothing ran, or nothing reached the changed lines                                                                           | needs review |
 
+Shopify patches have their own proof column: every GraphQL document validated against the target schema is required for A–C, and Refit's development store gives A. See [Shopify proof](SHOPIFY-PROOF.md).
+
 A fix with an unresolved, **real** Stripe finding stays "needs review" at any level. A finding is real when the type checker, a traced call or the contract diff ties it to Stripe.
 
 ## Rules to change
