@@ -1,5 +1,10 @@
 import { expect, it } from 'vitest';
-import { proofGeminiModel, proveRequests, redact } from './ai-request-proof.ts';
+import {
+  proofEmbeddingModel,
+  proofGeminiModel,
+  proveRequests,
+  redact,
+} from './ai-request-proof.ts';
 import type { DeadlineEntry } from './deadline-registry.ts';
 
 it('sends nothing and names the missing key', async () => {
@@ -156,36 +161,85 @@ it('reads any 403 from the proof project as pending, even without a model named'
   );
 });
 
-it('sends reasoning_effort none only with Chat tools', async () => {
+it('leaves Chat with tools pending when the model refuses tools at its reasoning effort, trying nothing else', async () => {
   const requests: Record<string, unknown>[] = [];
   class OpenAI {
     chat = {
       completions: {
         create: async (body: Record<string, unknown>) => {
           requests.push(body);
-          return body.tools
-            ? {
-                choices: [
-                  { message: { tool_calls: [{ function: { arguments: '{"word":"ok"}' } }] } },
-                ],
-              }
-            : { choices: [{ message: { content: 'ok' } }] };
+          if (body.tools)
+            throw Object.assign(
+              new Error(
+                '400 Function tools with reasoning_effort are not supported for gpt-6.1-sol in /v1/chat/completions. Please use /v1/responses instead.',
+              ),
+              { status: 400 },
+            );
+          return { choices: [{ message: { content: 'ok' } }] };
         },
       },
     };
   }
-  await proveRequests({
+  const proof = await proveRequests({
     provider: 'openai',
     calls: [{ call: 'chat.completions.create', tools: true }],
     env: { OPENAI_API_KEY: 'test-key' },
     load: async () => ({ OpenAI }),
   });
-  expect(requests.map((body) => body.reasoning_effort)).toEqual([undefined, 'none']);
+  expect(proof.status).toBe('pending');
+  expect(proof.calls[0].detail).toMatch(
+    /^gpt-6\.1-sol rejects function tools on Chat Completions at its default reasoning_effort and supports no `none`, so Chat with tools cannot be proved on it; the tools shape is proved on Responses \(HTTP 400: /,
+  );
+  // One tools request, as a migrated call sends it: no reasoning_effort, no retry.
+  expect(requests).toHaveLength(2);
+  expect(requests.every((body) => !('reasoning_effort' in body))).toBe(true);
+});
+
+it('proves the Responses text, stream, tool and JSON shapes the migration guide writes', async () => {
+  const requests: Record<string, unknown>[] = [];
+  class OpenAI {
+    responses = {
+      create: async (body: Record<string, unknown>) => {
+        requests.push(body);
+        if (body.stream)
+          return (async function* () {
+            yield { type: 'response.created' };
+            yield { type: 'response.completed' };
+          })();
+        if (body.tools)
+          return {
+            output: [{ type: 'function_call', name: 'record', arguments: '{"word":"ok"}' }],
+          };
+        if (body.text) return { output_text: '{"word":"ok"}' };
+        return { output_text: 'ok' };
+      },
+    };
+  }
+  const proof = await proveRequests({
+    provider: 'openai',
+    calls: [{ call: 'responses.create', stream: true, tools: true, json: true }],
+    env: { OPENAI_API_KEY: 'test-key' },
+    load: async () => ({ OpenAI }),
+  });
+  expect(proof.status).toBe('accepted');
+  expect(proof.calls[0].detail).toBe('text parsed, stream parsed, tool call parsed, JSON parsed');
+  expect(requests[2]).toEqual(
+    expect.objectContaining({
+      tools: [expect.objectContaining({ type: 'function', name: 'record', strict: true })],
+      tool_choice: { type: 'function', name: 'record' },
+    }),
+  );
+  expect(requests[3]).toEqual(
+    expect.objectContaining({
+      text: {
+        format: expect.objectContaining({ type: 'json_schema', name: 'record', strict: true }),
+      },
+    }),
+  );
 });
 
 it('sends OpenAI proofs with gpt-6.1-sol unless the environment names a model', async () => {
   const sent: unknown[] = [];
-  let embedded = false;
   class OpenAI {
     responses = {
       create: async (body: { model: string }) => {
@@ -201,37 +255,84 @@ it('sends OpenAI proofs with gpt-6.1-sol unless the environment names a model', 
         },
       },
     };
-    embeddings = {
-      create: async () => {
-        embedded = true;
-        return { data: [{ embedding: [0] }] };
-      },
-    };
   }
   const prove = (env: NodeJS.ProcessEnv) =>
     proveRequests({
       provider: 'openai',
-      calls: [
-        { call: 'responses.create' },
-        { call: 'chat.completions.create' },
-        { call: 'embeddings.create' },
-      ],
+      calls: [{ call: 'responses.create' }, { call: 'chat.completions.create' }],
       env: { OPENAI_API_KEY: 'test-key', ...env },
       load: async () => ({ OpenAI }),
     });
-  const proof = await prove({});
+  expect((await prove({})).status).toBe('accepted');
   await prove({ REFIT_PROOF_OPENAI_MODEL: 'gpt-7-sol' });
   expect(sent).toEqual(['gpt-6.1-sol', 'gpt-6.1-sol', 'gpt-7-sol', 'gpt-7-sol']);
-  // Embeddings stay pending: no request, and no embedding model is tried.
-  expect(embedded).toBe(false);
-  expect(proof.status).toBe('pending');
-  expect(proof.calls[2]).toEqual({
+});
+
+const openai = (versions: string[], replacement: string | null, date = '2024-01-04') =>
+  ({
+    id: `openai-${versions[0]}`,
+    provider: 'openai',
+    kind: 'model',
+    versions,
+    date,
+    summary: 'shut down',
+    replacement,
+    source: 'https://developers.openai.com/api/docs/deprecations',
+    checkedAt: '2026-10-29',
+  }) as DeadlineEntry;
+
+it('takes the embedding proof model from the registry, never a retired or retiring one', () => {
+  expect(
+    proofEmbeddingModel([
+      openai(['text-similarity-ada-001'], 'text-embedding-3-small'),
+      openai(['text-embedding-ada-002'], 'text-embedding-3-large', '2027-01-01'),
+      openai(['gpt-3.5-turbo-instruct'], 'gpt-5.6-terra'),
+    ]),
+  ).toBe('text-embedding-3-small');
+  expect(
+    proofEmbeddingModel([
+      openai(['text-similarity-ada-001'], 'text-embedding-3-small'),
+      openai(['text-embedding-3-small'], 'text-embedding-4-small', '2027-06-01'),
+    ]),
+  ).toBe('text-embedding-4-small');
+  expect(proofEmbeddingModel([openai(['gpt-3.5-turbo-instruct'], 'gpt-5.6-terra')])).toBe(
+    undefined,
+  );
+});
+
+it('sends embeddings with the registry embedding model, or the override, and nothing else', async () => {
+  const sent: unknown[] = [];
+  class OpenAI {
+    embeddings = {
+      create: async (body: { model: string }) => {
+        sent.push(body.model);
+        return { data: [{ embedding: [0] }] };
+      },
+    };
+  }
+  const prove = (env: NodeJS.ProcessEnv, models: DeadlineEntry[]) =>
+    proveRequests({
+      provider: 'openai',
+      calls: [{ call: 'embeddings.create' }],
+      env: { OPENAI_API_KEY: 'test-key', ...env },
+      load: async () => ({ OpenAI }),
+      models,
+    });
+  const registry = [openai(['text-similarity-ada-001'], 'text-embedding-3-small')];
+  const proof = await prove({}, registry);
+  expect(proof.status).toBe('accepted');
+  expect(proof.calls[0].detail).toBe('embedding parsed (text-embedding-3-small)');
+  await prove({ REFIT_PROOF_OPENAI_EMBEDDING_MODEL: 'text-embedding-3-large' }, registry);
+  expect(sent).toEqual(['text-embedding-3-small', 'text-embedding-3-large']);
+  // With no embedding model to send, it stays pending and sends nothing.
+  const none = await prove({}, []);
+  expect(sent).toHaveLength(2);
+  expect(none.calls[0]).toEqual({
     call: 'embeddings.create',
     status: 'pending',
     detail:
-      'project allows only gpt-6.1-sol, which is not an embedding model; no embeddings request was sent.',
+      'The deadline registry names no current OpenAI embedding model and REFIT_PROOF_OPENAI_EMBEDDING_MODEL is not set; no embeddings request was sent.',
   });
-  expect(proof.reason).toContain('embeddings.create: project allows only gpt-6.1-sol');
 });
 
 const gemini = (versions: string[], replacement: string | null, date = '2026-01-01') =>
