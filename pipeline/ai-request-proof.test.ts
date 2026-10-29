@@ -161,6 +161,28 @@ it('reads any 403 from the proof project as pending, even without a model named'
   );
 });
 
+it('reads a 429 as a quota or credit limit, pending, never a rejected call shape', async () => {
+  class Anthropic {
+    messages = {
+      create: async () => {
+        throw Object.assign(new Error('You have no credits remaining.'), { status: 429 });
+      },
+    };
+  }
+  const proof = await proveRequests({
+    provider: 'anthropic',
+    calls: [{ call: 'messages.create' }],
+    env: { ANTHROPIC_API_KEY: 'test-key' },
+    load: async () => ({ Anthropic }),
+  });
+  expect(proof.status).toBe('pending');
+  expect(proof.calls[0]).toEqual({
+    call: 'messages.create',
+    status: 'pending',
+    detail: 'provider quota or credit limit (HTTP 429: You have no credits remaining.)',
+  });
+});
+
 it('leaves Chat with tools pending when the model refuses tools at its reasoning effort, trying nothing else', async () => {
   const requests: Record<string, unknown>[] = [];
   class OpenAI {

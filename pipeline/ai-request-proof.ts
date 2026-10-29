@@ -473,6 +473,16 @@ export async function proveRequests(options: {
         });
         continue;
       }
+      // A 429 is the key's quota or credit, never a verdict on the call shape.
+      if (status === 429) {
+        const message = error instanceof Error ? redact(error.message).slice(0, 240) : '';
+        calls.push({
+          call: call.call,
+          status: 'pending',
+          detail: `provider quota or credit limit (HTTP 429${message ? `: ${message}` : ''})`,
+        });
+        continue;
+      }
       calls.push({
         call: call.call,
         status: 'rejected',
