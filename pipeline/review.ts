@@ -538,6 +538,7 @@ function testModeLines(validation: unknown) {
 const EVIDENCE_LABELS = {
   'behaviour-tests': "Behaviour tests in the provider's test mode cover every changed line",
   'live-requests': "Read-only calls in the provider's test app accept every changed request",
+  'request-strings': 'Only request strings changed, each proven by the change table',
   'stripe-tests': 'Tests exercise the changed code',
   'type-check': 'Type-checked only',
   'generated-check': 'Generated stripe-mock checks only',

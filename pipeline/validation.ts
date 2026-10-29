@@ -3338,6 +3338,7 @@ export async function validateMigration(options: {
             original: originalSources,
             patched: candidateSources,
             grade: checksGrade,
+            checksUsable: validationStatus === 'passed' || validationStatus === 'untested',
             diff: proposal.diff,
             ai: options.assessment ?? options.aiPatch,
             environment: process.env,

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { usageCostUsd, type AiOptions } from './ai-budget.ts';
 import type { EvidenceGrade } from './check-selection.ts';
 import { scanGraphCalls, type GraphCall } from './meta-graph-calls.ts';
+import { checkJsProof, requestStringProof, type CodeProof } from './meta-graph-code-proof.ts';
 import {
   compareVersions,
   DEFAULT_META_GRAPH_CHANGES,
@@ -42,6 +43,7 @@ export function metaGraphChangeTable() {
 export interface MetaGraphRequestProof {
   file: string;
   line: number;
+  use: GraphCall['use'];
   method: GraphCall['method'];
   path: string | null;
   from: string | null;
@@ -151,9 +153,10 @@ export function proveGraphRequests(
   const requests = changed.map(({ call, original }): MetaGraphRequestProof => {
     const from = original?.version ?? null;
     const crossed = resolved ? crossedVersions(changes, from, resolved) : [];
-    // A change with no version applies at every version, the target included.
+    // A change with no version (out of cycle) applies before and after a version move alike; the
+    // fix plan lists the requests it reaches (ME3's outOfCycleUses), so it is not this patch's proof.
     const inRange = changes.changes.filter(
-      (change) => change.version === null || crossed.includes(change.version),
+      (change) => change.version !== null && crossed.includes(change.version),
     );
     const problems = [...unknownParts(call), ...separateChangelog(call)];
     if (resolved && call.version !== null && call.version !== resolved)
@@ -170,6 +173,7 @@ export function proveGraphRequests(
     return {
       file: call.file,
       line: call.line,
+      use: call.use,
       method: call.method,
       path: call.path,
       from,
@@ -179,7 +183,10 @@ export function proveGraphRequests(
       problems,
     };
   });
-  reasons.push(...requests.flatMap((request) => request.problems));
+  // Test and example files send no request, so what Refit cannot read in them is listed only.
+  reasons.push(
+    ...requests.filter((request) => request.use === 'live').flatMap((request) => request.problems),
+  );
   return {
     target: resolved,
     proven: reasons.length === 0,
@@ -341,12 +348,23 @@ export async function probeGraphRequests(
   return { proven: reasons.length === 0, versionAccepted, probes, reasons };
 }
 
-// The grade a Meta patch earns: the checks' own grade only where the field table proves every
-// changed request (B or C), A when the live probes also pass, else D with the reason.
+// What proves the code around the changed requests where the checks prove nothing: `usable` when
+// the checks did not fail (they passed, or none ran), with the checkJs and request-string proofs.
+export interface MetaGraphCodeEvidence {
+  usable: boolean;
+  checkJs?: CodeProof;
+  strings?: CodeProof;
+}
+
+// The grade a Meta patch earns. The field table must prove every changed request. Then the checks'
+// own B or C stands (A with live probes that reach every changed request); where they prove
+// nothing, a clean checkJs check of the changed lines, or a patch that changes only request
+// strings, is grade C. Otherwise D with the reason.
 export function metaGraphGrade(
   checks: EvidenceGrade | undefined,
   proof: MetaGraphProof,
   live?: MetaGraphLiveProof,
+  code?: MetaGraphCodeEvidence,
 ): EvidenceGrade | undefined {
   if (!checks) return undefined;
   if (!proof.proven)
@@ -360,28 +378,56 @@ export function metaGraphGrade(
       ? `, across ${[...new Set(proof.requests.flatMap((request) => request.crossed))].join(', ')}`
       : ''
   }.`;
-  // The provider itself refusing the target version outweighs the table.
+  // The provider itself refusing the target version, or a changed request, outweighs the table.
   if (live?.versionAccepted === false)
     return {
       letter: 'D',
       level: 'none',
       reason: `${table} But ${live.reasons[0]}. ${checks.reason}`,
     };
-  if (checks.letter === 'D')
+  const refused = live?.probes.filter((probe) => probe.error || probe.missing.length) ?? [];
+  if (refused.length)
+    return {
+      letter: 'D',
+      level: 'none',
+      reason: `${table} But read-only calls with Refit's Meta test app refused ${refused.map((probe) => `${probe.path} (${probe.error ?? `missing ${probe.missing.join(', ')}`})`).join(', ')}. ${checks.reason}`,
+    };
+  const served = live?.versionAccepted
+    ? ` Refit's Meta test app confirmed the Graph API serves ${proof.target}.`
+    : '';
+  const unreached = live
+    ? ` Live proof did not reach grade A: ${live.reasons.find((reason) => !reason.startsWith('The Graph API')) ?? live.reasons[0]}.`
+    : '';
+  if (checks.letter === 'D') {
+    if (code?.usable && code.checkJs?.proven)
+      return {
+        letter: 'C',
+        level: 'type-check',
+        reason: `${table}${served} TypeScript's checkJs check types every name on the changed lines and reports no new error. ${checks.reason}`,
+      };
+    if (code?.usable && code.strings?.proven)
+      return {
+        letter: 'C',
+        level: 'request-strings',
+        reason: `${table}${served} The patch changes only the text of strings that build these requests, so no logic or response handling changed. ${checks.reason}`,
+      };
+    const why = [
+      code && !code.usable ? 'the checks did not pass' : '',
+      code?.checkJs?.reasons[0] ?? '',
+      code?.strings?.reasons[0] ?? '',
+    ].filter(Boolean);
     return {
       ...checks,
-      reason: `${checks.reason} ${table} No passing check covers the changed files.`,
+      reason: `${checks.reason} ${table}${served} No passing check covers the changed files${why.length ? ` (${why.join('; ')})` : ''}.`,
     };
+  }
   if (live?.proven)
     return {
       letter: 'A',
       level: 'live-requests',
       reason: `${table} Read-only calls with Refit's Meta test app returned every requested field at ${proof.target} (${live.probes.map((probe) => probe.path).join(', ')}). ${checks.reason}`,
     };
-  return {
-    ...checks,
-    reason: `${table}${live?.versionAccepted ? ` Refit's Meta test app confirmed the Graph API serves ${proof.target}.` : ''} ${checks.reason}${live ? ` Live proof did not reach grade A: ${live.reasons.find((reason) => !reason.startsWith('The Graph API')) ?? live.reasons[0]}.` : ''}`,
-  };
+  return { ...checks, reason: `${table}${served} ${checks.reason}${unreached}` };
 }
 
 const REVIEW_SCHEMA = {
@@ -469,11 +515,22 @@ export async function reviewMetaGraphPatch(
   }
 }
 
+// A proof that throws proves nothing.
+function settle(proof: () => CodeProof): CodeProof {
+  try {
+    return proof();
+  } catch (error) {
+    return { proven: false, reasons: [`The proof could not run: ${(error as Error).message}`] };
+  }
+}
+
 // Everything validateMigration records for a Meta patch, and the grade it publishes with.
 export async function metaGraphEvidence(options: {
   original: Repository;
   patched: Repository;
   grade: EvidenceGrade | undefined;
+  // The checks did not fail: they passed, or none ran (validation status passed or untested).
+  checksUsable: boolean;
   diff: string;
   ai?: AiOptions;
   environment: Record<string, string | undefined>;
@@ -491,15 +548,37 @@ export async function metaGraphEvidence(options: {
     };
   }
   const { calls = [], ...record } = proof;
+  const weak = options.grade?.letter === 'D';
+  const code: MetaGraphCodeEvidence | undefined =
+    record.proven && weak
+      ? {
+          usable: options.checksUsable,
+          ...(options.checksUsable
+            ? {
+                checkJs: settle(() =>
+                  checkJsProof(options.original, options.patched, options.diff),
+                ),
+                strings: settle(() =>
+                  requestStringProof(options.original, options.patched, options.diff, calls),
+                ),
+              }
+            : {}),
+        }
+      : undefined;
   const live =
-    record.proven && record.target && options.grade && options.grade.letter !== 'D'
+    record.proven && record.target && options.grade && (!weak || code?.usable)
       ? await probeGraphRequests(calls, record.target, options.environment, options.request)
       : undefined;
   const review = options.ai
     ? await reviewMetaGraphPatch({ diff: options.diff, proof: record, live }, options.ai)
     : undefined;
   return {
-    grade: metaGraphGrade(options.grade, record, live),
-    record: { proof: record, ...(live ? { live } : {}), ...(review ? { review } : {}) },
+    grade: metaGraphGrade(options.grade, record, live, code),
+    record: {
+      proof: record,
+      ...(code ? { code } : {}),
+      ...(live ? { live } : {}),
+      ...(review ? { review } : {}),
+    },
   };
 }

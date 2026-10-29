@@ -123,6 +123,34 @@ describe('field-table proof', () => {
     expect(result.requests[0]).toMatchObject({ fixed: ['user-name-removed'], problems: [] });
   });
 
+  it('leaves out-of-cycle changes (no version) to the fix plan', async () => {
+    const outOfCycle = {
+      ...change({ id: 'name-out-of-cycle', version: 'v20.0', kind: 'field-removed', name: 'name' }),
+      version: null,
+    } as unknown as MetaGraphChange;
+    expect((await proof(profile('v18.0'), profile('v21.0'), changes([outOfCycle]))).proven).toBe(
+      true,
+    );
+  });
+
+  it('lists, but does not require, what it cannot read in test files', async () => {
+    const assertion = (version: string) =>
+      `it('posts', () => { expect(mockFetch).toHaveBeenCalledWith(\`https://graph.facebook.com/${version}/123/media\`, expect.anything()); });\n`;
+    const result = await proveMetaGraphPatch(
+      await repository({
+        'src/profile.js': profile('v18.0'),
+        'src/profile.test.js': assertion('v18.0'),
+      }),
+      await repository({
+        'src/profile.js': profile('v21.0'),
+        'src/profile.test.js': assertion('v21.0'),
+      }),
+      { changes: changes() },
+    );
+    expect(result.proven).toBe(true);
+    expect(result.requests.map((request) => request.use).sort()).toEqual(['live', 'test']);
+  });
+
   it('refuses a move across an unreviewed changelog', async () => {
     const result = await proof(profile('v18.0'), profile('v21.0'), changes([], ['v20.0']));
     expect(result.proven).toBe(false);
@@ -326,6 +354,7 @@ describe('AI second-opinion review', () => {
       original,
       patched,
       grade: typeChecked,
+      checksUsable: true,
       diff: '',
       ai: { apiKey: 'key', model: MODEL },
       environment: {},
