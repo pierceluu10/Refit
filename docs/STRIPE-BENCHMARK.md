@@ -266,7 +266,7 @@ Every validated fix was published to a fork in `refit-dev` as Refit Agent. Upstr
 ```sh
 node scripts/stripe-benchmark-setup.mjs --root <dir> --held-out
 git worktree add --detach <worktree> <commit>   # run from a pinned checkout
-OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run> --env .env --ai --validate [--publish <org>]
+OPENAI_MODEL=gpt-6.1-sol npm run benchmark:stripe -- --root <dir> --output <run> --env .env --ai --validate [--publish <org>]
 node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
 ```
 
