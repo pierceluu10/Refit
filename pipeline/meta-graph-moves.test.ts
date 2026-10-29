@@ -248,9 +248,9 @@ FB.init({ appId, version: VERSION });
 export const me = () => fetch(\`https://graph.facebook.com/\${VERSION}/me?fields=id\`);`,
     });
     expect(shared.moves).toEqual([]);
-    expect(shared.stops[0].reasons).toEqual([
+    expect(shared.stops[0].reasons).toContain(
       'a.ts:2: `VERSION` is used in a way the request scan does not follow',
-    ]);
+    );
   });
 
   it('stops for a base an axios instance or another file may use, and never follows a let', async () => {

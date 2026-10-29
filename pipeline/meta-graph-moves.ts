@@ -7,6 +7,7 @@ import {
   isReference,
   scanGraphCalls,
   unwrap,
+  envDefault,
   type GraphCall,
 } from './meta-graph-calls.ts';
 import {
@@ -26,7 +27,7 @@ import { PipelineInputError, type Repository, type SourceEdit } from './types.ts
 // Nothing is applied, validated or published.
 
 const VERSION = /^v\d+\.\d+$/;
-const HOST_PREFIX = 'graph.facebook.com/';
+const HOST_PREFIX = /graph\.(?:facebook|instagram)\.com\/$/;
 const MAX_ALIAS_DEPTH = 3;
 
 export interface VersionMoveRequest {
@@ -238,13 +239,16 @@ function isStringPiece(node: ts.Node) {
   );
 }
 
-// The expression a string piece belongs to, climbing through templates, concatenation and
-// wrappers, and the variable it initializes, if any.
+// The expression a string piece belongs to, climbing through templates, concatenation, the fallback
+// of `process.env.X || '…'` and wrappers, and the variable it initializes, if any.
 function holderOf(node: ts.Node): ts.VariableDeclaration | undefined {
   let current: ts.Node = node;
   while (
     current.parent &&
-    (ts.isTemplateExpression(current.parent) ||
+    ((ts.isBinaryExpression(current.parent) &&
+      current.parent.right === current &&
+      envDefault(current.parent) !== undefined) ||
+      ts.isTemplateExpression(current.parent) ||
       ts.isTemplateSpan(current.parent) ||
       (ts.isBinaryExpression(current.parent) &&
         current.parent.operatorToken.kind === ts.SyntaxKind.PlusToken) ||
@@ -303,7 +307,7 @@ function untracedUses(
       const before =
         index === 0 ? template.head.text : template.templateSpans[index - 1].literal.text;
       if (kind === 'url' && index === 0 && before === '') continue;
-      if (kind === 'version' && before.endsWith(HOST_PREFIX)) continue;
+      if (kind === 'version' && HOST_PREFIX.test(before)) continue;
     } else if (kind === 'url') {
       if (
         ts.isBinaryExpression(parent) &&
@@ -352,7 +356,7 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
   const inUrl = [
     ...lineText.matchAll(
       new RegExp(
-        `${HOST_PREFIX.replace(/\./g, '\\.')}${version.replace('.', '\\.')}(?![\\w.])`,
+        `(graph\\.(?:facebook|instagram)\\.com/)${version.replace('.', '\\.')}(?![\\w.])`,
         'g',
       ),
     ),
@@ -361,7 +365,7 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
     ...lineText.matchAll(new RegExp(`(['"\`])${version.replace('.', '\\.')}\\1`, 'g')),
   ];
   let start: number;
-  if (inUrl.length === 1 && !quoted.length) start = lineStart + inUrl[0].index + HOST_PREFIX.length;
+  if (inUrl.length === 1 && !quoted.length) start = lineStart + inUrl[0].index + inUrl[0][1].length;
   else if (quoted.length === 1 && !inUrl.length) start = lineStart + quoted[0].index + 1;
   else
     return {
@@ -396,7 +400,8 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
       end,
       reasons: [`${where}: the version is in \`${name}\`, which is not a const`],
     };
-  const initializer = holder.initializer && unwrap(holder.initializer);
+  const initializer =
+    holder.initializer && (envDefault(holder.initializer) ?? unwrap(holder.initializer));
   const kind =
     initializer && ts.isStringLiteralLike(initializer) && VERSION.test(initializer.text)
       ? 'version'
