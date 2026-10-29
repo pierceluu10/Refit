@@ -1,0 +1,43 @@
+{
+  "formatVersion": 1,
+  "provider": "shopify",
+  "api": "admin",
+  "version": "2026-01",
+  "previous": "2025-01",
+  "rules": [
+    {
+      "rule": "shopify-shop-draft-orders-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.draftOrders",
+      "replacement": "QueryRoot.draftOrders",
+      "source": "https://shopify.dev/changelog/posts/removal-of-deprecated-shopdraftorders-connection-in-admin-graphql-api",
+      "warning": "Selections of shop { draftOrders } move to the root draftOrders connection with the same arguments; Shopify removed the Shop connection in 2026-01.",
+      "quote": "please update your applications to use the [`QueryRoot.draftOrders`](https://shopify.dev/docs/api/admin-graphql/2025-07/objects/QueryRoot#field-QueryRoot.fields.draftOrders) object for retrieving multiple draft orders.",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "field-removed",
+        "operationId": "Shop.draftOrders",
+        "text": "Shop.draftOrders was removed."
+      }
+    },
+    {
+      "rule": "shopify-shop-billing-address-to-shop-address",
+      "family": "graphql-rename",
+      "coordinate": "Shop.billingAddress",
+      "replacement": "Shop.shopAddress",
+      "source": "https://shopify.dev/changelog/posts/deprecation-of-shop-billingaddress-in-favor-of-shop-shopaddress",
+      "warning": "Selections of Shop.billingAddress become Shop.shopAddress, which Shopify says has the same structure and values; billingAddress is deprecated and will be removed in a future version.",
+      "quote": "This new field replaces the now-deprecated `billingAddress` field, which will be removed in a future version. `shopAddress` will have identical structure and values as `billingAddress`.",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "deprecated",
+        "operationId": "Shop.billingAddress",
+        "text": "Shop.billingAddress is deprecated: Use `shopAddress` instead."
+      }
+    }
+  ]
+}

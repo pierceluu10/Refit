@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "oxygen-is-now-available-on-trial-plan-stores",
+  "url": "https://shopify.dev/changelog/posts/oxygen-is-now-available-on-trial-plan-stores.md",
+  "revision": "c268d30b19055bf4eadaf2f379e44f03f4c64f9404e45af384e4093add5043ad",
+  "hash": "c268d30b19055bf4eadaf2f379e44f03f4c64f9404e45af384e4093add5043ad",
+  "content": "---\ntitle: Oxygen is now available on trial plan stores - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/oxygen-is-now-available-on-trial-plan-stores\nmd: >-\nhttps://shopify.dev/changelog/posts/oxygen-is-now-available-on-trial-plan-stores.md\nmetadata:\neffectiveApiVersion: ''\naffectedApi:\n- displayName: Hydrogen\nhandle: hydrogen\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2026-08-24T13:08:02-04:00'\npostedAt: '2026-08-25T12:00:00-04:00'\nupdatedAt: '2026-08-27T19:52:29-04:00'\neffectiveAt: '2026-08-25T12:00:00-04:00'\n---\n\nAugust 25, 2026\n\n# Oxygen is now available on trial plan stores\n\nDateAugust 25, 2026\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[Hydrogen](https://shopify.dev/changelog?api_type=hydrogen)\n\nYou can now deploy Hydrogen storefronts to Oxygen from [trial plan stores](https://www.shopify.com/free-trial). Previously, Oxygen hosting required a paid plan.\n\nNote that trial plan stores don't include public environments, so deployment URLs always require a store login.\n\n[Learn more about supported plans](https://shopify.dev/docs/storefronts/headless/hydrogen/fundamentals#supported-plans).",
+  "contentType": "text/markdown"
+}

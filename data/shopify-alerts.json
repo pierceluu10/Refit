@@ -1,0 +1,703 @@
+{
+  "formatVersion": 1,
+  "alerts": [
+    {
+      "id": "shopify-relevance-sort-keys-removed",
+      "api": "admin",
+      "coordinates": [
+        "AdjustmentsSortKeys.RELEVANCE",
+        "AppInstallationSortKeys.RELEVANCE",
+        "AppRevenueAttributionRecordSortKeys.RELEVANCE",
+        "AppSubscriptionSortKeys.RELEVANCE",
+        "AppTransactionSortKeys.RELEVANCE",
+        "AppUsageRecordSortKeys.RELEVANCE",
+        "ArticleSortKeys.RELEVANCE",
+        "AutomaticDiscountSortKeys.RELEVANCE",
+        "BalanceTransactionSortKeys.RELEVANCE",
+        "BlogSortKeys.RELEVANCE",
+        "CarrierServiceSortKeys.RELEVANCE",
+        "CashTrackingSessionTransactionsSortKeys.RELEVANCE",
+        "CashTrackingSessionsSortKeys.RELEVANCE",
+        "CheckoutProfileSortKeys.RELEVANCE",
+        "CommentSortKeys.RELEVANCE",
+        "CompanyContactRoleAssignmentSortKeys.RELEVANCE",
+        "CompanyContactRoleSortKeys.RELEVANCE",
+        "CompanyLocationStaffMemberAssignmentSortKeys.RELEVANCE",
+        "CompanySortKeys.RELEVANCE",
+        "CustomerSavedSearchSortKeys.RELEVANCE",
+        "DeletionEventSortKeys.RELEVANCE",
+        "EventSortKeys.RELEVANCE",
+        "FulfillmentEventSortKeys.RELEVANCE",
+        "FulfillmentOrderSortKeys.RELEVANCE",
+        "GiftCardSortKeys.RELEVANCE",
+        "MarketingActivitySortKeys.RELEVANCE",
+        "MarketingEventSortKeys.RELEVANCE",
+        "MenuSortKeys.RELEVANCE",
+        "MethodDefinitionSortKeys.RELEVANCE",
+        "PayoutSortKeys.RELEVANCE",
+        "PriceListSortKeys.RELEVANCE",
+        "ProductImageSortKeys.RELEVANCE",
+        "ProductMediaSortKeys.RELEVANCE",
+        "QuantityPriceBreakSortKeys.RELEVANCE",
+        "ScheduledChangeSortKeys.RELEVANCE",
+        "SellingPlanGroupSortKeys.RELEVANCE",
+        "SubscriptionBillingAttemptsSortKeys.RELEVANCE",
+        "SubscriptionBillingCyclesSortKeys.RELEVANCE",
+        "ValidationSortKeys.RELEVANCE",
+        "WebhookSubscriptionSortKeys.RELEVANCE"
+      ],
+      "summary": "RELEVANCE is no longer a sort key on these connections; a query that sorts by it must choose another key (Shopify says it acted as an ID sort).",
+      "deadline": {
+        "version": "2025-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "quote": "`RELEVANCE` will no longer be included in connection sort options by default as of `2025-04` API versions. This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-delivery-legacy-mode-removed",
+      "api": "admin",
+      "coordinates": [
+        "DeliveryLegacyModeBlocked",
+        "DeliveryLegacyModeBlockedReason",
+        "DeliveryProfile.legacyMode",
+        "DeliverySetting",
+        "DeliverySettingInput",
+        "DeliverySettingUpdatePayload.setting",
+        "Mutation.deliveryProfileUpdate(leaveLegacyModeProfiles:)",
+        "Mutation.deliverySettingUpdate(setting:)",
+        "QueryRoot.deliverySettings"
+      ],
+      "summary": "Legacy shipping mode profiles are discontinued; their fields return static data and their mutations are no-ops, and the schema removes them in 2026-04. Remove the selections and arguments.",
+      "deadline": {
+        "version": "2026-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/deprecate-delivery-legacy-modes-fields",
+      "quote": "Support for legacy mode profiles in shipping has been discontinued.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-inventory-scheduled-changes-removed",
+      "api": "admin",
+      "coordinates": [
+        "Mutation.inventorySetScheduledChanges",
+        "InventoryScheduledChangeInput",
+        "InventoryScheduledChangeItemInput",
+        "InventorySetScheduledChanges*"
+      ],
+      "summary": "inventorySetScheduledChanges is removed in 2026-07 with no replacement; code that schedules inventory changes needs another approach, such as immediate inventoryAdjustQuantities calls.",
+      "deadline": {
+        "version": "2026-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/inventorysetscheduledchanges-mutation-is-being-removed-with-no-replacement",
+      "quote": "mutation will be removed from the GraphQL Admin API in version `2026-07`. This mutation has no replacement, so any apps currently using it should stop relying on it to avoid disruptions.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-draft-order-warning-price-rule-removed",
+      "api": "admin",
+      "coordinates": [
+        "DraftOrderDiscountNotAppliedWarning.priceRule"
+      ],
+      "summary": "DraftOrderDiscountNotAppliedWarning.priceRule is removed in 2026-10; select discountTitle and discountCode on the warning instead. The replacement is two scalar fields, not the PriceRule object.",
+      "deadline": {
+        "version": "2026-10"
+      },
+      "source": "https://shopify.dev/changelog/posts/remove-pricerule-from-draft-order-discount-warning",
+      "quote": "Update any query that reads `priceRule` from this warning to select `discountTitle` and `discountCode` instead.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-price-rule-types-removed",
+      "api": "admin",
+      "coordinates": [
+        "PriceRule*"
+      ],
+      "summary": "Removing DraftOrderDiscountNotAppliedWarning.priceRule removes the PriceRule object and its related types from the 2026-10 schema; fragments and variables that name them stop validating.",
+      "deadline": {
+        "version": "2026-10"
+      },
+      "source": "https://shopify.dev/changelog/posts/remove-pricerule-from-draft-order-discount-warning",
+      "quote": "As a result, removing `priceRule` also removes the `PriceRule` object and its related types from the public schema in `2026-10` and later.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-fulfillment-service-permits-sku-sharing-removed",
+      "api": "admin",
+      "coordinates": [
+        "FulfillmentService.permitsSkuSharing"
+      ],
+      "summary": "FulfillmentService.permitsSkuSharing is removed in 2026-04 and SKU sharing is on for every fulfillment service; remove reads of the field and logic that assumed a single stocking location.",
+      "deadline": {
+        "version": "2026-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/removing-permitsskusharing-field-from-fulfillment-service",
+      "quote": "Remove any reads/writes of `permitsSkuSharing` from your code for the `unstable` or `2026-04` and later releases.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-ignore-compare-quantity-removed",
+      "api": "admin",
+      "coordinates": [
+        "InventorySetQuantitiesInput.ignoreCompareQuantity"
+      ],
+      "summary": "ignoreCompareQuantity is removed in 2026-04; an input that sent ignoreCompareQuantity: true opts out of the check by sending changeFromQuantity: null on each quantity instead.",
+      "deadline": {
+        "version": "2026-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/finalizing-compare-and-swap-redesign-for-inventory-set-quantities",
+      "quote": "Now, to bypass comparison checks, you explicitly pass `null` to the `changeFromQuantity` field.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-change-from-quantity-required",
+      "api": "admin",
+      "coordinates": [
+        "InventoryChangeInput.changeFromQuantity",
+        "InventoryMoveQuantityTerminalInput.changeFromQuantity",
+        "InventorySetQuantityInput.changeFromQuantity"
+      ],
+      "summary": "From 2026-04, inventoryAdjustQuantities, inventoryMoveQuantities, inventorySetOnHandQuantities and productVariantsBulkUpdate quantity adjustments fail at runtime unless each change sends changeFromQuantity (the expected quantity, or null to opt out); the schema does not mark it required.",
+      "deadline": {
+        "version": "2026-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/making-changefromquantity-field-required",
+      "quote": "This is a breaking change. Note that even though the `changeFromQuantity` field doesn't show up as mandatory at the schema level, calling these mutations without passing in `null` or passing in the current actual quantity will result in an error at runtime.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-fulfillment-order-cancel-user-errors",
+      "api": "admin",
+      "coordinates": [
+        "FulfillmentOrderCancelPayload.userErrors"
+      ],
+      "summary": "fulfillmentOrderCancel userErrors change type to FulfillmentOrderCancelError with a code field; fragments on UserError there need updating.",
+      "deadline": {
+        "version": "2026-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/fulfillment-order-cancel-error-codes",
+      "quote": "The `fulfillmentOrderCancel` mutation now returns a specific `fulfillmentOrderCancelError` type instead of the generic `userError` type.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-fulfillment-order-move-user-errors",
+      "api": "admin",
+      "coordinates": [
+        "FulfillmentOrderMovePayload.userErrors"
+      ],
+      "summary": "fulfillmentOrderMove userErrors change type to a specific error type with a code field; fragments on UserError there need updating.",
+      "deadline": {
+        "version": "2026-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/fulfillment-order-move-mutation-error-codes",
+      "quote": "The `fulfillmentOrderMove` mutation now returns a specific `fulfillmentOrderMoveUserError` type instead of the generic `userError` type.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-collection-reorder-products-user-errors",
+      "api": "admin",
+      "coordinates": [
+        "CollectionReorderProductsPayload.userErrors"
+      ],
+      "summary": "collectionReorderProducts userErrors change type to CollectionReorderProductsUserError, which adds a code field; fragments on UserError there need updating.",
+      "deadline": {
+        "version": "2025-10"
+      },
+      "source": "https://shopify.dev/changelog/posts/collectionreorderproducts-operation-usererrors-now-includes-code-field",
+      "quote": "Starting with version 2025-10, the `userErrors` GraphQL type in the GraphQL Admin API's [`collectionReorderProducts`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/collectionReorderProducts) mutation will be updated to `CollectionReorderProductsUserError`.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-remote-payment-method-identifier-required",
+      "api": "admin",
+      "coordinates": [
+        "RemoteStripePaymentMethodInput.paymentMethodId",
+        "RemoteAuthorizeNetCustomerPaymentProfileInput.customerPaymentProfileId",
+        "RemoteBraintreePaymentMethodInput.paymentMethodToken"
+      ],
+      "summary": "From 2026-07, customerPaymentMethodRemoteCreate requires the gateway payment method identifier on Stripe, Authorize.net and Braintree inputs; a call that omits it fails validation.",
+      "deadline": {
+        "version": "2026-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/payment-method-identifier-now-required-for-customerpaymentmethodremotecreate",
+      "quote": "As of API version 2026-07, the payment method identifier field is now required",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-metafield-access-grants-removed",
+      "api": "admin",
+      "coordinates": [
+        "MetafieldAccess.grants",
+        "MetafieldAccessGrant",
+        "MetafieldGrantAccessLevel",
+        "MetafieldDefinitionCreateUserErrorCode.GRANT_LIMIT_EXCEEDED",
+        "MetafieldDefinitionUpdateUserErrorCode.GRANT_LIMIT_EXCEEDED"
+      ],
+      "summary": "Explicit metafield access grants no longer work and their schema members are removed; code that reads or sets grants must use the definition access settings instead.",
+      "deadline": {
+        "date": "2025-02-24"
+      },
+      "source": "https://shopify.dev/changelog/posts/explicit-access-grants-for-metafields-full-deprecation",
+      "quote": "existing explicit grants in the system will stop working on February 24, 2025.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-draft-order-create-merchant-checkout-removed",
+      "api": "admin",
+      "coordinates": [
+        "Mutation.draftOrderCreateMerchantCheckout",
+        "DraftOrderCreateMerchantCheckoutPayload"
+      ],
+      "summary": "draftOrderCreateMerchantCheckout is deprecated and removed in 2026-01; Shopify names draftOrderComplete instead, which takes different arguments.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/deprecation-of-draftordercreatemerchantcheckout-mutation",
+      "quote": "As of API version 2025-07, the `draftOrderCreateMerchantCheckout` mutation has been deprecated. Please use the `draftOrderComplete` mutation instead.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-price-list-user-error-codes-hidden",
+      "api": "admin",
+      "coordinates": [
+        "PriceListUserErrorCode.APP_CATALOG_PRICE_LIST_ASSIGNMENT",
+        "PriceListUserErrorCode.CATALOG_ASSIGNMENT_NOT_ALLOWED",
+        "PriceListUserErrorCode.CATALOG_CANNOT_CHANGE_CONTEXT_TYPE"
+      ],
+      "summary": "These PriceListUserErrorCode values are never returned and are removed from the schema; code that compares against them should drop those branches.",
+      "deadline": {
+        "version": "2025-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/deprecating-pricelistusererrorcode-values",
+      "quote": "Starting in API version 2025-04, [PriceListErrorCode](https://shopify.dev/docs/api/admin-graphql/unstable/enums/PriceListUserErrorCode) values that are currently not returned by the API will be hidden.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-subscription-mailing-address-removed",
+      "api": "admin",
+      "coordinates": [
+        "SubscriptionMailingAddress",
+        "SubscriptionDeliveryMethodShipping.address",
+        "SubscriptionDeliveryMethodLocalDelivery.address"
+      ],
+      "summary": "SubscriptionMailingAddress is replaced by MailingAddress on subscription delivery methods; fragments on SubscriptionMailingAddress must target MailingAddress.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/deprecate-subscriptionmailingaddress-in-favour-of-mailingaddress",
+      "quote": "As of the 2025-07 version of the GraphQL Admin API, we've deprecated the [`SubscriptionMailingAddress`](https://shopify.dev/docs/api/admin-graphql/2025-01/objects/SubscriptionMailingAddress) object. Use the [`MailingAddress`](https://shopify.dev/docs/api/admin-graphql/2025-01/objects/MailingAddress) object instead.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-collection-rule-set-to-sources",
+      "api": "admin",
+      "coordinates": [
+        "Collection.ruleSet",
+        "Mutation.collectionCreate(input:)",
+        "Mutation.collectionUpdate(input:)",
+        "QueryRoot.collectionRulesConditions"
+      ],
+      "summary": "Collections move from one ruleSet to a multi-source model in 2026-07; collections that use new features are hidden from older versions. Migrating rule sets to sources is a model change, not a rename.",
+      "deadline": {
+        "version": "2026-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/new-collection-model-and-apis-now-available",
+      "quote": "The 2026-07 release replaces a collection’s single `ruleSet` with a multi-source model in the GraphQL Admin API.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-collection-metafield-integer-removed",
+      "api": "admin",
+      "coordinates": [
+        "CollectionSourceInclusionConditionInput.metafieldInteger",
+        "CollectionSourceInclusionConditionUpdateInput.metafieldInteger",
+        "CollectionSourceInclusionConditionMetafieldInteger*"
+      ],
+      "summary": "metafieldInteger collection conditions are removed in 2027-01; metafieldInt replaces them, and its value changes type from Int to String, so literals must change too.",
+      "deadline": {
+        "version": "2027-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/metafieldinteger-collection-condition-removed-in-api-version-2027-01",
+      "quote": "As of API version `2027-01`, the `metafieldInteger` collection source condition inputs and types is removed from GraphQL Admin API. If you use `metafieldInteger` to create or read collection source conditions, you need to migrate to `metafieldInt` before you upgrade to API version `2027-01`.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-cumulative-marketing-engagements-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "MarketingEngagementInput.isCumulative",
+        "MarketingEngagement.isCumulative"
+      ],
+      "summary": "Cumulative marketing engagements are deprecated and isCumulative defaults to false; integrations must send daily, non-cumulative metrics.",
+      "deadline": {
+        "version": "2026-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/deprecation-of-cumulative-marketing-engagements",
+      "quote": "The `isCumulative` argument to the `marketingEngagementCreate` mutation is being deprecated, defaulting to `false`. Please update your integration to send non-cumulative engagements, as needed.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-endpoint-specific-webhook-mutations-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "Mutation.eventBridgeWebhookSubscriptionCreate",
+        "Mutation.eventBridgeWebhookSubscriptionUpdate",
+        "Mutation.pubSubWebhookSubscriptionCreate",
+        "Mutation.pubSubWebhookSubscriptionUpdate",
+        "QueryRoot.webhookSubscriptions(callbackUrl:)"
+      ],
+      "summary": "EventBridge and Pub/Sub webhook mutations and the callbackUrl filter are deprecated for webhookSubscriptionCreate/Update and the uri field, which take a different input shape (and uri is a String, not a URL).",
+      "deadline": {
+        "version": "2025-10"
+      },
+      "source": "https://shopify.dev/changelog/posts/consolidate-webhook-graphql-surfaces",
+      "quote": "Use the new `uri` field in [`webhookSubscriptionCreate`](https://shopify.dev/docs/api/admin-graphql/2025-10/mutations/webhookSubscriptionCreate)/[`webhookSubscriptionUpdate`](https://shopify.dev/docs/api/admin-graphql/2025-10/mutations/webhooksubscriptionupdate) mutations and [`webhookSubscriptions`](https://shopify.dev/docs/api/admin-graphql/2025-10/queries/webhooksubscriptions) query instead of the deprecated endpoint-specific mutations and [`callbackUrl`](https://shopify.dev/docs/api/admin-graphql/2025-10/queries/webhooksubscriptions#arguments-callbackUrl) field.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-gift-card-initial-value-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "GiftCardCreateInput.initialValue"
+      ],
+      "summary": "GiftCardCreateInput.initialValue is deprecated for initialAmount, which is a MoneyInput rather than a Decimal, so the value must be rewritten with its currency.",
+      "deadline": {
+        "version": "2026-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/gift-card-local-currency-support",
+      "quote": "If your app creates gift cards directly, migrate from the deprecated `initialValue` field to `initialAmount`.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-variant-barcode-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "ProductVariant.barcode",
+        "ProductVariantSetInput.barcode",
+        "ProductVariantsBulkInput.barcode",
+        "GiftCardProductVariantSetInput.barcode"
+      ],
+      "summary": "ProductVariant.barcode is deprecated for the barcodes connection and input; barcode still reads and writes the first barcode, but the replacement is a list, not a rename.",
+      "deadline": {
+        "version": "2026-10"
+      },
+      "source": "https://shopify.dev/changelog/posts/product-variant-barcode-is-being-replaced-by-barcodes",
+      "quote": "`ProductVariant.barcode` is now deprecated, but nothing breaks today and `barcode` keeps working:",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-order-transaction-authorization-code-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "OrderTransaction.authorizationCode"
+      ],
+      "summary": "OrderTransaction.authorizationCode is deprecated for paymentId, which returns a Shopify identifier rather than the provider value, so stored values and reconciliation must change too.",
+      "deadline": {},
+      "source": "https://shopify.dev/changelog/posts/deprecation-of-ordertransaction-authorizationcode-in-favor-of-ordertransactionpaymentid",
+      "quote": "**Warning:** `paymentId` returns a Shopify-specific identifier, which differs from the provider-specific value in `authorizationCode`. Ensure your systems are updated to store and reconcile using this new ID format.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-inventory-item-variant-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "InventoryItem.variant"
+      ],
+      "summary": "InventoryItem.variant is deprecated for the variants connection, so selections need first:, edges or nodes rather than a rename.",
+      "deadline": {
+        "version": "2026-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/inventory-item-variant-field-deprecation",
+      "quote": "The `InventoryItem.variant` field has been deprecated and will be removed in a future API version. Use the new `InventoryItem.variants` connection instead.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-function-id-to-function-handle",
+      "api": "admin",
+      "coordinates": [
+        "DeliveryCustomizationInput.functionId",
+        "DiscountAutomaticAppInput.functionId",
+        "DiscountCodeAppInput.functionId",
+        "PaymentCustomizationInput.functionId",
+        "ValidationCreateInput.functionId",
+        "Mutation.cartTransformCreate(functionId:)",
+        "Mutation.fulfillmentConstraintRuleCreate(functionId:)"
+      ],
+      "summary": "functionId inputs are deprecated for functionHandle, the handle in shopify.extension.toml; the value differs, so the code must send the handle instead of a looked-up ID.",
+      "deadline": {
+        "version": "2025-10"
+      },
+      "source": "https://shopify.dev/changelog/posts/introducing-functionhandle",
+      "quote": "All GraphQL mutations that currently accept `functionId` will accept `functionHandle`.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-metaobject-admin-access-private-public-read",
+      "api": "admin",
+      "coordinates": [
+        "MetaobjectAdminAccess.PRIVATE",
+        "MetaobjectAdminAccess.PUBLIC_READ"
+      ],
+      "summary": "MetaobjectAdminAccess PRIVATE and PUBLIC_READ are deprecated and never returned; code that sends or compares them should stop.",
+      "deadline": {
+        "version": "2027-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/removing-deprecated-private-and-publicread-enums-on-metaobject-definitions",
+      "quote": "by deprecating the `PRIVATE` and `PUBLIC_READ` values. These values are now obsolete and are never returned by the API.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-market-currency-settings-update-removed",
+      "api": "admin",
+      "coordinates": [
+        "Mutation.marketCurrencySettingsUpdate",
+        "MarketCurrencySettingsUpdatePayload.market"
+      ],
+      "summary": "marketCurrencySettingsUpdate already fails every request and is removed in 2027-01; pass currency settings to marketCreate or marketUpdate instead.",
+      "deadline": {
+        "version": "2027-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/removing-marketcurrencysettingsupdate-mutation",
+      "quote": "As of GraphQL Admin API version `2027-01`, the `marketCurrencySettingsUpdate` mutation is removed",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-return-refund-to-return-process",
+      "api": "admin",
+      "coordinates": [
+        "Mutation.returnRefund",
+        "Return.suggestedRefund"
+      ],
+      "summary": "returnRefund and Return.suggestedRefund are deprecated for returnProcess and suggestedFinancialOutcome, which combine disposition and refunds in one call with a different input.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/returns-processing-api",
+      "quote": "mutation is deprecated and replaced by the new [`returnProcess`](https://shopify.dev/docs/api/admin-graphql/2025-07/mutations/returnProcess) mutation. The [`returnProcess`](https://shopify.dev/docs/api/admin-graphql/2025-07/mutations/returnProcess) mutation streamlines return lifecycle management by combining disposition decisions and financial processing into a single call.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-fee-sale-fee-nullable",
+      "api": "admin",
+      "coordinates": [
+        "FeeSale.fee"
+      ],
+      "summary": "FeeSale.fee is nullable from 2025-07 when the fee was deleted; code that reads it must handle null.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/feesale-fee-field-is-nullable-as-of-2025-07",
+      "quote": "As of 2025-07, the `FeeSale.fee` field is now nullable, meaning a `Fee` can be null if it has been deleted.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-merchant-owned-delivery-profiles-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "QueryRoot.deliveryProfile",
+        "QueryRoot.deliveryProfiles",
+        "Mutation.deliveryProfileCreate",
+        "Mutation.deliveryProfileUpdate",
+        "Mutation.deliveryProfileRemove"
+      ],
+      "summary": "On shops that use market-driven shipping, merchant-owned delivery profile reads may be stale and writes do not change live shipping; app-owned profiles are unaffected.",
+      "deadline": {
+        "version": "2026-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/merchant-owned-delivery-profile-apis-are-deprecated-for-market-driven-shipping",
+      "quote": "When a shop uses market-driven shipping, the legacy delivery profile fields and mutations in the Admin GraphQL API no longer represent the shop’s live merchant-owned shipping configuration. Reads may return a stale snapshot of the legacy configuration, and writes may succeed without errors but will not update the merchant’s live shipping settings.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-order-cancel-refund-to-refund-method",
+      "api": "admin",
+      "coordinates": [
+        "Mutation.orderCancel(refund:)"
+      ],
+      "summary": "orderCancel(refund:) is deprecated for refundMethod.originalPaymentMethodsRefund, a nested input rather than a renamed argument.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/ordercancel-mutation-now-supports-refunds-to-store-credit",
+      "quote": "If you want to continue to issue refunds to the original payments methods on order cancellation, replace your usages of the [`refund` input](https://shopify.dev/docs/api/admin-graphql/2025-07/mutations/orderCancel#arguments-refund) with the new [`refundMethod.originalPaymentMethodsRefund` input](https://shopify.dev/docs/api/admin-graphql/2025-07/mutations/orderCancel#arguments-refundMethod.fields.originalPaymentMethodsRefund) going forward.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-shop-plan-display-name-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "ShopPlan.displayName"
+      ],
+      "summary": "ShopPlan.displayName is deprecated for publicDisplayName, which returns a standardized set of names (Shopify is now Grow), so values differ.",
+      "deadline": {
+        "version": "2025-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/adding-publicdisplayname-field-on-shopplan",
+      "quote": "Please note that the `displayName` field will be deprecated in the future. We recommend updating your applications to use the `publicDisplayName` field to ensure compatibility with future updates.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-storefront-cart-tax-and-duty-deprecated",
+      "api": "storefront",
+      "coordinates": [
+        "CartCost.totalDutyAmount",
+        "CartCost.totalDutyAmountEstimated",
+        "CartCost.totalTaxAmount",
+        "CartCost.totalTaxAmountEstimated"
+      ],
+      "summary": "Cart tax and duty amounts are deprecated with no replacement; they are calculated at checkout.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/tax-and-duties-are-deprecated-in-storefront-cart-api",
+      "quote": "As of API version `2025-01`, we're deprecating the [tax and duty](https://shopify.dev/docs/api/storefront/2024-01/objects/Cart#field-cost) fields in Storefront API Cart. Tax and Duties are calculated at Checkout where they can be finalized with the complete context of the buyer's information, ensuring greater accuracy.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-storefront-delivery-address-preferences",
+      "api": "storefront",
+      "coordinates": [
+        "CartBuyerIdentity.deliveryAddressPreferences",
+        "CartBuyerIdentityInput.deliveryAddressPreferences"
+      ],
+      "summary": "Cart buyer identity deliveryAddressPreferences is deprecated (and removed from the input in 2025-01) for CartDelivery.addresses and the cartDeliveryAddresses mutations, a different shape.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/cart-delivery-address-management",
+      "quote": "As of API version 2025-01, the [`deliveryAddressPreferences`](https://shopify.dev/docs/api/storefront/2025-01/objects/CartBuyerIdentity#field-deliveryaddresspreferences) field on the `CartBuyerIdentity` object is deprecated. Use the new [`addresses`](https://shopify.dev/docs/api/storefront/2025-01/objects/CartDelivery#field-addresses) field on the `CartDelivery` object instead.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-storefront-cart-discount-allocations",
+      "api": "storefront",
+      "coordinates": [
+        "Cart.discountAllocations",
+        "CartAutomaticDiscountAllocation.discountApplication",
+        "CartCodeDiscountAllocation.discountApplication",
+        "CartCustomDiscountAllocation.discountApplication",
+        "CartDiscountAllocation.discountApplication"
+      ],
+      "summary": "Cart.discountAllocations and discountApplication on cart discount allocations are deprecated; sourceDiscountApplication returns the configured value rather than the per-line amount, so totals computed from value change.",
+      "deadline": {
+        "version": "2026-07"
+      },
+      "source": "https://shopify.dev/changelog/posts/new-discount-fields-in-the-storefront-cart-graphql-api",
+      "quote": "field is deprecated. Use `sourceDiscountApplication` instead. Note: the `value` field on `discountApplication` incorrectly returns the per-line allocated amount rather than the configured discount amount (for example, a $10 fixed discount allocated as $4 to one line shows `value: $4`). The new `sourceDiscountApplication` field returns the correct value.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-item-not-stocked-at-location-removed",
+      "api": "admin",
+      "coordinates": [
+        "InventoryAdjustQuantitiesUserErrorCode.ITEM_NOT_STOCKED_AT_LOCATION",
+        "InventoryMoveQuantitiesUserErrorCode.ITEM_NOT_STOCKED_AT_LOCATION",
+        "InventorySetOnHandQuantitiesUserErrorCode.ITEM_NOT_STOCKED_AT_LOCATION",
+        "InventorySetQuantitiesUserErrorCode.ITEM_NOT_STOCKED_AT_LOCATION"
+      ],
+      "summary": "ITEM_NOT_STOCKED_AT_LOCATION is no longer emitted and is removed from the inventory user error codes in 2026-10; code that compares against it should drop that branch.",
+      "deadline": {
+        "version": "2026-10"
+      },
+      "source": "https://shopify.dev/changelog/posts/removal-of-itemnotstockedatlocation-error",
+      "quote": "If your app currently handles `ITEM_NOT_STOCKED_AT_LOCATION`, you can safely remove any logic that depends on this specific error.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-market-currency-settings-nullable",
+      "api": "admin",
+      "coordinates": [
+        "Market.currencySettings"
+      ],
+      "summary": "Market.currencySettings is nullable from 2025-04; null means the settings are inherited from the parent market, so readers must handle null.",
+      "deadline": {
+        "version": "2025-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/new-markets-apis",
+      "quote": "is now nullable. A null value indicates that the currency settings are inherited from the parent market.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-market-web-presence-market-deprecated",
+      "api": "admin",
+      "coordinates": [
+        "MarketWebPresence.market"
+      ],
+      "summary": "MarketWebPresence.market is deprecated and nullable because a web presence can belong to several markets or none; the markets connection replaces it, a list rather than a rename.",
+      "deadline": {
+        "version": "2025-04"
+      },
+      "source": "https://shopify.dev/changelog/posts/new-markets-apis",
+      "quote": "A web presence can now exist without a market and can also be assigned to multiple markets. The field [`MarketWebPresence.market`](https://shopify.dev/docs/api/admin-graphql/2025-04/objects/MarketWebPresence#field-market) is deprecated in favour of [`MarketWebPresence.markets`](https://shopify.dev/docs/api/admin-graphql/2025-04/objects/MarketWebPresence#connection-markets), which allows for this expanded functionality.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-storefront-selling-plan-adjustment-percentage-float",
+      "api": "storefront",
+      "coordinates": [
+        "SellingPlanPercentagePriceAdjustment.adjustmentPercentage"
+      ],
+      "summary": "SellingPlanPercentagePriceAdjustment.adjustmentPercentage changes from Int to Float in 2025-01; code that assumes an integer percentage must accept fractions.",
+      "deadline": {
+        "version": "2025-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/update-to-percentage_adjustment-field-on-sellingplanpercentagepriceadjustment",
+      "quote": "This field, which facilitates the percentage price adjustment for a selling plan's pricing policy, will transition from an [`Int`](https://shopify.dev/docs/api/storefront/2025-01/scalars/Int) data type to a",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    },
+    {
+      "id": "shopify-storefront-cart-discount-codes-required",
+      "api": "storefront",
+      "coordinates": [
+        "Mutation.cartDiscountCodesUpdate(discountCodes:)"
+      ],
+      "summary": "cartDiscountCodesUpdate requires the discountCodes argument from 2026-01; calls without it, which never changed the cart, now fail validation.",
+      "deadline": {
+        "version": "2026-01"
+      },
+      "source": "https://shopify.dev/changelog/posts/the-cartdiscountcodeupdate-mutation-now-requires-the-discountcodes-field",
+      "quote": "the `cartDiscountCodesUpdate` mutation now requires the `discountCodes` argument to be included. Previously, mutation calls without the `discountCodes` argument were allowed, but would not actually modify the cart in any way.",
+      "checkedAt": "2026-10-29",
+      "origin": "hand-written"
+    }
+  ]
+}

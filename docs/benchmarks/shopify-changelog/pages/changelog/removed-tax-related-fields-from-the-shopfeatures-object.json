@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "removed-tax-related-fields-from-the-shopfeatures-object",
+  "url": "https://shopify.dev/changelog/posts/removed-tax-related-fields-from-the-shopfeatures-object.md",
+  "revision": "2a5f0fac7371b2195bf79d307fabbeabbe037ae8e5a2c7d1481079b749faf666",
+  "hash": "2a5f0fac7371b2195bf79d307fabbeabbe037ae8e5a2c7d1481079b749faf666",
+  "content": "---\ntitle: >-\nRemoved tax-related fields from the ShopFeatures object - Shopify developer\nchangelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/removed-tax-related-fields-from-the-shopfeatures-object\nmd: >-\nhttps://shopify.dev/changelog/posts/removed-tax-related-fields-from-the-shopfeatures-object.md\nmetadata:\neffectiveApiVersion: 2025-10\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Breaking API Change\nhandle: breaking-api-change\nindicatesActionRequired: true\ncreatedAt: '2025-06-20T12:49:46-04:00'\npostedAt: '2025-06-30T12:00:00-04:00'\nupdatedAt: '2025-06-25T20:55:05-04:00'\neffectiveAt: '2025-06-21T12:00:00-04:00'\n---\n\nJune 30, 2025\n\n# Removed tax-related fields from the `ShopFeatures` object\n\nDateJune 30, 2025\n\nVersion[2025-10](https://shopify.dev/changelog?api_version=2025-10)\n\nFlags[Breaking API Change](https://shopify.dev/changelog?filter=breaking-api-change)[Action required](https://shopify.dev/changelog?action_required=true)\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nThe `EligibleForShopifyTaxReporting` and `ShopifyTaxReportingLegacyAutoTaxMigrated` fields have been removed from the `ShopFeatures` object as it is no longer utilized in Shopify tax reporting. There are no replacements for these fields for external-facing apps. If you rely on these fields, you should update your integration accordingly.",
+  "contentType": "text/markdown"
+}

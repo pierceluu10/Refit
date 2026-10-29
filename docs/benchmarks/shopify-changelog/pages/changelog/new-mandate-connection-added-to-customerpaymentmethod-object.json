@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "new-mandate-connection-added-to-customerpaymentmethod-object",
+  "url": "https://shopify.dev/changelog/posts/new-mandate-connection-added-to-customerpaymentmethod-object.md",
+  "revision": "a20544d2551fcff54c704ca3b006dc7049d19189c24874f0b2e6cb3965e6ddeb",
+  "hash": "a20544d2551fcff54c704ca3b006dc7049d19189c24874f0b2e6cb3965e6ddeb",
+  "content": "---\ntitle: >-\nNew mandate connection added to CustomerPaymentMethod object - Shopify\ndeveloper changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/new-mandate-connection-added-to-customerpaymentmethod-object\nmd: >-\nhttps://shopify.dev/changelog/posts/new-mandate-connection-added-to-customerpaymentmethod-object.md\nmetadata:\neffectiveApiVersion: 2025-10\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2025-07-17T08:18:35-04:00'\npostedAt: '2025-09-17T12:00:00-04:00'\nupdatedAt: '2025-09-09T14:26:49-04:00'\neffectiveAt: '2025-07-17T12:00:00-04:00'\n---\n\nSeptember 17, 2025\n\n# New `mandate` connection added to `CustomerPaymentMethod` object\n\nDateSeptember 17, 2025\n\nVersion[2025-10](https://shopify.dev/changelog?api_version=2025-10)\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nAs of API version 2025-10, apps with [`read_customer_payment_methods`](https://shopify.dev/docs/api/usage/access-scopes#authenticated-access-scopes) scope can query the new `mandate` connection on the [`CustomerPaymentMethod`](https://shopify.dev/docs/api/admin-graphql/latest/objects/CustomerPaymentMethod) object.\n\nThis connection returns what each payment method is authorized for (orders, subscriptions, checkout, etc.) via the `resourceType` field and the `resourceId` when applicable.",
+  "contentType": "text/markdown"
+}

@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "combined-listings-update-mutation-error-improvements",
+  "url": "https://shopify.dev/changelog/posts/combined-listings-update-mutation-error-improvements.md",
+  "revision": "10319506b5d0d4bd4879d26c857ac77f628613eb9098dd657af3fadedf0201a3",
+  "hash": "10319506b5d0d4bd4879d26c857ac77f628613eb9098dd657af3fadedf0201a3",
+  "content": "---\ntitle: >-\nCombined Listings update mutation error improvements - Shopify developer\nchangelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/combined-listings-update-mutation-error-improvements\nmd: >-\nhttps://shopify.dev/changelog/posts/combined-listings-update-mutation-error-improvements.md\nmetadata:\neffectiveApiVersion: 2025-01\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2024-09-24T22:44:53-04:00'\npostedAt: '2025-01-01T07:00:00-05:00'\nupdatedAt: '2025-01-17T11:08:45-05:00'\neffectiveAt: '2025-01-01T07:00:00-05:00'\n---\n\nJanuary 1, 2025\n\n# Combined Listings update mutation error improvements\n\nDateJanuary 1, 2025\n\nVersion[2025-01](https://shopify.dev/changelog?api_version=2025-01)\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nStarting with the Admin API version 2025-01, we've introduced new error codes for the `combinedListingUpdate` mutation. These enhancements aim to provide clearer feedback when incorrect data is submitted.\n\n* The `missing_option_values` error occurs when the `optionsAndValues` field is required but not provided in the request.",
+  "contentType": "text/markdown"
+}

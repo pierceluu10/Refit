@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -34,13 +34,39 @@ import {
   type TableRule,
 } from './rule-pack.ts';
 import { responseRemovals, verifyRule } from './rule-verification.ts';
+import { digest } from './specifications.ts';
 import { breakingPages } from './stripe-release.ts';
+import {
+  changelogEntries,
+  completeMined,
+  isChangeEntry,
+  mineEntry,
+  type EntryMining,
+  type MinedCandidate,
+  type Outcome,
+} from './shopify-changelog-mining.ts';
+import {
+  loadShopifyAlerts,
+  loadShopifyRuleTables,
+  type ShopifyRuleTable,
+  shopifyCoverage,
+  verifyShopifyAlert,
+  verifyShopifyRule,
+} from './shopify-rules.ts';
+import { pinnedShopifyDiff, shopifyDiffFile } from './shopify-schema-diff.ts';
+import { pinnedShopifyVersions, SHOPIFY_APIS } from './shopify-schemas.ts';
 import { PipelineInputError } from './types.ts';
 
-const USAGE = `Usage: refit rules check [--contracts <directory>]
+const USAGE = `Usage: refit rules check [--contracts <directory>] [--provider shopify] [--coverage <shopify-coverage.json>]
+       refit rules save-page --url <https://shopify.dev/....md> [--url ...]
+       refit rules mine-shopify --output <new-directory> [--write] [--limit <entries>]
        refit rules generate --version <api-version> [--version ...] --output <new-directory> [--write] [--contracts <directory>]`;
 const CHANGELOG = { label: 'stripe-changelog', url: 'https://docs.stripe.com/changelog.md' };
 const TABLES = fileURLToPath(new URL('../data/rules/stripe/', import.meta.url));
+const SHOPIFY_FEED = 'https://shopify.dev/changelog/feed.xml';
+const SHOPIFY_PAGES = fileURLToPath(
+  new URL('../docs/benchmarks/shopify-changelog/pages/', import.meta.url),
+);
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -49,6 +75,10 @@ const { values, positionals } = parseArgs({
     version: { type: 'string', multiple: true },
     output: { type: 'string' },
     write: { type: 'boolean' },
+    coverage: { type: 'string' },
+    provider: { type: 'string' },
+    url: { type: 'string', multiple: true },
+    limit: { type: 'string' },
     help: { type: 'boolean' },
   },
 });
@@ -60,6 +90,21 @@ page (docs/benchmarks/stripe-changelog/pages) verbatim, its oasdiff entry must b
 between the table's two pinned contracts and be the change the rule answers, and the rule must
 agree with both contracts. Contracts missing from --contracts are downloaded at their pinned
 stripe/openapi commit and checked against data/stripe-openapi-versions.json. Needs oasdiff.
+It then checks data/rules/shopify and data/shopify-alerts.json against the saved Shopify pages
+(docs/benchmarks/shopify-changelog/pages) and the pinned schemas (data/shopify-schema-versions.json),
+checks that data/shopify-schema-diffs is what those schemas give, and prints how many breaking and
+deprecated schema changes a rule or an alert answers; --coverage writes every change with its state.
+--provider shopify checks only Shopify. See docs/SHOPIFY-RULES.md.
+
+save-page: saves Shopify pages (Markdown URLs ending in .md) under docs/benchmarks/shopify-changelog/
+pages for rules and alerts to quote; a rule's source is the URL without .md.
+
+mine-shopify: reads https://shopify.dev/changelog/feed.xml, saves every entry that announces a change
+to an API area Refit reads (pipeline/shopify-changelog-mining.ts), asks OpenAI for candidate rules and
+alerts per entry with the schema changes it mentions, and verifies each as check does. A rule that
+fails becomes an alert when its quote verifies. Writes results.json and audit.json; --write also adds
+the kept rules (review-only) to data/rules/shopify/generated-<api>-<version>.json and the alerts to
+data/shopify-alerts.json. Needs OPENAI_API_KEY and OPENAI_MODEL; spends at most REFIT_AI_BUDGET_USD.
 
 generate: reads docs.stripe.com/changelog.md, saves each page it marks Breaking for the version
 (skipping pages already saved), diffs the version's pinned contract with the one before it, asks
@@ -71,7 +116,14 @@ REFIT_AI_BUDGET_USD (default $1). See docs/MINED-RULES.md.`);
   process.exit(0);
 }
 
-if (positionals[0] === 'check') await check();
+if (positionals[0] === 'check' && values.provider === 'shopify') await checkShopify();
+else if (positionals[0] === 'check') await check();
+else if (positionals[0] === 'mine-shopify') await mineShopify();
+else if (positionals[0] === 'save-page' && values.url?.length)
+  for (const url of values.url) {
+    const page = await savedShopifyPage(url);
+    console.log(`${page.url} ${page.hash}`);
+  }
 else if (positionals[0] === 'generate') await generate();
 else throw new PipelineInputError(USAGE);
 
@@ -96,6 +148,75 @@ async function check() {
   }
   if (failures) throw new PipelineInputError(`${failures} rules are not backed by their evidence.`);
   console.log(`${tables.reduce((total, table) => total + table.rules.length, 0)} rules verified.`);
+  await checkShopify();
+}
+
+// Shopify: the committed schema diffs must be what the pinned schemas give, and every rule and
+// alert must be backed by its saved page and the pinned schemas (pipeline/shopify-rules.ts).
+async function checkShopify() {
+  for (const api of SHOPIFY_APIS)
+    for (const version of pinnedShopifyVersions(api).slice(1)) {
+      const committed = readFileSync(shopifyDiffFile(api, version), 'utf8');
+      if (committed !== `${JSON.stringify(pinnedShopifyDiff(api, version), null, 2)}\n`)
+        throw new PipelineInputError(
+          `data/shopify-schema-diffs/${api}/${version}.json is not the diff of its pinned schemas; run refit shopify-snapshot --diffs.`,
+        );
+    }
+  const pages = await capturedPages(SHOPIFY_PAGES);
+  const releases = async (name: string) => {
+    const response = await fetch(`https://registry.npmjs.org/${name.replace('/', '%2F')}`, {
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!response.ok)
+      throw new PipelineInputError(`npm returned HTTP ${response.status} for ${name}.`);
+    return Object.keys(((await response.json()) as { versions: object }).versions);
+  };
+  const tables = loadShopifyRuleTables();
+  const alerts = loadShopifyAlerts();
+  let failures = 0;
+  for (const table of tables)
+    for (const rule of table.rules) {
+      const problems = await verifyShopifyRule(rule, table, { pages, releases });
+      failures += problems.length ? 1 : 0;
+      console.log(
+        `${problems.length ? 'FAIL' : 'ok  '} shopify ${table.api} ${table.version ?? ''} ${rule.rule}${problems.map((problem) => `\n     ${problem}`).join('')}`,
+      );
+    }
+  for (const alert of alerts) {
+    const problems = verifyShopifyAlert(alert, pages);
+    failures += problems.length ? 1 : 0;
+    if (problems.length)
+      console.log(
+        `FAIL shopify alert ${alert.id}${problems.map((problem) => `\n     ${problem}`).join('')}`,
+      );
+  }
+  if (failures)
+    throw new PipelineInputError(
+      `${failures} Shopify rules or alerts are not backed by their evidence.`,
+    );
+  const coverage = shopifyCoverage(tables, alerts);
+  const count = (state: string, breaking: boolean) =>
+    coverage.filter((row) => row.state === state && row.change.breaking === breaking).length;
+  console.log(
+    `${tables.reduce((total, table) => total + table.rules.length, 0)} Shopify rules and ${alerts.length} alerts verified. Breaking schema changes: ${count('rule', true)} mapped to a rule, ${count('alert-only', true)} alert-only, ${count('unmapped', true)} unmapped. Deprecations: ${count('rule', false)} mapped to a rule, ${count('alert-only', false)} alert-only, ${count('unmapped', false)} unmapped.`,
+  );
+  if (values.coverage)
+    await writeFile(
+      values.coverage,
+      `${JSON.stringify(
+        coverage.map(({ api, version, change, state, by }) => ({
+          api,
+          version,
+          id: change.id,
+          coordinate: change.coordinate,
+          breaking: change.breaking,
+          state,
+          ...(by ? { by } : {}),
+        })),
+        null,
+        2,
+      )}\n`,
+    );
 }
 
 // The saved page, or a fresh capture saved next to the others.
@@ -107,6 +228,23 @@ async function savedPage(version: string, slug: string, url: string) {
   }
   const page = await captureDocumentation({ label: slug, url: `${url}.md` });
   await mkdir(join(STRIPE_PAGES, version), { recursive: true });
+  await writeFile(path, `${JSON.stringify(page, null, 2)}\n`);
+  return page;
+}
+
+// A Shopify page saved for rules to quote: changelog entries under changelog/, guides under docs/.
+async function savedShopifyPage(url: string) {
+  const match = /^https:\/\/shopify\.dev\/(changelog\/posts|docs)\/(.+)\.md$/.exec(url);
+  if (!match) throw new PipelineInputError(`${url} is not a shopify.dev Markdown page.`);
+  const group = match[1] === 'docs' ? 'docs' : 'changelog';
+  const slug = match[2].replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  const path = join(SHOPIFY_PAGES, group, `${slug}.json`);
+  if (existsSync(path)) {
+    const [page] = await readDocumentationSnapshots([path]);
+    if (page.url === url) return page;
+  }
+  const page = await captureDocumentation({ label: slug.slice(0, 100), url });
+  await mkdir(join(SHOPIFY_PAGES, group), { recursive: true });
   await writeFile(path, `${JSON.stringify(page, null, 2)}\n`);
   return page;
 }
@@ -227,5 +365,149 @@ async function generate() {
     )}\n`,
   );
   await writeFile(join(values.output, 'audit.json'), `${JSON.stringify({ pages }, null, 2)}\n`);
+  console.log(JSON.stringify({ ...summary, costUsd }, null, 2));
+}
+
+async function mineShopify() {
+  if (!values.output) throw new PipelineInputError(`--output is required.\n${USAGE}`);
+  const ai = assessmentConfiguration(true, process.env)!;
+  const checkedAt = new Date().toISOString().slice(0, 10);
+  await mkdir(values.output);
+  const response = await fetch(SHOPIFY_FEED, {
+    redirect: 'error',
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!response.ok)
+    throw new PipelineInputError(`The Shopify changelog feed returned HTTP ${response.status}.`);
+  const feed = await response.text();
+  const entries = changelogEntries(feed)
+    .filter(isChangeEntry)
+    .slice(0, values.limit ? Number(values.limit) : undefined);
+  const pages = new Map<string, CapturedDocumentation>();
+  for (const entry of entries) {
+    const page = await savedShopifyPage(entry.url);
+    pages.set(page.url.replace(/\.md$/, ''), page);
+  }
+  const releases = async (name: string) => {
+    const reply = await fetch(`https://registry.npmjs.org/${name.replace('/', '%2F')}`, {
+      signal: AbortSignal.timeout(60_000),
+    });
+    return reply.ok ? Object.keys(((await reply.json()) as { versions: object }).versions) : [];
+  };
+  const evidence = { pages: await capturedPages(SHOPIFY_PAGES), releases };
+  const minings: EntryMining[] = [];
+  // Six entries at a time; the budget ledger serialises its own updates.
+  for (let index = 0; index < entries.length; index += 6)
+    minings.push(
+      ...(await Promise.all(
+        entries.slice(index, index + 6).map(async (entry) => {
+          const mining = await mineEntry(entry, pages.get(entry.url.replace(/\.md$/, ''))!, ai);
+          console.error(
+            `[${minings.length + 1}/${entries.length}] ${entry.slug}: ${mining.error ?? `${mining.candidates.length} candidates`} ($${mining.costUsd.toFixed(4)})`,
+          );
+          return mining;
+        }),
+      )),
+    );
+  const outcomes: { entry: string; candidate: MinedCandidate; outcome: Outcome }[] = [];
+  for (const mining of minings)
+    for (const candidate of mining.candidates) {
+      const source = mining.url.replace(/\.md$/, '');
+      const outcome = await completeMined(
+        candidate,
+        {
+          source,
+          checkedAt,
+          generatedBy: { model: mining.model!, responseId: mining.responseId! },
+          page: evidence.pages.get(source)!,
+        },
+        evidence,
+      );
+      outcomes.push({ entry: mining.slug, candidate, outcome });
+    }
+  const handWritten = loadShopifyRuleTables().filter((table) =>
+    table.rules.some((rule) => rule.origin !== 'generated'),
+  );
+  const known = new Set(
+    handWritten.flatMap((table) =>
+      table.rules.map((rule) => `${table.api} ${rule.diff.operationId}`),
+    ),
+  );
+  const kept = new Map<string, ShopifyRuleTable>();
+  const names = new Set(
+    loadShopifyRuleTables().flatMap((table) => table.rules.map((rule) => rule.rule)),
+  );
+  const reproduced: string[] = [];
+  for (const { outcome } of outcomes) {
+    if (outcome.kind !== 'rule') continue;
+    if (known.has(`${outcome.table.api} ${outcome.rule.diff.operationId}`)) {
+      reproduced.push(outcome.rule.rule);
+      continue;
+    }
+    if (names.has(outcome.rule.rule)) continue;
+    names.add(outcome.rule.rule);
+    const key = `${outcome.table.api}-${outcome.table.version ?? 'packages'}`;
+    const table = kept.get(key) ?? { ...outcome.table, rules: [] };
+    table.rules.push(outcome.rule);
+    kept.set(key, table);
+  }
+  const alerts = outcomes.flatMap(({ outcome }) =>
+    outcome.kind === 'alert' ? [outcome.alert] : [],
+  );
+  const costUsd = minings.reduce((total, mining) => total + mining.costUsd, 0);
+  const summary = {
+    entries: entries.length,
+    entryErrors: minings.filter((mining) => mining.error).length,
+    candidates: outcomes.length,
+    rules: [...kept.values()].reduce((total, table) => total + table.rules.length, 0),
+    reproducedHandWritten: reproduced.length,
+    alerts: alerts.length,
+    refused: outcomes.filter(({ outcome }) => outcome.kind === 'refused').length,
+    ruleCandidatesKeptAsAlerts: outcomes.filter(
+      ({ outcome }) => outcome.kind === 'alert' && outcome.refusedRule,
+    ).length,
+  };
+  await writeFile(
+    join(values.output, 'results.json'),
+    `${JSON.stringify(
+      {
+        formatVersion: 1,
+        commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+        checkedAt,
+        configuredModel: ai.model,
+        feed: { url: SHOPIFY_FEED, sha256: digest(feed) },
+        costUsd,
+        summary,
+        outcomes,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  await writeFile(join(values.output, 'audit.json'), `${JSON.stringify({ minings }, null, 2)}\n`);
+  if (values.write) {
+    for (const [key, table] of kept) {
+      const path = fileURLToPath(
+        new URL(`../data/rules/shopify/generated-${key}.json`, import.meta.url),
+      );
+      const existing = existsSync(path)
+        ? (JSON.parse(readFileSync(path, 'utf8')) as ShopifyRuleTable)
+        : undefined;
+      await writeFile(
+        path,
+        `${JSON.stringify({ ...table, rules: [...(existing?.rules ?? []), ...table.rules] }, null, 2)}\n`,
+      );
+    }
+    const file = fileURLToPath(new URL('../data/shopify-alerts.json', import.meta.url));
+    const stored = loadShopifyAlerts();
+    const ids = new Set(stored.map((alert) => alert.id));
+    for (const alert of alerts) {
+      let id = alert.id;
+      for (let suffix = 2; ids.has(id); suffix += 1) id = `${alert.id}-${suffix}`;
+      ids.add(id);
+      stored.push({ ...alert, id });
+    }
+    await writeFile(file, `${JSON.stringify({ formatVersion: 1, alerts: stored }, null, 2)}\n`);
+  }
   console.log(JSON.stringify({ ...summary, costUsd }, null, 2));
 }
