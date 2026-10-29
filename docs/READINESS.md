@@ -1,5 +1,15 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: sourced parameter changes with model swaps (unreleased, after 0.39.0)
+
+- `data/model-parameter-changes.json` (`pipeline/model-parameter-changes.ts`, `npm run model-parameter-changes:check`) records what a replacement model renames, rejects or changes. Each entry is quoted verbatim from an official page saved under `docs/benchmarks/parameter-pages/` with its SHA-256:
+  - `max_tokens` → `max_completion_tokens` on Chat Completions for GPT-5.6 and GPT-6 replacements;
+  - `temperature`, `top_p`, `top_logprobs` and `logprobs` removed for `gpt-6-luna`/`gpt-6-sol`, unless the request sets reasoning effort;
+  - `temperature`, `top_p` and `top_k` removed for Claude Opus 4.8 and Sonnet 5.5;
+  - stops for `functions`/`function_call`, and for Chat Completions `tools` on GPT-6.
+- With `refit deadlines --propose-model-fixes --parameter-changes <path>` (off by default; owner decision requested in `docs/proposals/ai-model-parameters.md`), a rename or removal is applied together with the swap. It applies only to a plain `name: value` property in the request's own object literal, never one that would drop a comment or collide with an existing name. The edit is listed on the replacement and in the draft's "Request parameters changed with the model" section with its note.
+- On by default, because they only add stops: OpenAI requests that set `functions` or `function_call`, and Chat Completions requests with `tools` or `tool_choice` moving to a GPT-6 model.
+
 ## October 29 checkpoint: AI model sources, alerts and request proofs (unreleased, after 0.39.0)
 
 - **Registry and provenance.** `data/deadlines.json` was synced with OpenAI's deprecations page on 2026-10-29: 17 entries added and 15 updated, including the `gpt-5`, `o3`, `gpt-5-mini` and `gpt-5-nano` aliases that shut down on 2026-12-11, `o1` and `o3-mini` on 2026-10-23, and the January 2027 audio family. The Anthropic and Gemini pages matched already. With `--write`, an OpenAI, Anthropic or Gemini sync now saves the page it read under `docs/benchmarks/deprecation-pages/` with its SHA-256. `npm run deadlines:check-sources` (`pipeline/deadline-sources.ts`, also run by the test suite) fails unless re-reading those saved pages reproduces every AI model entry, and every replaced model sits on a table row that names its replacement. Four entries name a replacement a person chose among several the page offers: `dall-e-2`, `gpt-image-1`, `gpt-image-1-mini` and `whisper-1`. All four are image or audio calls, which model fixes never edit. `o3` is no longer a final replacement, because it retires on 2026-12-11, so its `data/model-parameters.json` entry was removed. `o1-preview` now resolves to `gpt-5.6-sol` through `o3`.
