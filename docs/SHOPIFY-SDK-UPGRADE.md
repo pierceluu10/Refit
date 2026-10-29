@@ -57,7 +57,7 @@ Every stop names the file, line and reason. The citations are the shopify-app-js
 
 Before any edit, the upgrade also refuses these projects:
 
-- **Lockfiles.** A lockfile other than a lone root `package-lock.json` (pnpm, yarn, bun, shrinkwrap, or none), a lockfile version other than 3, a lockfile not in npm's formatting or order, or nested copies of a Shopify package.
+- **Lockfiles.** No root `package-lock.json`, an `npm-shrinkwrap.json`, or other root lockfiles (pnpm, yarn, bun) unless the documented lockfile choice (`chosenLockfile`, as for stripe-node) picks `package-lock.json`; then only it and `package.json` are edited and the draft names each other lockfile left on the older release, a lockfile version other than 3, a lockfile not in npm's formatting or order, or nested copies of a Shopify package.
 - **Packages.** More than one Shopify app package, or a package more than one major behind the target. The migration guides in between are not applied.
 - **Resolution.** A lockfile that cannot take the upgrade without npm resolving it again, because a new release needs a range the lockfile does not satisfy and the package is not dependency-free. The reason names each range and the locked version.
 

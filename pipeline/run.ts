@@ -1062,5 +1062,6 @@ export async function runPipeline(
     apiVersion: validateApiVersion(options.apiVersion),
     apiVersionPolicy: validateApiVersionPolicy(options.apiVersionPolicy),
     sdkUpgrade: options.shopifySdkUpgrade,
+    aiPatch: options.aiPatch,
   })) as unknown as PipelineReport;
 }

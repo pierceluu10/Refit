@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
-import { open, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { open, readdir, readFile, stat } from 'node:fs/promises';
+import { join, relative } from 'node:path';
 import {
   findBreakingChanges,
   GraphQLError,
@@ -12,8 +12,10 @@ import {
   visit,
   visitWithTypeInfo,
   type DocumentNode,
+  type FragmentDefinitionNode,
   type GraphQLSchema,
 } from 'graphql';
+import type { AiOptions } from './ai-budget.ts';
 import type { ApiVersionDeclaration, ApiVersionEvidence, ApiVersionPolicy } from './api-version.ts';
 import { renderFileReplacements, renderPatch } from './patches.ts';
 import type { ProviderAdapter } from './providers.ts';
@@ -23,9 +25,17 @@ import {
   scanShopify,
   SHOPIFY_PACKAGES,
   type AdminDocument,
+  type DocumentSegment,
   type ShopifyScan,
 } from './shopify-analysis.ts';
+import {
+  loadShopifyDocumentRules,
+  rewriteDocument,
+  type DocumentEdit,
+  type ShopifyDocumentRule,
+} from './shopify-document-rules.ts';
 import { shopifySchema } from './shopify-schemas.ts';
+import { aiRewriteDocument, type ShopifyAiRewrite } from './shopify-ai-rewrite.ts';
 import { SHOPIFY_SDK_RULE, shopifySdkSourceChanges } from './shopify-sdk-source.ts';
 import { shopifySdkUpgrade } from './shopify-sdk-upgrade.ts';
 import {
@@ -51,6 +61,144 @@ const SHOPIFY_MIGRATION_GUIDE =
   'https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/docs/migrating-to-v12.md';
 const UNKNOWN_FRAGMENT = /^Unknown fragment "/;
 const MAX_EVIDENCE_TEXT = 300;
+const SKIPPED_DIRECTORIES = new Set(['node_modules', '.git', 'dist', 'build', '.cache', '.next']);
+const MAX_EXTRA_BYTES = 2 * 1024 * 1024;
+const WEBHOOK_VERSION = /^\s*api_version\s*=\s*["'](\d{4}-\d{2}|unstable)["']/m;
+
+// The files source scanning skips that carry Shopify facts: .graphql and .gql documents, and the
+// app configuration (shopify.app.toml, shopify.app.<name>.toml), whose api_version sets the webhook
+// payload version.
+async function shopifyExtraFiles(root: string) {
+  const graphql: { path: string; content: string }[] = [];
+  const configuration: { path: string; content: string }[] = [];
+  const visit = async (directory: string): Promise<void> => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory() && !SKIPPED_DIRECTORIES.has(entry.name)) await visit(path);
+      const target = /\.(?:graphql|gql)$/.test(entry.name)
+        ? graphql
+        : /^shopify\.app(?:\.[\w-]+)?\.toml$/.test(entry.name)
+          ? configuration
+          : undefined;
+      if (!entry.isFile() || !target || (await stat(path)).size > MAX_EXTRA_BYTES) continue;
+      target.push({
+        path: relative(root, path).split('\\').join('/'),
+        content: await readFile(path, 'utf8'),
+      });
+    }
+  };
+  await visit(root);
+  const order = (a: { path: string }, b: { path: string }) => a.path.localeCompare(b.path);
+  return { graphql: graphql.sort(order), configuration: configuration.sort(order) };
+}
+
+// The part of a document between two offsets, with its source mapping.
+function sliceDocument(document: AdminDocument, start: number, end: number) {
+  const segments: DocumentSegment[] = document.segments
+    .filter((entry) => entry.documentEnd > start && entry.documentStart < end)
+    .map((entry) => {
+      const from = Math.max(entry.documentStart, start);
+      return {
+        ...entry,
+        documentStart: from - start,
+        documentEnd: Math.min(entry.documentEnd, end) - start,
+        sourceStart: entry.sourceStart + from - entry.documentStart,
+      };
+    });
+  return { text: document.text.slice(start, end), segments };
+}
+
+// Fragments defined once across every document Refit read, by name: codegen and .graphql projects
+// define a fragment in one file and spread it in another. A name defined twice is left out.
+function fragmentPool(documents: AdminDocument[]) {
+  const pool = new Map<string, ReturnType<typeof sliceDocument> | null>();
+  for (const document of documents) {
+    let ast: DocumentNode;
+    try {
+      ast = parse(document.text);
+    } catch {
+      continue;
+    }
+    for (const definition of ast.definitions) {
+      if (definition.kind !== 'FragmentDefinition' || !definition.loc) continue;
+      const piece = sliceDocument(document, definition.loc.start, definition.loc.end);
+      const known = pool.get(definition.name.value);
+      pool.set(
+        definition.name.value,
+        known === undefined || known?.text === piece.text ? piece : null,
+      );
+    }
+  }
+  return pool;
+}
+
+// The document with every fragment it spreads but does not define appended from the pool.
+function withFragments(
+  document: AdminDocument,
+  pool: ReturnType<typeof fragmentPool>,
+): AdminDocument {
+  let current = document;
+  for (let round = 0; round < 16; round++) {
+    let ast: DocumentNode;
+    try {
+      ast = parse(current.text);
+    } catch {
+      return current;
+    }
+    const defined = new Set(
+      ast.definitions
+        .filter((entry): entry is FragmentDefinitionNode => entry.kind === 'FragmentDefinition')
+        .map((entry) => entry.name.value),
+    );
+    const missing = new Set<string>();
+    visit(ast, {
+      FragmentSpread(node) {
+        if (!defined.has(node.name.value) && pool.get(node.name.value))
+          missing.add(node.name.value);
+      },
+    });
+    if (!missing.size) return current;
+    let { text } = current;
+    const segments = [...current.segments];
+    for (const name of missing) {
+      const piece = pool.get(name)!;
+      text += '\n';
+      for (const entry of piece.segments)
+        segments.push({
+          ...entry,
+          documentStart: entry.documentStart + text.length,
+          documentEnd: entry.documentEnd + text.length,
+        });
+      text += piece.text;
+    }
+    current = { ...current, text, segments };
+  }
+  return current;
+}
+
+// The source edit for a rule's edit to an assembled document, or undefined when the document text
+// there is not the source text (an escape sequence in a string literal).
+function sourceEdit(document: AdminDocument, edit: DocumentEdit): SourceEdit | undefined {
+  const segment = document.segments.find(
+    (entry) => edit.start >= entry.documentStart && edit.end <= entry.documentEnd,
+  );
+  if (!segment) return undefined;
+  const length = segment.documentEnd - segment.documentStart;
+  if (
+    segment.sourceText.slice(segment.sourceStart, segment.sourceStart + length) !==
+    document.text.slice(segment.documentStart, segment.documentEnd)
+  )
+    return undefined;
+  const start = segment.sourceStart + edit.start - segment.documentStart;
+  return {
+    file: segment.file,
+    start,
+    end: start + edit.end - edit.start,
+    replacement: edit.replacement,
+    changeId: edit.rule.rule,
+    rule: edit.rule.rule,
+  };
+}
 
 type Snapshot = {
   hash: string;
@@ -216,10 +364,25 @@ function checkDocument(
   for (const error of afterErrors) report(error, beforeKeys.has(errorKey(error)));
   for (const error of beforeErrors)
     if (!afterErrors.some((entry) => errorKey(entry) === errorKey(error))) report(error, true);
-  // Selected fields whose declared type differs between the contracts: the document validates on
-  // both, but values change shape (Date to DateTime, nullable results, new list types).
+  if (findings.length) return { findings, deprecated: [] };
+  return typeChanges(ast, document, before, after, versions);
+}
+
+// Selected fields whose declared type differs between the contracts: the document validates on
+// both, but values change shape (Date to DateTime, nullable results, new list types). Fields the
+// after schema does not have are skipped.
+function typeChanges(
+  ast: DocumentNode,
+  document: AdminDocument,
+  before: GraphQLSchema,
+  after: GraphQLSchema,
+  versions: { before: string; after: string },
+): DocumentResult {
+  const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
+  const located = (offsetInDocument: number) => documentLocation(document, offsetInDocument);
+  const findings: Finding[] = [];
   const deprecated: string[] = [];
-  if (!findings.length) {
+  {
     const info = new TypeInfo(before);
     visit(
       ast,
@@ -267,7 +430,7 @@ function restLabel(entry: ShopifyScan['rest'][number]) {
 function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
   return [
     ...scan.versions
-      .filter((entry) => !CODEGEN_CONFIG.test(entry.file))
+      .filter((entry) => !CODEGEN_CONFIG.test(entry.file) && !entry.api)
       .map((entry) => ({
         file: entry.file,
         line: entry.line,
@@ -307,7 +470,7 @@ function versionFindings(
   const upgradedRelease = upgrade && 'release' in upgrade ? upgrade.release : undefined;
   const findings: Finding[] = [];
   const edits: SourceEdit[] = [];
-  const runtime = scan.versions.filter((entry) => !CODEGEN_CONFIG.test(entry.file));
+  const runtime = scan.versions.filter((entry) => !CODEGEN_CONFIG.test(entry.file) && !entry.api);
   const member = enumFromVersion(versions.after)!;
   // LATEST_API_VERSION is fixed by the locked SDK release, so it counts as that release's pin.
   const latest = sdkRelease ? latestApiVersion(sdkRelease) : undefined;
@@ -369,7 +532,8 @@ function versionFindings(
     runtime.some((entry) => entry.kind === 'enum') &&
     !(enumRelease && sdkHasEnumMember(enumRelease, member));
   for (const entry of scan.versions) {
-    if (entry.value >= versions.after) continue;
+    // Storefront clients keep their own version; this run checks only the Admin contract.
+    if (entry.value >= versions.after || entry.api) continue;
     const codegen = CODEGEN_CONFIG.test(entry.file);
     const missing = entry.kind === 'enum' && enumMissing;
     if (!codegen || !missing)
@@ -412,6 +576,48 @@ function versionFindings(
   return { findings, edits, declared };
 }
 
+// When every finding on a document is a break the target version introduces, the documented rules'
+// rewrite of it: the source edits and confirmed findings that replace those breaks, or why the rules
+// could not fix it. Undefined when no rule applies.
+function rewriteBreakingDocument(
+  document: AdminDocument,
+  result: DocumentResult,
+  before: GraphQLSchema,
+  after: GraphQLSchema,
+  versions: { before: string; after: string },
+  rules: ShopifyDocumentRule[],
+): { result: DocumentResult; edits: SourceEdit[] } | { refusal: string } | undefined {
+  if (
+    !result.findings.length ||
+    result.otherApi ||
+    !result.findings.every((finding) => finding.reason.startsWith('Valid on'))
+  )
+    return undefined;
+  const rewrite = rewriteDocument(document.text, before, after, rules);
+  if (!rewrite) return undefined;
+  if ('refusal' in rewrite) return { refusal: rewrite.refusal };
+  const edits = rewrite.edits.map((edit) => sourceEdit(document, edit));
+  if (edits.some((edit) => !edit))
+    return { refusal: 'An edit falls on an escaped string the source spells differently.' };
+  const types = typeChanges(parse(document.text), document, before, after, versions);
+  if (types.findings.length)
+    return { refusal: 'A selected field that the rules leave changes type on the target.' };
+  const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
+  return {
+    edits: edits as SourceEdit[],
+    result: {
+      deprecated: types.deprecated,
+      findings: rewrite.edits.map((edit) => ({
+        ...documentLocation(document, edit.start),
+        changeId: edit.rule.rule,
+        expression: `${document.text.slice(edit.start, edit.end)} → ${edit.replacement}`,
+        confidence,
+        reason: `Shopify rule ${edit.rule.rule} (${edit.rule.source}); the rewritten document validates on ${versions.after}.`,
+      })),
+    },
+  };
+}
+
 export async function runShopifyPipeline(options: {
   repository: string;
   before: Snapshot;
@@ -421,6 +627,8 @@ export async function runShopifyPipeline(options: {
   apiVersionPolicy: ApiVersionPolicy;
   // Opt-in: when the locked SDK cannot name the target version, propose its major upgrade.
   sdkUpgrade?: boolean;
+  // With AI enabled, breaking documents no rule fixes are rewritten by the model (AI use 4).
+  aiPatch?: AiOptions;
 }) {
   const manifestPath = join(options.repository, 'package.json');
   const manifest: unknown = existsSync(manifestPath)
@@ -432,7 +640,17 @@ export async function runShopifyPipeline(options: {
   const packageName =
     SHOPIFY_PACKAGES.find((name) => Object.hasOwn(declaredPackages, name)) ?? SHOPIFY.packageName;
   const repository: Repository = await readRepository(options.repository, packageName);
-  const scan = scanShopify(repository);
+  const extra = await shopifyExtraFiles(repository.root);
+  const scan = scanShopify(repository, extra.graphql);
+  // .graphql files are edited like source files.
+  const patchRepository: Repository = {
+    ...repository,
+    files: [...repository.files, ...extra.graphql],
+  };
+  const webhookVersions = extra.configuration.flatMap((entry) => {
+    const match = WEBHOOK_VERSION.exec(entry.content);
+    return match ? [{ file: entry.path, version: match[1] }] : [];
+  });
   const versions = {
     before: String(
       options.before.document.info && (options.before.document.info as { version: string }).version,
@@ -446,8 +664,75 @@ export async function runShopifyPipeline(options: {
   const findings: Finding[] = [];
   const deprecated = new Set<string>();
   const otherApi: AdminDocument[] = [];
-  for (const document of scan.documents) {
-    const result = checkDocument(document, before, after, versions);
+  const storefront: AdminDocument[] = [];
+  const rules = loadShopifyDocumentRules(versions.after);
+  const documentEdits = new Map<string, SourceEdit>();
+  const aiEdits: SourceEdit[] = [];
+  const aiAttempts: (ShopifyAiRewrite & { file: string; line: number })[] = [];
+  const pool = fragmentPool(scan.documents);
+  for (const original of scan.documents) {
+    if (original.api === 'storefront') {
+      storefront.push(original);
+      continue;
+    }
+    const document = withFragments(original, pool);
+    let result = checkDocument(document, before, after, versions);
+    const rewritten = rules.length
+      ? rewriteBreakingDocument(document, result, before, after, versions, rules)
+      : undefined;
+    if (rewritten && 'edits' in rewritten) {
+      result = rewritten.result;
+      for (const edit of rewritten.edits)
+        documentEdits.set(`${edit.file}:${edit.start}:${edit.end}:${edit.replacement}`, edit);
+    } else if (rewritten)
+      for (const finding of result.findings)
+        finding.reason += ` A Shopify rule matched but was not applied: ${rewritten.refusal}`;
+    const segment = document === original && document.segments.length === 1 && document.segments[0];
+    if (
+      options.aiPatch &&
+      segment &&
+      !(rewritten && 'edits' in rewritten) &&
+      result.findings.length &&
+      !result.otherApi &&
+      result.findings.every((finding) => finding.reason.startsWith('Valid on')) &&
+      segment.sourceText.slice(segment.sourceStart, segment.sourceStart + document.text.length) ===
+        document.text
+    ) {
+      const attempt = await aiRewriteDocument({
+        text: document.text,
+        errors: result.findings.map((finding) => finding.expression),
+        before,
+        after,
+        versions,
+        ai: options.aiPatch,
+      });
+      aiAttempts.push({ ...attempt, file: document.file, line: document.line });
+      if (attempt.status === 'kept') {
+        aiEdits.push({
+          file: segment.file,
+          start: segment.sourceStart,
+          end: segment.sourceStart + document.text.length,
+          replacement: attempt.document!,
+          changeId: 'shopify-ai-rewrite',
+        });
+        result = {
+          deprecated: result.deprecated,
+          findings: [
+            {
+              file: document.file,
+              line: document.line,
+              column: document.column,
+              changeId: 'shopify-ai-rewrite',
+              expression: result.findings.map((finding) => finding.expression).join('; '),
+              confidence: 'review',
+              reason: `AI (${attempt.model}) rewrote the document; Refit checked that it validates on ${versions.after}, keeps every operation and variable, and returns every response key with the same type. ${attempt.reason}`,
+            },
+          ],
+        };
+      } else
+        for (const finding of result.findings)
+          finding.reason += ` AI could not rewrite it: ${attempt.reason}`;
+    }
     findings.push(...result.findings);
     for (const entry of result.deprecated) deprecated.add(entry);
     if (result.otherApi) otherApi.push(document);
@@ -543,7 +828,11 @@ export async function runShopifyPipeline(options: {
     },
   };
   const blocking = findings.find((finding) => finding.contractReview);
-  const edits = [...pins.edits, ...(source ? source.edits : [])];
+  // Rule edits to documents ship only with the version move they are for.
+  const versionEdits = [...pins.edits, ...(source ? source.edits : [])];
+  const ruleEdits = versionEdits.length ? [...versionEdits, ...documentEdits.values()] : [];
+  const edits = versionEdits.length ? [...ruleEdits, ...aiEdits] : [];
+  const environmentPins = scan.versions.filter((entry) => entry.envFallback && !entry.api);
   const sdkUpgradeEvidence = upgraded
     ? {
         primary: upgraded.primary,
@@ -552,6 +841,7 @@ export async function runShopifyPipeline(options: {
         apiRelease: upgraded.apiRelease,
         packages: upgraded.packages,
         removed: upgraded.removed,
+        ...(upgraded.otherLockfiles ? { otherLockfiles: upgraded.otherLockfiles } : {}),
       }
     : upgradeResult && 'reason' in upgradeResult
       ? { skipped: upgradeResult.reason }
@@ -579,28 +869,40 @@ export async function runShopifyPipeline(options: {
               reason: `The code already pins Admin API ${versions.after}.`,
             }
           : {
-              generator: 'deterministic' as const,
+              generator: aiEdits.length ? ('openai' as const) : ('deterministic' as const),
               summary: `Move the pinned Shopify Admin API version to ${versions.after}${
                 upgraded
                   ? `, upgrading ${upgraded.primary} ${upgraded.from} to ${upgraded.to} (@shopify/shopify-api ${upgraded.apiRelease}) so the code can name ApiVersion.${member}`
+                  : ''
+              }${
+                documentEdits.size
+                  ? `, and apply ${documentEdits.size} documented Shopify GraphQL rule edits (renamed fields keep their response key through an alias)`
+                  : ''
+              }${
+                aiEdits.length
+                  ? `; AI rewrote ${aiEdits.length} GraphQL documents no rule covers, each checked against the ${versions.after} schema and the original response shape`
                   : ''
               }. Every traced GraphQL document validates against the ${versions.after} schema and no selected field changes type.`,
               status: 'proposed' as const,
               edits: edits.length + (upgraded ? upgraded.files.length : 0),
               unresolvedFindings: 0,
               diff:
-                renderPatch(repository, edits) +
+                renderPatch(patchRepository, edits) +
                 (upgraded
                   ? renderFileReplacements(repository, upgraded.files, SHOPIFY_SDK_RULE)
                   : ''),
               validation: 'not-run',
-              ruleEdits: edits,
+              ruleEdits,
               ...evidence,
               warnings: [
                 ...(upgraded
                   ? [
                       `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,
                       '@shopify/shopify-api 12 requires Node.js 20.10 or later (dc41d09); check the deployment runtime.',
+                      ...Object.entries(upgraded.otherLockfiles ?? {}).map(
+                        ([file, why]) =>
+                          `${file} still locks the older Shopify packages: the repository installs from package-lock.json (${why}). Delete the lockfile your package manager does not use.`,
+                      ),
                     ]
                   : []),
                 ...[...deprecated].map((entry) => `Deprecated on ${versions.after}: ${entry}`),
@@ -609,7 +911,18 @@ export async function runShopifyPipeline(options: {
                       `${scan.documents.filter((document) => !document.traced).length} #graphql documents were not traced to an Admin call; they were checked against both contracts anyway.`,
                     ]
                   : []),
-                'Webhook subscriptions keep their own API version in the app configuration (shopify.app.toml); review it separately.',
+                ...environmentPins.map(
+                  (entry) =>
+                    `${entry.file}:${entry.line} moves the default Admin API version; the environment variable ${entry.envFallback} overrides it where it is set.`,
+                ),
+                ...(storefront.length
+                  ? [
+                      `${storefront.length} Storefront API documents were not checked: this run compares Admin API contracts, and Storefront clients keep their own version.`,
+                    ]
+                  : []),
+                webhookVersions.length
+                  ? `Webhook subscriptions keep their own API version in the app configuration (${webhookVersions.map((entry) => `${entry.file}: ${entry.version}`).join(', ')}); Refit does not move it, because handlers read the payload shape of that version.`
+                  : 'Webhook subscriptions keep their own API version in the app configuration (shopify.app.toml); review it separately.',
                 'Patch contains source code. Review it for sensitive content before sharing.',
               ],
             };
@@ -676,6 +989,17 @@ export async function runShopifyPipeline(options: {
         expression: entry.expression,
       })),
       otherApiDocuments: otherApi.map((document) => `${document.file}:${document.line}`),
+      storefrontDocuments: storefront.map((document) => `${document.file}:${document.line}`),
+      webhookApiVersions: webhookVersions,
+      ruleEdits: documentEdits.size,
+      ai: aiAttempts.map((attempt) => ({
+        file: attempt.file,
+        line: attempt.line,
+        status: attempt.status,
+        model: attempt.model,
+        costUsd: attempt.costUsd,
+        reason: attempt.reason,
+      })),
       deprecated: [...deprecated],
     },
     warnings: [

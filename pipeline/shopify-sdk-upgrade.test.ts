@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { buildSchema, introspectionFromSchema } from 'graphql';
@@ -338,6 +339,37 @@ it('names every range the lockfile cannot keep instead of resolving the tree aga
   });
 });
 
+it('upgrades package-lock.json when the documented lockfile choice picks it, naming the others', async () => {
+  registry();
+  const root = await project({ files: { 'yarn.lock': '# yarn lockfile v1\n' } });
+  const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+  await writeFile(
+    join(root, 'package.json'),
+    `${JSON.stringify({ ...manifest, packageManager: 'npm@10.9.2' }, null, 2)}\n`,
+  );
+  const git = (...args: string[]) =>
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: root });
+  git('init', '-q');
+  git('add', '.');
+  git('commit', '-qm', 'init');
+  const result = await shopifySdkUpgrade(root, 'April26');
+  expect(result).toMatchObject({
+    upgrade: { to: '12.3.0', otherLockfiles: { 'yarn.lock': expect.any(String) } },
+  });
+  const files = 'upgrade' in result ? result.upgrade.files.map((file) => file.path) : [];
+  expect(files).toEqual(['package.json', 'package-lock.json']);
+  await writeFile(
+    join(root, 'package.json'),
+    `${JSON.stringify({ ...manifest, packageManager: 'yarn@1.22.22' }, null, 2)}\n`,
+  );
+  git('commit', '-qam', 'yarn');
+  expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
+    reason: expect.stringMatching(
+      /^The repository installs from yarn\.lock \(.+\); the Shopify SDK upgrade edits package-lock.json only\.$/,
+    ),
+  });
+});
+
 it('refuses registry metadata it cannot verify and reports registry failures', async () => {
   const withRelease = (fields: Manifest) => ({
     ...RELEASES,
@@ -364,7 +396,7 @@ it('refuses projects and targets outside the upgrade before reading the registry
     [
       'another lockfile',
       project({ files: { 'pnpm-lock.yaml': "lockfileVersion: '9.0'\n" } }),
-      'The Shopify SDK upgrade covers root npm projects whose only lockfile is package-lock.json.',
+      'The repository commits several lockfiles and no documented rule picks package-lock.json.',
     ],
     [
       'lockfile version 2',
@@ -513,11 +545,11 @@ it('records why the opted-in upgrade stopped, from the lockfile or from the sour
     status: 'not-generated',
     shopifySdkUpgrade: {
       skipped:
-        'The Shopify SDK upgrade covers root npm projects whose only lockfile is package-lock.json.',
+        'The repository commits several lockfiles and no documented rule picks package-lock.json.',
     },
   });
   expect(lockfileStop.patch.reason).toContain(
-    ' The SDK upgrade stopped: The Shopify SDK upgrade covers root npm projects',
+    ' The SDK upgrade stopped: The repository commits several lockfiles',
   );
 
   const sourceStop = await pipeline({

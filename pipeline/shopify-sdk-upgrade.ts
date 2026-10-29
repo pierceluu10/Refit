@@ -1,4 +1,6 @@
 import { readFile } from 'node:fs/promises';
+import { readCommittedRepository } from './committed-repository.ts';
+import { chosenLockfile } from './dependency-inputs.ts';
 import { join } from 'node:path';
 import { minimumMajors, SHOPIFY_PACK } from './rule-pack.ts';
 import { readBoundedResponse, SpecificationUnavailableError } from './network.ts';
@@ -58,13 +60,7 @@ const NPM_KEY_ORDER = [
   'dependencies',
 ];
 const FLAGS = ['dev', 'optional', 'devOptional', 'peer'] as const;
-const OTHER_LOCKFILES = [
-  'pnpm-lock.yaml',
-  'yarn.lock',
-  'bun.lockb',
-  'bun.lock',
-  'npm-shrinkwrap.json',
-];
+const OTHER_LOCKFILES = ['pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock'];
 const ROOT_SECTIONS = ['dependencies', 'devDependencies'] as const;
 
 type Triple = [number, number, number];
@@ -551,6 +547,9 @@ export interface ShopifySdkUpgrade extends PackageUpgrade {
   apiRelease: string;
   packages: { name: string; from: string | null; to: string }[];
   removed: string[];
+  // Other root lockfiles left on the old release, because the documented lockfile choice
+  // (pipeline/dependency-inputs.ts) picked package-lock.json: each with why it was not chosen.
+  otherLockfiles?: Record<string, string>;
 }
 
 interface LockFiles {
@@ -560,6 +559,7 @@ interface LockFiles {
   lockText: string;
   render: (lock: unknown) => string;
   packages: Packages;
+  otherLockfiles?: Record<string, string>;
 }
 
 async function applyPlan(
@@ -627,6 +627,7 @@ async function applyPlan(
       apiRelease: plan.get(SHOPIFY_API)?.version ?? rootVersion(packages, SHOPIFY_API)!,
       packages: changes,
       removed: removed.map((key) => key.replace(/^node_modules\//, '')),
+      ...(files.otherLockfiles ? { otherLockfiles: files.otherLockfiles } : {}),
       // package.json is unchanged when every declaration already admits the new releases.
       files: [
         { path: 'package.json', before: files.manifestText, after: manifestText },
@@ -642,14 +643,28 @@ async function applyPlan(
 
 async function readLockFiles(root: string): Promise<LockFiles | Refusal> {
   const read = (path: string) => readFile(join(root, path), 'utf8').catch(() => undefined);
-  const [manifestText, lockText, ...others] = await Promise.all(
-    ['package.json', 'package-lock.json', ...OTHER_LOCKFILES].map(read),
+  const [manifestText, lockText, shrinkwrap, ...others] = await Promise.all(
+    ['package.json', 'package-lock.json', 'npm-shrinkwrap.json', ...OTHER_LOCKFILES].map(read),
   );
-  if (manifestText === undefined || lockText === undefined || others.some(Boolean))
+  if (manifestText === undefined || lockText === undefined || shrinkwrap !== undefined)
     return {
       reason:
-        'The Shopify SDK upgrade covers root npm projects whose only lockfile is package-lock.json.',
+        'The Shopify SDK upgrade covers root npm projects that install from package-lock.json.',
     };
+  // Several committed lockfiles: the one preparation installs decides, as for stripe-node.
+  let otherLockfiles: Record<string, string> | undefined;
+  if (others.some((text) => text !== undefined)) {
+    const choice = await readCommittedRepository(root)
+      .then((snapshot) => chosenLockfile(snapshot))
+      .catch(() => undefined);
+    if (choice?.lockfile !== 'package-lock.json')
+      return {
+        reason: choice
+          ? `The repository installs from ${choice.lockfile} (${choice.because}); the Shopify SDK upgrade edits package-lock.json only.`
+          : 'The repository commits several lockfiles and no documented rule picks package-lock.json.',
+      };
+    otherLockfiles = choice.others;
+  }
   let manifest: unknown, lock: unknown;
   try {
     manifest = parseJson(manifestText);
@@ -669,7 +684,15 @@ async function readLockFiles(root: string): Promise<LockFiles | Refusal> {
   const keys = Object.keys(packages);
   if (keys.join('\n') !== [...keys].sort(byKey).join('\n'))
     return { reason: 'package-lock.json packages are not in npm order.' };
-  return { manifestText, manifest, lock, lockText, render, packages };
+  return {
+    manifestText,
+    manifest,
+    lock,
+    lockText,
+    render,
+    packages,
+    ...(otherLockfiles ? { otherLockfiles } : {}),
+  };
 }
 
 // Moves a root npm project's Shopify SDK to the oldest major that serves a supported Admin API
