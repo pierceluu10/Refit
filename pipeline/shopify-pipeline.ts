@@ -45,6 +45,7 @@ import {
   sdkHasEnumMember,
 } from './shopify-versions.ts';
 import { digest, isObject } from './specifications.ts';
+import { restRewriteNotes, shopifyRestRewrites } from './shopify-rest-rewrite.ts';
 import type { Finding, Repository, SourceEdit } from './types.ts';
 
 export const SHOPIFY: ProviderAdapter = {
@@ -746,19 +747,43 @@ export async function runShopifyPipeline(options: {
       reason: entry.reason,
       contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
     });
-  for (const entry of scan.rest)
-    findings.push({
-      file: entry.file,
-      line: entry.line,
-      column: entry.column,
-      changeId: 'shopify-rest',
-      expression: restLabel(entry),
-      confidence: 'review',
-      reason: 'REST Admin API usage. Shopify publishes no versioned REST contract Refit can check.',
-      contractReview:
-        'The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.',
-    });
   const sdkRelease = await lockedShopifyApi(repository.root);
+  const rest = shopifyRestRewrites(
+    repository,
+    scan,
+    [
+      { version: versions.before, schema: before },
+      { version: versions.after, schema: after },
+    ],
+    sdkRelease,
+  );
+  const restRewrites = rest.filter((result) => result.status === 'rewritten');
+  const restEdits = restRewrites.flatMap((result) => result.edits);
+  for (const result of rest) {
+    const { entry } = result;
+    if (result.status === 'rewritten')
+      findings.push({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        changeId: 'shopify-rest-graphql',
+        expression: restLabel(entry),
+        confidence: 'review',
+        reason: `Rewritten as the GraphQL Admin query \`${result.rule.root}\` (${result.rule.origin === 'ai' ? 'a mapping the model proposed and Refit checked' : `documented: ${result.rule.rest?.url}`}). The adapter rebuilds the REST fields this code reads (${result.reads.filter(Boolean).join(', ') || 'none'}); review the behaviour differences listed in the draft.`,
+      });
+    else
+      findings.push({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        changeId: 'shopify-rest',
+        expression: restLabel(entry),
+        confidence: 'review',
+        reason: `REST Admin API usage Refit did not rewrite: ${result.reason}`,
+        contractReview:
+          'The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.',
+      });
+  }
   const member = enumFromVersion(versions.after);
   const upgradeResult =
     options.sdkUpgrade &&
@@ -831,7 +856,7 @@ export async function runShopifyPipeline(options: {
   // Rule edits to documents ship only with the version move they are for.
   const versionEdits = [...pins.edits, ...(source ? source.edits : [])];
   const ruleEdits = versionEdits.length ? [...versionEdits, ...documentEdits.values()] : [];
-  const edits = versionEdits.length ? [...ruleEdits, ...aiEdits] : [];
+  const edits = [...(versionEdits.length ? [...ruleEdits, ...aiEdits] : []), ...restEdits];
   const environmentPins = scan.versions.filter((entry) => entry.envFallback && !entry.api);
   const sdkUpgradeEvidence = upgraded
     ? {
@@ -870,7 +895,7 @@ export async function runShopifyPipeline(options: {
             }
           : {
               generator: aiEdits.length ? ('openai' as const) : ('deterministic' as const),
-              summary: `Move the pinned Shopify Admin API version to ${versions.after}${
+              summary: `${versionEdits.length ? `Move the pinned Shopify Admin API version to ${versions.after}` : `Rewrite ${restRewrites.length} REST Admin calls as GraphQL Admin queries`}${
                 upgraded
                   ? `, upgrading ${upgraded.primary} ${upgraded.from} to ${upgraded.to} (@shopify/shopify-api ${upgraded.apiRelease}) so the code can name ApiVersion.${member}`
                   : ''
@@ -885,7 +910,8 @@ export async function runShopifyPipeline(options: {
               }. Every traced GraphQL document validates against the ${versions.after} schema and no selected field changes type.`,
               status: 'proposed' as const,
               edits: edits.length + (upgraded ? upgraded.files.length : 0),
-              unresolvedFindings: 0,
+              // REST rewrites always need a reviewer (docs/SHOPIFY-REST.md).
+              unresolvedFindings: restRewrites.length,
               diff:
                 renderPatch(patchRepository, edits) +
                 (upgraded
@@ -895,6 +921,7 @@ export async function runShopifyPipeline(options: {
               ruleEdits,
               ...evidence,
               warnings: [
+                ...restRewriteNotes(restRewrites),
                 ...(upgraded
                   ? [
                       `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,

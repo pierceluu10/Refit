@@ -1,0 +1,4461 @@
+{
+  "formatVersion": 1,
+  "package": "@shopify/shopify-api",
+  "version": "15.0.1",
+  "integrity": "sha512-WLRmMar1JoMxqAYNvlPxukqEu/gYZ+tSICy8IkpVFa9erInI3xP/rEmWDtxCC0ZG1E41B6VsZFlFfKwQOrdKfQ==",
+  "tarball": "https://registry.npmjs.org/@shopify/shopify-api/-/shopify-api-15.0.1.tgz",
+  "restVersion": "2026-07",
+  "generatedAt": "2026-10-29",
+  "generatedBy": "scripts/shopify-rest-resources.mjs",
+  "resources": {
+    "AbandonedCheckout": {
+      "plural": "abandoned_checkouts",
+      "singular": "abandoned_checkout",
+      "paths": [
+        {
+          "operation": "checkouts",
+          "method": "get",
+          "path": "checkouts.json",
+          "ids": []
+        },
+        {
+          "operation": "checkouts",
+          "method": "get",
+          "path": "checkouts.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "abandoned_checkout_url": "string | null",
+        "billing_address": "{[key: string]: unknown} | null",
+        "buyer_accepts_marketing": "boolean | null",
+        "buyer_accepts_sms_marketing": "boolean | null",
+        "cart_token": "string | null",
+        "closed_at": "string | null",
+        "completed_at": "string | null",
+        "created_at": "string | null",
+        "currency": "Currency | null | {[key: string]: any}",
+        "customer": "Customer | null | {[key: string]: any}",
+        "customer_locale": "string | null",
+        "device_id": "string | null",
+        "discount_codes": "DiscountCode[] | null | {[key: string]: any}",
+        "email": "string | null",
+        "gateway": "string | null",
+        "id": "string | null",
+        "landing_site": "string | null",
+        "line_items": "{[key: string]: unknown} | null",
+        "location_id": "string | null",
+        "note": "string | null",
+        "phone": "string | null",
+        "presentment_currency": "string | null",
+        "referring_site": "string | null",
+        "shipping_address": "{[key: string]: unknown} | null",
+        "shipping_lines": "{[key: string]: unknown} | null",
+        "sms_marketing_phone": "string | null",
+        "source_name": "string | null",
+        "subtotal_price": "string | null",
+        "tax_lines": "{[key: string]: unknown} | null",
+        "taxes_included": "boolean | null",
+        "token": "string | null",
+        "total_discounts": "string | null",
+        "total_duties": "string | null",
+        "total_line_items_price": "string | null",
+        "total_price": "string | null",
+        "total_tax": "string | null",
+        "total_weight": "number | null",
+        "updated_at": "string | null",
+        "user_id": "string | null"
+      }
+    },
+    "AccessScope": {
+      "plural": "access_scopes",
+      "singular": "access_scope",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "access_scopes.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "access_scopes": "{[key: string]: unknown}[] | null",
+        "handle": "string | null"
+      }
+    },
+    "ApplePayCertificate": {
+      "plural": "apple_pay_certificates",
+      "singular": "apple_pay_certificate",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "apple_pay_certificates/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "csr",
+          "method": "get",
+          "path": "apple_pay_certificates/<id>/csr.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "apple_pay_certificates/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "apple_pay_certificates.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "apple_pay_certificates/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "id": "string | null",
+        "merchant_id": "string | null",
+        "status": "string | null"
+      }
+    },
+    "ApplicationCharge": {
+      "plural": "application_charges",
+      "singular": "application_charge",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "application_charges.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "application_charges/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "application_charges.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "confirmation_url": "string | null",
+        "created_at": "string | null",
+        "currency": "Currency | null | {[key: string]: any}",
+        "id": "string | null",
+        "name": "string | null",
+        "price": "string | number | null",
+        "return_url": "string | null",
+        "status": "string | null",
+        "test": "boolean | null",
+        "updated_at": "string | null"
+      }
+    },
+    "ApplicationCredit": {
+      "plural": "application_credits",
+      "singular": "application_credit",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "application_credits.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "application_credits/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "amount": "string | null",
+        "currency": "Currency | null | {[key: string]: any}",
+        "description": "string | null",
+        "id": "string | null",
+        "test": "boolean | null"
+      }
+    },
+    "Article": {
+      "plural": "articles",
+      "singular": "article",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "blogs/<blog_id>/articles/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "authors",
+          "method": "get",
+          "path": "articles/authors.json",
+          "ids": []
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "blogs/<blog_id>/articles/count.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "blogs/<blog_id>/articles.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "blogs/<blog_id>/articles/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "tags",
+          "method": "get",
+          "path": "articles/tags.json",
+          "ids": []
+        },
+        {
+          "operation": "tags",
+          "method": "get",
+          "path": "blogs/<blog_id>/articles/tags.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "blogs/<blog_id>/articles.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "blogs/<blog_id>/articles/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "author": "string | null",
+        "blog_id": "string | null",
+        "body_html": "string | null",
+        "created_at": "string | null",
+        "handle": "string | null",
+        "id": "string | null",
+        "image": "string | {[key: string]: unknown} | null",
+        "metafields": "Metafield[] | null | {[key: string]: any}",
+        "published": "boolean | null",
+        "published_at": "string | null",
+        "summary_html": "string | null",
+        "tags": "string | null",
+        "template_suffix": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null",
+        "user_id": "string | null"
+      }
+    },
+    "Asset": {
+      "plural": "assets",
+      "singular": "asset",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "themes/<theme_id>/assets.json",
+          "ids": [
+            "theme_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "themes/<theme_id>/assets.json",
+          "ids": [
+            "theme_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "themes/<theme_id>/assets.json",
+          "ids": [
+            "theme_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "themes/<theme_id>/assets.json",
+          "ids": [
+            "theme_id"
+          ]
+        }
+      ],
+      "fields": {
+        "attachment": "string | null",
+        "checksum": "string | null",
+        "content_type": "string | null",
+        "created_at": "string | null",
+        "key": "string | null",
+        "public_url": "string | null",
+        "size": "number | null",
+        "theme_id": "string | null",
+        "updated_at": "string | null",
+        "value": "string | null"
+      }
+    },
+    "AssignedFulfillmentOrder": {
+      "plural": "fulfillment_orders",
+      "singular": "fulfillment_order",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "assigned_fulfillment_orders.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "assigned_location_id": "string | null",
+        "destination": "{[key: string]: unknown} | null",
+        "id": "string | null",
+        "line_items": "{[key: string]: unknown}[] | null",
+        "order_id": "string | null",
+        "request_status": "string | null",
+        "shop_id": "string | null",
+        "status": "string | null"
+      }
+    },
+    "Balance": {
+      "plural": "balances",
+      "singular": "balance",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "shopify_payments/balance.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "balance": "{[key: string]: unknown}[] | null"
+      }
+    },
+    "Blog": {
+      "plural": "blogs",
+      "singular": "blog",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "blogs/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "blogs/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "blogs.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "blogs/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "blogs.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "blogs/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "admin_graphql_api_id": "string | null",
+        "commentable": "string | null",
+        "created_at": "string | null",
+        "feedburner": "string | null",
+        "feedburner_location": "string | null",
+        "handle": "string | null",
+        "id": "string | null",
+        "metafields": "Metafield[] | null | {[key: string]: any}",
+        "tags": "string | null",
+        "template_suffix": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "CancellationRequest": {
+      "plural": "cancellation_requests",
+      "singular": "cancellation_request",
+      "paths": [
+        {
+          "operation": "accept",
+          "method": "post",
+          "path": "fulfillment_orders/<fulfillment_order_id>/cancellation_request/accept.json",
+          "ids": [
+            "fulfillment_order_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "fulfillment_orders/<fulfillment_order_id>/cancellation_request.json",
+          "ids": [
+            "fulfillment_order_id"
+          ]
+        },
+        {
+          "operation": "reject",
+          "method": "post",
+          "path": "fulfillment_orders/<fulfillment_order_id>/cancellation_request/reject.json",
+          "ids": [
+            "fulfillment_order_id"
+          ]
+        }
+      ],
+      "fields": {
+        "fulfillment_order_id": "string | null"
+      }
+    },
+    "CarrierService": {
+      "plural": "carrier_services",
+      "singular": "carrier_service",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "carrier_services/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "carrier_services.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "carrier_services/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "carrier_services.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "carrier_services/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "active": "boolean | null",
+        "admin_graphql_api_id": "string | null",
+        "callback_url": "string | null",
+        "carrier_service_type": "string | null",
+        "format": "string | null",
+        "id": "string | null",
+        "name": "string | null",
+        "service_discovery": "boolean | null"
+      }
+    },
+    "Checkout": {
+      "plural": "checkouts",
+      "singular": "checkout",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "checkouts/<token>.json",
+          "ids": [
+            "token"
+          ]
+        },
+        {
+          "operation": "shipping_rates",
+          "method": "get",
+          "path": "checkouts/<token>/shipping_rates.json",
+          "ids": [
+            "token"
+          ]
+        },
+        {
+          "operation": "complete",
+          "method": "post",
+          "path": "checkouts/<token>/complete.json",
+          "ids": [
+            "token"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "checkouts.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "checkouts/<token>.json",
+          "ids": [
+            "token"
+          ]
+        }
+      ],
+      "fields": {
+        "applied_discount": "{[key: string]: unknown} | null",
+        "billing_address": "{[key: string]: unknown} | null",
+        "buyer_accepts_marketing": "boolean | null",
+        "created_at": "string | null",
+        "currency": "string | null",
+        "customer_id": "string | null",
+        "discount_code": "DiscountCode | null | {[key: string]: any}",
+        "email": "string | null",
+        "gift_cards": "GiftCard[] | null | {[key: string]: any}",
+        "line_items": "{[key: string]: unknown}[] | null",
+        "order": "Order | null | {[key: string]: any}",
+        "payment_due": "string | null",
+        "payment_url": "string | null",
+        "phone": "string | null",
+        "presentment_currency": "string | null",
+        "requires_shipping": "boolean | null",
+        "reservation_time": "string | null",
+        "reservation_time_left": "number | null",
+        "shipping_address": "{[key: string]: unknown} | null",
+        "shipping_line": "{[key: string]: unknown} | null",
+        "shipping_rate": "{[key: string]: unknown} | null",
+        "source_identifier": "string | null",
+        "source_name": "string | null",
+        "source_url": "string | null",
+        "subtotal_price": "string | null",
+        "tax_lines": "{[key: string]: unknown}[] | null",
+        "taxes_included": "boolean | null",
+        "token": "string | null",
+        "total_price": "string | null",
+        "total_tax": "string | null",
+        "updated_at": "string | null",
+        "user_id": "string | null",
+        "web_url": "string | null"
+      }
+    },
+    "Collect": {
+      "plural": "collects",
+      "singular": "collect",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "collects/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "collects/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "collects.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "collects/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "collects.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "collection_id": "string | null",
+        "created_at": "string | null",
+        "id": "string | null",
+        "position": "number | null",
+        "product_id": "string | null",
+        "sort_value": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Collection": {
+      "plural": "collections",
+      "singular": "collection",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "collections/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "products",
+          "method": "get",
+          "path": "collections/<id>/products.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "body_html": "string | null",
+        "handle": "string | null",
+        "id": "string | null",
+        "image": "Image | null | {[key: string]: any}",
+        "published_at": "string | null",
+        "published_scope": "string | null",
+        "sort_order": "string | null",
+        "template_suffix": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "CollectionListing": {
+      "plural": "collection_listings",
+      "singular": "collection_listing",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "collection_listings/<collection_id>.json",
+          "ids": [
+            "collection_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "collection_listings.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "collection_listings/<collection_id>.json",
+          "ids": [
+            "collection_id"
+          ]
+        },
+        {
+          "operation": "product_ids",
+          "method": "get",
+          "path": "collection_listings/<collection_id>/product_ids.json",
+          "ids": [
+            "collection_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "collection_listings/<collection_id>.json",
+          "ids": [
+            "collection_id"
+          ]
+        }
+      ],
+      "fields": {
+        "body_html": "string | null",
+        "collection_id": "string | null",
+        "default_product_image": "{[key: string]: unknown}[] | null",
+        "handle": "string | null",
+        "image": "Image | null | {[key: string]: any}",
+        "published_at": "string | null",
+        "sort_order": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Comment": {
+      "plural": "comments",
+      "singular": "comment",
+      "paths": [
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "comments/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "comments.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "comments/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "approve",
+          "method": "post",
+          "path": "comments/<id>/approve.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "not_spam",
+          "method": "post",
+          "path": "comments/<id>/not_spam.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "comments.json",
+          "ids": []
+        },
+        {
+          "operation": "remove",
+          "method": "post",
+          "path": "comments/<id>/remove.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "restore",
+          "method": "post",
+          "path": "comments/<id>/restore.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "spam",
+          "method": "post",
+          "path": "comments/<id>/spam.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "comments/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "article_id": "string | null",
+        "author": "string | null",
+        "blog_id": "string | null",
+        "body": "string | null",
+        "body_html": "string | null",
+        "created_at": "string | null",
+        "email": "string | null",
+        "id": "string | null",
+        "ip": "string | null",
+        "published_at": "string | null",
+        "status": "string | null",
+        "updated_at": "string | null",
+        "user_agent": "string | null"
+      }
+    },
+    "Country": {
+      "plural": "countries",
+      "singular": "country",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "countries/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "countries/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "countries.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "countries/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "countries.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "countries/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "code": "string | null",
+        "id": "string | null",
+        "name": "string | null",
+        "provinces": "Province[] | null | {[key: string]: any}",
+        "tax": "number | null"
+      }
+    },
+    "Currency": {
+      "plural": "currencies",
+      "singular": "currency",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "currencies.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "currency": "string | null",
+        "rate_updated_at": "string | null"
+      }
+    },
+    "CustomCollection": {
+      "plural": "custom_collections",
+      "singular": "custom_collection",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "custom_collections/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "custom_collections/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "custom_collections.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "custom_collections/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "custom_collections.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "custom_collections/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "body_html": "string | null",
+        "handle": "string | null",
+        "id": "string | null",
+        "image": "string | {[key: string]: unknown} | null",
+        "published": "boolean | null",
+        "published_at": "string | null",
+        "published_scope": "string | null",
+        "sort_order": "string | null",
+        "template_suffix": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Customer": {
+      "plural": "customers",
+      "singular": "customer",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "customers/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "customers/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "customers.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "customers/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "orders",
+          "method": "get",
+          "path": "customers/<id>/orders.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "search",
+          "method": "get",
+          "path": "customers/search.json",
+          "ids": []
+        },
+        {
+          "operation": "account_activation_url",
+          "method": "post",
+          "path": "customers/<id>/account_activation_url.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "customers.json",
+          "ids": []
+        },
+        {
+          "operation": "send_invite",
+          "method": "post",
+          "path": "customers/<id>/send_invite.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "customers/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "addresses": "{[key: string]: unknown}[] | null",
+        "created_at": "string | null",
+        "currency": "string | null",
+        "default_address": "{[key: string]: unknown} | null",
+        "email": "string | null",
+        "email_marketing_consent": "{[key: string]: unknown} | null",
+        "first_name": "string | null",
+        "id": "string | null",
+        "last_name": "string | null",
+        "last_order_id": "string | null",
+        "last_order_name": "string | null",
+        "marketing_opt_in_level": "string | null",
+        "metafield": "Metafield | null | {[key: string]: any}",
+        "multipass_identifier": "string | null",
+        "note": "string | null",
+        "orders_count": "number | null",
+        "password": "string | null",
+        "password_confirmation": "string | null",
+        "phone": "string | null",
+        "sms_marketing_consent": "{[key: string]: unknown} | null",
+        "state": "string | null",
+        "tags": "string | null",
+        "tax_exempt": "boolean | null",
+        "tax_exemptions": "string[] | null",
+        "total_spent": "string | null",
+        "updated_at": "string | null",
+        "verified_email": "boolean | null"
+      }
+    },
+    "DeprecatedApiCall": {
+      "plural": "deprecated_api_calls",
+      "singular": "deprecated_api_call",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "deprecated_api_calls.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "data_updated_at": "string | null",
+        "deprecated_api_calls": "{[key: string]: unknown}[] | null"
+      }
+    },
+    "DiscountCode": {
+      "plural": "discount_codes",
+      "singular": "discount_code",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "price_rules/<price_rule_id>/discount_codes/<id>.json",
+          "ids": [
+            "price_rule_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "discount_codes/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "price_rules/<price_rule_id>/batch/<batch_id>/discount_codes.json",
+          "ids": [
+            "price_rule_id",
+            "batch_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "price_rules/<price_rule_id>/discount_codes.json",
+          "ids": [
+            "price_rule_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "price_rules/<price_rule_id>/discount_codes/<id>.json",
+          "ids": [
+            "price_rule_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get_all",
+          "method": "get",
+          "path": "price_rules/<price_rule_id>/batch/<batch_id>.json",
+          "ids": [
+            "price_rule_id",
+            "batch_id"
+          ]
+        },
+        {
+          "operation": "lookup",
+          "method": "get",
+          "path": "discount_codes/lookup.json",
+          "ids": []
+        },
+        {
+          "operation": "batch",
+          "method": "post",
+          "path": "price_rules/<price_rule_id>/batch.json",
+          "ids": [
+            "price_rule_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "price_rules/<price_rule_id>/discount_codes.json",
+          "ids": [
+            "price_rule_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "price_rules/<price_rule_id>/discount_codes/<id>.json",
+          "ids": [
+            "price_rule_id",
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "code": "string | null",
+        "created_at": "string | null",
+        "errors": "{[key: string]: unknown} | null",
+        "id": "string | null",
+        "price_rule_id": "string | null",
+        "updated_at": "string | null",
+        "usage_count": "number | null"
+      }
+    },
+    "Dispute": {
+      "plural": "disputes",
+      "singular": "dispute",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "shopify_payments/disputes.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "shopify_payments/disputes/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "amount": "string | null",
+        "currency": "string | null",
+        "evidence_due_by": "string | null",
+        "evidence_sent_on": "string | null",
+        "finalized_on": "string | null",
+        "id": "string | null",
+        "network_reason_code": "string | null",
+        "order_id": "string | null",
+        "reason": "string | null",
+        "status": "string | null",
+        "type": "string | null"
+      }
+    },
+    "DisputeEvidence": {
+      "plural": "dispute_evidences",
+      "singular": "dispute_evidence",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "shopify_payments/disputes/<dispute_id>/dispute_evidences.json",
+          "ids": [
+            "dispute_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "shopify_payments/disputes/<dispute_id>/dispute_evidences.json",
+          "ids": [
+            "dispute_id"
+          ]
+        }
+      ],
+      "fields": {
+        "access_activity_log": "string | null",
+        "billing_address": "{[key: string]: unknown} | null",
+        "cancellation_policy_disclosure": "string | null",
+        "cancellation_rebuttal": "string | null",
+        "created_at": "string | null",
+        "customer_email_address": "string | null",
+        "customer_first_name": "string | null",
+        "customer_last_name": "string | null",
+        "dispute_evidence_files": "{[key: string]: unknown} | null",
+        "fulfillments": "Fulfillment[] | null | {[key: string]: any}",
+        "id": "string | null",
+        "payments_dispute_id": "string | null",
+        "product_description": "{[key: string]: unknown} | null",
+        "refund_policy_disclosure": "string | null",
+        "refund_refusal_explanation": "string | null",
+        "shipping_address": "{[key: string]: unknown} | null",
+        "submitted": "boolean | null",
+        "uncategorized_text": "string | null",
+        "updated_on": "string | null"
+      }
+    },
+    "DisputeFileUpload": {
+      "plural": "dispute_file_uploads",
+      "singular": "dispute_file_upload",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "shopify_payments/disputes/<dispute_id>/dispute_file_uploads/<id>.json",
+          "ids": [
+            "dispute_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "shopify_payments/disputes/<dispute_id>/dispute_file_uploads.json",
+          "ids": [
+            "dispute_id"
+          ]
+        }
+      ],
+      "fields": {
+        "dispute_evidence_id": "string | null",
+        "dispute_evidence_type": "string | null",
+        "file_size": "number | null",
+        "file_type": "string | null",
+        "filename": "string | null",
+        "id": "string | null",
+        "original_filename": "string | null",
+        "shop_id": "string | null",
+        "url": "string | null"
+      }
+    },
+    "DraftOrder": {
+      "plural": "draft_orders",
+      "singular": "draft_order",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "draft_orders/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "draft_orders/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "draft_orders.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "draft_orders/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "draft_orders.json",
+          "ids": []
+        },
+        {
+          "operation": "send_invoice",
+          "method": "post",
+          "path": "draft_orders/<id>/send_invoice.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "complete",
+          "method": "put",
+          "path": "draft_orders/<id>/complete.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "draft_orders/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "applied_discount": "{[key: string]: unknown} | null",
+        "billing_address": "{[key: string]: unknown} | null",
+        "completed_at": "string | null",
+        "created_at": "string | null",
+        "currency": "string | null",
+        "customer": "Customer | null | {[key: string]: any}",
+        "email": "string | null",
+        "id": "string | null",
+        "invoice_sent_at": "string | null",
+        "invoice_url": "string | null",
+        "line_items": "{[key: string]: unknown}[] | null",
+        "name": "string | null",
+        "note": "string | null",
+        "note_attributes": "{[key: string]: unknown}[] | null",
+        "order_id": "string | null",
+        "payment_terms": "{[key: string]: unknown} | null",
+        "shipping_address": "{[key: string]: unknown} | null",
+        "shipping_line": "{[key: string]: unknown} | null",
+        "source_name": "string | null",
+        "status": "string | null",
+        "subtotal_price": "string | null",
+        "tags": "string | null",
+        "tax_exempt": "boolean | null",
+        "tax_exemptions": "string[] | null",
+        "tax_lines": "{[key: string]: unknown}[] | null",
+        "taxes_included": "boolean | null",
+        "total_price": "string | null",
+        "total_tax": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Event": {
+      "plural": "events",
+      "singular": "event",
+      "paths": [
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "events/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "events.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "events/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/events.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products/<product_id>/events.json",
+          "ids": [
+            "product_id"
+          ]
+        }
+      ],
+      "fields": {
+        "arguments": "string[] | null",
+        "body": "string | null",
+        "created_at": "string | null",
+        "description": "string | null",
+        "id": "string | null",
+        "message": "string | null",
+        "path": "string | null",
+        "subject_id": "string | null",
+        "subject_type": "string | null",
+        "verb": "string | null"
+      }
+    },
+    "Fulfillment": {
+      "plural": "fulfillments",
+      "singular": "fulfillment",
+      "paths": [
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "orders/<order_id>/fulfillments/count.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "fulfillment_orders/<fulfillment_order_id>/fulfillments.json",
+          "ids": [
+            "fulfillment_order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/fulfillments.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/fulfillments/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "cancel",
+          "method": "post",
+          "path": "fulfillments/<id>/cancel.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "fulfillments.json",
+          "ids": []
+        },
+        {
+          "operation": "update_tracking",
+          "method": "post",
+          "path": "fulfillments/<id>/update_tracking.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "created_at": "string | null",
+        "id": "string | null",
+        "line_items": "{[key: string]: unknown}[] | null",
+        "location_id": "string | null",
+        "name": "string | null",
+        "notify_customer": "boolean | null",
+        "order_id": "string | null",
+        "origin_address": "{[key: string]: unknown}[] | null",
+        "receipt": "{[key: string]: unknown} | null",
+        "service": "string | null",
+        "shipment_status": "string | null",
+        "status": "string | null",
+        "tracking_company": "string | null",
+        "tracking_number": "string | null",
+        "tracking_numbers": "string[] | null",
+        "tracking_url": "string | null",
+        "tracking_urls": "string[] | null",
+        "updated_at": "string | null",
+        "variant_inventory_management": "string | null"
+      }
+    },
+    "FulfillmentEvent": {
+      "plural": "fulfillment_events",
+      "singular": "fulfillment_event",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "orders/<order_id>/fulfillments/<fulfillment_id>/events/<id>.json",
+          "ids": [
+            "order_id",
+            "fulfillment_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/fulfillments/<fulfillment_id>/events.json",
+          "ids": [
+            "order_id",
+            "fulfillment_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/fulfillments/<fulfillment_id>/events/<id>.json",
+          "ids": [
+            "order_id",
+            "fulfillment_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "orders/<order_id>/fulfillments/<fulfillment_id>/events.json",
+          "ids": [
+            "order_id",
+            "fulfillment_id"
+          ]
+        }
+      ],
+      "fields": {
+        "address1": "string | null",
+        "city": "string | null",
+        "country": "Country | null | {[key: string]: any}",
+        "created_at": "string | null",
+        "estimated_delivery_at": "string | null",
+        "fulfillment_id": "string | null",
+        "happened_at": "string | null",
+        "id": "string | null",
+        "latitude": "number | null",
+        "longitude": "number | null",
+        "message": "string | null",
+        "order_id": "string | null",
+        "province": "Province | null | {[key: string]: any}",
+        "shop_id": "string | null",
+        "status": "string | null",
+        "updated_at": "string | null",
+        "zip": "string | null"
+      }
+    },
+    "FulfillmentOrder": {
+      "plural": "fulfillment_orders",
+      "singular": "fulfillment_order",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "fulfillment_orders/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/fulfillment_orders.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "cancel",
+          "method": "post",
+          "path": "fulfillment_orders/<id>/cancel.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "close",
+          "method": "post",
+          "path": "fulfillment_orders/<id>/close.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "hold",
+          "method": "post",
+          "path": "fulfillment_orders/<id>/hold.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "move",
+          "method": "post",
+          "path": "fulfillment_orders/<id>/move.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "open",
+          "method": "post",
+          "path": "fulfillment_orders/<id>/open.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "release_hold",
+          "method": "post",
+          "path": "fulfillment_orders/<id>/release_hold.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "reschedule",
+          "method": "post",
+          "path": "fulfillment_orders/<id>/reschedule.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "set_fulfillment_orders_deadline",
+          "method": "post",
+          "path": "fulfillment_orders/set_fulfillment_orders_deadline.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "assigned_location": "{[key: string]: unknown} | null",
+        "assigned_location_id": "string | null",
+        "created_at": "string | null",
+        "delivery_method": "{[key: string]: unknown} | null",
+        "destination": "{[key: string]: unknown} | null",
+        "fulfill_at": "string | null",
+        "fulfill_by": "string | null",
+        "fulfillment_holds": "{[key: string]: unknown}[] | null",
+        "id": "string | null",
+        "international_duties": "{[key: string]: unknown} | null",
+        "line_items": "{[key: string]: unknown}[] | null",
+        "merchant_requests": "{[key: string]: unknown}[] | null",
+        "order_id": "string | null",
+        "request_status": "string | null",
+        "shop_id": "string | null",
+        "status": "string | null",
+        "supported_actions": "string[] | null",
+        "updated_at": "string | null"
+      }
+    },
+    "FulfillmentRequest": {
+      "plural": "submitted_fulfillment_orders",
+      "singular": "submitted_fulfillment_order",
+      "names": [
+        {
+          "singular": "submitted_fulfillment_order",
+          "plural": "submitted_fulfillment_orders"
+        },
+        {
+          "singular": "fulfillment_order",
+          "plural": "fulfillment_orders"
+        }
+      ],
+      "paths": [
+        {
+          "operation": "accept",
+          "method": "post",
+          "path": "fulfillment_orders/<fulfillment_order_id>/fulfillment_request/accept.json",
+          "ids": [
+            "fulfillment_order_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "fulfillment_orders/<fulfillment_order_id>/fulfillment_request.json",
+          "ids": [
+            "fulfillment_order_id"
+          ]
+        },
+        {
+          "operation": "reject",
+          "method": "post",
+          "path": "fulfillment_orders/<fulfillment_order_id>/fulfillment_request/reject.json",
+          "ids": [
+            "fulfillment_order_id"
+          ]
+        }
+      ],
+      "fields": {
+        "fulfillment_order_id": "string | null",
+        "kind": "string | null",
+        "message": "string | null",
+        "request_options": "{[key: string]: unknown} | null",
+        "response_data": "{[key: string]: unknown} | null",
+        "sent_at": "string | null"
+      }
+    },
+    "FulfillmentService": {
+      "plural": "fulfillment_services",
+      "singular": "fulfillment_service",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "fulfillment_services/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "fulfillment_services.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "fulfillment_services/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "fulfillment_services.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "fulfillment_services/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "admin_graphql_api_id": "string | null",
+        "callback_url": "string | null",
+        "fulfillment_orders_opt_in": "boolean | null",
+        "handle": "string | null",
+        "id": "string | null",
+        "inventory_management": "boolean | null",
+        "location_id": "string | null",
+        "name": "string | null",
+        "provider_id": "string | null",
+        "requires_shipping_method": "boolean | null",
+        "tracking_support": "boolean | null"
+      }
+    },
+    "GiftCard": {
+      "plural": "gift_cards",
+      "singular": "gift_card",
+      "paths": [
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "gift_cards/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "gift_cards.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "gift_cards/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "search",
+          "method": "get",
+          "path": "gift_cards/search.json",
+          "ids": []
+        },
+        {
+          "operation": "disable",
+          "method": "post",
+          "path": "gift_cards/<id>/disable.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "gift_cards.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "gift_cards/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "api_client_id": "string | null",
+        "balance": "Balance | null | {[key: string]: any}",
+        "code": "string | null",
+        "created_at": "string | null",
+        "currency": "Currency | null | {[key: string]: any}",
+        "customer_id": "string | null",
+        "disabled_at": "string | null",
+        "expires_on": "string | null",
+        "id": "string | null",
+        "initial_value": "string | null",
+        "last_characters": "string | null",
+        "line_item_id": "string | null",
+        "note": "string | null",
+        "order_id": "string | null",
+        "template_suffix": "string | null",
+        "updated_at": "string | null",
+        "user_id": "string | null"
+      }
+    },
+    "GiftCardAdjustment": {
+      "plural": "gift_card_adjustments",
+      "singular": "gift_card_adjustment",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "gift_cards/<gift_card_id>/adjustments.json",
+          "ids": [
+            "gift_card_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "gift_cards/<gift_card_id>/adjustments/<id>.json",
+          "ids": [
+            "gift_card_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "gift_cards/<gift_card_id>/adjustments.json",
+          "ids": [
+            "gift_card_id"
+          ]
+        }
+      ],
+      "fields": {
+        "amount": "number | null",
+        "api_client_id": "string | null",
+        "created_at": "string | null",
+        "gift_card_id": "string | null",
+        "id": "string | null",
+        "note": "string | null",
+        "number": "number | null",
+        "order_transaction_id": "string | null",
+        "processed_at": "string | null",
+        "remote_transaction_ref": "string | null",
+        "remote_transaction_url": "string | null",
+        "user_id": "string | null"
+      }
+    },
+    "Image": {
+      "plural": "images",
+      "singular": "image",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "products/<product_id>/images/<id>.json",
+          "ids": [
+            "product_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "products/<product_id>/images/count.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products/<product_id>/images.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products/<product_id>/images/<id>.json",
+          "ids": [
+            "product_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "products/<product_id>/images.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "products/<product_id>/images/<id>.json",
+          "ids": [
+            "product_id",
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "created_at": "string | null",
+        "height": "number | null",
+        "id": "string | null",
+        "position": "number | null",
+        "product_id": "string | null",
+        "src": "string | null",
+        "updated_at": "string | null",
+        "variant_ids": "string[] | null",
+        "width": "number | null"
+      }
+    },
+    "InventoryItem": {
+      "plural": "inventory_items",
+      "singular": "inventory_item",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "inventory_items.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "inventory_items/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "inventory_items/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "cost": "string | null",
+        "country_code_of_origin": "string | null",
+        "country_harmonized_system_codes": "{[key: string]: unknown}[] | null",
+        "created_at": "string | null",
+        "harmonized_system_code": "number | null",
+        "id": "string | null",
+        "province_code_of_origin": "string | null",
+        "requires_shipping": "boolean | null",
+        "sku": "string | null",
+        "tracked": "boolean | null",
+        "updated_at": "string | null"
+      }
+    },
+    "InventoryLevel": {
+      "plural": "inventory_levels",
+      "singular": "inventory_level",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "inventory_levels.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "inventory_levels.json",
+          "ids": []
+        },
+        {
+          "operation": "adjust",
+          "method": "post",
+          "path": "inventory_levels/adjust.json",
+          "ids": []
+        },
+        {
+          "operation": "connect",
+          "method": "post",
+          "path": "inventory_levels/connect.json",
+          "ids": []
+        },
+        {
+          "operation": "set",
+          "method": "post",
+          "path": "inventory_levels/set.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "available": "number | null",
+        "inventory_item_id": "string | null",
+        "location_id": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Location": {
+      "plural": "locations",
+      "singular": "location",
+      "paths": [
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "locations/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "locations.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "locations/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "inventory_levels",
+          "method": "get",
+          "path": "locations/<id>/inventory_levels.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "active": "boolean | null",
+        "address1": "string | null",
+        "address2": "string | null",
+        "city": "string | null",
+        "country": "string | null",
+        "country_code": "string | null",
+        "created_at": "string | null",
+        "id": "string | null",
+        "legacy": "boolean | null",
+        "localized_country_name": "string | null",
+        "localized_province_name": "string | null",
+        "name": "string | null",
+        "phone": "string | null",
+        "province": "string | null",
+        "province_code": "string | null",
+        "updated_at": "string | null",
+        "zip": "string | null"
+      }
+    },
+    "LocationsForMove": {
+      "plural": "locations_for_moves",
+      "singular": "locations_for_move",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "fulfillment_orders/<fulfillment_order_id>/locations_for_move.json",
+          "ids": [
+            "fulfillment_order_id"
+          ]
+        }
+      ],
+      "fields": {
+        "locations_for_move": "{[key: string]: unknown}[] | null"
+      }
+    },
+    "MarketingEvent": {
+      "plural": "marketing_events",
+      "singular": "marketing_event",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "marketing_events/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "marketing_events/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "marketing_events.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "marketing_events/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "engagements",
+          "method": "post",
+          "path": "marketing_events/<id>/engagements.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "marketing_events.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "marketing_events/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "budget": "string | null",
+        "budget_type": "string | null",
+        "currency": "string | null",
+        "description": "string | null",
+        "ended_at": "string | null",
+        "event_type": "string | null",
+        "id": "string | null",
+        "manage_url": "string | null",
+        "marketed_resources": "{[key: string]: unknown}[] | null",
+        "marketing_channel": "string | null",
+        "paid": "boolean | null",
+        "preview_url": "string | null",
+        "referring_domain": "string | null",
+        "remote_id": "string | null",
+        "scheduled_to_end_at": "string | null",
+        "started_at": "string | null",
+        "UTM_parameters": "{[key: string]: unknown} | null"
+      }
+    },
+    "Metafield": {
+      "plural": "metafields",
+      "singular": "metafield",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "articles/<article_id>/metafields/<id>.json",
+          "ids": [
+            "article_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "blogs/<blog_id>/metafields/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "blogs/<blog_id>/metafields/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "collections/<collection_id>/metafields/<id>.json",
+          "ids": [
+            "collection_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "customers/<customer_id>/metafields/<id>.json",
+          "ids": [
+            "customer_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "draft_orders/<draft_order_id>/metafields/<id>.json",
+          "ids": [
+            "draft_order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "metafields/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "orders/<order_id>/metafields/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "pages/<page_id>/metafields/<id>.json",
+          "ids": [
+            "page_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "product_images/<product_image_id>/metafields/<id>.json",
+          "ids": [
+            "product_image_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "products/<product_id>/metafields/<id>.json",
+          "ids": [
+            "product_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "variants/<variant_id>/metafields/<id>.json",
+          "ids": [
+            "variant_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "articles/<article_id>/metafields/count.json",
+          "ids": [
+            "article_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "blogs/<blog_id>/metafields/count.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "blogs/<blog_id>/metafields/count.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "collections/<collection_id>/metafields/count.json",
+          "ids": [
+            "collection_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "customers/<customer_id>/metafields/count.json",
+          "ids": [
+            "customer_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "draft_orders/<draft_order_id>/metafields/count.json",
+          "ids": [
+            "draft_order_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "metafields/count.json",
+          "ids": []
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "orders/<order_id>/metafields/count.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "pages/<page_id>/metafields/count.json",
+          "ids": [
+            "page_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "product_images/<product_image_id>/metafields/count.json",
+          "ids": [
+            "product_image_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "products/<product_id>/metafields/count.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "variants/<variant_id>/metafields/count.json",
+          "ids": [
+            "variant_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "articles/<article_id>/metafields.json",
+          "ids": [
+            "article_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "articles/<article_id>/metafields/<id>.json",
+          "ids": [
+            "article_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "blogs/<blog_id>/metafields.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "blogs/<blog_id>/metafields.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "blogs/<blog_id>/metafields/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "blogs/<blog_id>/metafields/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "collections/<collection_id>/metafields.json",
+          "ids": [
+            "collection_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "collections/<collection_id>/metafields/<id>.json",
+          "ids": [
+            "collection_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "customers/<customer_id>/metafields.json",
+          "ids": [
+            "customer_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "customers/<customer_id>/metafields/<id>.json",
+          "ids": [
+            "customer_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "draft_orders/<draft_order_id>/metafields.json",
+          "ids": [
+            "draft_order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "draft_orders/<draft_order_id>/metafields/<id>.json",
+          "ids": [
+            "draft_order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "metafields/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/metafields.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/metafields/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "pages/<page_id>/metafields.json",
+          "ids": [
+            "page_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "pages/<page_id>/metafields/<id>.json",
+          "ids": [
+            "page_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "product_images/<product_image_id>/metafields.json",
+          "ids": [
+            "product_image_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "product_images/<product_image_id>/metafields/<id>.json",
+          "ids": [
+            "product_image_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products/<product_id>/metafields.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products/<product_id>/metafields/<id>.json",
+          "ids": [
+            "product_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "variants/<variant_id>/metafields.json",
+          "ids": [
+            "variant_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "variants/<variant_id>/metafields/<id>.json",
+          "ids": [
+            "variant_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "metafields.json",
+          "ids": []
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "articles/<article_id>/metafields.json",
+          "ids": [
+            "article_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "blogs/<blog_id>/metafields.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "blogs/<blog_id>/metafields.json",
+          "ids": [
+            "blog_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "collections/<collection_id>/metafields.json",
+          "ids": [
+            "collection_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "customers/<customer_id>/metafields.json",
+          "ids": [
+            "customer_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "draft_orders/<draft_order_id>/metafields.json",
+          "ids": [
+            "draft_order_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "metafields.json",
+          "ids": []
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "orders/<order_id>/metafields.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "pages/<page_id>/metafields.json",
+          "ids": [
+            "page_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "product_images/<product_image_id>/metafields.json",
+          "ids": [
+            "product_image_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "products/<product_id>/metafields.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "variants/<variant_id>/metafields.json",
+          "ids": [
+            "variant_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "articles/<article_id>/metafields/<id>.json",
+          "ids": [
+            "article_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "blogs/<blog_id>/metafields/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "blogs/<blog_id>/metafields/<id>.json",
+          "ids": [
+            "blog_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "collections/<collection_id>/metafields/<id>.json",
+          "ids": [
+            "collection_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "customers/<customer_id>/metafields/<id>.json",
+          "ids": [
+            "customer_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "draft_orders/<draft_order_id>/metafields/<id>.json",
+          "ids": [
+            "draft_order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "metafields/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "orders/<order_id>/metafields/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "pages/<page_id>/metafields/<id>.json",
+          "ids": [
+            "page_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "product_images/<product_image_id>/metafields/<id>.json",
+          "ids": [
+            "product_image_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "products/<product_id>/metafields/<id>.json",
+          "ids": [
+            "product_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "variants/<variant_id>/metafields/<id>.json",
+          "ids": [
+            "variant_id",
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "article_id": "string | null",
+        "blog_id": "string | null",
+        "collection_id": "string | null",
+        "created_at": "string | null",
+        "customer_id": "string | null",
+        "description": "string | null",
+        "draft_order_id": "string | null",
+        "id": "string | null",
+        "key": "string | null",
+        "namespace": "string | null",
+        "order_id": "string | null",
+        "owner_id": "string | null",
+        "owner_resource": "string | null",
+        "page_id": "string | null",
+        "product_id": "string | null",
+        "product_image_id": "string | null",
+        "type": "string | null",
+        "updated_at": "string | null",
+        "value": "string | number | number | boolean | string | null",
+        "variant_id": "string | null"
+      }
+    },
+    "MobilePlatformApplication": {
+      "plural": "mobile_platform_applications",
+      "singular": "mobile_platform_application",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "mobile_platform_applications/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "mobile_platform_applications.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "mobile_platform_applications/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "mobile_platform_applications.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "mobile_platform_applications/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "app_clip_application_id": "string | null",
+        "application_id": "string | null",
+        "enabled_app_clips": "boolean | null",
+        "enabled_shared_webcredentials": "boolean | null",
+        "enabled_universal_or_app_links": "boolean | null",
+        "id": "string | null",
+        "platform": "string | null",
+        "sha256_cert_fingerprints": "string[] | null"
+      }
+    },
+    "Order": {
+      "plural": "orders",
+      "singular": "order",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "orders/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "orders/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "cancel",
+          "method": "post",
+          "path": "orders/<id>/cancel.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "close",
+          "method": "post",
+          "path": "orders/<id>/close.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "open",
+          "method": "post",
+          "path": "orders/<id>/open.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "orders.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "orders/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "app_id": "string | null",
+        "billing_address": "{[key: string]: unknown} | null",
+        "browser_ip": "string | null",
+        "buyer_accepts_marketing": "boolean | null",
+        "cancel_reason": "string | null",
+        "cancelled_at": "string | null",
+        "cart_token": "string | null",
+        "checkout_token": "string | null",
+        "client_details": "{[key: string]: unknown} | null",
+        "closed_at": "string | null",
+        "company": "{[key: string]: unknown} | null",
+        "confirmation_number": "string | null",
+        "confirmed": "boolean | null",
+        "created_at": "string | null",
+        "currency": "string | null",
+        "current_subtotal_price": "string | null",
+        "current_subtotal_price_set": "{[key: string]: unknown} | null",
+        "current_total_additional_fees_set": "{[key: string]: unknown} | null",
+        "current_total_discounts": "string | null",
+        "current_total_discounts_set": "{[key: string]: unknown} | null",
+        "current_total_duties_set": "{[key: string]: unknown} | null",
+        "current_total_price": "string | null",
+        "current_total_price_set": "{[key: string]: unknown} | null",
+        "current_total_tax": "string | null",
+        "current_total_tax_set": "{[key: string]: unknown} | null",
+        "customer": "Customer | null | {[key: string]: any}",
+        "customer_locale": "string | null",
+        "discount_applications": "{[key: string]: unknown}[] | null",
+        "discount_codes": "DiscountCode[] | null | {[key: string]: any}",
+        "duties_included": "boolean | null",
+        "email": "string | null",
+        "estimated_taxes": "boolean | null",
+        "financial_status": "string | null",
+        "fulfillment_status": "string | null",
+        "fulfillments": "Fulfillment[] | null | {[key: string]: any}",
+        "id": "string | null",
+        "landing_site": "string | null",
+        "line_items": "{[key: string]: unknown}[] | null",
+        "location_id": "string | null",
+        "merchant_business_entity_id": "string | null",
+        "merchant_of_record_app_id": "string | null",
+        "name": "string | null",
+        "note": "string | null",
+        "note_attributes": "{[key: string]: unknown}[] | null",
+        "number": "number | null",
+        "order_number": "number | null",
+        "order_status_url": "string | null",
+        "original_total_additional_fees_set": "{[key: string]: unknown} | null",
+        "original_total_duties_set": "{[key: string]: unknown} | null",
+        "payment_gateway_names": "string[] | null",
+        "payment_terms": "{[key: string]: unknown} | null",
+        "phone": "string | null",
+        "po_number": "string | null",
+        "presentment_currency": "string | null",
+        "processed_at": "string | null",
+        "referring_site": "string | null",
+        "refunds": "Refund[] | null | {[key: string]: any}",
+        "shipping_address": "{[key: string]: unknown} | null",
+        "shipping_lines": "{[key: string]: unknown}[] | null",
+        "source_identifier": "string | null",
+        "source_name": "string | null",
+        "source_url": "string | null",
+        "subtotal_price": "string | null",
+        "subtotal_price_set": "{[key: string]: unknown} | null",
+        "tags": "string | null",
+        "tax_lines": "{[key: string]: unknown}[] | null",
+        "taxes_included": "boolean | null",
+        "test": "boolean | null",
+        "token": "string | null",
+        "total_cash_rounding_payment_adjustment_set": "{[key: string]: unknown} | null",
+        "total_cash_rounding_refund_adjustment_set": "{[key: string]: unknown} | null",
+        "total_discounts": "string | null",
+        "total_discounts_set": "{[key: string]: unknown} | null",
+        "total_line_items_price": "string | null",
+        "total_line_items_price_set": "{[key: string]: unknown} | null",
+        "total_outstanding": "string | null",
+        "total_price": "string | null",
+        "total_price_set": "{[key: string]: unknown} | null",
+        "total_shipping_price_set": "{[key: string]: unknown} | null",
+        "total_tax": "string | number | null",
+        "total_tax_set": "{[key: string]: unknown} | null",
+        "total_tip_received": "string | null",
+        "total_weight": "number | null",
+        "updated_at": "string | null",
+        "user_id": "string | null"
+      }
+    },
+    "OrderRisk": {
+      "plural": "risks",
+      "singular": "risk",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "orders/<order_id>/risks/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/risks.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/risks/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "orders/<order_id>/risks.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "orders/<order_id>/risks/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "cause_cancel": "boolean | null",
+        "checkout_id": "string | null",
+        "display": "boolean | null",
+        "id": "string | null",
+        "merchant_message": "string | null",
+        "message": "string | null",
+        "order_id": "string | null",
+        "recommendation": "string | null",
+        "score": "string | null",
+        "source": "string | null"
+      }
+    },
+    "Page": {
+      "plural": "pages",
+      "singular": "page",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "pages/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "pages/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "pages.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "pages/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "pages.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "pages/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "admin_graphql_api_id": "string | null",
+        "author": "string | null",
+        "body_html": "string | null",
+        "created_at": "string | null",
+        "handle": "string | null",
+        "id": "string | null",
+        "metafield": "Metafield | null | {[key: string]: any}",
+        "published_at": "string | null",
+        "shop_id": "string | null",
+        "template_suffix": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Payment": {
+      "plural": "payments",
+      "singular": "payment",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "checkouts/<checkout_id>/payments/<id>.json",
+          "ids": [
+            "checkout_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "checkouts/<checkout_id>/payments.json",
+          "ids": [
+            "checkout_id"
+          ]
+        }
+      ],
+      "fields": {
+        "checkout": "Checkout | null | {[key: string]: any}",
+        "credit_card": "{[key: string]: unknown} | null",
+        "id": "string | null",
+        "next_action": "{[key: string]: unknown} | null",
+        "payment_processing_error_message": "string | null",
+        "transaction": "Transaction | null | {[key: string]: any}",
+        "unique_token": "string | null"
+      }
+    },
+    "PaymentGateway": {
+      "plural": "payment_gateways",
+      "singular": "payment_gateway",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "payment_gateways/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "payment_gateways.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "payment_gateways/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "payment_gateways.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "payment_gateways/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "attachment": "string | null",
+        "created_at": "string | null",
+        "credential1": "string | null",
+        "credential2": "string | null",
+        "credential3": "string | null",
+        "credential4": "string | null",
+        "disabled": "boolean | null",
+        "enabled_card_brands": "string[] | null",
+        "id": "string | null",
+        "name": "string | null",
+        "processing_method": "string | null",
+        "provider_id": "string | null",
+        "sandbox": "boolean | null",
+        "service_name": "string | null",
+        "supports_network_tokenization": "boolean | null",
+        "type": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "PaymentTransaction": {
+      "plural": "payment_transactions",
+      "singular": "payment_transaction",
+      "paths": [
+        {
+          "operation": "transactions",
+          "method": "get",
+          "path": "shopify_payments/balance/transactions.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "adjustment_order_transactions": "{[key: string]: unknown}[] | null",
+        "adjustment_reason": "string | null",
+        "amount": "string | null",
+        "currency": "Currency | null | {[key: string]: any}",
+        "fee": "string | null",
+        "id": "string | null",
+        "net": "string | null",
+        "payout_id": "string | null",
+        "payout_status": "string | null",
+        "processed_at": "string | null",
+        "source_id": "string | null",
+        "source_order_id": "string | null",
+        "source_order_transaction_id": "string | null",
+        "source_type": "string | null",
+        "test": "boolean | null",
+        "type": "string | null"
+      }
+    },
+    "Payout": {
+      "plural": "payouts",
+      "singular": "payout",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "shopify_payments/payouts.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "shopify_payments/payouts/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "amount": "string | null",
+        "currency": "string | null",
+        "date": "string | null",
+        "id": "string | null",
+        "status": "string | null"
+      }
+    },
+    "Policy": {
+      "plural": "policies",
+      "singular": "policy",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "policies.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "body": "string | null",
+        "created_at": "string | null",
+        "handle": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null",
+        "url": "string | null"
+      }
+    },
+    "PriceRule": {
+      "plural": "price_rules",
+      "singular": "price_rule",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "price_rules/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "price_rules/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "price_rules.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "price_rules/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "price_rules.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "price_rules/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "allocation_limit": "number | null",
+        "allocation_method": "string | null",
+        "created_at": "string | null",
+        "customer_segment_prerequisite_ids": "string[] | null",
+        "customer_selection": "string | null",
+        "ends_at": "string | null",
+        "entitled_collection_ids": "string[] | null",
+        "entitled_country_ids": "string[] | null",
+        "entitled_product_ids": "string[] | null",
+        "entitled_variant_ids": "string[] | null",
+        "id": "string | null",
+        "once_per_customer": "boolean | null",
+        "prerequisite_collection_ids": "string[] | null",
+        "prerequisite_customer_ids": "string[] | null",
+        "prerequisite_product_ids": "string[] | null",
+        "prerequisite_quantity_range": "{[key: string]: unknown} | null",
+        "prerequisite_shipping_price_range": "{[key: string]: unknown} | null",
+        "prerequisite_subtotal_range": "{[key: string]: unknown} | null",
+        "prerequisite_to_entitlement_purchase": "{[key: string]: unknown} | null",
+        "prerequisite_to_entitlement_quantity_ratio": "{[key: string]: unknown} | null",
+        "prerequisite_variant_ids": "string[] | null",
+        "starts_at": "string | null",
+        "target_selection": "string | null",
+        "target_type": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null",
+        "usage_limit": "number | null",
+        "value": "string | null",
+        "value_type": "string | null"
+      }
+    },
+    "Product": {
+      "plural": "products",
+      "singular": "product",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "products/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "products/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "products.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "products/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "body_html": "string | null",
+        "created_at": "string | null",
+        "handle": "string | null",
+        "id": "string | null",
+        "images": "Image[] | null | {[key: string]: any}",
+        "options": "{[key: string]: unknown} | {[key: string]: unknown}[] | null",
+        "product_type": "string | null",
+        "published_at": "string | null",
+        "published_scope": "string | null",
+        "status": "string | null",
+        "tags": "string | string[] | null",
+        "template_suffix": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null",
+        "variants": "Variant[] | null | {[key: string]: any}",
+        "vendor": "string | null"
+      }
+    },
+    "ProductListing": {
+      "plural": "product_listings",
+      "singular": "product_listing",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "product_listings/<product_id>.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "product_listings/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "product_listings.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "product_listings/<product_id>.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "product_ids",
+          "method": "get",
+          "path": "product_listings/product_ids.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "product_listings/<product_id>.json",
+          "ids": [
+            "product_id"
+          ]
+        }
+      ],
+      "fields": {
+        "body_html": "string | null",
+        "created_at": "string | null",
+        "handle": "string | null",
+        "images": "Image[] | null | {[key: string]: any}",
+        "options": "{[key: string]: unknown}[] | null",
+        "product_id": "string | null",
+        "product_type": "string | null",
+        "published_at": "string | null",
+        "tags": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null",
+        "variants": "Variant[] | null | {[key: string]: any}",
+        "vendor": "string | null"
+      }
+    },
+    "ProductResourceFeedback": {
+      "plural": "product_resource_feedbacks",
+      "singular": "product_resource_feedback",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products/<product_id>/resource_feedback.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "products/<product_id>/resource_feedback.json",
+          "ids": [
+            "product_id"
+          ]
+        }
+      ],
+      "fields": {
+        "created_at": "string | null",
+        "feedback_generated_at": "string | null",
+        "messages": "string[] | null",
+        "product_id": "string | null",
+        "resource_id": "string | null",
+        "resource_type": "string | null",
+        "resource_updated_at": "string | null",
+        "state": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Province": {
+      "plural": "provinces",
+      "singular": "province",
+      "paths": [
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "countries/<country_id>/provinces/count.json",
+          "ids": [
+            "country_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "countries/<country_id>/provinces.json",
+          "ids": [
+            "country_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "countries/<country_id>/provinces/<id>.json",
+          "ids": [
+            "country_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "countries/<country_id>/provinces/<id>.json",
+          "ids": [
+            "country_id",
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "code": "string | null",
+        "country_id": "string | null",
+        "id": "string | null",
+        "name": "string | null",
+        "shipping_zone_id": "string | null",
+        "tax": "number | null",
+        "tax_name": "string | null",
+        "tax_percentage": "number | null",
+        "tax_type": "string | null"
+      }
+    },
+    "RecurringApplicationCharge": {
+      "plural": "recurring_application_charges",
+      "singular": "recurring_application_charge",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "recurring_application_charges/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "recurring_application_charges.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "recurring_application_charges/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "recurring_application_charges.json",
+          "ids": []
+        },
+        {
+          "operation": "customize",
+          "method": "put",
+          "path": "recurring_application_charges/<id>/customize.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "activated_on": "string | null",
+        "billing_on": "string | null",
+        "cancelled_on": "string | null",
+        "capped_amount": "string | number | null",
+        "confirmation_url": "string | null",
+        "created_at": "string | null",
+        "currency": "Currency | null | {[key: string]: any}",
+        "id": "string | null",
+        "name": "string | null",
+        "price": "string | number | null",
+        "return_url": "string | null",
+        "status": "string | null",
+        "terms": "string | null",
+        "test": "boolean | null",
+        "trial_days": "number | null",
+        "trial_ends_on": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Redirect": {
+      "plural": "redirects",
+      "singular": "redirect",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "redirects/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "redirects/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "redirects.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "redirects/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "redirects.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "redirects/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "id": "string | null",
+        "path": "string | null",
+        "target": "string | null"
+      }
+    },
+    "Refund": {
+      "plural": "refunds",
+      "singular": "refund",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/refunds.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/refunds/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "calculate",
+          "method": "post",
+          "path": "orders/<order_id>/refunds/calculate.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "orders/<order_id>/refunds.json",
+          "ids": [
+            "order_id"
+          ]
+        }
+      ],
+      "fields": {
+        "created_at": "string | null",
+        "duties": "{[key: string]: unknown}[] | null",
+        "id": "string | null",
+        "note": "string | null",
+        "order_adjustments": "{[key: string]: unknown}[] | null",
+        "order_id": "string | null",
+        "processed_at": "string | null",
+        "refund_duties": "{[key: string]: unknown}[] | null",
+        "refund_line_items": "{[key: string]: unknown}[] | null",
+        "refund_shipping_lines": "{[key: string]: unknown}[] | null",
+        "restock": "boolean | null",
+        "transactions": "Transaction[] | null | {[key: string]: any}",
+        "user_id": "string | null"
+      }
+    },
+    "ResourceFeedback": {
+      "plural": "resource_feedbacks",
+      "singular": "resource_feedback",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "resource_feedback.json",
+          "ids": []
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "resource_feedback.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "created_at": "string | null",
+        "feedback_generated_at": "string | null",
+        "messages": "string[] | null",
+        "resource_id": "string | null",
+        "resource_type": "string | null",
+        "state": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "ScriptTag": {
+      "plural": "script_tags",
+      "singular": "script_tag",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "script_tags/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "script_tags/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "script_tags.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "script_tags/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "script_tags.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "script_tags/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "cache": "boolean | null",
+        "created_at": "string | null",
+        "display_scope": "string | null",
+        "event": "string | null",
+        "id": "string | null",
+        "src": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "ShippingZone": {
+      "plural": "shipping_zones",
+      "singular": "shipping_zone",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "shipping_zones.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "carrier_shipping_rate_providers": "unknown | null",
+        "countries": "Country[] | null | {[key: string]: any}",
+        "id": "string | null",
+        "location_group_id": "string | null",
+        "name": "string | null",
+        "price_based_shipping_rates": "{[key: string]: unknown}[] | null",
+        "profile_id": "string | null",
+        "provinces": "Province[] | null | {[key: string]: any}",
+        "weight_based_shipping_rates": "{[key: string]: unknown}[] | null"
+      }
+    },
+    "Shop": {
+      "plural": "shops",
+      "singular": "shop",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "shop.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "address1": "string | null",
+        "address2": "string | null",
+        "auto_configure_tax_inclusivity": "boolean | null",
+        "checkout_api_supported": "boolean | null",
+        "city": "string | null",
+        "country": "string | null",
+        "country_code": "string | null",
+        "country_name": "string | null",
+        "county_taxes": "boolean | null",
+        "created_at": "string | null",
+        "currency": "string | null",
+        "customer_email": "string | null",
+        "domain": "string | null",
+        "eligible_for_payments": "boolean | null",
+        "email": "string | null",
+        "enabled_presentment_currencies": "string[] | null",
+        "finances": "boolean | null",
+        "force_ssl": "boolean | null",
+        "google_apps_domain": "string | null",
+        "google_apps_login_enabled": "string | null",
+        "has_discounts": "boolean | null",
+        "has_gift_cards": "boolean | null",
+        "has_storefront": "boolean | null",
+        "iana_timezone": "string | null",
+        "id": "string | null",
+        "latitude": "number | null",
+        "longitude": "number | null",
+        "marketing_sms_consent_enabled_at_checkout": "boolean | null",
+        "money_format": "string | null",
+        "money_in_emails_format": "string | null",
+        "money_with_currency_format": "string | null",
+        "money_with_currency_in_emails_format": "string | null",
+        "multi_location_enabled": "boolean | null",
+        "myshopify_domain": "string | null",
+        "name": "string | null",
+        "password_enabled": "boolean | null",
+        "phone": "string | null",
+        "plan_display_name": "string | null",
+        "plan_name": "string | null",
+        "pre_launch_enabled": "boolean | null",
+        "primary_locale": "string | null",
+        "primary_location_id": "string | null",
+        "province": "string | null",
+        "province_code": "string | null",
+        "requires_extra_payments_agreement": "boolean | null",
+        "setup_required": "boolean | null",
+        "shop_owner": "string | null",
+        "source": "string | null",
+        "tax_shipping": "string | null",
+        "taxes_included": "boolean | null",
+        "timezone": "string | null",
+        "transactional_sms_disabled": "boolean | null",
+        "updated_at": "string | null",
+        "weight_unit": "string | null",
+        "zip": "string | null"
+      }
+    },
+    "SmartCollection": {
+      "plural": "smart_collections",
+      "singular": "smart_collection",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "smart_collections/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "smart_collections/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "smart_collections.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "smart_collections/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "smart_collections.json",
+          "ids": []
+        },
+        {
+          "operation": "order",
+          "method": "put",
+          "path": "smart_collections/<id>/order.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "smart_collections/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "body_html": "string | null",
+        "disjunctive": "boolean | null",
+        "handle": "string | null",
+        "id": "string | null",
+        "image": "string | {[key: string]: unknown} | null",
+        "published_at": "string | null",
+        "published_scope": "string | null",
+        "rules": "{[key: string]: unknown} | {[key: string]: unknown}[] | null",
+        "sort_order": "string | null",
+        "template_suffix": "string | null",
+        "title": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "StorefrontAccessToken": {
+      "plural": "storefront_access_tokens",
+      "singular": "storefront_access_token",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "storefront_access_tokens/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "storefront_access_tokens.json",
+          "ids": []
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "storefront_access_tokens.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "access_scope": "string | null",
+        "access_token": "string | null",
+        "created_at": "string | null",
+        "id": "string | null",
+        "title": "string | null"
+      }
+    },
+    "TenderTransaction": {
+      "plural": "tender_transactions",
+      "singular": "tender_transaction",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "tender_transactions.json",
+          "ids": []
+        }
+      ],
+      "fields": {
+        "amount": "string | null",
+        "currency": "string | null",
+        "id": "string | null",
+        "order_id": "string | null",
+        "payment_details": "{[key: string]: unknown} | null",
+        "payment_method": "string | null",
+        "processed_at": "string | null",
+        "remote_reference": "string | null",
+        "test": "boolean | null",
+        "user_id": "string | null"
+      }
+    },
+    "Theme": {
+      "plural": "themes",
+      "singular": "theme",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "themes/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "themes.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "themes/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "themes.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "themes/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "created_at": "string | null",
+        "id": "string | null",
+        "name": "string | null",
+        "previewable": "boolean | null",
+        "processing": "boolean | null",
+        "role": "string | null",
+        "src": "string | null",
+        "theme_store_id": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "Transaction": {
+      "plural": "transactions",
+      "singular": "transaction",
+      "paths": [
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "orders/<order_id>/transactions/count.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/transactions.json",
+          "ids": [
+            "order_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "orders/<order_id>/transactions/<id>.json",
+          "ids": [
+            "order_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "orders/<order_id>/transactions.json",
+          "ids": [
+            "order_id"
+          ]
+        }
+      ],
+      "fields": {
+        "amount": "string | null",
+        "amount_rounding": "string | null",
+        "authorization": "string | null",
+        "authorization_expires_at": "string | null",
+        "created_at": "string | null",
+        "currency": "string | null",
+        "currency_exchange_adjustment": "{[key: string]: unknown} | null",
+        "device_id": "string | null",
+        "error_code": "string | null",
+        "extended_authorization_attributes": "{[key: string]: unknown} | null",
+        "gateway": "string | null",
+        "id": "string | null",
+        "kind": "string | null",
+        "location_id": "string | null",
+        "manual_payment_gateway": "boolean | null",
+        "message": "string | null",
+        "order_id": "string | null",
+        "parent_id": "string | null",
+        "payment_details": "{[key: string]: unknown} | null",
+        "payments_refund_attributes": "{[key: string]: unknown} | null",
+        "processed_at": "string | null",
+        "receipt": "{[key: string]: unknown} | null",
+        "source_name": "string | null",
+        "status": "string | null",
+        "test": "boolean | null",
+        "total_unsettled_set": "{[key: string]: unknown} | null",
+        "user_id": "string | null"
+      }
+    },
+    "UsageCharge": {
+      "plural": "usage_charges",
+      "singular": "usage_charge",
+      "paths": [
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "recurring_application_charges/<recurring_application_charge_id>/usage_charges.json",
+          "ids": [
+            "recurring_application_charge_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "recurring_application_charges/<recurring_application_charge_id>/usage_charges/<id>.json",
+          "ids": [
+            "recurring_application_charge_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "recurring_application_charges/<recurring_application_charge_id>/usage_charges.json",
+          "ids": [
+            "recurring_application_charge_id"
+          ]
+        }
+      ],
+      "fields": {
+        "created_at": "string | null",
+        "currency": "Currency | null | {[key: string]: any}",
+        "description": "string | null",
+        "id": "string | null",
+        "price": "string | null",
+        "recurring_application_charge_id": "string | null",
+        "updated_at": "string | null"
+      }
+    },
+    "User": {
+      "plural": "users",
+      "singular": "user",
+      "paths": [
+        {
+          "operation": "current",
+          "method": "get",
+          "path": "users/current.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "users.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "users/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "account_owner": "boolean | null",
+        "bio": "string | null",
+        "email": "string | null",
+        "first_name": "string | null",
+        "id": "string | null",
+        "im": "string | null",
+        "last_name": "string | null",
+        "locale": "string | null",
+        "permissions": "string[] | null",
+        "phone": "string | null",
+        "receive_announcements": "number | null",
+        "screen_name": "string | null",
+        "url": "string | null",
+        "user_type": "string | null"
+      }
+    },
+    "Variant": {
+      "plural": "variants",
+      "singular": "variant",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "products/<product_id>/variants/<id>.json",
+          "ids": [
+            "product_id",
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "products/<product_id>/variants/count.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "products/<product_id>/variants.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "variants/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "products/<product_id>/variants.json",
+          "ids": [
+            "product_id"
+          ]
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "variants/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "barcode": "string | null",
+        "compare_at_price": "string | null",
+        "created_at": "string | null",
+        "fulfillment_service": "string | null",
+        "grams": "number | null",
+        "id": "string | null",
+        "image_id": "string | null",
+        "inventory_item_id": "string | null",
+        "inventory_management": "string | null",
+        "inventory_policy": "string | null",
+        "inventory_quantity": "number | null",
+        "old_inventory_quantity": "number | null",
+        "option": "{[key: string]: unknown} | null",
+        "position": "number | null",
+        "presentment_prices": "{[key: string]: unknown}[] | null",
+        "price": "string | null",
+        "product_id": "string | null",
+        "requires_shipping": "boolean | null",
+        "sku": "string | null",
+        "tax_code": "string | null",
+        "taxable": "boolean | null",
+        "title": "string | null",
+        "updated_at": "string | null",
+        "weight": "number | null",
+        "weight_unit": "string | null"
+      }
+    },
+    "Webhook": {
+      "plural": "webhooks",
+      "singular": "webhook",
+      "paths": [
+        {
+          "operation": "delete",
+          "method": "delete",
+          "path": "webhooks/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "count",
+          "method": "get",
+          "path": "webhooks/count.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "webhooks.json",
+          "ids": []
+        },
+        {
+          "operation": "get",
+          "method": "get",
+          "path": "webhooks/<id>.json",
+          "ids": [
+            "id"
+          ]
+        },
+        {
+          "operation": "post",
+          "method": "post",
+          "path": "webhooks.json",
+          "ids": []
+        },
+        {
+          "operation": "put",
+          "method": "put",
+          "path": "webhooks/<id>.json",
+          "ids": [
+            "id"
+          ]
+        }
+      ],
+      "fields": {
+        "address": "string | null",
+        "api_version": "string | null",
+        "created_at": "string | null",
+        "fields": "string[] | null",
+        "format": "string | null",
+        "id": "string | null",
+        "metafield_namespaces": "string[] | null",
+        "private_metafield_namespaces": "string[] | null",
+        "topic": "string | null",
+        "updated_at": "string | null"
+      }
+    }
+  }
+}
