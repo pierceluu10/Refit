@@ -1,5 +1,35 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: Meta Graph tracing, fix plans and dated alerts (unreleased, after 0.39.0)
+
+`refit meta-graph` traces more of how Meta integrations are written, and `refit meta-graph --fix --target <version>` turns the review-only version moves into a fix plan ([Meta Graph API](META-GRAPH.md#fix-plans)). Nothing is applied, validated or published, and the `meta-graph` catalog entry keeps `adapter: null`.
+
+- **Tracing:**
+  - graph.instagram.com requests;
+  - `FB.api` calls with the version `FB.init` sets;
+  - versions that are the fallback of `process.env.X || 'vNN.N'`;
+  - requests on an `axios.create({ baseURL })` instance;
+  - project helpers that pass the URL and options to `fetch` unchanged;
+  - parameters set step by step on `FormData`, `URLSearchParams` or a `const` object;
+  - `qs.stringify`, `querystring.stringify` and `.toString()`;
+  - `fields=${LIST.join(',')}`.
+- **Fixes:** the documented rules in `data/rules/meta-graph` (none are committed yet) rename a field or metric in the literal list a request sends, together with the version move. They stop when the old name appears anywhere else in the code, since it may be a response read. Every other rule family stops the move with its source.
+- **Migrations and alerts:**
+  - Instagram Basic Display use is listed with Meta's documented migration plan.
+  - Retired permissions, Page Insights metrics and oEmbed requests get dated alerts from `data/meta-platform-alerts.json`. Each entry quotes a developers.facebook.com page read on 2026-10-29.
+- **Measured** offline on the 33 non-blind Meta repositories of the deadline benchmark, at target v25.0:
+  - live requests 162 → 168, `fields` read 113 → 155;
+  - pins moved 35 → 46 (requests 35 → 50), none lost;
+  - 1 Basic Display migration and 2 alerts.
+  - Every changed request (52) and every new move (11) was checked by hand.
+  - ME1's meta-dev-60 set was not frozen yet, so it was not measured.
+- **Not done:**
+  - wiring into `refit run`, validation and drafts;
+  - AI repair;
+  - response-read renames;
+  - business SDK package upgrades;
+  - WhatsApp on-premises detection.
+
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 
 An untraced call no longer blocks an operation the adapter does not map when it is known to request another operation, is a local webhook helper or sets up a test double ([census](MINED-RULES.md#rule-coverage-census-2026-10-28-branch-featrule-coverage)). New endive rules send `billing_cycle_anchor: 'now'`/`'unchanged'` on subscription update and resume as `{ type: … }`, as Stripe's changelog documents (`request-enum-value` with `discriminator`). The benchmark attaches the changelog pages that name a reached contract change to AI coverage requests. Measured offline only (scan without validation): heldout-30 moves MeiyuTech/AET-App from held to fixed; no benchmark was run.

@@ -33,6 +33,12 @@ export interface GraphLocation {
   line: number;
 }
 
+export interface GraphSpan {
+  file: string;
+  start: number;
+  end: number;
+}
+
 export interface GraphCall {
   kind: 'url' | 'sdk';
   host: (typeof GRAPH_HOSTS)[number];
@@ -65,6 +71,9 @@ export interface GraphCall {
   parameters: string[] | null;
   // What could not be read, and why.
   unknown: string[];
+  // Where the `fields` and `metric` values are written, as offsets into each file, so a rule can
+  // rename an item; absent when the values are not known.
+  literals?: { fields: GraphSpan[]; metrics: GraphSpan[] };
   // The source line the request is made on, trimmed.
   text: string;
 }
@@ -379,9 +388,17 @@ export function envDefault(expression: ts.Expression): ts.Expression | undefined
 
 // A list of field names written literally: `'id,name'`, `['id', 'name'].join(',')`, a `const`
 // holding either, or the business SDK's `[Campaign.Fields.name]`.
-function literalList(expression: ts.Expression, depth = 0): string[] | undefined {
+// `nodes` collects the string literals the list was read from, where an edit would rename an item.
+function literalList(
+  expression: ts.Expression,
+  depth = 0,
+  nodes: ts.Node[] = [],
+): string[] | undefined {
   const node = unwrap(expression);
-  if (ts.isStringLiteralLike(node)) return splitFields(decode(node.text));
+  if (ts.isStringLiteralLike(node)) {
+    nodes.push(node);
+    return splitFields(decode(node.text));
+  }
   if (
     ts.isCallExpression(node) &&
     ts.isPropertyAccessExpression(node.expression) &&
@@ -389,16 +406,17 @@ function literalList(expression: ts.Expression, depth = 0): string[] | undefined
     node.arguments.length <= 1 &&
     (!node.arguments[0] || constantString(node.arguments[0])?.value === ',')
   )
-    return literalList(node.expression.expression, depth);
+    return literalList(node.expression.expression, depth, nodes);
   if (ts.isArrayLiteralExpression(node)) {
     const items = node.elements.map((element) =>
       ts.isSpreadElement(element) ? undefined : sdkFieldName(element),
     );
+    for (const element of node.elements) if (ts.isStringLiteralLike(element)) nodes.push(element);
     return items.every((item) => item !== undefined) ? (items as string[]) : undefined;
   }
   if (ts.isIdentifier(node) && depth < 2) {
     const value = constantValue(node);
-    if (value) return literalList(value, depth + 1);
+    if (value) return literalList(value, depth + 1, nodes);
   }
   return undefined;
 }
@@ -406,11 +424,20 @@ function literalList(expression: ts.Expression, depth = 0): string[] | undefined
 interface Request {
   parameters: Set<string>;
   values: Map<string, string[] | null>;
+  // The literals `fields` and `metric` values were read from.
+  sources: Map<string, ts.Node[]>;
   unknown: string[];
 }
 
 function emptyRequest(): Request {
-  return { parameters: new Set(), values: new Map(), unknown: [] };
+  return { parameters: new Set(), values: new Map(), sources: new Map(), unknown: [] };
+}
+
+// Reads a `fields` or `metric` value written as a literal list, keeping where it is written.
+function readList(request: Request, name: string, expression: ts.Expression | undefined) {
+  const nodes: ts.Node[] = [];
+  setValue(request, name, expression ? (literalList(expression, 0, nodes) ?? null) : null);
+  request.sources.set(name, [...(request.sources.get(name) ?? []), ...nodes]);
 }
 
 // Serializers whose output carries the same parameters as their argument.
@@ -559,11 +586,7 @@ function readParameters(expression: ts.Expression, request: Request, label: stri
       for (const entry of built.entries) {
         request.parameters.add(entry.name);
         if (entry.name === 'fields' || entry.name === 'metric')
-          setValue(
-            request,
-            entry.name,
-            entry.nested || !entry.value ? null : (literalList(entry.value) ?? null),
-          );
+          readList(request, entry.name, entry.nested ? undefined : entry.value);
       }
       return;
     }
@@ -584,11 +607,7 @@ function readParameters(expression: ts.Expression, request: Request, label: stri
     }
     request.parameters.add(name);
     if (name === 'fields' || name === 'metric')
-      setValue(
-        request,
-        name,
-        ts.isPropertyAssignment(property) ? (literalList(property.initializer) ?? null) : null,
-      );
+      readList(request, name, ts.isPropertyAssignment(property) ? property.initializer : undefined);
   }
 }
 
@@ -598,6 +617,7 @@ function readQuery(parts: Part[], request: Request) {
   // The substitutions in the current pair: `fields=${FIELDS.join(',')}` is read when the list is
   // written literally.
   let substitutions: ts.Expression[] = [];
+  let pieces: ts.Node[] = [];
   const flush = (pair: string, runtime: boolean) => {
     if (!pair) return;
     const separator = pair.indexOf('=');
@@ -606,15 +626,15 @@ function readQuery(parts: Part[], request: Request) {
     request.parameters.add(name);
     if (name === 'fields' || name === 'metric') {
       const value = separator < 0 ? '' : pair.slice(separator + 1);
-      setValue(
-        request,
-        name,
-        !runtime
-          ? splitFields(decode(value))
-          : value === '\u0000' && substitutions.length === 1
-            ? (literalList(substitutions[0]) ?? null)
-            : null,
-      );
+      if (!runtime) {
+        setValue(request, name, splitFields(decode(value)));
+        request.sources.set(name, [...(request.sources.get(name) ?? []), ...pieces]);
+      } else
+        readList(
+          request,
+          name,
+          value === '\u0000' && substitutions.length === 1 ? substitutions[0] : undefined,
+        );
     }
   };
   let runtime = false;
@@ -636,8 +656,12 @@ function readQuery(parts: Part[], request: Request) {
         flush(buffer, runtime);
         buffer = '';
         substitutions = [];
+        pieces = [];
         runtime = false;
-      } else buffer += character;
+      } else {
+        buffer += character;
+        if (pieces.at(-1) !== part.node) pieces.push(part.node);
+      }
     }
   }
   flush(buffer, runtime);
@@ -1320,6 +1344,18 @@ function graphUrl(
   };
 }
 
+function spans(request: Request, name: string): GraphSpan[] {
+  return (request.sources.get(name) ?? []).map((node) => ({
+    file: node.getSourceFile().fileName,
+    start: node.getStart(),
+    end: node.end,
+  }));
+}
+
+function literalsOf(request: Request) {
+  return { fields: spans(request, 'fields'), metrics: spans(request, 'metric') };
+}
+
 function hostOf(url: GraphUrl): GraphCall['host'] {
   const first = url.parts[0];
   return 'text' in first && first.text.includes('graph.instagram.com')
@@ -1558,6 +1594,7 @@ function urlRecord(
       metrics,
       parameters: optionsKnown ? [...request.parameters].sort() : null,
       unknown: [...new Set(unknown)],
+      literals: literalsOf(request),
       text: excerpt(file.source, anchor),
     };
   });
@@ -1704,11 +1741,13 @@ function sdkRecord(
   const parametersArgument =
     method === 'delete' || method === 'update' ? call.arguments[0] : call.arguments[1];
   let fields: string[] | null = [];
+  const request = emptyRequest();
   if (fieldsArgument) {
-    fields = literalList(fieldsArgument) ?? null;
+    const nodes: ts.Node[] = [];
+    fields = literalList(fieldsArgument, 0, nodes) ?? null;
+    request.sources.set('fields', nodes);
     if (!fields) unknown.push(`fields come from \`${expressionName(fieldsArgument)}\` at runtime`);
   }
-  const request = emptyRequest();
   if (parametersArgument) readParameters(parametersArgument, request, 'parameters');
   unknown.push(...request.unknown);
   const metric = request.values.get('metric');
@@ -1730,6 +1769,7 @@ function sdkRecord(
     metrics: metric === undefined ? (request.unknown.length ? null : []) : metric,
     parameters: request.unknown.length ? null : [...request.parameters].sort(),
     unknown,
+    literals: literalsOf(request),
     text: excerpt(file.source, call),
   };
 }
@@ -1932,6 +1972,7 @@ function browserRequest(
     metrics: valueOf('metric'),
     parameters: optionsKnown ? [...request.parameters].sort() : null,
     unknown: [...new Set(unknown)],
+    literals: literalsOf(request),
     text: excerpt(file.source, call),
   };
 }

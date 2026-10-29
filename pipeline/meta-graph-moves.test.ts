@@ -14,6 +14,7 @@ import {
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
 import { changesUsedBy, fieldNames, proposeVersionMoves } from './meta-graph-moves.ts';
+import type { MetaGraphRule } from './meta-graph-rules.ts';
 
 const execute = promisify(execFile);
 const CLI = fileURLToPath(new URL('../bin/refit.mjs', import.meta.url));
@@ -94,8 +95,30 @@ const registry: DeadlineRegistry = {
   ],
 };
 
-async function propose(files: Record<string, string>, list = changes(), target = 'v25.0') {
-  return proposeVersionMoves(await repository(files), target, list, registry, NOW);
+async function propose(
+  files: Record<string, string>,
+  list = changes(),
+  target = 'v25.0',
+  rules: MetaGraphRule[] = [],
+) {
+  return proposeVersionMoves(await repository(files), target, list, registry, NOW, rules);
+}
+
+function rule(
+  overrides: Partial<MetaGraphRule> & Pick<MetaGraphRule, 'rule' | 'family' | 'name'>,
+): MetaGraphRule {
+  return {
+    version: 'v22.0',
+    edge: null,
+    node: null,
+    replacement: null,
+    value: null,
+    source: source('v22.0'),
+    quote: 'Quoted.',
+    checkedAt: '2026-10-29',
+    status: 'auto',
+    ...overrides,
+  };
 }
 
 const SEND = `export const send = (url) =>
@@ -125,6 +148,7 @@ describe('version moves', () => {
         to: 'v25.0',
         crossed: ['v19.0', 'v20.0', 'v21.0', 'v22.0', 'v23.0', 'v24.0', 'v25.0'],
         requests: [{ file: 'a.js', line: 2, method: 'POST', path: '/123/photos' }],
+        rules: [],
       },
     ]);
     expect(proposal.patch).toContain("-  fetch('https://graph.facebook.com/v18.0/123/photos', {");
@@ -528,3 +552,97 @@ it('writes a patch for review from the CLI and leaves the repository unchanged',
   expect(missing).toMatchObject({ code: 1 });
   expect(missing.stderr).toContain('--propose-version-moves requires --target');
 }, 60_000);
+
+describe('version moves with rules and new pins', () => {
+  it('moves environment defaults, graph.instagram.com URLs and the FB.init version', async () => {
+    const proposal = await propose({
+      'a.ts': `const VERSION = process.env.GRAPH_VERSION ?? 'v19.0';
+export const me = () => fetch(\`https://graph.facebook.com/\${VERSION}/me?fields=id\`);
+export const ig = () => fetch('https://graph.instagram.com/v20.0/me?fields=user_id');`,
+      'init.js': `FB.init({ appId: '1', version: 'v21.0' });
+FB.api('/me', { fields: 'id,name' }, (response) => response);`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(proposal.patch).toContain("+const VERSION = process.env.GRAPH_VERSION ?? 'v25.0';");
+    expect(proposal.patch).toContain(
+      "+export const ig = () => fetch('https://graph.instagram.com/v25.0/me?fields=user_id');",
+    );
+    expect(proposal.patch).toContain("+FB.init({ appId: '1', version: 'v25.0' });");
+  });
+
+  it('renames a field a documented rule renames, and stops where the name may be read', async () => {
+    const list = changes([
+      change({ id: 'renamed', version: 'v22.0', kind: 'field-removed', name: 'old_field' }),
+    ]);
+    const rename = rule({
+      rule: 'rename',
+      family: 'field-rename',
+      name: 'old_field',
+      replacement: 'new_field',
+    });
+    const clean = await propose(
+      {
+        'a.ts': `export const me = () => fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field{name}');`,
+      },
+      list,
+      'v25.0',
+      [rename],
+    );
+    expect(clean.moves).toMatchObject([{ from: 'v19.0', rules: ['rename'] }]);
+    expect(clean.patch).toContain(
+      "fetch('https://graph.facebook.com/v25.0/me?fields=id,new_field{name}')",
+    );
+    const read = await propose(
+      {
+        'a.ts': `export const me = async () => (await (await fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field')).json()).old_field;`,
+      },
+      list,
+      'v25.0',
+      [rename],
+    );
+    expect(read.moves).toEqual([]);
+    expect(read.stops[0].reasons).toEqual([
+      expect.stringContaining(
+        '`old_field` also appears at a.ts:1, which may read the renamed response field',
+      ),
+    ]);
+    // Without the rule the change stops the move, as before.
+    const unruled = await propose(
+      {
+        'a.ts': `export const me = () => fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field');`,
+      },
+      list,
+    );
+    expect(unruled.stops[0].reasons).toEqual([expect.stringContaining('field-removed renamed')]);
+  });
+
+  it('stops for a newly required parameter, and for rules marked for review', async () => {
+    const required = rule({
+      rule: 'needs-type',
+      family: 'parameter-required',
+      edge: 'feed',
+      name: 'type',
+      value: 'link',
+    });
+    const review = rule({
+      rule: 'look',
+      family: 'field-rename',
+      name: 'id',
+      replacement: 'uid',
+      status: 'review',
+    });
+    const proposal = await propose(
+      {
+        'a.ts': `export const post = (id: string) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${id}/feed?fields=id\`, { method: 'POST', body: JSON.stringify({ message: 'hi' }) });`,
+      },
+      changes(),
+      'v25.0',
+      [required, review],
+    );
+    expect(proposal.stops[0].reasons).toEqual([
+      expect.stringContaining('requires the `type` parameter (documented value `link`)'),
+      expect.stringContaining('renames `id` to `uid` and is marked for review'),
+    ]);
+  });
+});

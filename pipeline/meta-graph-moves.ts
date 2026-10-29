@@ -15,6 +15,7 @@ import {
   type MetaGraphChange,
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
+import { applyRules, type MetaGraphRule } from './meta-graph-rules.ts';
 import { renderPatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { META_SDK } from './deadline-exposure.ts';
@@ -46,6 +47,8 @@ export interface VersionMove {
   // Versions crossed, each with a reviewed changelog that lists nothing these requests use.
   crossed: string[];
   requests: VersionMoveRequest[];
+  // Documented rules applied with the move, such as a renamed field in a `fields` list.
+  rules: string[];
 }
 
 export interface VersionMoveStop {
@@ -417,6 +420,7 @@ export async function proposeVersionMoves(
   changes: MetaGraphChanges,
   registry: DeadlineRegistry,
   now: Date,
+  rules: MetaGraphRule[] = [],
 ): Promise<VersionMoveProposal> {
   if (!VERSION.test(target)) throw new PipelineInputError('--target must look like v24.0.');
   const records = new Map(changes.versions.map((entry) => [entry.version, entry]));
@@ -507,11 +511,20 @@ export async function proposeVersionMoves(
         `${unreviewed.join(', ')}: ${unreviewed.length === 1 ? 'this changelog is' : 'these changelogs are'} not reviewed in the Meta Graph API change list`,
       );
     const inRange = changes.changes.filter((change) => crossed.includes(change.version));
-    for (const call of calls)
+    const rulesInRange = rules.filter((rule) => crossed.includes(rule.version));
+    const ruleEdits: SourceEdit[] = [];
+    const applied = new Set<string>();
+    for (const call of calls) {
+      const outcome = applyRules(call, rulesInRange, repository, calls, scan.calls);
+      reasons.push(...outcome.reasons);
+      ruleEdits.push(...outcome.edits);
+      for (const edit of outcome.edits) applied.add(edit.changeId.replace('meta-graph-rule-', ''));
       for (const change of changesUsedBy(call, inRange))
-        reasons.push(
-          `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
-        );
+        if (!outcome.covers.includes(`${change.kind} ${change.name}`))
+          reasons.push(
+            `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
+          );
+    }
     let edit: PinEdit | undefined;
     if (calls.some((call) => call.kind === 'url')) {
       edit = pinEdit(repository, file, line, from);
@@ -527,7 +540,18 @@ export async function proposeVersionMoves(
       });
       continue;
     }
-    moves.push({ file, line, from, to: target, crossed, requests: calls.map(request) });
+    moves.push({
+      file,
+      line,
+      from,
+      to: target,
+      crossed,
+      requests: calls.map(request),
+      rules: [...applied].sort(),
+    });
+    for (const edit of ruleEdits)
+      if (!edits.some((item) => item.file === edit.file && item.start === edit.start))
+        edits.push(edit);
     edits.push({
       file,
       start: edit.start,

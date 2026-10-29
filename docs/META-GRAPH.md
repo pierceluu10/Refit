@@ -14,6 +14,8 @@ refit meta-graph --repository /path/to/app --json
 Refit reads JavaScript and TypeScript source and `package.json` files, without installing or running anything. It reports two kinds of request:
 
 - **Raw HTTP to `graph.facebook.com`.** A URL is a string, template or `+` concatenation that starts with `https://graph.facebook.com`, or with a constant that holds one: `` `${GRAPH_BASE}/me/accounts` ``, including a base exported from another file and imported by name (`import { GRAPH_BASE } from './graph.js'` or `const { GRAPH_BASE } = require('./graph')`), and aliases such as `const API = GRAPH_BASE`. A URL kept in a `const` and passed to a call later is followed to that call.
+- **Raw HTTP to `graph.instagram.com`**, read the same way: the Instagram API with Instagram Login on Graph versions, and the retired Instagram Basic Display API, unversioned. Each request has a `host` field naming graph.facebook.com or graph.instagram.com.
+- **The browser JavaScript SDK.** `FB.api(path, method?, params?, callback?)` with the version `FB.init({ version: 'v20.0' })` sets, pinned at that `FB.init`. Several `FB.init` calls with different versions, or one built at runtime, leave the version unknown. An `FB.init` with no `FB.api` request anywhere is reported on its own, as a pin with no traced request.
 - **`facebook-nodejs-business-sdk` resource classes.** `new AdAccount(id).getCampaigns(fields, params)`, or a variable holding `new AdAccount(id)`, where `AdAccount` comes from the SDK through a named import, `bizSdk.AdAccount`, or a destructured `require`. The SDK's generated methods are mapped to Graph API edges by [`data/meta-business-sdk-edges.json`](../data/meta-business-sdk-edges.json), built from the SDK's own source (see [below](#the-business-sdk-edge-map)). `get` and `read` read the node, `update` posts to it and `delete` deletes it. `FacebookAdsApi.init` is set-up, not a request.
 
 Each request lists:
@@ -34,11 +36,13 @@ Each request lists:
 Values are read only from literal code. Anything built at runtime is reported as unknown with its reason and never guessed:
 
 - **Request options** are read from `fetch(url, { method, body })`, `axios.get(url, { params })`, `axios.post(url, data, { params })` and `axios({ url, method, params, data })`, including a `const` object or `new URLSearchParams({...})` and `JSON.stringify({...})` around one. A spread (`{ ...defaults }`), a computed key, a `FormData`, or a `const` changed after its declaration (`params.set(...)`, `body.link = ...`, `Object.assign(options, ...)`) makes the parameters unknown, and with them `fields` and `metrics`.
-- **Helpers.** A Graph URL passed to any other function, such as a project's own `metaFetch(ctx, url)`, is reported with that function as the client. Its HTTP method and extra options are unknown, so its parameters are too; `fields` written in the URL itself are still reported.
-- **Versions and paths.** `` `https://graph.facebook.com/${version}/…` `` has an unknown version, unless `version` is a `const` holding a literal such as `'v21.0'`. A runtime segment after the node (`` `/${id}/${edge}` ``), or one named like a path (`${path}`, `${endpoint}`), makes the rest of the path unknown. A substitution inside a query value (`fields=${fields}`) is unknown even when a constant could resolve it.
+- **Parameters set step by step** on a `const` holding `new FormData()`, `new URLSearchParams(...)` or an object literal are read when every change names a literal key: `form.append('source', file)`, `params.set('fields', 'id')`, `body.link = url` or `body['link'] = url`. A `fields` or `metric` value set under an `if`, a loop or `cond && ...` is unknown, since the request may not send it. `qs.stringify(params)`, `querystring.stringify(params)` and `params.toString()` carry the same parameters. A computed key, `delete` or `Object.assign` still makes them unknown.
+- **Helpers.** A project helper whose body makes exactly one `fetch` call with its URL parameter, and no options or another parameter as options, both unchanged, such as `metaFetch(ctx, url, init)` calling `ctx.fetch(url, init)`, is read like `fetch`: its method and options come from the arguments at the call. It is found in the same file or through a relative import, including an alias (`metaFetch as fb`). A Graph URL passed to any other function is reported with that function as the client. Its HTTP method and extra options are unknown, so its parameters are too; `fields` written in the URL itself are still reported.
+- **axios instances.** Requests made on `const graph = axios.create({ baseURL: 'https://graph.facebook.com/v20.0' })` in the same file, such as `graph.get('/me', { params })`, are read with the base's version and pin. Any other use of the instance (exported, passed to a function, stored) is listed as unknown on each request, since it may make requests the scan cannot see.
+- **Versions and paths.** `` `https://graph.facebook.com/${version}/…` `` has an unknown version, unless `version` is a `const` holding a literal such as `'v21.0'`, or the fallback of an environment variable (`process.env.GRAPH_VERSION || 'v21.0'`, also `??` and `import.meta.env`), reported as `env-default`. A base held as `process.env.GRAPH_URL ?? 'https://graph.facebook.com/v19.0'` is read the same way. The value deployed in the variable can differ; Refit reports and moves the version the code ships. A runtime segment after the node (`` `/${id}/${edge}` ``), or one named like a path (`${path}`, `${endpoint}`), makes the rest of the path unknown. A substitution that is a whole `fields` or `metric` value is read when it resolves to a literal list (`fields=${FIELDS.join(',')}` with `const FIELDS = ['id', 'caption']`); any other substitution inside a query value is unknown.
 - **Reassigned URLs.** A `let` assigned again, such as a pagination loop's `next = data.paging.next`, may hold another URL by the time of the request, so its path, edge, fields and parameters are unknown.
 - **Bases.** A versioned base URL passed to a function, such as `createClient('https://graph.facebook.com/v18.0')`, is reported once with no request, since the requests built from it are not traced. An unversioned base says nothing about a version and is not reported.
-- **Comments never count**, and neither do other hosts (`graph.instagram.com`, `b-graph.facebook.com`) or a bare host name used as an object key.
+- **Comments never count**, and neither do other hosts (`api.instagram.com`, `b-graph.facebook.com`) or a bare host name used as an object key.
 
 ## The business SDK edge map
 
@@ -206,13 +210,60 @@ The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLIN
   - A pin can have more than one reason, so the counts overlap.
   - The other 17 stopped pins are used only by tests and examples.
 
+## Fix plans
+
+```sh
+refit meta-graph --fix --target v25.0 --repository /path/to/app
+refit meta-graph --fix --target v25.0 --output graph.patch --json
+```
+
+`--fix` builds on [the version moves](#propose-version-moves-review-only) and adds what Refit knows how to change, or must hand to a person. Nothing is applied, validated or sent to Meta, and this is not yet part of `refit run`, validation or drafts.
+
+- **Documented rules.** Rules live in `data/rules/meta-graph/<version>.json`, one file per Graph API version. Each names its `family`, the `name` it changes, an optional `edge`, a `replacement` or documented `value`, the developers.facebook.com `source`, the `quote` and `checkedAt`, and a `status` of `auto` or `review`. A rule applies to a request whose move crosses its version.
+  - An `auto` field or metric rename edits the one literal list item the request sends (`fields=id,old_field{name}` becomes `fields=id,new_field{name}`) in the same patch as the version move, and the change it settles no longer stops the move.
+  - The rename stops when the item is not written exactly once in a literal the request reads, or when another request outside the move shares the literal. It also stops when the old name appears anywhere else in the code, since that may be a read of the renamed response field. Response reads are never edited.
+  - Edge renames, parameter renames, newly required parameters (`parameter-required`, listed with the documented value) and every `review` rule stop the move with the rule and its source.
+  - No rule files are committed yet. Until they are, the plan's moves equal `--propose-version-moves`.
+- **Product migrations.** Instagram Basic Display use is identified by the `user_profile` and `user_media` permissions, which no Instagram API with Instagram Login permission is named. It is listed with every place it is used and the documented plan: the API stopped working on 2024-12-04 ([Meta](https://developers.facebook.com/blog/post/2024/09/04/update-on-instagram-basic-display-api)); move to the Instagram API with Instagram Login ([Business Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login)), which needs a professional account. That is not a mechanical edit, so it is never applied. WhatsApp on-premises requests run on the customer's own host and no reachable Meta page documents their shape, so they are not detected.
+- **Alerts.** `data/meta-platform-alerts.json` lists permission, product and policy changes. Each entry quotes a developers.facebook.com page read on 2026-10-29, with the date it takes effect when the page gives one. An alert matches:
+  - requested permissions, read as separate items of any string in code that mentions Facebook, Instagram, `FB` or a scope;
+  - an insights `metric` a request sends;
+  - a request path;
+  - a recognised product.
+
+  Each hit is `in-effect`, `upcoming` or `undated` on the day of the check, with the replacement Meta names. Alerts never edit code, and test files are not matched. The entries cover the 2018 `publish_actions` removal, `manage_pages` and `publish_pages`, the 2025 Instagram Login scope renames, the Basic Display shutdown, the 2024 and 2025 Page Insights metric removals, and the 2025 oEmbed Read change.
+
+### Measured on the deadline benchmark, 2026-10-29
+
+The 33 Meta repositories of the deadline benchmark (not the blind set) were scanned offline at their pinned commits, on `bench/combined-final` and on this change, with target v25.0:
+
+| Measure | Before | After |
+|---|---:|---:|
+| Requests in live code | 162 | 168 |
+| `fields` read | 113 | 155 |
+| Pins moved (requests) | 35 (35) | 46 (50) |
+| Pins stopped | 120 | 116 |
+| Basic Display migrations | – | 1 |
+| Alerts | – | 2 |
+
+- **Every changed request (52) was checked by hand against the code, and every value was right.** Most of the gain came from three things:
+  - `metaFetch` pass-throughs in manypost/manypost-app;
+  - `FormData`, `URLSearchParams` and `qs.stringify` bodies in the STLAF repositories, EzekielClervo/BOOSTING, receevi/receevi, AnkitPandeyIT/lorry and zak01Z/app-ch;
+  - graph.instagram.com requests in manypost and savarkavi/instagram-profile-test.
+- **The 11 new moves were each read.** Every one changes only the version in a URL, on Page photo and feed posts, Instagram media and media_publish, `/{user}/subscribers` and `/me/feed`. No move from before was lost.
+- **The migration and the alerts:**
+  - savarkavi/instagram-profile-test links to the Basic Display authorize URL with `user_profile,user_media`, so it is listed as a migration and alerted.
+  - icekidtech/social-snap calls `/instagram_oembed`, so it gets the 2025-11-03 oEmbed alert.
+- **Not measured:** ME1's meta-dev-60 set was not frozen when this was measured.
+
 ## What a Meta agent still needs
 
 The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is one of the pieces a reviewed agent needs; these are still missing:
 
 1. **Product changelogs.** v14.0 to v26.0 are reviewed from the Graph API changelog pages, but the WhatsApp Business Platform and Messenger Platform changelogs are not, so their requests always stop.
 2. **An owner decision on the version-move rule.** The [review-only rule](#propose-version-moves-review-only) exists. Wiring it into `refit run`, validation and drafts waits on the decision about whether a hand-maintained change list is enough evidence for an automatic edit.
-3. **More coverage.** The browser SDK's `FB.init({ version })`, URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults.
+3. **More coverage.** URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults, and a field rename stops wherever the old name appears.
+4. **A pipeline adapter.** `--fix` plans are not yet reports that `refit run` validates and publishes as drafts, and AI repair of build breaks and undocumented reads is not wired to them.
 
 ## Limits
 
