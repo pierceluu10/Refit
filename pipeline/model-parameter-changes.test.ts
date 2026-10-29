@@ -211,6 +211,24 @@ describe('sourced parameter changes applied with the swap', () => {
     expect(sol.replacements.map((item) => item.to)).toEqual(['gpt-5.6-sol']);
   });
 
+  it('stops every request of a function-calling flow together', async () => {
+    const source = [
+      "import OpenAI from 'openai';",
+      'const client = new OpenAI();',
+      'export async function run(messages: any[], functions: any[]) {',
+      "  const first = await client.chat.completions.create({ model: 'gpt-4', messages, functions });",
+      "  messages.push({ role: 'function', name: 'f', content: '{}' });",
+      "  return client.chat.completions.create({ model: 'gpt-4', messages });",
+      '}',
+    ].join('\n');
+    for (const withChanges of [true, false]) {
+      const proposal = await propose(source, withChanges);
+      expect(proposal.replacements).toEqual([]);
+      expect(proposal.stops.map((stop) => stop.line)).toEqual([4, 6]);
+      expect(proposal.stops[1].reason).toContain('function-calling flow');
+    }
+  });
+
   it('never drops a comment with a removed parameter', async () => {
     const proposal = await propose(
       anthropic(
