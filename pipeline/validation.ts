@@ -34,6 +34,7 @@ import {
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyExtraFiles, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import { codegenPinFiles, shopifyProof } from './shopify-proof.ts';
+import type { ShopifyLiveCase } from './shopify-live-proof.ts';
 import { shopifySchema, shopifySnapshotPath } from './shopify-schemas.ts';
 import { META_GRAPH_PROVIDER, metaGraphEvidence } from './meta-graph-proof.ts';
 import {
@@ -3400,6 +3401,24 @@ export async function validateMigration(options: {
                 const line =
                   before && after && movedLine(before.content, after.content, entry.line);
                 return entry.document && line ? [{ ...entry, line, document: entry.document }] : [];
+              }),
+              // Development store cases the Shopify migrations wrote (shopify-migrations.ts).
+              cases: (
+                (
+                  report as {
+                    shopify?: {
+                      liveCases?: (Omit<ShopifyLiveCase, 'document'> & {
+                        file: string;
+                        line: number;
+                      })[];
+                    };
+                  }
+                ).shopify?.liveCases ?? []
+              ).flatMap(({ file, line, ...entry }) => {
+                const before = originalSources.files.find((item) => item.path === file);
+                const after = candidateSources!.files.find((item) => item.path === file);
+                const moved = before && after && movedLine(before.content, after.content, line);
+                return moved ? [{ ...entry, document: `${file}:${moved}` }] : [];
               }),
             }),
           )

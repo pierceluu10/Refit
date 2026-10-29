@@ -189,7 +189,8 @@ const onlyFields = (operation: OperationDefinitionNode, suffix: string) =>
 
 function lookup(value: unknown, path: string[]): unknown {
   return path.reduce<unknown>(
-    (current, key) => (isObject(current) ? current[key] : undefined),
+    (current, key) =>
+      isObject(current) ? current[key] : Array.isArray(current) ? current[Number(key)] : undefined,
     value,
   );
 }

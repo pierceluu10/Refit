@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: Shopify retired-version migrations (unreleased, after 0.39.0)
+
+Documents that already fail on the oldest supported Admin version (Shopify serves it to retired pins today) are now fixed where a documented migration applies, instead of stopping: `productVariantUpdate` becomes `productVariantsBulkUpdate` with the call's variables and response reads rewritten (rule `shopify-product-variant-update-to-bulk-update`, quoting Shopify's own app-template change), and unused variable declarations are removed. A patch that changes a document's variables is graded above D only when the development store ran the operation; the migration writes that case. See [Shopify rules](SHOPIFY-RULES.md#migrations). Benchmark evidence is in `docs/BENCHMARKS.md`.
+
 ## October 29 checkpoint: Shopify pinned schemas, diffs and rules (unreleased, after 0.39.0)
 
 Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2025-10, 2026-01 to 2026-10) schemas are pinned by SHA-256 with their source and saved in the repository. Deterministic diffs between consecutive pins are committed and checked by `refit rules check`. 67 rules and 238 alerts quote Shopify's changelog and REST reference verbatim and agree with the diffs; `refit rules mine-shopify` mined 20 of the rules and 198 of the alerts on refit-bench Actions ($1.70). Under the founder's "proof decides" decision of 2026-10-29, 44 rules are `auto` (renames within one type and argument drops, which keep every response key; each edited document must validate on the target schema), and the rest are review-only. No Shopify benchmark has run on them. Coverage and limits: [Shopify contracts and rules](SHOPIFY-RULES.md).
