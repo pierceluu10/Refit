@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-may-4-2021",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/non-versioned-changes/may-4-2021/",
+  "revision": "92b3cba37698b4e8b2d6c3c8c54dee2943c7af1c3969e852738abbd7045a2e9e",
+  "hash": "92b3cba37698b4e8b2d6c3c8c54dee2943c7af1c3969e852738abbd7045a2e9e",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nInstagram Graph API\n\nMade a minor change to how we calculate the online_followers metric on IG Users.",
+  "contentType": "text/html"
+}

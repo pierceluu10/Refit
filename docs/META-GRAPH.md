@@ -85,7 +85,7 @@ node scripts/meta-graph-benchmark.mjs --root . --score --results docs/benchmarks
 
 ## The per-version change list
 
-`data/meta-graph-changes.json` is a reviewed list of what each Graph API version removes or changes, kept by hand from Meta's changelog in the style of the [deadline registry](DEADLINES.md#the-registry). Meta publishes one changelog page per version, not a contract, so every record names the page it came from and the day someone read it.
+`data/meta-graph/changes.json` is the versioned list of what each Graph API version, and each out-of-cycle or platform change, removes or changes, built from Meta's changelogs in the style of the [deadline registry](DEADLINES.md#the-registry). Meta publishes prose changelogs, not a contract, so every record names the page it came from, the day it was read and the passage that states it; `refit rules check` finds each passage in the saved page. How it is built, its kinds, its rules and its coverage: [Meta Graph change table](META-GRAPH-CHANGES.md).
 
 ```json
 {
@@ -140,12 +140,10 @@ It also lists the `unread` versions, since a version move across them must stop 
 
 ### What the list holds today
 
-**v14.0 to v26.0 are `reviewed`, with 281 changes.** Each version's changelog page was read in full on 2026-10-20 from developers.facebook.com, the Graph API and Marketing API sections alike, and every removal or change that names an edge, field, metric, parameter or endpoint was recorded with the page as its `source`. Each version's `note` says what the page holds that is not an entry and why, such as permission policy changes, error codes, transport changes or additions.
+**v10.0 to v26.0 are `reviewed`, with 805 changes and 105 rules (2026-10-29).** The Graph API and Marketing API changelogs of every version, the Graph API out-of-cycle changes since 2021 and the Instagram Platform, WhatsApp Business Platform and Messenger Platform changelogs were saved and mined; see [Meta Graph change table](META-GRAPH-CHANGES.md) for the method, the coverage and what is still missing. Out-of-cycle and platform changes that apply to every version at once have `version: null` and the date in `appliesToAll`, so no version move crosses them.
 
-- **Instagram.** The newer pages have Instagram sections. They were checked against the version-gated entries of the [Instagram Platform changelog](https://developers.facebook.com/docs/instagram-platform/changelog), which match except for one: from v14.0 the IG Media `video_title` field returns an error. That entry cites the Instagram changelog. Its other entries apply to all versions, so they affect a request whatever version it pins and cannot make a move unsafe.
-- **WhatsApp and Messenger are not covered.** The pages only link to the WhatsApp Business Platform, WhatsApp Flows and Messenger Platform changelogs, which are dated rather than organized by Graph version. So a request that belongs to them always stops for review; see [the move conditions](#propose-version-moves-review-only).
+- **WhatsApp and Messenger.** Their changelogs are now in the list, but a request that belongs to them still stops every move: widening the move rule is an owner decision; see [the move conditions](#propose-version-moves-review-only).
 - **Node-wide changes.** Some changes remove a whole node type, such as `GET /{offline-event-set-id}` or the Instagram v1.0 nodes. An opaque ID cannot reveal its node type, so these are recorded as a single placeholder path, and they stop every request to a single opaque node (a placeholder or numeric ID) whose version range crosses them. They never match a literal path such as `/me`.
-- **v13.0 is `unread`.** Its changes matter only when moving a pin older than v13.0, and no benchmark repository pins one. Read it before moving such a pin.
 - **v26.0** has a record although the deadline registry, which lists sunsets only, does not list it.
 
 To update the list, read the new version's changelog page in full, add every removal or change that names an edge, field, metric, parameter or endpoint, set the version to `reviewed` with the day you read it, and run `npm run meta-graph:check`.
@@ -184,7 +182,7 @@ The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLIN
 | Change list | Pins moved | Pins stopped | Requests without a pinned version |
 |---|---:|---:|---:|
 | Every changelog unread (the list before this change) | 0 | 148 | 7 |
-| **Reviewed v14.0 to v26.0, 281 changes (committed)** | **35 (35 requests, 13 repositories)** | 113 | 7 |
+| **Reviewed v14.0 to v26.0, 281 changes (2026-10-20 list)** | **35 (35 requests, 13 repositories)** | 113 | 7 |
 | Hypothetical: every version marked reviewed, with no changes | 100 (101 requests, 26 repositories) | 48 | 7 |
 
 - **With the reviewed list, 35 pins move** in 13 repositories: 23 from v19.0, 8 from v18.0, 3 from v20.0 and 1 from v21.0. Every moved request was checked by hand against the list. They are Instagram content publishing (`/media`, `/media_publish`), Instagram media reads that name their fields, ads insights and `/me/adaccounts` reads that name their fields, Page feed posts, Conversions API events and `/me`. No version-gated change in range touches any of them, and none is a WhatsApp or Messenger request.
@@ -210,7 +208,7 @@ The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLIN
 
 The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is one of the pieces a reviewed agent needs; these are still missing:
 
-1. **Product changelogs.** v14.0 to v26.0 are reviewed from the Graph API changelog pages, but the WhatsApp Business Platform and Messenger Platform changelogs are not, so their requests always stop.
+1. **Product changelog moves.** The WhatsApp Business Platform and Messenger Platform changelogs are in the list since 2026-10-29, but their requests still stop every move until an owner decides the move rule may use them.
 2. **An owner decision on the version-move rule.** The [review-only rule](#propose-version-moves-review-only) exists. Wiring it into `refit run`, validation and drafts waits on the decision about whether a hand-maintained change list is enough evidence for an automatic edit.
 3. **More coverage.** The browser SDK's `FB.init({ version })`, URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults.
 

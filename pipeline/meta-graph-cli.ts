@@ -18,7 +18,7 @@ const USAGE = `Usage: refit meta-graph [--repository <root>] [--json]
        refit meta-graph --check-changes [--changes <path>] [--json]
 Lists the Meta Graph API requests a repository makes: raw graph.facebook.com calls through fetch, axios and helpers, and facebook-nodejs-business-sdk resource-class calls. Each shows file:line, the pinned version, the path and edge, and the requested fields and metrics where they are written literally. Values built at runtime are marked unknown, with the reason.
 --propose-version-moves proposes moving each pinned Graph API version to --target only where every request through it is fully known and every changelog crossed is reviewed and lists nothing those requests use; every other pin stops for review with the exact reasons. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
---check-changes validates the reviewed per-version change list in data/meta-graph-changes.json, lists versions whose changelog was not read, and versions the deadline registry has that the list does not. It exits 1 on any error.
+--check-changes validates the reviewed per-version change list in data/meta-graph/changes.json, lists versions whose changelog was not read, and versions the deadline registry has that the list does not. It exits 1 on any error.
 Review only: nothing is changed, installed, run or sent to Meta.`;
 
 try {

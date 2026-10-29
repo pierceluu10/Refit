@@ -255,6 +255,11 @@ export async function captureDocumentation(
   };
 }
 
+// Visible text of an HTML page, normalized as a captured snapshot's content is.
+export function documentationText(html: string) {
+  return normalizeContent(htmlToText(html));
+}
+
 function htmlToText(html: string) {
   const document = parse(html, { scriptingEnabled: false }) as unknown as HtmlNode;
   const root = findContentRoot(document) ?? document;

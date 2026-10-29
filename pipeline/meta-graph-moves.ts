@@ -104,17 +104,23 @@ function pathMatches(path: string, prefix: string) {
   );
 }
 
-// The change-list entries a request uses: its edge or endpoint, a field it requests, a metric or a
-// parameter. A GET that names no fields gets the node's defaults, so any field change counts.
+// The change-list entries a request uses: its edge or endpoint, a field it requests, a metric, a
+// breakdown or a parameter. A GET that names no fields gets the node's defaults, so any field change
+// counts. Webhook changes follow the app's webhook version, not the request's, so no request uses
+// them; they stay alerts.
 export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
   const fields = call.fields ? fieldNames(call.fields) : new Set<string>();
+  const endpoint = (change: MetaGraphChange) =>
+    (change.edge !== null && change.edge === call.edge) ||
+    (change.path !== null && call.path !== null && pathMatches(call.path, change.path));
   return changes.filter((change) => {
     switch (change.kind) {
       case 'endpoint-removed':
-        return (
-          (change.edge !== null && change.edge === call.edge) ||
-          (change.path !== null && call.path !== null && pathMatches(call.path, change.path))
-        );
+      case 'endpoint-changed':
+      case 'parameter-required':
+      case 'error-changed':
+      case 'permission-changed':
+        return endpoint(change);
       case 'edge-removed':
       case 'edge-changed':
         return change.edge === call.edge;
@@ -131,6 +137,17 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
       case 'parameter-removed':
       case 'parameter-changed':
         return call.parameters?.includes(change.name!) ?? false;
+      // The values a request breaks down by are not traced, so any breakdown on insights counts.
+      case 'breakdown-removed':
+        return (
+          call.edge === 'insights' &&
+          (call.parameters?.some((name) => /^(action_)?breakdowns$/.test(name)) ?? false)
+        );
+      // A product shutdown names no endpoint a request could match; it stays an alert.
+      case 'product-removed':
+      case 'webhook-field-removed':
+      case 'webhook-field-changed':
+        return false;
     }
     return true;
   });
@@ -501,7 +518,9 @@ export async function proposeVersionMoves(
       reasons.push(
         `${unreviewed.join(', ')}: ${unreviewed.length === 1 ? 'this changelog is' : 'these changelogs are'} not reviewed in the Meta Graph API change list`,
       );
-    const inRange = changes.changes.filter((change) => crossed.includes(change.version));
+    const inRange = changes.changes.filter(
+      (change) => change.version !== null && crossed.includes(change.version),
+    );
     for (const call of calls)
       for (const change of changesUsedBy(call, inRange))
         reasons.push(

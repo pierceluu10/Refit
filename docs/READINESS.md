@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: Meta Graph change table and rules (unreleased, after 0.39.0)
+
+`data/meta-graph/changes.json` (moved from `data/meta-graph-changes.json`) now covers Graph API v10.0 to v26.0, the Graph API out-of-cycle changes since 2021, and the Instagram Platform, WhatsApp Business Platform and Messenger Platform changelogs: 805 changes, each with the passage that states it. `data/rules/meta-graph/` holds 105 review-only rules for every change whose changelog names a replacement; the other 700 changes are alert-only, each dated. `refit rules check` verifies every quote against the saved page in `docs/benchmarks/meta-graph-changelog/pages` before the Stripe rules. New kinds (`endpoint-changed`, `product-removed`, `parameter-required`, `breakdown-removed`, webhook, error and permission changes) stop version moves only where a request uses the endpoint, parameter or breakdown; webhook and product changes stay alerts. Nothing applies the rules yet, and no benchmark was run. See [Meta Graph change table](META-GRAPH-CHANGES.md).
+
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 
 An untraced call no longer blocks an operation the adapter does not map when it is known to request another operation, is a local webhook helper or sets up a test double ([census](MINED-RULES.md#rule-coverage-census-2026-10-28-branch-featrule-coverage)). New endive rules send `billing_cycle_anchor: 'now'`/`'unchanged'` on subscription update and resume as `{ type: … }`, as Stripe's changelog documents (`request-enum-value` with `discriminator`). The benchmark attaches the changelog pages that name a reached contract change to AI coverage requests. Measured offline only (scan without validation): heldout-30 moves MeiyuTech/AET-App from held to fixed; no benchmark was run.
@@ -415,7 +419,7 @@ Most untraced exposures are catalog entries the scanner counts as live, or libra
 
 ## October 20 checkpoint: reviewed Meta Graph API change list (unreleased)
 
-`data/meta-graph-changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.
+`data/meta-graph/changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.
 
 `refit meta-graph --propose-version-moves` gained three stricter rules:
 
@@ -547,7 +551,7 @@ The default suite ran 1,587 tests across 100 files, with 78 environment-gated te
 
 Second review-only step toward a Meta agent (shared work item 5 in [Provider goals](PROVIDER-GOALS.md)).
 
-- **`data/meta-graph-changes.json`** is a hand-kept list of what each Graph API version removes or changes: endpoints, edges, fields, insights metrics and parameters. Every change needs a developers.facebook.com `source`, a `checkedAt` date, and a version whose changelog page is marked `reviewed`. See [the change list](META-GRAPH.md#the-per-version-change-list).
+- **`data/meta-graph/changes.json`** is a hand-kept list of what each Graph API version removes or changes: endpoints, edges, fields, insights metrics and parameters. Every change needs a developers.facebook.com `source`, a `checkedAt` date, and a version whose changelog page is marked `reviewed`. See [the change list](META-GRAPH.md#the-per-version-change-list).
 - **`npm run meta-graph:check`** (`refit meta-graph --check-changes`) rejects the whole file on any error: unknown or missing fields, duplicates, bad or future dates, sources outside Meta's documentation, and changes from unread pages. It also lists unread versions and Meta versions in the deadline registry that have no record.
 - **No changes are recorded.** developers.facebook.com could not be reached from this environment: the proxy refused every connection. The file holds 14 `unread` version records, v13.0 to v26.0, each saying so. Search results confirmed the page addresses for v17.0, v19.0, v22.0, v26.0 and the versions index, and were not used as evidence of any change. Nothing reads this list yet.
 

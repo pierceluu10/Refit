@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-oct-26-2021",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/ooc-changes/oct-26-2021/",
+  "revision": "6a008f86e016e6d2f2688645bd50849db5585dc0b7b9826d5601340e3685c6a1",
+  "hash": "6a008f86e016e6d2f2688645bd50849db5585dc0b7b9826d5601340e3685c6a1",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nOctober 26, 2021\n\nOut-of-cycle changes.\n\nInstagram Ads API\n\nInstagram Shop Ads\n\nThis change applies to all versions.\n\nYou can now use the Instagram Ads API to create and place ads in the Instagram Shop tab. Refer to the Instagram Ads API Get Started document to learn how.",
+  "contentType": "text/html"
+}

@@ -28,6 +28,7 @@ afterEach(async () => {
 function version(overrides: Partial<MetaGraphVersion> = {}): MetaGraphVersion {
   return {
     version: 'v21.0',
+    released: '2024-10-02',
     status: 'reviewed',
     source: SOURCE,
     checkedAt: '2026-10-20',
@@ -45,7 +46,10 @@ function change(overrides: Partial<MetaGraphChange> = {}): MetaGraphChange {
     edge: null,
     path: null,
     name: 'old_field',
+    replacement: null,
+    appliesToAll: null,
     summary: 'Page.old_field is removed.',
+    quote: 'The old_field field on Page is removed.',
     source: `${SOURCE}#pages`,
     checkedAt: '2026-10-20',
     ...overrides,
@@ -58,35 +62,35 @@ function list(versions: unknown[], changes: unknown[] = []) {
 
 describe('the committed change list', () => {
   it('is valid, covers every Meta version in the deadline registry and lists no change unread', async () => {
+    const read = new Date('2026-10-29T12:00:00Z');
     const value = JSON.parse(await readFile(DEFAULT_META_GRAPH_CHANGES, 'utf8'));
-    const registry = await loadDeadlineRegistry(undefined, NOW);
+    const registry = await loadDeadlineRegistry(undefined, read);
     const registryVersions = registry.deadlines
       .filter((entry) => entry.provider === 'meta-graph')
       .flatMap((entry) => entry.versions);
-    const report = checkMetaGraphChanges(value, NOW, registryVersions);
+    const report = checkMetaGraphChanges(value, read, registryVersions);
     expect(report.errors).toEqual([]);
     expect(report.missing).toEqual([]);
-    // v14.0 to v26.0 were read in full; v13.0 matters only to pins older than any benchmark pin.
-    expect(report.unread).toEqual(['v13.0']);
-    const reviewed = value.versions.filter(
-      (entry: { status: string }) => entry.status === 'reviewed',
+    // v10.0, the oldest version benchmark repositories pin, to v26.0 were read in full.
+    expect(report.unread).toEqual([]);
+    expect(value.versions.map((entry: { version: string }) => entry.version)).toEqual(
+      Array.from({ length: 17 }, (_, index) => `v${10 + index}.0`),
     );
-    expect(reviewed.map((entry: { version: string }) => entry.version)).toEqual(
-      Array.from({ length: 13 }, (_, index) => `v${14 + index}.0`),
-    );
-    for (const entry of reviewed) {
+    for (const entry of value.versions)
       expect(entry.note).toMatch(/^Read in full on \d{4}-\d{2}-\d{2}/);
-      // The product changelogs the pages only link to are named as not covered.
-      expect(entry.note).toContain(
-        'WhatsApp Business Platform, WhatsApp Flows and Messenger Platform',
-      );
+    expect(value.changes.length).toBeGreaterThan(500);
+    for (const entry of value.changes) {
+      expect(entry.source).toMatch(/^https:\/\/developers\.facebook\.com\/(docs|documentation)\//);
+      expect(entry.quote.length).toBeGreaterThan(0);
     }
-    expect(value.changes.length).toBeGreaterThan(200);
-    for (const entry of value.changes)
-      expect(entry.source).toMatch(
-        /^https:\/\/developers\.facebook\.com\/docs\/(graph-api\/changelog\/version\d+\.0|instagram-platform\/changelog)$/,
-      );
-    expect(await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, NOW)).toMatchObject({
+    // Platform changelogs and out-of-cycle changes are covered too.
+    expect(
+      value.changes.some((entry: { source: string }) => entry.source.includes('whatsapp')),
+    ).toBe(true);
+    expect(value.changes.some((entry: { version: string | null }) => entry.version === null)).toBe(
+      true,
+    );
+    expect(await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, read)).toMatchObject({
       provider: 'meta-graph',
     });
   });
@@ -98,9 +102,11 @@ describe('checkMetaGraphChanges', () => {
       change({
         id: `change-${index}`,
         kind,
-        edge: kind.startsWith('edge-') || kind === 'endpoint-removed' ? 'feed' : null,
-        path: kind === 'endpoint-removed' ? '/instagram_oembed' : null,
-        name: /^(field|metric|parameter)-/.test(kind) ? 'name' : null,
+        edge: /^(edge|endpoint)-/.test(kind) ? 'feed' : null,
+        path: kind.startsWith('endpoint-') ? '/instagram_oembed' : null,
+        name: /^(field|metric|parameter|breakdown|webhook|error|permission|product)-/.test(kind)
+          ? 'name'
+          : null,
       }),
     );
     expect(checkMetaGraphChanges(list([version()], changes), NOW)).toEqual({
@@ -157,7 +163,7 @@ describe('checkMetaGraphChanges', () => {
     expect(report.errors).toEqual([
       'a: a metric-removed change needs the metric name.',
       'b: an edge change needs edge.',
-      'c: an endpoint removal needs a path or an edge.',
+      'c: an endpoint change needs a path or an edge.',
       'd: name must be text or null.',
       'd: a parameter-changed change needs the parameter name.',
       'e: path must start with / and hold only path characters.',
@@ -239,7 +245,6 @@ it('refuses to load a list with any error', async () => {
 it('checks the list from the CLI and exits 1 on an invalid file', async () => {
   const valid = await execute(process.execPath, [CLI, 'meta-graph', '--check-changes']);
   expect(valid.stdout).toContain('Meta Graph API change list is valid');
-  expect(valid.stdout).toContain('(a version move across these stops for review)');
   const root = await mkdtemp(join(tmpdir(), 'refit-meta-graph-changes-'));
   roots.push(root);
   const path = join(root, 'changes.json');

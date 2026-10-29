@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-mar-16-2021",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/non-versioned-changes/mar-16-2021/",
+  "revision": "36b06bd692f51151edf8d76269a13f32b70e5d80c9ecd9d226281a0e4ce13902",
+  "hash": "36b06bd692f51151edf8d76269a13f32b70e5d80c9ecd9d226281a0e4ce13902",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nInstagram Graph API\n\nIGTV media is now supported in v10.0+. This applies to all endpoints except those used for content publishing and webhooks. To support this change, new media_product_type and video_title fields have been added to the IG Media node. IGTV media must have been shared to Instagram at the time of publish (Post a Preview or Share Preview to Feed enabled) in order to be accessible via the API.",
+  "contentType": "text/html"
+}

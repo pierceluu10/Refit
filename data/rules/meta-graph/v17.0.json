@@ -1,0 +1,31 @@
+{
+  "formatVersion": 1,
+  "provider": "meta-graph",
+  "version": "v17.0",
+  "rules": [
+    {
+      "rule": "meta-graph-v17-0-error-changed-132001-replacement",
+      "family": "error-replacement",
+      "change": "meta-graph-v17-0-error-changed-132001",
+      "from": "132001",
+      "to": "132015",
+      "source": "https://developers.facebook.com/documentation/business-messaging/whatsapp/changelog",
+      "quote": "Attempting to send a paused template in a template message using v17 or later now returns [error code `132015`](https://developers.facebook.com/documentation/business-messaging/whatsapp/support/error-codes#other-errors) instead of `132001`.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v17-0-error-changed-132001-2-replacement",
+      "family": "error-replacement",
+      "change": "meta-graph-v17-0-error-changed-132001-2",
+      "from": "132001",
+      "to": "132016",
+      "source": "https://developers.facebook.com/documentation/business-messaging/whatsapp/changelog",
+      "quote": "Attempting to send a disabled template in a template message using v17 or later now returns [error code `132016`](https://developers.facebook.com/documentation/business-messaging/whatsapp/support/error-codes#other-errors) instead of `132001`.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    }
+  ]
+}
