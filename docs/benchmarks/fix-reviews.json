@@ -3086,6 +3086,21 @@
         "pleaseCheck": "Delete pnpm-lock.yaml, which the npm workflows never read.",
         "wouldMerge": "yes: tsc introduces no error over the 2 existing ones."
       }
+    },
+    {
+      "repo": "Librum-Reader/Librum-Website",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40812216438 (before, main 6161f020) and 40812228030 (after, feat/preparation-fallbacks-2 8de26a7b), subsets/l2-push-249.json, no AI. Before: preparation stopped on yarn.lock record napi-wasm@1.1.0 without a URL or integrity; after: the record is completed from registry.npmjs.org for the checks only and the patch validates (grade D, needs-review, not published). The patch is the same in both runs. migration.patch from the shard-3 artifact applied to a clone at 60d51591 and read in full; its whole-file CRLF hunks reduce to 4 changed lines",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types [card, link, paypal] to allowed_payment_method_types on the Checkout Session, the card rule documented in FIX-REVIEW.md; three apiVersion pins 2022-11-15 to 2026-09-30.endive.",
+        "bothVersions": "yes: no response read is rewritten.",
+        "nothingUnrelated": "yes: the one request parameter and the three pins.",
+        "upgradeComplete": "no: stripe stays ^13.10.0 in package.json (the advisory TS2322 on app/utils/stripe.js shows it), and subscribe/route.js still expands latest_invoice.payment_intent and reads its client_secret, which the draft lists under Left Unchanged.",
+        "pleaseCheck": "Both Left Unchanged reads are real gaps: with the pin moved, the expand of invoice.payment_intent fails at runtime.",
+        "wouldMerge": "no: the draft says not to merge until the two subscribe/route.js reads are migrated and stripe is upgraded."
+      }
     }
   ]
 }
