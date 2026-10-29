@@ -579,6 +579,7 @@ async function runOpenApiPipeline(options: {
     annotateReach(specificationDiff.changes, {
       repository,
       before: before.document,
+      after: after.document,
       calls: analysis.calls,
       mappings: operationMappings,
       untracedCalls: () =>
