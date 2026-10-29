@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { usageCostUsd, type AiOptions } from './ai-budget.ts';
 import type { EvidenceGrade } from './check-selection.ts';
+import { movedReconstructions, type GraphReconstruction } from './meta-graph-ai.ts';
 import { scanGraphCalls, type GraphCall } from './meta-graph-calls.ts';
 import { checkJsProof, requestStringProof, type CodeProof } from './meta-graph-code-proof.ts';
 import {
@@ -199,12 +200,23 @@ export function proveGraphRequests(
 export async function proveMetaGraphPatch(
   original: Repository,
   patched: Repository,
-  options: { changes?: MetaGraphChanges; target?: string } = {},
+  options: {
+    changes?: MetaGraphChanges;
+    target?: string;
+    // Kept AI reconstructions (meta-graph-ai.ts). A version move edits within a line, so they
+    // apply at the same sites on both sides.
+    reconstructions?: GraphReconstruction[];
+  } = {},
 ) {
   const changes = options.changes ?? (await loadMetaGraphChanges(metaGraphChangeTable()));
+  const { reconstructions } = options;
   const [before, after] = await Promise.all([
-    scanGraphCalls(original.root, { repository: original }),
-    scanGraphCalls(patched.root, { repository: patched }),
+    scanGraphCalls(original.root, { repository: original, reconstructions }),
+    scanGraphCalls(patched.root, {
+      repository: patched,
+      // The patched side sends the target where a reconstructed version was moved.
+      reconstructions: reconstructions && movedReconstructions(reconstructions, patched),
+    }),
   ]);
   return proveGraphRequests(before.calls, after.calls, changes, options.target);
 }
@@ -535,10 +547,13 @@ export async function metaGraphEvidence(options: {
   ai?: AiOptions;
   environment: Record<string, string | undefined>;
   request?: typeof fetch;
+  reconstructions?: GraphReconstruction[];
 }) {
   let proof: MetaGraphProof & { calls?: GraphCall[] };
   try {
-    proof = await proveMetaGraphPatch(options.original, options.patched);
+    proof = await proveMetaGraphPatch(options.original, options.patched, {
+      reconstructions: options.reconstructions,
+    });
   } catch (error) {
     proof = {
       target: null,

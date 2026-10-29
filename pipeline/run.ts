@@ -1058,6 +1058,7 @@ export async function runPipeline(
       after: after as never,
       proposePatch: options.proposePatch,
       apiVersionPolicy: validateApiVersionPolicy(options.apiVersionPolicy),
+      aiPatch: options.aiPatch,
     })) as unknown as PipelineReport;
   }
   const kinds = await Promise.all([options.before, options.after].map(isShopifySnapshotFile));

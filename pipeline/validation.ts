@@ -33,6 +33,7 @@ import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import { shopifyProof } from './shopify-proof.ts';
 import { shopifySchema, shopifySnapshotPath } from './shopify-schemas.ts';
+import type { GraphReconstruction } from './meta-graph-ai.ts';
 import { META_GRAPH_PROVIDER, metaGraphEvidence } from './meta-graph-proof.ts';
 import {
   apiVersionSourceBlocked,
@@ -3382,6 +3383,9 @@ export async function validateMigration(options: {
             diff: proposal.diff,
             ai: options.assessment ?? options.aiPatch,
             environment: process.env,
+            reconstructions: (
+              report as { metaGraph?: { reconstructed?: GraphReconstruction[] } }
+            ).metaGraph?.reconstructed?.filter((item) => item.status === 'kept'),
           })
         : undefined;
     const grade = metaGraph ? metaGraph.grade : checksGrade;

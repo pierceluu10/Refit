@@ -1,5 +1,6 @@
 import ts from 'typescript-compiler';
 import { daysUntil, type DeadlineRegistry } from './deadline-registry.ts';
+import type { GraphReconstruction } from './meta-graph-ai.ts';
 import {
   exported,
   findDeclaration,
@@ -486,6 +487,7 @@ export async function proposeVersionMoves(
   registry: DeadlineRegistry,
   now: Date,
   rules: AppliedRule[] = [],
+  reconstructions: GraphReconstruction[] = [],
 ): Promise<VersionMoveProposal> {
   if (!VERSION.test(target)) throw new PipelineInputError('--target must look like v24.0.');
   const records = new Map(changes.versions.map((entry) => [entry.version, entry]));
@@ -501,7 +503,7 @@ export async function proposeVersionMoves(
       `${target} was retired on ${retiring.date}; choose a newer target.`,
     );
   const repository = await readRepository(directory, META_SDK);
-  const scan = await scanGraphCalls(directory, { repository });
+  const scan = await scanGraphCalls(directory, { repository, reconstructions });
   // Every version a move could cross: the change list's, the deadline registry's and each whole
   // major version, so a version missing from both lists is still checked.
   const known = new Set([
