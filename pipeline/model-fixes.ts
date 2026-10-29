@@ -1,5 +1,6 @@
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { modelAlerts, type ModelAlert } from './model-alerts.ts';
+import type { ParameterChangeTable } from './model-parameter-changes.ts';
 import type { ModelParameterTable } from './model-parameters.ts';
 import {
   EMPTY_REQUEST_PROOFS,
@@ -169,6 +170,19 @@ export function modelFixBody(options: {
         'Where the registry replacement retires too, Refit followed the registry to a model that does not.',
         '',
       );
+    const parameterEdits = replacements.flatMap((item) => item.parameters ?? []);
+    if (parameterEdits.length)
+      lines.push(
+        '## Request parameters changed with the model',
+        '',
+        "The replacement renames or rejects these parameters, as the provider's page states; Refit changed them in the same request:",
+        '',
+        ...parameterEdits.map(
+          (edit) =>
+            `- ${code(`${edit.file}:${edit.line}`)} ${edit.action === 'rename' ? `${code(edit.name)} → ${code(edit.to ?? '')}` : `removed ${code(edit.name)}`} (${code(edit.change)}): ${edit.note}`,
+        ),
+        '',
+      );
     lines.push(
       '## Outputs may differ',
       '',
@@ -203,7 +217,9 @@ export function modelFixBody(options: {
       '',
       '## Rollback',
       '',
-      'Revert this pull request. It changes only the model IDs in the table above: no dependency, configuration or environment variable.',
+      replacements.some((item) => item.parameters?.length)
+        ? 'Revert this pull request. It changes only the model IDs in the table above and the request parameters listed with them: no dependency, configuration or environment variable.'
+        : 'Revert this pull request. It changes only the model IDs in the table above: no dependency, configuration or environment variable.',
       '',
       '## Reviewer Checklist',
       '',
@@ -318,6 +334,8 @@ export async function runModelFixes(options: {
   repository: string;
   registry: DeadlineRegistry;
   parameters?: ModelParameterTable;
+  // Sourced parameter changes applied with each swap; off unless passed (owner decision pending).
+  parameterChanges?: ParameterChangeTable;
   // Request-level proofs for replacement models; a draft with an unproven one is [Needs review].
   proofs?: RequestProofTable;
   now: Date;
@@ -339,6 +357,7 @@ export async function runModelFixes(options: {
     propose: async (directory) => {
       proposal = await proposeModelReplacements(directory, options.registry, options.now, {
         parameters: options.parameters,
+        parameterChanges: options.parameterChanges,
       });
       alerts = (await modelAlerts(directory, options.registry, options.now)).alerts;
       return proposal.patch;
