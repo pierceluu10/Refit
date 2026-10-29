@@ -12,7 +12,6 @@ import {
   visit,
   visitWithTypeInfo,
   type DocumentNode,
-  type FragmentDefinitionNode,
   type GraphQLSchema,
 } from 'graphql';
 import type { AiOptions } from './ai-budget.ts';
@@ -25,7 +24,6 @@ import {
   scanShopify,
   SHOPIFY_PACKAGES,
   type AdminDocument,
-  type DocumentSegment,
   type ShopifyScan,
 } from './shopify-analysis.ts';
 import {
@@ -35,7 +33,7 @@ import {
   type DocumentEdit,
   type ShopifyDocumentRule,
 } from './shopify-document-rules.ts';
-import { documentProof } from './shopify-proof.ts';
+import { documentProof, fragmentPool, withFragments } from './shopify-proof.ts';
 import { shopifySchema } from './shopify-schemas.ts';
 import { aiRewriteDocument, type ShopifyAiRewrite } from './shopify-ai-rewrite.ts';
 import { SHOPIFY_SDK_RULE, shopifySdkSourceChanges } from './shopify-sdk-source.ts';
@@ -82,7 +80,7 @@ const WEBHOOK_VERSION = /^\s*api_version\s*=\s*["'](\d{4}-\d{2}|unstable)["']/m;
 // The files source scanning skips that carry Shopify facts: .graphql and .gql documents, and the
 // app configuration (shopify.app.toml, shopify.app.<name>.toml), whose api_version sets the webhook
 // payload version.
-async function shopifyExtraFiles(root: string) {
+export async function shopifyExtraFiles(root: string) {
   const graphql: { path: string; content: string }[] = [];
   const configuration: { path: string; content: string }[] = [];
   const visit = async (directory: string): Promise<void> => {
@@ -104,90 +102,6 @@ async function shopifyExtraFiles(root: string) {
   await visit(root);
   const order = (a: { path: string }, b: { path: string }) => a.path.localeCompare(b.path);
   return { graphql: graphql.sort(order), configuration: configuration.sort(order) };
-}
-
-// The part of a document between two offsets, with its source mapping.
-function sliceDocument(document: AdminDocument, start: number, end: number) {
-  const segments: DocumentSegment[] = document.segments
-    .filter((entry) => entry.documentEnd > start && entry.documentStart < end)
-    .map((entry) => {
-      const from = Math.max(entry.documentStart, start);
-      return {
-        ...entry,
-        documentStart: from - start,
-        documentEnd: Math.min(entry.documentEnd, end) - start,
-        sourceStart: entry.sourceStart + from - entry.documentStart,
-      };
-    });
-  return { text: document.text.slice(start, end), segments };
-}
-
-// Fragments defined once across every document Refit read, by name: codegen and .graphql projects
-// define a fragment in one file and spread it in another. A name defined twice is left out.
-function fragmentPool(documents: AdminDocument[]) {
-  const pool = new Map<string, ReturnType<typeof sliceDocument> | null>();
-  for (const document of documents) {
-    let ast: DocumentNode;
-    try {
-      ast = parse(document.text);
-    } catch {
-      continue;
-    }
-    for (const definition of ast.definitions) {
-      if (definition.kind !== 'FragmentDefinition' || !definition.loc) continue;
-      const piece = sliceDocument(document, definition.loc.start, definition.loc.end);
-      const known = pool.get(definition.name.value);
-      pool.set(
-        definition.name.value,
-        known === undefined || known?.text === piece.text ? piece : null,
-      );
-    }
-  }
-  return pool;
-}
-
-// The document with every fragment it spreads but does not define appended from the pool.
-function withFragments(
-  document: AdminDocument,
-  pool: ReturnType<typeof fragmentPool>,
-): AdminDocument {
-  let current = document;
-  for (let round = 0; round < 16; round++) {
-    let ast: DocumentNode;
-    try {
-      ast = parse(current.text);
-    } catch {
-      return current;
-    }
-    const defined = new Set(
-      ast.definitions
-        .filter((entry): entry is FragmentDefinitionNode => entry.kind === 'FragmentDefinition')
-        .map((entry) => entry.name.value),
-    );
-    const missing = new Set<string>();
-    visit(ast, {
-      FragmentSpread(node) {
-        if (!defined.has(node.name.value) && pool.get(node.name.value))
-          missing.add(node.name.value);
-      },
-    });
-    if (!missing.size) return current;
-    let { text } = current;
-    const segments = [...current.segments];
-    for (const name of missing) {
-      const piece = pool.get(name)!;
-      text += '\n';
-      for (const entry of piece.segments)
-        segments.push({
-          ...entry,
-          documentStart: entry.documentStart + text.length,
-          documentEnd: entry.documentEnd + text.length,
-        });
-      text += piece.text;
-    }
-    current = { ...current, text, segments };
-  }
-  return current;
 }
 
 // The source edit for a rule's edit to an assembled document, or undefined when the document text
@@ -316,6 +230,10 @@ function checkDocument(
     ast = parse(document.text);
   } catch (error) {
     if (!(error instanceof GraphQLError)) throw error;
+    // A #graphql literal no Admin call reaches that does not parse is a piece the code assembles at
+    // runtime (the call that sends it is reported as unreadable) or fails on every version; the
+    // schema proof treats it the same way.
+    if (!document.traced) return { findings: [], deprecated: [], otherApi: true };
     return {
       findings: [
         {
@@ -476,7 +394,7 @@ function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
       })),
     // Notes (an environment variable with no default, `unstable`) are left as they are.
     ...scan.unresolvedVersions
-      .filter((entry) => !entry.note)
+      .filter((entry) => !entry.note && !CODEGEN_CONFIG.test(entry.file))
       .map((entry) => ({
         file: entry.file,
         line: entry.line,

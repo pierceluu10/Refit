@@ -30,8 +30,8 @@ import {
   repeatedProposalReason,
 } from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
-import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
-import { shopifyProof } from './shopify-proof.ts';
+import { SHOPIFY, shopifyExtraFiles, shopifyVersionDeclarations } from './shopify-pipeline.ts';
+import { codegenPinFiles, shopifyProof } from './shopify-proof.ts';
 import { shopifySchema, shopifySnapshotPath } from './shopify-schemas.ts';
 import { META_GRAPH_PROVIDER, metaGraphEvidence } from './meta-graph-proof.ts';
 import {
@@ -3281,12 +3281,21 @@ export async function validateMigration(options: {
     // never vetoes a correct patch. A regression is never graded A.
     const behaviourA =
       behaviour?.grade === 'A' && !['stale', 'regression'].includes(validationStatus);
+    // A Shopify codegen configuration changed only in its version pin is proven by the schema proof
+    // (shopify-proof.ts), so the checks need not cover it.
+    const codegenPins =
+      report.provider === SHOPIFY.id && candidateSources
+        ? codegenPinFiles(originalSources, candidateSources)
+        : [];
+    const gradedFiles = publicationFiles
+      .map((file) => file.path)
+      .filter((path) => !codegenPins.includes(path));
     const ownGrade =
       (validationStatus === 'passed' || ownChecksPassed || behaviourA) && candidateSources
         ? await gradeEvidence({
             repository: candidateSources,
             command: options.command,
-            changedFiles: publicationFiles.map((file) => file.path),
+            changedFiles: gradedFiles,
             generated,
             behaviour: behaviour && behaviourGrade(behaviour),
             advisory: advisoryGrade,
@@ -3309,7 +3318,7 @@ export async function validateMigration(options: {
         ? await gradeEvidence({
             repository: candidateSources,
             command: options.command,
-            changedFiles: publicationFiles.map((file) => file.path),
+            changedFiles: gradedFiles,
             testsBroken: {
               reason: checkFailureText({
                 checkFailures: failures.checkFailures?.filter(
@@ -3347,7 +3356,7 @@ export async function validateMigration(options: {
     // with that proof. The AI second opinion is recorded and never changes the grade.
     const shopify =
       report.provider === SHOPIFY.id && candidateSources && validationStatus !== 'stale'
-        ? await timed('shopifyProof', () =>
+        ? await timed('shopifyProof', async () =>
             shopifyProof({
               original: originalSources,
               patched: candidateSources!,
@@ -3364,6 +3373,11 @@ export async function validateMigration(options: {
               diff: proposal.diff,
               summary: 'summary' in proposal ? String(proposal.summary) : '',
               warnings: 'warnings' in proposal ? (proposal.warnings as string[]) : [],
+              graphql: {
+                original: (await shopifyExtraFiles(originalSources.root)).graphql,
+                patched: (await shopifyExtraFiles(candidateSources!.root)).graphql,
+              },
+              codegenPins,
               ai: options.assessment ?? options.aiPatch,
               environment: process.env,
             }),
