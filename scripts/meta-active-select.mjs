@@ -26,6 +26,10 @@ export const SOON_DAYS = 365;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'];
 const BOT = /\[bot\]|^(dependabot|renovate|github-actions|actions-user|vercel|netlify)/i;
 const REFIT = fileURLToPath(new URL('..', import.meta.url));
+// The reviewed change table; #413 moves it from data/meta-graph-changes.json.
+const CHANGES = existsSync(join(REFIT, 'data', 'meta-graph', 'changes.json'))
+  ? 'data/meta-graph/changes.json'
+  : 'data/meta-graph-changes.json';
 // Each query names the signal it looks for, recorded on every repository it found.
 const QUERIES = [
   ['versioned-url', '"graph.facebook.com/v" language:TypeScript'],
@@ -204,9 +208,7 @@ async function main() {
   ]);
   const registry = JSON.parse(await readFile(join(REFIT, 'data', 'deadlines.json'), 'utf8'));
   const dates = retirements(registry);
-  const changes = JSON.parse(
-    await readFile(join(REFIT, 'data', 'meta-graph-changes.json'), 'utf8'),
-  );
+  const changes = JSON.parse(await readFile(join(REFIT, CHANGES), 'utf8'));
   // The newest reviewed version in the change list that has not retired.
   const target = changes.versions
     .filter((entry) => entry.status === 'reviewed')
@@ -545,8 +547,8 @@ async function main() {
   const specs = {
     target,
     changes: {
-      path: 'data/meta-graph-changes.json',
-      sha256: await fileHash('data/meta-graph-changes.json'),
+      path: CHANGES,
+      sha256: await fileHash(CHANGES),
     },
     deadlines: { path: 'data/deadlines.json', sha256: await fileHash('data/deadlines.json') },
     businessSdkEdges: {
@@ -556,7 +558,7 @@ async function main() {
     refitCommit: (await execute('git', ['-C', REFIT, 'rev-parse', 'HEAD'])).stdout.trim(),
   };
   const command = `node scripts/meta-active-select.mjs --work <dir> --dev ${values.dev} --blind ${values.blind} --frozen-at ${frozenAt} --dev-size ${values['dev-size']} --blind-size ${values['blind-size']} --limit ${values.limit} --seed ${values.seed}`;
-  const criteria = `GitHub code search (${QUERIES.length} queries; one with more than 1,000 results also run once per file-size range: ${SIZE_RANGES.join(', ')} bytes) for graph.facebook.com/v URLs, facebook-nodejs-business-sdk, FB.init with a version, graph.instagram.com and WhatsApp Cloud API messages, excluding every repository named in any JSON file under ${values.benchmarks}/ (${excluded.size} repositories). Kept: not archived, not a fork, under 50 MB; a default-branch commit since ${since.slice(0, 10)} with at least ${MIN_AUTHORS} distinct human commit authors in that window (bots excluded); a .github/workflows directory; a root package.json and exactly one root lockfile (${LOCKFILES.join(', ')}). The ${scanned.length} most starred were cloned at their default-branch HEAD, scanned offline with \`refit meta-graph --json\` and \`refit meta-graph --propose-version-moves --target ${target} --json\` and a text search for FB.init versions and Instagram Basic Display scopes (user_profile, user_media) in live files, then deleted. Affected: a live request or FB.init on a Graph API version retired by ${frozenAt} (data/deadlines.json, or older than its oldest entry) or retiring within ${SOON_DAYS} days, a live request a reviewed change in data/meta-graph-changes.json removes or changes on the way to ${target}, or Instagram Basic Display scopes (product shut down 2024-12-04). Affected repositories are ordered by SHA-256 of "${values.seed}:<owner/name>" (lower-cased); the first ${blindSize} (of ${requested} requested; fewer only when the dev set's ${devSize} would not fit) are the blind set and the next ${devSize} the dev set.`;
+  const criteria = `GitHub code search (${QUERIES.length} queries; one with more than 1,000 results also run once per file-size range: ${SIZE_RANGES.join(', ')} bytes) for graph.facebook.com/v URLs, facebook-nodejs-business-sdk, FB.init with a version, graph.instagram.com and WhatsApp Cloud API messages, excluding every repository named in any JSON file under ${values.benchmarks}/ (${excluded.size} repositories). Kept: not archived, not a fork, under 50 MB; a default-branch commit since ${since.slice(0, 10)} with at least ${MIN_AUTHORS} distinct human commit authors in that window (bots excluded); a .github/workflows directory; a root package.json and exactly one root lockfile (${LOCKFILES.join(', ')}). The ${scanned.length} most starred were cloned at their default-branch HEAD, scanned offline with \`refit meta-graph --json\` and \`refit meta-graph --propose-version-moves --target ${target} --json\` and a text search for FB.init versions and Instagram Basic Display scopes (user_profile, user_media) in live files, then deleted. Affected: a live request or FB.init on a Graph API version retired by ${frozenAt} (data/deadlines.json, or older than its oldest entry) or retiring within ${SOON_DAYS} days, a live request a reviewed change in ${CHANGES} removes or changes on the way to ${target}, or Instagram Basic Display scopes (product shut down 2024-12-04). Affected repositories are ordered by SHA-256 of "${values.seed}:<owner/name>" (lower-cased); the first ${blindSize} (of ${requested} requested; fewer only when the dev set's ${devSize} would not fit) are the blind set and the next ${devSize} the dev set.`;
   const summary = {
     queries,
     repositories: found.length,
