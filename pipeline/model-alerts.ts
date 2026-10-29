@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { daysUntil, type DeadlineEntry, type DeadlineRegistry } from './deadline-registry.ts';
+import { TEST_PATH } from './source-paths.ts';
 
 // Retiring AI models Refit finds but never edits, each with exactly why (item 7 and config files):
 // - `embedding`: an embedding model. Vectors it wrote are stored somewhere the code cannot show,
@@ -121,7 +122,9 @@ async function walk(directory: string) {
         (SOURCE_FILE.test(entry.name) ||
           (CONFIG_FILE.test(entry.name) && !NOT_CONFIG.test(entry.name)))
       ) {
-        if ((await stat(full)).size > MAX_BYTES) continue;
+        // Tests, fixtures and examples are not what a deployment sends, as in the exposure scan.
+        if ((await stat(full)).size > MAX_BYTES || TEST_PATH.test(relative(directory, full)))
+          continue;
         files.push({ path: relative(directory, full), content: await readFile(full, 'utf8') });
       }
     }
