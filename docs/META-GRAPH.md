@@ -210,12 +210,12 @@ The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLIN
 
 `pipeline/meta-graph-proof.ts` grades a Meta Graph patch inside `validateMigration` whenever the report's provider is `meta-graph`. Meta publishes no machine-readable contract, so proof comes from the reviewed change table and, where Refit has one, its own test app. Levels follow [Proof decides, not caution](PROOF-BASED-VALIDATION.md):
 
-| Level | What proves it                                                                                                                                                                             |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A     | Everything for C or B, and read-only calls with Refit's test app token at the target version: the Graph API accepted every changed request and returned every top-level field it asks for. |
-| B     | Every changed request is valid at the target in the change table, and the repository's tests reach every changed file.                                                                     |
-| C     | Every changed request is valid at the target in the change table, and the type check covers the changed files with no new errors.                                                          |
-| D     | The change table does not prove a changed request, or no passing check covers the changed files. The draft is `[Needs review]` and names each reason.                                      |
+| Level | What proves it                                                                                                                                                                                                                                           |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A     | Everything for C or B, and read-only calls with Refit's test app token at the target version: the Graph API accepted every changed request and returned every top-level field it asks for. With an app token this is reachable only for app-level reads. |
+| B     | Every changed request is valid at the target in the change table, and the repository's tests reach every changed file.                                                                                                                                   |
+| C     | Every changed request is valid at the target in the change table, and the type check covers the changed files with no new errors.                                                                                                                        |
+| D     | The change table does not prove a changed request, or no passing check covers the changed files. The draft is `[Needs review]` and names each reason.                                                                                                    |
 
 **Field-table proof (offline).** Both sides are scanned with `scanGraphCalls`. A changed request is one whose version, method, path, fields, metrics, parameters or line differs from the request at the same place in the original code (same file, same position; a file whose request count changed pairs nothing, so every request in it is checked against the whole table up to the target). Each changed request must:
 
@@ -227,7 +227,12 @@ The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLIN
 
 The entries the original request used are recorded as what the patch fixed. The table is `data/meta-graph/changes.json` when it exists, else `data/meta-graph-changes.json`. A table that fails its own checks proves nothing.
 
-**Live proof.** Only where Refit's own environment holds `META_TEST_TOKEN` (a token of Refit's Meta test app or test user; a customer never sets it and a customer's token is never read). The token goes in the `Authorization` header, never a URL, and is redacted from every recorded message. Only `GET` requests on `/me` paths whose only parameters are `fields`, `access_token` and `appsecret_proof` are sent; a write, a request on an object ID from the customer's code, a metric or another parameter is not, and keeps the patch at B or C. Responses are recorded as status and missing field names, never values.
+**Live proof.** Only where Refit's own environment holds `META_TEST_TOKEN`, which a customer never sets; a customer's token is never read. The refit-bench secret is an **app access token** (`app_id|app_secret`) of a development-mode test app with no user permissions, because Meta issues no user token without a product use case. The token goes in the `Authorization` header, never a URL, and is redacted from every recorded message, and no workflow input or log carries it.
+
+- First, `GET /{target}/app?fields=id` checks that the Graph API serves the target version. A refusal there makes the patch grade D, since the provider itself rejects the version. An unreachable API changes nothing.
+- Then each changed request the app token can read is sent: `GET` on the app's own node (`/app` and its edges) whose only parameters are `fields`, `access_token` and `appsecret_proof`. Grade A needs every changed request sent, accepted, and returning every top-level field it asks for.
+- Requests on user, page or business objects need permissions the test app does not hold, so they are not sent and the offline field-table proof stands (B or C). The same goes for writes, object IDs from the customer's code, metrics and other parameters. With a test user token (`EA…`) instead, `/me` reads are sent too.
+- Responses are recorded as status and missing field names, never values.
 
 **Second-opinion AI review.** With AI enabled (`--assess` or `--ai-patch`), every Meta patch gets one advisory review: verdict, summary and concerns, recorded with its model, response id and cost in `validation.metaGraph.review`. It never changes the grade or the publication decision, and a failed review is recorded, not raised.
 

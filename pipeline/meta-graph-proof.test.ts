@@ -149,77 +149,138 @@ describe('field-table proof', () => {
 });
 
 describe('live proof', () => {
-  const TOKEN = `EAA${'x'.repeat(40)}`;
+  // Fake shapes: an app access token (app_id|secret) and a test user token.
+  const APP = `1234567890|${'a'.repeat(32)}`;
+  const USER = `EAA${'x'.repeat(40)}`;
+  const proven = { target: 'v21.0', proven: true, requests: [], reasons: [] };
+  const appRead = (fields = 'id,name') =>
+    `export const app = (token) => fetch(\`https://graph.facebook.com/v21.0/app?fields=${fields}&access_token=\${token}\`);\n`;
   async function calls(text: string) {
     return (await scanGraphCalls('', { repository: await repository({ 'src/a.js': text }) })).calls;
   }
+  const answering = (body: unknown, status = 200) =>
+    vi.fn(async (_url: string, _init?: RequestInit) => Response.json(body, { status }));
 
   it('does nothing without META_TEST_TOKEN', async () => {
     expect(await probeGraphRequests(await calls(profile('v21.0')), 'v21.0', {})).toBeUndefined();
   });
 
-  it('accepts a read-only request that returns every requested field, token in the header only', async () => {
-    const request = vi.fn(async (_url: string, _init?: RequestInit) =>
-      Response.json({ id: '1', name: 'Test User' }),
+  it('proves an app-level read with the app token, sent in the header only', async () => {
+    const request = answering({ id: '1', name: 'Refit Test' });
+    const live = await probeGraphRequests(
+      await calls(appRead()),
+      'v21.0',
+      { META_TEST_TOKEN: APP },
+      request as unknown as typeof fetch,
     );
+    expect(live).toMatchObject({
+      proven: true,
+      versionAccepted: true,
+      probes: [{ path: '/app', status: 200 }],
+    });
+    expect(request.mock.calls.map(([url]) => url)).toEqual([
+      'https://graph.facebook.com/v21.0/app?fields=id',
+      'https://graph.facebook.com/v21.0/app?fields=id%2Cname',
+    ]);
+    for (const [url, init] of request.mock.calls) {
+      expect(url).not.toContain(APP);
+      expect((init?.headers as Record<string, string>).authorization).toBe(`Bearer ${APP}`);
+    }
+    expect(metaGraphGrade(typeChecked, proven, live)).toMatchObject({
+      letter: 'A',
+      level: 'live-requests',
+    });
+  });
+
+  it('falls back to the field table for user requests the app token cannot read', async () => {
+    const request = answering({ id: '1' });
     const live = await probeGraphRequests(
       await calls(profile('v21.0')),
       'v21.0',
-      { META_TEST_TOKEN: TOKEN },
+      { META_TEST_TOKEN: APP },
       request as unknown as typeof fetch,
     );
-    expect(live).toMatchObject({ proven: true, probes: [{ path: '/me', status: 200 }] });
-    const [url, init] = request.mock.calls[0];
-    expect(url).toBe('https://graph.facebook.com/v21.0/me?fields=id%2Cname');
-    expect(url).not.toContain(TOKEN);
-    expect((init?.headers as Record<string, string>).authorization).toBe(`Bearer ${TOKEN}`);
-    const grade = metaGraphGrade(
-      typeChecked,
-      { target: 'v21.0', proven: true, requests: [], reasons: [] },
-      live,
-    );
-    expect(grade).toMatchObject({ letter: 'A', level: 'live-requests' });
+    // Only the version check is sent.
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(live).toMatchObject({ proven: false, versionAccepted: true, probes: [] });
+    expect(live?.reasons[0]).toContain('needs user or page permissions');
+    const grade = metaGraphGrade(typeChecked, proven, live);
+    expect(grade).toMatchObject({ letter: 'C' });
+    expect(grade?.reason).toContain('confirmed the Graph API serves v21.0');
+    expect(grade?.reason).toContain('needs user or page permissions');
   });
 
-  it('refuses a missing field, and redacts the token from provider errors', async () => {
-    const missing = await probeGraphRequests(
+  it('gives grade D when the Graph API refuses the target version', async () => {
+    const live = await probeGraphRequests(
       await calls(profile('v21.0')),
       'v21.0',
-      { META_TEST_TOKEN: TOKEN },
-      (async () => Response.json({ id: '1' })) as unknown as typeof fetch,
+      { META_TEST_TOKEN: APP },
+      answering(
+        { error: { message: 'Unknown path components: /v21.0' } },
+        400,
+      ) as unknown as typeof fetch,
     );
-    expect(missing).toMatchObject({ proven: false, probes: [{ missing: ['name'] }] });
-    const refused = await probeGraphRequests(
+    expect(live?.versionAccepted).toBe(false);
+    expect(metaGraphGrade(typeChecked, proven, live)).toMatchObject({ letter: 'D' });
+  });
+
+  it('keeps the table grade when the Graph API cannot be reached', async () => {
+    const live = await probeGraphRequests(
       await calls(profile('v21.0')),
       'v21.0',
-      { META_TEST_TOKEN: TOKEN },
-      (async () =>
-        Response.json(
-          { error: { message: `Invalid token ${TOKEN}` } },
-          { status: 400 },
-        )) as unknown as typeof fetch,
+      { META_TEST_TOKEN: APP },
+      (async () => {
+        throw new Error('getaddrinfo ENOTFOUND');
+      }) as unknown as typeof fetch,
+    );
+    expect(live?.versionAccepted).toBeNull();
+    expect(metaGraphGrade(typeChecked, proven, live)).toMatchObject({ letter: 'C' });
+  });
+
+  it('reads /me with a test user token, and refuses a missing field', async () => {
+    const live = await probeGraphRequests(
+      await calls(profile('v21.0')),
+      'v21.0',
+      { META_TEST_TOKEN: USER },
+      answering({ id: '1' }) as unknown as typeof fetch,
+    );
+    expect(live).toMatchObject({ proven: false, probes: [{ path: '/me', missing: ['name'] }] });
+  });
+
+  it('redacts the token from provider errors', async () => {
+    const refused = await probeGraphRequests(
+      await calls(appRead()),
+      'v21.0',
+      { META_TEST_TOKEN: APP },
+      answering(
+        { error: { message: `Invalid token ${APP} or ${USER}` } },
+        400,
+      ) as unknown as typeof fetch,
     );
     expect(refused?.proven).toBe(false);
-    expect(JSON.stringify(refused)).not.toContain(TOKEN);
+    expect(JSON.stringify(refused)).not.toContain(APP);
+    expect(JSON.stringify(refused)).not.toContain(USER);
   });
 
   it('never sends writes or requests on customer objects', async () => {
-    const request = vi.fn();
+    const request = answering({ id: '1' });
     const live = await probeGraphRequests(
       await calls(
         "export const post = (id) => fetch(`https://graph.facebook.com/v21.0/${id}/feed`, { method: 'POST' });\n",
       ),
       'v21.0',
-      { META_TEST_TOKEN: TOKEN },
+      { META_TEST_TOKEN: APP },
       request as unknown as typeof fetch,
     );
-    expect(request).not.toHaveBeenCalled();
+    expect(request.mock.calls.map(([url]) => url)).toEqual([
+      'https://graph.facebook.com/v21.0/app?fields=id',
+    ]);
     expect(live?.proven).toBe(false);
   });
 
-  it('refuses a token that is not shaped like a Graph token', async () => {
+  it('refuses a token that is not shaped like a Graph token, without calling', async () => {
     const live = await probeGraphRequests([], 'v21.0', { META_TEST_TOKEN: 'sk_test_123' });
-    expect(live).toMatchObject({ proven: false, probes: [] });
+    expect(live).toMatchObject({ proven: false, versionAccepted: null, probes: [] });
   });
 });
 

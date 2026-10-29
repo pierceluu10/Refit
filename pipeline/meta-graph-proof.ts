@@ -26,9 +26,11 @@ export const META_GRAPH_PROVIDER = 'meta-graph';
 export const META_GRAPH_CHANGE_TABLE = new URL('../data/meta-graph/changes.json', import.meta.url);
 export const META_TEST_TOKEN = 'META_TEST_TOKEN';
 const GRAPH_HOST = 'https://graph.facebook.com';
-// A Graph access token: user, page and app tokens all start with EA.
-const TOKEN = /^EA[A-Za-z0-9]{20,}$/;
-const TOKEN_ANYWHERE = /EA[A-Za-z0-9]{20,}/g;
+// Refit's test app sets an app access token (`app_id|app_secret`): a development-mode app with no
+// user permissions. A test user token (EA…) is also accepted, and adds `/me` reads.
+const APP_TOKEN = /^\d{5,20}\|[A-Za-z0-9_-]{16,}$/;
+const USER_TOKEN = /^EA[A-Za-z0-9]{20,}$/;
+const TOKEN_ANYWHERE = /\d{5,20}\|[A-Za-z0-9_-]{16,}|EA[A-Za-z0-9]{20,}/g;
 // Parameters a probe can send without knowing values from the customer's code.
 const PROBE_PARAMETERS = new Set(['fields', 'access_token', 'appsecret_proof']);
 const PROBE_TIMEOUT_MS = 15_000;
@@ -209,6 +211,8 @@ export interface GraphProbe {
 
 export interface MetaGraphLiveProof {
   proven: boolean;
+  // Whether the Graph API served the target version to Refit's test app; null when unreachable.
+  versionAccepted: boolean | null;
   probes: GraphProbe[];
   reasons: string[];
 }
@@ -221,20 +225,24 @@ const topLevelFields = (fields: string[]) =>
     .filter((name) => name !== undefined);
 
 // Why a changed request cannot be sent as a read-only probe; undefined when it can. Only GET
-// requests on the test user's own `/me` paths, with no parameter whose value lives in the code.
-function unprobeable(call: GraphCall) {
+// requests on nodes the token can read with no permission granted: the app's own node (`/app`
+// and its edges) and, with a test user token, `/me`. Requests on user, page or business objects
+// need permissions the test app does not hold and fall back to the offline field-table proof.
+function unprobeable(call: GraphCall, user: boolean) {
   if (call.method !== 'GET') return `${where(call)}: only GET requests are probed (read-only)`;
-  if (!call.path || !/^\/me(\/[a-z_]+)*$/.test(call.path))
-    return `${where(call)}: ${call.path ?? 'an unknown path'} names an object only the customer's account holds`;
+  const readable = user ? /^\/(app|me)(\/[a-z_]+)*$/ : /^\/app(\/[a-z_]+)*$/;
+  if (!call.path || !readable.test(call.path))
+    return `${where(call)}: ${call.path ?? 'an unknown path'} needs user or page permissions Refit's test app token does not hold; the offline field-table proof stands`;
   const extra = (call.parameters ?? []).filter((name) => !PROBE_PARAMETERS.has(name));
   if (extra.length || call.metrics?.length)
     return `${where(call)}: the values of ${[...extra, ...(call.metrics?.length ? ['metric'] : [])].join(', ')} live in the code`;
   return undefined;
 }
 
-// Read-only calls to the Graph API with Refit's own test app or test user token, never a
-// customer's: the token comes only from META_TEST_TOKEN in Refit's environment, travels in the
-// Authorization header (never the URL) and is redacted from every recorded message.
+// Read-only calls to the Graph API with Refit's own test app token, never a customer's: the token
+// comes only from META_TEST_TOKEN in Refit's environment, travels in the Authorization header
+// (never the URL) and is redacted from every recorded message. The first call checks that the
+// Graph API serves the target version at all; then each probeable changed request is sent.
 export async function probeGraphRequests(
   calls: GraphCall[],
   target: string,
@@ -243,71 +251,91 @@ export async function probeGraphRequests(
 ): Promise<MetaGraphLiveProof | undefined> {
   const token = environment[META_TEST_TOKEN]?.trim();
   if (!token) return undefined;
-  if (!TOKEN.test(token))
+  const user = USER_TOKEN.test(token);
+  if (!user && !APP_TOKEN.test(token))
     return {
       proven: false,
+      versionAccepted: null,
       probes: [],
-      reasons: [`${META_TEST_TOKEN} does not have the shape of a Graph access token.`],
+      reasons: [`${META_TEST_TOKEN} does not have the shape of a Graph app or user access token.`],
     };
   const redact = (text: string) =>
     text.split(token).join('[redacted]').replace(TOKEN_ANYWHERE, '[redacted]');
-  const reasons: string[] = [];
-  const probes: GraphProbe[] = [];
-  for (const call of calls) {
-    const refused = unprobeable(call);
-    if (refused) {
-      reasons.push(refused);
-      continue;
-    }
-    const wanted = topLevelFields(call.fields ?? []);
-    const query = call.fields?.length ? `?fields=${encodeURIComponent(call.fields.join(','))}` : '';
-    const probe: GraphProbe = {
-      file: call.file,
-      line: call.line,
-      path: call.path!,
-      status: null,
-      missing: [],
-    };
-    probes.push(probe);
+  const get = async (path: string, fields: string[]) => {
+    const query = fields.length ? `?fields=${encodeURIComponent(fields.join(','))}` : '';
     try {
-      const response = await request(`${GRAPH_HOST}/${target}${call.path}${query}`, {
+      const response = await request(`${GRAPH_HOST}/${target}${path}${query}`, {
         method: 'GET',
         redirect: 'error',
         signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
         headers: { authorization: `Bearer ${token}` },
       });
-      probe.status = response.status;
       const body = parseObject(await response.text(), 'Graph API response');
-      if (!response.ok) {
-        const message = (body.error as { message?: unknown } | undefined)?.message;
-        probe.error = redact(String(message ?? 'no message')).slice(0, 300);
-        reasons.push(
-          `${where(call)}: ${target}${call.path} returned ${response.status}: ${probe.error}`,
-        );
-        continue;
-      }
-      // An edge returns rows in `data`; a node returns itself.
-      const rows = Array.isArray(body.data) ? body.data : [body];
-      const row = rows[0] as Record<string, unknown> | undefined;
-      if (!row) {
-        if (wanted.length)
-          reasons.push(
-            `${where(call)}: ${target}${call.path} returned no rows, so its fields could not be read`,
-          );
-        continue;
-      }
-      probe.missing = wanted.filter((name) => !(name in row));
-      if (probe.missing.length)
-        reasons.push(
-          `${where(call)}: ${target}${call.path} did not return ${probe.missing.join(', ')}`,
-        );
+      const message = (body.error as { message?: unknown } | undefined)?.message;
+      return {
+        status: response.status,
+        body,
+        ...(response.ok ? {} : { error: redact(String(message ?? 'no message')).slice(0, 300) }),
+      };
     } catch (error) {
-      probe.error = redact(String((error as Error)?.message ?? error)).slice(0, 300);
-      reasons.push(`${where(call)}: the Graph API could not be reached: ${probe.error}`);
+      return {
+        status: null,
+        body: {} as Record<string, unknown>,
+        error: redact(String((error as Error)?.message ?? error)).slice(0, 300),
+      };
     }
+  };
+  const reasons: string[] = [];
+  // The app's own node answers any app token, so a refusal here is about the version.
+  const version = await get(user ? '/me' : '/app', ['id']);
+  const versionAccepted =
+    version.status === 200 ? true : version.status !== null && version.status < 500 ? false : null;
+  if (versionAccepted === false)
+    reasons.push(`The Graph API refused ${target}: ${version.status} ${version.error}`);
+  else if (versionAccepted === null)
+    reasons.push(`The Graph API could not be reached to check ${target}: ${version.error}`);
+  const probes: GraphProbe[] = [];
+  for (const call of calls) {
+    const refused = unprobeable(call, user);
+    if (refused) {
+      reasons.push(refused);
+      continue;
+    }
+    const wanted = topLevelFields(call.fields ?? []);
+    const result = await get(call.path!, call.fields ?? []);
+    const probe: GraphProbe = {
+      file: call.file,
+      line: call.line,
+      path: call.path!,
+      status: result.status,
+      missing: [],
+      ...(result.error ? { error: result.error } : {}),
+    };
+    probes.push(probe);
+    if (result.error) {
+      reasons.push(
+        `${where(call)}: ${target}${call.path} returned ${result.status ?? 'no response'}: ${result.error}`,
+      );
+      continue;
+    }
+    // An edge returns rows in `data`; a node returns itself.
+    const rows = Array.isArray(result.body.data) ? result.body.data : [result.body];
+    const row = rows[0] as Record<string, unknown> | undefined;
+    if (!row) {
+      if (wanted.length)
+        reasons.push(
+          `${where(call)}: ${target}${call.path} returned no rows, so its fields could not be read`,
+        );
+      continue;
+    }
+    probe.missing = wanted.filter((name) => !(name in row));
+    if (probe.missing.length)
+      reasons.push(
+        `${where(call)}: ${target}${call.path} did not return ${probe.missing.join(', ')}`,
+      );
   }
   if (!calls.length) reasons.push('No changed request to probe.');
-  return { proven: reasons.length === 0, probes, reasons };
+  return { proven: reasons.length === 0, versionAccepted, probes, reasons };
 }
 
 // The grade a Meta patch earns: the checks' own grade only where the field table proves every
@@ -329,6 +357,13 @@ export function metaGraphGrade(
       ? `, across ${[...new Set(proof.requests.flatMap((request) => request.crossed))].join(', ')}`
       : ''
   }.`;
+  // The provider itself refusing the target version outweighs the table.
+  if (live?.versionAccepted === false)
+    return {
+      letter: 'D',
+      level: 'none',
+      reason: `${table} But ${live.reasons[0]}. ${checks.reason}`,
+    };
   if (checks.letter === 'D')
     return {
       ...checks,
@@ -342,7 +377,7 @@ export function metaGraphGrade(
     };
   return {
     ...checks,
-    reason: `${table} ${checks.reason}${live ? ` Live proof did not reach grade A: ${live.reasons[0]}.` : ''}`,
+    reason: `${table}${live?.versionAccepted ? ` Refit's Meta test app confirmed the Graph API serves ${proof.target}.` : ''} ${checks.reason}${live ? ` Live proof did not reach grade A: ${live.reasons.find((reason) => !reason.startsWith('The Graph API')) ?? live.reasons[0]}.` : ''}`,
   };
 }
 

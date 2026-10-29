@@ -2,7 +2,7 @@
 
 ## October 29 checkpoint: Meta Graph proof (unreleased, after 0.39.0)
 
-A Meta Graph patch that reaches validation is graded by the reviewed change table: every changed request must be valid at one reviewed target version, and the type check or tests must pass, for grade C or B; read-only calls with Refit's own `META_TEST_TOKEN` raise it to A; otherwise it is grade D and `[Needs review]` with the reason ([Meta Graph proof](META-GRAPH.md#proof)). With AI enabled, an advisory second-opinion review is recorded with its cost. Unit tests only: no Meta patch reaches `refit run` until the Meta fixes land, and no benchmark was run.
+A Meta Graph patch that reaches validation is graded by the reviewed change table: every changed request must be valid at one reviewed target version, and the type check or tests must pass, for grade C or B; read-only calls with Refit's own `META_TEST_TOKEN` (an app access token, so only app-level reads; user and page requests keep the offline proof) raise it to A, and a target version the Graph API refuses drops it to D; otherwise it is grade D and `[Needs review]` with the reason ([Meta Graph proof](META-GRAPH.md#proof)). With AI enabled, an advisory second-opinion review is recorded with its cost. Unit tests only: no Meta patch reaches `refit run` until the Meta fixes land, and no benchmark was run.
 
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 
