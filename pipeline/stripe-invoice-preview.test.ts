@@ -497,3 +497,105 @@ ${body}`,
   // Alone, the move makes no patch.
   expect((await run(account)).diff).not.toContain('undefined, {');
 });
+
+// Shaped like 2023-10-16's subscription_items and endive's subscription_details.items in Stripe's
+// OpenAPI documents (stripe/openapi): endive gives price_data.currency the `currency` format.
+function formatContracts(format: string) {
+  const items = (currency: Record<string, unknown>) => ({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: { id: string, price_data: { type: 'object', properties: { currency } } },
+    },
+  });
+  const upcoming = {
+    get: {
+      operationId: 'GetInvoicesUpcoming',
+      parameters: [
+        { in: 'query', name: 'customer', schema: string },
+        { in: 'query', name: 'subscription', schema: string },
+        { in: 'query', name: 'subscription_items', schema: items({ type: 'string' }) },
+      ],
+      responses: { '200': invoice },
+    },
+  };
+  const preview = {
+    post: {
+      operationId: 'PostInvoicesCreatePreview',
+      requestBody: {
+        content: {
+          'application/x-www-form-urlencoded': {
+            schema: {
+              type: 'object',
+              properties: {
+                customer: string,
+                subscription: string,
+                subscription_details: {
+                  type: 'object',
+                  properties: { items: items({ type: 'string', format }) },
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: { '200': invoice },
+    },
+  };
+  const components = { schemas: { invoice: { type: 'object', properties: { id: string } } } };
+  return {
+    old: { openapi: '3.0.0', paths: { '/v1/invoices/upcoming': upcoming }, components },
+    next: { openapi: '3.0.0', paths: { '/v1/invoices/create_preview': preview }, components },
+  };
+}
+
+it('moves subscription_items whose new schema only names the currency format', () => {
+  const { old, next } = formatContracts('currency');
+  expect(invoicePreviewMove(old, next)!.keys.get('subscription_items')).toEqual([
+    'subscription_details',
+    'items',
+  ]);
+  // Any other added format can reject a value the old parameter accepted.
+  const other = formatContracts('uuid');
+  expect(invoicePreviewMove(other.old, other.next)!.keys.has('subscription_items')).toBe(false);
+});
+
+it('keeps a preview that sends a currency outside the currency format for review', () => {
+  const { old, next } = formatContracts('currency');
+  const content = `import Stripe from 'stripe';
+const stripe = new Stripe('sk', { apiVersion: '2023-10-16' });
+export const lower = (customer: string, subscription: string) =>
+  stripe.invoices.retrieveUpcoming({ customer, subscription, subscription_items: [{ price_data: { currency: 'usd' } }] });
+export const upper = (customer: string, subscription: string) =>
+  stripe.invoices.retrieveUpcoming({ customer, subscription, subscription_items: [{ price_data: { currency: 'USD' } }] });
+`;
+  const result = analyzeRepository(
+    {
+      root: '/invoice-preview',
+      files: [{ path: 'billing.ts', content }],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    },
+    [],
+    STRIPE,
+    {},
+    [],
+    [],
+    [],
+    [],
+    { invoicePreview: invoicePreviewMove(old, next) },
+  );
+  const patched = applySourceEdits(content, result.edits);
+  expect(patched).toContain(
+    "stripe.invoices.createPreview({ customer, subscription, subscription_details: { items: [{ price_data: { currency: 'usd' } }] } })",
+  );
+  expect(patched).toContain(
+    "stripe.invoices.retrieveUpcoming({ customer, subscription, subscription_items: [{ price_data: { currency: 'USD' } }] })",
+  );
+  // The first keeps the generic reason, which run.ts drops once it keeps the edit.
+  expect(result.findings.map((finding) => finding.contractReview)).toEqual([
+    expect.not.stringContaining('three-letter'),
+    expect.stringContaining('a lowercase three-letter ISO code'),
+  ]);
+});

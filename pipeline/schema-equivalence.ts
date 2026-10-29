@@ -95,7 +95,7 @@ function sameMembers(
   });
 }
 
-function formatsEqual(left: Json, right: Json) {
+export function formatsEqual(left: Json, right: Json) {
   if (left.format === right.format) return true;
   if (left.format !== undefined && right.format !== undefined) return false;
   const format = ANNOTATION_FORMATS[String(left.format ?? right.format)];
