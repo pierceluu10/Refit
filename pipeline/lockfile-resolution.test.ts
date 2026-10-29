@@ -294,7 +294,7 @@ it('resolves only root npm projects with registry dependencies, as configured', 
       options,
     ),
   ).rejects.toThrow(
-    /^Automatic preparation supports public npm registry dependencies only; package.json declares stripe as/,
+    /^Automatic preparation supports public npm registry dependencies only; package.json declares stripe from Git \(github.com\/stripe\/stripe-node\)/,
   );
   await expect(
     resolvedLockfileSnapshot(
