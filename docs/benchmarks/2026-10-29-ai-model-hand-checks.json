@@ -60,5 +60,49 @@
     }
   ],
   "stops": "All 58 reviewed by reason class: custom endpoints or base URLs (21), OpenRouter routes (20), non-text calls (5), unreadable tsconfig (2), untraced clients (2), shared request object (1), dynamic module (1), no concrete replacement (1), endpoint mentioned elsewhere (3), others (2). Every one is a pre-existing safety stop; none hides an edit that would be correct under the documented replacement.",
-  "notCovered": "No dev repository had a request shape the parameter-change table rewrites, or a Gemini text call with a retiring literal, so items 2 and Gemini edits have unit-test evidence only. The ai-bench dev sets (openai-dev-30, anthropic-dev-30, gemini-dev-15) were not frozen yet."
+  "notCovered": "No dev repository had a request shape the parameter-change table rewrites, or a Gemini text call with a retiring literal, so items 2 and Gemini edits have unit-test evidence only. The ai-bench dev sets (openai-dev-30, anthropic-dev-30, gemini-dev-15) were not frozen yet.",
+  "openaiDev30": {
+    "set": "ai-bench openai-dev-30 (PR #415, branch bench/ai-provider-sets), the 21 JS/TS repositories; the 9 Python ones are report only",
+    "refit": "4b341fa3 (feat/ai-model-decisions)",
+    "totals": {
+      "repositories": 21,
+      "replacements": 4,
+      "parameterEdits": 0,
+      "stops": 28,
+      "unresolved": 30,
+      "alerts": 0
+    },
+    "edits": [
+      {
+        "repo": "Lealdos/Shopify-ecommerce",
+        "site": "src/app/api/chat/route.ts:19",
+        "change": "gpt-3.5-turbo -> gpt-5.6-terra (streaming chat.completions.create, no sampling parameters)",
+        "verdict": "correct",
+        "why": "Shut down 2026-10-23; the page's replacement; the stream check of the request proof covers the shape."
+      },
+      {
+        "repo": "kkb2849/nextjs-1zdevcamp-template",
+        "site": "src/app/api/openai/chat/route.ts:34",
+        "change": "gpt-3.5-turbo -> gpt-5.6-terra (streaming chat.completions.create)",
+        "verdict": "correct",
+        "why": "As above."
+      },
+      {
+        "repo": "borodinka/hire-wise",
+        "site": "functions/src/index.ts:51",
+        "change": "gpt-4o-2024-08-06 -> gpt-6-luna (beta.chat.completions.parse with zodResponseFormat)",
+        "verdict": "correct, unproven shape",
+        "why": "The page's replacement for the 2027-01-14 shutdown. The request proof checks json_object output, not json_schema structured outputs, so it cannot show gpt-6-luna accepts this request; the draft stays [Needs review]. Proof gap to close: add a json_schema check to scripts/model-request-proof.mjs."
+      },
+      {
+        "repo": "kenzic/ai-ui-demo",
+        "site": "app/api/ui/route.ts:77",
+        "change": "gpt-4o-2024-08-06 -> gpt-6-luna (beta.chat.completions.parse with a response_format)",
+        "verdict": "correct, unproven shape",
+        "why": "As above."
+      }
+    ],
+    "wrong": 0,
+    "notCovered": "No request in the set sets a parameter the change table rewrites; no alerts fired (no embedding, ft: or configuration uses in the 21)."
+  }
 }
