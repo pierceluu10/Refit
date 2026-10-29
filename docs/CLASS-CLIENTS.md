@@ -29,11 +29,28 @@ Constructor API-version declarations enter the existing source-verification gate
 
 ## Review boundaries
 
-Conditional/lazy initialization, replacement or resource mutation, aliases that mutate or escape, early receiver use, instance escapes, borrowed methods, constructor replacement returns, inheritance and decorators prevent stable client provenance. Known outside-instance writes, computed writes and `Object.defineProperty` also prevent confirmation. Injected clients, getters and static fields do not gain a supported origin merely from their types.
+Conditional/lazy initialization, replacement or resource mutation, aliases that mutate or escape, early receiver use, instance escapes, borrowed methods, constructor replacement returns, inheritance and decorators prevent stable client provenance. Known outside-instance writes, computed writes and `Object.defineProperty` also prevent confirmation. Getters and static fields do not gain a supported origin merely from their types, and injected clients gain one only as [above](#injected-constructor-clients).
 
 When an affected response has a known class-client origin but uncertain stability, the finding includes `classClient.stability: "review"`. This stops migration, AI requests, migration validation and publication for the run, including runs that also contain confirmed findings. An unmapped method's return type cannot override that review evidence.
 
 Some unsupported patterns remain invisible to static tracing. No finding is not proof that the integration is unaffected. The scanner cannot establish receiver behavior in unseen runtime code.
+
+## Injected constructor clients
+
+A field filled from a constructor parameter's fallback is traced when every construction outside test files leaves the argument out or passes a traced client:
+
+```ts
+export class Billing {
+  private readonly stripe: Stripe;
+  constructor(stripe?: Stripe) {
+    this.stripe = stripe ?? new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-02-24.acacia' });
+  }
+}
+
+export const billing = new Billing();
+```
+
+Every reference to the class outside tests must be a `new`, a type, an `implements`, an import or an export. A class that is passed as a value, subclassed or exported from a library (see [injected clients](HELPER-CLIENTS.md#injected-clients)) stays untraced. Such a field has `classClient.stability: "review"`: it is traced, but never migrated automatically.
 
 ## History migration
 

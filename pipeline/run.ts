@@ -8,6 +8,7 @@ import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { annotateReach, currencyCodeEdits } from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
+import { TEST_PATH } from './source-paths.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import {
@@ -418,7 +419,8 @@ async function runOpenApiPipeline(options: {
       mappings: operationMappings,
       untracedCalls: () =>
         (untraced ??= measureCoverage(repository, 'stripe')
-          .filter((site) => site.likelySdk && !site.traced)
+          // Test files send no production request.
+          .filter((site) => site.likelySdk && !site.traced && !TEST_PATH.test(site.file))
           .map((site) => site.expression)),
       readFindings: (removals) =>
         analyzeRepository(repository, removals, provider, before.schemas).findings,

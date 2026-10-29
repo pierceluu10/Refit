@@ -55,6 +55,10 @@ The factory may be a function declaration or a `const` arrow or function express
 
 An `async` factory counts when every call to it is awaited at once (`const stripe = await getStripe()`, `(await getStripe()).customers.create(...)`), including one that awaits its key before filling a lazy holder. If any call stores, returns or passes the promise, or calls it optionally, the whole factory stays a review case. A factory also stays a review case when it is a generator, returns anything else on any path, is reassigned, or its holder is written any other way (destructuring, `++`, a non-client value).
 
+## Deno and CDN imports
+
+Supabase Edge Functions and other Deno code import the SDK from a specifier that names its version: `npm:stripe@14.21.0`, `https://esm.sh/stripe@14.21.0?target=deno`, `https://cdn.jsdelivr.net/npm/stripe@14/+esm` or `https://cdn.skypack.dev/stripe@14`. Refit traces clients created from such an import like any other. A file that imports this way runs the SDK version in its specifier, not the one `package.json` installs, and Refit does not rewrite specifiers. So findings through these clients stay for review, and their `apiVersion` pins count as untraced. Other hosts and other packages on these CDNs are not the SDK.
+
 ## Types and re-exported names
 
 A client module often exports types, and names it re-exports from other modules, beside the client. An importer that takes only those does not unlink the client from its other importers:
@@ -93,6 +97,17 @@ export const stripe = new Proxy({} as Stripe, {
 ```
 
 The trap may read `client[prop]` or `Reflect.get(client, prop)` (with the trap's receiver or the client itself), name the client in a `const` first, fill a lazy holder first (`if (!_stripe) _stripe = getStripeClient()`), and bind methods to that same client, through a ternary or an `if (typeof value === 'function') return value.bind(client)`. Any other statement, a binding to another object, a mutable local or a holder that can hold anything else leaves the export untraced.
+
+So is an object of getters that each return the same-named property of one client:
+
+```ts
+export const stripe = {
+  get customers() { return getStripe().customers; },
+  get checkout() { return getStripe().checkout; },
+};
+```
+
+Every member must be such a getter, whose whole body returns that property of the same client expression (a factory call, holder or client). A setter, a method, a spread, a getter that does anything else or returns another property, or getters over two clients leave the object untraced.
 
 A `let` holder of that kind is the client itself where it is used directly, in a module or a function:
 

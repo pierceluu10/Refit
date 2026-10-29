@@ -1,4 +1,5 @@
 import ts from 'typescript-compiler';
+import { ABSENT, type injectedParameters } from './injected-clients.ts';
 
 type Owner = ts.ClassDeclaration | ts.ClassExpression;
 interface Field {
@@ -35,8 +36,9 @@ export function classClients(options: {
   clients: Set<ts.Symbol>;
   symbol: (node: ts.Node) => ts.Symbol | undefined;
   checker: ts.TypeChecker;
+  injected?: ReturnType<typeof injectedParameters>;
 }) {
-  const { nodes, creation, clients, symbol, checker } = options;
+  const { nodes, creation, clients, symbol, checker, injected } = options;
   const fields = new Map<ts.Symbol, Field>();
   const initializations = new Set<ts.Node>();
   const unsafe = new Set<ts.Symbol>();
@@ -89,7 +91,8 @@ export function classClients(options: {
       const source = ts.isIdentifier(initializer)
         ? symbol(initializer)
         : reference(initializer)?.binding;
-      const sdk = creation(initializer);
+      const fallback = creation(initializer) ? undefined : injectedDefault(initializer, context);
+      const sdk = creation(initializer) ?? fallback;
       if (!sdk && (!source || !clients.has(source))) continue;
       if (fields.has(binding)) {
         if (fields.get(binding)!.initialization !== initialization) unsafe.add(binding);
@@ -104,6 +107,8 @@ export function classClients(options: {
         source: sdk ? undefined : source,
       });
       clients.add(binding);
+      // A field filled through a constructor parameter's fallback is traced, never migrated.
+      if (fallback) unsafe.add(binding);
       if (sdk) creations.set(sdk, binding);
       if (source && !sdk) aliases.set(binding, source);
       if (direct) initializations.add(initialization);
@@ -126,6 +131,42 @@ export function classClients(options: {
       )
         unsafe.add(binding);
     }
+  }
+  // `constructor(stripe?: Stripe) { this.stripe = stripe ?? new Stripe(key); }`: the created
+  // client, where every construction outside tests leaves the argument out or passes a client
+  // (injected-clients.ts says which constructions count).
+  function injectedDefault(initializer: ts.Expression, context: Owner) {
+    let value = initializer;
+    while (ts.isParenthesizedExpression(value) || ts.isAsExpression(value))
+      value = value.expression;
+    if (
+      !injected ||
+      !ts.isBinaryExpression(value) ||
+      ![ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+        value.operatorToken.kind,
+      ) ||
+      !ts.isIdentifier(value.left)
+    )
+      return;
+    const sdk = creation(value.right);
+    const parameter = symbol(value.left);
+    const declaration = parameter?.valueDeclaration;
+    const values = parameter && injected.values.get(parameter);
+    if (
+      !sdk ||
+      !values ||
+      !declaration ||
+      !ts.isParameter(declaration) ||
+      !ts.isConstructorDeclaration(declaration.parent) ||
+      declaration.parent.parent !== context ||
+      !values.every((entry) => {
+        if (entry === ABSENT || creation(entry)) return true;
+        const client = injected.binding(entry);
+        return Boolean(client && clients.has(client));
+      })
+    )
+      return;
+    return sdk;
   }
   function reference(node: ts.Node) {
     if (!ts.isPropertyAccessExpression(node) || node.expression.kind !== ts.SyntaxKind.ThisKeyword)

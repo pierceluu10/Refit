@@ -1,6 +1,7 @@
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { specifierPackage, specifierSource } from './sdk-constructors.ts';
 import type { Repository } from './types.ts';
 
 export type CoverageProvider = 'openai' | 'anthropic' | 'stripe';
@@ -191,7 +192,8 @@ function chain(node: ts.CallExpression, resources: Set<string>) {
 }
 
 function sdkModule(specifier: string, packageName: string) {
-  return specifier === packageName || specifier.startsWith(`${packageName}/`);
+  const name = specifierPackage(specifier);
+  return name === packageName || specifier.startsWith(`${packageName}/`);
 }
 
 function requiresSdk(node: ts.Node | undefined, packageName: string): boolean {
@@ -284,7 +286,7 @@ export function measureCoverage(repository: Repository, provider: CoverageProvid
     if (!source) continue;
     const checker = program.getTypeChecker();
     const imports = new RegExp(
-      `(?:from\\s+|require\\(\\s*)['"]${sdk.adapter.packageName.replace(/[/.@-]/g, '\\$&')}(?:/[^'"]*)?['"]`,
+      `(?:from\\s+|require\\(\\s*)['"]${specifierSource(sdk.adapter.packageName)}['"]`,
     );
     const importsSdk = imports.test(file.content);
     const usesRequire = /require\(\s*['"]/.test(file.content) && importsSdk;

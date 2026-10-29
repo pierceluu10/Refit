@@ -1042,3 +1042,81 @@ export const redirect = () => stripe.checkout.sessions.create({ mode: "subscript
     );
   },
 );
+
+it.skipIf(!process.env.REFIT_OASDIFF)(
+  'leaves an untraced call in a test file out of what a removed request property may reach',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-untraced-tests-'));
+    roots.push(root);
+    const intents = (properties: Record<string, unknown>, version: string) => ({
+      ...checkoutContract(version, { type: 'string' }),
+      paths: {
+        ...checkoutContract(version, { type: 'string' }).paths,
+        '/v1/payment_intents': {
+          post: {
+            operationId: 'PostPaymentIntents',
+            requestBody: {
+              content: {
+                'application/x-www-form-urlencoded': {
+                  schema: { type: 'object', properties },
+                },
+              },
+            },
+            responses: {
+              '200': {
+                description: 'Session',
+                content: { 'application/json': { schema: ref('checkout.session') } },
+              },
+            },
+          },
+        },
+      },
+    });
+    const files = {
+      'package.json': JSON.stringify({ dependencies: { stripe: '22.6.2' } }),
+      'redirect.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const redirect = () => stripe.checkout.sessions.create({ mode: "subscription" });
+`,
+      // A stub the test hands in place of the client: it sends nothing in production.
+      'redirect.test.js': `const stripe = { paymentIntents: { create: async () => ({}) } };
+await stripe.paymentIntents.create({ amount: 1 });
+`,
+      'before.json': JSON.stringify(
+        intents({ amount: { type: 'integer' }, legacy: { type: 'string' } }, '2026-08-26.dahlia'),
+      ),
+      'after.json': JSON.stringify(intents({ amount: { type: 'integer' } }, '2026-09-30.endive')),
+      'provider.json': JSON.stringify({
+        id: 'stripe-checkout',
+        packageName: 'stripe',
+        defaultImport: true,
+        namedExport: 'Stripe',
+        constructorCalls: true,
+        apiVersion: { constructorArgument: 1, property: 'apiVersion', requestArguments: [1, 2] },
+        operations: [
+          {
+            resource: 'checkout.sessions',
+            method: 'create',
+            schema: 'checkout.session',
+            operationId: 'PostCheckoutSessions',
+          },
+        ],
+      }),
+    };
+    for (const [path, content] of Object.entries(files)) await writeFile(join(root, path), content);
+    const report = await runPipeline({
+      repository: root,
+      before: join(root, 'before.json'),
+      after: join(root, 'after.json'),
+      providerConfig: join(root, 'provider.json'),
+      apiVersion: '2026-08-26.dahlia',
+      fullDiff: true,
+    });
+    expect(report.specificationDiff.changes).toContainEqual(
+      expect.objectContaining({
+        text: 'removed the request property `legacy`',
+        reach: 'unused',
+      }),
+    );
+  },
+);

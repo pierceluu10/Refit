@@ -7,10 +7,11 @@ import { guardedHistoryEdit } from './history-migration.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { COPY_METHODS, ELEMENT_METHODS, sourceLiterals } from './source-literals.ts';
-import { sdkConstructors } from './sdk-constructors.ts';
+import { sdkConstructors, specifierSource } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
-import { factoryClients, proxyClient } from './factory-clients.ts';
+import { factoryClients, getterClient, proxyClient } from './factory-clients.ts';
 import { helperClients } from './helper-clients.ts';
+import { ABSENT, injectedParameters, type Injected } from './injected-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
@@ -336,7 +337,7 @@ export function analyzeRepository(
   // does still fails the scan, because its evidence would be incomplete.
   const skippedFiles: string[] = [];
   const sdkImport = new RegExp(
-    `(?:from\\s*|import\\s*\\(\\s*|require\\s*\\(\\s*)['"]${provider.packageName.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?:/[^'"]*)?['"]`,
+    `(?:from\\s*|import\\s*\\(\\s*|require\\s*\\(\\s*)['"]${specifierSource(provider.packageName)}['"]`,
   );
   for (const source of program.getSourceFiles()) {
     const diagnostics = program.getSyntacticDiagnostics(source);
@@ -493,11 +494,28 @@ export function analyzeRepository(
     const found = symbol(node);
     if (found) set.add(found);
   };
+  const base = options.modelFixClients;
+  // Package directories that declare the SDK as a peer dependency: libraries, whose exported
+  // functions other applications call.
+  const libraries = repository.dependencies
+    .filter((entry) => entry.section === 'peerDependencies')
+    .map((entry) => posix.dirname(entry.file));
+  const injected = base
+    ? undefined
+    : injectedParameters({
+        nodes,
+        symbol,
+        shorthand: (node) => canonical(checker.getShorthandAssignmentValueSymbol(node)),
+        file: (node) => location(node).file,
+        library: (file) =>
+          libraries.some((directory) => directory === '.' || file.startsWith(`${directory}/`)),
+      });
   const sdk = sdkConstructors({
     nodes,
     checker,
     provider,
     symbol,
+    injected,
     external: (name, file) =>
       resolution.external(name, file) ||
       Boolean(
@@ -781,11 +799,19 @@ export function analyzeRepository(
     for (const [node, binding] of modules.inlineDefaults)
       if (sdk.creation(node.expression)) clients.add(binding);
   }
-  classBindings = classClients({ nodes, creation: sdk.creation, clients, symbol, checker });
-  const base = options.modelFixClients;
+  classBindings = classClients({
+    nodes,
+    creation: sdk.creation,
+    clients,
+    symbol,
+    checker,
+    injected,
+  });
   factoryBindings = factoryClients({ nodes, clients, symbol, creation: sdk.creation, base });
   for (const declaration of declarations) {
-    const forwarded = proxyClient(declaration.initializer, base);
+    const forwarded =
+      proxyClient(declaration.initializer, base) ??
+      (base ? undefined : getterClient(declaration.initializer));
     const binding = clientBinding(forwarded ?? declaration.initializer);
     // A Proxy reads its holder on every access, so a holder that only ever holds the client
     // (filled in the trap or by a factory) forwards to that client.
@@ -803,6 +829,74 @@ export function analyzeRepository(
     clientBinding,
     creation: sdk.creation,
   });
+  // Parameters every call outside tests fills with a client, in their slot or through their
+  // default (injected-clients.ts), consts that pick one (`stripe ?? make()`), and parameters that
+  // name a factory (`createStripe = make`), where the rules above leave them untraced. They are
+  // traced; findings through them stop for review.
+  const injectedClients = new Set<ts.Symbol>();
+  if (injected) {
+    const factoryParameters = new Set<ts.Symbol>();
+    const unwrapped = (node: ts.Expression): ts.Expression =>
+      ts.isParenthesizedExpression(node) ||
+      ts.isAsExpression(node) ||
+      ts.isNonNullExpression(node) ||
+      ts.isSatisfiesExpression(node)
+        ? unwrapped(node.expression)
+        : node;
+    // 'client', 'absent' (a parameter every call leaves out), or undefined for anything else.
+    const kind = (node: ts.Expression): 'client' | 'absent' | undefined => {
+      const value = unwrapped(node);
+      if (sdk.creation(value)) return 'client';
+      if (
+        ts.isCallExpression(value) &&
+        !value.questionDotToken &&
+        ts.isIdentifier(value.expression) &&
+        factoryParameters.has(symbol(value.expression)!)
+      )
+        return 'client';
+      const binding = ts.isIdentifier(value) ? injected.binding(value) : clientBinding(value);
+      if (binding && clients.has(binding)) return 'client';
+      if (binding && injected.values.get(binding)?.every((entry) => entry === ABSENT))
+        return 'absent';
+      if (
+        ts.isBinaryExpression(value) &&
+        [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+          value.operatorToken.kind,
+        )
+      ) {
+        const sides = [kind(value.left), kind(value.right)];
+        return sides.every(Boolean) && sides.includes('client') ? 'client' : undefined;
+      }
+      return undefined;
+    };
+    const filled = (values: Injected[]) =>
+      values.every((entry) => entry !== ABSENT && kind(entry) === 'client');
+    const factory = (entry: Injected) => {
+      const binding = entry !== ABSENT && ts.isIdentifier(entry) && injected.binding(entry);
+      return Boolean(
+        binding && (factoryBindings.factories.has(binding) || factoryParameters.has(binding)),
+      );
+    };
+    let size = -1;
+    while (size !== clients.size + factoryParameters.size) {
+      size = clients.size + factoryParameters.size;
+      for (const [binding, values] of injected.values) {
+        if (!clients.has(binding) && filled(values)) {
+          clients.add(binding);
+          injectedClients.add(binding);
+        }
+        if (!factoryParameters.has(binding) && values.every(factory))
+          factoryParameters.add(binding);
+      }
+      for (const declaration of declarations) {
+        const binding = symbol(declaration.name);
+        if (binding && !clients.has(binding) && kind(declaration.initializer) === 'client') {
+          clients.add(binding);
+          injectedClients.add(binding);
+        }
+      }
+    }
+  }
   const clientReferences = {
     rootBinding: classBindings.rootBinding,
     aliases: [...classBindings.aliases, ...helperBindings.aliases],
@@ -1140,6 +1234,7 @@ export function analyzeRepository(
   for (const binding of [
     ...classBindings.unsafe,
     ...helperBindings.unsafe,
+    ...injectedClients,
     ...(webhooks?.unsafeEvents ?? []),
   ]) {
     initialUnsafe.add(binding);
@@ -1171,6 +1266,9 @@ export function analyzeRepository(
     undefined,
     false,
   );
+  // Clients of a Deno/CDN import or an injected constructor: traced, never migrated, and their pin
+  // is not one Refit can move (sdk-constructors.ts `review`)…
+  const reviewed = new Set<ts.Symbol>();
   for (const [node, binding] of [
     ...declarations.map((node) => [node.initializer, symbol(node.name)] as const),
     ...[...modules.inlineDefaults].map(([node, binding]) => [node.expression, binding] as const),
@@ -1185,6 +1283,21 @@ export function analyzeRepository(
     const spread = creation.arguments?.some(ts.isSpreadElement);
     if (spread || unsafeConstructors.has(sdk.binding(creation)!)) initialUnsafe.add(binding);
     if (spread || mutatedConstructors.has(sdk.binding(creation)!)) initialMutated.add(binding);
+    if (sdk.review.has(sdk.binding(creation)!)) reviewed.add(binding);
+  }
+  // …and so are the consts that hold what such a factory returns.
+  for (let size = -1; size !== reviewed.size;) {
+    size = reviewed.size;
+    for (const declaration of declarations) {
+      const origin = clientBinding(declaration.initializer);
+      const binding = symbol(declaration.name);
+      if (origin && binding && reviewed.has(origin)) reviewed.add(binding);
+    }
+  }
+  for (const binding of reviewed) {
+    initialUnsafe.add(binding);
+    initialMutated.add(binding);
+    versionUnsafe.add(binding);
   }
   for (const [response, origin] of origins)
     if (sdkCall(origin)?.optional) {

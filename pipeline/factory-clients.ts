@@ -162,6 +162,41 @@ export function proxyClient(expression: ts.Expression, base = false): ts.Express
   return target;
 }
 
+// `{ get customers() { return getStripe().customers; }, get prices() { return getStripe().prices; } }`
+// forwards each named read to one client; returns that client expression. Every member is a
+// getter whose whole body returns the same-named property of the same expression; a setter,
+// method, spread or any other member is not one.
+export function getterClient(expression: ts.Expression): ts.Expression | undefined {
+  const unwrap = (node: ts.Expression): ts.Expression =>
+    ts.isParenthesizedExpression(node) ||
+    ts.isAsExpression(node) ||
+    ts.isNonNullExpression(node) ||
+    ts.isSatisfiesExpression(node)
+      ? unwrap(node.expression)
+      : node;
+  const object = unwrap(expression);
+  if (!ts.isObjectLiteralExpression(object) || !object.properties.length) return;
+  let target: ts.Expression | undefined;
+  for (const member of object.properties) {
+    if (!ts.isGetAccessorDeclaration(member) || !ts.isIdentifier(member.name) || !member.body)
+      return;
+    const [statement, ...rest] = member.body.statements;
+    if (rest.length || !statement || !ts.isReturnStatement(statement) || !statement.expression)
+      return;
+    const read = unwrap(statement.expression);
+    if (
+      !ts.isPropertyAccessExpression(read) ||
+      read.questionDotToken ||
+      read.name.text !== member.name.text
+    )
+      return;
+    const client = unwrap(read.expression);
+    if (target && client.getText() !== target.getText()) return;
+    target = client;
+  }
+  return target;
+}
+
 // `client ??= make();` or `if (!client) client = make();` with no else.
 function fills(statement: ts.Statement, target: ts.Expression) {
   if (!ts.isIdentifier(target)) return false;
