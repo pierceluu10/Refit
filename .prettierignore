@@ -19,3 +19,4 @@ pipeline/grammars
 # A real client, kept as its repository wrote it.
 pipeline/fixtures/generated-stripe/src
 pipeline/fixtures/lockfile-resolution/
+pipeline/fixtures/conflicting-lockfiles/

@@ -20049,6 +20049,136 @@
         }
       ],
       "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| 40624045392 (main) | `89f1c0ed` | `-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249` | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| 40626067947 (lane A) | `622951a0` | the same, `-f flags=--resolve-lockfiles` | 90 |",
+      "values": [
+        {
+          "says": "90",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40626067947",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| 40634781011 (this change) | `17b831d8` | the same, `-f flags=--resolve-lockfiles` | **96** |",
+      "values": [
+        {
+          "says": "96",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40634781011",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| 40634774301 (subset, this change) | `17b831d8` | `-f list=subsets/l3-conflicting-lockfiles.json -f offset=0 -f size=4 -f count=7`, the flag | 3 of 7 |",
+      "values": [
+        {
+          "says": "3",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40634774301",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Against lane A, 6 repositories move from needs-review to validated and none is lost: the three conflicting-lockfile rows of the subset (Quill, avikalp987/quill, tldr-app), `omar99elnemr/Docubot` and `saidMounaim/tick-event` (their one in-sync lockfile now takes the stripe upgrade), and `r0ld3x/DocTalk`, which commits no lockfile and validates because its install was not killed this time (Docker SIGKILL in both earlier runs). The six patches are read and labelled `correct` in `docs/benchmarks/fix-reviews.json`; the subset's three are byte-identical to a local offline Docker run.",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Not outcome changes: `LucasKlemke/doctor-reborn` now upgrades stripe and its own `@ts-expect-error` becomes unused, so its patch fails tsc and is not published (before, the pin moved on stripe 18 and passed); `passion-27/QuotesAI` now has the upgrade in its patch and still stops on its `link:` dependency; `vignesh-gupta/digibee-marketplace` (one `yarn.lock`, a byte-identical patch) timed out installing the candidate after 300 seconds; rerun locally in offline Docker at `17b831d8`, the same patch passes its type check (grade C).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "18",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        },
+        {
+          "token": "300",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- heldout-30, run only after the above: 40624360669 (main `89f1c0ed`, 10 validated) → 40682647162 (`ce5755ac`, `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30 -f flags=--resolve-lockfiles`, **12**), none lost, 27 of 30 rows identical. `ItusiAI/Open-Magiviz` and `VishalRaut2106/HackMate_AI` install `package-lock.json` because their workflows install with npm and validate (labelled `correct`); `DarkInventor/QuotesAI` gains the stripe upgrade and still stops on its `link:` dependency. Nothing was tuned on this set.",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "12",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "27",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40682647162",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
     }
   ]
 }

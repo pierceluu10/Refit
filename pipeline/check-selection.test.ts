@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import {
   checkKinds,
@@ -18,6 +20,8 @@ import {
   unavailableTypeCheck,
 } from './check-selection.ts';
 import { readRepository } from './repository.ts';
+
+const execute = promisify(execFile);
 
 const roots: string[] = [];
 
@@ -1129,4 +1133,38 @@ it('lets signed webhook events cover a handler for grade C, never B or A', async
       signedEvents: ['dashboard/pages/api/webhooks.ts'],
     }),
   ).resolves.toMatchObject({ letter: 'D' });
+});
+
+it('runs the tests with the manager of the lockfile preparation installs', async () => {
+  // Shaped like Ankit-Sharma1011/Quill: pnpm-lock.yaml beside package-lock.json. Without Git
+  // history the choice is unknown, so pnpm runs the tests as before; a committed npm pin picks npm.
+  const files = {
+    'package.json': manifest({ test: 'vitest run' }),
+    'pnpm-lock.yaml': "lockfileVersion: '9.0'\n",
+    'package-lock.json': '{}\n',
+  };
+  expect((await selectCheck(await repository(files))).command).toEqual(['pnpm', 'test']);
+  const pinned = await repository({
+    ...files,
+    'package.json': JSON.stringify({
+      ...JSON.parse(files['package.json']),
+      packageManager: 'npm@10.9.2',
+    }),
+  });
+  await execute('git', ['init', '-q', pinned.root]);
+  await execute('git', ['-C', pinned.root, 'add', '.']);
+  await execute('git', [
+    '-C',
+    pinned.root,
+    '-c',
+    'user.name=Refit Test',
+    '-c',
+    'user.email=test@example.invalid',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-qm',
+    'test: fixture',
+  ]);
+  expect((await selectCheck(pinned)).command).toEqual(['npm', 'test']);
 });

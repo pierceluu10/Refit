@@ -97,6 +97,22 @@ gh workflow run benchmark.yml -R refit-dev/refit-bench \
 
 No run has been dispatched yet.
 
+## Conflicting lockfiles chosen by rule (October 28)
+
+`feat/conflicting-lockfiles` (built on lane A's `feat/lockfile-resolution`) installs one of several committed lockfiles by rule and upgrades stripe in the chosen one when the others cannot follow ([Preparation failures](PREPARATION-FAILURES.md#conflicting-lockfiles-one-chosen-by-rule-october-28)). Every run is refit-bench `benchmark.yml`, no AI, compared with `node scripts/stripe-benchmark-compare.mjs <before>/results.json <after>/results.json --details`.
+
+| Run                               | Commit     | Inputs                                                                                     | Validated |
+| --------------------------------- | ---------- | ------------------------------------------------------------------------------------------ | --------- |
+| 40624045392 (main)                | `89f1c0ed` | `-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`                     | 84        |
+| 40626067947 (lane A)              | `622951a0` | the same, `-f flags=--resolve-lockfiles`                                                   | 90        |
+| 40634781011 (this change)         | `17b831d8` | the same, `-f flags=--resolve-lockfiles`                                                   | **96**    |
+| 40634774301 (subset, this change) | `17b831d8` | `-f list=subsets/l3-conflicting-lockfiles.json -f offset=0 -f size=4 -f count=7`, the flag | 3 of 7    |
+
+- Against lane A, 6 repositories move from needs-review to validated and none is lost: the three conflicting-lockfile rows of the subset (Quill, avikalp987/quill, tldr-app), `omar99elnemr/Docubot` and `saidMounaim/tick-event` (their one in-sync lockfile now takes the stripe upgrade), and `r0ld3x/DocTalk`, which commits no lockfile and validates because its install was not killed this time (Docker SIGKILL in both earlier runs). The six patches are read and labelled `correct` in `docs/benchmarks/fix-reviews.json`; the subset's three are byte-identical to a local offline Docker run.
+- Not outcome changes: `LucasKlemke/doctor-reborn` now upgrades stripe and its own `@ts-expect-error` becomes unused, so its patch fails tsc and is not published (before, the pin moved on stripe 18 and passed); `passion-27/QuotesAI` now has the upgrade in its patch and still stops on its `link:` dependency; `vignesh-gupta/digibee-marketplace` (one `yarn.lock`, a byte-identical patch) timed out installing the candidate after 300 seconds; rerun locally in offline Docker at `17b831d8`, the same patch passes its type check (grade C).
+- heldout-30, run only after the above: 40624360669 (main `89f1c0ed`, 10 validated) → 40682647162 (`ce5755ac`, `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30 -f flags=--resolve-lockfiles`, **12**), none lost, 27 of 30 rows identical. `ItusiAI/Open-Magiviz` and `VishalRaut2106/HackMate_AI` install `package-lock.json` because their workflows install with npm and validate (labelled `correct`); `DarkInventor/QuotesAI` gains the stripe upgrade and still stops on its `link:` dependency. Nothing was tuned on this set.
+- Run-to-run noise in lockfile-less repositories, which this change does not touch: `Alfredoeb9/ele` and `minhthuong031103/RealEstateBrokerageMarket` lost their installs to SIGKILL on main and lane A and ran here, and `kondax-com/Bocker`'s baseline failed only in lane A's run.
+
 ## A coding agent on the repositories Refit did not fix (October 21)
 
 Question: where Refit stopped, does a model-driven agent fix the break instead? The comparison took every affected Stripe repository that Refit did not validate on the October 20 rerun: 21 from the active-teams set, 10 original and 9 held out, 40 in all. On each pinned checkout, OpenAI's Codex CLI (`gpt-5.6-sol`, sandboxed with no network) was told to "upgrade to 2026-09-30.endive". It was given the contract diff Refit computed and the matching Stripe changelog pages. Every patch then went through Refit's own offline validation, with Refit's stripe-node upgrade added and the agent's package-file edits reverted. Every patch that passed was read in full. [Per-repository results and diffs](benchmarks/2026-10-21-agent-comparison-results.json); the harness is [`agent-comparison-cli.ts`](../pipeline/agent-comparison-cli.ts).

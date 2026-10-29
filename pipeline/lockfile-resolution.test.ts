@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { readCommittedRepository } from './committed-repository.ts';
+import { readPreparationInputs } from './dependency-inputs.ts';
 import { prepareDependencies } from './dependency-preparation.ts';
 import {
   changesOutside,
@@ -336,6 +337,48 @@ it('resolves only root npm projects with registry dependencies, as configured', 
   ).toBeUndefined();
   expect(resolveNpmLockfile).not.toHaveBeenCalled();
 });
+
+// Networked: resolves in Docker against registry.npmjs.org, then prepares the result offline.
+it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
+  'prepares a lone out-of-sync npm lockfile from one resolved with it as the seed',
+  async () => {
+    // package.json moved to stripe ^23.0.0 and @types/node ^20.0.0; the committed lockfile did not.
+    const root = await directory(
+      {
+        'package.json': await fixture('bumped-package.json'),
+        'package-lock.json': await fixture('committed-package-lock.json'),
+      },
+      true,
+    );
+    await expect(readPreparationInputs(await readCommittedRepository(root))).rejects.toThrow(
+      /^package\.json dependencies differ from the committed package-lock\.json/,
+    );
+    const prepared = await prepareDependencies({
+      repository: root,
+      image: IMAGE!,
+      cacheDirectory: await mkdtemp(join(tmpdir(), 'refit-lock-cache-')),
+    });
+    // stripe 23.0.0 was published after the commit date, so its pin is resolved late.
+    expect(prepared.environment.resolvedLockfile).toEqual({
+      reason: 'lockfile-out-of-sync',
+      before: '2026-09-15T00:00:00.000Z',
+      late: {
+        stripe: {
+          spec: '^23.0.0',
+          section: 'dependencies',
+          published: '2026-10-01T00:52:07.438Z',
+        },
+      },
+    });
+    expect(prepared.environment.lockHash).toBe(
+      validateNpmLock(
+        await fixture('bumped-package.json'),
+        await fixture('bumped-package-lock.json'),
+      ).lockHash,
+    );
+  },
+  600_000,
+);
 
 // Networked: resolves in Docker against registry.npmjs.org, as the fixture was recorded.
 it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
