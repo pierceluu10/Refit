@@ -17,7 +17,13 @@
   "properties": {
     "formatVersion": { "const": 1 },
     "format": {
-      "enum": ["stripe-results", "shopify-results", "ai-model-results", "deadline-results"]
+      "enum": [
+        "stripe-results",
+        "shopify-results",
+        "ai-model-results",
+        "deadline-results",
+        "meta-graph-results"
+      ]
     },
     "refit": {
       "type": "object",
