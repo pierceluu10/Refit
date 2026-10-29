@@ -1,6 +1,6 @@
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { modelAlerts, type ModelAlert } from './model-alerts.ts';
-import type { ParameterChangeTable } from './model-parameter-changes.ts';
+import { loadParameterChanges, type ParameterChangeTable } from './model-parameter-changes.ts';
 import type { ModelParameterTable } from './model-parameters.ts';
 import {
   EMPTY_REQUEST_PROOFS,
@@ -334,8 +334,11 @@ export async function runModelFixes(options: {
   repository: string;
   registry: DeadlineRegistry;
   parameters?: ModelParameterTable;
-  // Sourced parameter changes applied with each swap; off unless passed (owner decision pending).
-  parameterChanges?: ParameterChangeTable;
+  // Sourced parameter changes applied with each swap: the shipped table unless one is passed, and
+  // none with `null` (owner decision, 2026-10-29).
+  parameterChanges?: ParameterChangeTable | null;
+  // Edit indirect model sources too (owner decision, 2026-10-29); `false` keeps direct sites only.
+  indirect?: boolean;
   // Request-level proofs for replacement models; a draft with an unproven one is [Needs review].
   proofs?: RequestProofTable;
   now: Date;
@@ -357,7 +360,11 @@ export async function runModelFixes(options: {
     propose: async (directory) => {
       proposal = await proposeModelReplacements(directory, options.registry, options.now, {
         parameters: options.parameters,
-        parameterChanges: options.parameterChanges,
+        parameterChanges:
+          options.parameterChanges === null
+            ? undefined
+            : (options.parameterChanges ?? (await loadParameterChanges())),
+        indirect: options.indirect ?? true,
       });
       alerts = (await modelAlerts(directory, options.registry, options.now)).alerts;
       return proposal.patch;
