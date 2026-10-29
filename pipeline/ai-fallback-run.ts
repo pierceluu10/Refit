@@ -143,8 +143,9 @@ export async function loadSourceContext(now: Date) {
 
 const SCRIPT_FILE = /\.(?:[cm]?[jt]sx?)$/;
 const SETTINGS_FILE = /\.(?:json|ya?ml|toml|ini)$|(?:^|\/)\.env(?:\.[\w.-]+)?$/;
+// Translations, changelogs, docs and vendored packages name models as text, not as a setting.
 const NOT_SETTINGS =
-  /(?:^|\/)(?:package(?:-lock)?\.json|tsconfig[^/]*\.json|pnpm-lock\.yaml|composer\.lock|node_modules\/)/;
+  /(?:^|\/)(?:package(?:-lock)?\.json|tsconfig[^/]*\.json|pnpm-lock\.yaml|composer\.lock|node_modules\/|site-packages\/|(?:locales?|i18n|lang|translations?|changelogs?|docs?)\/)/;
 
 // Saved model settings (JSON, YAML, TOML, INI and .env files) that still name a model an item's
 // deadline retires, as items: a patch that migrates the code and leaves the setting is partial.

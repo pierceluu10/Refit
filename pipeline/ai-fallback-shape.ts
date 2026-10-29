@@ -143,13 +143,34 @@ interface Callable {
   name: string;
   parameters: number;
   constructor: boolean;
+  // Exported: callers may be outside the repository (a framework route handler, a library API).
+  exported: boolean;
+}
+
+function isExported(node: ts.Node) {
+  for (
+    let current: ts.Node | undefined = node;
+    current && !ts.isSourceFile(current);
+    current = current.parent
+  )
+    if (
+      ts.canHaveModifiers(current) &&
+      ts.getModifiers(current)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
+    )
+      return true;
+  return false;
 }
 
 function callables(file: ts.SourceFile) {
   const found: Callable[] = [];
   walk(file, (node) => {
     if (ts.isFunctionDeclaration(node) && node.name)
-      found.push({ name: node.name.text, parameters: node.parameters.length, constructor: false });
+      found.push({
+        name: node.name.text,
+        parameters: node.parameters.length,
+        constructor: false,
+        exported: isExported(node),
+      });
     else if (
       ts.isVariableDeclaration(node) &&
       ts.isIdentifier(node.name) &&
@@ -160,9 +181,15 @@ function callables(file: ts.SourceFile) {
         name: node.name.text,
         parameters: node.initializer.parameters.length,
         constructor: false,
+        exported: isExported(node),
       });
     else if (ts.isMethodDeclaration(node) && ts.isIdentifier(node.name))
-      found.push({ name: node.name.text, parameters: node.parameters.length, constructor: false });
+      found.push({
+        name: node.name.text,
+        parameters: node.parameters.length,
+        constructor: false,
+        exported: isExported(node),
+      });
     else if (
       ts.isConstructorDeclaration(node) &&
       ts.isClassDeclaration(node.parent) &&
@@ -172,6 +199,7 @@ function callables(file: ts.SourceFile) {
         name: node.parent.name.text,
         parameters: node.parameters.length,
         constructor: true,
+        exported: isExported(node.parent),
       });
   });
   return found;
@@ -193,6 +221,21 @@ function mostArguments(files: Array<{ path: string; content: string }>, item: Ca
     });
   }
   return most;
+}
+
+// The parameter names (destructured ones included) of every function enclosing a node.
+function inputs(node: ts.Node) {
+  const names = new Set<string>();
+  const collect = (name: ts.BindingName) => {
+    if (ts.isIdentifier(name)) names.add(name.text);
+    else
+      for (const element of name.elements)
+        if (!ts.isOmittedExpression(element)) collect(element.name);
+  };
+  for (let current = node.parent; current && !ts.isSourceFile(current); current = current.parent)
+    if (ts.isFunctionLike(current))
+      for (const parameter of current.parameters) collect(parameter.name);
+  return names;
 }
 
 const MISSING =
@@ -218,7 +261,9 @@ export function runtimeRequirements(
       const was = old.get(item.name);
       if (!was || item.parameters <= was.parameters) continue;
       const most = mostArguments(all, item);
-      if (most === null || most < item.parameters)
+      // With no call site in the repository an exported function's callers are elsewhere, so
+      // Refit cannot judge it here; a call site that passes too few arguments always counts.
+      if ((most === null && !item.exported) || (most !== null && most < item.parameters))
         problems.push(
           `${file.path}: ${item.constructor ? 'the constructor of ' : ''}${item.name} now takes ${item.parameters} parameter${item.parameters === 1 ? '' : 's'}, and ${most === null ? 'no call site calls it' : `no call site passes more than ${most}`}.`,
         );
@@ -229,7 +274,10 @@ export function runtimeRequirements(
       for (let parent = node.parent; parent && !ts.isSourceFile(parent); parent = parent.parent)
         if (ts.isIfStatement(parent)) {
           const condition = parent.expression.getText(after).replace(/\s+/g, ' ');
-          if (MISSING.test(condition))
+          // Only a missing input counts: a parameter, an option on one, or a field the
+          // constructor was meant to set; a check on an API result is ordinary error handling.
+          const root = /^[!(\s]*(?:typeof\s+)?([A-Za-z_$][\w$]*)/.exec(condition)?.[1];
+          if (MISSING.test(condition) && root && (root === 'this' || inputs(node).has(root)))
             problems.push(
               `${file.path}:${lineOf(after, node.getStart())}: the patch throws when \`${condition.slice(0, 80)}\`; check that every caller supplies the value.`,
             );
