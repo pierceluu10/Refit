@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { loadAiRuleTables } from './ai-rules.ts';
-import { proposeOpenAiSdkMajor } from './ai-sdk-majors.ts';
+import { proposeAnthropicSdkMajor, proposeOpenAiSdkMajor } from './ai-sdk-majors.ts';
 import { applySourceEdits } from './patches.ts';
 
 const roots: string[] = [];
@@ -156,6 +156,8 @@ export const other = (client: any) => client.createCompletion({ model: 'x' });
 `;
     const { proposal, changed } = await propose('3.3.0', { 'src/run.ts': source });
     const reasons = proposal.stops.map((item) => item.rule);
+    // Each of these leaves v3 code that breaks on 6, so none may ship as a partial upgrade.
+    expect(proposal.stops.every((item) => item.blocking)).toBe(true);
     expect(reasons).toEqual(
       expect.arrayContaining([
         'openai-node-v4-types',
@@ -184,6 +186,53 @@ export async function f() {
     });
     expect(proposal.stops).toEqual([
       expect.objectContaining({ rule: 'openai-node-v4-response-data', line: 5 }),
+    ]);
+  });
+
+  it('re-indents the merged options and keeps guarded error reads advisory', async () => {
+    const { proposal, changed } = await propose('3.3.0', {
+      'bot.js': `const { Configuration, OpenAIApi } = require('openai');
+const api = new OpenAIApi(
+  new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+);
+async function reply(text) {
+  try {
+    const completion = await api.createChatCompletion({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: text }] });
+    return completion.data.choices[0].message.content;
+  } catch (error) {
+    if (error.response) console.log(error.response.status);
+    else console.log(error.message);
+  }
+}
+module.exports = { reply };
+`,
+    });
+    expect(changed['bot.js']).toContain(`const api = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});`);
+    expect(proposal.stops).toEqual([
+      expect.objectContaining({ rule: 'openai-node-v4-errors', blocking: false, line: 12 }),
+    ]);
+  });
+
+  it('blocks on an unguarded error read', async () => {
+    const { proposal } = await propose('3.3.0', {
+      'a.js': `const { Configuration, OpenAIApi } = require('openai');
+const api = new OpenAIApi(new Configuration({ apiKey: 'k' }));
+async function f() {
+  try {
+    await api.createModeration({ input: 'x' });
+  } catch (e) {
+    return e.response.status;
+  }
+}
+module.exports = { f };
+`,
+    });
+    expect(proposal.stops).toEqual([
+      expect.objectContaining({ rule: 'openai-node-v4-errors', blocking: true }),
     ]);
   });
 
@@ -231,6 +280,106 @@ export const run = () => client.beta.chat.completions.runFunctions({ model: 'x',
       'openai-node-v5-file-from-path',
       'openai-node-v5-http-agent',
       'openai-node-v5-run-functions',
+    ]);
+  });
+});
+
+describe('@anthropic-ai/sdk 0.x to 1', () => {
+  async function anthropic(
+    version: string,
+    files: Record<string, string>,
+    extra: Record<string, string> = {},
+  ) {
+    const root = await mkdtemp(join(tmpdir(), 'refit-ai-sdk-majors-'));
+    roots.push(root);
+    for (const [name, content] of Object.entries({
+      'package.json': JSON.stringify({
+        name: 'app',
+        dependencies: { '@anthropic-ai/sdk': `^${version}`, ...extra },
+      }),
+      'package-lock.json': JSON.stringify({
+        name: 'app',
+        lockfileVersion: 3,
+        packages: { '': { name: 'app' }, 'node_modules/@anthropic-ai/sdk': { version } },
+      }),
+      ...files,
+    })) {
+      await mkdir(dirname(join(root, name)), { recursive: true });
+      await writeFile(join(root, name), content);
+    }
+    return (await proposeAnthropicSdkMajor(root, await loadAiRuleTables()))!;
+  }
+
+  it('needs no code edit for plain Messages calls and records their shapes', async () => {
+    const proposal = await anthropic('0.79.0', {
+      'src/llm.ts': `import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic();
+export async function ask(text: string) {
+  const response = await client.messages.create({ model: 'claude-haiku-5-5', max_tokens: 100, messages: [{ role: 'user', content: text }] });
+  return response.content;
+}
+export const stream = (text: string) => client.messages.stream({ model: 'claude-haiku-5-5', max_tokens: 100, messages: [{ role: 'user', content: text }], tools: [] });
+`,
+    });
+    expect(proposal.edits).toEqual([]);
+    expect(proposal.stops).toEqual([]);
+    expect(proposal.calls).toEqual([
+      expect.objectContaining({ call: 'messages.create', tools: false }),
+      expect.objectContaining({ call: 'messages.stream', tools: true }),
+    ]);
+  });
+
+  it('moves models.list with betas to client.beta.models', async () => {
+    const source = `import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic();
+export const models = () => client.models.list({ betas: ['x'] });
+export const plain = () => client.models.list();
+`;
+    const proposal = await anthropic('0.79.0', { 'm.ts': source });
+    expect(applySourceEdits(source, proposal.edits)).toContain('client.beta.models.list({ betas');
+    expect(applySourceEdits(source, proposal.edits)).toContain(
+      'plain = () => client.models.list();',
+    );
+  });
+
+  it('blocks on what 2026-10-21 or v1 rejects', async () => {
+    const proposal = await anthropic(
+      '0.40.0',
+      {
+        'a.ts': `import Anthropic, { HUMAN_PROMPT } from '@anthropic-ai/sdk';
+const client = new Anthropic({ apiKey: 'a', authToken: 'b' });
+export const one = () => client.messages.create({ model: 'm', max_tokens: 1, temperature: 0, messages: [] });
+export const two = (body: any) => client.messages.create(body);
+export const three = () => client.completions.create({ model: 'm', prompt: HUMAN_PROMPT, max_tokens_to_sample: 1 });
+export const four = () => client.messages.create({ model: 'm', max_tokens: 1, messages: [{ role: 'assistant', content: [{ type: 'document', source: { type: 'text', data: 'x', media_type: 'text/plain' } }] }] });
+export interface Stored extends Anthropic.MessageParam { id: string }
+`,
+        'b.js': `module.exports = (holder) => holder.client.messages.create({ model: 'm', max_tokens: 1, top_k: 5, messages: [] });\n`,
+      },
+      { '@anthropic-ai/vertex-sdk': '^0.14.0' },
+    );
+    expect(proposal.stops.every((item) => item.blocking)).toBe(true);
+    expect([...new Set(proposal.stops.map((item) => item.rule))].sort()).toEqual([
+      'anthropic-2026-10-21-assistant-documents',
+      'anthropic-2026-10-21-sampling',
+      'anthropic-ts-message-param-union',
+      'anthropic-ts-one-credential',
+      'anthropic-ts-text-completions-removed',
+    ]);
+    expect(proposal.stops.filter((item) => item.file === 'b.js')).toHaveLength(1);
+  });
+
+  it('blocks on a declared platform package', async () => {
+    const proposal = await anthropic(
+      '0.79.0',
+      {
+        'a.ts':
+          "import { AnthropicVertex } from '@anthropic-ai/vertex-sdk';\nexport const c = new AnthropicVertex();\n",
+      },
+      { '@anthropic-ai/vertex-sdk': '^0.14.0' },
+    );
+    expect(proposal.stops).toEqual([
+      expect.objectContaining({ rule: 'anthropic-ts-companions', blocking: true }),
     ]);
   });
 });

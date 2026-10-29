@@ -3,6 +3,7 @@ import { analyzeRepository } from './analyzer.ts';
 import { rulesOf, type AiRule, type AiRulePage, type AiRuleTable } from './ai-rules.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
+import type { ProofCall } from './ai-request-proof.ts';
 import type { Repository, SourceEdit } from './types.ts';
 
 // SDK major upgrades for the AI providers (item 4): finds the calls a major version changes and
@@ -17,6 +18,10 @@ export interface SdkMajorStop {
   line: number;
   rule: string;
   reason: string;
+  // The site would break on the new SDK as it stands (an old call, client, import or request the
+  // new major rejects), so no patch is proposed at all: a partial upgrade is a wrong fix. A
+  // non-blocking stop runs on the new SDK and is listed for review in the draft.
+  blocking: boolean;
 }
 
 export interface SdkMajorProposal {
@@ -30,6 +35,8 @@ export interface SdkMajorProposal {
   stops: SdkMajorStop[];
   // Each rule an edit or stop came from, with its page, for the draft's sources.
   rules: SdkRule[];
+  // The migrated calls, by their new path, with the request features the proof probes.
+  calls: ProofCall[];
 }
 
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
@@ -130,16 +137,84 @@ interface Context {
   used: Set<string>;
   edits: SdkMajorProposal['edits'];
   stops: SdkMajorStop[];
+  calls: ProofCall[];
 }
 
-function stop(context: Context, file: string, line: number, rule: string, reason: string) {
+// The request features of a call's first argument, when it is an object literal.
+function recordCall(context: Context, call: ts.CallExpression, path: string) {
+  const [body] = call.arguments;
+  const keys = new Set(
+    body && ts.isObjectLiteralExpression(body)
+      ? body.properties.flatMap((property) =>
+          property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+            ? [property.name.text]
+            : [],
+        )
+      : [],
+  );
+  const existing = context.calls.find((item) => item.call === path);
+  const features = {
+    stream: keys.has('stream'),
+    tools: keys.has('tools') || keys.has('functions'),
+    json: keys.has('response_format'),
+  };
+  if (!existing) context.calls.push({ call: path, ...features });
+  else
+    Object.assign(existing, {
+      stream: existing.stream || features.stream,
+      tools: existing.tools || features.tools,
+      json: existing.json || features.json,
+    });
+}
+
+function stop(
+  context: Context,
+  file: string,
+  line: number,
+  rule: string,
+  reason: string,
+  blocking = true,
+) {
   if (context.rules.has(rule)) context.used.add(rule);
   if (
     !context.stops.some(
       (item) => item.file === file && item.line === line && item.reason === reason,
     )
   )
-    context.stops.push({ file, line, rule, reason });
+    context.stops.push({ file, line, rule, reason, blocking });
+}
+
+// `error.response` read only where it exists: `error.response?.x`, or inside `if (error.response)`
+// or `error.response && …`. On v4 such a read finds nothing and takes the other branch; an
+// unguarded one throws inside the catch block.
+function guardedResponseRead(read: ts.PropertyAccessExpression, source: ts.SourceFile) {
+  const text = read.getText(source).replace(/\s+/g, '');
+  const parent = read.parent;
+  if (ts.isPropertyAccessExpression(parent) && parent.questionDotToken) return true;
+  if (ts.isIfStatement(parent) && parent.expression === read) return true;
+  if (
+    ts.isBinaryExpression(parent) &&
+    parent.left === read &&
+    parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+  )
+    return true;
+  for (let node: ts.Node = read; node.parent; node = node.parent) {
+    const owner = node.parent;
+    const condition = (expression: ts.Expression) =>
+      expression.getText(source).replace(/\s+/g, '') === text;
+    if (ts.isIfStatement(owner) && owner.thenStatement === node && condition(owner.expression))
+      return true;
+    if (
+      ts.isBinaryExpression(owner) &&
+      owner.right === node &&
+      owner.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+      condition(owner.left)
+    )
+      return true;
+    if (ts.isConditionalExpression(owner) && owner.whenTrue === node && condition(owner.condition))
+      return true;
+  }
+  return false;
 }
 
 function edit(
@@ -311,7 +386,26 @@ function unwrapResponse(
 function rewriteV3Clients(context: Context, file: string, content: string) {
   const { source, checker } = fileProgram(file, content);
   let ok = true;
-  const configurationOptions = (node: ts.NewExpression) => {
+  const indentAt = (position: number) => {
+    const start = content.lastIndexOf('\n', position - 1) + 1;
+    return /^[ \t]*/.exec(content.slice(start))![0];
+  };
+  // The options object moves to where `new OpenAIApi(` stood: its lines keep their shape, shifted
+  // so the closing brace lines up with the statement, as it would have been written there.
+  const placed = (options: ts.ObjectLiteralExpression, at: ts.Node) => {
+    const text = options.getText(source);
+    const lines = text.split('\n');
+    if (lines.length === 1) return text;
+    const from = /^[ \t]*/.exec(lines.at(-1)!)![0];
+    const to = indentAt(at.getStart());
+    return [
+      lines[0],
+      ...lines
+        .slice(1)
+        .map((line) => (line.startsWith(from) ? to + line.slice(from.length) : line)),
+    ].join('\n');
+  };
+  const configurationOptions = (node: ts.NewExpression, at: ts.Node = node) => {
     const [argument] = node.arguments ?? [];
     if (node.arguments?.length !== 1 || !argument || !ts.isObjectLiteralExpression(argument))
       return undefined;
@@ -324,7 +418,7 @@ function rewriteV3Clients(context: Context, file: string, content: string) {
         ts.isIdentifier(property.name) &&
         allowed.includes(property.name.text),
     ) && argument.properties.length > 0
-      ? argument.getText(source)
+      ? placed(argument, at)
       : undefined;
   };
   const isNamed = (expression: ts.Expression, name: string) =>
@@ -344,7 +438,7 @@ function rewriteV3Clients(context: Context, file: string, content: string) {
           '`new OpenAIApi` is called without one configuration argument.',
         );
       } else if (ts.isNewExpression(inner) && isNamed(inner.expression, 'Configuration')) {
-        const options = configurationOptions(inner);
+        const options = configurationOptions(inner, node);
         if (options)
           edit(context, file, node.getStart(), node.getEnd(), `new OpenAI(${options})`, V3_CLIENT);
         else {
@@ -381,7 +475,7 @@ function rewriteV3Clients(context: Context, file: string, content: string) {
           initializer &&
           ts.isNewExpression(initializer) &&
           isNamed(initializer.expression, 'Configuration')
-            ? configurationOptions(initializer)
+            ? configurationOptions(initializer, node)
             : undefined;
         if (
           !options ||
@@ -594,6 +688,7 @@ function rewriteV3Call(
       `${rule.data.new as string}({ ${body} })`,
       rule.rule,
     );
+    recordCall(context, call, rule.data.new as string);
     return;
   }
   if (call.arguments.length > 1) {
@@ -615,6 +710,7 @@ function rewriteV3Call(
     rule.data.new as string,
     rule.rule,
   );
+  recordCall(context, call, rule.data.new as string);
 }
 
 // v3 error reads (`error.response.status`) in a file whose calls move to v4.
@@ -638,7 +734,10 @@ function v3ErrorReads(context: Context, file: string, source: ts.SourceFile) {
             file,
             lineOf(source, child.getStart()),
             V3_ERRORS,
-            context.rules.get(V3_ERRORS)?.summary ?? 'A v3 error read.',
+            guardedResponseRead(child, source)
+              ? `${context.rules.get(V3_ERRORS)?.summary ?? 'A v3 error read.'} This read is guarded, so on v4 it finds no \`response\` and takes the other branch.`
+              : `${context.rules.get(V3_ERRORS)?.summary ?? 'A v3 error read.'} This read is unguarded and would throw inside the catch block on v4.`,
+            !guardedResponseRead(child, source),
           );
         ts.forEachChild(child, find);
       };
@@ -775,6 +874,7 @@ function openAiV4(
         rename.data.new as string,
         rename.rule,
       );
+      recordCall(context, node, rename.data.new as string);
     }
     // v4 took every path parameter positionally: two leading ids mean the old form.
     if (
@@ -1024,6 +1124,7 @@ export async function proposeOpenAiSdkMajor(
     used: new Set([target.rule]),
     edits: [],
     stops: [],
+    calls: [],
   };
   if (major < (target.data.oldestMajor as number)) {
     stop(
@@ -1053,6 +1154,7 @@ export async function proposeOpenAiSdkMajor(
     edits: dedupe(context.edits),
     stops: context.stops,
     rules: rules.filter((rule) => context.used.has(rule.rule)),
+    calls: context.calls,
   };
 }
 
@@ -1072,4 +1174,296 @@ function dedupe(edits: SdkMajorProposal['edits']) {
       );
   }
   return unique;
+}
+
+function anthropicAdapter(): ProviderAdapter {
+  return {
+    id: 'anthropic',
+    packageName: '@anthropic-ai/sdk',
+    defaultImport: true,
+    namedExport: 'Anthropic',
+    operations: [],
+  };
+}
+
+const MESSAGE_CALLS = new Set([
+  'messages.create',
+  'messages.stream',
+  'messages.countTokens',
+  'beta.messages.create',
+  'beta.messages.stream',
+  'beta.messages.countTokens',
+  'messages.batches.create',
+  'beta.messages.batches.create',
+]);
+
+const literalKey = (property: ts.ObjectLiteralElementLike) =>
+  property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+    ? property.name.text
+    : undefined;
+
+// Message shapes 2026-10-21 rejects, in literal message arrays of a file with traced calls.
+function messageShapes(context: Context, file: string, source: ts.SourceFile) {
+  const rules = [...context.rules.values()].filter((rule) => rule.family === 'message-shape');
+  const visit = (node: ts.Node) => {
+    if (ts.isObjectLiteralExpression(node)) {
+      const role = node.properties.find((property) => literalKey(property) === 'role');
+      const content = node.properties.find((property) => literalKey(property) === 'content');
+      const roleText =
+        role && ts.isPropertyAssignment(role) && ts.isStringLiteralLike(role.initializer)
+          ? role.initializer.text
+          : undefined;
+      if (
+        roleText &&
+        content &&
+        ts.isPropertyAssignment(content) &&
+        ts.isArrayLiteralExpression(content.initializer)
+      )
+        for (const block of content.initializer.elements) {
+          if (!ts.isObjectLiteralExpression(block)) continue;
+          const type = block.properties.find((property) => literalKey(property) === 'type');
+          const typeText =
+            type && ts.isPropertyAssignment(type) && ts.isStringLiteralLike(type.initializer)
+              ? type.initializer.text
+              : undefined;
+          for (const rule of rules) {
+            if (rule.data.role !== roleText) continue;
+            const hit =
+              (rule.data.blockType && typeText === rule.data.blockType) ||
+              (rule.data.key &&
+                block.properties.some((property) => literalKey(property) === rule.data.key));
+            if (hit) stop(context, file, lineOf(source, block.getStart()), rule.rule, rule.summary);
+          }
+        }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+}
+
+// Client options and headers v1 handles differently (one credential, Bearer key).
+function anthropicClients(context: Context, file: string, source: ts.SourceFile) {
+  const credentials = context.rules.get('anthropic-ts-one-credential');
+  const header = context.rules.get('anthropic-ts-x-api-key-header');
+  const compaction = context.rules.get('anthropic-ts-compaction-control');
+  const union = context.rules.get('anthropic-ts-message-param-union');
+  const visit = (node: ts.Node) => {
+    const line = () => lineOf(source, node.getStart());
+    if (
+      credentials &&
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      ['Anthropic', 'default'].includes(node.expression.text)
+    ) {
+      const [options] = node.arguments ?? [];
+      if (options && ts.isObjectLiteralExpression(options)) {
+        const keys = options.properties.map(literalKey);
+        const given = (credentials.data.options as string[]).filter((name) => keys.includes(name));
+        if (given.length > 1) stop(context, file, line(), credentials.rule, credentials.summary);
+      }
+    }
+    if (header && ts.isStringLiteralLike(node) && node.text.toLowerCase() === header.data.header)
+      stop(context, file, line(), header.rule, header.summary);
+    if (compaction && ts.isIdentifier(node) && node.text === compaction.data.option)
+      stop(context, file, line(), compaction.rule, compaction.summary);
+    if (
+      compaction &&
+      ts.isStringLiteralLike(node) &&
+      node.text === compaction.data.module &&
+      (ts.isImportDeclaration(node.parent) || ts.isCallExpression(node.parent))
+    )
+      stop(context, file, line(), compaction.rule, compaction.summary);
+    if (
+      union &&
+      ts.isHeritageClause(node) &&
+      node.types.some((type) =>
+        (union.data.names as string[]).includes(
+          type.expression.getText(source).split('.').at(-1) ?? '',
+        ),
+      )
+    )
+      stop(context, file, line(), union.rule, union.summary);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+}
+
+export async function proposeAnthropicSdkMajor(
+  directory: string,
+  tables: AiRuleTable[],
+): Promise<SdkMajorProposal | null> {
+  const rules = rulesOf(tables, 'anthropic', 'sdk-major');
+  const target = rules.find((rule) => rule.family === 'package-target');
+  if (!target) return null;
+  const packageName = target.data.package as string;
+  const repository = await readRepository(directory, packageName);
+  const installed = installedRelease(repository);
+  const major = majorOf(installed);
+  const targetMajor = target.data.targetMajor as number;
+  if (major === null || major >= targetMajor) return null;
+  const context: Context = {
+    repository,
+    rules: new Map(rules.map((rule) => [rule.rule, rule])),
+    used: new Set([target.rule]),
+    edits: [],
+    stops: [],
+    calls: [],
+  };
+  const [minor, patch] = (installed ?? '').split('.').slice(1).map(Number);
+  const [, oldestMinor, oldestPatch] = String(target.data.oldestRelease).split('.').map(Number);
+  if (minor < oldestMinor || (minor === oldestMinor && patch < oldestPatch))
+    stop(
+      context,
+      'package.json',
+      1,
+      target.rule,
+      `${packageName} ${installed} predates ${String(target.data.oldestRelease)}, the rewrite whose API the 1.0 guide starts from.`,
+    );
+  const companions = context.rules.get('anthropic-ts-companions');
+  for (const name of (companions?.data.packages as string[]) ?? [])
+    if (repository.files.some((file) => importsPackage(file.content, name)))
+      stop(context, 'package.json', 1, companions!.rule, `${name}: ${companions!.summary}`);
+  const analysis = analyzeRepository(repository, [], anthropicAdapter(), {}, [], [], [], [], {
+    modelFixClients: true,
+  });
+  const sampling = context.rules.get('anthropic-2026-10-21-sampling');
+  const removed = [...context.rules.values()].filter((rule) => rule.family === 'removed-method');
+  const moved = context.rules.get('anthropic-ts-models-betas');
+  const files = new Set<string>();
+  const traced = new Map<string, Set<number>>();
+  for (const call of analysis.sdkCalls) {
+    const file = repository.files.find((item) => item.path === call.file);
+    if (!file) continue;
+    files.add(file.path);
+    const { source } = fileProgram(file.path, file.content);
+    const node = callAt(source, call.line, call.column, call.expression);
+    if (!node) continue;
+    const path = `${call.resource}.${call.method}`;
+    const line = lineOf(source, node.getStart());
+    if (!traced.has(file.path)) traced.set(file.path, new Set());
+    traced.get(file.path)!.add(node.getStart());
+    const removal = removed.find((rule) => (rule.data.old as string[]).includes(path));
+    if (removal) {
+      stop(context, file.path, line, removal.rule, removal.summary);
+      continue;
+    }
+    const [body] = node.arguments;
+    if (sampling && MESSAGE_CALLS.has(path)) {
+      recordCall(context, node, path.replace(/^beta\./, '').replace('.batches', ''));
+      if (!body || !ts.isObjectLiteralExpression(body))
+        stop(
+          context,
+          file.path,
+          line,
+          sampling.rule,
+          'The request body is not an object literal, so Refit cannot show it sends none of temperature, top_p or top_k, which 2026-10-21 rejects.',
+        );
+      else if (
+        body.properties.some(
+          (property) =>
+            ts.isSpreadAssignment(property) ||
+            (sampling.data.parameters as string[]).includes(literalKey(property) ?? ''),
+        )
+      )
+        stop(context, file.path, line, sampling.rule, sampling.summary);
+    }
+    if (moved && (moved.data.methods as string[]).includes(path)) {
+      const options = node.arguments[path.endsWith('list') ? 0 : 1];
+      const sendsBetas =
+        options &&
+        ts.isObjectLiteralExpression(options) &&
+        options.properties.some((property) => literalKey(property) === moved.data.option);
+      if (sendsBetas) {
+        // `client.models.list` → `client.beta.models.list`
+        let access = node.expression as ts.Expression;
+        while (ts.isPropertyAccessExpression(access) && access.name.text !== 'models')
+          access = access.expression;
+        if (ts.isPropertyAccessExpression(access))
+          edit(
+            context,
+            file.path,
+            access.name.getStart(),
+            access.name.getStart(),
+            `${moved.data.prefix as string}.`,
+            moved.rule,
+          );
+      } else if (options && !ts.isObjectLiteralExpression(options))
+        stop(
+          context,
+          file.path,
+          line,
+          moved.rule,
+          `${moved.summary} The options are not a literal.`,
+        );
+    }
+  }
+  for (const file of repository.files) {
+    if (!SOURCE.test(file.path) || DECLARATION.test(file.path)) continue;
+    if (!files.has(file.path) && !importsPackage(file.content, packageName)) continue;
+    const { source } = fileProgram(file.path, file.content);
+    messageShapes(context, file.path, source);
+    anthropicClients(context, file.path, source);
+    // The Text Completions prompt markers are no longer exported by v1.
+    const textCompletions = context.rules.get('anthropic-ts-text-completions-removed');
+    if (textCompletions)
+      for (const marker of ['HUMAN_PROMPT', 'AI_PROMPT'])
+        if (new RegExp(`\\b${marker}\\b`).test(file.content))
+          stop(
+            context,
+            file.path,
+            lineOfText(file.content, marker),
+            textCompletions.rule,
+            `\`${marker}\` belongs to Text Completions, which v1 no longer exports.`,
+          );
+  }
+  // A Messages call Refit could not trace may still send what 2026-10-21 rejects.
+  if (sampling)
+    for (const file of repository.files) {
+      if (!SOURCE.test(file.path) || DECLARATION.test(file.path)) continue;
+      if (!/\.(?:messages|batches)\s*\.\s*(?:create|stream|countTokens)\s*\(/.test(file.content))
+        continue;
+      const imports = importsPackage(file.content, packageName);
+      const { source } = fileProgram(file.path, file.content);
+      const visit = (node: ts.Node) => {
+        if (
+          ts.isCallExpression(node) &&
+          ts.isPropertyAccessExpression(node.expression) &&
+          ['create', 'stream', 'countTokens'].includes(node.expression.name.text) &&
+          ts.isPropertyAccessExpression(node.expression.expression) &&
+          ['messages', 'batches'].includes(node.expression.expression.name.text) &&
+          !traced.get(file.path)?.has(node.getStart())
+        ) {
+          const [body] = node.arguments;
+          const literal = body && ts.isObjectLiteralExpression(body) ? body : undefined;
+          const sends =
+            literal?.properties.some((property) =>
+              (sampling.data.parameters as string[]).includes(literalKey(property) ?? ''),
+            ) ?? false;
+          const opaque = !literal || literal.properties.some(ts.isSpreadAssignment);
+          if (sends || (imports && opaque))
+            stop(
+              context,
+              file.path,
+              lineOf(source, node.getStart()),
+              sampling.rule,
+              sends
+                ? `${sampling.summary} Refit could not trace this call's client.`
+                : 'Refit could not trace this call to the client or read its body, so it cannot show the request sends none of temperature, top_p or top_k, which 2026-10-21 rejects.',
+            );
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+    }
+  return {
+    provider: 'anthropic',
+    packageName,
+    installed,
+    major,
+    targetMajor,
+    edits: dedupe(context.edits),
+    stops: context.stops,
+    rules: rules.filter((rule) => context.used.has(rule.rule)),
+    calls: context.calls,
+  };
 }

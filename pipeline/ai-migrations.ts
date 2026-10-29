@@ -1,7 +1,12 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { AiRuleTable } from './ai-rules.ts';
-import { proposeOpenAiSdkMajor, type SdkMajorProposal, type SdkRule } from './ai-sdk-majors.ts';
+import {
+  proposeAnthropicSdkMajor,
+  proposeOpenAiSdkMajor,
+  type SdkMajorProposal,
+  type SdkRule,
+} from './ai-sdk-majors.ts';
 import { sdkMajorUpgrade, type Resolve } from './ai-sdk-upgrade.ts';
 import type { ModelFixChecks } from './model-fixes.ts';
 import { renderFileReplacements, renderPatch } from './patches.ts';
@@ -14,6 +19,7 @@ import {
   NO_OP_CHECK,
   wrap,
 } from './review.ts';
+import { loadSdkProofTable, storedRequestProof } from './sdk-request-proofs.ts';
 import { digest } from './specifications.ts';
 import type { PackageUpgrade } from './stripe-package-upgrade.ts';
 import { validateSourcePatch } from './validation.ts';
@@ -34,15 +40,32 @@ export interface AiMigrationProposal extends SdkMajorProposal {
 export async function proposeAiMigrations(
   directory: string,
   tables: AiRuleTable[],
-  options: { image: string; before: string; resolve?: Resolve; release?: string },
+  options: {
+    image: string;
+    before: string;
+    resolve?: Resolve;
+    release?: string;
+    // One SDK per draft; without it the first SDK below its target major, OpenAI first.
+    packageName?: string;
+  },
 ): Promise<AiMigrationProposal | null> {
-  const proposal = await proposeOpenAiSdkMajor(directory, tables);
+  const proposal = await proposeSdkMajor(directory, tables, options.packageName);
   if (!proposal) return null;
+  const blocking = proposal.stops.filter((item) => item.blocking);
+  if (blocking.length)
+    return {
+      ...proposal,
+      upgrade: null,
+      upgradeRefusal: `${blocking.length} site${blocking.length === 1 ? '' : 's'} would break on ${proposal.packageName} ${proposal.targetMajor} and no documented mapping covers ${blocking.length === 1 ? 'it' : 'them'}, so Refit proposes no partial upgrade.`,
+      patch: null,
+    };
+  const companions = proposal.rules.find((rule) => rule.family === 'companion-packages');
   const result = await sdkMajorUpgrade(directory, {
     packageName: proposal.packageName,
     targetMajor: proposal.targetMajor,
     resolution: { image: options.image, before: options.before, resolve: options.resolve },
     release: options.release,
+    companions: (companions?.data.packages as string[] | undefined) ?? [],
   });
   if ('reason' in result)
     return { ...proposal, upgrade: null, upgradeRefusal: result.reason, patch: null };
@@ -52,6 +75,23 @@ export async function proposeAiMigrations(
     renderPatch(repository, proposal.edits) +
     renderFileReplacements(repository, result.upgrade.files, `${proposal.packageName}-upgrade`);
   return { ...proposal, upgrade: result.upgrade, upgradeRefusal: null, patch };
+}
+
+export async function proposeSdkMajor(
+  directory: string,
+  tables: AiRuleTable[],
+  packageName?: string,
+) {
+  const proposers = [
+    ['openai', proposeOpenAiSdkMajor],
+    ['@anthropic-ai/sdk', proposeAnthropicSdkMajor],
+  ] as const;
+  for (const [name, propose] of proposers) {
+    if (packageName && packageName !== name) continue;
+    const proposal = await propose(directory, tables);
+    if (proposal) return proposal;
+  }
+  return null;
 }
 
 const code = (text: string) => `\`${text.replaceAll('`', "'")}\``;
@@ -206,9 +246,11 @@ export async function runAiMigrations(options: {
   repository: string;
   tables: AiRuleTable[];
   checks: ModelFixChecks;
-  requestProof: (proposal: AiMigrationProposal) => Promise<RequestProof>;
+  // The request proof for the migrated calls; by default the stored refit-bench proofs.
+  requestProof?: (proposal: AiMigrationProposal) => Promise<RequestProof>;
   publication?: ReturnType<typeof publicationConfiguration>;
   resolve?: Resolve;
+  packageName?: string;
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
 }) {
@@ -225,6 +267,7 @@ export async function runAiMigrations(options: {
         image: options.checks.image,
         before,
         resolve: options.resolve,
+        packageName: options.packageName,
       });
       return proposal?.patch ?? null;
     },
@@ -244,13 +287,20 @@ export async function runAiMigrations(options: {
   });
   if (!found) return result('no-change', 'No AI SDK below its target major.');
   if (validation.status === 'no-patch')
-    return result('needs-review', `The package upgrade was refused: ${found.upgradeRefusal}`);
+    return result('needs-review', `No patch: ${found.upgradeRefusal}`);
   if (validation.status !== 'passed')
     return result(
       'validation-failed',
       `Validation returned ${validation.status}; nothing is published.`,
     );
-  const requestProof = await options.requestProof(found);
+  const requestProof = options.requestProof
+    ? await options.requestProof(found)
+    : storedRequestProof(
+        await loadSdkProofTable(),
+        found.packageName,
+        found.targetMajor,
+        found.calls,
+      );
   const needsReview =
     found.stops.length > 0 ||
     requestProof.status !== 'accepted' ||
