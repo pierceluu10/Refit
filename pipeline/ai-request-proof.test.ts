@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
-import { proveRequests, redact } from './ai-request-proof.ts';
+import { proofGeminiModel, proveRequests, redact } from './ai-request-proof.ts';
+import type { DeadlineEntry } from './deadline-registry.ts';
 
 it('sends nothing and names the missing key', async () => {
   let loaded = false;
@@ -80,6 +81,112 @@ it('redacts key-shaped text', () => {
   );
 });
 
+it('redacts provider project, organization and account IDs', () => {
+  expect(
+    redact(
+      'Project `proj_AbC123xYz789` in organization org-Q1w2E3r4T5y6 lacks access; user user-Zz9Yy8Xx7',
+    ),
+  ).toBe('Project `[redacted]` in organization [redacted] lacks access; user [redacted]');
+  expect(
+    redact(
+      'Generative Language API has not been used in project 123456789012 (consumer projects/123456789012, organizations/acme-co, accounts/42ab)',
+    ),
+  ).toBe(
+    'Generative Language API has not been used in project [redacted] (consumer projects/[redacted], organizations/[redacted], accounts/[redacted])',
+  );
+  expect(redact('organization 6c7a2b1e-1f2a-4b3c-9d8e-0a1b2c3d4e5f; project_id: my-proj')).toBe(
+    'organization [redacted]; project_id: [redacted]',
+  );
+  // Keys are still caught first, whole.
+  expect(redact('Incorrect API key provided: sk-proj-AbCdEfGh12345678')).toBe(
+    'Incorrect API key provided: [redacted]',
+  );
+});
+
+it('keeps a provider project ID out of a 403 detail', async () => {
+  class OpenAI {
+    responses = {
+      create: async () => {
+        throw Object.assign(
+          new Error('Project `proj_AbC123xYz789` does not have access to model `gpt-5.6-luna`'),
+          { status: 403 },
+        );
+      },
+    };
+  }
+  const proof = await proveRequests({
+    provider: 'openai',
+    calls: [{ call: 'responses.create' }],
+    env: { OPENAI_API_KEY: 'test-key' },
+    load: async () => ({ OpenAI }),
+  });
+  expect(proof.reason).not.toContain('proj_');
+  expect(proof.calls[0].detail).toBe(
+    'HTTP 403: Project `[redacted]` does not have access to model `gpt-5.6-luna`',
+  );
+});
+
+const gemini = (versions: string[], replacement: string | null, date = '2026-01-01') =>
+  ({
+    id: `gemini-${versions[0]}`,
+    provider: 'gemini',
+    kind: 'model',
+    versions,
+    date,
+    summary: 'shut down',
+    replacement,
+    source: 'https://ai.google.dev/gemini-api/docs/deprecations',
+    checkedAt: '2026-10-29',
+  }) as DeadlineEntry;
+
+it('takes the Gemini proof model from the registry, never a retired or retiring one', () => {
+  expect(
+    proofGeminiModel([
+      gemini(['gemini-2.5-flash-lite'], 'gemini-3.1-flash-lite'),
+      gemini(['gemini-3.1-flash-lite'], 'gemini-3.5-flash-lite', '2027-03-01'),
+      gemini(['gemini-2.0-flash'], 'gemini-3.6-flash'),
+      gemini(['gemini-1.5-pro'], 'gemini-3.1-pro-preview'),
+      gemini(['veo-3.0-generate-001'], 'gemini-omni-1.1-flash'),
+    ]),
+  ).toBe('gemini-3.5-flash-lite');
+  expect(proofGeminiModel([gemini(['gemini-2.0-flash'], 'gemini-3.6-flash')])).toBe(
+    'gemini-3.6-flash',
+  );
+  expect(proofGeminiModel([gemini(['gemini-1.5-pro'], null)])).toBeUndefined();
+});
+
+it('sends the registry Gemini model unless the environment names one', async () => {
+  const models: unknown[] = [];
+  class GoogleGenAI {
+    models = {
+      generateContent: async (body: { model: string }) => {
+        models.push(body.model);
+        return { text: 'ok' };
+      },
+    };
+  }
+  const prove = (env: NodeJS.ProcessEnv) =>
+    proveRequests({
+      provider: 'gemini',
+      calls: [{ call: 'models.generateContent' }],
+      env: { GEMINI_API_KEY: 'test-key', ...env },
+      load: async () => ({ GoogleGenAI }),
+      models: [gemini(['gemini-2.0-flash'], 'gemini-3.6-flash')],
+    });
+  expect((await prove({})).reason).toBe('Accepted with gemini-3.6-flash.');
+  await prove({ REFIT_PROOF_GEMINI_MODEL: 'gemini-9-flash' });
+  expect(models).toEqual(['gemini-3.6-flash', 'gemini-9-flash']);
+  const none = await proveRequests({
+    provider: 'gemini',
+    calls: [{ call: 'models.generateContent' }],
+    env: { GEMINI_API_KEY: 'test-key' },
+    load: async () => ({ GoogleGenAI }),
+    models: [],
+  });
+  expect(none.status).toBe('pending');
+  expect(none.reason).toContain('names no current Gemini flash model');
+});
+
 it('proves Gemini generateContent and its stream with @google/genai', async () => {
   const seen: unknown[] = [];
   class GoogleGenAI {
@@ -110,4 +217,7 @@ it('proves Gemini generateContent and its stream with @google/genai', async () =
     'stream parsed (2 chunks)',
   ]);
   expect(seen).toEqual([{ apiKey: 'test-key' }]);
+  // The shipped registry gives a model it does not retire.
+  expect(proof.reason).toMatch(/^Accepted with gemini-[\d.]+-flash(-lite)?\.$/);
+  expect(proof.reason).not.toContain('gemini-2.5-flash-lite');
 });

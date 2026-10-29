@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { RequestProof } from './ai-migrations.ts';
-import { proveRequests, type ProofCall, type ProofProvider } from './ai-request-proof.ts';
+import { proveRequests, redact, type ProofCall, type ProofProvider } from './ai-request-proof.ts';
 import { validDate } from './deadline-registry.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
@@ -211,7 +211,12 @@ export async function proveSdkTable(options: {
         run: options.run,
         date: options.date,
       });
-    else pending.push({ ...shape, reason: row ? `${row.status}: ${row.detail}` : result.reason });
+    // The table is a public artifact: a provider's IDs never reach it, whatever path set the reason.
+    else
+      pending.push({
+        ...shape,
+        reason: redact(row ? `${row.status}: ${row.detail}` : result.reason),
+      });
   }
   return { formatVersion: 1, proofs, pending };
 }

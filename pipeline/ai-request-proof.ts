@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import type { RequestProof } from './ai-migrations.ts';
+import { loadDeadlineRegistry, type DeadlineEntry } from './deadline-registry.ts';
 
 // Request-level proof (b) and output-shape proof (c) for a migrated AI call: the smallest request
 // of each migrated call shape, sent with the upgraded SDK and Refit's own test key. Keys come only
@@ -16,12 +17,33 @@ export const PROOF_KEYS: Record<ProofProvider, string> = {
   gemini: 'GEMINI_API_KEY',
 };
 
-// The cheapest model each probe uses unless the environment names another.
-const PROOF_MODELS: Record<ProofProvider, { env: string; model: string }> = {
+// The cheapest model each probe uses unless the environment names another. Gemini's comes from
+// the deadline registry (proofGeminiModel), since Google retires its cheap models often.
+const PROOF_MODELS: Record<ProofProvider, { env: string; model?: string }> = {
   openai: { env: 'REFIT_PROOF_OPENAI_MODEL', model: 'gpt-5.6-luna' },
   anthropic: { env: 'REFIT_PROOF_ANTHROPIC_MODEL', model: 'claude-haiku-5-5' },
-  gemini: { env: 'REFIT_PROOF_GEMINI_MODEL', model: 'gemini-2.5-flash-lite' },
+  gemini: { env: 'REFIT_PROOF_GEMINI_MODEL' },
 };
+
+const GEMINI_TEXT = /^gemini-(\d+)(?:\.(\d+))?-flash(-lite)?$/;
+
+// The Gemini model a proof sends: a plain flash text model Google names as a replacement in the
+// registry and that no registry entry retires, on any date. Flash-lite is preferred, then the
+// newest version.
+export function proofGeminiModel(entries: DeadlineEntry[]) {
+  const gemini = entries.filter((entry) => entry.provider === 'gemini' && entry.kind === 'model');
+  const listed = new Set(gemini.flatMap((entry) => entry.versions));
+  const [best] = [...new Set(gemini.map((entry) => entry.replacement ?? ''))]
+    .map((model) => ({ model, match: GEMINI_TEXT.exec(model) }))
+    .filter((item) => item.match && !listed.has(item.model))
+    .sort(
+      (a, b) =>
+        Number(!!b.match![3]) - Number(!!a.match![3]) ||
+        Number(b.match![1]) - Number(a.match![1]) ||
+        Number(b.match![2] ?? 0) - Number(a.match![2] ?? 0),
+    );
+  return best?.model;
+}
 
 // What a migrated call's request uses, so the output shapes it parses are probed too.
 export interface ProofCall {
@@ -47,14 +69,20 @@ async function invoke(client: Client, path: string, body: unknown) {
   return (method as (body: unknown) => Promise<unknown>).call(owner, body);
 }
 
-// Provider errors can echo part of a key ("Incorrect API key provided: sk-...abcd"); refit-bench
-// logs are public, so anything key-shaped is removed before a message is kept.
+// Provider errors can echo part of a key ("Incorrect API key provided: sk-...abcd") or name the
+// project, organization or account behind it ("proj_...", "org-...", Google's "projects/123");
+// refit-bench logs and artifacts are public, so all of these are removed before a message is kept.
 export function redact(text: string) {
   return text
     .replace(/\b(?:sk|rk|pk)-[A-Za-z0-9_*.-]{2,}/g, '[redacted]')
     .replace(/\bsk-ant-[A-Za-z0-9_*.-]+/g, '[redacted]')
     .replace(/\bAIza[0-9A-Za-z_*-]{4,}/g, '[redacted]')
-    .replace(/(api[_ -]?key[^:]*:\s*)\S+/gi, '$1[redacted]');
+    .replace(/(api[_ -]?key[^:]*:\s*)\S+/gi, '$1[redacted]')
+    .replace(/\b(?:proj|org|user|acct)[_-][A-Za-z0-9]{6,}/g, '[redacted]')
+    .replace(/\b(projects?|organizations?|accounts?)\/[^\s/'",;)]+/gi, '$1/[redacted]')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '[redacted]')
+    .replace(/(project[_ ]?(?:id|number)\W{0,3})[\w-]+/gi, '$1[redacted]')
+    .replace(/\b\d{9,}\b/g, '[redacted]');
 }
 
 function expect(condition: unknown, message: string): asserts condition {
@@ -255,6 +283,8 @@ export async function proveRequests(options: {
   packageName?: string;
   env?: NodeJS.ProcessEnv;
   load?: (packageName: string) => Promise<unknown>;
+  // The deadline registry's entries; read from data/deadlines.json when a Gemini proof needs them.
+  models?: DeadlineEntry[];
 }): Promise<RequestProof> {
   const env = options.env ?? process.env;
   const key = PROOF_KEYS[options.provider];
@@ -293,7 +323,13 @@ export async function proveRequests(options: {
       : { apiKey: env[key], maxRetries: 1, timeout: 60_000 },
   );
   const model =
-    env[PROOF_MODELS[options.provider].env]?.trim() || PROOF_MODELS[options.provider].model;
+    env[PROOF_MODELS[options.provider].env]?.trim() ||
+    PROOF_MODELS[options.provider].model ||
+    proofGeminiModel(options.models ?? (await loadDeadlineRegistry()).deadlines);
+  if (!model)
+    return pending(
+      'The deadline registry names no current Gemini flash model to send the proof with.',
+    );
   const calls: RequestProof['calls'] = [];
   for (const call of options.calls) {
     const probe = PROBES[options.provider][call.call];
