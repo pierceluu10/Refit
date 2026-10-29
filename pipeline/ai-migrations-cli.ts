@@ -16,6 +16,8 @@ import { AI_RULE_KINDS, checkAiRuleTables, loadAiRuleTables, type AiRuleKind } f
 import { loadSdkProofTable, proveSdkTable } from './sdk-request-proofs.ts';
 import type { SdkMajorProposal } from './ai-sdk-majors.ts';
 import { aiBudgetConfiguration } from './ai-budget.ts';
+import { FALLBACK_MODEL } from './ai-fallback.ts';
+import { runFallbackOnRepository } from './ai-fallback-run.ts';
 import { AI_MODEL, checkAiModel } from './openai.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 import { readBoundedResponse } from './network.ts';
@@ -27,6 +29,7 @@ const USAGE = `Usage: refit ai-migrations --check-rules [--live] [--json]
        refit ai-migrations [--repository <root>] [--package <openai|@anthropic-ai/sdk|@google/genai>] [--edits-only] [--output <patch>] [--json]
        refit ai-migrations --validate [--repository <root>] [--package <name>] [--check <command>] [--image <image>] [--json]
        refit ai-migrations --ai-surfaces [--repository <root>] [--check <command>] [--image <image>] [--json]   (GitHub Actions only)
+       refit ai-migrations --ai-fallback --row <row.json> [--repository <root>] [--image <image>] [--parameter-changes <file>] [--json]   (GitHub Actions only)
        refit ai-migrations --review [--repository <root>] [--kind <api-surface|response-format|beta-feature|sdk-major>]... [--json]
        refit ai-migrations --prove-table --sdk-directory <dir> --releases <name@version,...> --run <url> --output <path>
        refit ai-migrations --prove --provider <openai|anthropic|gemini> --calls <call>[,<call>...] [--stream] [--tools] [--json-output] [--sdk-directory <dir>] [--json]`;
@@ -43,6 +46,12 @@ for review and the package upgrade. The upgrade re-resolves package-lock.json in
 --review: lists API surface migrations, response-format changes and beta features with no
 documented one-to-one mapping (and report-only Python and Gemini sites), each with its rule, quote
 and page. Nothing is edited.
+
+--ai-fallback: gives the AI every item a benchmark row (pipeline/ai-provider-benchmark-cli.ts)
+left open, with its stop reason, site, quoted source and target, and keeps the AI's patch as a fix
+only if it passes the output, secret, scope, rescan, checks and request-proof gates
+(pipeline/ai-fallback.ts). Otherwise the attempt is a suggestion. Prints the result and one miss
+record per item.
 
 --prove: sends the smallest request for each call with the SDK installed in --sdk-directory and the
 key from OPENAI_API_KEY or ANTHROPIC_API_KEY (refit-bench Actions secrets). Without the key nothing
@@ -61,6 +70,9 @@ const { values } = parseArgs({
     review: { type: 'boolean' },
     validate: { type: 'boolean' },
     'ai-surfaces': { type: 'boolean' },
+    'ai-fallback': { type: 'boolean' },
+    row: { type: 'string' },
+    'parameter-changes': { type: 'string' },
     'remove-sampling': { type: 'boolean' },
     check: { type: 'string' },
     kind: { type: 'string', multiple: true },
@@ -146,6 +158,31 @@ try {
       values.json
         ? JSON.stringify(result, null, 2)
         : `${result.status}: ${terminalText(result.reason)}`,
+    );
+  } else if (values['ai-fallback']) {
+    // refit-bench Actions only (the run refuses elsewhere), with OPENAI_API_KEY, OPENAI_MODEL and
+    // the AI budget; the request proof reads ANTHROPIC_API_KEY or GEMINI_API_KEY when set.
+    const key = process.env.OPENAI_API_KEY?.trim();
+    if (!key)
+      throw new PipelineInputError('The AI fallback needs OPENAI_API_KEY (a refit-bench secret).');
+    if (!values.row) throw new PipelineInputError('--ai-fallback needs --row <row.json>.');
+    const result = await runFallbackOnRepository({
+      directory: resolve(values.repository!),
+      row: JSON.parse(await readFile(values.row, 'utf8')),
+      ai: {
+        apiKey: key,
+        // Never OPENAI_MODEL: the fallback's own calls use one model (FALLBACK_MODEL).
+        model: FALLBACK_MODEL,
+        budget: aiBudgetConfiguration(process.env),
+      },
+      image: values.image!,
+      parameterChanges: values['parameter-changes'] && resolve(values['parameter-changes']),
+      onProgress: (message) => console.error(`  ${message}`),
+    });
+    console.log(
+      values.json
+        ? JSON.stringify(result, null, 2)
+        : `${result.fallback.status}: ${terminalText(result.fallback.reason)}`,
     );
   } else if (values.validate) {
     // Benchmarks: the proposal validated with the repository's own checks before and after, in

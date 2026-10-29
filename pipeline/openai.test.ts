@@ -30,6 +30,26 @@ it('leaves room for reasoning tokens in the output limit', async () => {
   expect(MAX_OUTPUT_TOKENS).toBeGreaterThanOrEqual(25_000);
 });
 
+it('sends a reasoning effort only when the request names one', async () => {
+  const reply = () =>
+    new Response(
+      JSON.stringify({
+        id: 'resp_test',
+        model: OPTIONS.model,
+        status: 'completed',
+        output: [
+          { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: '{}' }] },
+        ],
+      }),
+    );
+  const fetcher = vi.fn().mockImplementation(async () => reply());
+  vi.stubGlobal('fetch', fetcher);
+  await requestStructuredOutput({ ...REQUEST, reasoningEffort: 'medium' }, OPTIONS);
+  await requestStructuredOutput(REQUEST, OPTIONS);
+  expect(JSON.parse(fetcher.mock.calls[0][1].body).reasoning).toEqual({ effort: 'medium' });
+  expect(JSON.parse(fetcher.mock.calls[1][1].body).reasoning).toBe(undefined);
+});
+
 it('names why a response is incomplete, such as running out of output tokens while reasoning', async () => {
   vi.stubGlobal(
     'fetch',
