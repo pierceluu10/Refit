@@ -61,7 +61,38 @@ const NPM_KEY_ORDER = [
 ];
 const FLAGS = ['dev', 'optional', 'devOptional', 'peer'] as const;
 const OTHER_LOCKFILES = ['pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock'];
+// The newest @shopify/shopify-api major whose documented breaking changes Refit applies or stops on
+// (pipeline/shopify-sdk-source.ts): migrating-to-v12.md and the 13.0.0 and 14.0.0 changelogs.
+const NEWEST_RULED_MAJOR = 14;
+// Majors whose own breaking change Refit does not migrate, from each package's CHANGELOG.md in
+// Shopify/shopify-app-js (read 2026-10-29): crossing one stops the upgrade with the reason.
+const UNRULED_MAJORS: Record<string, [number, string][]> = {
+  '@shopify/shopify-app-express': [
+    [7, 'moves the app from Express 4 to Express 5 (0d4a3f7), a framework migration'],
+  ],
+  '@shopify/shopify-app-session-storage-prisma': [
+    [
+      8,
+      'stores refresh tokens, which needs new fields in the Prisma Session model and a migration',
+    ],
+  ],
+  '@shopify/shopify-app-session-storage-sqlite': [
+    [6, 'replaces the onlineAccessInfo column with user columns through a data migration'],
+  ],
+  '@shopify/shopify-app-session-storage-postgresql': [
+    [6, 'replaces the onlineAccessInfo column with user columns through a data migration'],
+  ],
+  '@shopify/shopify-app-session-storage-mysql': [
+    [6, 'replaces the onlineAccessInfo column with user columns through a data migration'],
+  ],
+  '@shopify/shopify-app-session-storage-drizzle': [
+    [4, "needs refresh-token columns in the app's own session table"],
+  ],
+  '@shopify/shopify-app-session-storage-mongodb': [[6, 'moves the mongodb driver from v6 to v7']],
+};
 const ROOT_SECTIONS = ['dependencies', 'devDependencies'] as const;
+// The Node.js each @shopify/shopify-api major needs (npm `engines`, read 2026-10-29).
+const NODE_FOR_MAJOR: Record<number, string> = { 12: '20.10.0', 13: '20.10.0', 14: '22.0.0' };
 
 type Triple = [number, number, number];
 type Refusal = { reason: string };
@@ -419,11 +450,7 @@ async function resolvePlan(
       : `the lockfile has ${rootVersion(packages, name) ?? 'none'}`;
   const atTarget = (version: string) => {
     const parsed = triple(version);
-    return (
-      parsed !== undefined &&
-      parsed[0] === SHOPIFY_SDK_MAJORS[SHOPIFY_API] &&
-      compare(parsed, since) >= 0
-    );
+    return parsed !== undefined && parsed[0] === since[0] && compare(parsed, since) >= 0;
   };
   const settled = (name: string, range: string) => {
     const version = current(name);
@@ -538,6 +565,20 @@ async function resolvePlan(
         );
   }
   return blockers.size ? { blockers: [...blockers.values()] } : { plan };
+}
+
+// The planned moves that cross a major whose breaking change Refit does not migrate.
+function unruledMajors(plan: Plan, packages: Packages) {
+  return [...plan].flatMap(([name, release]) => {
+    const was = triple(rootVersion(packages, name) ?? '');
+    const now = triple(release.version)!;
+    return (UNRULED_MAJORS[name] ?? [])
+      .filter(([major]) => was && was[0] < major && now[0] >= major)
+      .map(
+        ([major, change]) =>
+          `${name} ${major}.0.0 ${change}; the upgrade to ${release.version} stops for review.`,
+      );
+  });
 }
 
 export interface ShopifySdkUpgrade extends PackageUpgrade {
@@ -705,9 +746,9 @@ export async function shopifySdkUpgrade(
 ): Promise<{ upgrade: ShopifySdkUpgrade } | Refusal> {
   const since = triple(SHOPIFY_API_ENUM_SINCE[member] ?? '');
   if (!since) return { reason: `No ${SHOPIFY_API} release is recorded for ApiVersion.${member}.` };
-  if (since[0] !== SHOPIFY_SDK_MAJORS[SHOPIFY_API])
+  if (since[0] > NEWEST_RULED_MAJOR)
     return {
-      reason: `ApiVersion.${member} first ships in ${SHOPIFY_API} ${since.join('.')}; the upgrade moves only to ${SHOPIFY_API} ${SHOPIFY_SDK_MAJORS[SHOPIFY_API]}, the oldest major that serves a supported version.`,
+      reason: `ApiVersion.${member} first ships in ${SHOPIFY_API} ${since.join('.')}; Refit applies the documented breaking changes up to ${SHOPIFY_API} ${NEWEST_RULED_MAJOR} only.`,
     };
   const files = await readLockFiles(root);
   if ('reason' in files) return files;
@@ -731,14 +772,21 @@ export async function shopifySdkUpgrade(
   }
   const from = triple(rootVersion(packages, primary) ?? '');
   if (!from) return { reason: `package-lock.json does not lock ${primary} at the project root.` };
-  const major = SHOPIFY_SDK_MAJORS[primary];
-  if (from[0] < major - 1)
+  // Node.js the target needs, against the range the project declares.
+  const engines = isObject(manifest.engines) ? manifest.engines.node : undefined;
+  const node = NODE_FOR_MAJOR[since[0]];
+  // Refused only when no Node.js release the range names or later majors satisfy reaches it.
+  const reaches = (range: string, minimum: string) =>
+    [
+      minimum,
+      ...[...range.matchAll(/\d+\.\d+\.\d+/g)].map((match) => match[0]),
+      ...Array.from({ length: 10 }, (_, index) => `${22 + index * 2}.0.0`),
+    ].some(
+      (version) => compare(triple(version)!, triple(minimum)!) >= 0 && satisfies(version, range),
+    );
+  if (typeof engines === 'string' && node && !reaches(engines, node))
     return {
-      reason: `${primary} ${from.join('.')} is more than one major behind ${major}; the migration guides for the majors in between are not applied automatically.`,
-    };
-  if (from[0] > major)
-    return {
-      reason: `${primary} ${from.join('.')} is newer than major ${major}, which this upgrade targets.`,
+      reason: `${SHOPIFY_API} ${since[0]} needs Node.js ${node} or later, and package.json declares engines.node ${engines}.`,
     };
   const cache = new Map<string, Promise<Release[]>>();
   const lookup = (name: string) => {
@@ -746,13 +794,43 @@ export async function shopifySdkUpgrade(
     return cache.get(name)!;
   };
   try {
+    // The first major of the declared package whose releases depend on the SDK that ships the
+    // member: shopify-api itself, or the app package release built on it.
+    const major =
+      primary === SHOPIFY_API
+        ? since[0]
+        : (await lookup(primary))
+            .map((release) => ({ release, parsed: triple(release.version)! }))
+            .filter(
+              ({ release }) =>
+                release.dependencies[SHOPIFY_API] &&
+                satisfies(since.join('.'), release.dependencies[SHOPIFY_API]) === true,
+            )
+            .map(({ parsed }) => parsed[0])
+            .sort((a, b) => a - b)[0];
+    if (major === undefined)
+      return { reason: `No ${primary} release depends on ${SHOPIFY_API} ${since.join('.')}.` };
+    // From the oldest major of each package that served a supported version, the documented
+    // changes of every major in between are applied or stop the upgrade.
+    if (from[0] < SHOPIFY_SDK_MAJORS[primary] - 1)
+      return {
+        reason: `${primary} ${from.join('.')} is older than ${SHOPIFY_SDK_MAJORS[primary] - 1}, the oldest major whose migration Refit applies.`,
+      };
+    if (from[0] > major)
+      return {
+        reason: `${primary} ${from.join('.')} is newer than major ${major}, which this upgrade targets.`,
+      };
     // The release with the fewest blockers, newest first on a tie, says what is missing.
     let closest: { version: string; blockers: string[] } | undefined;
     for (const candidate of await lookup(primary)) {
       const parsed = triple(candidate.version)!;
       if (parsed[0] !== major || (primary === SHOPIFY_API && compare(parsed, since) < 0)) continue;
       const result = await resolvePlan(packages, primary, candidate, since, lookup);
-      if ('plan' in result) return await applyPlan(result.plan, primary, files);
+      if ('plan' in result) {
+        const crossed = unruledMajors(result.plan, packages);
+        if (crossed.length) return { reason: crossed.join(' ') };
+        return await applyPlan(result.plan, primary, files);
+      }
       if (!closest || result.blockers.length < closest.blockers.length)
         closest = { version: candidate.version, blockers: result.blockers };
     }

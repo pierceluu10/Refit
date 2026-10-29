@@ -17,11 +17,9 @@ import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
 import { lockedShopifyApi } from './shopify-pipeline.ts';
-import { SHOPIFY_SDK_MAJORS } from './shopify-sdk-upgrade.ts';
 import {
   enumFromVersion,
   latestApiVersion,
-  SHOPIFY_API,
   SHOPIFY_API_ENUM_SINCE,
   sdkHasEnumMember,
 } from './shopify-versions.ts';
@@ -135,13 +133,12 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     (pin) => pin.kind === 'enum' && !CODEGEN_CONFIG.test(pin.file),
   );
   const upgrade = Boolean(values['sdk-upgrade']);
-  // With --sdk-upgrade, LATEST_API_VERSION and the enum can name what the upgraded SDK's major has.
+  // With --sdk-upgrade, LATEST_API_VERSION and the enum can name any member a release ships; when
+  // the upgrade cannot reach it, the pipeline falls back to the newest version the app can take.
   const sdkNames = (version: string) => {
     const member = enumFromVersion(version)!;
     return Boolean(
-      (sdk && sdkHasEnumMember(sdk, member)) ||
-      (upgrade &&
-        SHOPIFY_API_ENUM_SINCE[member]?.startsWith(`${SHOPIFY_SDK_MAJORS[SHOPIFY_API]}.`)),
+      (sdk && sdkHasEnumMember(sdk, member)) || (upgrade && SHOPIFY_API_ENUM_SINCE[member]),
     );
   };
   const sdkLimited = enumPinned || (upgrade && Boolean(latest));

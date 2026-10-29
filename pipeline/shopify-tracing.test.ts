@@ -82,6 +82,11 @@ async function snapshots(root: string) {
     );
     return path;
   };
+  // The fallback reads the versions in between beside the target snapshot; they have the target's
+  // schema here.
+  await write('2026-01', '2026-01', SCHEMA('before'));
+  await write('2026-04', '2026-04', SCHEMA('after'));
+  await write('2026-07', '2026-07', SCHEMA('after'));
   return {
     before: await write('before', '2026-01', SCHEMA('before')),
     after: await write('after', '2026-10', SCHEMA('after')),

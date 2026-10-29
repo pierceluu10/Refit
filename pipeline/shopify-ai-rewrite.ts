@@ -2,12 +2,9 @@ import {
   getNamedType,
   GraphQLError,
   isCompositeType,
-  NoUnusedFragmentsRule,
   parse,
   print,
-  specifiedRules,
   TypeInfo,
-  validate,
   visit,
   visitWithTypeInfo,
   type DocumentNode,
@@ -16,6 +13,7 @@ import {
 } from 'graphql';
 import { usageCostUsd, type AiOptions } from './ai-budget.ts';
 import { requestStructuredOutput, UnusableAiResponse } from './openai.ts';
+import { documentProof } from './shopify-proof.ts';
 
 // AI use 4 (docs/SHOPIFY-META-ENGINES.md): a Shopify GraphQL document that breaks on the target
 // version and no documented rule fixes is rewritten by the model, and counts only when Refit proves
@@ -23,7 +21,6 @@ import { requestStructuredOutput, UnusableAiResponse } from './openai.ts';
 // variable, and returns every response path the code could read with the same type (aliases keep
 // renamed fields at their old keys). The result is always [Needs review] (owner decision 8).
 
-const RULES = specifiedRules.filter((rule) => rule !== NoUnusedFragmentsRule);
 const MAX_SCHEMA_TYPES = 40;
 
 const INSTRUCTIONS = `You migrate one Shopify GraphQL document to a newer API version.
@@ -108,8 +105,11 @@ export function rewriteProblem(
     if (error instanceof GraphQLError) return `The rewrite does not parse: ${error.message}`;
     throw error;
   }
-  const errors = validate(after, ast, RULES);
-  if (errors.length) return `The rewrite fails on the target schema: ${errors[0].message}`;
+  // The patch proof's own check (pipeline/shopify-proof.ts): valid on the target, and no selected
+  // field or variable input type changes from the original version.
+  const proof = documentProof(rewritten, after, before);
+  if (!proof) return 'The rewrite spreads a fragment it does not define.';
+  if (proof.length) return `The rewrite fails the schema proof on the target: ${proof[0]}`;
   const originalAst = parse(original);
   if (operations(originalAst).join('\n') !== operations(ast).join('\n'))
     return 'The rewrite changes an operation, its name or its variables.';

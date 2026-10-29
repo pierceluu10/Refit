@@ -66,7 +66,7 @@ it('refuses rewrites that drop a key, change its shape, its variables or its val
   expect(
     problem('query Product($id: ID) { product(id: $id) { id legacyId: numericId title } }'),
   ).toBe(
-    'The rewrite fails on the target schema: Variable "$id" of type "ID" used in position expecting type "ID!".',
+    'The rewrite fails the schema proof on the target: Variable "$id" of type "ID" used in position expecting type "ID!".',
   );
   expect(
     problem('query Item($id: ID!) { product(id: $id) { id legacyId: numericId title } }'),
@@ -77,7 +77,7 @@ it('refuses rewrites that drop a key, change its shape, its variables or its val
       'query P($id: ID!) { product(id: $id) { images { url } } }',
     ),
   ).toBe(
-    'The rewrite returns query:P.product.images as ImageConnection!{} where the code read [Image!]!{}.',
+    'The rewrite fails the schema proof on the target: Product.images changes from [Image!]! to ImageConnection!',
   );
   expect(problem('query {')).toMatch(/^The rewrite does not parse/);
 });
