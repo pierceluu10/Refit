@@ -13,6 +13,8 @@ refit shopify-snapshot --version 2026-10 --output refit/shopify-after.json
 
 The command introspects Shopify's public documentation proxy (`https://shopify.dev/admin-graphql-direct-proxy/<version>`). No store, credentials or store operation are involved. The snapshot records the version, the URL and a SHA-256 of the schema, and Refit refuses a snapshot whose content does not match its hash.
 
+Refit also pins Admin and Storefront schemas in the repository, with deterministic diffs and quoted migration rules: [Shopify contracts and rules](SHOPIFY-RULES.md).
+
 Only supported versions are published. Shopify serves a request for an unsupported version as the oldest supported version, so an app pinned to `2025-01` is answered by `2026-01` today. Refit therefore uses the oldest supported schema as the before contract for older pins, and says so in the report.
 
 ## What Refit reads
@@ -30,16 +32,16 @@ Only supported versions are published. Shopify serves a request for an unsupport
 
 Each document is validated against both schemas with the standard GraphQL rules:
 
-| Result | What Refit does |
-|---|---|
-| Valid on both, no selected field changes type | Counts as proven for the target |
-| Invalid only on the target, and documented rules fix it | Edited by the rules (below), then counts as proven |
-| Invalid only on the target, with AI enabled and no rule | AI rewrites it; kept only if Refit's checks below pass, and the draft is `[Needs review]` |
-| Invalid only on the target (removed field, argument, enum value or type) otherwise | Stops for review at the exact line |
-| Invalid on the before contract too | Stops: the query already fails on every version Shopify serves |
-| A selected field changes type (for example `Date` → `DateTime`) | Stops: returned values change shape |
-| Built at runtime, sent by a function Refit cannot follow, or a fragment Refit cannot inline | Stops: the document cannot be checked |
-| `#graphql` literal no Admin call reaches, invalid on both | Noted as another Shopify API (Storefront, Customer Account, Partner), not Admin usage |
+| Result                                                                                      | What Refit does                                                                           |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Valid on both, no selected field changes type                                               | Counts as proven for the target                                                           |
+| Invalid only on the target, and documented rules fix it                                     | Edited by the rules (below), then counts as proven                                        |
+| Invalid only on the target, with AI enabled and no rule                                     | AI rewrites it; kept only if Refit's checks below pass, and the draft is `[Needs review]` |
+| Invalid only on the target (removed field, argument, enum value or type) otherwise          | Stops for review at the exact line                                                        |
+| Invalid on the before contract too                                                          | Stops: the query already fails on every version Shopify serves                            |
+| A selected field changes type (for example `Date` → `DateTime`)                             | Stops: returned values change shape                                                       |
+| Built at runtime, sent by a function Refit cannot follow, or a fragment Refit cannot inline | Stops: the document cannot be checked                                                     |
+| `#graphql` literal no Admin call reaches, invalid on both                                   | Noted as another Shopify API (Storefront, Customer Account, Partner), not Admin usage     |
 
 Only when nothing stops does the rule move every pin to the target version. An `ApiVersion` enum pin is moved only if the locked `@shopify/shopify-api` release defines the target member (`October26` first ships in 14.0.0, `July26` in 13.1.0, `April26` in 12.3.0, `January26` in 12.1.0). Otherwise the run stops, because upgrading the SDK is a separate, major change. REST calls, several different runtime pins, and pins Refit cannot resolve also stop for review. Fields deprecated on the target are listed in the draft PR, not changed.
 

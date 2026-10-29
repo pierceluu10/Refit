@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "automatically-add-preview-urls-to-customer-account-api-setup",
+  "url": "https://shopify.dev/changelog/posts/automatically-add-preview-urls-to-customer-account-api-setup.md",
+  "revision": "cab615dcb54c02393c36aa8fe03e04982ef06e12bc8a0f69a0d3c57ea68a4243",
+  "hash": "cab615dcb54c02393c36aa8fe03e04982ef06e12bc8a0f69a0d3c57ea68a4243",
+  "content": "---\ntitle: >-\nHydrogen deploys automatically add preview URLs to Customer Account API\napplication setup - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/automatically-add-preview-urls-to-customer-account-api-setup\nmd: >-\nhttps://shopify.dev/changelog/posts/automatically-add-preview-urls-to-customer-account-api-setup.md\nmetadata:\neffectiveApiVersion: ''\naffectedApi:\n- displayName: Customer Account API\nhandle: customer-account-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2025-07-18T17:33:17-04:00'\npostedAt: '2025-07-22T12:00:00-04:00'\nupdatedAt: '2025-07-21T10:08:01-04:00'\neffectiveAt: '2025-07-22T12:00:00-04:00'\n---\n\nJuly 22, 2025\n\n# Hydrogen deploys automatically add preview URLs to Customer Account API application setup\n\nDateJuly 22, 2025\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[Customer Account API](https://shopify.dev/changelog?api_type=customer-account-graphql)\n\nWhen a Hydrogen branch is deployed, its new preview URL is automatically added to the application setup for the Customer Account API. This ensures that OAuth redirects, logouts, and JavaScript-origin checks continue to function seamlessly across deployments without requiring manual updates to settings. While these auto-added URLs are hidden from the settings page, any URIs added directly in the Admin remain visible and editable.",
+  "contentType": "text/markdown"
+}

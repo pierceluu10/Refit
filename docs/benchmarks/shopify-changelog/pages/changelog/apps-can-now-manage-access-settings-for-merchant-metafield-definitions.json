@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "apps-can-now-manage-access-settings-for-merchant-metafield-definitions",
+  "url": "https://shopify.dev/changelog/posts/apps-can-now-manage-access-settings-for-merchant-metafield-definitions.md",
+  "revision": "603a1a7fb7a909909033e3ecb156c522bdb4e07da456cf4a0024a82b8e5231e1",
+  "hash": "603a1a7fb7a909909033e3ecb156c522bdb4e07da456cf4a0024a82b8e5231e1",
+  "content": "---\ntitle: >-\nApps can now manage access settings for merchant metafield definitions -\nShopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/apps-can-now-manage-access-settings-for-merchant-metafield-definitions\nmd: >-\nhttps://shopify.dev/changelog/posts/apps-can-now-manage-access-settings-for-merchant-metafield-definitions.md\nmetadata:\neffectiveApiVersion: ''\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2024-12-05T11:11:50-05:00'\npostedAt: '2024-12-11T08:00:00-05:00'\nupdatedAt: '2024-12-10T18:20:37-05:00'\neffectiveAt: '2024-12-11T08:00:00-05:00'\n---\n\nDecember 11, 2024\n\n# Apps can now manage access settings for merchant metafield definitions\n\nDateDecember 11, 2024\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nEffective immediately, apps can manage the `storefront` and `customerAccount` access settings for metafield definitions in the merchant namespace. The only acceptable value for `admin` access remains `PUBLIC_READ_WRITE` for non app-reserved definitions.\n\nLearn more about access controls for metafields on [Shopify.dev](https://shopify.dev/docs/apps/custom-data/metafields/definitions/access-controls).",
+  "contentType": "text/markdown"
+}

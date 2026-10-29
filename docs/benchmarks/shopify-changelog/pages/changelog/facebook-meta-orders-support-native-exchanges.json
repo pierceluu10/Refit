@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "facebook-meta-orders-support-native-exchanges",
+  "url": "https://shopify.dev/changelog/posts/facebook-meta-orders-support-native-exchanges.md",
+  "revision": "89cccd8a98a92df4ca4da10ce7958aa25244b48e3f8057efd64873793ddc4052",
+  "hash": "89cccd8a98a92df4ca4da10ce7958aa25244b48e3f8057efd64873793ddc4052",
+  "content": "---\ntitle: Facebook (Meta) orders support native exchanges - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/facebook-meta-orders-support-native-exchanges\nmd: >-\nhttps://shopify.dev/changelog/posts/facebook-meta-orders-support-native-exchanges.md\nmetadata:\neffectiveApiVersion: ''\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2025-09-09T23:34:33-04:00'\npostedAt: '2025-09-12T12:00:00-04:00'\nupdatedAt: '2025-09-10T09:35:05-04:00'\neffectiveAt: '2025-09-12T12:00:00-04:00'\n---\n\nSeptember 12, 2025\n\n# Facebook (Meta) orders support native exchanges\n\nDateSeptember 12, 2025\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nFor Facebook orders created as of August 26, 2025, you can now add `exchangeLineItems` as an input in the `returnCreate` [mutation](https://shopify.dev/docs/api/admin-graphql/latest/mutations/returnCreate) as you do for other orders, eliminating the need for workarounds when handling exchanges for Facebook orders.\n\nAdditionally, Facebook orders also support return fees as of the same date. This change applies to all supported GraphQL API versions.\n\nExchanges and return fees remain unavailable for Facebook orders placed before this date.",
+  "contentType": "text/markdown"
+}

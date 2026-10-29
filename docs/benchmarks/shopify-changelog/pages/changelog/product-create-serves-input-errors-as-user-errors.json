@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "product-create-serves-input-errors-as-user-errors",
+  "url": "https://shopify.dev/changelog/posts/product-create-serves-input-errors-as-user-errors.md",
+  "revision": "a9d88fc195c4d78cfbcdbfce36b3276faa01edff5ea333c27b4d6a8744e236f3",
+  "hash": "a9d88fc195c4d78cfbcdbfce36b3276faa01edff5ea333c27b4d6a8744e236f3",
+  "content": "---\ntitle: >-\nproductCreate surfaces input errors as userErrors - Shopify developer\nchangelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/product-create-serves-input-errors-as-user-errors\nmd: >-\nhttps://shopify.dev/changelog/posts/product-create-serves-input-errors-as-user-errors.md\nmetadata:\neffectiveApiVersion: 2025-07\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Breaking API Change\nhandle: breaking-api-change\nindicatesActionRequired: false\ncreatedAt: '2025-05-13T13:21:28-04:00'\npostedAt: '2025-06-14T12:00:00-04:00'\nupdatedAt: '2025-05-15T10:27:52-04:00'\neffectiveAt: '2025-06-14T12:00:00-04:00'\n---\n\nJune 14, 2025\n\n# `productCreate` surfaces input errors as `userErrors`\n\nDateJune 14, 2025\n\nVersion[2025-07](https://shopify.dev/changelog?api_version=2025-07)\n\nFlags[Breaking API Change](https://shopify.dev/changelog?filter=breaking-api-change)\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nStarting from 2025-07, the following `productCreate` input issues will be surfaced as `userErrors`:\n\n* Linking multiple options to the same metafield\n* Linking an option to an already-linked metafield\n* Attempting to specify `linkedMetafieldValue` for an option that is not linked to a metafield\n* Specifying both `options` and `optionValues`",
+  "contentType": "text/markdown"
+}

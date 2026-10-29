@@ -1,0 +1,199 @@
+{
+  "formatVersion": 1,
+  "provider": "shopify",
+  "api": "admin",
+  "version": "2025-01",
+  "previous": "2024-10",
+  "rules": [
+    {
+      "rule": "shopify-shop-collection-by-handle-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.collectionByHandle",
+      "replacement": "QueryRoot.collectionByHandle",
+      "source": "https://shopify.dev/changelog/posts/removal-of-unused-deprecated-fields",
+      "warning": "Selections of shop { collectionByHandle } move to the root collectionByHandle query with the same arguments; Shopify removed the Shop field in 2025-01.",
+      "quote": "* [`Shop.collectionByHandle`](https://shopify.dev/docs/api/admin-graphql/2024-10/objects/Shop#field-collectionbyhandle) → [`QueryRoot.collectionByHandle`](https://shopify.dev/docs/api/admin-graphql/2025-01/queries/collectionByHandle)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Shop.collectionByHandle",
+        "text": "Shop.collectionByHandle is absent from the oldest pinned admin schema, 2025-01."
+      }
+    },
+    {
+      "rule": "shopify-shop-collection-saved-searches-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.collectionSavedSearches",
+      "replacement": "QueryRoot.collectionSavedSearches",
+      "source": "https://shopify.dev/changelog/posts/removal-of-unused-deprecated-fields",
+      "warning": "Selections of shop { collectionSavedSearches } move to the root collectionSavedSearches query with the same arguments; Shopify removed the Shop field in 2025-01.",
+      "quote": "* [`Shop.collectionSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2024-10/objects/Shop#connection-collectionsavedsearches) → [`QueryRoot.collectionSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2025-01/queries/collectionSavedSearches)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Shop.collectionSavedSearches",
+        "text": "Shop.collectionSavedSearches is absent from the oldest pinned admin schema, 2025-01."
+      }
+    },
+    {
+      "rule": "shopify-shop-customer-saved-searches-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.customerSavedSearches",
+      "replacement": "QueryRoot.customerSavedSearches",
+      "source": "https://shopify.dev/changelog/posts/removal-of-unused-deprecated-fields",
+      "warning": "Selections of shop { customerSavedSearches } move to the root customerSavedSearches query with the same arguments; Shopify removed the Shop field in 2025-01.",
+      "quote": "* [`Shop.customerSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2024-10/objects/Shop#connection-customersavedsearches) → [`QueryRoot.customerSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2025-01/queries/customerSavedSearches)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Shop.customerSavedSearches",
+        "text": "Shop.customerSavedSearches is absent from the oldest pinned admin schema, 2025-01."
+      }
+    },
+    {
+      "rule": "shopify-shop-draft-order-saved-searches-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.draftOrderSavedSearches",
+      "replacement": "QueryRoot.draftOrderSavedSearches",
+      "source": "https://shopify.dev/changelog/posts/removal-of-unused-deprecated-fields",
+      "warning": "Selections of shop { draftOrderSavedSearches } move to the root draftOrderSavedSearches query with the same arguments; Shopify removed the Shop field in 2025-01.",
+      "quote": "* [`Shop.draftOrderSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2024-10/objects/Shop#connection-draftordersavedsearches) → [`QueryRoot.draftOrderSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2025-01/queries/draftOrderSavedSearches)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Shop.draftOrderSavedSearches",
+        "text": "Shop.draftOrderSavedSearches is absent from the oldest pinned admin schema, 2025-01."
+      }
+    },
+    {
+      "rule": "shopify-shop-marketing-events-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.marketingEvents",
+      "replacement": "QueryRoot.marketingEvents",
+      "source": "https://shopify.dev/changelog/posts/removal-of-unused-deprecated-fields",
+      "warning": "Selections of shop { marketingEvents } move to the root marketingEvents query with the same arguments; Shopify removed the Shop field in 2025-01.",
+      "quote": "* [`Shop.marketingEvents`](https://shopify.dev/docs/api/admin-graphql/2024-10/objects/Shop#connection-marketingevents) → [`QueryRoot.marketingEvents`](https://shopify.dev/docs/api/admin-graphql/2025-01/queries/marketingEvents)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Shop.marketingEvents",
+        "text": "Shop.marketingEvents is absent from the oldest pinned admin schema, 2025-01."
+      }
+    },
+    {
+      "rule": "shopify-shop-order-saved-searches-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.orderSavedSearches",
+      "replacement": "QueryRoot.orderSavedSearches",
+      "source": "https://shopify.dev/changelog/posts/removal-of-unused-deprecated-fields",
+      "warning": "Selections of shop { orderSavedSearches } move to the root orderSavedSearches query with the same arguments; Shopify removed the Shop field in 2025-01.",
+      "quote": "* [`Shop.orderSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2024-10/objects/Shop#connection-ordersavedsearches) → [`QueryRoot.orderSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2025-01/queries/orderSavedSearches)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Shop.orderSavedSearches",
+        "text": "Shop.orderSavedSearches is absent from the oldest pinned admin schema, 2025-01."
+      }
+    },
+    {
+      "rule": "shopify-shop-product-by-handle-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.productByHandle",
+      "replacement": "QueryRoot.productByHandle",
+      "source": "https://shopify.dev/changelog/posts/removal-of-unused-deprecated-fields",
+      "warning": "Selections of shop { productByHandle } move to the root productByHandle query with the same arguments; Shopify removed the Shop field in 2025-01.",
+      "quote": "* [`Shop.productByHandle`](https://shopify.dev/docs/api/admin-graphql/2024-10/objects/Shop#field-productbyhandle) → [`QueryRoot.productByHandle`](https://shopify.dev/docs/api/admin-graphql/2025-01/queries/productByHandle)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Shop.productByHandle",
+        "text": "Shop.productByHandle is absent from the oldest pinned admin schema, 2025-01."
+      }
+    },
+    {
+      "rule": "shopify-shop-product-saved-searches-to-query-root",
+      "family": "graphql-rename",
+      "coordinate": "Shop.productSavedSearches",
+      "replacement": "QueryRoot.productSavedSearches",
+      "source": "https://shopify.dev/changelog/posts/removal-of-unused-deprecated-fields",
+      "warning": "Selections of shop { productSavedSearches } move to the root productSavedSearches query with the same arguments; Shopify removed the Shop field in 2025-01.",
+      "quote": "* [`Shop.productSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2024-10/objects/Shop#connection-productsavedsearches) → [`QueryRoot.productSavedSearches`](https://shopify.dev/docs/api/admin-graphql/2025-01/queries/productSavedSearches)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Shop.productSavedSearches",
+        "text": "Shop.productSavedSearches is absent from the oldest pinned admin schema, 2025-01."
+      }
+    },
+    {
+      "rule": "shopify-rest-post-products-id-images",
+      "family": "rest-to-graphql",
+      "method": "POST",
+      "path": "products/{product_id}/images.json",
+      "replacement": "Mutation.productCreateMedia",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-image",
+      "warning": "Flags POST products/{product_id}/images.json, a deprecated REST product image endpoint, and names productCreateMedia, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}/images.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product-image.md#post-products-product-id-images)\n\nCreate a new Product Image\n\n[productCreateMedia](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreateMedia?example=create-a-new-product-image)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "Mutation.productCreateMedia",
+        "text": "POST products/{product_id}/images.json is answered by Mutation.productCreateMedia."
+      }
+    },
+    {
+      "rule": "shopify-rest-put-products-id-images-id",
+      "family": "rest-to-graphql",
+      "method": "PUT",
+      "path": "products/{product_id}/images/{image_id}.json",
+      "replacement": "Mutation.productUpdateMedia",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-image",
+      "warning": "Flags PUT products/{product_id}/images/{image_id}.json, a deprecated REST product image endpoint, and names productUpdateMedia, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}/images/{image\\_​id}.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product-image.md#put-products-product-id-images-image-id)\n\nModify an existing Product Image\n\n[productUpdateMedia](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productUpdateMedia?example=modify-an-existing-product-image)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "Mutation.productUpdateMedia",
+        "text": "PUT products/{product_id}/images/{image_id}.json is answered by Mutation.productUpdateMedia."
+      }
+    },
+    {
+      "rule": "shopify-rest-delete-products-id-images-id",
+      "family": "rest-to-graphql",
+      "method": "DELETE",
+      "path": "products/{product_id}/images/{image_id}.json",
+      "replacement": "Mutation.productDeleteMedia",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-image",
+      "warning": "Flags DELETE products/{product_id}/images/{image_id}.json, a deprecated REST product image endpoint, and names productDeleteMedia, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}/images/{image\\_​id}.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product-image.md#delete-products-product-id-images-image-id)\n\nRemove an existing Product Image\n\n[productDeleteMedia](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productDeleteMedia?example=remove-an-existing-product-image)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "Mutation.productDeleteMedia",
+        "text": "DELETE products/{product_id}/images/{image_id}.json is answered by Mutation.productDeleteMedia."
+      }
+    }
+  ]
+}

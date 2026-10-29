@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { buildClientSchema, getIntrospectionQuery, type GraphQLSchema } from 'graphql';
 import { readBoundedResponse } from './network.ts';
 import { digest, isObject, shopifySchemaUrl } from './specifications.ts';
@@ -16,10 +18,13 @@ export interface ShopifySnapshot {
   content: string;
 }
 
-// Downloads one Admin API version's schema by introspection from Shopify's public documentation
-// proxy. It needs no store or credentials and performs no store operation.
-export async function fetchShopifySnapshot(version: string): Promise<ShopifySnapshot> {
-  const url = shopifySchemaUrl(version);
+// Downloads one Admin (or Storefront) API version's schema by introspection from Shopify's public
+// documentation proxy. It needs no store or credentials and performs no store operation.
+export async function fetchShopifySnapshot(
+  version: string,
+  api: 'admin' | 'storefront' = 'admin',
+): Promise<ShopifySnapshot> {
+  const url = shopifySchemaUrl(version, api);
   const response = await fetch(url, {
     method: 'POST',
     redirect: 'error',
@@ -68,4 +73,79 @@ export function shopifySchema(introspection: string) {
   );
   schemas.set(key, schema);
   return schema;
+}
+
+export const SHOPIFY_APIS = ['admin', 'storefront', 'customer-account'] as const;
+export type ShopifyApi = (typeof SHOPIFY_APIS)[number];
+
+// A schema Refit pins (data/shopify-schema-versions.json): where it was read and the SHA-256 of
+// its introspection as saved, gzipped, in data/shopify-schemas/<api>/<version>.json.gz. Shopify's
+// proxy serves only supported versions, so older ones come from Shopify's own npm packages
+// (`@shopify/hydrogen-react` ships the Storefront and Customer Account schemas of its quarter,
+// `@shopify/dev-mcp` 1.1.0 ships Admin 2025-01), named with the tarball's npm integrity.
+export interface ShopifySchemaPin {
+  api: ShopifyApi;
+  version: string;
+  sha256: string;
+  source:
+    | { url: string; fetchedAt: string }
+    | { package: string; release: string; path: string; integrity: string };
+}
+
+const PINS = new URL('../data/shopify-schema-versions.json', import.meta.url);
+const SAVED = new URL('../data/shopify-schemas/', import.meta.url);
+
+export function shopifySchemaPins(): ShopifySchemaPin[] {
+  const value: unknown = JSON.parse(readFileSync(PINS, 'utf8'));
+  if (!isObject(value) || value.formatVersion !== 1 || !Array.isArray(value.schemas))
+    throw new PipelineInputError(
+      'data/shopify-schema-versions.json needs formatVersion 1 and schemas.',
+    );
+  for (const pin of value.schemas)
+    if (
+      !isObject(pin) ||
+      !SHOPIFY_APIS.includes(pin.api as ShopifyApi) ||
+      typeof pin.version !== 'string' ||
+      !/^\d{4}-(?:01|04|07|10)$/.test(pin.version) ||
+      typeof pin.sha256 !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(pin.sha256) ||
+      !isObject(pin.source)
+    )
+      throw new PipelineInputError(`Invalid Shopify schema pin ${JSON.stringify(pin)}.`);
+  return value.schemas as ShopifySchemaPin[];
+}
+
+// The pinned versions of one API, oldest first.
+export function pinnedShopifyVersions(api: ShopifyApi) {
+  return shopifySchemaPins()
+    .filter((pin) => pin.api === api)
+    .map((pin) => pin.version)
+    .sort();
+}
+
+export const shopifySchemaFile = (api: ShopifyApi, version: string) =>
+  new URL(`${api}/${version}.json.gz`, SAVED);
+
+// The pinned introspection of one API version, refused unless it matches its recorded hash.
+export function pinnedShopifySchema(api: ShopifyApi, version: string) {
+  const pin = shopifySchemaPins().find((entry) => entry.api === api && entry.version === version);
+  if (!pin) throw new PipelineInputError(`Shopify ${api} ${version} is not pinned.`);
+  const content = gunzipSync(readFileSync(shopifySchemaFile(api, version))).toString('utf8');
+  if (digest(content) !== pin.sha256)
+    throw new PipelineInputError(
+      `data/shopify-schemas/${api}/${version}.json.gz does not match its pinned SHA-256.`,
+    );
+  return { pin, content, schema: shopifySchema(content) };
+}
+
+// Introspection as Refit saves it: `{"data":{"__schema":...}}`, compact, whichever wrapper the
+// source used.
+export function normalizedIntrospection(text: string) {
+  const value: unknown = JSON.parse(text);
+  const data = isObject(value) && isObject(value.data) ? value.data : value;
+  if (!isObject(data) || !isObject(data.__schema))
+    throw new PipelineInputError('The file does not contain a GraphQL introspection result.');
+  const content = JSON.stringify({ data: { __schema: data.__schema } });
+  shopifySchema(content);
+  return content;
 }

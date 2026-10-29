@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "storefront-api-now-supports-cart-attributes-with-blank-keys-or-values",
+  "url": "https://shopify.dev/changelog/posts/storefront-api-now-supports-cart-attributes-with-blank-keys-or-values.md",
+  "revision": "551f7d6a62697364d11b2ea533444f137d8df22efcd3e3e4583a519e99ad86d0",
+  "hash": "551f7d6a62697364d11b2ea533444f137d8df22efcd3e3e4583a519e99ad86d0",
+  "content": "---\ntitle: >-\nStorefront API now supports cart attributes with blank keys or values -\nShopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/storefront-api-now-supports-cart-attributes-with-blank-keys-or-values\nmd: >-\nhttps://shopify.dev/changelog/posts/storefront-api-now-supports-cart-attributes-with-blank-keys-or-values.md\nmetadata:\neffectiveApiVersion: ''\naffectedApi:\n- displayName: Storefront API\nhandle: storefront-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2025-04-02T15:53:20-04:00'\npostedAt: '2025-04-08T12:00:00-04:00'\nupdatedAt: '2025-04-15T19:48:33-04:00'\neffectiveAt: '2025-04-03T12:00:00-04:00'\n---\n\nApril 8, 2025\n\n# Storefront API now supports cart attributes with blank keys or values\n\nDateApril 8, 2025\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[Storefront API](https://shopify.dev/changelog?api_type=storefront-graphql)\n\nThe GraphQL Storefront API now supports setting [cart attributes](https://shopify.dev/docs/api/storefront/latest/objects/Cart#field-attributes) with either blank keys or values. This change applies to all API versions. This matches the behavior of the [AJAX API](https://shopify.dev/docs/api/ajax/reference/cart#update-cart-attributes), which allows for setting blank keys and attributes.",
+  "contentType": "text/markdown"
+}
