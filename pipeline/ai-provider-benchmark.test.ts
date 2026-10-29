@@ -52,3 +52,65 @@ it('names timeouts, memory and native crashes instead of the last stack line', a
     errorSummary({ stderr: 'refit deadlines: a.js: Unterminated template literal.\n    at x' }),
   ).toBe('refit deadlines: a.js: Unterminated template literal.');
 });
+
+it('reports an available but not required SDK upgrade, and report-only items, as their own outcomes', async () => {
+  const { outcomeOf, migrationLane, rowOutcome } = await import('./ai-provider-benchmark-cli.ts');
+  expect(outcomeOf({ language: 'js', findings: 0, lanes: ['optional-upgrade'] })).toBe(
+    'optional-upgrade',
+  );
+  expect(outcomeOf({ language: 'js', findings: 1, lanes: ['optional-upgrade'] })).toBe(
+    'needs-review',
+  );
+  expect(outcomeOf({ language: 'js', findings: 0, lanes: ['optional-upgrade', 'proposed'] })).toBe(
+    'proposed',
+  );
+  expect(outcomeOf({ language: 'js', findings: 0, reports: 2, lanes: [] })).toBe('report-only');
+  expect(
+    migrationLane({ review: [], proposal: null, validation: { status: 'upgrade-optional' } }),
+  ).toBe('optional-upgrade');
+  const stop = (category?: string) => ({ blocking: true, category });
+  expect(
+    migrationLane({
+      review: [],
+      proposal: { edits: [1], stops: [stop('optional-upgrade')] },
+      validation: null,
+    }),
+  ).toBe('optional-upgrade');
+  expect(
+    migrationLane({
+      review: [],
+      proposal: { edits: [1], stops: [stop('optional-upgrade'), stop()] },
+      validation: null,
+    }),
+  ).toBe('needs-review');
+  expect(migrationLane({ review: [], proposal: { edits: [1], stops: [] }, validation: null })).toBe(
+    'proposed',
+  );
+  expect(
+    rowOutcome({
+      language: 'js',
+      exposures: [],
+      replacements: [],
+      stops: [],
+      alerts: [],
+      validation: null,
+      migrations: { review: [{ status: 'report' }], proposal: null, validation: null },
+    }),
+  ).toBe('report-only');
+  expect(
+    rowOutcome({
+      language: 'js',
+      exposures: ['x'],
+      replacements: [{}],
+      stops: [],
+      alerts: [],
+      validation: null,
+      migrations: {
+        review: [],
+        proposal: null,
+        validation: null,
+        ai: { status: 'draft-created', lane: { edits: [1] } },
+      },
+    }),
+  ).toBe('proposed');
+});

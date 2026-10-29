@@ -31,6 +31,8 @@ export type Outcome =
   | 'no-checks' // a fix was proposed but the repository has no test or build script
   | 'proposed' // a fix was proposed and --validate was off
   | 'needs-review' // affected, but every use was a stop, or only alerts were raised
+  | 'optional-upgrade' // only an SDK upgrade that is available, not required (would change outputs)
+  | 'report-only' // only informational review items (status `report`), nothing to fix or review
   | 'detection-only' // affected Python: reported, never edited
   | 'unaffected' // no live finding and no alert
   | 'error' // Refit failed on the repository
@@ -53,26 +55,102 @@ interface Scan {
 // A fix lane's status: `refit deadlines` model fixes (runModelFixes) or `refit ai-migrations
 // --validate`. no-change proposes nothing; needs-review found uses but proposes no safe edit.
 export type LaneStatus =
-  'no-change' | 'needs-review' | 'no-checks' | 'validated' | 'validation-failed' | 'proposed';
+  | 'no-change'
+  | 'needs-review'
+  | 'no-checks'
+  | 'validated'
+  | 'validation-failed'
+  | 'proposed'
+  | 'optional-upgrade';
 
 export function outcomeOf(row: {
   error?: string;
   infrastructure?: unknown;
   language?: string;
-  // Live findings, stops, alerts and review findings, from every lane.
+  // Live findings, stops, alerts and review items that need review, from every lane.
   findings: number;
+  // Informational review items (status `report`).
+  reports?: number;
   lanes: LaneStatus[];
 }): Outcome {
   if (row.infrastructure) return 'infrastructure';
   if (row.error) return 'error';
-  const fixes = row.lanes.filter((lane) => !['no-change', 'needs-review'].includes(lane));
-  if (!row.findings && !fixes.length && !row.lanes.includes('needs-review')) return 'unaffected';
+  const fixes = row.lanes.filter(
+    (lane) => !['no-change', 'needs-review', 'optional-upgrade'].includes(lane),
+  );
+  const optional = row.lanes.includes('optional-upgrade');
+  const review = row.findings > 0 || row.lanes.includes('needs-review');
+  if (!review && !fixes.length && !optional && !row.reports) return 'unaffected';
   if (row.language === 'py') return 'detection-only';
-  if (!fixes.length) return 'needs-review';
+  if (!fixes.length) return review ? 'needs-review' : optional ? 'optional-upgrade' : 'report-only';
   if (fixes.includes('validation-failed')) return 'validation-failed';
   if (fixes.includes('proposed')) return 'proposed';
   if (fixes.every((lane) => lane === 'validated')) return 'validated';
   return 'no-checks';
+}
+
+interface MigrationResult {
+  review: Array<{ status?: string }>;
+  proposal: {
+    edits: unknown[];
+    stops: Array<{ blocking?: boolean; category?: string }>;
+  } | null;
+  validation: Record<string, unknown> | null;
+  ai?: { status?: string; lane?: { edits?: unknown[] } } | null;
+}
+
+// The lane a migration result adds: its validation status, or, scan-only, whether it proposed
+// edits. An upgrade blocked only by optional-upgrade stops (decision A: sampling parameters the
+// new SDK's models treat differently) is available, not required.
+export function migrationLane(migrated: MigrationResult | null | undefined): LaneStatus | null {
+  if (!migrated) return null;
+  if (migrated.validation) {
+    const status = String((migrated.validation as { status?: string }).status);
+    return status === 'upgrade-optional' ? 'optional-upgrade' : (status as LaneStatus);
+  }
+  const proposal = migrated.proposal;
+  if (!proposal) return null;
+  const blocking = proposal.stops.filter((stop) => stop.blocking);
+  if (blocking.some((stop) => stop.category !== 'optional-upgrade')) return 'needs-review';
+  if (blocking.length) return 'optional-upgrade';
+  return proposal.edits.length ? 'proposed' : proposal.stops.length ? 'needs-review' : null;
+}
+
+// A stored row's outcome, from its own fields, so earlier runs can be recounted the same way.
+export function rowOutcome(row: {
+  error?: string;
+  infrastructure?: unknown;
+  language?: string;
+  exposures?: unknown[];
+  replacements?: unknown[];
+  stops?: unknown[];
+  alerts?: unknown[];
+  validation?: { status: string } | null;
+  migrations?: MigrationResult;
+}): Outcome {
+  const lanes: LaneStatus[] = [];
+  if (row.validation) lanes.push(row.validation.status as LaneStatus);
+  else if (row.replacements?.length)
+    lanes.push(row.language === 'py' ? 'needs-review' : 'proposed');
+  const lane = migrationLane(row.migrations);
+  if (lane) lanes.push(lane);
+  // The AI lane counts only when it proposed edits; a published draft counts as validated.
+  const ai = row.migrations?.ai;
+  if (ai?.lane?.edits?.length)
+    lanes.push(ai.status === 'draft-created' ? 'validated' : (ai.status as LaneStatus));
+  const review = row.migrations?.review ?? [];
+  return outcomeOf({
+    error: row.error,
+    infrastructure: row.infrastructure,
+    language: row.language,
+    findings:
+      (row.exposures?.length ?? 0) +
+      (row.stops?.length ?? 0) +
+      (row.alerts?.length ?? 0) +
+      review.filter((item) => item.status !== 'report').length,
+    reports: review.filter((item) => item.status === 'report').length,
+    lanes,
+  });
 }
 
 // One line for a failed Refit command: a timeout or a crash by name, else Refit's own last error
@@ -292,16 +370,6 @@ async function main() {
     }
     return { review, proposal, validation, ai };
   }
-  // The lane a migration result adds: its validation status, or, scan-only, whether it proposed edits.
-  function migrationLane(migrated: Awaited<ReturnType<typeof migrate>>): LaneStatus | null {
-    if (!migrated) return null;
-    if (migrated.validation) return (migrated.validation as { status: LaneStatus }).status;
-    const proposal = migrated.proposal;
-    if (!proposal) return null;
-    if (proposal.stops.some((stop) => stop.blocking)) return 'needs-review';
-    return proposal.edits.length ? 'proposed' : proposal.stops.length ? 'needs-review' : null;
-  }
-
   const counted = (item: { provider?: string; deadline?: { provider?: string } }) =>
     !provider || (item.provider ?? item.deadline?.provider) === provider;
 
@@ -415,17 +483,6 @@ async function main() {
         }
       }
       const migrated = await migrate(directory, entry);
-      const lanes: LaneStatus[] = [];
-      if (validation) lanes.push(validation.status as LaneStatus);
-      else if (found.replacements.length)
-        lanes.push(entry.language === 'py' ? 'needs-review' : 'proposed');
-      const lane = migrationLane(migrated);
-      if (lane) lanes.push(lane);
-      // The AI lane counts only when it proposed edits; a published draft counts as validated.
-      const aiLane = migrated?.ai as
-        { status?: string; lane?: { edits?: unknown[] } } | null | undefined;
-      if (aiLane?.lane?.edits?.length)
-        lanes.push(aiLane.status === 'draft-created' ? 'validated' : (aiLane.status as LaneStatus));
       row = {
         ...base,
         exposures: found.exposures.map((item) => item.deadline.id),
@@ -436,15 +493,7 @@ async function main() {
         validation,
         ...(migrated ? { migrations: migrated } : {}),
       };
-      row.outcome = outcomeOf({
-        language: entry.language,
-        findings:
-          found.exposures.length +
-          found.stops.length +
-          found.alerts.length +
-          (migrated?.review.length ?? 0),
-        lanes,
-      });
+      row.outcome = rowOutcome(row as Parameters<typeof rowOutcome>[0]);
     } catch (error) {
       row = {
         ...base,
