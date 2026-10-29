@@ -914,6 +914,19 @@
       }
     },
     {
+      "rule": "openai-node-v5-file-from-path-stream",
+      "family": "file-stream",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "OpenAI.fileFromPath('path/to/file'); // After import fs from 'fs'; fs.createReadStream('path/to/file');",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`fileFromPath(path)` with one argument becomes `createReadStream(path)` from node:fs.",
+      "data": {
+        "fromMajor": 4
+      }
+    },
+    {
       "rule": "openai-node-v5-file-from-path",
       "family": "removed-export",
       "status": "review",
@@ -921,7 +934,7 @@
       "quote": "The deprecated `fileFromPath` helper has been removed in favor of native Node.js streams:",
       "checkedAt": "2026-10-29",
       "origin": "docs",
-      "summary": "`fileFromPath` is gone; a use stops for review.",
+      "summary": "`fileFromPath` with more than the path, or used other than as a call, has no mapped form; a use stops for review.",
       "data": {
         "fromMajor": 4,
         "names": [

@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { findReviewSites } from './ai-review-sites.ts';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
 import type { AiRuleTable } from './ai-rules.ts';
 import {
   proposeAnthropicSdkMajor,
@@ -105,9 +106,15 @@ export async function proposeSdkMajor(
     ['@anthropic-ai/sdk', proposeAnthropicSdkMajor],
     ['@google/genai', proposeGeminiSdkSwap],
   ] as const;
+  const now = new Date();
+  const registry = await loadDeadlineRegistry(undefined, now).catch(() => undefined);
   for (const [name, propose] of proposers) {
     if (packageName && packageName !== name) continue;
-    const proposal = await propose(directory, tables);
+    const proposal = await propose(
+      directory,
+      tables,
+      registry && { entries: registry.deadlines, now },
+    );
     if (proposal) return proposal;
   }
   return null;

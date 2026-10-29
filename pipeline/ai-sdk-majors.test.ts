@@ -296,12 +296,62 @@ export const drop = (store: string, file: string) => openai.vectorStores.files.d
     ]);
   });
 
+  it('stops on withResponse only where the Web response is read', async () => {
+    const { proposal } = await propose('4.67.0', {
+      'w.ts': `import OpenAI from 'openai';
+const client = new OpenAI();
+export async function a() {
+  const { data } = await client.chat.completions.create({ model: 'm', messages: [] }).withResponse();
+  return data.id;
+}
+export async function b() {
+  const result = await client.chat.completions.create({ model: 'm', messages: [] }).withResponse();
+  return result.data.id;
+}
+export async function c() {
+  const { data, response } = await client.chat.completions.create({ model: 'm', messages: [] }).withResponse();
+  return [data.id, response.headers.get('x-request-id')];
+}
+export const d = () => client.files.content('f').asResponse();
+`,
+    });
+    expect(proposal.stops.map((item) => [item.rule, item.line])).toEqual([
+      ['openai-node-v5-web-response', 12],
+      ['openai-node-v5-web-response', 15],
+    ]);
+  });
+
+  it('maps fileFromPath(path) to createReadStream from node:fs', async () => {
+    const { proposal, changed } = await propose('4.40.0', {
+      'up.ts': `import OpenAI, { fileFromPath } from 'openai';
+const client = new OpenAI();
+export const upload = async (p: string) => client.files.create({ file: await fileFromPath(p), purpose: 'assistants' });
+export const other = async (p: string) => client.files.create({ file: await OpenAI.fileFromPath(p), purpose: 'batch' });
+`,
+      'up.js': `const { OpenAI, fileFromPath } = require('openai');
+const client = new OpenAI();
+module.exports = async (p) => client.files.create({ file: await fileFromPath(p, 'name.txt'), purpose: 'batch' });
+`,
+    });
+    expect(changed['up.ts']).toBe(`import { createReadStream } from 'node:fs';
+import OpenAI from 'openai';
+const client = new OpenAI();
+export const upload = async (p: string) => client.files.create({ file: await createReadStream(p), purpose: 'assistants' });
+export const other = async (p: string) => client.files.create({ file: await createReadStream(p), purpose: 'batch' });
+`);
+    // A second argument (the file name) has no mapped form.
+    expect(
+      proposal.stops.filter((item) => item.file === 'up.js').map((item) => item.rule),
+    ).toContain('openai-node-v5-file-from-path');
+    expect(proposal.stops.some((item) => item.file === 'up.ts')).toBe(false);
+  });
+
   it('stops on runFunctions, fileFromPath and httpAgent', async () => {
     const { proposal } = await propose('4.20.0', {
       'a.ts': `import OpenAI from 'openai';
 import { Agent } from 'http';
 const client = new OpenAI({ httpAgent: new Agent() });
-export const file = OpenAI.fileFromPath('x');
+export const file = OpenAI.fileFromPath('x', 'name');
 export const run = () => client.beta.chat.completions.runFunctions({ model: 'x', messages: [], functions: [] });
 `,
     });
@@ -412,6 +462,22 @@ export const old = () => client.beta.tools.messages.create({ model: 'm', max_tok
       [5, 'sdk-surface'],
     ]);
     expect(proposal.stops[1].reason).toContain('does not exist in @anthropic-ai/sdk 1.3.0');
+  });
+
+  it('stops on X-Api-Key only where the SDK sends it', async () => {
+    const proposal = await anthropic('0.79.0', {
+      'a.ts': `import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic({ defaultHeaders: { 'X-Api-Key': process.env.K } });
+export const ask = () => client.messages.create({ model: 'm', max_tokens: 1, messages: [] }, { headers: { 'x-api-key': 'other' } });
+export const own = (req: { headers: Record<string, string> }) => req.headers['x-api-key'];
+export const cors = { allowedHeaders: ['Content-Type', 'x-api-key'] };
+export const forward = (key: string) => fetch('https://example.test', { headers: { 'x-api-key': key } });
+`,
+    });
+    expect(proposal.stops.map((item) => [item.rule, item.line])).toEqual([
+      ['anthropic-ts-x-api-key-header', 2],
+      ['anthropic-ts-x-api-key-header', 3],
+    ]);
   });
 
   it('blocks on a declared platform package', async () => {
@@ -531,6 +597,40 @@ module.exports = { ask };
     expect(changed['a.js']).toContain('const response = await result;');
     expect(changed['a.js']).toContain('return (await response.text).trim();');
     expect(proposal.rules.map((rule) => rule.rule)).toContain('gemini-swap-config');
+  });
+
+  it('says when a swapped call keeps a retired model', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-ai-sdk-majors-'));
+    roots.push(root);
+    await writeFile(
+      join(root, 'package.json'),
+      JSON.stringify({ dependencies: { '@google/generative-ai': '^0.24.1' } }),
+    );
+    await writeFile(
+      join(root, 'a.ts'),
+      `import { GoogleGenerativeAI } from "@google/generative-ai";\nconst genAI = new GoogleGenerativeAI("k");\nconst model = genAI.getGenerativeModel({ model: "gemini-pro" });\nexport const f = async () => (await model.generateContent("x")).response.text();\n`,
+    );
+    const proposal = (await proposeGeminiSdkSwap(root, await loadAiRuleTables(), {
+      now: new Date('2026-10-29T00:00:00Z'),
+      entries: [
+        {
+          id: 'gemini-pro',
+          provider: 'gemini',
+          kind: 'model',
+          versions: ['gemini-pro'],
+          date: '2025-02-15',
+          summary: 'retired',
+          replacement: 'gemini-2.5-flash',
+          source: 'https://ai.google.dev/gemini-api/docs/deprecations',
+          checkedAt: '2026-10-29',
+        },
+      ],
+    }))!;
+    expect(proposal.stops).toEqual([
+      expect.objectContaining({ rule: 'gemini-model-deadline', blocking: false, line: 4 }),
+    ]);
+    expect(proposal.stops[0].reason).toContain('was retired on 2025-02-15');
+    expect(proposal.edits.length).toBeGreaterThan(0);
   });
 
   it('keeps blocking on systemInstruction, safetySettings and other config keys', async () => {

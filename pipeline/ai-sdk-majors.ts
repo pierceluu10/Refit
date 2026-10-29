@@ -6,6 +6,7 @@ import { rulesOf, type AiRule, type AiRulePage, type AiRuleTable } from './ai-ru
 import type { ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
 import type { ProofCall } from './ai-request-proof.ts';
+import type { DeadlineEntry } from './deadline-registry.ts';
 import type { Repository, SourceEdit } from './types.ts';
 
 // SDK major upgrades for the AI providers (item 4): finds the calls a major version changes and
@@ -144,6 +145,8 @@ interface Context {
   calls: ProofCall[];
   // The target release's client methods (data/sdk-surfaces), when the package-target rule names one.
   surface?: { version: string; methods: Set<string> };
+  // Model deadlines (data/deadlines.json), so a migrated call that keeps a retired model says so.
+  models?: { entries: DeadlineEntry[]; now: Date };
 }
 
 const SURFACE_RULE = 'sdk-surface';
@@ -939,9 +942,20 @@ function openAiV4(
   if (web && applies(web))
     for (const file of context.repository.files) {
       if (!SOURCE.test(file.path) || !importsPackage(file.content, 'openai')) continue;
-      for (const method of web.data.methods as string[])
-        if (file.content.includes(`.${method}(`))
-          stop(context, file.path, lineOfText(file.content, `.${method}(`), web.rule, web.summary);
+      if (!(web.data.methods as string[]).some((method) => file.content.includes(`.${method}(`)))
+        continue;
+      const program = fileProgram(file.path, file.content);
+      const visit = (node: ts.Node) => {
+        if (
+          ts.isCallExpression(node) &&
+          ts.isPropertyAccessExpression(node.expression) &&
+          (web.data.methods as string[]).includes(node.expression.name.text) &&
+          !onlyResponseData(node, program)
+        )
+          stop(context, file.path, lineOf(program.source, node.getStart()), web.rule, web.summary);
+        ts.forEachChild(node, visit);
+      };
+      visit(program.source);
     }
   // Leftovers on chains Refit did not trace.
   for (const file of context.repository.files) {
@@ -976,6 +990,49 @@ function openAiV4(
   openAiV4Files(context, fromMajor);
 }
 
+// `withResponse()` whose result is used only for `data` (`const { data } = await …`, or a const
+// read only as `x.data`): the v5 change to Web fetch types does not reach it. `asResponse()`
+// returns the Response itself, so it always stops.
+function onlyResponseData(call: ts.CallExpression, program: ReturnType<typeof fileProgram>) {
+  const name = (call.expression as ts.PropertyAccessExpression).name.text;
+  if (name !== 'withResponse') return false;
+  let outer: ts.Node = call;
+  while (ts.isParenthesizedExpression(outer.parent)) outer = outer.parent;
+  const awaited = ts.isAwaitExpression(outer.parent) ? outer.parent : undefined;
+  if (!awaited) return false;
+  if (ts.isPropertyAccessExpression(awaited.parent) && awaited.parent.name.text === 'data')
+    return true;
+  const declaration = awaited.parent;
+  if (!ts.isVariableDeclaration(declaration) || declaration.initializer !== awaited) return false;
+  if (ts.isObjectBindingPattern(declaration.name))
+    return declaration.name.elements.every(
+      (element) =>
+        !element.dotDotDotToken &&
+        ((element.propertyName ?? element.name) as ts.Identifier).text === 'data',
+    );
+  if (!ts.isIdentifier(declaration.name) || !(declaration.parent.flags & ts.NodeFlags.Const))
+    return false;
+  const symbol = program.checker.getSymbolAtLocation(declaration.name);
+  let ok = true;
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isIdentifier(node) &&
+      node !== declaration.name &&
+      node.text === (declaration.name as ts.Identifier).text &&
+      program.checker.getSymbolAtLocation(node) === symbol &&
+      !(
+        ts.isPropertyAccessExpression(node.parent) &&
+        node.parent.expression === node &&
+        node.parent.name.text === 'data'
+      )
+    )
+      ok = false;
+    ts.forEachChild(node, visit);
+  };
+  visit(program.source);
+  return ok;
+}
+
 function lineOfText(content: string, needle: string) {
   return content.slice(0, Math.max(0, content.indexOf(needle))).split('\n').length;
 }
@@ -1005,6 +1062,8 @@ function openAiV4Files(context: Context, fromMajor: number) {
       continue;
     const { source } = fileProgram(file.path, file.content);
     const usesRunner = file.content.includes('.runTools(');
+    // `fileFromPath(path)` → `createReadStream(path)` (v5 guide); identifiers it handled.
+    const streamed = fileFromPathStreams(context, file.path, file.content, source);
     const visit = (node: ts.Node) => {
       const specifier =
         (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
@@ -1048,7 +1107,7 @@ function openAiV4Files(context: Context, fromMajor: number) {
             );
         }
       }
-      if (ts.isIdentifier(node))
+      if (ts.isIdentifier(node) && !streamed.has(node))
         for (const rule of removedExports)
           if ((rule.data.names as string[]).includes(node.text))
             stop(context, file.path, lineOf(source, node.getStart()), rule.rule, rule.summary);
@@ -1102,6 +1161,103 @@ function openAiV4Files(context: Context, fromMajor: number) {
     };
     visit(source);
   }
+}
+
+const FILE_STREAM = 'openai-node-v5-file-from-path-stream';
+
+// `OpenAI.fileFromPath(p)` or an imported `fileFromPath(p)`, with one argument, becomes
+// `createReadStream(p)` from node:fs, as the v5 guide shows; the import is added in the file's
+// module style and the openai import loses `fileFromPath`. Anything else is left to the review
+// stop. Returns the identifiers it rewrote.
+function fileFromPathStreams(
+  context: Context,
+  file: string,
+  content: string,
+  source: ts.SourceFile,
+) {
+  const handled = new Set<ts.Node>();
+  if (!context.rules.has(FILE_STREAM) || !content.includes('fileFromPath')) return handled;
+  const calls: ts.CallExpression[] = [];
+  let other = false;
+  const specifiers: ts.ImportSpecifier[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      const name = ts.isPropertyAccessExpression(callee)
+        ? callee.name
+        : ts.isIdentifier(callee)
+          ? callee
+          : undefined;
+      if (name?.text === 'fileFromPath') {
+        if (node.arguments.length === 1) calls.push(node);
+        else other = true;
+      }
+    }
+    if (ts.isImportSpecifier(node) && node.name.text === 'fileFromPath' && !node.propertyName)
+      specifiers.push(node);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  const mentions = (content.match(/\bfileFromPath\b/g) ?? []).length;
+  if (other || !calls.length || mentions !== calls.length + specifiers.length) return handled;
+  const bound = /\bcreateReadStream\b/.test(content);
+  const fromFs =
+    /import\s*\{[^}]*\bcreateReadStream\b[^}]*\}\s*from\s*['"](?:node:)?fs['"]|\{[^}]*\bcreateReadStream\b[^}]*\}\s*=\s*require\(\s*['"](?:node:)?fs['"]\s*\)/.test(
+      content,
+    );
+  if (bound && !fromFs) return handled;
+  for (const call of calls) {
+    const callee = call.expression;
+    edit(context, file, callee.getStart(), callee.getEnd(), 'createReadStream', FILE_STREAM);
+    handled.add(ts.isPropertyAccessExpression(callee) ? callee.name : callee);
+  }
+  for (const specifier of specifiers) {
+    handled.add(specifier.name);
+    const list = specifier.parent;
+    const declaration = list.parent.parent;
+    if (!ts.isImportDeclaration(declaration)) continue;
+    if (list.elements.length === 1 && !declaration.importClause?.name) {
+      const range = statementRange(declaration, content);
+      edit(context, file, range.start, range.end, '', FILE_STREAM);
+    } else if (list.elements.length === 1) {
+      // `import OpenAI, { fileFromPath } from 'openai'` keeps the default import.
+      const clause = declaration;
+      edit(
+        context,
+        file,
+        clause.importClause!.name!.getEnd(),
+        list.parent.getEnd(),
+        '',
+        FILE_STREAM,
+      );
+    } else {
+      const index = list.elements.indexOf(specifier);
+      const end =
+        index < list.elements.length - 1 ? list.elements[index + 1].getStart() : specifier.getEnd();
+      const start =
+        index < list.elements.length - 1 ? specifier.getStart() : list.elements[index - 1].getEnd();
+      edit(context, file, start, end, '', FILE_STREAM);
+    }
+  }
+  if (!fromFs) {
+    const esm = source.statements.some(ts.isImportDeclaration);
+    const first = source.statements.find(
+      (statement) =>
+        !ts.isExpressionStatement(statement) || !ts.isStringLiteral(statement.expression),
+    );
+    const at = first ? first.getStart() : content.length;
+    edit(
+      context,
+      file,
+      at,
+      at,
+      esm
+        ? "import { createReadStream } from 'node:fs';\n"
+        : "const { createReadStream } = require('node:fs');\n",
+      FILE_STREAM,
+    );
+  }
+  return handled;
 }
 
 function withinOpenAiConstructor(node: ts.Node) {
@@ -1314,6 +1470,47 @@ function messageShapes(context: Context, file: string, source: ts.SourceFile) {
   visit(source);
 }
 
+// `X-Api-Key` set as a header the SDK sends: in a client's `defaultHeaders` (constructor or
+// `withOptions`) or in a request's options `headers`. An application reading or sending that
+// header for its own API is not affected by v1.
+function sdkHeaderKey(node: ts.Node, header: string) {
+  if (!ts.isPropertyAssignment(node) || !node.name) return false;
+  const name =
+    ts.isIdentifier(node.name) || ts.isStringLiteralLike(node.name) ? node.name.text : '';
+  if (name.toLowerCase() !== header) return false;
+  const headers = node.parent;
+  const holder = headers?.parent;
+  if (
+    !ts.isObjectLiteralExpression(headers) ||
+    !holder ||
+    !ts.isPropertyAssignment(holder) ||
+    !ts.isIdentifier(holder.name) ||
+    !['defaultHeaders', 'headers'].includes(holder.name.text)
+  )
+    return false;
+  const options = holder.parent;
+  const call = options?.parent;
+  if (!ts.isObjectLiteralExpression(options) || !call) return false;
+  if (holder.name.text === 'defaultHeaders')
+    return (
+      (ts.isNewExpression(call) &&
+        ts.isIdentifier(call.expression) &&
+        /Anthropic/.test(call.expression.text)) ||
+      (ts.isCallExpression(call) &&
+        ts.isPropertyAccessExpression(call.expression) &&
+        call.expression.name.text === 'withOptions')
+    );
+  // Request options are the argument after the body, on a call to an SDK resource.
+  return (
+    ts.isCallExpression(call) &&
+    call.arguments.indexOf(options) >= 1 &&
+    ts.isPropertyAccessExpression(call.expression) &&
+    /\.(?:messages|models|beta|completions|files|skills|batches)\./.test(
+      `${call.expression.getText().replace(/\s+/g, '')}.`,
+    )
+  );
+}
+
 // Client options and headers v1 handles differently (one credential, Bearer key).
 function anthropicClients(context: Context, file: string, source: ts.SourceFile) {
   const credentials = context.rules.get('anthropic-ts-one-credential');
@@ -1335,7 +1532,7 @@ function anthropicClients(context: Context, file: string, source: ts.SourceFile)
         if (given.length > 1) stop(context, file, line(), credentials.rule, credentials.summary);
       }
     }
-    if (header && ts.isStringLiteralLike(node) && node.text.toLowerCase() === header.data.header)
+    if (header && sdkHeaderKey(node, header.data.header as string))
       stop(context, file, line(), header.rule, header.summary);
     if (compaction && ts.isIdentifier(node) && node.text === compaction.data.option)
       stop(context, file, line(), compaction.rule, compaction.summary);
@@ -1558,6 +1755,7 @@ const GEMINI_OLD = '@google/generative-ai';
 export async function proposeGeminiSdkSwap(
   directory: string,
   tables: AiRuleTable[],
+  models?: { entries: DeadlineEntry[]; now: Date },
 ): Promise<SdkMajorProposal | null> {
   const rules = rulesOf(tables, 'gemini', 'sdk-major');
   const target = rules.find((rule) => rule.family === 'gemini-swap-target');
@@ -1573,6 +1771,7 @@ export async function proposeGeminiSdkSwap(
     stops: [],
     calls: [],
     surface: loadSurface(target),
+    models,
   };
   const block = (file: string, line: number, reason: string) =>
     stop(context, file, line, 'gemini-swap-target', reason);
@@ -1905,6 +2104,7 @@ function geminiFile(
         for (const read of reads.edits)
           edit(context, file, read.start, read.end, read.text, 'gemini-swap-text');
         if (configValue) context.used.add('gemini-swap-config');
+        retiredModel(context, file, line(generate), modelValue, source);
         if (!context.calls.some((item) => item.call === `models.${method.name.text}`))
           context.calls.push({ call: `models.${method.name.text}`, stream });
       });
@@ -1926,6 +2126,26 @@ function geminiFile(
     while (ts.isParenthesizedExpression(outer.parent)) outer = outer.parent;
     const awaited = ts.isAwaitExpression(outer.parent) ? outer.parent : undefined;
     if (!awaited) return { reason: 'The result is not awaited where it is made.' };
+    // `(await model.generateContent(p)).response.text()` → `(await …).text`
+    let inline: ts.Node = awaited;
+    while (ts.isParenthesizedExpression(inline.parent)) inline = inline.parent;
+    const response = inline.parent;
+    const textAccess = response?.parent;
+    const textCall = textAccess?.parent;
+    if (
+      !stream &&
+      ts.isPropertyAccessExpression(response) &&
+      response.expression === inline &&
+      response.name.text === 'response' &&
+      textAccess &&
+      ts.isPropertyAccessExpression(textAccess) &&
+      textAccess.name.text === 'text' &&
+      textCall &&
+      ts.isCallExpression(textCall) &&
+      textCall.expression === textAccess &&
+      textCall.arguments.length === 0
+    )
+      return { edits: [{ start: inline.getEnd(), end: textCall.getEnd(), text: '.text' }] };
     const result = constName(awaited);
     if (!result) return { reason: 'The awaited result is not held in one `const`.' };
     const edits: { start: number; end: number; text: string }[] = [];
@@ -2037,6 +2257,32 @@ function geminiFile(
         `\`${match[0]}\` is left in a form the swap does not map.`,
       );
   }
+}
+
+// A swapped call keeps its model. When the deadline registry lists that model as retired or
+// retiring, the draft says so: the swap does not make a retired model's requests work.
+function retiredModel(
+  context: Context,
+  file: string,
+  line: number,
+  model: ts.Expression,
+  source: ts.SourceFile,
+) {
+  if (!context.models || !ts.isStringLiteralLike(model)) return;
+  const id = model.text.replace(/^models\//, '');
+  const entry = context.models.entries.find(
+    (item) => item.provider === 'gemini' && item.kind === 'model' && item.versions.includes(id),
+  );
+  if (!entry) return;
+  const retired = Date.parse(`${entry.date}T00:00:00Z`) <= context.models.now.getTime();
+  stop(
+    context,
+    file,
+    line,
+    'gemini-model-deadline',
+    `\`${model.getText(source)}\` ${retired ? 'was retired' : 'retires'} on ${entry.date} (${entry.source}); the SDK swap keeps it, so ${retired ? 'the request still fails after this change' : 'it still needs replacing'}${entry.replacement ? `. The provider names ${entry.replacement}` : ''}. Changing the model is the model-retirement rule's decision.`,
+    false,
+  );
 }
 
 function findIdentifierAt(source: ts.SourceFile, position: number) {
