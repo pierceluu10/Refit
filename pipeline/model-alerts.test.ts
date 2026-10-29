@@ -111,9 +111,11 @@ describe('modelAlerts', () => {
     expect((await modelAlerts(root, registry, NOW)).alerts).toEqual([]);
   });
 
-  it('skips build output and dependencies', async () => {
+  it('skips build output, dependencies, tests and fixtures', async () => {
     const root = await repository({
       'node_modules/x/index.js': "const m = 'text-embedding-004';",
+      'src/migrations/fixtures/session.json': '{ "model": "gpt-4o-2024-08-06" }',
+      'src/__tests__/embed.test.ts': "const m = 'text-embedding-004';",
       'dist/app.js': "const m = 'text-embedding-004';",
     });
     expect((await modelAlerts(root, registry, NOW)).alerts).toEqual([]);
