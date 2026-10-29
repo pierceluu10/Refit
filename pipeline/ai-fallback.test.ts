@@ -21,7 +21,7 @@ import {
   type OpenItem,
   type ScanBundle,
 } from './ai-fallback.ts';
-import { fallbackCommand } from './ai-fallback-run.ts';
+import { fallbackCommand, proofEnvironment } from './ai-fallback-run.ts';
 import type { RequestProof } from './ai-migrations.ts';
 
 const roots: string[] = [];
@@ -566,6 +566,19 @@ describe('edits', () => {
         originals,
       ),
     ).toEqual({ error: 'src/ask.ts is both edited and returned whole.' });
+  });
+});
+
+describe('request proof environment', () => {
+  it("sends a target model itself, and otherwise the run's OpenAI model", () => {
+    const env = { OPENAI_MODEL: 'gpt-6.1-sol' };
+    expect(proofEnvironment('openai', 'gpt-4o', env).REFIT_PROOF_OPENAI_MODEL).toBe('gpt-4o');
+    expect(proofEnvironment('openai', null, env).REFIT_PROOF_OPENAI_MODEL).toBe('gpt-6.1-sol');
+    expect(
+      proofEnvironment('openai', null, { ...env, REFIT_PROOF_OPENAI_MODEL: 'gpt-5.6-luna' })
+        .REFIT_PROOF_OPENAI_MODEL,
+    ).toBe('gpt-5.6-luna');
+    expect(proofEnvironment('anthropic', null, env).REFIT_PROOF_ANTHROPIC_MODEL).toBe(undefined);
   });
 });
 
