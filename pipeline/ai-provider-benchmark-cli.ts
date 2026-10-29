@@ -3,8 +3,10 @@
 // `refit deadlines --propose-model-fixes` (findings, proposed replacements, stops and alerts), and,
 // with --validate, a JS/TS repository with replacements is checked the way `refit serve
 // --model-fixes` checks it: its own tests or build before and after the patch, in offline Docker,
-// with nothing published. Python is reported, never edited (docs/PYTHON-MODELS.md). Each row gets
-// one outcome; the output is rewritten after every repository, so --resume continues a run.
+// with nothing published. Python is reported, never edited by the rules (docs/PYTHON-MODELS.md).
+// With --ai in Actions, every row Refit leaves open goes to the AI fallback (pipeline/ai-fallback.ts),
+// Python included; each open item becomes a miss record either way. Each row gets one outcome; the
+// output is rewritten after every repository, so --resume continues a run.
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -12,6 +14,9 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 import { checkoutError, json, startRun } from '../scripts/benchmark-harness.mjs';
+import { fallbackEligible, openItems, quotedSources, type ScanBundle } from './ai-fallback.ts';
+import { exposureSites, loadSourceContext } from './ai-fallback-run.ts';
+import { missRecords } from './ai-misses.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { runModelFixes } from './model-fixes.ts';
 import { DEFAULT_MODEL_PARAMETERS, loadModelParameters } from './model-parameters.ts';
@@ -27,6 +32,7 @@ const USAGE =
 // One outcome per row, in the order a reader asks about them.
 export type Outcome =
   | 'validated' // a JS/TS fix passed the repository's own checks before and after
+  | 'ai-validated' // the AI fallback's patch passed every gate (still a draft for review)
   | 'validation-failed' // a fix was proposed and its checks failed or could not run
   | 'no-checks' // a fix was proposed but the repository has no test or build script
   | 'proposed' // a fix was proposed and --validate was off
@@ -45,7 +51,16 @@ interface Entry {
   changeTypes?: string[];
 }
 interface Scan {
-  exposures: Array<{ deadline: { id: string; provider: string; date: string } }>;
+  exposures: Array<{
+    deadline: {
+      id: string;
+      provider: string;
+      date: string;
+      kind: string;
+      replacement: string | null;
+    };
+    evidence?: Array<{ file: string; line: number; version: string; text: string }>;
+  }>;
   replacements: Array<Record<string, unknown>>;
   stops: Array<Record<string, unknown>>;
   unresolved: Array<Record<string, unknown>>;
@@ -127,7 +142,10 @@ export function rowOutcome(row: {
   alerts?: unknown[];
   validation?: { status: string } | null;
   migrations?: MigrationResult;
+  fallback?: { status: string } | null;
 }): Outcome {
+  if (!row.error && !row.infrastructure && row.fallback?.status === 'validated')
+    return 'ai-validated';
   const lanes: LaneStatus[] = [];
   if (row.validation) lanes.push(row.validation.status as LaneStatus);
   else if (row.replacements?.length)
@@ -181,6 +199,23 @@ export function parseEnvFile(text: string) {
     if (match) values[match[1]] = match[2];
   }
   return values;
+}
+
+// What the AI fallback did over a run's rows.
+export function fallbackCounts(rows: Array<Record<string, unknown>>) {
+  const statuses = rows.map((row) => (row.fallback as { status?: string } | null)?.status);
+  const eligible = rows.filter((row) => Array.isArray(row.misses) && row.misses.length).length;
+  return {
+    // Rows Refit left open (each has miss records).
+    eligible,
+    // Rows where a model answered (validated or kept as a suggestion).
+    attempted: statuses.filter((status) => status === 'validated' || status === 'needs-review')
+      .length,
+    validated: statuses.filter((status) => status === 'validated').length,
+    suggestions: rows.filter((row) => (row.fallback as { suggestion?: boolean } | null)?.suggestion)
+      .length,
+    noAttempt: statuses.filter((status) => status === 'no-attempt').length,
+  };
 }
 
 async function main() {
@@ -297,6 +332,12 @@ async function main() {
     Boolean(help?.includes('--ai-surfaces')) &&
     Boolean(values.ai && values.validate) &&
     process.env.GITHUB_ACTIONS === 'true';
+  // The AI fallback on every row Refit leaves open, on commits that have it; Actions only.
+  const fallback =
+    Boolean(help?.includes('--ai-fallback')) &&
+    Boolean(values.ai && values.validate) &&
+    process.env.GITHUB_ACTIONS === 'true';
+  const sourceContext = await loadSourceContext(now);
   const PACKAGE: Record<string, string> = {
     openai: 'openai',
     anthropic: '@anthropic-ai/sdk',
@@ -426,8 +467,14 @@ async function main() {
       // What the AI lane's responses report, summed over rows (USD).
       aiCostUsd: results.reduce((total, row) => {
         const ai = (row.migrations as { ai?: { ai?: { costUsd?: number } } } | undefined)?.ai;
-        return total + (ai?.ai?.costUsd ?? 0);
+        const own = (row.fallback as { ai?: { costUsd?: number | null } } | undefined)?.ai;
+        return total + (ai?.ai?.costUsd ?? 0) + (own?.costUsd ?? 0);
       }, 0),
+      aiFallback: fallbackCounts(results),
+      missRecords: results.reduce(
+        (total, row) => total + ((row.misses as unknown[] | undefined)?.length ?? 0),
+        0,
+      ),
       results,
     };
   };
@@ -492,8 +539,76 @@ async function main() {
         alerts: found.alerts,
         validation,
         ...(migrated ? { migrations: migrated } : {}),
+        exposureSites: exposureSites(found.exposures),
       };
       row.outcome = rowOutcome(row as Parameters<typeof rowOutcome>[0]);
+      // Whatever Refit left open: the AI fallback when it can run, a miss record per item always.
+      const bundle = { ...row, provider } as ScanBundle;
+      const items = openItems(bundle);
+      if (fallbackEligible(row.outcome as string, items)) {
+        const sources = quotedSources(items, {
+          ...sourceContext,
+          findings: (migrated?.review ?? []) as never,
+        });
+        let attempt: { fallback: Record<string, unknown>; misses: unknown[] } | null = null;
+        if (fallback) {
+          const file = join(root, `${entry.repo.replace('/', '__')}.row.json`);
+          await writeFile(
+            file,
+            JSON.stringify({ ...bundle, repo: entry.repo, commit: entry.commit }),
+          );
+          try {
+            const { stdout } = await execute(
+              process.execPath,
+              [
+                join(REFIT, 'bin', 'refit.mjs'),
+                'ai-migrations',
+                '--ai-fallback',
+                '--row',
+                file,
+                '--repository',
+                directory,
+                '--image',
+                values.image!,
+                ...(values['parameter-changes']
+                  ? ['--parameter-changes', resolve(values['parameter-changes'])]
+                  : []),
+                '--json',
+              ],
+              {
+                cwd: REFIT,
+                env: childEnvironment,
+                maxBuffer: 64 * 1024 * 1024,
+                timeout: MIGRATION_TIMEOUT_MS,
+                killSignal: 'SIGKILL',
+              },
+            );
+            attempt = JSON.parse(stdout);
+          } catch (error) {
+            attempt = {
+              fallback: { status: 'no-attempt', reason: errorSummary(error), ai: null, gates: [] },
+              misses: [],
+            };
+          } finally {
+            await rm(file, { force: true });
+          }
+        }
+        row.fallback = attempt?.fallback ?? null;
+        row.misses = attempt?.misses.length
+          ? attempt.misses
+          : missRecords(
+              {
+                repo: entry.repo,
+                commit: entry.commit,
+                provider: provider ?? '',
+                language: entry.language,
+              },
+              items,
+              sources,
+              (attempt?.fallback as never) ?? null,
+            );
+        row.outcome = rowOutcome(row as Parameters<typeof rowOutcome>[0]);
+      }
     } catch (error) {
       row = {
         ...base,
