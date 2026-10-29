@@ -101,6 +101,19 @@ function gateOne(name: CheckName, baseline: Run, patched: Run): GatedCheck {
           }
         : { name, outcome: 'regressed', counted: true, reason: tests.reason, tests };
   }
+  // Stopped at the time limit on the patch only, after the original code's run finished: the
+  // patch made the check hang or slow, which fails it.
+  if (
+    (baseline.status === 'passed' || baseline.status === 'failed') &&
+    patched.status === 'error' &&
+    STOPPED.test(patched.error ?? '')
+  )
+    return {
+      name,
+      outcome: 'regressed',
+      counted: true,
+      reason: `The ${name} finished on the original code and was stopped at the time limit on the patch.`,
+    };
   if (baseline.status === 'error' || patched.status === 'error' || patched.status === 'not-run')
     return {
       name,
