@@ -13,8 +13,10 @@ Shopify publishes a GraphQL schema for each Admin API version. Every document th
 - A valid document can still break, so these count as failures too:
   - a selected field whose type changes (a nullable output that becomes non-null is allowed);
   - a variable whose input type loses a field, changes a field's type, gains a required field with no default, or loses an enum value. Variables are not checked by GraphQL validation, so this is checked separately.
-- **Codegen.** Where the repository generates types (`.graphqlrc.*` or a `codegen` config naming `@shopify/api-codegen-preset` or `@graphql-codegen/`), the committed types count for the target only if nothing the documents use differs between the versions. That covers selected fields, variable input types, enum values and union members. Refit cannot regenerate the types offline. Where an enum or union the documents select gains members, the type check ran on stale types, so the proof is `unproven`.
-- The proof is `failed` when any patched document fails. It is `unproven` when the code sends a document Refit cannot read (built at runtime, or a fragment it cannot inline), when there is no document to check, or when codegen types are stale.
+- **Fragments** defined in another file, or in a `.graphql` or `.gql` document, are inlined before validation, as the scan does. A fragment defined twice with different text is still unreadable.
+- **Codegen.** Where the repository generates types (`.graphqlrc.*` or a `codegen` config naming `@shopify/api-codegen-preset` or `@graphql-codegen/`) and commits them (a file declaring `@shopify/admin-api-client` or importing `@graphql-typed-document-node/core`), the committed types count for the target only if nothing the documents use differs between the versions. Generated types the repository does not commit never reach the type check, because the sandbox cannot run codegen offline, so codegen then counts for nothing either way. That covers selected fields, variable input types, enum values and union members. Refit cannot regenerate the types offline. Where an enum or union the documents select gains members, the type check ran on stale types, so the proof is `unproven`.
+- **No Admin request.** Code with no Admin GraphQL call or document, no REST call and no webhook subscription registered in code (`DeliveryMethod`) sends nothing whose behaviour depends on the Admin API version, so a version move is `proven` there.
+- The proof is `failed` when any patched document fails. It is `unproven` when the code sends a document Refit cannot read (built at runtime, or a fragment it cannot inline), when Admin calls exist but there is no document to check, or when committed codegen types are stale.
 
 ## Live proof (optional)
 
@@ -45,6 +47,8 @@ This does not reuse the #386 sandbox harness, which runs repository code against
 | B     | Schema proof holds, and the repository's tests reach every changed file                        |
 | C     | Schema proof holds, and the type check covers every changed file with no new errors            |
 | D     | Schema proof failed or is unproven, or no check passed; the draft is `[Needs review]` with why |
+
+A codegen configuration the patch changes only in its version pin (`codegenPinFiles`) is left out of "every changed file": the pin selects only the schema codegen generates types from, and the schema proof covers that schema. `.graphqlrc.ts` is usually outside the app's `tsconfig.json`, so no type check could cover it.
 
 Passing checks without schema proof stay grade D, because they say nothing about the documents.
 

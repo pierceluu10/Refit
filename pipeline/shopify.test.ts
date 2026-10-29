@@ -376,6 +376,11 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
     'extensions/account/query.ts':
       'export const Q = `#graphql\n  query { customer { emailAddress } }`;\n',
     'test/admin.test.ts': 'export const run = (admin) => admin.graphql(`query { ok }`);\n',
+    // Codegen configuration is not runtime: its LATEST_API_VERSION is no untraced declaration.
+    '.graphqlrc.ts':
+      "import { LATEST_API_VERSION } from '@shopify/shopify-api';\nexport default { apiVersion: LATEST_API_VERSION };\n",
+    // A piece the code assembles at runtime: it never parses on its own.
+    'app/fallback.ts': 'export const EMPTY = `#graphql\n  # not implemented\n`;\n',
   });
   const report = (await runPipeline({
     repository: root,
@@ -383,7 +388,11 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
     proposePatch: true,
   })) as any;
   expect(report.shopify.sdkRelease).toBe('11.14.1');
+  expect(
+    report.apiVersion.source.declarations.map((entry: { file: string }) => entry.file),
+  ).toEqual(['app/shopify.server.ts']);
   expect(report.shopify.otherApiDocuments).toEqual([
+    'app/fallback.ts:1',
     'extensions/account/query.ts:1',
     'test/admin.test.ts:1',
   ]);
@@ -391,7 +400,9 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
     application: '2025-07',
     applicability: 'matches-before',
   });
-  expect(report.findings).toMatchObject([
+  expect(
+    report.findings.filter((finding: { file: string }) => finding.file !== '.graphqlrc.ts'),
+  ).toMatchObject([
     {
       file: 'app/shopify.server.ts',
       line: 2,
