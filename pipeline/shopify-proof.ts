@@ -270,13 +270,15 @@ export function shopifySchemaProof(options: {
   const patched = options.scans?.patched ?? scanShopify(options.patched);
   const originalFailures: ShopifyProofFailure[] = [];
   const failures: ShopifyProofFailure[] = [];
-  const unreadable: string[] = patched.unreadable.map(
-    (entry) => `${entry.file}:${entry.line} (${entry.reason})`,
-  );
+  // Storefront clients keep their own version and contract; the Admin proof leaves them out.
+  const unreadable: string[] = patched.unreadable
+    .filter((entry) => !entry.api)
+    .map((entry) => `${entry.file}:${entry.line} (${entry.reason})`);
   const otherApi: string[] = [];
   const widened: string[] = [];
   let checkedOriginal = 0;
   for (const document of original.documents) {
+    if (document.api) continue;
     const result = checkDocument(document, options.before.schema);
     if (result.unreadable) continue;
     checkedOriginal++;
@@ -286,6 +288,7 @@ export function shopifySchemaProof(options: {
   const originalTexts = new Set(original.documents.map((document) => document.text));
   let checkedPatched = 0;
   for (const document of patched.documents) {
+    if (document.api) continue;
     const result = checkDocument(document, options.after.schema, options.before.schema);
     if (result.unreadable) {
       unreadable.push(`${document.file}:${document.line} (${result.unreadable})`);

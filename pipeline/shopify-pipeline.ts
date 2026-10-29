@@ -900,7 +900,9 @@ async function shopifyRun(options: ShopifyRunOptions) {
     for (const entry of result.deprecated) deprecated.add(entry);
     if (result.otherApi) otherApi.push(document);
   }
-  for (const entry of scan.unreadable)
+  // A Storefront call's unreadable document does not reach the Admin version move.
+  const storefrontUnreadable = scan.unreadable.filter((entry) => entry.api);
+  for (const entry of scan.unreadable.filter((item) => !item.api))
     findings.push({
       ...entry,
       changeId: 'shopify-graphql:unreadable',
@@ -1084,9 +1086,9 @@ async function shopifyRun(options: ShopifyRunOptions) {
                   (entry) =>
                     `${entry.file}:${entry.line} moves the default Admin API version; the environment variable ${entry.envFallback} overrides it where it is set.`,
                 ),
-                ...(storefront.length
+                ...(storefront.length + storefrontUnreadable.length
                   ? [
-                      `${storefront.length} Storefront API documents were not checked: this run compares Admin API contracts, and Storefront clients keep their own version.`,
+                      `${storefront.length + storefrontUnreadable.length} Storefront API documents were not checked: this run compares Admin API contracts, and Storefront clients keep their own version.${storefrontUnreadable.length ? ` Refit could not read ${storefrontUnreadable.map((entry) => `${entry.file}:${entry.line}`).join(', ')}.` : ''}`,
                     ]
                   : []),
                 webhookVersions.length
@@ -1145,7 +1147,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
       documents: scan.documents.length,
       tracedDocuments: scan.documents.filter((document) => document.traced).length,
       adminCalls: scan.adminCalls,
-      unreadable: scan.unreadable.length,
+      unreadable: scan.unreadable.length - storefrontUnreadable.length,
       rest: scan.rest.length,
       // Each REST Admin call for review. Refit reports them and never rewrites them as GraphQL.
       restCalls: scan.rest.map((entry) => ({
@@ -1158,7 +1160,9 @@ async function shopifyRun(options: ShopifyRunOptions) {
         expression: entry.expression,
       })),
       otherApiDocuments: otherApi.map((document) => `${document.file}:${document.line}`),
-      storefrontDocuments: storefront.map((document) => `${document.file}:${document.line}`),
+      storefrontDocuments: [...storefront, ...storefrontUnreadable].map(
+        (document) => `${document.file}:${document.line}`,
+      ),
       webhookApiVersions: webhookVersions,
       ruleEdits: documentEdits.size,
       ai: aiAttempts.map((attempt) => ({
