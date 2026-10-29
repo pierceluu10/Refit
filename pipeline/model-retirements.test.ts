@@ -254,9 +254,11 @@ it('resolves every shipped Anthropic retirement to a model that is not retiring'
   for (const item of proposal.replacements) expect(retiring.has(item.to)).toBe(false);
 });
 
-// Gemini is report only: replacing a Gemini model, or the old SDK with the new one, is an owner
-// decision, so neither the CLI proposal nor `refit serve --model-fixes` (which uses it) edits them.
-it('never proposes Gemini model or SDK replacements', async () => {
+// Gemini model fixes (owner decision, Furqan, 2026-10-29, narrowing the earlier report-only
+// decision): a Gemini API call's retiring model is replaced with the registry's replacement from
+// Google's saved deprecations page. Vertex AI clients, thinking options and settings Refit cannot read
+// stop, and the old SDK is never swapped for the new one.
+it('replaces Gemini models under the 2026-10-29 conditions and never swaps the SDK', async () => {
   const gemini: DeadlineRegistry = {
     formatVersion: 1,
     deadlines: [
@@ -296,21 +298,28 @@ it('never proposes Gemini model or SDK replacements', async () => {
       'genAI.getGenerativeModel({ model: MODEL });',
       "const vertex = new VertexAI({ project: 'p', location: 'us-central1' });",
       "vertex.getGenerativeModel({ model: 'gemini-1.5-flash' });",
-      "new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-1.5-flash' });",
+      "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi', config: { thinkingConfig: { thinkingBudget: 0 } } });",
+      "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi', config: settings });",
+      "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi', config: { temperature: 0.2 } });",
     ].join('\n'),
   });
   const proposal = await proposeModelReplacements(root, gemini, NOW);
-  // Reported, never edited.
-  expect(proposal.replacements).toEqual([]);
-  expect(proposal.patch).toBeNull();
   expect(
-    proposal.stops.map((stop) => `${stop.line} ${stop.call} ${stop.at.line}: ${stop.reason}`),
+    proposal.replacements.map((item) => `${item.line} ${item.call} ${item.edited.line}`),
   ).toEqual([
-    '5 models.generateContent 5: Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-2.0-flash.',
-    '8 getGenerativeModel 7: Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-2.0-flash.',
-    "10 getGenerativeModel 10: The client is Vertex AI, whose model retirement dates differ from the Gemini API's; check Google Cloud's model versions page and change it by hand, for example to gemini-2.0-flash.",
+    '5 models.generateContent 5',
+    '13 models.generateContent 13',
+    '8 getGenerativeModel 7',
   ]);
-  expect(proposal.unresolved.map((item) => item.line)).toEqual([11]);
+  expect(proposal.replacements.every((item) => item.to === 'gemini-2.0-flash')).toBe(true);
+  expect(proposal.stops.map((stop) => `${stop.line} ${stop.call}: ${stop.reason}`)).toEqual([
+    '11 models.generateContent: The request sets thinking options in config, which differ between Gemini model generations; check them against gemini-2.0-flash and change it by hand.',
+    '12 models.generateContent: The request passes config that Refit cannot read, which may hold settings gemini-2.0-flash treats differently; change it by hand to gemini-2.0-flash.',
+    "10 getGenerativeModel: The client is Vertex AI, whose model retirement dates differ from the Gemini API's; check Google Cloud's model versions page and change it by hand, for example to gemini-2.0-flash.",
+  ]);
+  // The package is never swapped: the patch touches only the source file.
+  expect(proposal.patch).not.toContain('package.json');
+  expect(proposal.patch).toContain("+import { GoogleGenerativeAI } from '@google/generative-ai';");
 });
 
 // Shapes found on the deadline benchmark: the openai v3 SDK and openai-edge, request objects held in

@@ -54,15 +54,18 @@ export const MODEL_CALLS: Record<string, Set<string>> = {
   ]),
 };
 
-// Gemini's @google/genai model calls, kept out of MODEL_CALLS because Gemini is report only.
+// Gemini's @google/genai model calls. Edited since the owner decision of 2026-10-29 (Furqan), which
+// narrows the earlier report-only decision: only where the registry's replacement comes from
+// Google's saved deprecations page, and a draft without request-level proof is [Needs review].
 const GEMINI_CALLS = new Set([
   'models.generateContent',
   'models.generateContentStream',
   'models.countTokens',
   'chats.create',
 ]);
-const GEMINI_REPORT_ONLY =
-  'Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to';
+// Generation settings whose meaning differs between Gemini model generations (thinking budgets and
+// levels), so a request that sets them, or passes settings Refit cannot read, stops for review.
+const GEMINI_CONFIG = new Set(['config', 'generationConfig']);
 
 // The OpenAI v3 SDK and openai-edge, which keeps its API: methods on an `OpenAIApi` client.
 function legacyOpenAi(packageName: string): ProviderAdapter {
@@ -122,14 +125,12 @@ const TRACERS: {
       operations: [],
     },
     resourceCalls: GEMINI_CALLS,
-    reportOnly: GEMINI_REPORT_ONLY,
   },
   {
     // The old SDK selects the model once, in `getGenerativeModel({ model })`.
     provider: 'gemini',
     adapter: { ...legacyOpenAi('@google/generative-ai'), namedExport: 'GoogleGenerativeAI' },
     clientCalls: new Set(['getGenerativeModel']),
-    reportOnly: GEMINI_REPORT_ONLY,
   },
   {
     provider: 'gemini',
@@ -2611,6 +2612,27 @@ export async function proposeModelReplacements(
             return verdict.ok ? [] : [parameterReason(name, value, resolved.to, verdict)];
           })
         : [];
+      const geminiConfig =
+        request.provider === 'gemini'
+          ? found.object.properties
+              .flatMap((item) => {
+                const name = item.name && propertyName(item.name);
+                if (!name || !GEMINI_CONFIG.has(name)) return [];
+                const settings = ts.isPropertyAssignment(item)
+                  ? unwrap(item.initializer)
+                  : undefined;
+                if (!settings || !ts.isObjectLiteralExpression(settings))
+                  return [
+                    `The request passes ${name} that Refit cannot read, which may hold settings ${resolved.to} treats differently; change it by hand to ${resolved.to}.`,
+                  ];
+                return /thinking/i.test(settings.getText())
+                  ? [
+                      `The request sets thinking options in ${name}, which differ between Gemini model generations; check them against ${resolved.to} and change it by hand.`,
+                    ]
+                  : [];
+              })
+              .join(' ') || undefined
+          : undefined;
       // With a change table, every sensitive parameter or one the table names is decided by it.
       const changed =
         parameterChanges && resolved.to && !tabled
@@ -2674,13 +2696,15 @@ export async function proposeModelReplacements(
                                             item.name && ts.isComputedPropertyName(item.name),
                                         )
                                       ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                                      : tabled
-                                        ? tableReasons.join(' ') || undefined
-                                        : changed?.reason
-                                          ? changed.reason
-                                          : sensitive.length && !changed
-                                            ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                                            : undefined;
+                                      : geminiConfig
+                                        ? geminiConfig
+                                        : tabled
+                                          ? tableReasons.join(' ') || undefined
+                                          : changed?.reason
+                                            ? changed.reason
+                                            : sensitive.length && !changed
+                                              ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                                              : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
