@@ -11,6 +11,7 @@ import {
   resolvesGate,
   runAiFallback,
   safePath,
+  withRegistryTargets,
   scopeGate,
   secretGate,
   writtenCalls,
@@ -183,6 +184,30 @@ describe('open items', () => {
     });
     expect(failed.map((item) => item.kind)).toEqual(['model-fix-failed']);
     expect(failed[0].reason).toContain('patched tests failed');
+  });
+
+  it("takes a stop's target from the registry when the entry names one model", () => {
+    const deadline = (id: string, replacement: string | null) => ({
+      id,
+      provider: 'anthropic' as const,
+      kind: 'model' as const,
+      versions: ['m'],
+      date: '2025-01-01',
+      summary: 's',
+      replacement,
+      source: null,
+      checkedAt: '2026-10-29',
+    });
+    const stop = openItems(bundle).find((item) => item.kind === 'model-stop')!;
+    expect(stop.target).toBe(null);
+    expect(
+      withRegistryTargets([stop], [deadline('anthropic-claude-2', 'claude-sonnet-5-5')])[0].target,
+    ).toBe('claude-sonnet-5-5');
+    // A replacement written as prose names no single model, so the AI gets no target.
+    expect(
+      withRegistryTargets([stop], [deadline('anthropic-claude-2', 'Claude Sonnet or Opus')])[0]
+        .target,
+    ).toBe(null);
   });
 
   it('keeps only the row provider', () => {

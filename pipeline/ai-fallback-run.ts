@@ -10,6 +10,7 @@ import {
   modelLiterals,
   openItems,
   quotedSources,
+  withRegistryTargets,
   runAiFallback,
   type FallbackResult,
   type OpenItem,
@@ -233,8 +234,9 @@ export async function runFallbackOnRepository(options: {
   const provider = row.provider ?? '';
   const language = row.language ?? 'js';
   const items = openItems(row);
+  const context = await loadSourceContext(new Date());
   const sources = quotedSources(items, {
-    ...(await loadSourceContext(new Date())),
+    ...context,
     findings: row.migrations?.review as never,
   });
   const partial = [
@@ -266,7 +268,14 @@ export async function runFallbackOnRepository(options: {
         ]
       : []),
   ];
-  const input = await fallbackInput({ directory, provider, language, items, sources, partial });
+  const input = await fallbackInput({
+    directory,
+    provider,
+    language,
+    items: withRegistryTargets(items, context.deadlines),
+    sources,
+    partial,
+  });
   const files = await committedFiles(directory);
   const repositoryModels = new Set<string>();
   for (const path of files.filter((path) => SOURCE_FILE.test(path)).slice(0, 5000)) {

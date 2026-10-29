@@ -324,6 +324,18 @@ export function fallbackEligible(outcome: string, items: OpenItem[]) {
   return items.length > 0 && !SETTLED.has(outcome);
 }
 
+// A model-replacement stop names its deadline, not the model it should become: the registry's
+// replacement is the item's target when the item has none and the entry names one model ID.
+export function withRegistryTargets(items: OpenItem[], deadlines: DeadlineEntry[]): OpenItem[] {
+  return items.map((item) => {
+    if (item.target) return item;
+    const replacement = deadlines.find((entry) => entry.id === item.ref)?.replacement;
+    return replacement && /^[a-z0-9][a-z0-9.:-]*$/.test(replacement)
+      ? { ...item, target: replacement }
+      : item;
+  });
+}
+
 // Quoted sources for each item's ref: the deadline registry with the saved deprecation page's
 // line (pipeline/deadline-sources.ts), else the AI rule tables' quotes (data/rules).
 export function quotedSources(

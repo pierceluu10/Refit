@@ -165,6 +165,14 @@ describe('miss records and rule candidates', () => {
     ).toEqual([]);
   });
 
+  it('records misses from a fallback that failed before answering, with no patterns or gates', () => {
+    const crashed = { status: 'no-attempt', reason: 'refit ai-migrations: boom', ai: null };
+    const [record] = records('dev/one', 'a.ts', 'a', crashed as never);
+    expect(record.ai).toEqual(
+      expect.objectContaining({ status: 'no-attempt', gatesFailed: [], pattern: null }),
+    );
+  });
+
   it('withholds a group no saved quote backs', () => {
     const candidates = ruleCandidates([
       ...records('dev/one', 'a.ts', 'a', null, false),

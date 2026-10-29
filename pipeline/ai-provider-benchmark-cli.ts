@@ -567,7 +567,13 @@ async function main() {
         let attempt: { fallback: Record<string, unknown>; misses: unknown[] } | null = null;
         if (fallback && unavailable)
           attempt = {
-            fallback: { status: 'ai-unavailable', reason: unavailable, ai: null, gates: [] },
+            fallback: {
+              status: 'ai-unavailable',
+              reason: unavailable,
+              ai: null,
+              gates: [],
+              patterns: [],
+            },
             misses: [],
           };
         else if (fallback) {
@@ -611,6 +617,7 @@ async function main() {
                 reason,
                 ai: null,
                 gates: [],
+                patterns: [],
               },
               misses: [],
             };

@@ -141,11 +141,11 @@ export function missRecords(
           status: fallback.status,
           reason: fallback.reason,
           costUsd: fallback.ai?.costUsd ?? null,
-          gatesFailed: fallback.gates
+          gatesFailed: (fallback.gates ?? [])
             .filter((gate) => gate.status === 'failed')
             .map((gate) => gate.gate),
           diff: fallback.status === 'validated' ? fallback.patch : null,
-          pattern: fallback.patterns.find((entry) => entry.item === item.id)?.pattern ?? null,
+          pattern: fallback.patterns?.find((entry) => entry.item === item.id)?.pattern ?? null,
         }
       : {
           status: 'not-run',
