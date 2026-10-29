@@ -2,6 +2,7 @@ import ts from 'typescript-compiler';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import {
   CARD_PAYMENT_METHOD_RULE,
+  IN_PERSON_METHODS,
   LISTED_PAYMENT_METHODS_RULE,
   MOVED_PAYMENT_METHODS_RULE,
   type RequestParameterRemoval,
@@ -85,10 +86,12 @@ export function sendsSibling(property: ts.ObjectLiteralElementLike, name: string
   );
 }
 
-// In-person methods: endive accepts them in `allowed_payment_method_types` only on PaymentIntents
-// and SetupIntents (https://docs.stripe.com/changelog/endive/2026-09-30/card-present-and-interac-present-enum-values-for-allowed-payment-method-types,
-// read 2026-10-24), and what they offer depends on reader configuration offline checks cannot see.
-export const IN_PERSON_METHODS = new Set(['card_present', 'interac_present']);
+// In-person methods stop unless the operation's replacement accepts them: endive adds
+// `card_present` and `interac_present` to `allowed_payment_method_types` on PaymentIntents and
+// SetupIntents only, "You can now specify `card_present` or `interac_present` when setting
+// allowed_payment_method_types on a PaymentIntent or SetupIntent"
+// (https://docs.stripe.com/changelog/endive/2026-09-30/card-present-and-interac-present-enum-values-for-allowed-payment-method-types,
+// read 2026-10-28). Founder decision 2026-10-28 moves them there (`inPerson`, from the contract).
 const MAX_VALUE_HOPS = 4;
 
 // Whether a `payment_method_types` value on a creation call's own object literal may move to
@@ -98,6 +101,7 @@ const MAX_VALUE_HOPS = 4;
 export function movablePaymentMethods(
   property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
   checker: ts.TypeChecker,
+  accepted: readonly string[] = [],
 ) {
   if (ts.isShorthandPropertyAssignment(property) && property.objectAssignmentInitializer)
     return false;
@@ -110,7 +114,8 @@ export function movablePaymentMethods(
   const inPerson = (node: ts.Node, hops: number): boolean => {
     if (seen.has(node)) return false;
     seen.add(node);
-    if (ts.isStringLiteralLike(node)) return IN_PERSON_METHODS.has(node.text);
+    if (ts.isStringLiteralLike(node))
+      return IN_PERSON_METHODS.has(node.text) && !accepted.includes(node.text);
     if (ts.isIdentifier(node) && hops < MAX_VALUE_HOPS) {
       const symbol = ts.isShorthandPropertyAssignment(node.parent)
         ? checker.getShorthandAssignmentValueSymbol(node.parent)
@@ -143,7 +148,7 @@ type PaymentMethodRule =
 // movable expression. Never one whose body already sends the replacement.
 export function paymentMethodRule(
   property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
-  options: { keepListed?: boolean; checker?: ts.TypeChecker },
+  options: { keepListed?: boolean; checker?: ts.TypeChecker; inPerson?: readonly string[] },
 ): PaymentMethodRule | undefined {
   if (sendsSibling(property, 'allowed_payment_method_types')) return undefined;
   const methods =
@@ -162,7 +167,9 @@ export function paymentMethodRule(
     new Set(methods).size === methods.length
   )
     return LISTED_PAYMENT_METHODS_RULE;
-  return movablePaymentMethods(property, options.checker) ? MOVED_PAYMENT_METHODS_RULE : undefined;
+  return movablePaymentMethods(property, options.checker, options.inPerson)
+    ? MOVED_PAYMENT_METHODS_RULE
+    : undefined;
 }
 
 // Object-literal keys spelling the removed `payment_method_types` outside every traced SDK call
@@ -300,6 +307,10 @@ export function untracedRemovedParameters(
         ? paymentMethodRule(node, {
             keepListed: targets.every((target) => target?.keepListed),
             checker,
+            // Accepted only where every call it reaches accepts it.
+            inPerson: [...IN_PERSON_METHODS].filter((method) =>
+              targets.every((target) => target?.inPerson?.includes(method)),
+            ),
           })
         : undefined;
     sites.push({

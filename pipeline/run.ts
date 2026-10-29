@@ -11,6 +11,9 @@ import {
   currencyCodeEdits,
   enumValueEdits,
   REQUEST_OPTIONS_RULE,
+  SDK_SIGNATURE_RULES,
+  ACCOUNT_RETRIEVE_CURRENT_RULE,
+  accountRetrieveCurrentEdits,
   REQUEST_OPTIONS_SINCE,
   requestOptionEdits,
 } from './operation-reach.ts';
@@ -25,6 +28,7 @@ import {
   renderFileReplacements,
   renderPatch,
   REQUEST_OPTIONS_WARNING,
+  ACCOUNT_RETRIEVE_CURRENT_WARNING,
 } from './patches.ts';
 import {
   PACKAGE_FILES,
@@ -265,7 +269,10 @@ async function runOpenApiPipeline(options: {
     isObject(after.document.info) &&
     Number(STRIPE_SDK_RELEASES[String(after.document.info.version)]?.split('.')[0]) >=
       REQUEST_OPTIONS_SINCE
-      ? requestOptionEdits({ repository, calls: analysis.calls, mappings: operationMappings })
+      ? [
+          ...requestOptionEdits({ repository, calls: analysis.calls, mappings: operationMappings }),
+          ...accountRetrieveCurrentEdits({ repository, calls: analysis.calls }),
+        ]
       : []),
   ];
   const stripePackage =
@@ -364,7 +371,7 @@ async function runOpenApiPipeline(options: {
         PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') ||
         REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
         edit.rule === INVOICE_PREVIEW_RULE ||
-        edit.rule === REQUEST_OPTIONS_RULE,
+        SDK_SIGNATURE_RULES.has(edit.rule ?? ''),
     ) &&
     (bumpsVersion || sdkDefault) &&
     (upgradeRequired || preview) &&
@@ -443,7 +450,7 @@ async function runOpenApiPipeline(options: {
     (!patchRequested || upgraded) &&
     !configuredMigrationProposal;
   // Request options move only together with the stripe-node release that needs them last.
-  movedTo[REQUEST_OPTIONS_RULE] = movedTo[INVOICE_PREVIEW_RULE];
+  for (const rule of SDK_SIGNATURE_RULES) movedTo[rule] = movedTo[INVOICE_PREVIEW_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const kept = [
     ...analyzedEdits.filter(
@@ -502,7 +509,7 @@ async function runOpenApiPipeline(options: {
     (edit) => !reviewed.some((finding) => editCovers(repository, [edit], finding)),
   );
   // Request options moved last ride the other rule edits or the version bump, never alone.
-  const optionEdits = edits.filter((edit) => edit.rule === REQUEST_OPTIONS_RULE);
+  const optionEdits = edits.filter((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? ''));
   const ruleEdits = edits.filter(isFieldMove);
   // The pin and the stripe-node upgrade ride the rules' edits. Under owner decision 1 they also
   // make the patch when a removed request parameter is left for review, as the #88 waiver does:
@@ -716,8 +723,8 @@ async function runOpenApiPipeline(options: {
     provider.packageName === STRIPE.packageName &&
     typeof targetVersion === 'string' &&
     !analysis.findings.length &&
-    analyzedEdits.every((edit) => edit.rule === REQUEST_OPTIONS_RULE) &&
-    kept.every((edit) => edit.rule === REQUEST_OPTIONS_RULE) &&
+    analyzedEdits.every((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? '')) &&
+    kept.every((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? '')) &&
     everyPinMoves &&
     (versionEdits.length > 0 || sdkDefault)
       ? await stripePackageUpgrade(
@@ -755,7 +762,12 @@ async function runOpenApiPipeline(options: {
             versionBump.upgrade.warning ??
               `Upgrades stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to} in ${versionBump.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
             'Webhook endpoints keep the API version set in the Stripe Dashboard; this patch does not change them.',
-            ...(optionEdits.length ? [REQUEST_OPTIONS_WARNING] : []),
+            ...(optionEdits.some((edit) => edit.rule === REQUEST_OPTIONS_RULE)
+              ? [REQUEST_OPTIONS_WARNING]
+              : []),
+            ...(optionEdits.some((edit) => edit.rule === ACCOUNT_RETRIEVE_CURRENT_RULE)
+              ? [ACCOUNT_RETRIEVE_CURRENT_WARNING]
+              : []),
           ],
           sdkUpgrade: {
             from: versionBump.upgrade.from,
@@ -799,7 +811,7 @@ async function runOpenApiPipeline(options: {
                   repository,
                   movesVersion
                     ? [...edits, ...versionEdits]
-                    : edits.filter((edit) => edit.rule !== REQUEST_OPTIONS_RULE),
+                    : edits.filter((edit) => !SDK_SIGNATURE_RULES.has(edit.rule ?? '')),
                   unresolvedFindings.length,
                   provider,
                   replacements,

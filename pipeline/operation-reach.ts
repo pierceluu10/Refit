@@ -72,6 +72,7 @@ interface CallBody {
   file: string;
   // `unknown` when Refit cannot find the traced call again.
   body: ts.Expression | undefined | 'unknown';
+  call?: ts.CallExpression;
 }
 
 // Reading a request stops after this many steps through names, calls and spreads.
@@ -517,7 +518,7 @@ function callBodies(repository: Repository, calls: MappedSdkCall[], argumentInde
       if (ts.isCallExpression(node)) {
         const position = source.getLineAndCharacterOfPosition(node.getStart());
         if (wanted.delete(`${position.line + 1}:${position.character + 1}`))
-          bodies.push({ file: path, body: node.arguments[argumentIndex] });
+          bodies.push({ file: path, body: node.arguments[argumentIndex], call: node });
       }
       ts.forEachChild(node, visit);
     };
@@ -733,6 +734,51 @@ export function requestOptionEdits(
   }
   return [...edits.values()];
 }
+
+// stripe-node 23 declares `retrieve(id: string | null, params?, options?)` on accounts, so a
+// `retrieve()` with no argument no longer type-checks (TS2554). No stripe-node CHANGELOG entry or
+// migration guide states it; the evidence is stripe-node 23.0.0's own declarations and resource:
+// `retrieve` is documented "Pass `null` as the account id to retrieve details about your own
+// account" and, given no string id, requests `GET /v1/account`, as `retrieveCurrent(params,
+// options)` always does (cjs/resources/Accounts.js and Accounts.d.ts, read 2026-10-28). The call
+// becomes `retrieveCurrent()`, the same request; it rides the stripe-node upgrade like the
+// request-options rule. Any argument, an optional call and test files are left alone.
+export const ACCOUNT_RETRIEVE_CURRENT_RULE = 'stripe-account-retrieve-current';
+export function accountRetrieveCurrentEdits(context: Pick<ReachContext, 'repository' | 'calls'>) {
+  const calls = context.calls.filter(
+    (call) => call.method === 'accounts.retrieve' && !TEST_PATH.test(call.file),
+  );
+  const edits: SourceEdit[] = [];
+  for (const { file, call } of callBodies(context.repository, calls, 0)) {
+    const callee = call?.expression;
+    if (
+      !call ||
+      call.arguments.length ||
+      call.questionDotToken ||
+      !callee ||
+      !ts.isPropertyAccessExpression(callee) ||
+      callee.questionDotToken ||
+      callee.name.text !== 'retrieve'
+    )
+      continue;
+    edits.push({
+      file,
+      start: callee.name.getStart(),
+      end: callee.name.getEnd(),
+      replacement: 'retrieveCurrent',
+      changeId: ACCOUNT_RETRIEVE_CURRENT_RULE,
+      rule: ACCOUNT_RETRIEVE_CURRENT_RULE,
+    });
+  }
+  return edits;
+}
+
+// Edits that only follow stripe-node's signatures: they ride the other rule edits or the version
+// bump and the upgrade, never make a patch alone.
+export const SDK_SIGNATURE_RULES = new Set<string>([
+  REQUEST_OPTIONS_RULE,
+  ACCOUNT_RETRIEVE_CURRENT_RULE,
+]);
 
 // Rule-table enum successors (the `request-enum-value` family): a removed enum value written as a
 // literal in a traced call's own request becomes the value Stripe documents in its place, such as

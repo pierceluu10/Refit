@@ -1376,7 +1376,11 @@ export function analyzeRepository(
       // expression that names no in-person method (request-migration.ts). run.ts keeps the edit
       // only with the API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
       const rule = removal.cardReplacement
-        ? paymentMethodRule(property, { keepListed: removal.keepListed, checker })
+        ? paymentMethodRule(property, {
+            keepListed: removal.keepListed,
+            checker,
+            inPerson: removal.inPerson,
+          })
         : undefined;
       // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
       // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
