@@ -478,6 +478,42 @@ export const me = () => graph.get('/me');`,
     ]);
   });
 
+  it('reads helpers that write their own fetch options from literals and one body parameter', async () => {
+    const found = await calls({
+      'a.mjs': `async function get(url, extraHeaders) {
+  const res = await fetch(url, { headers: { 'User-Agent': 'x', ...(extraHeaders || {}) } });
+  return res.text();
+}
+async function postJson(url, payload) {
+  return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+}
+async function sneaky(url, payload, verb) {
+  return fetch(url, { method: verb, body: JSON.stringify(payload) });
+}
+await get('https://graph.facebook.com/v22.0/me/accounts?fields=id,name');
+await postJson('https://graph.facebook.com/v22.0/123/messages', { messaging_product: 'whatsapp', to: '1' });
+await sneaky('https://graph.facebook.com/v22.0/123/feed', { message: 'hi' }, 'POST');`,
+    });
+    expect(found).toMatchObject([
+      {
+        line: 11,
+        client: 'get',
+        method: 'GET',
+        fields: ['id', 'name'],
+        parameters: ['fields'],
+        unknown: [],
+      },
+      {
+        line: 12,
+        client: 'postJson',
+        method: 'POST',
+        parameters: ['messaging_product', 'to'],
+        unknown: [],
+      },
+      { line: 13, client: 'sneaky', method: null, parameters: null },
+    ]);
+  });
+
   it('reads helpers that pass the URL and options to fetch unchanged, and no others', async () => {
     const found = await calls({
       'lib.ts': `export async function metaFetch(ctx: Ctx, url: string, init?: RequestInit) {

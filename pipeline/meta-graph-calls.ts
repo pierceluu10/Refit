@@ -937,6 +937,57 @@ const INSTANCE_REQUESTS = new WeakSet<ts.CallExpression>();
 export interface Passthrough {
   url: number;
   options: number | null;
+  // Options the helper writes itself: `fetch(url, { method: 'POST', body: JSON.stringify(payload) })`
+  // sends the literal method and the parameter at `body` as the body.
+  method?: string;
+  body?: number;
+}
+
+// Options a helper may write around a passed-through URL without changing what the request sends.
+const TRANSPORT_OPTIONS = new Set([
+  'headers',
+  'signal',
+  'cache',
+  'credentials',
+  'redirect',
+  'mode',
+  'keepalive',
+  'referrer',
+  'referrerPolicy',
+  'integrity',
+]);
+
+// The method and body parameter of an options object a helper writes, or undefined when it holds
+// anything else: a spread, a computed key, a method chosen at runtime or a body built from more
+// than one of its parameters.
+function writtenOptions(fn: ts.SignatureDeclaration, expression: ts.Expression) {
+  const object = unwrap(expression);
+  if (!ts.isObjectLiteralExpression(object)) return undefined;
+  let method: string | undefined;
+  let body: number | undefined;
+  for (const property of object.properties) {
+    const name = propertyName(property.name);
+    if (!name || ts.isSpreadAssignment(property)) return undefined;
+    if (TRANSPORT_OPTIONS.has(name)) continue;
+    const value = ts.isPropertyAssignment(property)
+      ? unwrap(property.initializer)
+      : ts.isShorthandPropertyAssignment(property)
+        ? property.name
+        : undefined;
+    if (!value) return undefined;
+    if (name === 'method') {
+      method = constantString(value)?.value;
+      if (method === undefined) return undefined;
+    } else if (name === 'body') {
+      const inner =
+        ts.isCallExpression(value) && value.expression.getText() === 'JSON.stringify'
+          ? value.arguments[0]
+          : value;
+      body = parameterIndex(fn, inner);
+      if (body < 0) return undefined;
+    } else return undefined;
+  }
+  return { method, body };
 }
 
 function parameterIndex(fn: ts.SignatureDeclaration, expression: ts.Expression | undefined) {
@@ -989,11 +1040,20 @@ export function passthroughOf(fn: ts.SignatureDeclaration): Passthrough | undefi
   const url = parameterIndex(fn, inner.arguments[0]);
   if (url < 0 || inner.arguments.length > 2) return undefined;
   const options = inner.arguments[1] ? parameterIndex(fn, inner.arguments[1]) : null;
-  if (options !== null && options < 0) return undefined;
-  for (const index of [url, options])
+  const written =
+    options !== null && options < 0 ? writtenOptions(fn, inner.arguments[1]) : undefined;
+  if (options !== null && options < 0 && !written) return undefined;
+  for (const index of [url, written ? null : options, written?.body ?? null])
     if (index !== null && assignsTo(body, (fn.parameters[index].name as ts.Identifier).text))
       return undefined;
-  return { url, options };
+  return written
+    ? {
+        url,
+        options: null,
+        ...(written.method ? { method: written.method } : {}),
+        ...(written.body !== undefined ? { body: written.body } : {}),
+      }
+    : { url, options };
 }
 
 // Reads the method and request options of a call a Graph URL is passed to.
@@ -1063,9 +1123,11 @@ function readCall(
   }
   const passthrough = helperOf?.(call);
   if (passthrough && passthrough.url === argument) {
+    if (passthrough.body !== undefined && options(passthrough.body))
+      readParameters(options(passthrough.body)!, request, 'body parameters');
     const method =
       passthrough.options === null
-        ? undefined
+        ? passthrough.method
         : readOptions(options(passthrough.options), 'request options');
     if (method === '?') request.unknown.push('HTTP method is chosen at runtime');
     return { client, method: method === undefined ? 'GET' : httpMethod(method), helper: false };

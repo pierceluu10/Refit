@@ -130,6 +130,28 @@ function samePath(a: string, b: string) {
   );
 }
 
+// Endpoints that return a token payload, not a node, so they have no node fields to change.
+const TOKEN_PATHS = new Set([
+  '/oauth/access_token',
+  '/oauth/client_code',
+  '/debug_token',
+  '/access_token',
+  '/refresh_access_token',
+]);
+
+// Whether a GET that names no fields, and so receives the node's default fields, may receive a
+// field a change touches. It does unless the change cannot reach it: a token endpoint returns no
+// node, a change recorded on an edge's objects reaches only reads of that edge, and `/me` reads
+// the token's User or Page, never a node of another type the change names.
+function defaultFieldsMay(call: GraphCall, change: MetaGraphChange) {
+  if (call.method !== 'GET' || call.fields?.length !== 0) return false;
+  if (call.path !== null && TOKEN_PATHS.has(call.path)) return false;
+  if (change.edge !== null && change.edge !== call.edge) return false;
+  if (call.path === '/me' && change.node !== null && !/\b(user|page)\b/i.test(change.node))
+    return false;
+  return true;
+}
+
 // The change-list entries a request uses: its edge or endpoint, a field it requests, a metric, a
 // breakdown or a parameter. A GET that names no fields gets the node's defaults, so any field change
 // counts. Webhook changes follow the app's webhook version, not the request's, so no request uses
@@ -152,7 +174,7 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
         return change.edge === call.edge;
       case 'field-removed':
       case 'field-changed':
-        return fields.has(change.name!) || (call.method === 'GET' && call.fields?.length === 0);
+        return fields.has(change.name!) || defaultFieldsMay(call, change);
       case 'metric-removed':
       case 'metric-changed':
         // Changelogs print some metric names in capitals; requests use lowercase.

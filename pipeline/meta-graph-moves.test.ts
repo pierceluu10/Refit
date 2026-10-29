@@ -581,6 +581,24 @@ it('writes a patch for review from the CLI and leaves the repository unchanged',
 }, 60_000);
 
 describe('version moves with rules and new pins', () => {
+  it('counts default fields only where the changed field can be among them', () => {
+    const read = (path: string, edge: string | null) =>
+      ({ path, edge, method: 'GET', fields: [], parameters: [] }) as unknown as GraphCall;
+    const field = (extra: Partial<MetaGraphChange>) =>
+      change({ id: 'f', version: 'v22.0', kind: 'field-changed', name: 'base_price', ...extra });
+    const catalog = field({ node: 'Product Catalog', edge: 'localized_items_batch' });
+    const creative = field({ node: 'Ad Creative' });
+    const unknown = field({ node: null });
+    expect(changesUsedBy(read('/oauth/access_token', 'access_token'), [unknown])).toEqual([]);
+    expect(changesUsedBy(read('/me', null), [creative, catalog])).toEqual([]);
+    expect(changesUsedBy(read('/me', null), [unknown])).toHaveLength(1);
+    expect(changesUsedBy(read('/{id}', null), [creative])).toHaveLength(1);
+    expect(
+      changesUsedBy(read('/{id}/localized_items_batch', 'localized_items_batch'), [catalog]),
+    ).toHaveLength(1);
+    expect(changesUsedBy(read('/{id}/feed', 'feed'), [catalog])).toEqual([]);
+  });
+
   it('never matches a root endpoint change to a request on a node', async () => {
     const list = changes([
       change({ id: 'search', version: 'v22.0', kind: 'endpoint-changed', path: '/search' }),
