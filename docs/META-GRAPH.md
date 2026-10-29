@@ -217,13 +217,14 @@ refit meta-graph --fix --target v25.0 --repository /path/to/app
 refit meta-graph --fix --target v25.0 --output graph.patch --json
 ```
 
-`--fix` builds on [the version moves](#propose-version-moves-review-only) and adds what Refit knows how to change, or must hand to a person. Nothing is applied, validated or sent to Meta, and this is not yet part of `refit run`, validation or drafts.
+`--fix` builds on [the version moves](#propose-version-moves-review-only) and adds what Refit knows how to change, or must hand to a person. The command itself applies nothing; [`refit run`](#run-meta-graph-fixes-with-refit-run) validates the same plan and writes the draft.
 
 - **Documented rules.** Rules live in `data/rules/meta-graph/<version>.json`, one file per Graph API version. Each names its `family`, the `name` it changes, an optional `edge`, a `replacement` or documented `value`, the developers.facebook.com `source`, the `quote` and `checkedAt`, and a `status` of `auto` or `review`. A rule applies to a request whose move crosses its version.
   - An `auto` field or metric rename edits the one literal list item the request sends (`fields=id,old_field{name}` becomes `fields=id,new_field{name}`) in the same patch as the version move, and the change it settles no longer stops the move.
   - The rename stops when the item is not written exactly once in a literal the request reads, or when another request outside the move shares the literal. It also stops when the old name appears anywhere else in the code, since that may be a read of the renamed response field. Response reads are never edited.
   - Edge renames, parameter renames, newly required parameters (`parameter-required`, listed with the documented value) and every `review` rule stop the move with the rule and its source.
   - No rule files are committed yet. Until they are, the plan's moves equal `--propose-version-moves`.
+- **Tests follow live moves.** A pin only test or example files use, such as a mocked `fetch`'s expected URL, moves with the live requests it describes: every URL it holds names the path of a live request on the same version that moves (`/123456/media` describes `/{userId}/media`). None of them may name the path of a live request that stays, and no live request on that version may have an unknown path. Otherwise it stops as before.
 - **Product migrations.** Instagram Basic Display use is identified by the `user_profile` and `user_media` permissions, which no Instagram API with Instagram Login permission is named. It is listed with every place it is used and the documented plan: the API stopped working on 2024-12-04 ([Meta](https://developers.facebook.com/blog/post/2024/09/04/update-on-instagram-basic-display-api)); move to the Instagram API with Instagram Login ([Business Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login)), which needs a professional account. That is not a mechanical edit, so it is never applied. WhatsApp on-premises requests run on the customer's own host and no reachable Meta page documents their shape, so they are not detected.
 - **Alerts.** `data/meta-platform-alerts.json` lists permission, product and policy changes. Each entry quotes a developers.facebook.com page read on 2026-10-29, with the date it takes effect when the page gives one. An alert matches:
   - requested permissions, read as separate items of any string in code that mentions Facebook, Instagram, `FB` or a scope;
@@ -233,6 +234,24 @@ refit meta-graph --fix --target v25.0 --output graph.patch --json
 
   Each hit is `in-effect`, `upcoming` or `undated` on the day of the check, with the replacement Meta names. Alerts never edit code, and test files are not matched. The entries cover the 2018 `publish_actions` removal, `manage_pages` and `publish_pages`, the 2025 Instagram Login scope renames, the Basic Display shutdown, the 2024 and 2025 Page Insights metric removals, and the 2025 oEmbed Read change.
 
+## Run Meta Graph fixes with `refit run`
+
+```sh
+refit meta-graph --snapshot v19.0 --output before.json
+refit meta-graph --snapshot v25.0 --output after.json
+refit run --repository /path/to/app --before before.json --after after.json --image node:22-alpine --prepare-dependencies --command '["npm","test"]'
+```
+
+A Meta snapshot is the contract of a Meta Graph run: a Graph API version and the reviewed change table, pinned by its SHA-256. `refit run` checks the hash and refuses a table edited after the snapshot was taken. Both snapshots must come from the same table. The `after` snapshot is the target. Each pin is checked from its own version, so the `before` version is only a label.
+
+- **The run:** `refit run` runs the [fix plan](#fix-plans) as its pipeline. Each moved request is a confirmed finding. Each request that stays on its version, and each use of a product that needs a migration, is a review finding with every reason. Alerts are report warnings.
+- **The patch:** the version moves and their rules, validated like any other patch (dependency preparation, baseline and patched checks offline in Docker, AI repair when enabled, grades). Meta's proof (`pipeline/meta-graph-proof.ts`, #405) grades it from the change table. Under owner decision 1, a patch that leaves requests on their version is a `[Needs review]` draft; its Left Unchanged section lists each request with why it stays.
+- **The checks:** `writeMetaGraphRun` (`pipeline/meta-graph-workflow.ts`) writes the snapshots and the `run.json` a benchmark or worker runs. The check comes from the same `selectCheck` as Stripe's, over the files that make Graph API requests:
+  - the repository's tests, only the files that reach those requests where the runner takes file arguments;
+  - and a type check, scoped to those files when `tsconfig.json` leaves them out;
+  - with neither, the no-op check and grade D.
+- **Not changed:** the `meta-graph` catalog entry keeps `adapter: null`, so enrollment and the hosted worker do not yet generate Meta configurations.
+
 ### Measured on the deadline benchmark, 2026-10-29
 
 The 33 Meta repositories of the deadline benchmark (not the blind set) were scanned offline at their pinned commits, on `bench/combined-final` and on this change, with target v25.0:
@@ -241,8 +260,8 @@ The 33 Meta repositories of the deadline benchmark (not the blind set) were scan
 |---|---:|---:|
 | Requests in live code | 162 | 168 |
 | `fields` read | 113 | 155 |
-| Pins moved (requests) | 35 (35) | 46 (50) |
-| Pins stopped | 120 | 116 |
+| Pins moved (requests) | 35 (35) | 51 (55) |
+| Pins stopped | 120 | 111 |
 | Basic Display migrations | – | 1 |
 | Alerts | – | 2 |
 
@@ -254,6 +273,16 @@ The 33 Meta repositories of the deadline benchmark (not the blind set) were scan
 - **The migration and the alerts:**
   - savarkavi/instagram-profile-test links to the Basic Display authorize URL with `user_profile,user_media`, so it is listed as a migration and alerted.
   - icekidtech/social-snap calls `/instagram_oembed`, so it gets the 2025-11-03 oEmbed alert.
+- **Tests that follow live moves** add 5 more pins in ericlyfan/auto_portfolio: its tests assert the exact URL of each mocked request. That makes 51 pins moved (55 requests).
+- **`refit run`** was run offline in Docker on the 13 repositories with a move, through `writeMetaGraphRun` with no AI:
+  - 13 of 13 produced a patch and a draft.
+  - 3 validated with no request left: adilzhanshukenov/quiz-forma, carlosechale/echale-dashboard and maplewing/nopicnic.
+  - 9 passed their checks and are `[Needs review]` only for requests that stay on their version.
+  - 1 (mchantosa/smooth-kitty) has tests that fail before any change.
+  - Grades: B 1, C 11, D 1.
+  - Every patch changes only version text to v25.0, and every moved request was read by hand.
+  - Without the test rule, ericlyfan/auto_portfolio's patch failed its own tests and was kept unpublished.
+  - With ME4's proof merged in a scratch copy, stlafit02-dev/STLAF-Marketing-Planner's 19 changed requests were proven valid at v25.0.
 - **Not measured:** ME1's meta-dev-60 set was not frozen when this was measured.
 
 ## What a Meta agent still needs
@@ -263,7 +292,7 @@ The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is o
 1. **Product changelogs.** v14.0 to v26.0 are reviewed from the Graph API changelog pages, but the WhatsApp Business Platform and Messenger Platform changelogs are not, so their requests always stop.
 2. **An owner decision on the version-move rule.** The [review-only rule](#propose-version-moves-review-only) exists. Wiring it into `refit run`, validation and drafts waits on the decision about whether a hand-maintained change list is enough evidence for an automatic edit.
 3. **More coverage.** URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults, and a field rename stops wherever the old name appears.
-4. **A pipeline adapter.** `--fix` plans are not yet reports that `refit run` validates and publishes as drafts, and AI repair of build breaks and undocumented reads is not wired to them.
+4. **Enrollment.** `refit run` validates Meta plans, but enrollment and the hosted worker do not generate Meta configurations, and no AI repair rule targets undocumented response reads yet.
 
 ## Limits
 

@@ -188,14 +188,15 @@ export async function runMetaGraphPipeline(options: {
     application: pinned.length === 1 ? pinned[0] : null,
     before: options.before.document.info.version,
     after: target,
-    applicability:
-      pinned.length === 1 && pinned[0] === target
+    // Each pin is checked against the change table from its own version, not from one before
+    // contract, so every version the code pins is the "before" of its own move.
+    applicability: !pinned.length
+      ? 'unknown'
+      : pinned.every((version) => version === target)
         ? 'matches-after'
-        : pinned.length === 1 && pinned[0] === options.before.document.info.version
-          ? 'matches-before'
-          : 'unknown',
+        : 'matches-before',
     reason: pinned.length
-      ? `The code pins ${pinned.join(', ')}; each pin older than ${target} moves only where the fix plan allows.`
+      ? `The code pins ${pinned.join(', ')}. Each pin older than ${target} is checked against the reviewed changelogs from its own version, and moves only where nothing its requests use changed.`
       : 'No pinned Graph API version was found.',
     policy: options.apiVersionPolicy,
     source: {

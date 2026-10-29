@@ -554,6 +554,26 @@ it('writes a patch for review from the CLI and leaves the repository unchanged',
 }, 60_000);
 
 describe('version moves with rules and new pins', () => {
+  it('moves a test expectation with the live request it describes, and only then', async () => {
+    const live = `export const media = (user) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${user}/media\`, { method: 'POST', body: JSON.stringify({ caption: 'hi' }) });
+export const send = (phone) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${phone}/messages\`, { method: 'POST', body: JSON.stringify({ messaging_product: 'whatsapp' }) });
+`;
+    const proposal = await propose({
+      'lib.js': live,
+      'lib.test.js': `expect(fetch).toHaveBeenCalledWith('https://graph.facebook.com/v19.0/123/media', expect.anything());
+expect(fetch).toHaveBeenCalledWith('https://graph.facebook.com/v19.0/555/messages', expect.anything());`,
+    });
+    expect(proposal.patch).toContain(
+      "+expect(fetch).toHaveBeenCalledWith('https://graph.facebook.com/v25.0/123/media'",
+    );
+    expect(proposal.patch).not.toContain('v25.0/555/messages');
+    expect(proposal.stops.find((stop) => stop.file === 'lib.test.js')?.reasons).toEqual([
+      'lib.test.js:2: only tests and examples use this version',
+    ]);
+  });
+
   it('moves environment defaults, graph.instagram.com URLs and the FB.init version', async () => {
     const proposal = await propose({
       'a.ts': `const VERSION = process.env.GRAPH_VERSION ?? 'v19.0';

@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { metaGraphSnapshot } from './meta-graph-pipeline.ts';
+import { writeMetaGraphRun } from './meta-graph-workflow.ts';
 import { runPipeline } from './run.ts';
+import { readFile } from 'node:fs/promises';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -99,5 +101,30 @@ describe('the Meta Graph pipeline', () => {
         after: join(contracts, 'after.json'),
       }),
     ).rejects.toThrow('invalid Meta Graph snapshot provenance or hash');
+  });
+
+  it('writes a run configuration whose check covers the Graph request files', async () => {
+    const repository = await directory({
+      'package.json': JSON.stringify({ name: 'app', scripts: { test: 'vitest run' } }),
+      'src/graph.ts': `export const me = () => fetch('https://graph.facebook.com/v19.0/me?fields=id');`,
+      'src/graph.test.ts': `import { me } from './graph';\nit('reads', () => me());`,
+      'src/other.ts': 'export const other = 1;',
+    });
+    const work = await directory({});
+    const { config, selection } = await writeMetaGraphRun({
+      repository,
+      directory: work,
+      before: 'v19.0',
+      target: 'v25.0',
+    });
+    expect(selection.stripeFiles).toEqual(['src/graph.ts']);
+    expect(selection.testedStripeFiles).toEqual(['src/graph.ts']);
+    expect(selection.reason).toContain('The tests import Meta Graph code in src/graph.ts');
+    expect(JSON.parse(await readFile(config, 'utf8'))).toMatchObject({
+      repository,
+      before: join(work, 'before.json'),
+      after: join(work, 'after.json'),
+      prepareDependencies: true,
+    });
   });
 });

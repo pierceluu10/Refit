@@ -111,6 +111,20 @@ function pathMatches(path: string, prefix: string) {
   );
 }
 
+// Whether two request paths name the same endpoint: the same number of segments, each written the
+// same or a runtime segment on either side, so `/{userId}/media` describes `/123456/media`.
+function samePath(a: string, b: string) {
+  const left = a.split('/').filter(Boolean);
+  const right = b.split('/').filter(Boolean);
+  return (
+    left.length === right.length &&
+    left.every(
+      (segment, index) =>
+        segment === right[index] || segment.includes('{') || right[index].includes('{'),
+    )
+  );
+}
+
 // The change-list entries a request uses: its edge or endpoint, a field it requests, a metric or a
 // parameter. A GET that names no fields gets the node's defaults, so any field change counts.
 export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
@@ -479,6 +493,7 @@ export async function proposeVersionMoves(
       pins.set(key, [...(pins.get(key) ?? []), call]);
     }
   }
+  const testPins: { file: string; line: number; from: string; calls: GraphCall[] }[] = [];
   for (const call of unpinned)
     stops.push({
       file: null,
@@ -504,9 +519,12 @@ export async function proposeVersionMoves(
         });
       continue;
     }
+    // Tests and examples follow the live moves, decided once those are known.
+    if (calls.every((call) => call.use === 'test')) {
+      testPins.push({ file, line, from, calls });
+      continue;
+    }
     const reasons = [...calls.flatMap(unknownParts), ...calls.flatMap(separateChangelog)];
-    if (calls.every((call) => call.use === 'test'))
-      reasons.push(`${file}:${line}: only tests and examples use this version`);
     const crossed = crossedBetween(from);
     const unreviewed = crossed.filter((version) => records.get(version)?.status !== 'reviewed');
     if (unreviewed.length)
@@ -555,6 +573,53 @@ export async function proposeVersionMoves(
     for (const edit of ruleEdits)
       if (!edits.some((item) => item.file === edit.file && item.start === edit.start))
         edits.push(edit);
+    edits.push({
+      file,
+      start: edit.start,
+      end: edit.end,
+      replacement: target,
+      changeId: `meta-graph-version-${from}-${target}`,
+      rule: META_GRAPH_VERSION_RULE,
+    });
+  }
+  // A pin only tests use, such as a mocked fetch's expected URL, moves with the live requests it
+  // describes: every one of its URLs names the path of a moved live request on the same version,
+  // and none names the path of a live request that stays. Anything else stops as before.
+  for (const pin of testPins) {
+    const { file, line, from, calls } = pin;
+    const moved = moves.filter((move) => move.from === from).flatMap((move) => move.requests);
+    const stayed = stops.filter((stop) => stop.from === from).flatMap((stop) => stop.requests);
+    const describes = (requests: VersionMoveRequest[], call: GraphCall) =>
+      requests.some((item) => item.path !== null && samePath(call.path!, item.path));
+    // A live request on this version whose path is unknown could be any endpoint a test describes.
+    const follows =
+      !stayed.some((item) => item.path === null) &&
+      calls.every(
+        (call) => call.path !== null && describes(moved, call) && !describes(stayed, call),
+      );
+    const edit = follows ? pinEdit(repository, file, line, from) : undefined;
+    if (!edit || edit.reasons.length) {
+      stops.push({
+        file,
+        line,
+        from,
+        requests: calls.map(request),
+        reasons: [
+          `${file}:${line}: only tests and examples use this version`,
+          ...(edit?.reasons ?? []),
+        ],
+      });
+      continue;
+    }
+    moves.push({
+      file,
+      line,
+      from,
+      to: target,
+      crossed: crossedBetween(from),
+      requests: calls.map(request),
+      rules: [],
+    });
     edits.push({
       file,
       start: edit.start,

@@ -2,7 +2,7 @@
 
 ## October 29 checkpoint: Meta Graph tracing, fix plans and dated alerts (unreleased, after 0.39.0)
 
-`refit meta-graph` traces more of how Meta integrations are written, and `refit meta-graph --fix --target <version>` turns the review-only version moves into a fix plan ([Meta Graph API](META-GRAPH.md#fix-plans)). Nothing is applied, validated or published, and the `meta-graph` catalog entry keeps `adapter: null`.
+`refit meta-graph` traces more of how Meta integrations are written, and `refit meta-graph --fix --target <version>` turns the review-only version moves into a fix plan ([Meta Graph API](META-GRAPH.md#fix-plans)). `refit run` with Meta snapshots (`refit meta-graph --snapshot`) validates that plan and writes the draft, like Stripe and Shopify runs ([run](META-GRAPH.md#run-meta-graph-fixes-with-refit-run)). The `meta-graph` catalog entry keeps `adapter: null`.
 
 - **Tracing:**
   - graph.instagram.com requests;
@@ -19,12 +19,13 @@
   - Retired permissions, Page Insights metrics and oEmbed requests get dated alerts from `data/meta-platform-alerts.json`. Each entry quotes a developers.facebook.com page read on 2026-10-29.
 - **Measured** offline on the 33 non-blind Meta repositories of the deadline benchmark, at target v25.0:
   - live requests 162 → 168, `fields` read 113 → 155;
-  - pins moved 35 → 46 (requests 35 → 50), none lost;
+  - pins moved 35 → 51 (requests 35 → 55), none lost; test expectations move with the live requests they describe;
+  - `refit run` on the 13 repositories with a move: 13 drafts, 3 validated with nothing left, 9 `[Needs review]` for requests that stay, 1 failing baseline; every patch changes only version text;
   - 1 Basic Display migration and 2 alerts.
   - Every changed request (52) and every new move (11) was checked by hand.
   - ME1's meta-dev-60 set was not frozen yet, so it was not measured.
 - **Not done:**
-  - wiring into `refit run`, validation and drafts;
+  - enrollment and hosted-worker configurations for Meta;
   - AI repair;
   - response-read renames;
   - business SDK package upgrades;
