@@ -26,8 +26,8 @@ The two runs on each 100-repository set had 10 shards; gemini-30 had 3. OpenAI b
 
 |                                      | openai-100 before → after | anthropic-100 before → after | gemini-30 before → after |
 | ------------------------------------ | ------------------------- | ---------------------------- | ------------------------ |
-| **Validated fix**                    | 0 → **0**                 | 2 → **2**                    | 0 → **1**                |
-| Tests pass, replacement not provable | 1 → 1                     | –                            | –                        |
+| **Validated fix**                    | 1 → **1** (re-scored)     | 2 → **2**                    | 0 → **1**                |
+| Tests pass, replacement not provable | 0 → 0 (was 1 → 1)         | –                            | –                        |
 | Validation failed                    | 5 → 7                     | 5 → 5                        | 0 → 0                    |
 | Needs review                         | 29 → 43                   | 19 → 33                      | 16 → 15                  |
 | SDK upgrade available, not required  | –                         | 0 → 2                        | –                        |
@@ -38,14 +38,15 @@ The two runs on each 100-repository set had 10 shards; gemini-30 had 3. OpenAI b
 | Rows with a model-fix stop           | 32 → 39                   | 18 → 14                      | 4 → 4                    |
 | AI attempted / succeeded             | 0 / 0 → **3 / 0**         | – (no AI lane)               | – (no AI lane)           |
 | AI cost                              | $0 → **$0.0746**          | $0                           | $0                       |
-| **Validated / set**                  | **0%**                    | **2%**                       | **3%**                   |
+| **Validated / set**                  | **1%**                    | **2%**                       | **3%**                   |
 
-**Against the 90% target: 0%, 2% and 3%.** All three validated fixes are model swaps with full request proof:
+**Against the 90% target: 1%, 2% and 3%.** All four validated fixes are model swaps with request proof:
 
 - Two are Anthropic Haiku 3 → `claude-haiku-4-5-20251001`. The proof passed the request, tools and stream checks.
 - One is Gemini `gemini-2.0-flash` → `gemini-3.6-flash`. The proof passed the request, tools and stream checks; its JSON check is pending on a 503.
+- One is OpenAI `gpt-3.5-turbo` → `gpt-5.6-terra` (re-scored, see below).
 
-No SDK-major migration validated in any set. The OpenAI row whose tests pass moves `gpt-3.5-turbo` to `gpt-5.6-terra`, which the key cannot call.
+No SDK-major migration validated in any set.
 
 **What stops the rest (after pass, whole-set counts):**
 
@@ -61,6 +62,15 @@ No SDK-major migration validated in any set. The OpenAI row whose tests pass mov
    - The 3 rows that did call the AI are legacy Completions sites. The prescribed replacement, `gpt-3.5-turbo-instruct`, supports only Completions, so the AI rightly left them unchanged.
 7. **Model-fix stops unchanged:** custom endpoints and base URLs (held for Furqan), untraceable clients, and Python (detection only).
 
+**Re-score after full-access proofs (later on October 29).** Pierce enabled every model on the refit-bench OpenAI project. Substantive AI work still runs only on `gpt-6.1-sol`; the other models get only the minimal proof requests.
+
+- **Proofs:** model proof run 40940798473 and SDK proof run 40940802357, both on `bench/ai-provider-after-9` (`836dedb5` = after-8 + ai-models `fcb5ef9e` and `b8453fb2` + ai-surfaces `92876b34`, which includes `e2767280`).
+- **One row moves.** The only row held back by "replacement model not provable with Refit's key" is the `gpt-3.5-turbo` → `gpt-5.6-terra` swap. Its tests passed in both passes.
+  - Both edited calls are openai v3 `createChatCompletion` with only `model` and `messages`. They have no tools and none of the parameters the model rejects.
+  - `gpt-5.6-terra` on Chat Completions passed the request, JSON, schema and stream checks.
+  - So it is now **validated** in both passes. The hand-check verdict, correct, is in `ai-provider-results/2026-10-29-actions-rescore.json`.
+- **No other row depended on that proof**, so nothing else moves.
+
 **Proofs, on Refit's own keys:**
 
 - **Model proof:** run 40923057757 on `2e40086c`, with a Gemini retry, run 40932922473.
@@ -71,6 +81,15 @@ No SDK-major migration validated in any set. The OpenAI row whose tests pass mov
   - Accepted: openai 6.49.0 `chat.completions.create`, `responses.create`, `models.list` and `models.retrieve` on `gpt-6.1-sol`; `@anthropic-ai/sdk` 1.3.0 `messages.create`, with a stream and tools, and `models.list`; `@google/genai` 2.32.0 `generateContent` and its stream.
   - Pending: Chat with tools plus `reasoning_effort` (HTTP 400 on `gpt-6.1-sol`), moderations (403 for the project), embeddings (no embedding model in the project) and Completions (no minimal request yet).
   - The run's logs and artifacts contain no project or organization IDs.
+- **Full-access model proof:** run 40940798473 on `836dedb5`, 135 requests.
+  - `gpt-4.1` and `gpt-4o` passed every check (request, JSON, schema, tools, stream) on Chat Completions and Responses.
+  - `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-6-luna` and `gpt-6-sol` passed every check on Responses, where they reject `temperature` and `top_p`.
+  - The same five on Chat Completions passed request, JSON, schema and stream, but failed tools (HTTP 400). There they also reject `max_tokens`.
+  - Pending: `gpt-5-codex-mini` (404 on both APIs). Anthropic and Gemini are unchanged, except that `gemini-3.6-flash` now passes JSON and failed tools on a 503.
+- **Full-access SDK proof:** run 40940802357 on `836dedb5`.
+  - Newly accepted: openai `moderations.create`.
+  - Pending: Chat with a stream and tools, because the proof's `reasoning_effort: "none"` is rejected by `gpt-6.1-sol`, which supports `low` or higher. Also embeddings, because the proof is not yet wired to an embedding model, and Completions.
+  - No project or organization IDs in the log or artifact.
 
 **Alerts:** OpenAI after raised 19 fine-tune and 4 configuration alerts, and Gemini after raised 10 embedding alerts.
 
