@@ -26,6 +26,59 @@ Every number here comes from real public repositories, frozen before the run tha
 - **Outcomes are deterministic.** Repeat runs matched 381 of 381 fresh Stripe repositories, 200 of 200 fresh Shopify apps and 150 of 150 earlier Stripe repositories (publication aside). Since the `payment_method_types` stop, no outcome depends on AI sampling.
 - **AI was almost never needed:** **$0.02** across every Stripe run in this release. Deterministic rules made every validated fix.
 
+## Holdout sets
+
+`subsets/holdout-100.json` (100 repositories) and `subsets/holdout-30b.json` (30) are the Stripe agent's measurement-only sets, frozen on October 28. `heldout-30` has been run many times since October 24, so it may already be tuned to; these two are repositories nobody working on Refit has seen.
+
+**Rules (integrity).**
+
+- Never open, clone, trace or debug a holdout repository, its row, its logs or its diff to design or check a fix. Diagnose on `l2-push-249` or `dev-30` only.
+- Run them only at milestones: a release, or a claim about the agent's validated rate. Record each run here with its run id, commit and command, as for any set, and report the whole set's numbers, not a slice.
+- Never add, drop or replace a repository after a run. A repository that later fails to clone stays in the denominator as a failure. To refresh, freeze a new set with a new seed.
+- Held-out repositories may be named only in their own lists, in `docs/benchmarks/holdout-selection/` and in milestone results under `docs/benchmarks/holdout-results/`. `pipeline/holdout-integrity.test.ts` fails `npm test` if any other tracked file names one, shipped source in `src/`, `pipeline/`, `bin/` and `scripts/` included (owner decision D5). It also checks that both lists are disjoint from each other and from every other list in `docs/benchmarks/subsets/` and `docs/benchmarks/*-repos.json`, and that every entry has a full 40-character commit and an API version older than the target with a pinned spec.
+
+**How they were selected.** `scripts/stripe-holdout-select.mjs` draws from the same population as every tuned Stripe set, and so from the same population as `heldout-30` and `l2-push-249`. Those two come from `push-279-affected.json`, which keeps the affected rows of the four tuned sets, which come from the fresh set's 13 GitHub code searches for stripe-node use. The script:
+
+1. reruns those 13 searches (`holdout-selection/search.json`: 6,700 repositories on October 28);
+2. drops every `owner/name` that any tracked Refit file mentions at `efcb91ed`: every frozen list and subset, every result, review and note (523 of the 6,700);
+3. keeps the fresh set's filters: not archived or a fork, under 50 MB, pushed since 2024-01-01, and `stripe` declared in the root `package.json` (2,830 eligible; 1,585 do not declare `stripe` at the root, 1,032 are over 50 MB, 730 were not pushed since 2024);
+4. orders those by SHA-256 of the seed `refit-holdout-2026-10-28`, a newline and the lower-cased name (`holdout-selection/candidates.json`). The seed was fixed before any candidate was seen;
+5. walks that order in batches of at most 50 shallow clones at the default-branch HEAD. Each clone is read only for its API version and its Stripe use, then deleted (`holdout-selection/checks.json`). A repository is kept when an application file (not a test, spec, fixture or mock) imports `stripe` and constructs a client, and its API version has a pinned spec in `data/stripe-openapi-versions.json` and is older than `2026-09-30.endive`. The API version is read as for the fresh set: the oldest literal `apiVersion` pin, else the locked stripe-node release. The first 150 in seeded order were checked: 130 kept, 9 with no readable API version, 8 with no Stripe client in application code, 3 on a version without a pinned spec, and none failed to clone;
+6. fills `holdout-100` with the first 100 kept, in seeded order, and `holdout-30b` with the next 30.
+
+Each entry is pinned to the full commit that was checked. Rerun it with `node scripts/stripe-holdout-select.mjs --work <dir> --names-at efcb91ed`. GitHub's search index moves, so the committed inputs are the record. `candidates.json` holds the 2,830 eligible repositories in seeded order, so the order can be recomputed from the seed without GitHub (`seededOrder` in the script, tested in `pipeline/stripe-holdout-select.test.ts`).
+
+**What they hold.**
+
+| | holdout-100 | holdout-30b | heldout-30 |
+| --- | --- | --- | --- |
+| API version from 2022 | 6 | 4 | 1 |
+| from 2023 | 19 | 11 | 9 |
+| from 2024 | 33 | 8 | 12 |
+| from 2025 | 26 | 6 | 7 |
+| from 2026 | 16 | 1 | 1 |
+| Most common version | 2023-10-16 (16) | 2023-10-16 (9) | 2023-10-16 (7) |
+| Version from an `apiVersion` pin / from stripe-node | 61 / 39 | 23 / 7 | |
+| npm / pnpm / Yarn / several lockfiles / none | 79 / 10 / 0 / 5 / 6 | 22 / 3 / 3 / 1 / 1 | |
+| Median stars | 0 | 0 | 5 |
+
+holdout-100 spans 25 API versions, from 2022-11-15 to 2026-08-26.dahlia; holdout-30b spans 15, from 2022-08-01 to 2026-04-22.dahlia. They have fewer stars than `heldout-30`, because the earlier sets took the most-starred repositories from the same searches and these are a random draw from what was left.
+
+**One difference from `heldout-30`.** `heldout-30` keeps only rows a refit-bench run had already found `affected`. These sets are frozen before any Refit run, as the original, held-out 50 and fresh sets were, so some rows will be unaffected; in the fresh set it was 55%. Report a milestone as validated over affected rows, as `heldout-30` is, and give the affected count and the whole set's outcomes beside it. Never filter the list itself.
+
+**Run them** (at a milestone only, no AI unless the milestone authorizes it). `benchmark.yml` checks out Refit at `commit` with `sparse-checkout: docs/benchmarks` and reads `docs/benchmarks/$LIST`, so a list committed in Refit needs no copy in refit-bench; the commit must contain it.
+
+```sh
+gh workflow run benchmark.yml -R refit-dev/refit-bench \
+  -f commit=$(git rev-parse HEAD) \
+  -f list=subsets/holdout-100.json -f offset=0 -f size=10 -f count=100
+gh workflow run benchmark.yml -R refit-dev/refit-bench \
+  -f commit=$(git rev-parse HEAD) \
+  -f list=subsets/holdout-30b.json -f offset=0 -f size=3 -f count=30
+```
+
+No run has been dispatched yet.
+
 ## A coding agent on the repositories Refit did not fix (October 21)
 
 Question: where Refit stopped, does a model-driven agent fix the break instead? The comparison took every affected Stripe repository that Refit did not validate on the October 20 rerun: 21 from the active-teams set, 10 original and 9 held out, 40 in all. On each pinned checkout, OpenAI's Codex CLI (`gpt-5.6-sol`, sandboxed with no network) was told to "upgrade to 2026-09-30.endive". It was given the contract diff Refit computed and the matching Stripe changelog pages. Every patch then went through Refit's own offline validation, with Refit's stripe-node upgrade added and the agent's package-file edits reverted. Every patch that passed was read in full. [Per-repository results and diffs](benchmarks/2026-10-21-agent-comparison-results.json); the harness is [`agent-comparison-cli.ts`](../pipeline/agent-comparison-cli.ts).
