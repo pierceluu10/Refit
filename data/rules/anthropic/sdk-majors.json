@@ -68,18 +68,19 @@
     {
       "rule": "anthropic-2026-10-21-sampling-remove",
       "family": "remove-parameter",
-      "status": "auto",
+      "status": "review",
       "page": "anthropic-2026-10-21",
       "quote": "Remove the three parameters from your requests.",
       "checkedAt": "2026-10-29",
       "origin": "docs",
-      "summary": "Without them a request samples with the defaults (temperature 1.0), so answers can be more or less varied than with the value the code set. Guide tone and consistency in the prompt instead, and check the quality of the answers.",
+      "summary": "Pending (decision A, 2026-10-29): applies only with removeSampling and a quoted Anthropic sunset notice for @anthropic-ai/sdk 0.x or API version 2023-06-01. Without the parameters a request samples with the defaults (temperature 1.0), so answers can be more or less varied than with the value the code set.",
       "data": {
         "parameters": [
           "temperature",
           "top_p",
           "top_k"
-        ]
+        ],
+        "pendingOn": "a quoted Anthropic sunset notice for @anthropic-ai/sdk 0.x or API version 2023-06-01 (an sdk-sunset rule)"
       }
     },
     {

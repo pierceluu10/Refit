@@ -29,7 +29,7 @@ The Gemini migration guide gives the client and call mapping (`getGenerativeMode
 
 An `@anthropic-ai/sdk` 1.x upgrade sends API version 2026-10-21, which rejects `temperature`, `top_p` and `top_k`. Today the upgrade blocks on them.
 **Proposed feature:** run the upgrade after ai-models' parameter rule removes them, in one draft.
-**Status (2026-10-29):** decided and built: literal parameters in traced calls are removed with the upgrade; untraceable ones still stop.
+**Status (2026-10-29): decision A.** Requests that send the parameters stay on 0.x and 2023-06-01 and are reported as "SDK upgrade available, not required (would change outputs)". **Pending rule:** when Anthropic publishes a sunset date for `@anthropic-ai/sdk` 0.x or API version 2023-06-01, add it as a quoted `sdk-sunset` rule in `data/rules/anthropic/sdk-majors.json` and run with `--remove-sampling`. The upgrade then removes the parameters written in traced literals, ships `[Needs review]` saying "Outputs may differ: removed `temperature: X`", and needs request-level proof. A retiring model is separate: ai-models' model rewrite (#403) applies.
 
 ## 5. Lockfiles and packages the upgrade refuses
 

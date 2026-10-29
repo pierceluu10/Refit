@@ -2,7 +2,7 @@
 
 ## October 29 checkpoint: AI lane for shut-down OpenAI surfaces, sampling removal, Gemini models (unreleased, after 0.39.0)
 
-Decisions of the coordinating session on Furqan's delegation (2026-10-29). `refit ai-migrations --ai-surfaces` drafts the move of legacy Completions and Assistants calls to Responses with AI, in GitHub Actions only, under deterministic guards and the gates in `docs/AI-MIGRATIONS.md`; unit tests use a mocked model, and no measurement has run. The `@anthropic-ai/sdk` 1.x upgrade removes `temperature`, `top_p` and `top_k` written in a traced call's literal, as the 2026-10-21 guide says, and names each removed value in the draft. The Gemini swap replaces a retired model with the registry's quoted replacement and stops where none is named.
+Decisions of the coordinating session on Furqan's delegation (2026-10-29). `refit ai-migrations --ai-surfaces` drafts the move of legacy Completions and Assistants calls to Responses with AI, in GitHub Actions only, under deterministic guards and the gates in `docs/AI-MIGRATIONS.md`; unit tests use a mocked model, and no measurement has run. The `@anthropic-ai/sdk` 1.x upgrade does not remove `temperature`, `top_p` or `top_k` (decision A): such repositories work on 0.x and 2023-06-01, so they are reported as "SDK upgrade available, not required (would change outputs)", neither failures nor hidden; the removal exists behind `--remove-sampling` and a quoted Anthropic sunset notice, which no table has yet. The Gemini swap replaces a retired model with the registry's quoted replacement and stops where none is named.
 
 ## October 29 checkpoint: Gemini SDK swap (unreleased, after 0.39.0)
 

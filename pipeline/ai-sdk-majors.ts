@@ -25,6 +25,10 @@ export interface SdkMajorStop {
   // new major rejects), so no patch is proposed at all: a partial upgrade is a wrong fix. A
   // non-blocking stop runs on the new SDK and is listed for review in the draft.
   blocking: boolean;
+  // `optional-upgrade`: the code works on its current SDK and API version, and the upgrade would
+  // change its outputs with nothing forcing it (decision A, 2026-10-29). Reported as "SDK upgrade
+  // available, not required", never as a failure.
+  category?: 'optional-upgrade';
 }
 
 export interface SdkMajorProposal {
@@ -147,6 +151,9 @@ interface Context {
   surface?: { version: string; methods: Set<string> };
   // Model deadlines (data/deadlines.json), so a migrated call that keeps a retired model says so.
   models?: { entries: DeadlineEntry[]; now: Date };
+  // Off by default (decision A): remove sampling parameters with the Anthropic upgrade, which also
+  // needs a quoted sunset notice in the rule table.
+  removeSampling?: boolean;
 }
 
 const SURFACE_RULE = 'sdk-surface';
@@ -214,6 +221,7 @@ function stop(
   rule: string,
   reason: string,
   blocking = true,
+  category?: SdkMajorStop['category'],
 ) {
   if (context.rules.has(rule)) context.used.add(rule);
   if (
@@ -221,7 +229,7 @@ function stop(
       (item) => item.file === file && item.line === line && item.reason === reason,
     )
   )
-    context.stops.push({ file, line, rule, reason, blocking });
+    context.stops.push({ file, line, rule, reason, blocking, ...(category ? { category } : {}) });
 }
 
 // `error.response` read only where it exists: `error.response?.x`, or inside `if (error.response)`
@@ -1315,6 +1323,8 @@ export function installedRelease(repository: Repository) {
 export async function proposeOpenAiSdkMajor(
   directory: string,
   tables: AiRuleTable[],
+  _models?: unknown,
+  _options?: unknown,
 ): Promise<SdkMajorProposal | null> {
   const rules = rulesOf(tables, 'openai', 'sdk-major');
   const target = rules.find((rule) => rule.family === 'package-target');
@@ -1598,6 +1608,8 @@ function anthropicClients(context: Context, file: string, source: ts.SourceFile)
 export async function proposeAnthropicSdkMajor(
   directory: string,
   tables: AiRuleTable[],
+  _models?: unknown,
+  options: { removeSampling?: boolean } = {},
 ): Promise<SdkMajorProposal | null> {
   const rules = rulesOf(tables, 'anthropic', 'sdk-major');
   const target = rules.find((rule) => rule.family === 'package-target');
@@ -1616,6 +1628,7 @@ export async function proposeAnthropicSdkMajor(
     stops: [],
     calls: [],
     surface: loadSurface(target),
+    removeSampling: options.removeSampling,
   };
   const [minor, patch] = (installed ?? '').split('.').slice(1).map(Number);
   const [, oldestMinor, oldestPatch] = String(target.data.oldestRelease).split('.').map(Number);
@@ -1680,13 +1693,28 @@ export async function proposeAnthropicSdkMajor(
             'The request body spreads a value Refit cannot read, so it cannot show the request sends none of temperature, top_p or top_k, which 2026-10-21 rejects.',
           );
         else if ((sampling.data.parameters as string[]).some((name) => keys.has(name))) {
-          // The 2026-10-21 guide: "Remove the three parameters from your requests." Applied where
-          // every one is written in this call's own literal (or a literal branch of a spread).
+          // Decision A (2026-10-29): the code works on 0.x and 2023-06-01, so by default the upgrade
+          // is optional and not proposed. The guide's removal ("Remove the three parameters from
+          // your requests.") applies only with `removeSampling`, and only once the table quotes an
+          // Anthropic sunset notice for 0.x or 2023-06-01 (a `sdk-sunset` rule).
           const remove = context.rules.get(SAMPLING_REMOVE);
+          const sunset = [...context.rules.values()].find((rule) => rule.family === 'sdk-sunset');
           const found = literalProperties(body)!.properties.filter((property) =>
             (sampling.data.parameters as string[]).includes(literalKey(property) ?? ''),
           );
-          if (!remove) stop(context, file.path, line, sampling.rule, sampling.summary);
+          const sent = found
+            .map((property) => `\`${property.getText(source).replace(/\s+/g, ' ')}\``)
+            .join(', ');
+          if (!remove || !sunset || !context.removeSampling)
+            stop(
+              context,
+              file.path,
+              line,
+              sampling.rule,
+              `SDK upgrade available, not required (would change outputs): the request sends ${sent}, which API version 2026-10-21 rejects. It works today on the current SDK and 2023-06-01, and Anthropic has published no end date for them, so Refit leaves it there.`,
+              true,
+              'optional-upgrade',
+            );
           else {
             for (const property of found) {
               const range = propertyRange(property, file.content);
@@ -1697,7 +1725,7 @@ export async function proposeAnthropicSdkMajor(
               file.path,
               line,
               remove.rule,
-              `Removed ${found.map((property) => `\`${property.getText(source).replace(/\s+/g, ' ')}\``).join(', ')}: API version 2026-10-21 rejects them. ${remove.summary}`,
+              `Outputs may differ: removed ${sent}, which API version 2026-10-21 rejects (${sunset.summary}). ${remove.summary}`,
               false,
             );
           }
@@ -1814,6 +1842,7 @@ export async function proposeGeminiSdkSwap(
   directory: string,
   tables: AiRuleTable[],
   models?: { entries: DeadlineEntry[]; now: Date },
+  _options?: unknown,
 ): Promise<SdkMajorProposal | null> {
   const rules = rulesOf(tables, 'gemini', 'sdk-major');
   const target = rules.find((rule) => rule.family === 'gemini-swap-target');
@@ -2343,6 +2372,8 @@ function geminiFile(
 }
 
 const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
+const GEMINI_NOT_TEXT =
+  /(?:^|[-/])(?:image|imagen|tts|audio|native-audio|live|video|veo|embedding|embed)(?:$|[-.])/;
 
 function geminiDeadline(context: Context, model: string) {
   const id = model.replace(/^models\//, '');
@@ -2378,6 +2409,13 @@ function geminiModel(
   if (!literal) return original;
   let entry = geminiDeadline(context, literal.text);
   if (!entry) return original;
+  // Image, speech, audio, live, video and embedding models are never swapped for another model
+  // (the same stop set as the model-retirement rule's GEMINI_NOT_TEXT).
+  if (GEMINI_NOT_TEXT.test(literal.text) && isRetired(context, entry))
+    return {
+      reason: `\`${literal.getText(source)}\` is not a text model and was retired on ${entry.date}; Refit never swaps image, speech, audio, live, video or embedding models.`,
+    };
+  if (GEMINI_NOT_TEXT.test(literal.text)) return original;
   if (!isRetired(context, entry)) {
     stop(
       context,

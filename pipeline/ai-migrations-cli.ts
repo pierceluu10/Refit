@@ -59,6 +59,7 @@ const { values } = parseArgs({
     review: { type: 'boolean' },
     validate: { type: 'boolean' },
     'ai-surfaces': { type: 'boolean' },
+    'remove-sampling': { type: 'boolean' },
     check: { type: 'string' },
     kind: { type: 'string', multiple: true },
     run: { type: 'string' },
@@ -161,6 +162,7 @@ try {
           repository: root,
           tables: await loadAiRuleTables(),
           packageName: values.package,
+          removeSampling: values['remove-sampling'],
           checks: {
             image: values.image!,
             command,
@@ -249,6 +251,7 @@ try {
           image: values.image!,
           before: new Date().toISOString(),
           packageName: values.package,
+          removeSampling: values['remove-sampling'],
         });
     if (values.output && proposal?.patch) await writeFile(values.output, proposal.patch);
     if (values.json) console.log(JSON.stringify(proposal, null, 2));

@@ -437,8 +437,7 @@ export interface Stored extends Anthropic.MessageParam { id: string }
       },
       { '@anthropic-ai/vertex-sdk': '^0.14.0' },
     );
-    // The literal temperature on a traced call is removed (non-blocking); the opaque body and the
-    // untraced call with top_k still block.
+    // Every stop blocks; the opaque body and the untraced call with top_k are not categorized.
     expect(
       [...new Set(proposal.stops.filter((item) => item.blocking).map((item) => item.rule))].sort(),
     ).toEqual([
@@ -448,9 +447,8 @@ export interface Stored extends Anthropic.MessageParam { id: string }
       'anthropic-ts-one-credential',
       'anthropic-ts-text-completions-removed',
     ]);
-    expect(proposal.stops.filter((item) => !item.blocking).map((item) => item.rule)).toEqual([
-      'anthropic-2026-10-21-sampling-remove',
-    ]);
+    // The literal temperature is an optional-upgrade stop: decision A keeps it on 0.x.
+    expect(proposal.stops.filter((item) => item.category === 'optional-upgrade')).toHaveLength(1);
     expect(proposal.stops.filter((item) => item.file === 'b.js')).toHaveLength(1);
   });
 
@@ -464,13 +462,13 @@ export const old = () => client.beta.tools.messages.create({ model: 'm', max_tok
 `,
     });
     expect(proposal.stops.map((item) => [item.line, item.rule])).toEqual([
-      [4, 'anthropic-2026-10-21-sampling-remove'],
+      [4, 'anthropic-2026-10-21-sampling'],
       [5, 'sdk-surface'],
     ]);
     expect(proposal.stops[1].reason).toContain('does not exist in @anthropic-ai/sdk 1.3.0');
   });
 
-  it('removes literal sampling parameters with the upgrade, as the 2026-10-21 guide says', async () => {
+  describe('sampling parameters (decision A)', () => {
     const source = `import Anthropic from '@anthropic-ai/sdk';
 const client = new Anthropic();
 export const ask = (t: number) =>
@@ -484,12 +482,53 @@ export const ask = (t: number) =>
 export const inline = () => client.messages.create({ model: 'm', max_tokens: 1, top_p: 0.9, messages: [] });
 export const last = () => client.messages.create({ model: 'm', max_tokens: 1, messages: [], temperature: 0 });
 `;
-    const proposal = await anthropic('0.79.0', { 'a.ts': source });
-    expect(proposal.stops.every((item) => !item.blocking)).toBe(true);
-    expect(proposal.stops[0].reason).toContain('Removed `temperature: t`, `top_k: 5`');
-    expect(proposal.stops[0].reason).toContain('answers can be more or less varied');
-    expect(applySourceEdits(source, proposal.edits))
-      .toBe(`import Anthropic from '@anthropic-ai/sdk';
+    async function run(options: { removeSampling?: boolean; sunset?: boolean }) {
+      const root = await mkdtemp(join(tmpdir(), 'refit-ai-sdk-majors-'));
+      roots.push(root);
+      await writeFile(
+        join(root, 'package.json'),
+        JSON.stringify({ dependencies: { '@anthropic-ai/sdk': '^0.79.0' } }),
+      );
+      await writeFile(join(root, 'a.ts'), source);
+      const tables = await loadAiRuleTables();
+      if (options.sunset)
+        for (const table of tables)
+          if (table.provider === 'anthropic' && table.kind === 'sdk-major')
+            table.rules.push({
+              ...table.rules[0],
+              rule: 'anthropic-sunset-test',
+              family: 'sdk-sunset',
+              summary: 'Anthropic ends 2023-06-01 on a quoted date',
+            });
+      return (await proposeAnthropicSdkMajor(root, tables, undefined, {
+        removeSampling: options.removeSampling,
+      }))!;
+    }
+
+    it('leaves requests that send them on the current SDK, as an optional upgrade', async () => {
+      const proposal = await run({});
+      expect(proposal.edits).toEqual([]);
+      expect(proposal.stops.map((item) => [item.line, item.category, item.blocking])).toEqual([
+        [4, 'optional-upgrade', true],
+        [11, 'optional-upgrade', true],
+        [12, 'optional-upgrade', true],
+      ]);
+      expect(proposal.stops[0].reason).toContain(
+        'SDK upgrade available, not required (would change outputs)',
+      );
+      expect(proposal.stops[0].reason).toContain('`temperature: t`, `top_k: 5`');
+    });
+
+    it('needs both the flag and a quoted sunset notice to remove them', async () => {
+      expect((await run({ removeSampling: true })).edits).toEqual([]);
+      expect((await run({ sunset: true })).edits).toEqual([]);
+      const proposal = await run({ removeSampling: true, sunset: true });
+      expect(proposal.stops.every((item) => !item.blocking)).toBe(true);
+      expect(proposal.stops[0].reason).toContain(
+        'Outputs may differ: removed `temperature: t`, `top_k: 5`',
+      );
+      expect(applySourceEdits(source, proposal.edits))
+        .toBe(`import Anthropic from '@anthropic-ai/sdk';
 const client = new Anthropic();
 export const ask = (t: number) =>
   client.messages.create({
@@ -500,6 +539,7 @@ export const ask = (t: number) =>
 export const inline = () => client.messages.create({ model: 'm', max_tokens: 1, messages: [] });
 export const last = () => client.messages.create({ model: 'm', max_tokens: 1, messages: [] });
 `);
+    });
   });
 
   it('stops on X-Api-Key only where the SDK sends it', async () => {
@@ -697,6 +737,22 @@ module.exports = { ask };
       expect(note.reason).toContain('was retired on 2025-02-15');
       expect(note.reason).toContain('(via gemini-1.5-flash)');
       expect(note.reason).toContain('check their quality');
+    });
+
+    it('never swaps a retired image, speech or embedding model', async () => {
+      models.entries.push(
+        entry('gemini-2.0-flash-preview-image-generation', '2025-11-01', 'gemini-2.5-flash-image'),
+      );
+      const { proposal } = await swap({
+        'a.ts': `${header}const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-preview-image-generation" });\nexport const f = async () => (await model.generateContent("x")).response.text();\n`,
+      });
+      expect(proposal.stops[0]).toEqual(
+        expect.objectContaining({
+          blocking: true,
+          reason: expect.stringContaining('not a text model'),
+        }),
+      );
+      models.entries.pop();
     });
 
     it('replaces a model const where it is written', async () => {

@@ -41,7 +41,12 @@ import { validateSourcePatch } from './validation.ts';
 
 const execute = promisify(execFile);
 
+export const OPTIONAL_UPGRADE = 'SDK upgrade available, not required (would change outputs)';
+
 export interface AiMigrationProposal extends SdkMajorProposal {
+  // Every blocking stop is an optional-upgrade stop: the code works as it is, and the upgrade
+  // would change its outputs (decision A). Reported as its own category, not as a failure.
+  optionalUpgrade?: boolean;
   upgrade: PackageUpgrade | null;
   // Why the package could not be moved; the code edits are then never proposed alone.
   upgradeRefusal: string | null;
@@ -58,9 +63,13 @@ export async function proposeAiMigrations(
     release?: string;
     // One SDK per draft; without it the first SDK below its target major, OpenAI first.
     packageName?: string;
+    // Off by default (decision A): see proposeAnthropicSdkMajor.
+    removeSampling?: boolean;
   },
 ): Promise<AiMigrationProposal | null> {
-  const proposal = await proposeSdkMajor(directory, tables, options.packageName);
+  const proposal = await proposeSdkMajor(directory, tables, options.packageName, {
+    removeSampling: options.removeSampling,
+  });
   if (!proposal) return null;
   // Sites of the same provider that fail today for another reason (a shut-down API or beta) are
   // listed in the draft too, so an SDK upgrade never reads as making those calls work.
@@ -78,6 +87,14 @@ export async function proposeAiMigrations(
         blocking: false,
       });
   const blocking = proposal.stops.filter((item) => item.blocking);
+  if (blocking.length && blocking.every((item) => item.category === 'optional-upgrade'))
+    return {
+      ...proposal,
+      optionalUpgrade: true,
+      upgrade: null,
+      upgradeRefusal: `${OPTIONAL_UPGRADE}: ${blocking.length} request${blocking.length === 1 ? '' : 's'} send sampling parameters that ${proposal.packageName} ${proposal.targetMajor} rejects; the code works on its current SDK.`,
+      patch: null,
+    };
   if (blocking.length)
     return {
       ...proposal,
@@ -108,6 +125,7 @@ export async function proposeSdkMajor(
   directory: string,
   tables: AiRuleTable[],
   packageName?: string,
+  options: { removeSampling?: boolean } = {},
 ) {
   const proposers = [
     ['openai', proposeOpenAiSdkMajor],
@@ -122,6 +140,7 @@ export async function proposeSdkMajor(
       directory,
       tables,
       registry && { entries: registry.deadlines, now },
+      options,
     );
     if (proposal) return proposal;
   }
@@ -271,6 +290,7 @@ export function aiMigrationMessage(
 
 export type AiMigrationStatus =
   | 'no-change'
+  | 'upgrade-optional'
   | 'needs-review'
   | 'validation-failed'
   | 'validated'
@@ -286,6 +306,7 @@ export async function runAiMigrations(options: {
   publication?: ReturnType<typeof publicationConfiguration>;
   resolve?: Resolve;
   packageName?: string;
+  removeSampling?: boolean;
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
 }) {
@@ -303,6 +324,7 @@ export async function runAiMigrations(options: {
         before,
         resolve: options.resolve,
         packageName: options.packageName,
+        removeSampling: options.removeSampling,
       });
       return proposal?.patch ?? null;
     },
@@ -322,7 +344,9 @@ export async function runAiMigrations(options: {
   });
   if (!found) return result('no-change', 'No AI SDK below its target major.');
   if (validation.status === 'no-patch')
-    return result('needs-review', `No patch: ${found.upgradeRefusal}`);
+    return found.optionalUpgrade
+      ? result('upgrade-optional', found.upgradeRefusal ?? OPTIONAL_UPGRADE)
+      : result('needs-review', `No patch: ${found.upgradeRefusal}`);
   if (validation.status !== 'passed')
     return result(
       'validation-failed',
