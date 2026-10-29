@@ -101,6 +101,16 @@ describe('modelAlerts', () => {
     expect(alerts[0].reason).toContain('Refit does not edit configuration');
   });
 
+  it('skips catalog files that name three or more models', async () => {
+    const root = await repository({
+      'models.json':
+        '[\n  { "id": "gpt-4o-2024-08-06" },\n  { "id": "gpt-6-luna" },\n  { "id": "claude-sonnet-5-5" }\n]\n',
+      'pricing.ts':
+        "export const P = { 'text-embedding-004': 1, 'gemini-embedding-2': 2, 'gpt-6-luna': 3 };",
+    });
+    expect((await modelAlerts(root, registry, NOW)).alerts).toEqual([]);
+  });
+
   it('skips build output and dependencies', async () => {
     const root = await repository({
       'node_modules/x/index.js': "const m = 'text-embedding-004';",
