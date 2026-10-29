@@ -23,6 +23,7 @@ const SECRET_VARIABLES = [
   'REFIT_SERVICE_TOKEN',
   'REFIT_DATABASE_URL',
   'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
   'REFIT_SLACK_WEBHOOK_URL',
 ];
 // Credentials that may reach a log line without passing through the environment.
