@@ -1,7 +1,13 @@
-import { writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { proposeAiMigrations, proposeSdkMajor, type AiMigrationProposal } from './ai-migrations.ts';
+import {
+  proposeAiMigrations,
+  proposeSdkMajor,
+  runAiMigrations,
+  type AiMigrationProposal,
+} from './ai-migrations.ts';
 import { proveRequests, type ProofProvider } from './ai-request-proof.ts';
 import { findReviewSites } from './ai-review-sites.ts';
 import { AI_RULE_KINDS, checkAiRuleTables, loadAiRuleTables, type AiRuleKind } from './ai-rules.ts';
@@ -15,6 +21,7 @@ import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit ai-migrations --check-rules [--live] [--json]
        refit ai-migrations [--repository <root>] [--package <openai|@anthropic-ai/sdk>] [--edits-only] [--output <patch>] [--json]
+       refit ai-migrations --validate [--repository <root>] [--package <name>] [--check <command>] [--image <image>] [--json]
        refit ai-migrations --review [--repository <root>] [--kind <api-surface|response-format|beta-feature|sdk-major>]... [--json]
        refit ai-migrations --prove-table --sdk-directory <dir> --releases <name@version,...> --run <url> --output <path>
        refit ai-migrations --prove --provider <openai|anthropic> --calls <call>[,<call>...] [--stream] [--tools] [--json-output] [--sdk-directory <dir>] [--json]`;
@@ -47,6 +54,8 @@ const { values } = parseArgs({
     prove: { type: 'boolean' },
     'prove-table': { type: 'boolean' },
     review: { type: 'boolean' },
+    validate: { type: 'boolean' },
+    check: { type: 'string' },
     kind: { type: 'string', multiple: true },
     run: { type: 'string' },
     releases: { type: 'string' },
@@ -99,6 +108,39 @@ try {
         console.log(`  ${problem.table} ${problem.rule}: ${terminalText(problem.problem)}`);
     }
     process.exitCode = problems.length ? 1 : 0;
+  } else if (values.validate) {
+    // Benchmarks: the proposal validated with the repository's own checks before and after, in
+    // offline Docker, with nothing published. `--check` names the command; otherwise `npm test`
+    // when the repository has a real test script, else `npm run build`.
+    const root = resolve(values.repository!);
+    const scripts = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).scripts ?? {};
+    const command = values.check
+      ? values.check.split(/\s+/).filter(Boolean)
+      : typeof scripts.test === 'string' && !/no test specified/.test(scripts.test)
+        ? ['npm', 'test']
+        : typeof scripts.build === 'string'
+          ? ['npm', 'run', 'build']
+          : undefined;
+    const result = command
+      ? await runAiMigrations({
+          repository: root,
+          tables: await loadAiRuleTables(),
+          packageName: values.package,
+          checks: {
+            image: values.image!,
+            command,
+            prepareDependencies: ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some((name) =>
+              existsSync(join(root, name)),
+            ),
+          },
+          onProgress: (message) => console.error(`  ${message}`),
+        })
+      : { status: 'no-checks', reason: 'No --check, test or build script.' };
+    console.log(
+      values.json
+        ? JSON.stringify(result, null, 2)
+        : `${result.status}: ${terminalText(result.reason)}`,
+    );
   } else if (values.review) {
     const kinds = (values.kind ?? AI_RULE_KINDS) as AiRuleKind[];
     if (kinds.some((kind) => !AI_RULE_KINDS.includes(kind))) throw new PipelineInputError(USAGE);
