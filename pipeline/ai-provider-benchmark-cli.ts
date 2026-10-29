@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 import { checkoutError, json, startRun } from '../scripts/benchmark-harness.mjs';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
+import { repositoryChecks } from './check-gate.ts';
 import { runModelFixes } from './model-fixes.ts';
 import { DEFAULT_MODEL_PARAMETERS, loadModelParameters } from './model-parameters.ts';
 
@@ -398,15 +399,11 @@ async function main() {
     const manifest = JSON.parse(
       await readFile(join(directory, 'package.json'), 'utf8').catch(() => '{}'),
     );
-    const scripts = manifest.scripts ?? {};
-    const command =
-      typeof scripts.test === 'string' && !/no test specified/.test(scripts.test)
-        ? ['npm', 'test']
-        : typeof scripts.build === 'string'
-          ? ['npm', 'run', 'build']
-          : undefined;
+    // The tests, build and type check as separate checks, decided by the shared gate.
+    const separate = repositoryChecks(directory, manifest);
     return {
-      command,
+      command: separate[0]?.command,
+      checks: separate,
       prepareDependencies: LOCKFILES.some((name) => existsSync(join(directory, name))),
     };
   }
@@ -462,15 +459,16 @@ async function main() {
       const found = await scan(directory);
       let validation: Record<string, unknown> | null = null;
       if (values.validate && found.replacements.length && entry.language !== 'py') {
-        const { command, prepareDependencies } = await checks(directory);
-        if (!command) validation = { status: 'no-checks', reason: 'No test or build script.' };
+        const { command, checks: separate, prepareDependencies } = await checks(directory);
+        if (!command)
+          validation = { status: 'no-checks', reason: 'No test or build script, or type check.' };
         else {
           const result = await runModelFixes({
             repository: directory,
             registry,
             parameters,
             now,
-            checks: { image: values.image!, command, prepareDependencies },
+            checks: { image: values.image!, command, checks: separate, prepareDependencies },
             onProgress: (message) => console.error(`  ${message}`),
           });
           validation = {
