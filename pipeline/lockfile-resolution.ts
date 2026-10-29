@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -159,6 +159,9 @@ export async function resolveNpmLockfile(options: {
   legacyPeerDeps?: boolean;
   manager?: 'npm' | 'pnpm';
   tarballs?: string[];
+  // npm workspaces' package.json files, at their paths: a project with workspaces resolves only
+  // with them (the Shopify app template's `extensions/*`).
+  workspaces?: { path: string; content: string }[];
   image: string;
   signal?: AbortSignal;
 }): Promise<ResolvedLockfile> {
@@ -167,13 +170,25 @@ export async function resolveNpmLockfile(options: {
     throw new PipelineInputError(`Lockfile resolution needs a date; ${options.before} is not one.`);
   const manifest = parseJson(options.manifest);
   if (!isObject(manifest)) throw new PipelineInputError('package.json is not an object.');
-  if (manager === 'npm' && manifest.workspaces !== undefined)
+  if (manager === 'npm' && manifest.workspaces !== undefined && !options.workspaces)
     throw new PipelineInputError('Refit resolves lockfiles only for projects without workspaces.');
+  for (const workspace of options.workspaces ?? [])
+    if (
+      !/^(?:[\w@.-]+\/)*package\.json$/.test(workspace.path) ||
+      workspace.path.split('/').includes('..')
+    )
+      throw new PipelineInputError(
+        `Workspace manifest path ${workspace.path} is not a relative package.json.`,
+      );
   const input = await mkdtemp(join(tmpdir(), 'refit-lock-input-'));
   const name = `refit-lockfile-${randomUUID()}`;
   try {
     await chmod(input, 0o755);
     await writeFile(join(input, 'package.json'), options.manifest, { mode: 0o644 });
+    for (const workspace of options.workspaces ?? []) {
+      await mkdir(join(input, workspace.path, '..'), { recursive: true, mode: 0o755 });
+      await writeFile(join(input, workspace.path), workspace.content, { mode: 0o644 });
+    }
     if (options.seed !== undefined)
       await writeFile(
         join(input, manager === 'pnpm' ? PNPM_LOCKFILE : 'package-lock.json'),

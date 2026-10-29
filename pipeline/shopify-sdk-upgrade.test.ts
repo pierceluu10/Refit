@@ -674,7 +674,10 @@ it('lets npm re-resolve framework packages an SDK major needs, and keeps nothing
       primary: REMIX,
       to: '4.1.1',
       apiRelease: '12.3.0',
-      resolved: { before: '2026-01-01T00:00:00Z', frameworks: [`${RUNTIME} 2.15.2 → 2.17.3`] },
+      resolved: {
+        before: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        frameworks: [`${RUNTIME} 2.15.2 → 2.17.3`],
+      },
     },
   });
   expect(resolution.calls.at(-1)?.manifest).toContain(`"${REMIX}": "^4.1.1"`);

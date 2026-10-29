@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { readCommittedRepository } from './committed-repository.ts';
 import { chosenLockfile, legacyPeerDeps } from './dependency-inputs.ts';
 import { changesOutside, resolveNpmLockfile } from './lockfile-resolution.ts';
@@ -565,6 +565,40 @@ async function resolvePlan(
   return blockers.size ? { blockers: [...blockers.values()] } : { plan };
 }
 
+// The package.json of every npm workspace a pattern names: exact paths and `dir/*`, as the Shopify
+// app template declares (`extensions/*`). Other glob forms name none.
+async function workspaceManifests(root: string, declared: unknown) {
+  const patterns = Array.isArray(declared)
+    ? declared
+    : isObject(declared) && Array.isArray(declared.packages)
+      ? declared.packages
+      : [];
+  const found: { path: string; content: string }[] = [];
+  for (const pattern of patterns.filter((entry): entry is string => typeof entry === 'string')) {
+    const directories = pattern.endsWith('/*')
+      ? (await readdir(join(root, pattern.slice(0, -2)), { withFileTypes: true }).catch(() => []))
+          .filter((entry) => entry.isDirectory())
+          .map((entry) => `${pattern.slice(0, -2)}/${entry.name}`)
+      : /^[\w@.\/-]+$/.test(pattern)
+        ? [pattern]
+        : [];
+    for (const directory of directories) {
+      const path = `${directory.replace(/\/$/, '')}/package.json`;
+      const content = await readFile(join(root, path), 'utf8').catch(() => undefined);
+      if (content !== undefined) found.push({ path, content });
+    }
+  }
+  return found;
+}
+
+// Without a lockfile, a declaration like `^6.2.1` installs the newest release of its range: it fits
+// a peer range when it admits the peer range's lowest version.
+function installable(entry: unknown, peer: string) {
+  const range = isObject(entry) && typeof entry.range === 'string' ? entry.range : undefined;
+  const lowest = /\d+\.\d+\.\d+/.exec(peer)?.[0];
+  return Boolean(range && lowest && satisfies(lowest, range) === true);
+}
+
 // True when an SDK range installs `since` or a later release of its major: it admits `since`, or its
 // lowest version is in that major and not older.
 function installsSince(range: string | undefined, since: Triple) {
@@ -638,9 +672,22 @@ async function declaredUpgrade(
         [...Object.entries(release.dependencies), ...Object.entries(release.peers)].every(
           ([dependency, range]) =>
             !chosen.has(dependency) || satisfies(chosen.get(dependency)!.version, range) === true,
+        ) &&
+        // Peers outside the Shopify and framework packages (prisma) must take what is locked.
+        Object.entries(release.peers).every(
+          ([dependency, range]) =>
+            SDK_FAMILY.test(dependency) ||
+            FRAMEWORK.test(dependency) ||
+            release.optionalPeers.has(dependency) ||
+            rootVersion(packages, dependency) === undefined ||
+            satisfies(rootVersion(packages, dependency)!, range) === true ||
+            installable(packages[`node_modules/${dependency}`], range),
         ),
     );
-    if (!fits) return { reason: `No ${name} release works with ${primary} ${target.version}.` };
+    if (!fits)
+      return {
+        reason: `No ${name} release works with ${primary} ${target.version} and the packages the lockfile has (such as its peers' versions).`,
+      };
     chosen.set(name, fits);
   }
   const crossed = unruledMajors(chosen, packages);
@@ -725,12 +772,18 @@ async function resolvedUpgrade(
   const declaration = await declaredUpgrade(files, primary, major, since, lookup);
   if ('reason' in declaration) return declaration;
   const { manifestText } = declaration;
+  const asOf = new Date().toISOString();
   let resolved;
   try {
     resolved = await resolveNpmLockfile({
       manifest: manifestText,
+      ...(files.manifest.workspaces !== undefined
+        ? { workspaces: await workspaceManifests(root, files.manifest.workspaces) }
+        : {}),
       seed: lockText,
-      before: resolution.before,
+      // As of now: the target releases are newer than the commit, and the committed lockfile seeds
+      // the resolution, so only packages the upgrade newly needs take today's versions.
+      before: asOf,
       legacyPeerDeps: legacyPeerDeps(npmrc),
       image: resolution.image,
     });
@@ -789,7 +842,7 @@ async function resolvedUpgrade(
       packages: changes,
       removed: [],
       resolved: {
-        before: resolution.before,
+        before: asOf,
         legacyPeerDeps: resolved.legacyPeerDeps === true,
         frameworks: changes
           .filter((change) => FRAMEWORK.test(change.name))
@@ -934,7 +987,7 @@ async function readLockFiles(root: string): Promise<LockFiles | Refusal> {
       if (isObject(manifest[section]))
         for (const [name, spec] of Object.entries(manifest[section])) {
           const lowest = typeof spec === 'string' ? /\d+\.\d+\.\d+/.exec(spec)?.[0] : undefined;
-          if (lowest) packages[`node_modules/${name}`] = { version: lowest };
+          if (lowest) packages[`node_modules/${name}`] = { version: lowest, range: spec };
         }
     return {
       manifestText,
