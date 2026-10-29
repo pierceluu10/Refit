@@ -53,6 +53,7 @@ import {
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { digest, isObject } from './specifications.ts';
 import { proposeRestRule } from './shopify-rest-ai.ts';
+import { proveShopifyRest } from './shopify-rest-contract.ts';
 import {
   loadShopifyRestContract,
   loadShopifyRestRefusals,
@@ -893,9 +894,14 @@ async function shopifyRun(options: ShopifyRunOptions) {
     );
   }
   const sdkRelease = await lockedShopifyApi(repository.root);
+  // REST calls the versioned REST contract proves stay REST and move with the version; only the
+  // others are rewritten as GraphQL or stop.
+  const restProofs = proveShopifyRest(repository, scan, versions);
+  const restProven = restProofs.filter((item) => item.proof.status === 'proven');
+  const restProof = new Map(restProofs.map((item) => [item.entry, item.proof]));
   const restRun = await shopifyRestRewrites(
     repository,
-    scan,
+    { rest: scan.rest.filter((entry) => restProof.get(entry)?.status !== 'proven') },
     [
       { version: versions.before, schema: before },
       { version: versions.after, schema: after },
@@ -941,8 +947,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
         expression: restLabel(entry),
         confidence: 'review',
         reason: `REST Admin API usage Refit did not rewrite: ${result.reason}`,
-        contractReview:
-          'The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.',
+        contractReview: `Refit cannot prove this REST Admin call against the ${versions.before} and ${versions.after} REST contracts (docs/SHOPIFY-REST.md): ${(restProof.get(entry) as { reason?: string } | undefined)?.reason ?? result.reason}`,
       });
   }
   const member = enumFromVersion(versions.after);
@@ -1084,6 +1089,11 @@ async function shopifyRun(options: ShopifyRunOptions) {
               ...evidence,
               warnings: [
                 ...restRewriteNotes(restRewrites),
+                ...(restProven.length
+                  ? [
+                      `${restProven.length} REST Admin call${restProven.length === 1 ? '' : 's'} stay REST: every endpoint, parameter, body key and response field ${restProven.length === 1 ? 'it uses' : 'they use'} is in the ${versions.before} REST contract and unchanged in ${versions.after} (Shopify's generated REST resources and REST reference, data/shopify-rest-contract.json): ${restProven.map((item) => `${item.entry.file}:${item.entry.line}`).join(', ')}.`,
+                    ]
+                  : []),
                 ...(upgraded
                   ? [
                       upgraded.lockless
@@ -1198,6 +1208,11 @@ async function shopifyRun(options: ShopifyRunOptions) {
       webhookApiVersions: webhookVersions,
       ruleEdits: documentEdits.size,
       restRewrites: restRewrites.length,
+      restContract: restProofs.map((item) => ({
+        file: item.entry.file,
+        line: item.entry.line,
+        ...item.proof,
+      })),
       restAi: restRun.proposals.map((proposal) => ({
         file: proposal.file,
         line: proposal.line,

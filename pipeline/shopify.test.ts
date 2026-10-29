@@ -720,7 +720,9 @@ export async function sync(admin, session, shop, id, verb, url) {
   expect(report.patch.status).toBe('not-generated');
   expect(report.patch.reason).toContain('cannot read an Admin API call');
   expect(
-    report.findings.some((finding: any) => finding.contractReview?.includes('REST Admin API')),
+    report.findings.some((finding: any) =>
+      finding.contractReview?.includes('cannot prove this REST Admin call'),
+    ),
   ).toBe(true);
   expect(report.shopify.restCalls[1]).toEqual({
     file: 'app/rest.ts',
@@ -736,10 +738,19 @@ export async function sync(admin, session, shop, id, verb, url) {
       .filter((finding: any) => finding.changeId === 'shopify-rest')
       .map((finding: any) => finding.expression)
       .slice(0, 3),
+  ).toEqual(['shopify.clients.Rest', 'PUT metafields.json (client.put)', 'DELETE (client.delete)']);
+  // Calls with no reads, an empty body or a listed parameter (`status`) are in both REST contracts.
+  expect(
+    report.shopify.restContract
+      .filter((entry: any) => entry.status === 'proven')
+      .map((entry: any) => [entry.line, entry.endpoints]),
   ).toEqual([
-    'GET products/count (admin.rest.get)',
-    'POST products/{id}/metafields (admin.rest.post)',
-    'shopify.clients.Rest',
+    [6, ['GET products/count.json']],
+    [7, ['POST products/<product_id>/metafields.json']],
+    [13, ['GET products.json']],
+    [16, ['GET orders.json']],
+    [17, ['POST orders.json']],
+    [20, ['GET shop.json']],
   ]);
   expect(renderScanResult(report)).toContain(
     'REST        15 REST Admin calls for review, not migrated: GET products/count at app/rest.ts:6, POST products/{id}/metafields at app/rest.ts:7, call at app/rest.ts:8, and 12 more',

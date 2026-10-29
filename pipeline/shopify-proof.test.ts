@@ -196,6 +196,31 @@ it('proves a move for code that sends no Admin request, unless it registers webh
   );
 });
 
+it('counts REST calls only when the versioned REST contract proves each one', () => {
+  const rest = (read: string) =>
+    repository({
+      'app/shop.ts': `export async function shopName(shop, token) {\n  const response = await fetch(\`https://\${shop}/admin/api/2026-10/shop.json\`, { headers: { 'X-Shopify-Access-Token': token } });\n  const body = await response.json();\n  return body.shop.${read};\n}\n`,
+    });
+  const proven = shopifySchemaProof({
+    original: rest('name'),
+    patched: rest('name'),
+    before,
+    after,
+  });
+  expect(proven).toMatchObject({ status: 'proven' });
+  expect(proven.reason).toContain('Every REST Admin call (1)');
+  // `legacy_field` is not in the 2026-01 Shop contract, so nothing proves the read.
+  const unproven = shopifySchemaProof({
+    original: rest('legacy_field'),
+    patched: rest('legacy_field'),
+    before,
+    after,
+  });
+  expect(unproven).toMatchObject({ status: 'unproven' });
+  expect(unproven.reason).toContain('app/shop.ts:2');
+  expect(unproven.reason).toContain('`shop.legacy_field`');
+});
+
 it('leaves a codegen configuration changed only in its version pin to the codegen evidence', () => {
   const config = (pin: string, extra = '') =>
     `import { ApiVersion } from '@shopify/shopify-app-react-router/server';\nimport { shopifyApiProject } from '@shopify/api-codegen-preset';\nexport default { projects: { default: shopifyApiProject({ apiVersion: ${pin}${extra} }) } };\n`;
