@@ -116,6 +116,7 @@ import {
   unavailableTypeCheck,
   ungradedEvidence,
 } from './check-selection.ts';
+import { compareBaselineTests, testOutcomes } from './test-outcomes.ts';
 import {
   behaviourTestSkip,
   writeBehaviourTests,
@@ -3064,6 +3065,9 @@ export async function validateSourcePatch(options: {
   checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   compareTypeErrors?: boolean;
+  // With tests already failing on the original code, compare test by test (test-outcomes.ts):
+  // every test that passed before must pass on the patch, and the rest of the check must pass.
+  compareBaselineTests?: boolean;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -3164,27 +3168,46 @@ export async function validateSourcePatch(options: {
       options.compareTypeErrors,
       advisoryTypeError(options.command),
     );
+    // Failing tests on the original code: the rest of the check must still pass on it.
+    const testsBroken =
+      options.compareBaselineTests &&
+      baseline.status === 'failed' &&
+      Boolean(testOutcomes(baselineRun)?.failed.size) &&
+      compared(withoutFailedTests(baselineRun)).status === 'passed';
     let patched: CheckResult = NOT_RUN;
+    let patchedRun: CheckResult = NOT_RUN;
     let candidateEnvironment: Record<string, unknown> | undefined;
-    if (baseline.status === 'passed') {
+    if (baseline.status === 'passed' || testsBroken) {
       options.signal?.throwIfAborted();
       let candidateDependencies = dependencies;
       if (options.prepareDependencies && packageDiff(diff))
         ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
           await prepareCandidateDependencies(candidateDirectory, root, image, options));
       options.onProgress?.('Running patched checks in offline Docker...');
-      patched = compared(
-        await containerCheck({
-          directory: candidateDirectory,
-          image,
-          command: options.command,
-          dependencies: candidateDependencies,
-          signal: options.signal,
-          ...sandbox,
-        }),
-      );
+      patchedRun = await containerCheck({
+        directory: candidateDirectory,
+        image,
+        command: options.command,
+        dependencies: candidateDependencies,
+        signal: options.signal,
+        ...sandbox,
+      });
+      patched = compared(patchedRun);
     }
-    const status = checkStatus(baseline, patched);
+    let status = checkStatus(baseline, patched);
+    const baselineTests =
+      testsBroken && patched.status !== 'error'
+        ? compareBaselineTests(baselineRun, patchedRun)
+        : undefined;
+    if (baselineTests) {
+      const rest = compared(withoutFailedTests(patchedRun));
+      status =
+        baselineTests.status === 'kept' && rest.status === 'passed'
+          ? 'passed'
+          : baselineTests.status === 'regressed' || rest.status !== 'passed'
+            ? 'regression'
+            : 'baseline-failed';
+    }
     return {
       status,
       revision,
@@ -3200,6 +3223,7 @@ export async function validateSourcePatch(options: {
       baseline,
       patched,
       publicationFiles,
+      ...(baselineTests ? { baselineTests } : {}),
       ...namedBaselineStop(status, baselineRun),
       ...checkFailures(baselineCommand, options.command, baseline, patched),
       limits: validationLimits(sandbox.timeoutMs),
@@ -3207,4 +3231,12 @@ export async function validateSourcePatch(options: {
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+}
+
+// A run with its failed tests set aside, so only the rest of its check decides: in a check chain,
+// without the failed-tests marker; a check that is only tests passes.
+function withoutFailedTests(run: CheckResult): CheckResult {
+  return run.stdout.includes(TESTS_FAILED)
+    ? { ...run, stdout: run.stdout.replace(TESTS_FAILED, '') }
+    : { ...run, status: 'passed', exitCode: 0 };
 }

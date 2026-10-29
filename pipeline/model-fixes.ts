@@ -15,6 +15,7 @@ import {
   NO_OP_REVIEW,
   wrap,
 } from './review.ts';
+import { alreadyFailingNote, type BaselineTests } from './test-outcomes.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // The repository's approved checks, from its enrolled Refit configuration.
@@ -87,6 +88,7 @@ export function modelFixBody(options: {
     compareTypeErrors?: boolean;
     baseline: { status: string; exitCode: number | null; stdout: string; stderr: string };
     patched: { status: string; exitCode: number | null; stdout: string; stderr: string };
+    baselineTests?: BaselineTests;
   };
 }) {
   const { replacements, stops, validation } = options;
@@ -137,6 +139,9 @@ export function modelFixBody(options: {
       '',
       `- Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}`,
       `- Patched ${code(validation.command.join(' '))}: ${validation.patched.status}${existing ? `; the type check ${existing}` : ''}`,
+      ...(validation.baselineTests?.status === 'kept'
+        ? [`- Already failing:${alreadyFailingNote(validation.baselineTests)}`]
+        : []),
       '',
       '## Not Verified',
       '',
@@ -258,6 +263,7 @@ export async function runModelFixes(options: {
   const validation = await validateSourcePatch({
     repository: options.repository,
     ...options.checks,
+    compareBaselineTests: true,
     signal: options.signal,
     onProgress: options.onProgress,
     propose: async (directory) => {

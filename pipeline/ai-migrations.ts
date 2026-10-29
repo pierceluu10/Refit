@@ -33,6 +33,7 @@ import { loadSdkProofTable, storedRequestProof } from './sdk-request-proofs.ts';
 import { digest } from './specifications.ts';
 import type { PackageUpgrade } from './stripe-package-upgrade.ts';
 import { PipelineInputError } from './types.ts';
+import { alreadyFailingNote, type BaselineTests } from './test-outcomes.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // AI provider migrations (SDK majors first): proposes the documented rewrites and the package
@@ -175,6 +176,7 @@ export function aiMigrationBody(options: {
     compareTypeErrors?: boolean;
     baseline: { status: string; exitCode: number | null; stdout: string; stderr: string };
     patched: { status: string; exitCode: number | null; stdout: string; stderr: string };
+    baselineTests?: BaselineTests;
   };
   requestProof: RequestProof;
 }) {
@@ -222,7 +224,7 @@ export function aiMigrationBody(options: {
       ...(proposal.upgrade?.warning ? [proposal.upgrade.warning, ''] : []),
       '## Proof',
       '',
-      `- **(a) Code:** the repository's approved checks ran on ${code(validation.revision.slice(0, 12))} in offline Docker (${code(validation.image)}). Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}. Patched ${code(validation.command.join(' '))}: ${validation.patched.status}${existing ? `; the type check ${existing}` : ''}.`,
+      `- **(a) Code:** the repository's approved checks ran on ${code(validation.revision.slice(0, 12))} in offline Docker (${code(validation.image)}). Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}. Patched ${code(validation.command.join(' '))}: ${validation.patched.status}${existing ? `; the type check ${existing}` : ''}.${alreadyFailingNote(validation.baselineTests)}`,
       `- **(b) Request:** ${requestProof.status === 'accepted' ? `the smallest request for each migrated call was accepted by the provider with Refit's own test key (${requestProof.calls.map((item) => code(item.call)).join(', ')}).` : `${requestProof.status}. ${requestProof.reason}`}`,
       `- **(c) Output shape:** ${requestProof.calls.length ? requestProof.calls.map((item) => `${code(item.call)} ${item.status}: ${item.detail}`).join('; ') : 'not checked, because no request was sent.'}`,
       '',
@@ -317,6 +319,7 @@ export async function runAiMigrations(options: {
   const validation = await validateSourcePatch({
     repository: options.repository,
     ...options.checks,
+    compareBaselineTests: true,
     signal: options.signal,
     onProgress: options.onProgress,
     propose: async (directory) => {
@@ -427,6 +430,7 @@ export async function runAiSurfaceMigrations(options: {
   const validation = await validateSourcePatch({
     repository: options.repository,
     ...options.checks,
+    compareBaselineTests: true,
     onProgress: options.onProgress,
     propose: async (directory) => {
       sdk = await proposeAiMigrations(directory, options.tables, {
