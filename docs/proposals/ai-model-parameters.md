@@ -14,6 +14,15 @@ Status: proposal, 2026-10-29. Nothing here is built or decided. It lists each cl
 3. **Request-proof keys.** Add `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` repository secrets to refit-dev/refit-bench, each with a hard spend cap. Until then every Anthropic and Gemini replacement ships `[Needs review]` with that reason.
 4. **Merge refit-dev/refit-bench#10** so `model-proof.yml` can be dispatched. A dispatch workflow must be on the default branch.
 
+## Pending rules
+
+- **Anthropic SDK 0.x sampling parameters (decision A, main session, 2026-10-29).** The `@anthropic-ai/sdk` 1.x upgrade (ai-surfaces, #407) no longer removes `temperature`, `top_p` and `top_k` by default. Those repositories stay on 0.x and are reported as "SDK upgrade available, not required (would change outputs)". Later, when Anthropic publishes a sunset date for `@anthropic-ai/sdk` 0.x or API version `2023-06-01`:
+  1. Add the date as a quoted `sdk-sunset` rule in `data/rules/anthropic/sdk-majors.json`.
+  2. Run the upgrade with `--remove-sampling`. It removes the parameters written in traced literals.
+  3. Ship the draft `[Needs review]` ("Outputs may differ: removed temperature: X"), and require request-level proof.
+
+  Model retirements keep #403's rewrite, which is keyed by replacement model (Claude 4.7 and later), not API version. Removals from both are keyed by property range, so a merged patch applies each removal once.
+
 ## Changes that stay alert-only, and what would be needed
 
 | Change                                                                                                       | Why it is not fixed                                                                                                                                                                                                                                                        | What Refit would need                                                                                                                                                                                                                                                                                                                                      |
