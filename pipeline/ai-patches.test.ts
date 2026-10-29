@@ -15,7 +15,7 @@ const INPUTS = {
   before: 'pipeline/fixtures/before.json',
   after: 'pipeline/fixtures/after.json',
 };
-const OPTIONS = { apiKey: 'test-key', model: 'test-model' };
+const OPTIONS = { apiKey: 'test-key', model: 'gpt-6.1-sol' };
 const REPLACEMENT = '(await stripe.charges.list({ payment_intent: intent.id })).data';
 
 async function fixture() {

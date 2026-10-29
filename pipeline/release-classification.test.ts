@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readDocumentationSnapshots } from './documentation-sources.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
 import {
@@ -28,7 +28,12 @@ const BASIL = '2025-03-31.basil';
 const PERIODS = 'deprecate-subscription-current-period-start-and-end';
 const OPTIONS = { apiKey: 'test-key', model: 'gpt-5.6-luna' };
 
-afterEach(() => vi.unstubAllGlobals());
+// These tests price a gpt-5.6-luna snapshot on purpose, so they name it as the AI model override.
+beforeEach(() => vi.stubEnv('REFIT_AI_MODEL_OVERRIDE', OPTIONS.model));
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 const releases = readdirSync(join(CHANGELOG, 'catalog')).sort();
 const snapshot = async (release: string, slug: string) =>

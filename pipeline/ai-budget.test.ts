@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   aiBudgetConfiguration,
   aiBudgetLimit,
@@ -44,7 +44,10 @@ function completed(usage: unknown) {
   );
 }
 
+// The pricing tests use gpt-5.4-mini on purpose, so they name it as the AI model override.
+beforeEach(() => vi.stubEnv('REFIT_AI_MODEL_OVERRIDE', MODEL));
 afterEach(async () => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   await Promise.all(roots.splice(0).map((path) => rm(path, { recursive: true, force: true })));
 });

@@ -914,7 +914,7 @@ Two refit-bench runs of `refit classify-release` with `gpt-6.1-sol` over basil, 
 node scripts/stripe-benchmark-setup.mjs --root <dir> --list docs/benchmarks/2026-10-16-stripe-fresh-repos.json
 node scripts/shopify-benchmark-setup.mjs --root <dir> --list docs/benchmarks/2026-10-16-shopify-fresh-repos.json
 git worktree add --detach <worktree> <commit>    # always run from a pinned checkout
-OPENAI_MODEL=gpt-5.6-luna npm run benchmark:stripe -- --root <dir> --output <run> --env .env --ai --validate [--offset N --limit N]
+OPENAI_MODEL=gpt-6.1-sol npm run benchmark:stripe -- --root <dir> --output <run> --env .env --ai --validate [--offset N --limit N]
 npm run benchmark:shopify -- --root <dir> --list <list> --output <run> --validate
 node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.json
 node scripts/aws-benchmark.mjs launch --run <id> --total N --shards K --market on-demand -- '<command with {offset} {limit}>'   # see AWS-BENCHMARKS.md

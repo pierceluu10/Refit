@@ -929,7 +929,7 @@ it('sends only rule-free findings to AI and returns one patch with rule, AI and 
       return new Response(
         JSON.stringify({
           id: 'resp_patch',
-          model: 'test-model',
+          model: 'gpt-6.1-sol',
           status: 'completed',
           output: [
             {
@@ -965,7 +965,7 @@ export async function secret(id: string) {
   return invoice.payment_intent;
 }`,
     true,
-    { apiKey: 'test-key', model: 'test-model' },
+    { apiKey: 'test-key', model: 'gpt-6.1-sol' },
   );
   expect(evidence!.findings.map((finding) => finding.expression)).toEqual(['.payment_intent']);
   expect(report.patch).toMatchObject({ status: 'proposed', edits: 4, unresolvedFindings: 0 });
@@ -1032,7 +1032,7 @@ it('returns the rule patch without calling the model when rules cover every find
     throw new Error('Rules cover every finding; the model must not be called.');
   });
   vi.stubGlobal('fetch', fetch);
-  const report = await run(periodRead, true, { apiKey: 'test-key', model: 'test-model' });
+  const report = await run(periodRead, true, { apiKey: 'test-key', model: 'gpt-6.1-sol' });
   expect(report.patch).toMatchObject({
     status: 'proposed',
     generator: 'deterministic',

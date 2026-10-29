@@ -3,7 +3,7 @@ import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 
-const OPTIONS = { apiKey: 'test-key', model: 'configured-test-model' };
+const OPTIONS = { apiKey: 'test-key', model: 'gpt-6.1-sol' };
 const INPUTS = {
   repository: 'pipeline/fixtures/repository',
   before: 'pipeline/fixtures/before.json',

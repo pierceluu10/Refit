@@ -8,7 +8,7 @@ import { prepareCase, runCaseAttempt } from './ai-eval.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 
-const OPTIONS = { apiKey: 'test-key', model: 'test-model' };
+const OPTIONS = { apiKey: 'test-key', model: 'gpt-6.1-sol' };
 const scratch: string[] = [];
 
 afterEach(async () => {
