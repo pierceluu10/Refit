@@ -2510,6 +2510,21 @@
       "replacement": "gpt-realtime-2.1-mini",
       "source": "https://developers.openai.com/api/docs/deprecations",
       "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "gemini-2025-09-29-gemini-1-5",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-flash"
+      ],
+      "date": "2025-09-29",
+      "summary": "Google shut down gemini-1.5-pro, gemini-1.5-flash-8b and gemini-1.5-flash on the Gemini API (changelog, September 29, 2025); requests to a shut-down model fail. The changelog names no replacement, so Refit never swaps them.",
+      "replacement": null,
+      "source": "https://ai.google.dev/gemini-api/docs/changelog",
+      "checkedAt": "2026-10-29"
     }
   ]
 }
