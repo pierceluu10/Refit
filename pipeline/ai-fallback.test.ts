@@ -10,6 +10,7 @@ import {
   quotedSources,
   resolvesGate,
   runAiFallback,
+  applyAnswerEdits,
   safePath,
   withRegistryTargets,
   scopeGate,
@@ -208,6 +209,63 @@ describe('open items', () => {
       withRegistryTargets([stop], [deadline('anthropic-claude-2', 'Claude Sonnet or Opus')])[0]
         .target,
     ).toBe(null);
+  });
+
+  it("offers every replacement the provider's page names, followed past retired ones", () => {
+    const entry = (
+      id: string,
+      versions: string[],
+      replacement: string | null,
+      date = '2025-01-01',
+    ) => ({
+      id,
+      provider: 'openai' as const,
+      kind: 'model' as const,
+      versions,
+      date,
+      summary: 's',
+      replacement,
+      source: null,
+      checkedAt: '2026-10-29',
+    });
+    const item = { ...openItems(bundle)[0], ref: 'old-image', target: null };
+    const [image] = withRegistryTargets(
+      [item],
+      [entry('old-image', ['dall-e-2'], null), entry('older', ['gpt-image-1'], 'gpt-image-3')],
+      [
+        {
+          id: 'old-image',
+          quotes: {
+            'dall-e-2': '| `dall-e-2` | `gpt-image-2`, `gpt-image-1`, or `gpt-image-1-mini` |',
+          },
+        },
+      ],
+      new Date('2026-10-29'),
+    );
+    expect(image.target).toBe(null);
+    // gpt-image-1 retired too, so its own replacement is offered instead.
+    expect(image.options).toEqual(['gpt-image-1-mini', 'gpt-image-2', 'gpt-image-3']);
+    const [chained] = withRegistryTargets(
+      [{ ...item, ref: 'davinci' }],
+      [
+        entry('davinci', ['text-davinci-003'], 'gpt-3.5-turbo-instruct'),
+        entry('instruct', ['gpt-3.5-turbo-instruct'], 'gpt-5.6-terra', '2026-09-28'),
+      ],
+      [],
+      new Date('2026-10-29'),
+    );
+    expect(chained.target).toBe('gpt-5.6-terra');
+    // A replacement that retires later is still live today.
+    const [later] = withRegistryTargets(
+      [{ ...item, ref: 'davinci' }],
+      [
+        entry('davinci', ['text-davinci-003'], 'gpt-3.5-turbo-instruct'),
+        entry('instruct', ['gpt-3.5-turbo-instruct'], 'gpt-5.6-terra', '2027-09-28'),
+      ],
+      [],
+      new Date('2026-10-29'),
+    );
+    expect(later.target).toBe('gpt-3.5-turbo-instruct');
   });
 
   it('keeps only the row provider', () => {
@@ -444,6 +502,73 @@ describe('gates', () => {
   });
 });
 
+describe('edits', () => {
+  const originals = new Map([['src/ask.ts', LEGACY]]);
+  const answer = (
+    edits: Array<{ path: string; old: string; new: string }>,
+    files: Array<{ path: string; content: string }> = [],
+  ) => ({
+    edits,
+    files,
+    calls: [],
+    notes: [],
+    unresolved: [],
+    patterns: [],
+  });
+
+  it('applies exact snippets in order and keeps new files', () => {
+    const merged = applyAnswerEdits(
+      answer(
+        [
+          { path: 'src/ask.ts', old: "'claude-2.1'", new: "'claude-sonnet-5-5'" },
+          { path: 'src/ask.ts', old: 'completions.create', new: 'messages.create' },
+        ],
+        [{ path: 'src/new.ts', content: 'export {};\n' }],
+      ),
+      originals,
+    );
+    expect('files' in merged && merged.files.map((file) => file.path)).toEqual([
+      'src/new.ts',
+      'src/ask.ts',
+    ]);
+    const ask =
+      'files' in merged ? merged.files.find((file) => file.path === 'src/ask.ts')!.content : '';
+    expect(ask).toContain("client.messages.create({\n    model: 'claude-sonnet-5-5'");
+  });
+
+  it('refuses a snippet that is missing, repeated or empty, an unseen file, or a file edited and returned whole', () => {
+    expect(
+      applyAnswerEdits(answer([{ path: 'src/ask.ts', old: 'nowhere', new: 'x' }]), originals),
+    ).toEqual({
+      error: "An edit's snippet occurs nowhere in src/ask.ts.",
+    });
+    expect(
+      applyAnswerEdits(answer([{ path: 'src/ask.ts', old: 'const ', new: 'let ' }]), originals),
+    ).toEqual({
+      error: "An edit's snippet occurs more than once in src/ask.ts.",
+    });
+    expect(
+      applyAnswerEdits(answer([{ path: 'src/ask.ts', old: '', new: 'x' }]), originals),
+    ).toEqual({
+      error: 'An edit to src/ask.ts has an empty snippet.',
+    });
+    expect(applyAnswerEdits(answer([{ path: 'other.ts', old: 'a', new: 'b' }]), originals)).toEqual(
+      {
+        error: 'An edit targets other.ts, which was not in the input.',
+      },
+    );
+    expect(
+      applyAnswerEdits(
+        answer(
+          [{ path: 'src/ask.ts', old: "'claude-2.1'", new: "'x'" }],
+          [{ path: 'src/ask.ts', content: FIXED }],
+        ),
+        originals,
+      ),
+    ).toEqual({ error: 'src/ask.ts is both edited and returned whole.' });
+  });
+});
+
 describe('checks command', () => {
   it('chains tests, build and type check', () => {
     expect(
@@ -541,6 +666,35 @@ describe('runAiFallback', () => {
     expect(result.patch).toBe('diff for src/ask.ts\n');
     expect(result.ai).toEqual({ model: 'gpt-6.1-sol', responseId: 'resp_1', costUsd: 0.04 });
     expect(result.patterns[0].pattern).toContain('Text Completions');
+  });
+
+  it('validates a fix returned as edits', async () => {
+    const request = (async () => ({
+      status: 'completed',
+      provider: 'openai',
+      model: 'gpt-6.1-sol',
+      responseId: 'resp_2',
+      evidenceHash: 'h',
+      usage: null,
+      budget: { costUsd: 0.02, spentUsd: 0.02, limitUsd: 1 },
+      content: JSON.stringify({
+        edits: [
+          {
+            path: 'src/ask.ts',
+            old: LEGACY.slice(LEGACY.indexOf('export')),
+            new: FIXED.slice(FIXED.indexOf('export')),
+          },
+        ],
+        files: [],
+        calls: [],
+        notes: [],
+        unresolved: [],
+        patterns: [],
+      }),
+    })) as never;
+    const result = await run(request);
+    expect(result.status).toBe('validated');
+    expect(result.calls.map((call) => call.call)).toEqual(['messages.create']);
   });
 
   it('keeps a patch whose checks fail as a suggestion, never a fix', async () => {

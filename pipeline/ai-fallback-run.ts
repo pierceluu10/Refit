@@ -272,7 +272,7 @@ export async function runFallbackOnRepository(options: {
     directory,
     provider,
     language,
-    items: withRegistryTargets(items, context.deadlines),
+    items: withRegistryTargets(items, context.deadlines, context.quotes),
     sources,
     partial,
   });

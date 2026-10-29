@@ -58,6 +58,8 @@ export interface OpenItem {
   reason: string;
   // The registry's replacement model or the SDK's target major, when one is named.
   target: string | null;
+  // Every replacement model the provider's quoted page names, when it offers a choice.
+  options?: string[];
 }
 
 export interface QuotedSource {
@@ -324,15 +326,61 @@ export function fallbackEligible(outcome: string, items: OpenItem[]) {
   return items.length > 0 && !SETTLED.has(outcome);
 }
 
+const NAMED_MODEL =
+  /\b(?:gpt|o\d|chatgpt|dall-e|tts|whisper|text-embedding|omni-moderation|claude|gemini|imagen|veo)(?:-[a-z0-9.]+)*\b/g;
+
 // A model-replacement stop names its deadline, not the model it should become: the registry's
-// replacement is the item's target when the item has none and the entry names one model ID.
-export function withRegistryTargets(items: OpenItem[], deadlines: DeadlineEntry[]): OpenItem[] {
+// replacement is the item's target when the item has none and the entry names one model ID. The
+// options are every model the registry's replacement and the saved deprecation page's row for the
+// entry name, such as "`gpt-image-2`, `gpt-image-1`, or `gpt-image-1-mini`": the provider's own
+// choices, never a model the AI picks.
+export function withRegistryTargets(
+  items: OpenItem[],
+  deadlines: DeadlineEntry[],
+  quotes: Array<{ id: string; quotes: Record<string, string> }> = [],
+  now = new Date(),
+): OpenItem[] {
+  // A named replacement that has retired too is followed to its own replacement, as the
+  // model-replacement rule does; a retired model with none named is never a target.
+  const live = (model: string | null) => {
+    for (let hop = 0; model && hop < 8; hop++) {
+      const entry = deadlines.find(
+        (deadline) =>
+          deadline.kind === 'model' &&
+          deadline.versions.includes(model!) &&
+          Date.parse(`${deadline.date}T00:00:00Z`) <= now.getTime(),
+      );
+      if (!entry) return model;
+      model =
+        entry.replacement && /^[a-z0-9][a-z0-9.:-]*$/.test(entry.replacement)
+          ? entry.replacement
+          : null;
+    }
+    return null;
+  };
   return items.map((item) => {
-    if (item.target) return item;
-    const replacement = deadlines.find((entry) => entry.id === item.ref)?.replacement;
-    return replacement && /^[a-z0-9][a-z0-9.:-]*$/.test(replacement)
-      ? { ...item, target: replacement }
-      : item;
+    const entry = deadlines.find((deadline) => deadline.id === item.ref);
+    if (!entry) return item;
+    const named = new Set<string>();
+    const text = [
+      entry.replacement ?? '',
+      ...Object.values(quotes.find((evidence) => evidence.id === entry.id)?.quotes ?? {}),
+    ].join(' ');
+    for (const match of text.matchAll(NAMED_MODEL))
+      if (!entry.versions.includes(match[0])) {
+        const model = live(match[0]);
+        if (model) named.add(model);
+      }
+    const single = live(
+      entry.replacement && /^[a-z0-9][a-z0-9.:-]*$/.test(entry.replacement)
+        ? entry.replacement
+        : null,
+    );
+    return {
+      ...item,
+      target: item.target ?? single,
+      ...(named.size ? { options: [...named].sort() } : {}),
+    };
   });
 }
 
@@ -382,16 +430,25 @@ export function quotedSources(
 }
 
 export const INSTRUCTIONS = `You fix a repository that Refit, a deterministic API-migration tool, could not fully fix.
-The input lists every open item Refit found ("items"): what changed at the provider, the file, line and code, and why Refit stopped. "sources" quotes the provider's own pages for each change. "targets" names the replacement model or SDK major from Refit's registry. "partial" is the patch Refit itself proposed, if any, and what happened to it. "files" holds the repository files that matter, whole.
-Fix the repository so that every item is resolved and the code still works. Edit whatever the fix needs: any file shown, new files, and dependency versions in the manifest (Refit re-resolves an npm lockfile for you).
-What happens to your patch: Refit installs dependencies from the lockfile, runs the repository's build, type check and tests before and after, rescans the patched code with its own engines, sends the smallest real request with each new call shape and parses the response, and checks the diff for secrets. Only a patch that passes all of it is proposed, and only as a draft a person reviews. A wrong fix is worse than none: when you cannot fix an item with confidence, leave its code as it is and say why in "unresolved".
-Use a model ID only when it is a target or already in the code. Return each changed or new file whole in "files", every provider call you wrote or changed in "calls" (its path such as responses.create, messages.create or models.generateContent, and whether it streams, uses tools or asks for JSON), and a short note per item in "notes". In "patterns", describe for each item, in one sentence with no repository, file or identifier names, the general code pattern that kept Refit from fixing it.`;
+The input lists every open item Refit found ("items"): what changed at the provider, the file, line and code, and why Refit stopped. "sources" quotes the provider's own pages for each change. "targets" lists, per item, the replacement models the provider names and the SDK major from Refit's registry; when the provider names several, pick the one that fits the code. "partial" is the patch Refit itself proposed, if any, and what happened to it. "files" holds the repository files that matter, whole; "omitted" names files that did not fit.
+Fix the repository so that every item is resolved and the code still works. You have full freedom to edit: any file shown, new files, call shapes, response handling, helpers, configuration, and dependency versions in the manifest (Refit re-resolves an npm lockfile for you). Go as far as the fix needs.
+What happens to your patch: Refit installs dependencies from the lockfile, runs the repository's build, type check and tests before and after, rescans the patched code with its own engines, sends the smallest real request with each new call shape and model and parses the response, and checks the diff for secrets and for model IDs: a model ID passes only when it is already in the code or in "targets". A patch that fails a check is shown to a person as a suggestion, so a partial or imperfect attempt still helps; a patch that passes is proposed as a draft a person reviews.
+For an item you could not fix, say what is missing in "unresolved". Return changes as "edits" (an exact snippet of the original file in "old", copied character for character and occurring once, and its replacement in "new") and use "files" only for new files or files you rewrite whole. List every provider call you wrote or changed in "calls" (its path such as responses.create, messages.create or models.generateContent, and whether it streams, uses tools or asks for JSON), and a short note per item in "notes". In "patterns", describe for each item, in one sentence with no repository, file or identifier names, the general code pattern that kept Refit from fixing it.`;
 
 export const SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['files', 'calls', 'notes', 'unresolved', 'patterns'],
+  required: ['edits', 'files', 'calls', 'notes', 'unresolved', 'patterns'],
   properties: {
+    edits: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['path', 'old', 'new'],
+        properties: { path: { type: 'string' }, old: { type: 'string' }, new: { type: 'string' } },
+      },
+    },
     files: {
       type: 'array',
       items: {
@@ -470,9 +527,11 @@ export async function fallbackInput(options: {
     language: options.language,
     items,
     sources: options.sources,
-    targets: items
-      .filter((item) => item.target)
-      .map((item) => ({ item: item.id, target: item.target! })),
+    targets: items.flatMap((item) =>
+      [...new Set([item.target, ...(item.options ?? [])])]
+        .filter((target): target is string => Boolean(target))
+        .map((target) => ({ item: item.id, target })),
+    ),
     partial: options.partial.map((lane) => ({
       ...lane,
       patch: lane.patch && lane.patch.length <= 12 * 1024 ? lane.patch : null,
@@ -516,11 +575,40 @@ export function safePath(path: string) {
 }
 
 export interface AiAnswer {
+  // Exact replacements in files the AI was shown; applied in order.
+  edits?: Array<{ path: string; old: string; new: string }>;
   files: Array<{ path: string; content: string }>;
   calls: ProofCall[];
   notes: string[];
   unresolved: Array<{ item: string; reason: string }>;
   patterns: Array<{ item: string; pattern: string }>;
+}
+
+// The AI's edits applied to the files it was shown, merged with the files it returned whole.
+// An edit whose `old` is not in the file exactly once, or a file both edited and returned whole,
+// is refused: Refit never guesses where a snippet goes.
+export function applyAnswerEdits(
+  answer: AiAnswer,
+  originals: Map<string, string>,
+): { files: AiAnswer['files'] } | { error: string } {
+  const edited = new Map<string, string>();
+  for (const edit of answer.edits ?? []) {
+    const before = edited.get(edit.path) ?? originals.get(edit.path);
+    if (before === undefined)
+      return { error: `An edit targets ${edit.path}, which was not in the input.` };
+    if (!edit.old) return { error: `An edit to ${edit.path} has an empty snippet.` };
+    const at = before.indexOf(edit.old);
+    if (at < 0 || before.indexOf(edit.old, at + 1) >= 0)
+      return {
+        error: `An edit's snippet occurs ${at < 0 ? 'nowhere' : 'more than once'} in ${edit.path}.`,
+      };
+    edited.set(edit.path, before.slice(0, at) + edit.new + before.slice(at + edit.old.length));
+  }
+  for (const file of answer.files)
+    if (edited.has(file.path)) return { error: `${file.path} is both edited and returned whole.` };
+  return {
+    files: [...answer.files, ...[...edited].map(([path, content]) => ({ path, content }))],
+  };
 }
 
 export type GateName = 'output' | 'secrets' | 'scope' | 'resolves' | 'checks' | 'request-proof';
@@ -939,6 +1027,12 @@ export async function runAiFallback(options: {
     ...extra,
   });
   const originals = new Map(input.files.map((file) => [file.path, file.content]));
+  const merged = applyAnswerEdits(parsed, originals);
+  if ('error' in merged) {
+    const gates: Gate[] = [{ gate: 'output', status: 'failed', detail: merged.error }];
+    return result('needs-review', `AI output not kept: ${merged.error}`, { gates });
+  }
+  parsed = { ...parsed, files: merged.files };
   const unseen = new Set<string>();
   for (const file of parsed.files)
     if (!originals.has(file.path) && safePath(file.path) && (await options.exists(file.path)))
