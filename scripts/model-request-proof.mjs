@@ -47,6 +47,17 @@ const TIMEOUT_MS = 90_000;
 const TOKENS = 512;
 const PROMPT = 'Reply with the single word OK.';
 const JSON_PROMPT = 'Return the JSON object {"ok": true} and nothing else.';
+// A strict JSON schema for structured outputs (`response_format: json_schema`, `zodResponseFormat`).
+const SCHEMA = {
+  name: 'ok_result',
+  strict: true,
+  schema: {
+    type: 'object',
+    properties: { ok: { type: 'boolean' } },
+    required: ['ok'],
+    additionalProperties: false,
+  },
+};
 const TOOL = {
   name: 'report_ok',
   description: 'Reports that the request worked.',
@@ -116,6 +127,11 @@ const APIS = {
       response_format: { type: 'json_object' },
     }),
     jsonOk: (body) => jsonObject(body?.choices?.[0]?.message?.content),
+    schema: (model) => ({
+      ...APIS['chat.completions'].base(model, JSON_PROMPT),
+      response_format: { type: 'json_schema', json_schema: SCHEMA },
+    }),
+    schemaOk: (body) => typeof parsed(body?.choices?.[0]?.message?.content ?? '')?.ok === 'boolean',
     tools: (model) => ({
       ...APIS['chat.completions'].base(model),
       tools: [{ type: 'function', function: TOOL }],
@@ -148,6 +164,16 @@ const APIS = {
           ?.flatMap((item) => item.content ?? [])
           .find((part) => part.type === 'output_text')?.text,
       ),
+    schema: (model) => ({
+      ...APIS.responses.base(model, JSON_PROMPT),
+      text: { format: { type: 'json_schema', ...SCHEMA } },
+    }),
+    schemaOk: (body) =>
+      typeof parsed(
+        body?.output
+          ?.flatMap((item) => item.content ?? [])
+          .find((part) => part.type === 'output_text')?.text ?? '',
+      )?.ok === 'boolean',
     tools: (model) => ({
       ...APIS.responses.base(model),
       tools: [{ type: 'function', ...TOOL }],
@@ -235,6 +261,11 @@ async function prove(model, api) {
     const result = await call(spec.json(model));
     if (result.status === 200 && spec.jsonOk(parsed(result.text))) checks.json = 'passed';
     else failed.push(`json (HTTP ${result.status})`);
+  }
+  if (spec.schema) {
+    const result = await call(spec.schema(model));
+    if (result.status === 200 && spec.schemaOk(parsed(result.text))) checks.schema = 'passed';
+    else failed.push(`schema (HTTP ${result.status})`);
   }
   const tools = await call(spec.tools(model));
   if (tools.status === 200 && spec.toolsOk(parsed(tools.text))) checks.tools = 'passed';

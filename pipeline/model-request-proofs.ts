@@ -4,14 +4,14 @@ import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
 // Request-level proof for replacement models: the smallest request each API accepts for a model,
-// sent with Refit's own key from refit-bench Actions (`scripts/model-request-proof.mjs`), never a
+// (JSON output, structured output with a JSON schema, a tool call, a stream), sent with Refit's own key from refit-bench Actions (`scripts/model-request-proof.mjs`), never a
 // customer's. It shows the provider serves the model with those parameter names and that the
 // response parses (JSON output, a tool call, a stream). It never shows the model answers a
 // customer's prompts as well as the retired one did.
 export const DEFAULT_REQUEST_PROOFS = new URL('../data/model-request-proofs.json', import.meta.url);
 export const PROOF_APIS = ['chat.completions', 'responses', 'messages', 'generateContent'] as const;
 export type ProofApi = (typeof PROOF_APIS)[number];
-const CHECKS = ['request', 'json', 'tools', 'stream'] as const;
+const CHECKS = ['request', 'json', 'schema', 'tools', 'stream'] as const;
 const PROVIDERS = new Set(['openai', 'anthropic', 'gemini']);
 const RUN = /^https:\/\/github\.com\/refit-dev\/refit-bench\/actions\/runs\/\d+$/;
 
