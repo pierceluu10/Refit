@@ -124,6 +124,9 @@ function retiredVersions(registry: DeadlineRegistry, now: Date) {
 // change counted against a GET's default fields may not reach the node read, so neither is
 // definite.
 function definiteUse(call: GraphCall, change: MetaGraphChange) {
+  // A changed error code leaves the request valid; whether the code handles that error is not
+  // traced.
+  if (change.kind === 'error-changed') return false;
   if (change.kind.startsWith('field-')) return fieldNames(call.fields ?? []).has(change.name ?? '');
   if (change.path !== null) {
     const segments = change.path.split('/').filter(Boolean);

@@ -597,6 +597,15 @@ describe('version moves with rules and new pins', () => {
       changesUsedBy(read('/{id}/localized_items_batch', 'localized_items_batch'), [catalog]),
     ).toHaveLength(1);
     expect(changesUsedBy(read('/{id}/feed', 'feed'), [catalog])).toEqual([]);
+    const named = { path: '/{id}', edge: null, method: 'GET', fields: ['status'], parameters: [] };
+    expect(
+      changesUsedBy(named as unknown as GraphCall, [
+        field({ name: 'status', node: 'Product Catalog', edge: 'localized_items_batch' }),
+      ]),
+    ).toEqual([]);
+    expect(changesUsedBy(named as unknown as GraphCall, [field({ name: 'status' })])).toHaveLength(
+      1,
+    );
   });
 
   it('never matches a root endpoint change to a request on a node', async () => {

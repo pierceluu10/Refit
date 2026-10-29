@@ -24,7 +24,7 @@
   - 1 Basic Display migration and 2 alerts.
   - Every changed request (52) and every new move (11) was checked by hand.
   - ME1's meta-dev-60 set was not frozen yet, so it was not measured.
-  - Census of the 68 non-blind Meta repositories: 22 with a patch (18 before the default-field and helper fixes), all 22 proven by the change table, 6 validated with nothing left, grades B 1, C 19, D 2; [blockers](META-GRAPH.md#census-of-non-blind-meta-repositories-2026-10-29).
+  - Census of the 68 non-blind Meta repositories: 22 with a patch (18 before the default-field and helper fixes), all 22 proven by the change table, 10 validated (caution-only stops on versions Meta still serves are notes, not unresolved findings), grades B 1, C 19, D 2; [blockers](META-GRAPH.md#census-of-non-blind-meta-repositories-2026-10-29).
 - **Not done:**
   - enrollment and hosted-worker configurations for Meta;
   - AI repair;

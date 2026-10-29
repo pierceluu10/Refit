@@ -174,7 +174,11 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
         return change.edge === call.edge;
       case 'field-removed':
       case 'field-changed':
-        return fields.has(change.name!) || defaultFieldsMay(call, change);
+        // A change recorded on an edge's objects reaches only reads of that edge.
+        return (
+          (change.edge === null || change.edge === call.edge) &&
+          (fields.has(change.name!) || defaultFieldsMay(call, change))
+        );
       case 'metric-removed':
       case 'metric-changed':
         // Changelogs print some metric names in capitals; requests use lowercase.

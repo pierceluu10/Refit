@@ -335,13 +335,37 @@ Scope: the 68 Meta repositories of every earlier list (the deadline benchmark, i
 | Repositories with a patch | 18 | 22 |
 | Pins moved | 67 | 85 |
 | Proven by the change table (ME4) | 18 of 18 | 22 of 22 |
-| Validated with nothing left | 5 | 6 |
+| Validated with nothing left | 5 | 10 |
 | Grades (B / C / D) | 1 / 15 / 2 | 1 / 19 / 2 |
 
 Every patch changes only version text, and every new moved request was read by hand. Both fixes are general:
 
 - A GET that names no `fields` counted every field change in range. Token endpoints (`/oauth/access_token`, `/debug_token`, Instagram's `/access_token` and `/refresh_access_token`) return no node. A change recorded on an edge's objects reaches only reads of that edge. A plain `/me` read returns the token's User or Page. These three cases no longer match; 15 OAuth token exchanges and a `/me` read move.
 - Helpers that write their own `fetch` options (`headers`, a literal `method`, `body` from one parameter) are read like `fetch`.
+
+**What holds a passing draft.** Under the founder's decision ([proof decides, not caution](PROOF-BASED-VALIDATION.md)), a request the patch leaves on its version counts as unresolved only when Refit found a real Meta problem there:
+
+- its pinned version is retired: dated in the deadline registry on or before the run, or older than its oldest entry;
+- it definitely uses a change between its version and the target: a field, metric or parameter it names, an edge it reads, or a literal path it calls;
+- a documented rule names something it sends.
+
+Other stops leave the line untouched, on a version Meta still serves. These include:
+
+- WhatsApp and Messenger requests;
+- unversioned URLs;
+- unknown parts;
+- tests-only pins;
+- node-wide placeholder matches;
+- field changes counted against default fields;
+- a changed error code.
+
+The draft lists them as notes, not unresolved findings. A field change recorded on an edge's objects reaches only reads of that edge, so a `status` field on a catalog batch no longer matches an Instagram container's `status`.
+
+With this, 10 of the 22 drafts validate (6 before). The 4 newly validated rows are reviewed `correct` in `docs/benchmarks/fix-reviews.json`. The other 12 are held by real problems:
+
+- 9 grade-C drafts leave 38 requests on retired v18.0, v19.0 or v20.0 pins that could not be moved;
+- ericlyfan/auto_portfolio (grade B) leaves requests on retired v18.0;
+- mchantosa/smooth-kitty and md-aqil/Whatspp-api-order-notification fail their own tests before any change (grade D).
 
 Stops after this change, by blocker (repositories with it, and with it as their only blocker):
 
