@@ -1,6 +1,7 @@
 // Types for the plain-JavaScript Meta set selection, so its test can import it.
 
 export const SOON_DAYS: number;
+export const TIERS: Array<{ days: number; authors: number; step: string | null }>;
 export function searchQueries(): Array<{ signal: string; query: string }>;
 export function splitQuery(query: string): string[];
 export function benchmarkRepositories(
