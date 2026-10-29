@@ -66,6 +66,10 @@ const GEMINI_CALLS = new Set([
 // Generation settings whose meaning differs between Gemini model generations (thinking budgets and
 // levels), so a request that sets them, or passes settings Refit cannot read, stops for review.
 const GEMINI_CONFIG = new Set(['config', 'generationConfig']);
+// Gemini models that generate images, audio, speech or video, or run live sessions, through the same
+// `generateContent` call. Their output format changes with the model, so, like OpenAI's image and
+// audio calls, they are never edited.
+const GEMINI_NOT_TEXT = /image|imagen|banana|tts|audio|live|veo|omni|lyria|robotics|embedding/;
 
 // The OpenAI v3 SDK and openai-edge, which keeps its API: methods on an `OpenAIApi` client.
 function legacyOpenAi(packageName: string): ProviderAdapter {
@@ -2613,26 +2617,29 @@ export async function proposeModelReplacements(
           })
         : [];
       const geminiConfig =
-        request.provider === 'gemini'
-          ? found.object.properties
-              .flatMap((item) => {
-                const name = item.name && propertyName(item.name);
-                if (!name || !GEMINI_CONFIG.has(name)) return [];
-                const settings = ts.isPropertyAssignment(item)
-                  ? unwrap(item.initializer)
-                  : undefined;
-                if (!settings || !ts.isObjectLiteralExpression(settings))
-                  return [
-                    `The request passes ${name} that Refit cannot read, which may hold settings ${resolved.to} treats differently; change it by hand to ${resolved.to}.`,
-                  ];
-                return /thinking/i.test(settings.getText())
-                  ? [
-                      `The request sets thinking options in ${name}, which differ between Gemini model generations; check them against ${resolved.to} and change it by hand.`,
-                    ]
-                  : [];
-              })
-              .join(' ') || undefined
-          : undefined;
+        request.provider === 'gemini' &&
+        (GEMINI_NOT_TEXT.test(site.literal.text) || GEMINI_NOT_TEXT.test(resolved.to))
+          ? `\`${site.literal.text}\` is not a text model, so ${resolved.to} may return images, audio or another format differently; change it by hand to ${resolved.to}.`
+          : request.provider === 'gemini'
+            ? found.object.properties
+                .flatMap((item) => {
+                  const name = item.name && propertyName(item.name);
+                  if (!name || !GEMINI_CONFIG.has(name)) return [];
+                  const settings = ts.isPropertyAssignment(item)
+                    ? unwrap(item.initializer)
+                    : undefined;
+                  if (!settings || !ts.isObjectLiteralExpression(settings))
+                    return [
+                      `The request passes ${name} that Refit cannot read, which may hold settings ${resolved.to} treats differently; change it by hand to ${resolved.to}.`,
+                    ];
+                  return /thinking/i.test(settings.getText())
+                    ? [
+                        `The request sets thinking options in ${name}, which differ between Gemini model generations; check them against ${resolved.to} and change it by hand.`,
+                      ]
+                    : [];
+                })
+                .join(' ') || undefined
+            : undefined;
       // With a change table, every sensitive parameter or one the table names is decided by it.
       const changed =
         parameterChanges && resolved.to && !tabled

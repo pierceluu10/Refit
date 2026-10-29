@@ -270,6 +270,12 @@ it('replaces Gemini models under the 2026-10-29 conditions and never swaps the S
         replacement: 'gemini-2.0-flash',
       }),
       entry({
+        id: 'gemini-flash-image',
+        provider: 'gemini',
+        versions: ['gemini-2.5-flash-image'],
+        replacement: 'gemini-3.1-flash-lite-image',
+      }),
+      entry({
         id: 'gemini-old-sdk',
         provider: 'gemini',
         kind: 'sdk',
@@ -301,6 +307,7 @@ it('replaces Gemini models under the 2026-10-29 conditions and never swaps the S
       "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi', config: { thinkingConfig: { thinkingBudget: 0 } } });",
       "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi', config: settings });",
       "await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: 'Hi', config: { temperature: 0.2 } });",
+      "await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: 'Draw' });",
     ].join('\n'),
   });
   const proposal = await proposeModelReplacements(root, gemini, NOW);
@@ -315,6 +322,7 @@ it('replaces Gemini models under the 2026-10-29 conditions and never swaps the S
   expect(proposal.stops.map((stop) => `${stop.line} ${stop.call}: ${stop.reason}`)).toEqual([
     '11 models.generateContent: The request sets thinking options in config, which differ between Gemini model generations; check them against gemini-2.0-flash and change it by hand.',
     '12 models.generateContent: The request passes config that Refit cannot read, which may hold settings gemini-2.0-flash treats differently; change it by hand to gemini-2.0-flash.',
+    '14 models.generateContent: `gemini-2.5-flash-image` is not a text model, so gemini-3.1-flash-lite-image may return images, audio or another format differently; change it by hand to gemini-3.1-flash-lite-image.',
     "10 getGenerativeModel: The client is Vertex AI, whose model retirement dates differ from the Gemini API's; check Google Cloud's model versions page and change it by hand, for example to gemini-2.0-flash.",
   ]);
   // The package is never swapped: the patch touches only the source file.
