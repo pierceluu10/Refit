@@ -368,6 +368,8 @@ export interface RuleProvenance {
   origin: (typeof RULE_ORIGINS)[number];
   generatedBy?: { model: string; responseId: string };
   benchmark?: string;
+  // Shopify: the decision under which per-patch proof makes the rule automatic.
+  decision?: string;
   // A learned rule's proven fixes, and why it was rolled back (pipeline/learning.ts).
   learnedFrom?: { repo: string; run: string; grade: string | null }[];
   demoted?: { at: string; reason: string };
@@ -418,7 +420,13 @@ export function parseRuleTable(value: unknown, file: string, rules = new Set<str
 
 // The provenance every table rule carries, whichever provider and family: source pages with
 // verbatim quotes, the contract diff entry it answers, its status and origin.
-export function checkRuleProvenance(file: string, entry: Record<string, unknown>) {
+// `autoNeeds` names what an auto rule must cite: the benchmark run (Stripe, owner decision D3) or
+// the decision that lets per-patch proof stand in for it (Shopify, pipeline/shopify-rules.ts).
+export function checkRuleProvenance(
+  file: string,
+  entry: Record<string, unknown>,
+  autoNeeds: 'benchmark' | 'decision' = 'benchmark',
+) {
   const name = entry.rule as string;
   if (typeof entry.checkedAt !== 'string' || !DAY.test(entry.checkedAt))
     fail(file, `${name} needs checkedAt as YYYY-MM-DD.`);
@@ -463,8 +471,13 @@ export function checkRuleProvenance(file: string, entry: Record<string, unknown>
       !generatedBy.responseId)
   )
     fail(file, `${name} is generated and needs generatedBy with a model and a response id.`);
-  if (entry.status === 'auto' && (typeof entry.benchmark !== 'string' || !entry.benchmark))
-    fail(file, `${name} is auto and needs the benchmark run that showed zero wrong patches.`);
+  if (entry.status === 'auto' && (typeof entry[autoNeeds] !== 'string' || !entry[autoNeeds]))
+    fail(
+      file,
+      autoNeeds === 'benchmark'
+        ? `${name} is auto and needs the benchmark run that showed zero wrong patches.`
+        : `${name} is auto and needs the decision that makes it automatic.`,
+    );
 }
 
 export function loadRuleTables(directory: URL, rules = new Set<string>()): RuleTable[] {
