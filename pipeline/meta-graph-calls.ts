@@ -1,8 +1,9 @@
 import { readFile } from 'node:fs/promises';
-import { join, posix, resolve } from 'node:path';
+import { join, posix, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { metaSdkVersion, META_SDK, TEST_PATH } from './deadline-exposure.ts';
 import { readRepository } from './repository.ts';
+import { createSourceImportResolver } from './source-imports.ts';
 import { isObject, parseObject } from './specifications.ts';
 import type { Repository } from './types.ts';
 
@@ -350,12 +351,23 @@ function runtimeValue(node: ts.Expression, label: string) {
   return `${label} come from \`${expressionName(node)}\` at runtime`;
 }
 
+// Version constants another scanned file exports, by the importing file and its local name:
+// `import { GRAPH_VERSION } from '@/lib/meta'` where that module has
+// `export const GRAPH_VERSION = 'v21.0'` (or an environment variable's fallback).
+const IMPORTED_VERSIONS = new WeakMap<ts.SourceFile, Map<string, ts.Expression>>();
+
+function importedVersion(node: ts.Identifier) {
+  return IMPORTED_VERSIONS.get(node.getSourceFile())?.get(node.text);
+}
+
 // A string held in a `const` that is a literal, such as `const VERSION = 'v19.0'`.
 export function constantString(expression: ts.Expression) {
   const node = unwrap(expression);
   if (ts.isStringLiteralLike(node)) return { value: node.text, node };
   if (!ts.isIdentifier(node)) return undefined;
   const declaration = findDeclaration(node.text, node);
+  const imported = !declaration && importedVersion(node);
+  if (imported && ts.isStringLiteralLike(imported)) return { value: imported.text, node: imported };
   if (!declaration?.initializer || !isConst(declaration)) return undefined;
   const initializer = unwrap(declaration.initializer);
   return ts.isStringLiteralLike(initializer)
@@ -375,8 +387,10 @@ export function envDefault(expression: ts.Expression): ts.Expression | undefined
   let node = unwrap(expression);
   if (ts.isIdentifier(node)) {
     const declaration = findDeclaration(node.text, node);
-    if (!declaration?.initializer || !isConst(declaration)) return undefined;
-    node = unwrap(declaration.initializer);
+    const imported = !declaration && importedVersion(node);
+    if (imported) node = imported;
+    else if (!declaration?.initializer || !isConst(declaration)) return undefined;
+    else node = unwrap(declaration.initializer);
   }
   return ts.isBinaryExpression(node) &&
     (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
@@ -597,7 +611,21 @@ function readParameters(expression: ts.Expression, request: Request, label: stri
   }
   for (const property of node.properties) {
     if (ts.isSpreadAssignment(property)) {
-      request.unknown.push(`${label} spread \`${expressionName(property.expression)}\``);
+      const branches = optionalObjects(property.expression);
+      if (!branches) {
+        request.unknown.push(`${label} spread \`${expressionName(property.expression)}\``);
+        continue;
+      }
+      // `...(cond ? { link } : {})` may send each name; a list it may leave out is not known.
+      for (const branch of branches) {
+        const inner = emptyRequest();
+        readParameters(branch, inner, label, depth);
+        request.unknown.push(...inner.unknown);
+        for (const name of inner.parameters) {
+          request.parameters.add(name);
+          if (name === 'fields' || name === 'metric') setValue(request, name, null);
+        }
+      }
       continue;
     }
     const name = propertyName(property.name);
@@ -609,6 +637,29 @@ function readParameters(expression: ts.Expression, request: Request, label: stri
     if (name === 'fields' || name === 'metric')
       readList(request, name, ts.isPropertyAssignment(property) ? property.initializer : undefined);
   }
+}
+
+// The object literals a conditional spread may add: `cond ? { a } : {}`, `cond && { a }`, with
+// `{}`, `null` and `undefined` adding nothing. Undefined for anything else.
+function optionalObjects(expression: ts.Expression): ts.ObjectLiteralExpression[] | undefined {
+  const node = unwrap(expression);
+  if (ts.isObjectLiteralExpression(node)) return [node];
+  if (
+    node.kind === ts.SyntaxKind.NullKeyword ||
+    (ts.isIdentifier(node) && node.text === 'undefined')
+  )
+    return [];
+  if (ts.isConditionalExpression(node)) {
+    const whenTrue = optionalObjects(node.whenTrue);
+    const whenFalse = optionalObjects(node.whenFalse);
+    return whenTrue && whenFalse ? [...whenTrue, ...whenFalse] : undefined;
+  }
+  if (
+    ts.isBinaryExpression(node) &&
+    node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+  )
+    return optionalObjects(node.right);
+  return undefined;
 }
 
 // Query parameters written in the URL after `?`.
@@ -851,9 +902,59 @@ export function extendedElsewhere(declaration: ts.VariableDeclaration) {
   return found;
 }
 
+// The outermost expression that still names the same request URL: a branch of a conditional,
+// `new URL(url)`, `url.href`, `url.toString()` and `String(url)`.
+export function urlHolder(node: ts.Node): { top: ts.Node; urlObject: boolean } {
+  let current = node;
+  let urlObject = false;
+  for (;;) {
+    const parent = current.parent;
+    if (!parent) break;
+    if (
+      ts.isParenthesizedExpression(parent) ||
+      ts.isAsExpression(parent) ||
+      ts.isNonNullExpression(parent) ||
+      ts.isSatisfiesExpression(parent) ||
+      (ts.isConditionalExpression(parent) && parent.condition !== current) ||
+      (ts.isPropertyAccessExpression(parent) &&
+        parent.expression === current &&
+        parent.name.text === 'href') ||
+      (ts.isCallExpression(parent) &&
+        ts.isIdentifier(parent.expression) &&
+        parent.expression.text === 'String' &&
+        parent.arguments.length === 1)
+    )
+      current = parent;
+    else if (
+      ts.isNewExpression(parent) &&
+      ts.isIdentifier(parent.expression) &&
+      parent.expression.text === 'URL' &&
+      parent.arguments?.length === 1
+    ) {
+      current = parent;
+      urlObject = true;
+    } else if (
+      ts.isPropertyAccessExpression(parent) &&
+      parent.expression === current &&
+      parent.name.text === 'toString' &&
+      ts.isCallExpression(parent.parent) &&
+      parent.parent.expression === parent &&
+      !parent.parent.arguments.length
+    )
+      current = parent.parent;
+    else break;
+  }
+  return { top: current, urlObject };
+}
+
 // How a Graph URL reaches a request: the calls it is passed to, directly or through a variable.
-export function consumers(node: ts.Expression): { call: ts.CallExpression; argument: number }[] {
+// With `climb`, also through the forms `urlHolder` follows.
+export function consumers(
+  node: ts.Expression,
+  climb = false,
+): { call: ts.CallExpression; argument: number }[] {
   let current: ts.Node = node;
+  if (climb) current = urlHolder(node).top;
   while (
     current.parent &&
     (ts.isParenthesizedExpression(current.parent) ||
@@ -886,13 +987,14 @@ export function consumers(node: ts.Expression): { call: ts.CallExpression; argum
         child !== parent.name &&
         findDeclaration(name, child) === parent
       ) {
+        const use = climb ? urlHolder(child).top : child;
         if (ts.isShorthandPropertyAssignment(child.parent) && name === 'url') {
           const object = child.parent.parent;
           if (ts.isCallExpression(object.parent) && object.parent.arguments[0] === object)
             found.push({ call: object.parent, argument: -1 });
-        } else if (ts.isCallExpression(child.parent)) {
-          const argument = child.parent.arguments.indexOf(child);
-          if (argument >= 0) found.push({ call: child.parent, argument });
+        } else if (ts.isCallExpression(use.parent)) {
+          const argument = use.parent.arguments.indexOf(use as ts.Expression);
+          if (argument >= 0) found.push({ call: use.parent, argument });
         }
       }
       ts.forEachChild(child, visit);
@@ -925,6 +1027,123 @@ export function objectProperty(object: ts.ObjectLiteralExpression, name: string)
       if (ts.isShorthandPropertyAssignment(property)) return property.name;
     }
   return undefined;
+}
+
+// The requests a URL reaches when a named, file-local function returns it:
+// `function messagesUrl(id) { return `${GRAPH}/${id}/messages`; }` and `fetch(messagesUrl(id))`.
+// An exported function may be called from files this does not read, so it is not followed.
+function returnedBy(top: ts.Node) {
+  const parent = top.parent;
+  const fn = ts.isReturnStatement(parent)
+    ? ts.findAncestor(parent, ts.isFunctionLike)
+    : ts.isArrowFunction(parent) && parent.body === top
+      ? parent
+      : undefined;
+  if (!fn) return undefined;
+  let name: string | undefined;
+  if (ts.isFunctionDeclaration(fn) && fn.name) {
+    if (ts.getModifiers(fn)?.some((item) => item.kind === ts.SyntaxKind.ExportKeyword))
+      return undefined;
+    name = fn.name.text;
+  } else if (
+    (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) &&
+    ts.isVariableDeclaration(fn.parent) &&
+    ts.isIdentifier(fn.parent.name) &&
+    isConst(fn.parent) &&
+    !exported(fn.parent)
+  )
+    name = fn.parent.name.text;
+  if (!name) return undefined;
+  const source = top.getSourceFile();
+  const found: { call: ts.CallExpression; argument: number }[] = [];
+  const unknown: string[] = [];
+  let calls = 0;
+  const visit = (child: ts.Node) => {
+    if (
+      ts.isIdentifier(child) &&
+      child.text === name &&
+      isReference(child) &&
+      child !== (fn as ts.FunctionDeclaration).name &&
+      !(ts.isVariableDeclaration(child.parent) && child.parent.name === child)
+    ) {
+      const call = child.parent;
+      if (ts.isCallExpression(call) && call.expression === child) {
+        calls++;
+        const reached = consumers(call, true);
+        if (!reached.length)
+          unknown.push(
+            `the URL \`${name}()\` returns is used on line ${lineOf(source, call)} in a way the scan does not follow`,
+          );
+        found.push(...reached);
+      } else
+        unknown.push(
+          `\`${name}\` is used on line ${lineOf(source, child)} in a way the scan does not follow`,
+        );
+    }
+    ts.forEachChild(child, visit);
+  };
+  visit(source);
+  return calls ? { consumers: found, unknown } : undefined;
+}
+
+// Query parameters added to a `URL` object a variable holds: `url.searchParams.set('fields', 'id')`
+// with a literal name. Reading `url.searchParams.get(...)` changes nothing; any other change to the
+// query or path (`url.search = …`, a computed name, passing `url.searchParams` on) is unknown.
+function searchParamsOf(declaration: ts.VariableDeclaration, request: Request) {
+  if (!ts.isIdentifier(declaration.name)) return;
+  const name = declaration.name.text;
+  const block = ts.findAncestor(declaration, (item) => ts.isBlock(item) || ts.isSourceFile(item));
+  const visit = (child: ts.Node) => {
+    if (
+      ts.isIdentifier(child) &&
+      child.text === name &&
+      isReference(child) &&
+      child !== declaration.name &&
+      findDeclaration(name, child) === declaration &&
+      ts.isPropertyAccessExpression(child.parent) &&
+      child.parent.expression === child
+    ) {
+      const access = child.parent;
+      const line = lineOf(child.getSourceFile(), child);
+      const assigned =
+        ts.isBinaryExpression(access.parent) &&
+        access.parent.left === access &&
+        access.parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+        access.parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment;
+      if (access.name.text === 'searchParams') {
+        const method = access.parent;
+        const call = method.parent;
+        if (
+          ts.isPropertyAccessExpression(method) &&
+          method.expression === access &&
+          ts.isCallExpression(call) &&
+          call.expression === method
+        ) {
+          const verb = method.name.text;
+          const key = call.arguments[0] && unwrap(call.arguments[0]);
+          if (verb === 'set' || verb === 'append') {
+            if (key && ts.isStringLiteralLike(key)) {
+              request.parameters.add(key.text);
+              // Set under an `if` or in a loop, the value may be absent.
+              const direct = ts.isExpressionStatement(call.parent) && call.parent.parent === block;
+              if (key.text === 'fields' || key.text === 'metric')
+                readList(request, key.text, direct ? call.arguments[1] : undefined);
+            } else
+              request.unknown.push(`a query parameter name on line ${line} is built at runtime`);
+          } else if (!['get', 'getAll', 'has', 'toString'].includes(verb))
+            request.unknown.push(
+              `\`${name}.searchParams.${verb}\` on line ${line} changes the query`,
+            );
+        } else
+          request.unknown.push(
+            `\`${name}.searchParams\` is used on line ${line} in a way the scan does not follow`,
+          );
+      } else if (assigned)
+        request.unknown.push(`\`${name}.${access.name.text}\` is changed on line ${line}`);
+    }
+    ts.forEachChild(child, visit);
+  };
+  if (block) visit(block);
 }
 
 // Calls on an axios instance whose `baseURL` is a Graph URL, such as `graph.get('/me')`, whatever
@@ -965,9 +1184,17 @@ function writtenOptions(fn: ts.SignatureDeclaration, expression: ts.Expression) 
   if (!ts.isObjectLiteralExpression(object)) return undefined;
   let method: string | undefined;
   let body: number | undefined;
+  // `{ ...init, signal }`: the caller's options, sent with transport options added.
+  let spread: number | undefined;
   for (const property of object.properties) {
+    if (ts.isSpreadAssignment(property)) {
+      const index = parameterIndex(fn, property.expression);
+      if (index < 0 || spread !== undefined || property !== object.properties[0]) return undefined;
+      spread = index;
+      continue;
+    }
     const name = propertyName(property.name);
-    if (!name || ts.isSpreadAssignment(property)) return undefined;
+    if (!name) return undefined;
     if (TRANSPORT_OPTIONS.has(name)) continue;
     const value = ts.isPropertyAssignment(property)
       ? unwrap(property.initializer)
@@ -987,7 +1214,8 @@ function writtenOptions(fn: ts.SignatureDeclaration, expression: ts.Expression) 
       if (body < 0) return undefined;
     } else return undefined;
   }
-  return { method, body };
+  if (spread !== undefined && (method !== undefined || body !== undefined)) return undefined;
+  return { method, body, spread };
 }
 
 function parameterIndex(fn: ts.SignatureDeclaration, expression: ts.Expression | undefined) {
@@ -996,6 +1224,58 @@ function parameterIndex(fn: ts.SignatureDeclaration, expression: ts.Expression |
   return fn.parameters.findIndex(
     (parameter) => ts.isIdentifier(parameter.name) && parameter.name.text === node.text,
   );
+}
+
+// The parameter a paging loop starts from: `let next = startUrl` that is only ever assigned Meta's
+// own `response.paging.next` (or `paging?.next`, `?? null`), so the first request is the URL passed
+// in and later ones are the cursors Meta builds from it.
+function pagedParameter(fn: ts.SignatureDeclaration, expression: ts.Expression | undefined) {
+  const node = expression && unwrap(expression);
+  if (!node || !ts.isIdentifier(node)) return -1;
+  const declaration = findDeclaration(node.text, node);
+  if (
+    !declaration?.initializer ||
+    !ts.isVariableDeclarationList(declaration.parent) ||
+    (declaration.parent.flags & ts.NodeFlags.Let) === 0 ||
+    !ts.findAncestor(declaration, (item) => item === fn)
+  )
+    return -1;
+  const index = parameterIndex(fn, declaration.initializer);
+  if (index < 0) return -1;
+  const pagingNext = (value: ts.Expression): boolean => {
+    const right = unwrap(value);
+    if (
+      ts.isBinaryExpression(right) &&
+      (right.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+        right.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+    )
+      return (
+        pagingNext(right.left) &&
+        (right.right.kind === ts.SyntaxKind.NullKeyword ||
+          (ts.isIdentifier(right.right) && right.right.text === 'undefined'))
+      );
+    return (
+      ts.isPropertyAccessExpression(right) &&
+      right.name.text === 'next' &&
+      ts.isPropertyAccessExpression(unwrap(right.expression)) &&
+      (unwrap(right.expression) as ts.PropertyAccessExpression).name.text === 'paging'
+    );
+  };
+  let other = false;
+  const visit = (child: ts.Node) => {
+    if (
+      ts.isBinaryExpression(child) &&
+      child.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+      child.operatorToken.kind <= ts.SyntaxKind.LastAssignment &&
+      ts.isIdentifier(unwrap(child.left)) &&
+      (unwrap(child.left) as ts.Identifier).text === node.text &&
+      !(child.operatorToken.kind === ts.SyntaxKind.EqualsToken && pagingNext(child.right))
+    )
+      other = true;
+    ts.forEachChild(child, visit);
+  };
+  visit(fn);
+  return other ? -1 : index;
 }
 
 function assignsTo(body: ts.Node, name: string) {
@@ -1037,15 +1317,24 @@ export function passthroughOf(fn: ts.SignatureDeclaration): Passthrough | undefi
   visit(body);
   if (found.length !== 1) return undefined;
   const [inner] = found;
-  const url = parameterIndex(fn, inner.arguments[0]);
+  const url = Math.max(
+    parameterIndex(fn, inner.arguments[0]),
+    pagedParameter(fn, inner.arguments[0]),
+  );
   if (url < 0 || inner.arguments.length > 2) return undefined;
   const options = inner.arguments[1] ? parameterIndex(fn, inner.arguments[1]) : null;
   const written =
     options !== null && options < 0 ? writtenOptions(fn, inner.arguments[1]) : undefined;
   if (options !== null && options < 0 && !written) return undefined;
-  for (const index of [url, written ? null : options, written?.body ?? null])
+  for (const index of [
+    url,
+    written ? null : options,
+    written?.body ?? null,
+    written?.spread ?? null,
+  ])
     if (index !== null && assignsTo(body, (fn.parameters[index].name as ts.Identifier).text))
       return undefined;
+  if (written?.spread !== undefined) return { url, options: written.spread };
   return written
     ? {
         url,
@@ -1076,6 +1365,11 @@ function readCall(
   const readOptions = (expression: ts.Expression | undefined, label: string) => {
     if (!expression) return undefined;
     const node = unwrap(expression);
+    if (
+      node.kind === ts.SyntaxKind.NullKeyword ||
+      (ts.isIdentifier(node) && node.text === 'undefined')
+    )
+      return undefined;
     const value = ts.isIdentifier(node) ? constantValue(node) : node;
     const object = value && unwrap(value);
     if (!object || !ts.isObjectLiteralExpression(object)) {
@@ -1168,6 +1462,22 @@ export function resolveImport(from: string, specifier: string, files: Set<string
   return candidates.find((candidate) => files.has(candidate));
 }
 
+// Resolves an import to a scanned file's path: relative imports, then the repository's tsconfig or
+// jsconfig `paths` and `baseUrl`.
+export function moduleResolver(repository: Repository) {
+  const files = new Set(repository.files.map((file) => file.path));
+  const aliases = createSourceImportResolver(
+    repository,
+    new Map(repository.files.map((file) => [join(repository.root, file.path), file])),
+  );
+  return (from: string, specifier: string) => {
+    const relativeTarget = resolveImport(from, specifier, files);
+    if (relativeTarget) return relativeTarget;
+    const target = aliases.resolve(specifier, join(repository.root, from));
+    return target ? relative(repository.root, target) : undefined;
+  };
+}
+
 // Local names bound by imports of another module's export: `import { GRAPH_BASE as B }` and
 // `const { GRAPH_BASE } = require('./graph')`.
 export function importedNames(source: ts.SourceFile) {
@@ -1235,7 +1545,7 @@ export async function scanGraphCalls(
 ): Promise<GraphCallScan> {
   const repository = options.repository ?? (await readRepository(resolve(directory), META_SDK));
   const edges = options.edges ?? (await loadSdkEdges());
-  const files = new Set(repository.files.map((file) => file.path));
+  const resolveFrom = moduleResolver(repository);
   const contexts = new Map<string, FileContext>();
   const context = (path: string, content: string) => {
     let found = contexts.get(path);
@@ -1282,13 +1592,44 @@ export async function scanGraphCalls(
       if (!/import|require/.test(file.content)) continue;
       const { source } = context(file.path, file.content);
       for (const [local, binding] of importedNames(source)) {
-        const target = resolveImport(file.path, binding.specifier, files);
+        const target = resolveFrom(file.path, binding.specifier);
         const base = target && exportedBases.get(target)?.get(binding.name);
         if (!base) continue;
         const imports = importsByFile.get(file.path) ?? new Map<string, Base>();
         importsByFile.set(file.path, imports);
         imports.set(local, base);
         imported.add(base.declaration);
+      }
+    }
+  // Exported version constants, and the files that import them.
+  const exportedVersions = new Map<string, Map<string, ts.Expression>>();
+  for (const file of repository.files) {
+    if (!/export/.test(file.content) || !/['"`]v\d+\.\d+['"`]/.test(file.content)) continue;
+    const { source } = context(file.path, file.content);
+    for (const statement of source.statements)
+      if (ts.isVariableStatement(statement))
+        for (const declaration of statement.declarationList.declarations) {
+          if (!ts.isIdentifier(declaration.name) || !declaration.initializer) continue;
+          if (!isConst(declaration) || !exported(declaration)) continue;
+          const initializer = unwrap(declaration.initializer);
+          const literal = envDefault(initializer) ?? initializer;
+          if (!ts.isStringLiteralLike(literal) || !VERSION.test(literal.text)) continue;
+          const versions = exportedVersions.get(file.path) ?? new Map<string, ts.Expression>();
+          exportedVersions.set(file.path, versions);
+          versions.set(declaration.name.text, initializer);
+        }
+  }
+  if (exportedVersions.size)
+    for (const file of repository.files) {
+      if (!/import|require/.test(file.content)) continue;
+      const { source } = context(file.path, file.content);
+      for (const [local, binding] of importedNames(source)) {
+        const target = resolveFrom(file.path, binding.specifier);
+        const value = target && exportedVersions.get(target)?.get(binding.name);
+        if (!value) continue;
+        const versions = IMPORTED_VERSIONS.get(source) ?? new Map<string, ts.Expression>();
+        IMPORTED_VERSIONS.set(source, versions);
+        versions.set(local, value);
       }
     }
   // Project helpers called by name, resolved to their declaration in the file or in the file a
@@ -1298,10 +1639,10 @@ export async function scanGraphCalls(
     return (call: ts.CallExpression) => {
       if (!ts.isIdentifier(call.expression)) return undefined;
       const name = call.expression.text;
-      const local = functionNamed(current.source, name, false);
+      const local = functionNamed(current.source, name, false) ?? nestedFunction(call.expression);
       if (local) return passthroughOf(local);
       const binding = imports.get(name);
-      const target = binding && resolveImport(current.path, binding.specifier, files);
+      const target = binding && resolveFrom(current.path, binding.specifier);
       const content = target && repository.files.find((item) => item.path === target)?.content;
       if (!binding || !target || content === undefined) return undefined;
       const declared = functionNamed(context(target, content).source, binding.name, true);
@@ -1458,6 +1799,19 @@ function functionNamed(
   return undefined;
 }
 
+// A `const` arrow or function expression declared in an enclosing function, such as
+// `const authFetch = (url) => fetch(url, { headers })` inside a handler.
+function nestedFunction(name: ts.Identifier): ts.SignatureDeclaration | undefined {
+  const declaration = findDeclaration(name.text, name);
+  const initializer = declaration?.initializer && unwrap(declaration.initializer);
+  return declaration &&
+    isConst(declaration) &&
+    initializer &&
+    (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+    ? initializer
+    : undefined;
+}
+
 // An axios instance built from a Graph base, `const graph = axios.create({ baseURL: GRAPH })`, and
 // the requests made on it in the file: `graph.get('/me', { params })`. Any other use of the
 // instance (exported, passed on, stored) may make requests the scan cannot see, and is returned as
@@ -1562,8 +1916,9 @@ function urlRecord(
   imported: Set<ts.VariableDeclaration>,
 ): GraphCall[] {
   const parsed = parseUrl(url.parts, url.pin, url.fromConstant, url.fromEnv);
-  const pinSource = contexts.get(url.pinFile)?.source ?? file.source;
-  const pin = parsed.pin ? { file: url.pinFile, line: lineOf(pinSource, parsed.pin) } : null;
+  // An imported version constant pins the file that declares it.
+  const pinSource = parsed.pin?.getSourceFile() ?? contexts.get(url.pinFile)?.source ?? file.source;
+  const pin = parsed.pin ? { file: pinSource.fileName, line: lineOf(pinSource, parsed.pin) } : null;
   if (parsed.base) {
     const instance = axiosInstance(node);
     if (instance?.requests.length) {
@@ -1582,14 +1937,20 @@ function urlRecord(
       return records;
     }
   }
-  const found = consumers(node);
+  // A full request URL is followed through conditionals and `new URL(...)`; a base is not, since
+  // the URLs built from it are read where they are written.
+  const { top, urlObject } = parsed.base ? { top: node, urlObject: false } : urlHolder(node);
+  let found = consumers(node, !parsed.base);
+  // A URL a file-local function returns is followed to where that function's calls go.
+  const returned = !parsed.base && !found.length ? returnedBy(top) : undefined;
+  if (returned) found = returned.consumers;
   // A URL held in a variable that builds longer URLs is reported through those, and an
   // unversioned base says nothing about a version. A versioned base the code passes to a function
   // is a pin whose requests are not traced. `process.env.GRAPH_URL || '…'` holds its fallback.
   const holder =
-    ts.isBinaryExpression(node.parent) && node.parent.right === node && envDefault(node.parent)
-      ? node.parent.parent
-      : node.parent;
+    ts.isBinaryExpression(top.parent) && top.parent.right === top && envDefault(top.parent)
+      ? top.parent.parent
+      : top.parent;
   const declaration = ts.isVariableDeclaration(holder) ? holder : undefined;
   if (
     !found.length &&
@@ -1602,6 +1963,7 @@ function urlRecord(
   const records = (found.length ? found : [undefined]).map((consumer) => {
     const request = emptyRequest();
     readQuery(parsed.query, request);
+    if (urlObject && declaration) searchParamsOf(declaration, request);
     const unknown = [...parsed.unknown];
     let client: string | null = null;
     let method: GraphCall['method'] = null;
@@ -1621,6 +1983,7 @@ function urlRecord(
       if (!method && helper) unknown.push(`HTTP method of helper \`${client}\` is not known`);
     } else unknown.push('no request call was traced for this URL');
     unknown.push(...request.unknown);
+    if (returned) unknown.push(...returned.unknown);
     // A `let` that is assigned again may hold another URL by the time of the request, such as the
     // next page's link.
     if (reassigned)

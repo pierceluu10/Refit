@@ -287,17 +287,37 @@ export const me = () => fetch(\`\${GRAPH}/me?fields=id\`);`,
 export const me = () => fetch(\`\${BASE}/me?fields=id\`);`,
       'c.ts': `let base = 'https://graph.facebook.com/v18.0';
 export const me = () => fetch(\`\${base}/me?fields=id\`);`,
+      'd.ts': `import * as b from './b';
+export const other = () => fetch(\`\${b.BASE}/me/accounts\`);`,
     });
     expect(proposal.moves).toEqual([]);
     expect(proposal.stops.map((stop) => stop.reasons)).toEqual([
       ['a.ts:2: `GRAPH` is used in a way the request scan does not follow'],
-      [
-        'b.ts:1: the version is in the exported `BASE`; other files may use it in ways this check does not follow',
-      ],
+      ['d.ts:1: the module that exports `BASE` is imported whole'],
     ]);
     // The scan follows only const bases, so a request built from a `let` is not found at all and
     // nothing moves it.
     expect(proposal.stops.some((stop) => stop.file === 'c.ts')).toBe(false);
+  });
+
+  it('moves an exported version every importer uses only in URLs, and a let never reassigned', async () => {
+    const proposal = await propose({
+      'tsconfig.json': JSON.stringify({
+        compilerOptions: { baseUrl: '.', paths: { '~/*': ['*'] } },
+      }),
+      'version.ts': `export const GRAPH_VERSION = 'v18.0';`,
+      'a.ts': `import { GRAPH_VERSION as V } from '~/version';
+export const me = () => fetch(\`https://graph.facebook.com/\${V}/me?fields=id\`);`,
+      'b.ts': `export async function token() {
+  let url = 'https://graph.facebook.com/v18.0/oauth/access_token';
+  return fetch(url, { method: 'POST' });
+}`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(proposal.moves.map((move) => [move.file, move.line, move.requests.length])).toEqual([
+      ['b.ts', 2, 1],
+      ['version.ts', 1, 1],
+    ]);
   });
 
   it('does not count a property with the same name as a use of the pin', async () => {
