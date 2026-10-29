@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import {
+  codeHostFailure,
   DependencyPreparationError,
   hostInstallFailure,
   PreparationHostError,
@@ -207,4 +208,20 @@ it("treats Docker, host and registry failures of an install as Refit's", () => {
     'npm error code ELIFECYCLE',
   ])
     expect(hostInstallFailure('npm', exit(1), stderr)).toBeUndefined();
+});
+
+it('names a code-host archive that is gone or changed, and leaves an unreachable host to retry', () => {
+  const url = 'https://codeload.github.com/acme/kit/tar.gz/refs/tags/v0.1.2';
+  expect(codeHostFailure(`npm error code E404\nnpm error 404 Not Found - GET ${url}\n`)).toBe(
+    `npm could not download ${url}, a code-host archive package-lock.json pins: the host no longer serves it.`,
+  );
+  expect(
+    codeHostFailure(
+      `npm error code EINTEGRITY\nnpm error sha512-a integrity checksum failed when using sha512\n${url}\n`,
+    ),
+  ).toContain('the lockfile pins a code-host archive');
+  expect(codeHostFailure('npm error code ETIMEDOUT\nnpm error network timeout')).toBeUndefined();
+  expect(
+    preparationFailure(new DependencyPreparationError(codeHostFailure(`E404 ${url}`)!)),
+  ).toMatchObject({ reason: 'preparation-failed' });
 });

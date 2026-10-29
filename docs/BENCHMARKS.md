@@ -97,6 +97,19 @@ gh workflow run benchmark.yml -R refit-dev/refit-bench \
 
 No run has been dispatched yet.
 
+## Preparation fallbacks (October 29)
+
+#399 adds general fallbacks for four dependency-preparation stops: pnpm 7's lockfile 5.4, code-host archive dependencies, Yarn 1 records without integrity, and Yarn's cache running out of the workspace ([Preparation failures](PREPARATION-FAILURES.md#preparation-fallbacks-october-28)). Runs are refit-bench `benchmark.yml` with `-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`, no flags and no AI, compared with `node scripts/stripe-benchmark-compare.mjs --details` and `scripts/validation-funnel.mjs`.
+
+| Run                | Commit     | Preparation refused | Validated (funnel) |
+| ------------------ | ---------- | ------------------: | -----------------: |
+| 40812216438 (main) | `6161f020` |                  28 |                185 |
+| 40812228030 (#399) | `8de26a7b` |                  26 |            **186** |
+
+- 246 of 249 rows are identical in every compared field. `Librum-Reader/Librum-Website` moves from a preparation stop to validated, after its one version-only `yarn.lock` record is completed from the registry. Its patch is the same as before. It was read in full and labelled `correct-partial`: stripe stays at ^13 and two `invoice.payment_intent` reads are left, as the draft says. No patch is labelled `wrong`.
+- Stops named more precisely, not outcome changes: taxonomy (pnpm 7) and link-flame (GitHub archive) now pass every input check and stop at install on `--engine-strict` Node engine ranges. onix gets past Yarn's ENOSPC and stops on the 2 GiB archive limit. Four rows (artisan-roast, Schematic, Uproot.AI, slackify) are named `git-dependency`.
+- Noise: `SimplerDevelopment/SimplerDevelopment` hit the 45-minute job limit with every stage slower than the before run, including the scans before preparation. `kondax-com/Bocker`'s baseline failed in the after run only, as it did once in lane A's run.
+
 ## Conflicting lockfiles chosen by rule (October 28)
 
 `feat/conflicting-lockfiles` (built on lane A's `feat/lockfile-resolution`) installs one of several committed lockfiles by rule and upgrades stripe in the chosen one when the others cannot follow ([Preparation failures](PREPARATION-FAILURES.md#conflicting-lockfiles-one-chosen-by-rule-october-28)). Every run is refit-bench `benchmark.yml`, no AI, compared with `node scripts/stripe-benchmark-compare.mjs <before>/results.json <after>/results.json --details`.
