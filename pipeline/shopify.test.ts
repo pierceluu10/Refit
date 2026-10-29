@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { buildSchema, introspectionFromSchema } from 'graphql';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { addAgents, builtInPackage, detectProviders } from './agent-catalog.ts';
 import { runPipeline } from './run.ts';
 import { readRepository } from './repository.ts';
@@ -15,6 +15,18 @@ import {
   versionFromEnum,
 } from './shopify-versions.ts';
 import { digest, shopifySchemaUrl } from './specifications.ts';
+
+// Only the AI reconstruction test answers; other tests never pass aiPatch.
+const reply = vi.hoisted(() => ({ document: '' }));
+vi.mock('./openai.ts', async (actual) => ({
+  ...(await actual<typeof import('./openai.ts')>()),
+  requestStructuredOutput: async () => ({
+    model: 'gpt-5.6-luna',
+    usage: null,
+    budget: { costUsd: 0.01 },
+    content: JSON.stringify({ document: reply.document, explanation: 'FIELDS is id and title.' }),
+  }),
+}));
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -721,4 +733,40 @@ export async function sync(admin, session, shop, id, verb, url) {
   expect(renderScanResult(report)).toContain(
     'REST        15 REST Admin calls for review, not migrated: GET products/count at app/rest.ts:6, POST products/{id}/metafields at app/rest.ts:7, call at app/rest.ts:8, and 12 more',
   );
+});
+
+it('moves the pin when AI reads an unreadable document from the code and it validates on both versions', async () => {
+  const run = async (document: string) => {
+    reply.document = document;
+    const root = await directory({
+      'package.json': MANIFEST,
+      'package-lock.json': LOCK('14.0.1'),
+      'app/shopify.server.ts': SERVER('January26'),
+      'app/fields.ts': "export const FIELDS = ['id', 'title', 'legacyCode'];\n",
+      'app/routes/product.ts': `import { FIELDS } from '../fields';
+export const loader = (admin, picked) =>
+  admin.graphql('query Product { product(id: "1") { ' + FIELDS.filter(picked).join(' ') + ' } }');
+`,
+    });
+    return (await runPipeline({
+      repository: root,
+      ...(await snapshots(root)),
+      proposePatch: true,
+      aiPatch: { apiKey: 'k', model: 'gpt-5.6-luna' },
+    })) as any;
+  };
+  const read = await run('query Product { product(id: "1") { id title } }');
+  expect(read.patch.status).toBe('proposed');
+  expect(read.findings).toContainEqual(
+    expect.objectContaining({ changeId: 'shopify-graphql-reconstructed', line: 3 }),
+  );
+  expect(read.shopify.reconstructed).toMatchObject([{ status: 'kept', line: 3 }]);
+  expect(read.patch.warnings.join('\n')).toContain('AI read it from the code');
+  // A reconstruction that selects the removed field keeps the stop.
+  const removed = await run('query Product { product(id: "1") { id legacyCode } }');
+  expect(removed.patch.status).toBe('not-generated');
+  expect(
+    removed.findings.find((finding: any) => finding.changeId === 'shopify-graphql:unreadable')
+      .reason,
+  ).toContain('AI could not read it: The reconstruction does not hold on 2026-10');
 });

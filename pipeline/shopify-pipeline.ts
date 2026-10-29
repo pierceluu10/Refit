@@ -37,7 +37,13 @@ import {
 } from './shopify-document-rules.ts';
 import { documentProof } from './shopify-proof.ts';
 import { shopifySchema } from './shopify-schemas.ts';
-import { aiRewriteDocument, type ShopifyAiRewrite } from './shopify-ai-rewrite.ts';
+import {
+  aiReconstructDocument,
+  aiRewriteDocument,
+  reconstructionSources,
+  type ShopifyAiRewrite,
+  type ShopifyReconstruction,
+} from './shopify-ai-rewrite.ts';
 import { SHOPIFY_SDK_RULE, shopifySdkSourceChanges } from './shopify-sdk-source.ts';
 import { shopifySdkUpgrade } from './shopify-sdk-upgrade.ts';
 import {
@@ -930,15 +936,44 @@ async function shopifyRun(options: ShopifyRunOptions) {
   }
   // A Storefront call's unreadable document does not reach the Admin version move.
   const storefrontUnreadable = scan.unreadable.filter((entry) => entry.api);
-  for (const entry of scan.unreadable.filter((item) => !item.api))
-    findings.push({
-      ...entry,
-      changeId: 'shopify-graphql:unreadable',
-      expression: 'Admin GraphQL call',
-      confidence: 'review',
-      reason: entry.reason,
-      contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
-    });
+  const reconstructed: (ShopifyReconstruction & { file: string; line: number })[] = [];
+  for (const entry of scan.unreadable.filter((item) => !item.api)) {
+    // AI use 5: the model reads the document from the code; it counts only when every name it
+    // writes is in that code and the document validates on both versions (reconstructionProblem).
+    const attempt = options.aiPatch
+      ? await aiReconstructDocument({
+          file: entry.file,
+          line: entry.line,
+          why: entry.reason,
+          sources: reconstructionSources(patchRepository.files, entry.file),
+          before,
+          after,
+          versions,
+          ai: options.aiPatch,
+        })
+      : undefined;
+    if (attempt) reconstructed.push({ ...attempt, file: entry.file, line: entry.line });
+    findings.push(
+      attempt?.status === 'kept'
+        ? {
+            ...entry,
+            changeId: 'shopify-graphql-reconstructed',
+            expression: 'Admin GraphQL call',
+            confidence: 'review',
+            reason: `AI (${attempt.model}) read the document this call sends from the code; Refit checked that every name in it is written there and that it validates on ${versions.before} and ${versions.after}. ${attempt.reason}`,
+          }
+        : {
+            ...entry,
+            changeId: 'shopify-graphql:unreadable',
+            expression: 'Admin GraphQL call',
+            confidence: 'review',
+            reason: attempt
+              ? `${entry.reason} AI could not read it: ${attempt.reason}`
+              : entry.reason,
+            contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
+          },
+    );
+  }
   const sdkRelease = await lockedShopifyApi(repository.root);
   const restRun = await shopifyRestRewrites(
     repository,
@@ -1152,6 +1187,12 @@ async function shopifyRun(options: ShopifyRunOptions) {
                     ]
                   : []),
                 ...variableNotes,
+                ...reconstructed
+                  .filter((attempt) => attempt.status === 'kept')
+                  .map(
+                    (attempt) =>
+                      `${attempt.file}:${attempt.line} builds its GraphQL document at runtime; AI read it from the code and Refit validated it on ${versions.before} and ${versions.after}. Check that it is what the call sends:\n${attempt.document}`,
+                  ),
                 ...scan.unresolvedVersions
                   .filter((entry) => entry.note)
                   .map((entry) => `${entry.file}:${entry.line}: ${entry.reason}`),
@@ -1246,6 +1287,16 @@ async function shopifyRun(options: ShopifyRunOptions) {
         model: proposal.model,
         costUsd: proposal.costUsd,
         reason: proposal.reason,
+      })),
+      // Documents the model read from code Refit could not (AI use 5); the proof validates the kept ones.
+      reconstructed: reconstructed.map((attempt) => ({
+        file: attempt.file,
+        line: attempt.line,
+        status: attempt.status,
+        model: attempt.model,
+        costUsd: attempt.costUsd,
+        reason: attempt.reason,
+        ...(attempt.document ? { document: attempt.document } : {}),
       })),
       ai: aiAttempts.map((attempt) => ({
         file: attempt.file,
