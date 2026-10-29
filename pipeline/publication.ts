@@ -709,11 +709,14 @@ export function publicationWaiver(
     report.expandedFields,
   ).filter(isObject);
   const declarations = report.apiVersion.source.declarations;
-  // Clients and requests whose version Refit cannot trace; the patch never edits them.
+  // Clients and requests whose version Refit cannot trace; the patch never edits them. A version
+  // read only from the deployment environment is a draft note, not a hold (founder decision,
+  // 2026-10-28): the draft names the variable to update.
   const untraced = declarations.filter(
     (declaration) =>
       declaration.status === 'unknown' &&
       !declaration.moved &&
+      !declaration.environment &&
       !(declaration.kind === 'constructor' && declaration.absent),
   );
   const defaulted = declarations.filter(
@@ -732,6 +735,24 @@ export function publicationWaiver(
   const kept = 'keptApiVersion' in patch && patch.keptApiVersion === true;
   const pinBlocked =
     'pinBlocked' in patch && typeof patch.pinBlocked === 'string' ? patch.pinBlocked : undefined;
+  // What failed on the patch that moved the version (workflow.ts); older reports do not say.
+  const movedAttempt =
+    'movedAttempt' in validation && isObject(validation.movedAttempt)
+      ? (validation.movedAttempt as { failed: string[] })
+      : undefined;
+  const failedOnMove = movedAttempt?.failed.length
+    ? summaryList(
+        movedAttempt.failed.map((evidence) =>
+          evidence === 'checks'
+            ? `${checks} failed`
+            : evidence === 'generated'
+              ? 'the generated stripe-mock checks found regressions'
+              : evidence === 'behaviour'
+                ? 'the behaviour tests found regressions'
+                : 'the signed webhook event checks found regressions',
+        ),
+      )
+    : `${checks} failed`;
   // The pins a patch moves: literals older than the target.
   const olderPins = declarations.flatMap((declaration): ReviewSite[] =>
     declaration.status === 'literal' &&
@@ -851,7 +872,7 @@ export function publicationWaiver(
       ? [
           {
             gate: 'api-version-kept' as const,
-            reason: `${pinBlocked ? `Refit could not upgrade stripe-node to the release whose types accept ${code(targetVersion)}: ${plainText(pinBlocked)} A pin moves only with that upgrade` : `${checks} failed on the patch that moved the API version to ${code(targetVersion)}`}, so this patch leaves every pin listed here and the stripe package unchanged. It keeps only edits that work under either version; Refit compared the ${before} contract with ${code(targetVersion)}.`,
+            reason: `${pinBlocked ? `Refit could not upgrade stripe-node to the release whose types accept ${code(targetVersion)}: ${plainText(pinBlocked)} A pin moves only with that upgrade` : `${failedOnMove} on the patch that moved the API version to ${code(targetVersion)}`}, so this patch leaves every pin listed here and the stripe package unchanged. It keeps only edits that work under either version; Refit compared the ${before} contract with ${code(targetVersion)}.`,
             check: `Move each pin listed here to ${code(targetVersion)}, upgrade stripe-node if its types need it, and fix what ${checks} then reports before merging.`,
             sites: olderPins,
           },

@@ -30,6 +30,7 @@ import { runPipeline } from './run.ts';
 import { type SlackSend, workflowNotice } from './slack.ts';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
 import { digest, isObject, readSpecification } from './specifications.ts';
+import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { checkFailureText } from './check-failures.ts';
@@ -207,6 +208,27 @@ function movesApiVersion(report: Awaited<ReturnType<typeof validateMigration>>) 
       patch.ruleEdits?.some((edit) => edit.rule === 'stripe-api-version')) ||
       ('sdkUpgrade' in patch && isObject(patch.sdkUpgrade) && 'from' in patch.sdkUpgrade))
   );
+}
+
+// What failed on the patch that moved the API version, so the kept draft names it instead of
+// blaming the check command for a stripe-mock, behaviour or signed-event regression.
+function failedEvidence(validation: Awaited<ReturnType<typeof validateMigration>>['validation']) {
+  const regressed = (key: string) => {
+    const evidence: unknown = (validation as Record<string, unknown>)[key];
+    return isObject(evidence) && Array.isArray(evidence.regressions) && evidence.regressions.length;
+  };
+  const baseline = typeErrorKeys(validation.baseline);
+  return {
+    failed: [
+      ...(validation.patched.status !== 'passed' ? ['checks' as const] : []),
+      ...(['generated', 'behaviour', 'signedEvents'] as const).filter(regressed),
+    ],
+    // Positions are left out: the report keeps what the type checker said, not the output.
+    introducedTypeErrors: typeErrors(validation.patched)
+      .filter((error) => !baseline.has(error.key))
+      .slice(0, 20)
+      .map((error) => `${error.file} ${error.code}: ${error.message}`.slice(0, 300)),
+  };
 }
 
 // Checked after the existing-PR lookup, which only publication runs.
@@ -516,7 +538,10 @@ export async function runWorkflow(options: {
         if (error instanceof PipelineInputError) return undefined;
         throw error;
       });
-      if (kept?.validation.status === 'passed' && kept.publicationFiles.length) report = kept;
+      if (kept?.validation.status === 'passed' && kept.publicationFiles.length) {
+        Object.assign(kept.validation, { movedAttempt: failedEvidence(report.validation) });
+        report = kept;
+      }
     }
     runId = report.runId;
     validation = report.validation.status;

@@ -48,6 +48,14 @@ This example describes `new Client({ headers: { version: '1' } })` and `client.r
 
 The built-in Stripe mapping checks both `new Stripe(...)` and its documented callable initialization through supported ESM/CommonJS client modules. It checks constructor argument 1, property `apiVersion`, and request arguments 1 and 2 for optional overloads. Both configuration mechanisms appear in [Stripe's official migration guide](https://github.com/stripe/stripe-node/wiki/Migration-guide-for-v12). Refit does not infer the account default used by older SDKs or the default embedded in newer SDKs.
 
+Where the value comes from, for Stripe (founder decision, 2026-10-28):
+
+- A literal, a `const` alias, or a property of an exported `const` config object in another module is a pin. The patch moves it where it is written.
+- `process.env.NAME ?? '<version>'` (or `||`) is a pin with a repository default. The patch moves the default, and the draft names `NAME`: a value set where the code is deployed still overrides it. Version-dependent request edits, such as the card rename, do not ride on such a pin.
+- `process.env.NAME` with no default is not a hold. The draft names `NAME` and asks you to set it to the target where you deploy.
+- `apiVersion: null` sets no version. stripe-node sends `apiVersion || DEFAULT_API_VERSION`, from 11.18.0 through 23.0.0, so the client is treated like one that omits the option.
+- `export default` config objects and JSON settings files are not read yet, and stay untraced.
+
 ## Read the evidence
 
 `scan.json` and `report.json` include `apiVersion.policy` and `apiVersion.source`:

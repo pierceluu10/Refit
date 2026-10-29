@@ -54,11 +54,25 @@ export function declaredApiVersions(options: {
       return unwrap(expression.expression);
     return expression;
   }
+  // The repository default of `process.env.NAME ?? '2023-10-16'` (or `||`) resolves to its literal;
+  // this records NAME for each such literal, as the deployment environment can override it.
+  const environmentDefaults = new Map<ts.Expression, string>();
   function resolve(
     expression: ts.Expression,
     seen = new Set<ts.Symbol>(),
   ): ts.Expression | undefined {
     const current = unwrap(expression);
+    if (
+      ts.isBinaryExpression(current) &&
+      [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+        current.operatorToken.kind,
+      )
+    ) {
+      const name = environmentVariable(current.left, seen);
+      const value = name ? resolve(current.right, seen) : undefined;
+      if (value && name) environmentDefaults.set(value, name);
+      return value;
+    }
     if (ts.isIdentifier(current)) return resolveBinding(symbol(current), seen);
     if (ts.isPropertyAccessExpression(current)) {
       const result = property(current.expression, [current.name.text], seen);
@@ -98,6 +112,48 @@ export function declaredApiVersions(options: {
   function undefinedValue(expression: ts.Expression) {
     const value = unwrap(expression);
     return ts.isIdentifier(value) && value.text === 'undefined' && !symbol(value)?.valueDeclaration;
+  }
+  // NAME in `process.env.NAME` or `process.env['NAME']`, read directly or through immutable
+  // bindings and properties, where `process` is the global.
+  function environmentVariable(
+    expression: ts.Expression,
+    seen = new Set<ts.Symbol>(),
+  ): string | undefined {
+    const current = unwrap(expression);
+    const name = ts.isPropertyAccessExpression(current)
+      ? current.name.text
+      : ts.isElementAccessExpression(current) && ts.isStringLiteralLike(current.argumentExpression)
+        ? current.argumentExpression.text
+        : undefined;
+    const env =
+      name !== undefined ? unwrap((current as ts.AccessExpression).expression) : undefined;
+    if (
+      env &&
+      ts.isPropertyAccessExpression(env) &&
+      env.name.text === 'env' &&
+      ts.isIdentifier(env.expression) &&
+      env.expression.text === 'process' &&
+      !symbol(env.expression)?.valueDeclaration
+    )
+      return name;
+    if (ts.isIdentifier(current)) {
+      const binding = symbol(current);
+      const declaration = binding?.valueDeclaration;
+      return binding &&
+        !seen.has(binding) &&
+        declaration &&
+        ts.isVariableDeclaration(declaration) &&
+        declaration.initializer &&
+        ts.isVariableDeclarationList(declaration.parent) &&
+        declaration.parent.flags & ts.NodeFlags.Const
+        ? environmentVariable(declaration.initializer, new Set([...seen, binding]))
+        : undefined;
+    }
+    if (ts.isPropertyAccessExpression(current)) {
+      const result = property(current.expression, [current.name.text], seen);
+      return result.status === 'present' ? environmentVariable(result.expression, seen) : undefined;
+    }
+    return undefined;
   }
   function property(
     expression: ts.Expression,
@@ -246,15 +302,29 @@ export function declaredApiVersions(options: {
     status: 'absent' | 'unknown' | 'literal';
     value: string | null;
     node?: ts.Expression;
+    environment?: string;
   } {
     if (!expression || undefinedValue(expression)) return { status: 'absent', value: null };
     const result = property(expression, mapping!.property.split('.'));
     if (result.status !== 'present') return { status: result.status, value: null };
     const value = resolve(result.expression);
+    // stripe-node sends `apiVersion || DEFAULT_API_VERSION` (11.18.0 to 23.0.0), so null is unset.
+    if (
+      options.provider.packageName === 'stripe' &&
+      (value ?? unwrap(result.expression)).kind === ts.SyntaxKind.NullKeyword
+    )
+      return { status: 'absent', value: null };
+    const environment =
+      (value && environmentDefaults.get(value)) ?? environmentVariable(result.expression);
     if (!value || !(ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)))
-      return { status: 'unknown', value: null };
+      return { status: 'unknown', value: null, ...(environment ? { environment } : {}) };
     try {
-      return { status: 'literal', value: validateApiVersion(value.text)!, node: value };
+      return {
+        status: 'literal',
+        value: validateApiVersion(value.text)!,
+        node: value,
+        ...(environment ? { environment } : {}),
+      };
     } catch (error) {
       if (!(error instanceof PipelineInputError)) throw error;
       return { status: 'unknown', value: null };
@@ -360,8 +430,11 @@ export function declaredApiVersions(options: {
             ? 'Literal SDK constructor API-version option.'
             : hatch && !unresolved
               ? 'setApiVersion, a write to the private _api field or a raw Stripe-Version header elsewhere in the repository can change the version this client sends.'
-              : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
+              : result.environment && !uncertain
+                ? `Constructor version comes only from the deployment environment variable ${result.environment}.`
+                : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
         ...(result.status === 'absent' && !uncertain ? { absent: true as const } : {}),
+        ...(result.environment && !uncertain ? { environment: result.environment } : {}),
         ...endpoint(result.node),
       });
     }
@@ -384,6 +457,7 @@ export function declaredApiVersions(options: {
         value: result.value,
         status: 'literal',
         reason: 'Literal per-request API-version override.',
+        ...(result.environment ? { environment: result.environment } : {}),
         ...endpoint(result.node),
       });
     }

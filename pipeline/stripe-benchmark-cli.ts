@@ -751,6 +751,8 @@ async function benchmark(entry: Selected, index: number) {
         patched: report.validation?.patched?.error,
       },
       checkFailures: report.validation?.checkFailures,
+      // Why an api-version-kept row kept its pins (workflow.ts).
+      movedAttempt: report.validation?.movedAttempt,
       timings: report.validation?.timings,
       ...(report.validation?.compareTypeErrors && report.validation?.patched
         ? {

@@ -3,6 +3,28 @@
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 
 An untraced call no longer blocks an operation the adapter does not map when it is known to request another operation, is a local webhook helper or sets up a test double ([census](MINED-RULES.md#rule-coverage-census-2026-10-28-branch-featrule-coverage)). New endive rules send `billing_cycle_anchor: 'now'`/`'unchanged'` on subscription update and resume as `{ type: … }`, as Stripe's changelog documents (`request-enum-value` with `discriminator`). The benchmark attaches the changelog pages that name a reached contract change to AI coverage requests. Measured offline only (scan without validation): heldout-30 moves MeiyuTech/AET-App from held to fixed; no benchmark was run.
+## October 28 checkpoint: API versions from the environment and kept pins explained (unreleased, after 0.39.0)
+
+Founder decision (Otabek, 2026-10-28): needs review means no proof, or a real problem Refit could not fix.
+
+- **Environment variables.** A pin read as `process.env.NAME ?? '<version>'` moves like a literal pin, and the draft names the variable. That holds when the pin is read directly, through a constant, or through a config object. A version only the environment sets is no longer an `api-version-untraced` hold. It becomes a draft note and a checklist item naming the variable.
+  - The card rename and other version-dependent request edits still stop on such a client, because a deployed value can override the default.
+  - Enrollment still never generates a configuration from a version behind a variable (P3).
+- **`apiVersion: null`.** It counts as an unset option. stripe-node 11.18.0 through 23.0.0 send `apiVersion || DEFAULT_API_VERSION`.
+- **Kept pins.** When the moved-version patch fails and the retry keeps the pins, the report records `validation.movedAttempt`: which evidence failed and the type errors it introduced. The benchmark's results.json shows the same field. The `api-version-kept` reason names the failing evidence instead of always naming the check command.
+- **Webhooks.** When the generated helpers migrated every webhook read, the draft lists setting the endpoint's version as a deploy step. Unmigrated webhook reads still hold.
+- **Not covered.** JSON settings files and `export default` config objects are not read.
+- **Tests.** `pipeline/version-tracing.test.ts`.
+- **Offline replay** of the 12 rows these gates held:
+  - Sources: heldout-30 run 40780686585 and `l4-lockfile-resolution` run 40734300846. The scan was rerun with the saved contracts against `bench/combined-final` 66267102 and this branch.
+  - One row changes: horizon-ui/shadcn-nextjs-boilerplate (`apiVersion: null`) loses `api-version-untraced`. Its patch now upgrades stripe-node from 15.8.0 to 23.0.0, so the saved validation does not cover it.
+  - A type-only hand check against stripe 23's types finds 10 new errors on that patch: open-enum `OtherString` assignments to Supabase enum columns, and a TS2538 index. It will most likely fall back to `api-version-kept` until those are repaired, so it is not a confirmed flip.
+  - The other 11 rows keep their API-version gates, and every one of them has other holds.
+  - Rows held by `api-version-untraced` were checked by hand: none used an environment default, a shared constant or a settings file.
+  - For the kept rows:
+    - minhthuong031103/RealEstateBrokerageMarket fails on `Product.features`, an untraced read through `sort`/`map`. That is a real incompatibility.
+    - Five other rows type-check cleanly in a sandbox with the moved pin and stripe 23. Their keep likely came from stripe-mock or signed-event regressions, which `movedAttempt` will show in the next combined run.
+    - blefnk is the bun-only, upgrade-refused branch.
 
 ## October 28 checkpoint: proof decides, not caution (unreleased, after 0.39.0)
 
