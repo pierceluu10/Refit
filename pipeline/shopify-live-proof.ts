@@ -14,8 +14,12 @@ import { isObject } from './specifications.ts';
 
 export const SHOPIFY_STORE_VARIABLE = 'SHOPIFY_TEST_STORE';
 export const SHOPIFY_TOKEN_VARIABLE = 'SHOPIFY_TEST_TOKEN';
+export const SHOPIFY_CLIENT_ID_VARIABLE = 'SHOPIFY_TEST_CLIENT_ID';
+export const SHOPIFY_CLIENT_SECRET_VARIABLE = 'SHOPIFY_TEST_CLIENT_SECRET';
 const STORE = /^[a-z0-9][a-z0-9-]{0,62}\.myshopify\.com$/;
 const TOKEN = /^shp[a-z]{2}_[A-Za-z0-9]{20,64}$/;
+// A granted token or a client credential: printable, no whitespace or quotes.
+const CREDENTIAL = /^[A-Za-z0-9_.-]{16,256}$/;
 const GLOBAL_ID = /gid:\/\/shopify\/[A-Za-z]+\/[^\s"']+/;
 const MAX_ERROR = 200;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -28,27 +32,79 @@ export interface ShopifyTestStore {
   token: string;
 }
 
-// Reads the test store from the environment. The refusal names the check that failed, never any part
-// of the value.
+export type ShopifyTestStoreSettings =
+  ShopifyTestStore | { store: string; clientId: string; clientSecret: string };
+
+// Reads the test store from the environment: a ready Admin API token (SHOPIFY_TEST_TOKEN), else a
+// Dev Dashboard app's client credentials, exchanged at run time (shopifyAccessToken). The refusal
+// names the check that failed, never any part of a value.
 export function shopifyTestStore(
   environment: Record<string, string | undefined>,
-): ShopifyTestStore | { refused: string } | undefined {
+): ShopifyTestStoreSettings | { refused: string } | undefined {
   const store = environment[SHOPIFY_STORE_VARIABLE]?.trim();
   const token = environment[SHOPIFY_TOKEN_VARIABLE]?.trim();
-  if (!store && !token) return undefined;
-  if (!store || !token)
+  const clientId = environment[SHOPIFY_CLIENT_ID_VARIABLE]?.trim();
+  const clientSecret = environment[SHOPIFY_CLIENT_SECRET_VARIABLE]?.trim();
+  if (!store && !token && !clientId && !clientSecret) return undefined;
+  if (!store || !(token || (clientId && clientSecret)))
     return {
-      refused: `Live Shopify proof needs both ${SHOPIFY_STORE_VARIABLE} and ${SHOPIFY_TOKEN_VARIABLE}.`,
+      refused: `Live Shopify proof needs ${SHOPIFY_STORE_VARIABLE} and either ${SHOPIFY_TOKEN_VARIABLE} or both ${SHOPIFY_CLIENT_ID_VARIABLE} and ${SHOPIFY_CLIENT_SECRET_VARIABLE}.`,
     };
   if (!STORE.test(store))
     return {
       refused: `${SHOPIFY_STORE_VARIABLE} must be a bare <name>.myshopify.com domain (${store.length} characters given).`,
     };
-  if (!TOKEN.test(token))
+  if (token)
+    return TOKEN.test(token)
+      ? { store, token }
+      : {
+          refused: `${SHOPIFY_TOKEN_VARIABLE} does not have the shape of a Shopify Admin API access token (${token.length} characters given).`,
+        };
+  const malformed = [
+    [SHOPIFY_CLIENT_ID_VARIABLE, clientId!],
+    [SHOPIFY_CLIENT_SECRET_VARIABLE, clientSecret!],
+  ].find(([, value]) => !CREDENTIAL.test(value));
+  if (malformed)
     return {
-      refused: `${SHOPIFY_TOKEN_VARIABLE} does not have the shape of a Shopify Admin API access token (${token.length} characters given).`,
+      refused: `${malformed[0]} holds characters other than letters, digits, dots, dashes and underscores, or has the wrong length (${malformed[1].length} characters given).`,
     };
-  return { store, token };
+  return { store, clientId: clientId!, clientSecret: clientSecret! };
+}
+
+// The client credentials grant (shopify.dev/docs/apps/build/authentication-authorization/
+// access-tokens/client-credentials-grant, read 2026-10-29): a Dev Dashboard app installed on a store
+// in its own organization gets a 24-hour Admin API token with the scopes the installation granted
+// (no scope parameter is sent). Errors carry only Shopify's error code, never the secret or token.
+export async function shopifyAccessToken(
+  settings: ShopifyTestStoreSettings,
+  send: typeof fetch = fetch,
+): Promise<ShopifyTestStore | { refused: string }> {
+  if ('token' in settings) return settings;
+  try {
+    const response = await send(`https://${settings.store}/admin/oauth/access_token`, {
+      method: 'POST',
+      redirect: 'error',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: settings.clientId,
+        client_secret: settings.clientSecret,
+      }).toString(),
+    });
+    const body: unknown = await response.json().catch(() => ({}));
+    const token = isObject(body) ? body.access_token : undefined;
+    if (response.ok && typeof token === 'string' && CREDENTIAL.test(token))
+      return { store: settings.store, token };
+    const code = isObject(body) && typeof body.error === 'string' ? body.error : '';
+    return {
+      refused: `The client credentials grant returned HTTP ${response.status}${/^[a-z_]{1,40}$/.test(code) ? ` (${code})` : ''}; it works only for a Dev Dashboard app installed on a store in the app's own organization.`,
+    };
+  } catch (error) {
+    return {
+      refused: `The client credentials grant could not reach the store (${error instanceof Error ? error.name : 'error'}).`,
+    };
+  }
 }
 
 // A reference to a value an earlier step of the same case returned, such as

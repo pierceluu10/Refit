@@ -9,7 +9,8 @@ vi.mock('./openai.ts', async (load) => ({
 }));
 
 const { shopifyGrade, shopifyProof, shopifySchemaProof } = await import('./shopify-proof.ts');
-const { liveShopifyProof, shopifyTestStore } = await import('./shopify-live-proof.ts');
+const { liveShopifyProof, shopifyAccessToken, shopifyTestStore } =
+  await import('./shopify-live-proof.ts');
 
 // An Admin-like schema per version: `legacyCode` is removed, `publishedAt` changes type, the
 // `ProductInput` gains a required field and `ProductStatus` gains a value in the after version.
@@ -426,4 +427,38 @@ it('grades D when the development store shows the document breaks, and catches a
       after: { version: '2026-10', schema: schema(false) },
     }).failures[0].text,
   ).toBe('Page.first loses its default and is required');
+});
+
+it('prefers a ready token and otherwise exchanges client credentials without leaking them', async () => {
+  const secret = 'shpss_0123456789abcdef0123456789abcdef';
+  const environment = {
+    SHOPIFY_TEST_STORE: 'refit-dev.myshopify.com',
+    SHOPIFY_TEST_CLIENT_ID: 'client0123456789abcdef',
+    SHOPIFY_TEST_CLIENT_SECRET: secret,
+  };
+  expect(shopifyTestStore({ ...environment, SHOPIFY_TEST_TOKEN: TOKEN })).toEqual(store);
+  const settings = shopifyTestStore(environment)!;
+  expect(settings).toMatchObject({ store: 'refit-dev.myshopify.com', clientSecret: secret });
+  const requests: { url: string; init: RequestInit }[] = [];
+  const grant = (status: number, body: unknown) =>
+    (async (url: string, init: RequestInit) => {
+      requests.push({ url, init });
+      return new Response(JSON.stringify(body), { status });
+    }) as unknown as typeof globalThis.fetch;
+  if ('refused' in settings) throw new Error('refused');
+  expect(
+    await shopifyAccessToken(
+      settings,
+      grant(200, { access_token: TOKEN, scope: 'read_products', expires_in: 86399 }),
+    ),
+  ).toEqual(store);
+  expect(requests[0].url).toBe('https://refit-dev.myshopify.com/admin/oauth/access_token');
+  expect(Object.fromEntries(new URLSearchParams(String(requests[0].init.body)))).toEqual({
+    grant_type: 'client_credentials',
+    client_id: 'client0123456789abcdef',
+    client_secret: secret,
+  });
+  const refused = await shopifyAccessToken(settings, grant(400, { error: 'shop_not_permitted' }));
+  expect(refused).toEqual({ refused: expect.stringContaining('shop_not_permitted') });
+  expect(JSON.stringify(refused)).not.toContain(secret);
 });

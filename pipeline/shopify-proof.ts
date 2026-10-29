@@ -29,6 +29,7 @@ import {
 import {
   liveShopifyProof,
   needsCase,
+  shopifyAccessToken,
   shopifyTestStore,
   type ShopifyLiveProof,
 } from './shopify-live-proof.ts';
@@ -392,6 +393,9 @@ export async function shopifyProof(options: {
       created: [],
     };
   else if (store) {
+    const resolved = await shopifyAccessToken(store, options.fetch);
+    if ('refused' in resolved)
+      return finish({ status: 'not-run', reason: resolved.refused, operations: [], created: [] });
     const skipped = new Set(schema.otherApi);
     const documents = scans.patched.documents
       .filter((document) => !skipped.has(documentId(document)))
@@ -417,34 +421,38 @@ export async function shopifyProof(options: {
         : undefined;
     liveCases = written?.record;
     live = await liveShopifyProof({
-      store,
+      store: resolved,
       versions,
       documents,
       cases: written?.cases,
       fetch: options.fetch,
     });
   }
-  const review = options.ai
-    ? await reviewShopifyPatch({
-        ai: options.ai,
-        diff: options.diff,
-        summary: options.summary,
-        versions,
-        schemaProof: schema,
-        warnings: options.warnings,
-      })
-    : undefined;
-  const costs = [liveCases?.costUsd, review?.costUsd].filter(
-    (value): value is number => typeof value === 'number',
-  );
-  return {
-    grade: shopifyGrade(options.own, schema, live),
-    record: {
-      schema,
-      ...(live ? { live } : {}),
-      ...(liveCases ? { liveCases } : {}),
-      ...(review ? { review } : {}),
-      ...(options.ai ? { aiCostUsd: costs.reduce((sum, value) => sum + value, 0) } : {}),
-    },
-  };
+  return finish(live);
+
+  async function finish(live: ShopifyLiveProof | undefined) {
+    const review = options.ai
+      ? await reviewShopifyPatch({
+          ai: options.ai,
+          diff: options.diff,
+          summary: options.summary,
+          versions,
+          schemaProof: schema,
+          warnings: options.warnings,
+        })
+      : undefined;
+    const costs = [liveCases?.costUsd, review?.costUsd].filter(
+      (value): value is number => typeof value === 'number',
+    );
+    return {
+      grade: shopifyGrade(options.own, schema, live),
+      record: {
+        schema,
+        ...(live ? { live } : {}),
+        ...(liveCases ? { liveCases } : {}),
+        ...(review ? { review } : {}),
+        ...(options.ai ? { aiCostUsd: costs.reduce((sum, value) => sum + value, 0) } : {}),
+      },
+    };
+  }
 }
