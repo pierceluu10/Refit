@@ -30,13 +30,17 @@
       "provider": "openai",
       "model": "gpt-5-codex-mini",
       "api": "chat.completions",
-      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
+      "reason": "The smallest request returned HTTP 404 on 2026-10-29.",
+      "status": 404,
+      "run": "https://github.com/refit-dev/refit-bench/actions/runs/40940798473"
     },
     {
       "provider": "openai",
       "model": "gpt-5-codex-mini",
       "api": "responses",
-      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
+      "reason": "The smallest request returned HTTP 404 on 2026-10-29.",
+      "status": 404,
+      "run": "https://github.com/refit-dev/refit-bench/actions/runs/40940798473"
     },
     {
       "provider": "openai",

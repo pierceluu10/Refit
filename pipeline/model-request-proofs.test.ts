@@ -5,6 +5,7 @@ import {
   proofApi,
   requestProof,
   type RequestProofTable,
+  unavailableTargets,
 } from './model-request-proofs.ts';
 
 const table: RequestProofTable = {
@@ -80,6 +81,56 @@ describe('checkRequestProofs', () => {
       'proof 1: run must be a refit-bench Actions run URL.',
       'pending 0: reason is required.',
     ]);
+  });
+});
+
+describe('unavailableTargets', () => {
+  const run = 'https://github.com/refit-dev/refit-bench/actions/runs/40940798473';
+  const missing = {
+    provider: 'openai' as const,
+    model: 'gpt-5-codex-mini',
+    api: 'responses' as const,
+    reason: 'The smallest request returned HTTP 404 on 2026-10-29.',
+    status: 404,
+    run,
+  };
+
+  it('lists only targets a proof got HTTP 404 for, with the run', () => {
+    const value = {
+      ...table,
+      pending: [
+        ...table.pending,
+        missing,
+        { ...missing, api: 'chat.completions' as const, status: 500 },
+      ],
+    };
+    expect(checkRequestProofs(value).errors).toEqual([]);
+    expect(unavailableTargets(value)).toEqual([
+      { provider: 'openai', model: 'gpt-5-codex-mini', api: 'responses', run },
+    ]);
+  });
+
+  it('requires an HTTP status and a refit-bench run together', () => {
+    const value = {
+      ...table,
+      pending: [
+        { ...missing, run: undefined },
+        { ...missing, api: 'chat.completions', status: 4040 },
+      ],
+    };
+    expect(checkRequestProofs(value).errors).toEqual([
+      'pending 0: status needs an HTTP status and the refit-bench run that got it.',
+      'pending 1: status needs an HTTP status and the refit-bench run that got it.',
+    ]);
+  });
+
+  it('flags gpt-5-codex-mini in the shipped table on both APIs', async () => {
+    expect(
+      unavailableTargets(await loadRequestProofs())
+        .filter((item) => item.model === 'gpt-5-codex-mini')
+        .map((item) => item.api)
+        .sort(),
+    ).toEqual(['chat.completions', 'responses']);
   });
 });
 
