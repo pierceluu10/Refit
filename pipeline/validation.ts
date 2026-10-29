@@ -31,6 +31,8 @@ import {
 } from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
+import { shopifyProof } from './shopify-proof.ts';
+import { shopifySchema } from './shopify-schemas.ts';
 import {
   apiVersionSourceBlocked,
   compareApiVersion,
@@ -3328,6 +3330,33 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
+    // docs/SHOPIFY-PROOF.md: a Shopify patch is graded by its proof, the documents validated
+    // against the target schema (and the dev store when configured); the checks' grade counts only
+    // with that proof. The AI second opinion is recorded and never changes the grade.
+    const shopify =
+      report.provider === SHOPIFY.id && candidateSources && validationStatus !== 'stale'
+        ? await timed('shopifyProof', () =>
+            shopifyProof({
+              original: originalSources,
+              patched: candidateSources!,
+              before: {
+                version: report.apiVersion.before ?? '',
+                schema: shopifySchema(String(beforeSpecification.document.graphqlIntrospection)),
+              },
+              after: {
+                version: report.apiVersion.after ?? '',
+                schema: shopifySchema(String(afterSpecification.document.graphqlIntrospection)),
+              },
+              own: grade,
+              regression: validationStatus === 'regression',
+              diff: proposal.diff,
+              summary: 'summary' in proposal ? String(proposal.summary) : '',
+              warnings: 'warnings' in proposal ? (proposal.warnings as string[]) : [],
+              ai: options.assessment ?? options.aiPatch,
+              environment: process.env,
+            }),
+          )
+        : undefined;
     const typeOracle = await runTypeOracle({
       compareTypeErrors: options.compareTypeErrors,
       command: options.command,
@@ -3485,7 +3514,8 @@ export async function validateMigration(options: {
       ...(written ? { behaviourTestWriter: written.record } : {}),
       ...(behaviour ? { behaviour } : {}),
       ...(signedEvents ? { signedEvents } : {}),
-      ...(grade ? { grade } : {}),
+      ...(shopify ? { grade: shopify.grade } : grade ? { grade } : {}),
+      ...(shopify ? { shopifyProof: shopify.record } : {}),
       attempts,
       repair,
       ...(options.aiPatch ? { aiCostUsd } : {}),
